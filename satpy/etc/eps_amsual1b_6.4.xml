@@ -1,0 +1,896 @@
+<?xml version="1.0"?>
+<!DOCTYPE format SYSTEM "eps.dtd">
+<?xml-stylesheet type="text/xsl" href="eps.xsl"?>
+
+
+<!--
+    File: eps_amsual1b_6.4.xml
+
+    Copyright (c) 2004, 2005 Eumetsat
+    
+    This file is part of the EPSXML format specification generated 
+    automatically using pfs2xml.
+    
+    This XML description is distributed under the GPL license; you can
+    redistribute it and/or modify it under the terms of the GNU General
+    Public License as published by the Free Software Foundation; either
+    version 2 of the License, or (at your option) any later version.
+    
+    This XML description is distributed in the hope that it will be 
+    useful, but WITHOUT ANY WARRANTY; without even the implied warranty
+    of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+    
+    You should have received a copy of the GNU General Public License
+    along with the pfs2xml package; if not, write to the Free Software
+    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+-->
+
+
+<format>
+
+
+<version-control>
+    <format-version>
+        <major>3</major><minor>0</minor>
+	<baseline>april04</baseline>
+    </format-version>
+    <format-version>
+        <major>4</major><minor>0</minor>
+	<baseline>nov05</baseline>
+    </format-version>
+    <format-version>
+        <major>10</major><minor>0</minor>
+	<baseline>launch</baseline>
+	<baseline>current</baseline>
+    </format-version>
+    <pfs-version>
+        <major>6</major><minor>4</minor>
+    </pfs-version>
+</version-control>
+
+
+<brief-description>EPS AMSU-A Level 1B Format</brief-description>
+
+
+<full-description>
+    This AMSU-A 1B description was generated using the AMSU-A PFS Excel document Issue 6 Revision 4 (eps_amsual1_6.4_names_masks.xls) and pfs2xml version 3.3
+</full-description>
+
+
+<file-extensions>
+    <glob>AMSA_*1B_*Z*</glob>
+</file-extensions>
+
+
+<geolocation>
+    <name>Geolocation</name>
+    <description>AMSU-A Geolocation Coverage (Latitude, Longitude)</description>
+    <latitude>mdr-1b[].EARTH_LOCATION[][0]</latitude>
+    <longitude>mdr-1b[].EARTH_LOCATION[][1]</longitude>
+</geolocation>
+
+
+<image>
+    <parameter>
+        <name>CHANNEL</name>
+        <label>Channel Number</label>
+    </parameter>
+    <name>Scene Radiance</name>
+    <description>AMSU-A Scene Radiance</description>
+    <source>mdr-1b[].SCENE_RADIANCE[][$CHANNEL]</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Surface Properties</name>
+    <description>AMSU-A Surface Properties (0 = water, 1 = mixed/coast, 2 = land)</description>
+    <source>mdr-1b[].SURFACE_PROPERTIES[]</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<image>
+    <name>Terrain Elevation</name>
+    <description>AMSU-A Average terrain elevation</description>
+    <source>mdr-1b[].TERRAIN_ELEVATION[]</source>
+    <geolocation>Geolocation</geolocation>
+</image>
+
+
+<protocol>eps-product</protocol>
+
+
+<product name="AMSUA-1B" version="Issue 6 Revision 4">
+
+
+
+    <mphr name="mphr" subclass="0" version="2" description="Main Product Header Record ">
+        <delimiter name="Product Details"/>
+        <field name="PRODUCT_NAME" type="string" length="67" description="Complete name of the product"/>
+        <field name="PARENT_PRODUCT_NAME_1" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products, this field is filled with lower case x's."/>
+        <field name="PARENT_PRODUCT_NAME_2" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x's."/>
+        <field name="PARENT_PRODUCT_NAME_3" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x's."/>
+        <field name="PARENT_PRODUCT_NAME_4" type="string" length="67" description="Name of the parent product from which this product has been produced. For Level 0 products or products for which this is not appropriate, this field is filled with lower case x's."/>
+        <field name="INSTRUMENT_ID" type="enumerated" length="4" description="Instrument identification">
+            <item value="AMSA" name="AMSU-A"/>
+            <item value="ASCA" name="ASCAT"/>
+            <item value="ATOV" name="ATOVS" description="instruments: AVHRR/3, HIRS/4, AMSU-A, MHS"/>
+            <item value="AVHR" name="AVHRR/3"/>
+            <item value="GOME" name="GOME"/>
+            <item value="GRAS" name="GRAS"/>
+            <item value="HIRS" name="HIRS/4"/>
+            <item value="IASI" name="IASI"/>
+            <item value="MHSx" name="MHS"/>
+            <item value="NOAA" name="All NOAA" description="instruments specific to Level 0 NOAA product"/>
+            <item value="SEMx" name="SEM"/>
+            <item value="ADCS" name="ADCS"/>
+            <item value="SBUV" name="SBUV"/>
+            <item value="xxxx" name="No specific instrument"/>
+            <item value="HKTM" name="VCDU34" description="data specific to Level 0"/>
+        </field>
+        <field name="INSTRUMENT_MODEL" type="enumerated" length="3" description="Instrument Model identification">
+            <item value="0" name="Reserved"/>
+            <item value="1" name="Flight Model 1"/>
+            <item value="2" name="Flight Model 2"/>
+            <item value="3" name="Engineering Model"/>
+            <item value="4" name="Protoflight Model"/>
+        </field>
+        <field name="PRODUCT_TYPE" type="enumerated" length="3" description="Product Type">
+            <item value="ENG" description="IASI engineering data"/>
+            <item value="GAC" description="NOAC Global Area Coverage AVHRR data"/>
+            <item value="SND" description="Sounding Data"/>
+            <item value="SZF" description="ASCAT calibrated s0 data at full resolution"/>
+            <item value="SZO" description="ASCAT calibrated s0 data at operational resolution (50 km)"/>
+            <item value="SZR" description="ASCAT calibrated s0 data at research resolution (25 km)"/>
+            <item value="VER" description="IASI verification data"/>
+            <item value="xxx" description="No specific product type specified"/>
+            <item value="AIP" description="NOAA AIP/SAIP data"/>
+            <item value="TIP" description="NOAA TIP/STIP data"/>
+            <item value="HRP" description="HRPT data"/>
+            <item value="LRP" description="LRPT data"/>
+        </field>
+        <field name="PROCESSING_LEVEL" type="enumerated" length="2" description="Processing Level Identification">
+            <item value="00" name="Level 0"/>
+            <item value="01" name="Level 1"/>
+            <item value="1A" name="Level 1a"/>
+            <item value="1B" name="Level 1b"/>
+            <item value="1C" name="Level 1c"/>
+            <item value="02" name="Level 2"/>
+            <item value="03" name="Level 3"/>
+            <item value="xx" name="No Specific Level"/>
+        </field>
+        <field name="SPACECRAFT_ID" type="enumerated" length="3" description="Spacecraft identification">
+            <item value="xxx" description="No specific spacecraft"/>
+            <item value="M01" description="METOP 01"/>
+            <item value="M02" description="METOP 02"/>
+            <item value="M02" description="METOP 03"/>
+            <item value="N15" description="NOAA-K"/>
+            <item value="N16" description="NOAA-L"/>
+            <item value="N17" description="NOAA-M"/>
+            <item value="N18" description="NOAA-N"/>
+            <item value="N19" description="NOAA-N'"/>
+        </field>
+        <field name="SENSING_START" type="time" length="15" description="UTC Time of start of sensing data in this object (PDU, ROI or Full Product)"/>
+        <field name="SENSING_END" type="time" length="15" description="UTC Time of end of sensing data in this object (PDU, ROI or Full Product)"/>
+        <field name="SENSING_START_THEORETICAL" type="time" length="15" description="Theoretical UTC Time of start of sensing data in the dump from which this object is derived. This data is the predicted start time at the MPF level."/>
+        <field name="SENSING_END_THEORETICAL" type="time" length="15" description="Theoretical UTC Time of end of sensing data in the dump from which this object is derived. This data is the predicted end time at the MPF level."/>
+        <field name="PROCESSING_CENTRE" type="enumerated" length="4" description="Processing Centre Identification">
+            <item value="CGS1" description="First EUMETSAT EPS Core Ground Segment"/>
+            <item value="CGS2" description="Second EUMETSAT EPS Core Ground Segment"/>
+            <item value="CGS3" description="Third EUMETSAT EPS Core Ground Segment"/>
+            <item value="NSSx" description="NOAA/NESDIS"/>
+            <item value="RUSx" description="Reference User Station"/>
+            <item value="DMIx" description="DMI, Copenhagen (GRAS SAF)"/>
+            <item value="DWDx" description="DWD, Offenbach (Climate SAF)"/>
+            <item value="FMIx" description="FMI , Helsinki (Ozone SAF)"/>
+            <item value="IMPx" description="IMP, Lisbon  (Land SAF)"/>
+            <item value="INMx" description="INM, Madrid (NCW SAF)"/>
+            <item value="MFxx" description="MF, Lannion (OSI SAF)"/>
+            <item value="UKMO" description="UKMO, Bracknell (NWP SAF)"/>
+        </field>
+        <field name="PROCESSOR_MAJOR_VERSION" type="uinteger" length="5" description="Processing chain major version number"/>
+        <field name="PROCESSOR_MINOR_VERSION" type="uinteger" length="5" description="Processing chain minor version number"/>
+        <field name="FORMAT_MAJOR_VERSION" type="uinteger" length="5" description="Dataset Format Major Version number"/>
+        <field name="FORMAT_MINOR_VERSION" type="uinteger" length="5" description="Dataset Format Minor Version number"/>
+        <field name="PROCESSING_TIME_START" type="time" length="15" description="UTC time of the processing at start of processing for the product"/>
+        <field name="PROCESSING_TIME_END" type="time" length="15" description="UTC time of the processing at end of processing for the product"/>
+        <field name="PROCESSING_MODE" type="enumerated" length="1" description="Identification of the mode of processing">
+            <item value="N" name="Nominal" description="NRT processing"/>
+            <item value="B" name="Backlog Processing"/>
+            <item value="R" name="Reprocessing"/>
+            <item value="V" name="Validation"/>
+        </field>
+        <field name="DISPOSITION_MODE" type="enumerated" length="1" description="Identification of the diposition mode">
+            <item value="T" name="Testing"/>
+            <item value="O" name="Operational"/>
+            <item value="C" name="Commissioning"/>
+        </field>
+        <field name="RECEIVING_GROUND_STATION" type="enumerated" length="3" description="Acquisition Station Identification">
+            <item value="SVL" description="Svalbard"/>
+            <item value="WAL" description="Wallops Island, Virginia"/>
+            <item value="FBK" description="Fairbanks, Alaska"/>
+            <item value="SOC" description="SOCC (NESDIS Satellite Operations Control Centre), Suitland, Maryland"/>
+            <item value="RUS" description="Reference User Station"/>
+        </field>
+        <field name="RECEIVE_TIME_START" type="time" length="15" description="UTC time of the reception at CDA for first Data Item"/>
+        <field name="RECEIVE_TIME_END" type="time" length="15" description="UTC time of the reception at CDA for last Data Item"/>
+        <field name="ORBIT_START" type="uinteger" length="5" description="Start Orbit Number, counted incrementally since launch"/>
+        <field name="ORBIT_END" type="uinteger" length="5" description="Stop Orbit Number"/>
+        <field name="ACTUAL_PRODUCT_SIZE" type="uinteger" length="11" units="bytes" description="Size of the complete product"/>
+        <delimiter name="ASCENDING NODE ORBIT PARAMETERS"/>
+        <field name="STATE_VECTOR_TIME" type="longtime" length="18" units="UTC" description="Epoch time (in UTC) of the orbital elements and the orbit state vector. this corresponds to the time of crossing the ascending node for ORBIT_START"/>
+        <field name="SEMI_MAJOR_AXIS" type="integer" length="11" units="mm" description="Semi major axis of orbit at time of the ascending node crossing."/>
+        <field name="ECCENTRICITY" type="integer" length="11" scaling-factor="10^6" description="Orbit eccentricity at time of the ascending node crossing"/>
+        <field name="INCLINATION" type="integer" length="11" scaling-factor="10^3" units="deg" description="Orbit inclination at time of the ascending node crossing"/>
+        <field name="PERIGEE_ARGUMENT" type="integer" length="11" scaling-factor="10^3" units="deg" description="Argument of perigee at time of the ascending node crossing"/>
+        <field name="RIGHT_ASCENSION" type="integer" length="11" scaling-factor="10^3" units="deg" description="Right ascension at time of the ascending node crossing"/>
+        <field name="MEAN_ANOMALY" type="integer" length="11" scaling-factor="10^3" units="deg" description="Mean anomaly at time of the ascending node crossing"/>
+        <field name="X_POSITION" type="integer" length="11" scaling-factor="10^3" units="m" description="X position of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="Y_POSITION" type="integer" length="11" scaling-factor="10^3" units="m" description="Y position of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="Z_POSITION" type="integer" length="11" scaling-factor="10^3" units="m" description="Z position of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="X_VELOCITY" type="integer" length="11" scaling-factor="10^3" units="m/s" description="X velocity of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="Y_VELOCITY" type="integer" length="11" scaling-factor="10^3" units="m/s" description="Y velocity of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="Z_VELOCITY" type="integer" length="11" scaling-factor="10^3" units="m/s" description="Z velocity of the orbit state vector in the orbit frame at ascending node"/>
+        <field name="EARTH_SUN_DISTANCE_RATIO" type="integer" length="11" description="Earth-Sun distance ratio - ratio of current Eart-Sun distance to Mean Earth-Sun distance"/>
+        <field name="LOCATION_TOLERANCE_RADIAL" type="integer" length="11" units="m" description="Nadir Earth location tolerance radial"/>
+        <field name="LOCATION_TOLERANCE_CROSSTRACK" type="integer" length="11" units="m" description="Nadir Earth location tolerance cross-track"/>
+        <field name="LOCATION_TOLERANCE_ALONGTRACK" type="integer" length="11" units="m" description="Nadir Earth location tolerance along-track"/>
+        <field name="YAW_ERROR" type="integer" length="11" scaling-factor="10^3" units="deg" description="Constant Yaw attitude error"/>
+        <field name="ROLL_ERROR" type="integer" length="11" scaling-factor="10^3" units="deg" description="Constant Roll attitude error"/>
+        <field name="PITCH_ERROR" type="integer" length="11" scaling-factor="10^3" units="deg" description="Constant Pitch attitude error"/>
+        <delimiter name="LOCATION SUMMARY"/>
+        <field name="SUBSAT_LATITUDE_START" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Latitude of sub-satellite point at start of the data set"/>
+        <field name="SUBSAT_LONGITUDE_START" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Longitude of sub-satellite point at start of the data set"/>
+        <field name="SUBSAT_LATITUDE_END" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Latitude of sub-satellite point at end of the data set"/>
+        <field name="SUBSAT_LONGITUDE_END" type="integer" length="11" scaling-factor="10^3" units="Deg" description="Longitude of sub-satellite point at end of the data set"/>
+        <delimiter name="Leap Second Information"/>
+        <field name="LEAP_SECOND" type="integer" length="2" description="Occurence of Leap second within the product. Field is set to -1, 0 or +1 dependent upon occurrence of leap second and direction."/>
+        <field name="LEAP_SECOND_UTC" type="time" length="15" description="UTC time of occurrence of the Leap Second (If no leap second in the product, value is null)"/>
+        <delimiter name="Record counts"/>
+        <field name="TOTAL_RECORDS" type="uinteger" length="6" description="Total count of all records in the product"/>
+        <field name="TOTAL_MPHR" type="uinteger" length="6" description="Total count of all MPHRs in product (should always be 1!)"/>
+        <field name="TOTAL_SPHR" type="uinteger" length="6" description="Total count of all SPHRs in product (should be 0 or 1 only)"/>
+        <field name="TOTAL_IPR" type="uinteger" length="6" description="Total count of all IPRs in the product"/>
+        <field name="TOTAL_GEADR" type="uinteger" length="6" description="Total count of all GEADRs in the product"/>
+        <field name="TOTAL_GIADR" type="uinteger" length="6" description="Total count of all GIADRs in the product"/>
+        <field name="TOTAL_VEADR" type="uinteger" length="6" description="Total count of all VEADRs in the product"/>
+        <field name="TOTAL_VIADR" type="uinteger" length="6" description="Total count of all VIADRs in the product"/>
+        <field name="TOTAL_MDR" type="uinteger" length="6" description="Total count of all MDRs in the product"/>
+        <delimiter name="Record Based Generic Quality Flags"/>
+        <field name="COUNT_DEGRADED_INST_MDR" type="uinteger" length="6" description="Count of MDRs with degradation due to instrument problems"/>
+        <field name="COUNT_DEGRADED_PROC_MDR" type="uinteger" length="6" description="Count of MDRs with degradation due to processing problems"/>
+        <field name="COUNT_DEGRADED_INST_MDR_BLOCKS" type="uinteger" length="6" description="Count of the number of blocks of MDRs degraded due to degraded instrument"/>
+        <field name="COUNT_DEGRADED_PROC_MDR_BLOCKS" type="uinteger" length="6" description="Count of the number of blocks of MDRs degraded due to degraded processing"/>
+        <delimiter name="Time Based Generic Quality Flags"/>
+        <field name="DURATION_OF_PRODUCT" type="uinteger" length="8" units="ms" description="The duration of the product in milliseconds"/>
+        <field name="MILLISECONDS_OF_DATA_PRESENT" type="uinteger" length="8" units="ms" description="The total amount of data present in the product"/>
+        <field name="MILLISECONDS_OF_DATA_MISSING" type="uinteger" length="8" units="ms" description="The total amount of data missing from the prodcut"/>
+        <delimiter name="Regional Product Information"/>
+        <field name="SUBSETTED_PRODUCT" type="boolean" length="1" description="Set when product has been subsetted (e.g. geographically subsetted using a region of interest filter). Implies the presence of one or more UMARF GIADRs in GAD section for product retrieved from UMARF."/>
+    </mphr>
+
+
+
+    <geadr name="geadr_0" subclass="0" version="1" instrument="AMSUA" description=""/>
+
+
+
+    <geadr name="geadr_1" subclass="1" version="1" instrument="AMSUA" description=""/>
+
+
+
+    <geadr name="geadr_2" subclass="2" version="1" instrument="AMSUA" description=""/>
+
+
+
+    <geadr name="geadr_3" subclass="3" version="1" instrument="AMSUA" description=""/>
+
+
+
+    <giadr name="giadr-1b-adconv" subclass="2" version="3" instrument="AMSUA" description="Analog to digital conversion coefficients">
+        <delimiter name="AMSU-A1_A/D_CONVERSION"/>
+        <array name="SCAN_MOTOR_A11_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Scan Motor A1-1 Temperature Coefficients"/>
+        </array>
+        <array name="SCAN_MOTOR_A12_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Scan Motor A1-2 Temperature Coefficients"/>
+        </array>
+        <array name="FEED_HORN_A11_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Feed Horn A1-1 Temperature Coefficients"/>
+        </array>
+        <array name="FEED_HORN_A12_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Feed Horn A1-2 Temperature Coefficients"/>
+        </array>
+        <array name="RF_MUX_A11_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="RF Mux A1-1 Temperature Coefficients"/>
+        </array>
+        <array name="RF_MUX_A12_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="RF Mux A1-2 Temperature Coefficients"/>
+        </array>
+        <array name="OSCILLATOR_TEMPERATURE_CH3TO8_COEFFICIENT" length="6" labels="channel3,channel4,channel5,channel6,channel7,channel8">
+            <array length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+                <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Local Oscillator Temperature Coefficients - channels 3-8 - ch. 3: f0, f1, f2, f3 TO ch. 8: f0, f1, f2, f3"/>
+            </array>
+        </array>
+        <array name="OSCILLATOR_TEMPERATURE_CH15_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Local Oscillator Temperature Coefficients - Channel 15"/>
+        </array>
+        <array name="PLLO2_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="PLLO#2 Temperature Coefficients, (one set for ch. 9-14)"/>
+        </array>
+        <array name="PLLO1_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="PLLO#1 Temperature Coefficients, (one set for ch. 9-14)"/>
+        </array>
+        <array name="PLLO_REFERENCE_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="PLLO (Reference Oscillator) Temperature Coefficients"/>
+        </array>
+        <array name="MIXER_TEMPERATURE_CH3TO8_COEFFICIENT" length="6" labels="channel3,channel4,channel5,channel6,channel7,channel8">
+            <array length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+                <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Mixer/IF Amplifier Temp. Coefficients, ch. 3-8"/>
+            </array>
+        </array>
+        <array name="MIXER_TEMPERATURE_CH9TO14_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Mixer/IF Amplifier Temperature Coefficients - (one set for ch. 9-14)"/>
+        </array>
+        <array name="MIXER_TEMPERATURE_CH15_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Mixer/IF Amplifier Temperature Coefficients - CHANNEL 15"/>
+        </array>
+        <array name="AMPLIFIER_TEMPERATURE_CH11TO14_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="IF Amplifier Temperature Coefficients -channels 11/14 (TBC)"/>
+        </array>
+        <array name="AMPLIFIER_TEMPERATURE_CH9TO11_COEFFICIENT" length="3" labels="channel9,channel10,channel11">
+            <array length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+                <field type="integer4" variable="f3" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="IF Amplifier Temperature Coefficients - channels 9 to 11 (ch.9 f0, f1, f2, f3 to ch. 11  f0, f1, f2, f3)"/>
+            </array>
+        </array>
+        <array name="DC_CONVERTER_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="DC/DC Converter Temperature Coefficients"/>
+        </array>
+        <array name="RF_SHELF_A11_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="RF Shelf A1-1 Temperature Coefficients"/>
+        </array>
+        <array name="RF_SHELF_A12_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="RF Shelf A1-2 Temperature Coefficients"/>
+        </array>
+        <array name="DETECTOR_PREAMPLIFIER_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="Detector/preamp Assembly Temp. Coefficients,"/>
+        </array>
+        <array name="A11_WARM_TEMPERATURE_PRT1TO5_COEFFICIENT" length="5" labels="prt1,prt2,prt3,prt4,prt5">
+            <array length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+                <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A1-1 Warm Load Temperature Coefficients for PRT 1,2,3,4, and center PRT 5 (PRT 1  f10, f11, f12, f13 to PRT 5  f50, f51, f52, f53)"/>
+            </array>
+        </array>
+        <array name="A12_WARM_TEMPERATURE_PRT1TO5_COEFFICIENT" length="5" labels="prt1,prt2,prt3,prt4,prt5">
+            <array length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+                <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A1-2 Warm Load Temperature Coefficients for PRT 1,2,3,4, and center PRT 5 (PRT 1  f10, f11, f12, f13 to PRT 5  f50, f51, f52, f53)"/>
+            </array>
+        </array>
+        <delimiter name="AMSU-A1_ANALOG_TELEMETRY_CONVERSION"/>
+        <array name="A11_SCAN_MOTOR_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/V" description="A1-1 Scan Motor Temperature Intercept and Slope"/>
+        </array>
+        <array name="A12_SCAN_MOTOR_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/V" description="A1-2 Scan Motor Temperature Intercept and Slope"/>
+        </array>
+        <array name="A11_RF_SHELF_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/V" description="A1-1 RF Shelf Temperature Intercept and Slope"/>
+        </array>
+        <array name="A12_RF_SHELF_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/V" description="A1-2 RF Shelf Temperature Intercept and Slope"/>
+        </array>
+        <array name="A11_WARM_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/V" description="A1-1 Warm Load Temperature Intercept and Slope"/>
+        </array>
+        <array name="A12_WARM_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/V" description="A1-2 Warm Load Temperature Intercept and Slope"/>
+        </array>
+        <array name="A11_ANTENNA_MOTOR_CURRENT_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=A, Slope=A/V" description="A1-1 Antenna Motor Current Intercept and Slope"/>
+        </array>
+        <array name="A12_ANTENNA_MOTOR_CURRENT_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=A, Slope=A/V" description="A1-2 Antenna Motor Current Intercept and Slope"/>
+        </array>
+        <array name="PLUS15_SIGNAL_PROCESSING_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+15V Signal Processing Intercept and Slope"/>
+        </array>
+        <array name="PLUS15_ANTENNA_DRIVE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+15V Antenna Drive Intercept and Slope"/>
+        </array>
+        <array name="MINUS15_SIGNAL_PROCESSING_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="-15V Signal Processing Intercept and Slope"/>
+        </array>
+        <array name="MINUS15_ANTENNA_DRIVE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="-15V Antenna Drive Intercept and Slope"/>
+        </array>
+        <array name="PLUS8_RECEIVER_AMPLIFIER_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+8V Receiver Amps Intercept and Slope"/>
+        </array>
+        <array name="PLUS5_SIGNAL_PROCESSING_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+5V Signal Processing Intercept and Slope"/>
+        </array>
+        <array name="PLUS5_ANTENNA_DRIVE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+5V Antenna Drive Intercept and Slope"/>
+        </array>
+        <array name="PLUS85_PHASE_LOOP_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+8.5V Phase Lock Loop Ch 9/14 Intercept and Slope"/>
+        </array>
+        <array name="PLUS15_PHASE_LOOP_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+15V Phase Lock Loop Ch 9/14 Intercept and Slope"/>
+        </array>
+        <array name="MINUS15_PHASE_LOOP_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="-15V Phase Lock Loop Ch 9/14 Intercept and Slope"/>
+        </array>
+        <array name="GDO_VOLTAGE_CH3_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="GDO Voltage 50.3 GHz Ch 3 Intercept and Slope"/>
+        </array>
+        <array name="GDO_VOLTAGE_CH4_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="GDO Voltage 52.8 GHz Ch 4 Intercept and Slope"/>
+        </array>
+        <array name="GDO_VOLTAGE_CH5_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="GDO Voltage 53.596 GHz Ch 5 Intercept and Slope"/>
+        </array>
+        <array name="GDO_VOLTAGE_CH6_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="GDO Voltage 54.4 GHz Ch 6 Intercept and Slope"/>
+        </array>
+        <array name="GDO_VOLTAGE_CH7_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="GDO Voltage 54.94 GHz Ch 7 Intercept and Slope"/>
+        </array>
+        <array name="GDO_VOLTAGE_CH8_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="GDO Voltage 55.5 GHz Ch 8 Intercept and Slope"/>
+        </array>
+        <array name="PLLO_PRIMAY_LOCK_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="PLLO Primary Lock Detect Intercept and Slope"/>
+        </array>
+        <array name="PLLO_REDUNDANT_LOCK_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="PLLO Redundant Lock Detect Intercept and Slope"/>
+        </array>
+        <array name="GDO_VOLTAGE_CH15_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="GDO Voltage 89.0 GHz Ch 15 Intercept and Slope"/>
+        </array>
+        <delimiter name="AMSU-A2_A/D_CONVERSION"/>
+        <array name="A2_SCAN_MOTOR_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Scan Motor Temperature Coefficients"/>
+        </array>
+        <array name="A2_FEED_HORN_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Feed Horn Temperature Coefficients"/>
+        </array>
+        <array name="A2_RF_MUX_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 RF Mux Temperature Coefficients"/>
+        </array>
+        <array name="A2_MIXER_AMPLIFIER_TEMPERATURE_CH1_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Mixer/IF Amplifier Temp Coefficients, ch. 1"/>
+        </array>
+        <array name="A2_MIXER_AMPLIFIER_TEMPERATURE_CH2_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Mixer/IF Amplifier Temp Coefficients, ch. 2"/>
+        </array>
+        <array name="A2_OSCILLATOR_TEMPERATURE_CH1_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Local Oscillator Temp Coefficients, ch. 1"/>
+        </array>
+        <array name="A2_OSCILLATOR_TEMPERATURE_CH2" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Local Oscillator Temp Coefficients, ch. 2"/>
+        </array>
+        <array name="A2_COMPENSATION_MOTOR_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Compensation Motor Temp Coefficients"/>
+        </array>
+        <array name="A2_SUBREFLECTOR_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Subreflector Temperature Coefficients"/>
+        </array>
+        <array name="A2_DC_CONVERTER_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 DC/DC Converter Temperature Coefficients"/>
+        </array>
+        <array name="A2_RF_SHELF_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 RF Shelf Temperature Coefficients"/>
+        </array>
+        <array name="A2_DETECTOR_PREAMPLIFIER_TEMPERATURE_COEFFICIENT" length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+            <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Detector/preamp Assembly Temperature Coefficients"/>
+        </array>
+        <array name="A2_WARM_TEMPERATURE_PRT1TO7_COEFFICIENT" length="7" labels="prt1,prt2,prt3,prt4,prt5,prt6,prt7">
+            <array length="4" labels="temp-coefficient0,temp-coefficient1,temp-coefficient2,temp-coefficient3">
+                <field type="integer4" scaling-factor="10^4,10^9,10^16,10^20" units="f0= K, f1=K/cnt,   f2=K/cnt^2, f3=K/cnt^3" description="A2 Warm Load Temperature Coefficients for PRT 1,2,3,4,5, 6, and center 7: PRT 1  f10, f11, f12, f13 TO PRT 7  f70, f71, f72, f73"/>
+            </array>
+        </array>
+        <delimiter name="AMSU-A2_ANALOG_TELEMETRY_CONVERSION"/>
+        <array name="A2_SCAN_MOTOR_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/Vt" description="A2 Scan Motor Temperature Intercept and Slope"/>
+        </array>
+        <array name="A2_COMPENSATOR_MOTOR_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/Vt" description="A2 Compensator Motor Temperature Intercept and Slope"/>
+        </array>
+        <array name="A2_RF_SHELF_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/Vt" description="A2 RF Shelf Temperature Intercept and Slope"/>
+        </array>
+        <array name="A2_WARM_TEMPERATURE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=C, Slope=C/Vt" description="A2 Warm Load Temperature Intercept and Slope"/>
+        </array>
+        <array name="A2_COMPENSATOR_MOTOR_CURRENT_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=A, Slope=A/V" description="A2 Compensator Motor Current Intercept and Slope"/>
+        </array>
+        <array name="A2_ANTENNA_MOTOR_CURRENT_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=A, Slope=A/V" description="A2 Antenna Motor Current Intercept and Slope"/>
+        </array>
+        <array name="A2_PLUS15_SIGNAL_PROCESSING_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+15V A2 Signal Processing Intercept and Slope"/>
+        </array>
+        <array name="A2_PLUS15_ANTENNA_DRIVE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+15V A2 Antenna Drive Intercept and Slope"/>
+        </array>
+        <array name="A2_MINUS15_SIGNAL_PROCESSING_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="-15V A2 Signal Processing Intercept and Slope"/>
+        </array>
+        <array name="A2_MINUS15_ANTENNA_DRIVE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="-15V A2 Antenna Drive Intercept and Slope"/>
+        </array>
+        <array name="A2_PLUS8_RECEIVER_AMPLIFIER_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+8V A2 Receiver Amps Intercept and Slope"/>
+        </array>
+        <array name="A2_PLUS5_SIGNAL_PROCESSING_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+5V A2 Signal Processing Intercept and Slope"/>
+        </array>
+        <array name="A2_PLUS5_ANTENNA_DRIVE_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="+5V A2 Antenna Drive Intercept and Slope"/>
+        </array>
+        <array name="A2_GDO_VOLTAGE_CH1_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="GDO Voltage 23.8 GHz Ch 1 Intercept and Slope"/>
+        </array>
+        <array name="A2_GDO_VOLTAGE_CH2_INTERCEPT_SLOPE" length="2" labels="intercept,slope">
+            <field type="integer4" scaling-factor="10^3" units="Intercept=V, Slope=V/V" description="GDO Voltage 31.4 GHz Ch 2 Intercept and Slope"/>
+        </array>
+        <delimiter name="MOON_DATA"/>
+        <field name="LUNAR_ANGLE_THRESHOLD" type="integer2" scaling-factor="10^2" units="degrees" description="Threshold value for lunar angle"/>
+    </giadr>
+
+
+
+    <mdr name="mdr-1b" subclass="2" version="3" instrument="AMSUA" description="Level 1B MDR">
+        <delimiter name="GENERIC_QUALITY_INDICATORS"/>
+        <field name="DEGRADED_INST_MDR" type="boolean" description="Quality of MDR has been degraded from nominal due to an instrument degradation"/>
+        <field name="DEGRADED_PROC_MDR" type="boolean" description="Quality of MDR has been degraded from nominal due to a processing degradation"/>
+        <delimiter name="MEASUREMENT_DATA"/>
+        <array name="SCENE_RADIANCE" length="30" label="FOV">
+            <array length="15" labels="channel1,channel2,channel3,channel4,channel5,channel6,channel7,channel8,channel9,channel10,channel11,channel12,channel13,channel14,channel15">
+                <field type="integer4" scaling-factor="10^7" units="mW/m2/sr/cm-1" description="Scene radiance (channels 1-15) (View 1 - 30)"/>
+            </array>
+        </array>
+        <field name="FOV_DATA_QUALITY" type="bitfield" length="16" description="FOV data quality flags. (all bits off implies acceptable data) - bit 15-1: bit n set to 1 if scene radiance for channel n is physically unreasonable or has not been calculated due to calibration problems. -bit 0 not used">
+            <bit name="Undefined" description="Bits not defined"/>
+        </field>
+        <delimiter name="NAVIGATION_DATA_AT_SCAN_LINE"/>
+        <field name="TIME_ATTITUDE" type="uinteger4" units="s" description="Time Associated with Attitude Angles"/>
+        <array name="EULER_ANGLE" length="3" labels="roll,pitch,yaw">
+            <field type="integer2" scaling-factor="10^3" units="deg" description="Euler Angles: Roll, Pitch, Yaw"/>
+        </array>
+        <field name="NAVIGATION_STATUS" type="bitfield" length="32" description="Navigation Status Bit Field">
+            <bit length="15" name="Not_used"/>
+            <bit name="Earth_location_corrected_for_Euler_angles"/>
+            <bit length="4" name="Earth_location_indicator" description="0 = earth location available, 1 = user ephemeris files older than 24 hours, 2 = no earth location available"/>
+            <bit length="4" name="Spacecraft_attitude_control" description="0 = operating in YGC or NOMINAL mode, 1 = operating in another mode, 2 = attitude exceeds nominal tolerance"/>
+            <bit length="4" name="Attitude_SMODE" description="0 = NOMINAL mode, 1 = rate nulling mode, 2 = YGC mode, 3 = search mode, 4 = coast mode"/>
+            <bit length="4" name="Attitude_mode" description="0 = NOMINAL mode/no test, 1 = yaw axis test in progress, 2 = roll axis test in progress, 3 = pitch axis test in progress"/>
+        </field>
+        <field name="SPACECRAFT_ALTITUDE" type="uinteger4" scaling-factor="10^1" units="km" description="Spacecraft Altitude Above Reference Geoid (MSL)"/>
+        <array name="ANGULAR_RELATION" length="30" label="FOV">
+            <array length="4" labels="solar-zenith,sat-zenith,solar-azimuth,sat-azimuth">
+                <field type="integer2" scaling-factor="10^2" units="deg" description="Angular relationships: solar zenith angle, satellite zenith angle, solar azimuth angle, satellite azimuth angle  - (points 1 to 30)"/>
+            </array>
+        </array>
+        <array name="EARTH_LOCATION" length="30" label="FOV">
+            <array length="2" labels="latitude,longitude">
+                <field type="integer4" scaling-factor="10^4" units="deg" description="Earth Location: latitude, longitude (point 1 to 30)"/>
+            </array>
+        </array>
+        <array name="SURFACE_PROPERTIES" length="30" label="FOV">
+            <field type="integer2" description="Surface property(0 = water, 1 = mixed/coast, 2 = land) (point 1 to 30)"/>
+        </array>
+        <array name="TERRAIN_ELEVATION" length="30" label="FOV">
+            <field type="integer2" units="m" description="Average terrain elevation (point 1 to 30)"/>
+        </array>
+        <delimiter name="Quality_Indicators"/>
+        <field name="QUALITY_INDICATOR" type="bitfield" length="32" description="Quality Indicator Bit Field">
+            <bit name="do_not_use_scan_for_dataset_generation" description="If a bit is on (=1) then the statement is true"/>
+            <bit name="time_sequence_error_detected_with_this_scan" description="If a bit is on (=1) then the statement is true"/>
+            <bit name="data_gap_precedes_this_scan" description="If a bit is on (=1) then the statement is true"/>
+            <bit name="no_calibration" description="If a bit is on (=1) then the statement is true"/>
+            <bit name="no_earth_location" description="If a bit is on (=1) then the statement is true"/>
+            <bit name="first_good_time_following_a_clock_update" description="If a bit is on (=1) then the statement is true"/>
+            <bit name="instrument_status_changed_with_this_scan" description="If a bit is on (=1) then the statement is true"/>
+            <bit length="25" name="Not_used"/>
+        </field>
+        <field name="SCAN_LINE_QUALITY" type="bitfield" length="32" description="Scan Line Quality Flags">
+            <delimiter name="Time Problem Code (all bits off implies the scan time is as expected)"/>
+            <bit length="6" name="not_used"/>
+            <bit name="lunar_flag_scan_line_contaminated" description="lunar flag, scan line contaminated"/>
+            <bit name="lunar_flag_scan_line_corrected" description="lunar flag, scan line corrected for contamination"/>
+            <bit name="bad_time_field_inferred_possible" description="time field is bad but can probably be inferred from the previous good time"/>
+            <bit name="bad_time_field_inferred_impossible" description="time field is bad and can't be inferred from the previous good time"/>
+            <bit name="time_discontinuity" description="this record starts a sequence that is inconsistent with previous times (i.e., there is a time discontinuity).  This may or may not be associated with a spacecraft clock update (See bit 26 in QUALITY_INDICATOR Field)"/>
+            <bit name="repeated_scan_times" description="start of a sequence that apparently repeats scan times that have been previously accepted"/>
+            <bit length="4" name="not_used"/>
+            <delimiter name="Calibration Code Problem (Note these bits complement the channel indicators; all bits set to 0 indicates normal calibration. )"/>
+            <bit name="scan_line_not_calibrated_bad_time" description="Scan line was not calibrated because of bad time"/>
+            <bit name="scan_line_calibrated_using_inadequate_data" description="Scan line was calibrated using fewer than the preferred number of scan lines because of proximity to start or end of data set or to a data gap"/>
+            <bit name="scan_line_not_calibrated_bad_prt_data" description="Scan line was not calibrated because of bad or insufficient PRT data"/>
+            <bit name="scan_line_calibrated_marginal_prt_data" description="Scan line was calibrated but with marginal PRT data"/>
+            <bit name="some_uncalibrated_channels_on_this_scan" description="Some uncalibrated channels on this scan. (See channel indicators.)"/>
+            <bit name="uncalibrated_due_to_instrument_mode" description="Uncalibrated due to instrument mode."/>
+            <bit name="questionable_calibration_space_view" description="Questionable calibration because of antenna position error of space view"/>
+            <bit name="questionable_calibration_black_body" description="Questionable calibration because of antenna position error of black body"/>
+            <delimiter name="Earth Location Problem Code(all bits off  indicates the Earth location was normal)"/>
+            <bit name="not_earth_located_bad_time" description="Not earth located because of bad time; earth location fields zero filled"/>
+            <bit name="questionable_earth_location_time_code" description="Earth location questionable because of questionable time code. (See time problem flags above.)"/>
+            <bit name="questionable_earth_location_marginal" description="Earth location questionable - only marginal agreement with reasonableness check."/>
+            <bit name="questionable_earth_location_failed" description="Earth location questionable - fails reasonableness check"/>
+            <bit name="questionable_earth_location_antenna_position" description="Earth location questionable because of antenna position  check"/>
+            <bit length="3" name="not_used"/>
+        </field>
+        <array name="CALIBRATION_QUALITY" length="16">
+            <field type="bitfield" length="16" description="Calibration Quality Flags">
+                <bit length="10" name="Not_used"/>
+                <bit name="No_good_blackbody_counts_for_scan_line"/>
+                <bit name="No_good_space_view_counts_for_scan_line"/>
+                <bit name="No_good_PRTs_for_this_line"/>
+                <bit name="Some_bad_blackbody_counts_for_this_line"/>
+                <bit name="Some_bad_space_view_counts_for_this_line"/>
+                <bit name="Some_bad_PRTs_temps_for_this_line"/>
+            </field>
+        </array>
+        <delimiter name="Calibration_Coefficients"/>
+        <array name="PRIMARY_CALIBRATION" length="15">
+            <array length="3" labels="a2,a1,a0">
+                <field type="integer4" scaling-factor="10^19,10^13,10^9" units="a2 = mW/m2/sr/cm-1/cnt^2 a1 = mW/m2/sr/cm-1/cnt a0=mW/m2/sr/cm-1" description="Primary Calibration a2 - a0,  ch 1 - 15"/>
+            </array>
+        </array>
+        <array name="SPARE_CALIBRATION" length="15" labels="channel1,channel2,channel3,channel4,channel5,channel6,channel7,channel8,channel9,channel10,channel11,channel12,channel13,channel14,channel15">
+            <array length="3" labels="a2,a1,a0">
+                <field type="integer4" scaling-factor="10^19,10^13,10^9" units="a2 = mW/m2/sr/cm-1/cnt^2 a1 = mW/m2/sr/cm-1/cnt a0=mW/m2/sr/cm-1" description="Spare Calibration a2 - a0, ch 1 - 15"/>
+            </array>
+        </array>
+        <delimiter name="INSTRUMENT_STATE"/>
+        <field name="INSTRUMENT_STATUS_A1" type="bitfield" length="16" description="Instrument status:  AMSU-A1">
+            <bit name="Not_used"/>
+            <bit length="2" name="Cold_space_cal_position" description="MSB and LSB respectively (0 = 6.667, 1 = 8.333, 2 = 9.999, 3 = 13.332 degrees)"/>
+            <bit name="Nadir_mode" description="0 = not in nadir"/>
+            <bit name="Cold_space_cal_mode" description="0 = not in cold cal"/>
+            <bit name="Warm_target_cal_mode" description="0 = not in warm cal"/>
+            <bit name="Full_scan_mode" description="0 = not in full scan"/>
+            <bit length="4" name="Not_used"/>
+            <bit name="survival_heater_power" description="0 = off"/>
+            <bit name="PLLO_power" description="0 = secondary, 1 = primary"/>
+            <bit name="scanner_A1_2_power" description="0 = off"/>
+            <bit name="scanner_A1_1_power" description="0 = off"/>
+            <bit name="Not_used"/>
+        </field>
+        <field name="INSTRUMENT_STATUS_A2" type="bitfield" length="16" description="Instrument status:  AMSU-A2">
+            <bit name="Not_used"/>
+            <bit length="2" name="Cold_space_cal_position" description="MSB and LSB respectively (0 = 6.667, 1 = 8.333, 2 = 9.999, 3 = 13.332 degrees)"/>
+            <bit name="Nadir_mode" description="0 = not in nadir"/>
+            <bit name="Cold_space_cal_mode" description="0 = not in cold cal"/>
+            <bit name="Warm_target_cal_mode" description="0 = not in warm cal"/>
+            <bit name="Full_scan_mode" description="0 = not in full scan"/>
+            <bit length="4" name="Not_used"/>
+            <bit name="survival_heater_power" description="0 = off"/>
+            <bit name="Not_used"/>
+            <bit name="scanner_compensator_power" description="0 = off"/>
+            <bit name="scanner_A2_power" description="0 = off"/>
+            <bit name="Not_used"/>
+        </field>
+        <delimiter name="Raw_Reflector_Position_Data"/>
+        <array name="REFLECTOR_A11_POSITION" length="30" label="FOV">
+            <array length="2" labels="reading1,reading2">
+                <field type="uinteger2" units="counts" description="Reflector A1-1 measurement position, reading 1 and 2 (Earth view 1-30)"/>
+            </array>
+        </array>
+        <array name="REFLECTOR_A12_POSITION" length="30" label="FOV">
+            <array length="2" labels="reading1,reading2">
+                <field type="uinteger2" units="counts" description="Reflector A1-2 measurement position, reading 1 and 2 (Earth view 1-30)"/>
+            </array>
+        </array>
+        <array name="REFLECTOR_A2_POSITION" length="30" label="FOV">
+            <array length="2" labels="reading1,reading2">
+                <field type="uinteger2" units="counts" description="Reflector A2 measurement position, reading 1 and 2 (Earth view 1-30)"/>
+            </array>
+        </array>
+        <array name="REFLECTOR_A11_COLD_POSITION" length="2" labels="reading1,reading2">
+            <field type="uinteger2" units="counts" description="Reflector A1-1 cold calibration position, reading 1 and 2"/>
+        </array>
+        <array name="REFLECTOR_A12_COLD_POSITION" length="2" labels="reading1,reading2">
+            <field type="uinteger2" units="counts" description="Reflector A1-2 cold calibration position, reading 1 and 2"/>
+        </array>
+        <array name="REFLECTOR_A2_COLD_POSITION" length="2" labels="reading1,reading2">
+            <field type="uinteger2" units="counts" description="Reflector A2 cold calibration position, reading 1 and 2"/>
+        </array>
+        <array name="REFLECTOR_A11_WARM_POSITION" length="2" labels="reading1,reading2">
+            <field type="uinteger2" units="counts" description="Reflector A1-1 warm calibration position, reading 1 and 2"/>
+        </array>
+        <array name="REFLECTOR_A12_WARM_POSITION" length="2" labels="reading1,reading2">
+            <field type="uinteger2" units="counts" description="Reflector A1-2 warm calibration position, reading 1 and 2"/>
+        </array>
+        <array name="REFLECTOR_A2_WARM_POSITION" length="2" labels="reading1,reading2">
+            <field type="uinteger2" units="counts" description="Reflector A2 warm calibration position, reading 1 and 2"/>
+        </array>
+        <delimiter name="AMSU-A1_Temperature_Sensor_Data"/>
+        <field name="A11_SCAN_MOTOR_TEMPERATURE_DATA" type="uinteger2" units="counts" description="A1-1 scan motor temperature"/>
+        <field name="A12_SCAN_MOTOR_TEMPERATURE_DATA" type="uinteger2" units="counts" description="A1-2 scan motor temperature"/>
+        <field name="A11_FEED_HORN_TEMPERATURE_DATA" type="uinteger2" units="counts" description="A1-1 feed horn temperature"/>
+        <field name="A12_FEED_HORN_TEMPERATURE_DATA" type="uinteger2" units="counts" description="A1-2 feed horn temperature"/>
+        <field name="A11_RF_MUX_TEMPERATURE_DATA" type="uinteger2" units="counts" description="A1-1 RF mux temperature"/>
+        <field name="A12_RF_MUX_TEMPERATURE_DATA" type="uinteger2" units="counts" description="A1-2 RF mux temperature"/>
+        <array name="OSCILLATOR_TEMPERATURE_CH3TO8_DATA" length="6" labels="channel3,channel4,channel5,channel6,channel7,channel8">
+            <field type="uinteger2" units="counts" description="Local oscillator temperature (ch 3-8)"/>
+        </array>
+        <field name="OSCILLATOR_TEMPERATURE_CH15_DATA" type="uinteger2" units="counts" description="Local oscillator temperature (ch 15)"/>
+        <field name="PLLO2_TEMPERATURE_CH9TO14_DATA" type="uinteger2" units="counts" description="PLLO#2 temperature ( one value for ch 9-14)"/>
+        <field name="PLLO1_TEMPERATURE_CH9TO14_DATA" type="uinteger2" units="counts" description="PLLO#1 temperature (one value for ch 9-14)"/>
+        <field name="PLLO_REFERENCE_TEMPERATURE_DATA" type="uinteger2" units="counts" description="PLLO (reference oscillator) temperature"/>
+        <array name="MIXER_AMPLIFIER_TEMPERATURE_CH3TO8_DATA" length="6" labels="channel3,channel4,channel5,channel6,channel7,channel8">
+            <field type="uinteger2" units="counts" description="Mixer/IF amplifier temperature (ch 3-8)"/>
+        </array>
+        <field name="MIXER_AMPLIFIER_TEMPERATURE_CH9TO14_DATA" type="uinteger2" units="counts" description="Mixer/IF amplifier temperature (ch 9/14)"/>
+        <field name="MIXER_AMPLIFIER_TEMPERATURE_CH15_DATA" type="uinteger2" units="counts" description="Mixer/IF amplifier temperature (ch 15)"/>
+        <field name="IF_AMPLIFIER_TEMPERATURE_CH11TO14_DATA" type="uinteger2" units="counts" description="IF amplifier temperature (ch 11/14)"/>
+        <array name="IF_AMPLIFIER_TEMPERATURE_CH9TO11_DATA" length="3" labels="channel9,channel10,channel11">
+            <field type="uinteger2" units="counts" description="IF amplifier temperature (ch 9-11)"/>
+        </array>
+        <field name="DC_CONVERTER_TEMPERATURE_DATA" type="uinteger2" units="counts" description="DC/DC converter temperature"/>
+        <array name="IF_AMPLIFIER_TEMPERATURE_CH13TO14_DATA" length="2" labels="channel13,channel14">
+            <field type="uinteger2" units="counts" description="IF amplifier temperature (ch 13-14)"/>
+        </array>
+        <field name="IF_AMPLIFIER_TEMPERATURE_CH12_DATA" type="uinteger2" units="counts" description="IF amplifier temperature (ch 12)"/>
+        <field name="A11_RF_SHELF_TEMPERATURE_DATA" type="uinteger2" units="counts" description="A1-1 RF shelf temperature"/>
+        <field name="A12_RF_SHELF_TEMPERATURE_DATA" type="uinteger2" units="counts" description="A1-2 RF shelf temperature"/>
+        <field name="DETECTOR_PREAMPLIFIER_TEMPERATURE_DATA" type="uinteger2" units="counts" description="Detector/preamp assembly temperature"/>
+        <array name="A11_WARM_TEMPERATURE_PRT1TO5_DATA" length="5" labels="prt1,prt2,prt3,prt4,prt5">
+            <field type="uinteger2" units="counts" description="A1-1 warm target temp (PRT 1-4 and center 5)"/>
+        </array>
+        <array name="A12_WARM_TEMPERATURE_PRT1TO5_DATA" length="5" labels="prt1,prt2,prt3,prt4,prt5">
+            <field type="uinteger2" units="counts" description="A1-2 warm target temp (PRT 1-4 and center 5)"/>
+        </array>
+        <field name="REFERENCE_VOLTAGE_DATA" type="uinteger2" units="counts" description="Reference voltage"/>
+        <delimiter name="AMSU-A1_Digital_B_Telemetry_Flags"/>
+        <field name="AMSU_A1_INVALID_DIGITALB_WORD_FLAG" type="bitfield" length="16" description="Invalid word bit flags: (if bit=0, associated AMSU-A1 digital B telemetry data in following field is valid)">
+            <bit name="Not_used"/>
+            <bit name="cold_space_cal_position_msb"/>
+            <bit name="cold_space_cal_position_lsb"/>
+            <bit name="nadir_mode"/>
+            <bit name="cold_space_cal_mode"/>
+            <bit name="warm_target_cal_mode"/>
+            <bit name="full_scan_mode"/>
+            <bit length="4" name="Not_used"/>
+            <bit name="survival_heater_power"/>
+            <bit name="PLLO_power"/>
+            <bit name="scanner_A1_2_power"/>
+            <bit name="scanner_A1_1_power"/>
+            <bit name="Not_used"/>
+        </field>
+        <field name="AMSU_A1_DIGITALB_DATA" type="bitfield" length="16" description="AMSU-A1 digital B telemetry data flags">
+            <bit name="Not_used"/>
+            <bit length="2" name="cold_space_cal_position" description="bit 14 = msb, bit 13 = lsb (0=6.667, 1=8.333, 2=9.999, 3=13.332 degrees)"/>
+            <bit name="nadir_mode" description="0 = not in nadir"/>
+            <bit name="cold_space_cal_mode" description="0 = not in cold cal"/>
+            <bit name="warm_target_cal_mode" description="0 = not in warm cal"/>
+            <bit name="full_scan_mode" description="0  =not in full scan"/>
+            <bit length="4" name="Not_used"/>
+            <bit name="survival_heater_power" description="0 = off"/>
+            <bit name="PLLO_power" description="0 = secondary, 1 = primary"/>
+            <bit name="scanner_A1_2_power" description="0 = off"/>
+            <bit name="scanner_A1_1_power" description="0 = off"/>
+            <bit name="Not_used"/>
+        </field>
+        <delimiter name="AMSU-A1_Analog_Housekeeping_Data"/>
+        <field name="AMSU_A1_INVALID_ANALOG_WORD_FLAG" type="bitfield" length="32" description="Invalid word bit flags:(if bit=0, associated AMSU-A1 analog housekeeping telemetry word in following fields is valid)">
+            <bit length="4" name="Not_used"/>
+            <array length="27" name="Data">
+                <bit description="Word 27 (0 = valid) -  Word 1 (0 = valid)"/>
+            </array>
+            <bit name="Not_used"/>
+        </field>
+        <field name="A11_SCANNER_MOTOR_TEMPERATURE" type="uinteger2" units="counts" description="A1-1 scanner motor temperature"/>
+        <field name="A12_SCANNER_MOTOR_TEMPERATURE" type="uinteger2" units="counts" description="A1-2 scanner motor temperature"/>
+        <field name="A11_RF_SHELF_TEMPERATURE" type="uinteger2" units="counts" description="A1-1 RF shelf temperature"/>
+        <field name="A12_RF_SHELF_TEMPERATURE" type="uinteger2" units="counts" description="A1-2 RF shelf temperature"/>
+        <field name="A11_WARM_TEMPERATURE" type="uinteger2" units="counts" description="A1-1 warm load temperature"/>
+        <field name="A12_WARM_TEMPERATURE" type="uinteger2" units="counts" description="A1-2 warm load temperature"/>
+        <field name="A11_ANTENNA_DRIVE_MOTOR_TEMPERATURE" type="uinteger2" units="counts" description="A1-1 antenna drive motor current (Avg)"/>
+        <field name="A12_ANTENNA_DRIVE_MOTOR_TEMPERATURE" type="uinteger2" units="counts" description="A1-2 antenna drive motor current (Avg)"/>
+        <field name="PLUS15_SIGNAL_PROCESSING" type="uinteger2" units="counts" description="+15V signal processing"/>
+        <field name="PLUS15_ANTENNA_DRIVE" type="uinteger2" units="counts" description="+15V antenna drive"/>
+        <field name="MINUS15_SIGNAL_PROCESSING" type="uinteger2" units="counts" description="-15V signal processing"/>
+        <field name="MINUS15_ANTENNA_DRIVE" type="uinteger2" units="counts" description="-15V antenna drive"/>
+        <field name="PLUS8_RECEIVER_AMPLIFIER" type="uinteger2" units="counts" description="+8V receiver amplifier"/>
+        <field name="PLUS5_SIGNAL_PROCESSING" type="uinteger2" units="counts" description="+5V signal processing"/>
+        <field name="PLUS5_ANTENNA_DRIVE" type="uinteger2" units="counts" description="+5V antenna drive"/>
+        <field name="PLUS15_PHASE_LOCK_CH9TO14" type="uinteger2" units="counts" description="+15V phase lock loop (ch 9/14)"/>
+        <field name="MINUS15_PHASE_LOCK_CH9TO14" type="uinteger2" units="counts" description="-15V phase lock loop (ch 9/14)"/>
+        <field name="GDO_VOLTAGE_CH3" type="uinteger2" units="counts" description="GDO Voltage 50.3 GHz (ch 3)"/>
+        <field name="GDO_VOLTAGE_CH4" type="uinteger2" units="counts" description="GDO Voltage 52.8 GHz (ch 4)"/>
+        <field name="GDO_VOLTAGE_CH5" type="uinteger2" units="counts" description="GDO Voltage 53.596 GHz (ch 5)"/>
+        <field name="GDO_VOLTAGE_CH6" type="uinteger2" units="counts" description="GDO Voltage 54.4 GHz (ch 6)"/>
+        <field name="GDO_VOLTAGE_CH7" type="uinteger2" units="counts" description="GDO Voltage 54.94 GHz (ch 7)"/>
+        <field name="GDO_VOLTAGE_CH8" type="uinteger2" units="counts" description="GDO Voltage 55.5 GHz (ch 8)"/>
+        <field name="PLLO_PRIMAY_LOCK" type="uinteger2" units="counts" description="PLLO primary lock detect"/>
+        <field name="PLLO_REDUNDANT_LOCK" type="uinteger2" units="counts" description="PLLO redundant lock detect"/>
+        <field name="GDO_VOLTAGE_CH15" type="uinteger2" units="counts" description="GDO Voltage 89.0 GHz (ch 15)"/>
+        <delimiter name="AMSU-A2_Temperature_Sensor_Data"/>
+        <field name="A2_SCAN_MOTOR_TEMPERATURE" type="uinteger2" units="counts" description="A2 scan motor temperature"/>
+        <field name="A2_FEED_HORN_TEMPERATURE" type="uinteger2" units="counts" description="A2 feed horn temperature"/>
+        <field name="A2_RF_MUX_TEMPERATURE" type="uinteger2" units="counts" description="A2 RF mux temperature"/>
+        <array name="A2_MIXER_AMPLIFIER_TEMPERATURE" length="2" labels="channel1,channel2">
+            <field type="uinteger2" units="counts" description="A2 Mixer/IF amplifier temperature (ch 1-2)"/>
+        </array>
+        <array name="A2_OSCILLATOR_TEMPERATURE_CH1TO2" length="2" labels="channel1,channel2">
+            <field type="uinteger2" units="counts" description="A2 Local oscillator temperature (ch 1-2)"/>
+        </array>
+        <field name="A2_COMPENSATION_MOTOR_TEMPERATURE" type="uinteger2" units="counts" description="A2 Compensation motor temperature"/>
+        <field name="A2_SUBREFLECTOR_TEMPERATURE" type="uinteger2" units="counts" description="A2 subreflector temperature"/>
+        <field name="A2_DC_CONVERTER_TEMPERATURE" type="uinteger2" units="counts" description="A2 DC/DC converter temperature"/>
+        <field name="A2_RF_SHELF_TEMPERATURE" type="uinteger2" units="counts" description="A2 RF shelf temperature"/>
+        <field name="A2_DETECTOR_PREAMPLIFIER_TEMPERATURE" type="uinteger2" units="counts" description="Detector/preamp assembly temperature"/>
+        <array name="A2_WARM_TEMPERATURE_PRT1TO7" length="7" labels="prt1,prt2,prt3,prt4,prt5,prt6,prt7">
+            <field type="uinteger2" units="counts" description="A2 warm target temp (PRT 1-6 and center 7)"/>
+        </array>
+        <field name="A2_REFERENCE_VOLTAGE" type="uinteger2" units="counts" description="Reference voltage"/>
+        <delimiter name="AMSU-A2_Digital_B_Telemetry_Flags"/>
+        <field name="AMSU_A2_INVALID_WORD_FLAG" type="bitfield" length="16" description="Invalid word bit flags:(if bit=0, associated AMSU-A2 digital B telemetry data in following field is valid)">
+            <bit name="Not_used"/>
+            <bit name="cold_space_cal_position_msb"/>
+            <bit name="cold_space_cal_position_lsb"/>
+            <bit name="nadir_mode" description="0 = not in nadir"/>
+            <bit name="cold_space_cal_mode" description="0 = not in cold cal"/>
+            <bit name="warm_target_cal_mode" description="0 = not in warm cal"/>
+            <bit name="full_scan_mode" description="0  =not in full scan"/>
+            <bit length="4" name="Not_used"/>
+            <bit name="survival_heater_power_" description="0 = off"/>
+            <bit name="Not_used"/>
+            <bit name="scanner_compensator_power" description="0 = off"/>
+            <bit name="scanner_A2_power" description="0 = off"/>
+            <bit name="Not_used"/>
+        </field>
+        <field name="AMSU_A2_DIGITALB_FLAG" type="bitfield" length="16" description="AMSU-A2 digital B telemetry data flags">
+            <bit name="Not_used"/>
+            <bit length="2" name="cold_space_cal_position" description="bit 14 = msb, bit 13 = lsb (0=6.667, 1=8.333, 2=9.999, 3=13.332 degrees)"/>
+            <bit name="nadir_mode" description="0 = not in nadir"/>
+            <bit name="cold_space_cal_mode" description="0 = not in cold cal"/>
+            <bit name="warm_target_cal_mode" description="0 = not in warm cal"/>
+            <bit name="full_scan_mode" description="0  =not in full scan"/>
+            <bit length="4" name="Not_used"/>
+            <bit name="survival_heater_power" description="0 = off"/>
+            <bit name="Not_used"/>
+            <bit name="scanner_compensator_power" description="0 = off"/>
+            <bit name="scanner_A2_power" description="0 = off"/>
+            <bit name="Not_used"/>
+        </field>
+        <delimiter name="AMSU-A2_Analog_Housekeeping_Data"/>
+        <field name="AMSU_A2_INVALID_ANALOG_WORD_FLAG" type="bitfield" length="32" description="Invalid word bit flags: (if bit=0, associated AMSU-A2 analog housekeeping telemetry word in following fields is valid)">
+            <bit length="16" name="Not_used"/>
+            <array length="15" name="Data">
+                <bit description="Word 15 (0 = valid) -  Word 1 (0 = valid)"/>
+            </array>
+            <bit name="Not_used"/>
+        </field>
+        <field name="A2_ANALOG_SCANNER_MOTOR_TEMPERATURE" type="uinteger2" units="counts" description="A2 scanner motor temperature"/>
+        <field name="A2_ANALOG_COMPENSATOR_MOTOR_TEMPERATURE" type="uinteger2" units="counts" description="A2 Compensator motor temperature"/>
+        <field name="A2_ANALOG_RF_SHELF_TEMPERATURE" type="uinteger2" units="counts" description="A2 RF shelf temperature"/>
+        <field name="A2_ANALOG_WARM_TEMPERATURE" type="uinteger2" units="counts" description="A2 warm load temperature"/>
+        <field name="A2_ANALOG_COMENSATOR_MOTOR_CURRENT" type="uinteger2" units="counts" description="Compensator motor current (Avg)"/>
+        <field name="A2_ANALOG_ANTENNA-DRIVE_MOTOR_CURRENT" type="uinteger2" units="counts" description="A2 antenna drive motor current (Avg)"/>
+        <field name="A2_ANALOG_PLUS15_SIGNAL_PROCESSING" type="uinteger2" units="counts" description="+15V signal processing"/>
+        <field name="A2_ANALOG_PLUS15_ANTENNA-DRIVE" type="uinteger2" units="counts" description="+15V antenna drive"/>
+        <field name="A2_ANALOG_MINUS15_SIGNAL_PROCESSING" type="uinteger2" units="counts" description="-15V signal processing"/>
+        <field name="A2_ANALOG_MINUS15_ANTENNA-DRIVE" type="uinteger2" units="counts" description="-15V antenna drive"/>
+        <field name="A2_ANALOG_PLU10_RECEIVER" type="uinteger2" units="counts" description="+10V receiver"/>
+        <field name="A2_ANALOG_PLUS5_SIGNAL_PROCESSING" type="uinteger2" units="counts" description="+5V signal processing"/>
+        <field name="A2_ANALOG_PLUS5_ANTENNA-DRIVE" type="uinteger2" units="counts" description="+5V antenna drive"/>
+        <field name="A2_ANALOG_GDO_VOLTAGE_CH1" type="uinteger2" units="counts" description="GDO Voltage 23.8 GHz (ch 1)"/>
+        <field name="A2_ANALOG_GDO_VOLTAGE_CH2" type="uinteger2" units="counts" description="GDO Voltage 31.4 GHz (ch 2)"/>
+        <delimiter name="MOON_DATA"/>
+        <field name="AMSU_A1_LUNAR_ANGLE" type="integer2" scaling-factor="10^2" units="degrees" description="Angle between moon and space view for AMSU-A1"/>
+        <field name="AMSU_A2_LUNAR_ANGLE" type="integer2" scaling-factor="10^2" units="degrees" description="Angle between moon and space view for AMSU-A2"/>
+    </mdr>
+
+
+
+</product>
+
+
+</format>
