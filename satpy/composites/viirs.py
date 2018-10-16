@@ -30,7 +30,7 @@ import numpy as np
 import dask
 import dask.array as da
 import xarray as xr
-import xarray.ufuncs as xu
+# import xarray.ufuncs as xu
 
 from satpy.composites import CompositeBase, GenericCompositor
 from satpy.config import get_environ_ancpath
@@ -155,7 +155,7 @@ class ReflectanceCorrector(CompositeBase):
         lons, lats = vis.attrs['area'].get_lonlats_dask(
             chunks=vis.data.chunks)
         suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
-        suna = xu.rad2deg(suna)
+        suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
         sata, satel = get_observer_look(
             vis.attrs['satellite_longitude'],
@@ -478,7 +478,7 @@ class ERFDNB(CompositeBase):
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
             inner_sqrt = inner_sqrt.where(inner_sqrt > 0, 0)
-            output_dataset.data = xu.sqrt(inner_sqrt).data
+            output_dataset.data = np.sqrt(inner_sqrt).data
 
         info = dnb_data.attrs.copy()
         info.update(self.attrs)
