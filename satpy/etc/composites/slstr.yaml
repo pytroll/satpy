@@ -12,8 +12,8 @@ composites:
   day_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 0.86
-    - wavelength: 3.7
+    - S3_an
+    - name: S7_in
       modifiers: [nir_reflectance]
-    - 10.8
+    - S8_in
     standard_name: day_microphysics
