@@ -291,18 +291,18 @@ class HDFEOSBandReader(HDFEOSFileReader):
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         #resolution not coded in shortname of product
         #in mod35 resolution is 1km, 250m mask is encoded in last 2 byte
-        self.resolution = self.res[ds[-3]]
+        #self.resolution = self.res[ds[-3]]
 
     def get_dataset(self, key, info):
         """Read data from file and return the corresponding projectables."""
-        datadict = {
-            1000: ['EV_250_Aggr1km_RefSB',
-                   'EV_500_Aggr1km_RefSB',
-                   'EV_1KM_RefSB',
-                   'EV_1KM_Emissive'],
-            500: ['EV_250_Aggr500_RefSB',
-                  'EV_500_RefSB'],
-            250: ['EV_250_RefSB']}
+        # datadict = {
+        #     1000: ['EV_250_Aggr1km_RefSB',
+        #            'EV_500_Aggr1km_RefSB',
+        #            'EV_1KM_RefSB',
+        #            'EV_1KM_Emissive'],
+        #     500: ['EV_250_Aggr500_RefSB',
+        #           'EV_500_RefSB'],
+        #     250: ['EV_250_RefSB']}
 
         platform_name = self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
             'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
@@ -310,58 +310,66 @@ class HDFEOSBandReader(HDFEOSFileReader):
         info.update({'platform_name': 'EOS-' + platform_name})
         info.update({'sensor': 'modis'})
 
-        if self.resolution != key.resolution:
-            return
 
-        datasets = datadict[self.resolution]
-        for dataset in datasets:
-            subdata = self.sd.select(dataset)
-            var_attrs = subdata.attributes()
+        index, startbit, endbit = info.get("bits", "{}".format(key))
+        file_key = info.get("file_key", "{}".format(key))
+
+        #datasets = datadict[self.resolution]
+        #for dataset in datasets:
+        subdata = self.sd.select(file_key)
+        subdata = subdata[index,:,:]
+
+        var_attrs = subdata.attributes()
 
             #for dataset "Cloud_Mask" there are no bands
-            band_names = var_attrs["band_names"].split(",")
+           # band_names = var_attrs["band_names"].split(",")
 
             # get the relative indices of the desired channel
-            try:
-                index = band_names.index(key.name)
-            except ValueError:
-                continue
+            #try:
+            #    index = band_names.index(key.name)
+           # except ValueError:
+            #    continue
 
             #uncertainty is in sds "Quality Assurance"
-            uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
+            #uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
 
-            array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
+
+            #strip bits
+        subdata = bits_stripping(startbit, endbit, subdata)
+
+
+        array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE),
                                  dims=['y', 'x']).astype(np.float32)
             #valid range is 0L, -1L but maybe decoding cloud mask to different height classes makes sense?
-            valid_range = var_attrs['valid_range']
+        valid_range = var_attrs['valid_range']
 
-            array = array.where(array >= np.float32(valid_range[0]))
-            array = array.where(array <= np.float32(valid_range[1]))
-            array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
+            #array = array.where(array >= np.float32(valid_range[0]))
+            #array = array.where(array <= np.float32(valid_range[1]))
+            #array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
 
-            #instead of different calibrations different bit flags?
-            if key.calibration == 'brightness_temperature':
-                projectable = calibrate_bt(array, var_attrs, index, key.name)
-                info.setdefault('units', 'K')
-                info.setdefault('standard_name', 'toa_brightness_temperature')
-            elif key.calibration == 'reflectance':
-                projectable = calibrate_refl(array, var_attrs, index)
-                info.setdefault('units', '%')
-                info.setdefault('standard_name',
-                                'toa_bidirectional_reflectance')
-            elif key.calibration == 'radiance':
-                projectable = calibrate_radiance(array, var_attrs, index)
-                info.setdefault('units', var_attrs.get('radiance_units'))
-                info.setdefault('standard_name',
-                                'toa_outgoing_radiance_per_unit_wavelength')
-            elif key.calibration == 'counts':
-                projectable = calibrate_counts(array, var_attrs, index)
-                info.setdefault('units', 'counts')
-                info.setdefault('standard_name', 'counts')  # made up
-            else:
-                raise ValueError("Unknown calibration for "
-                                 "key: {}".format(key))
-            projectable.attrs = info
+
+            # if key.calibration == 'brightness_temperature':
+            #     projectable = calibrate_bt(array, var_attrs, index, key.name)
+            #     info.setdefault('units', 'K')
+            #     info.setdefault('standard_name', 'toa_brightness_temperature')
+            # elif key.calibration == 'reflectance':
+            #     projectable = calibrate_refl(array, var_attrs, index)
+            #     info.setdefault('units', '%')
+            #     info.setdefault('standard_name',
+            #                     'toa_bidirectional_reflectance')
+            # elif key.calibration == 'radiance':
+            #     projectable = calibrate_radiance(array, var_attrs, index)
+            #     info.setdefault('units', var_attrs.get('radiance_units'))
+            #     info.setdefault('standard_name',
+            #                     'toa_outgoing_radiance_per_unit_wavelength')
+            # elif key.calibration == 'counts':
+            #     projectable = calibrate_counts(array, var_attrs, index)
+            #     info.setdefault('units', 'counts')
+            #     info.setdefault('standard_name', 'counts')  # made up
+            # else:
+            #     raise ValueError("Unknown calibration for "
+            #                      "key: {}".format(key))
+            # projectable.attrs = info
 
             # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
             #         (platform_name == 'Terra' and key.name in ["29"])):
@@ -396,7 +404,8 @@ class HDFEOSBandReader(HDFEOSFileReader):
             #         satscene[band].area = geometry.SwathDefinition(
             #             lons=satscene[band].area.lons[indices, :],
             #             lats=satscene[band].area.lats[indices, :])
-            return projectable
+            #return projectable
+            return array
 
     # These have to be interpolated...
     def get_height(self):
@@ -413,6 +422,120 @@ class HDFEOSBandReader(HDFEOSFileReader):
 
     def get_sata(self):
         return self.data.select("SensorAzimuth")
+
+
+def bits_stripping(bit_start, bit_count, value):
+    """Extract specified bit from bit representation of integer value.
+
+    Parameters
+    ----------
+    bit_start : int
+        Starting index of the bits to extract (first bit has index 0)
+    bit_count : int
+        Number of bits starting from bit_start to extract
+    value : int
+        Number from which to extract the bits
+
+    Returns
+    -------
+    int
+        Value of the extracted bits
+
+    """
+
+    bitmask = pow(2, bit_start + bit_count) - 1
+
+    return np.right_shift(np.bitwise_and(value, bitmask), bit_start)
+
+
+def BitShiftCombine(byte1, byte2):
+    """
+    Combine two 8 bit integers to one 16 bit integer by
+    concatenating
+
+    Parameters
+    ----------
+    byte1, byte2 : np.int
+        8 bit integers two combine
+
+    Returns
+    -------
+    np.uint16
+        16 bit integer with byte1 as the first 8 bit and byte2 as the second 8 bit
+    """
+    # make sure byte1 is 16 bit
+    twoByte = np.uint16(byte1)
+    # shift bits to the left
+    twoByte = np.left_shift(twoByte, 8)  # twoByte << 8
+    # concatenate the two bytes
+    twoByte = np.bitwise_or(twoByte, byte2).astype(np.uint16)  # casting = "no")
+
+    return (twoByte)
+
+
+# https://modis-atmos.gsfc.nasa.gov/sites/default/files/ModAtmo/MYD35_L2.C6.CDL.fs
+
+# bit field       Description                             Key                        \n",
+#    " ---------       -----------                             ---                        \n",
+#    "                                                                                    \n",
+#    "                 250-m Cloud Flag - Visible Tests                                   \n",
+#    "                 --------------------------------                                   \n",
+#    " 0               Element(1,1)                            0 =  Yes / 1 = No          \n",
+#    " 1               Element(1,2)                            0 =  Yes / 1 = No          \n",
+#    " 2               Element(1,3)                            0 =  Yes / 1 = No          \n",
+#    " 3               Element(1,4)                            0 =  Yes / 1 = No          \n",
+#    " 4               Element(2,1)                            0 =  Yes / 1 = No          \n",
+#    " 5               Element(2,2)                            0 =  Yes / 1 = No          \n",
+#    " 6               Element(2,3)                            0 =  Yes / 1 = No          \n",
+#    " 7               Element(2,4)                            0 =  Yes / 1 = No          \n",
+#    " ____ END BYTE 5 ______________ ___________________________________________         \n",
+#    "                                                                                    \n",
+#    " bit field       Description                             Key                        \n",
+#    " ----------      -----------                             ---                        \n",
+#    "                                                                                    \n",
+#    " 0               Element(3,1)                            0 =  Yes / 1 = No          \n",
+#    " 1               Element(3,2)                            0 =  Yes / 1 = No          \n",
+#    " 2               Element(3,3)                            0 =  Yes / 1 = No          \n",
+#    " 3               Element(3,4)                            0 =  Yes / 1 = No          \n",
+#    " 4               Element(4,1)                            0 =  Yes / 1 = No          \n",
+#    " 5               Element(4,2)                            0 =  Yes / 1 = No          \n",
+#    " 6               Element(4,3)                            0 =  Yes / 1 = No          \n",
+#    " 7               Element(4,4)                            0 =  Yes / 1 = No          \n",
+#    " ____ END BYTE 6 ______________ ___________________________________________         \n",
+
+def bit_strip_250m_mask(inputArray):
+    """
+    Create 250m cloud mask from the last 16 bits of the modis 48 bit array.
+
+    Takes each array element decodes the bits and distributes
+    them to new array with 4 times the resolution in x and y direction
+    of the input array (each input array element is replaced by 16 elements
+    so to speak).
+
+    Parameters
+    ----------
+    inputArray : np.uint16
+        input array which to transform
+
+
+    Returns
+    -------
+    np array
+        Array with increased resolution and binary mask based on bits of input array
+
+    """
+
+    # create 4x4 array with numbers from 1 to 16 (count of bits)
+    pix = np.arange(0, 16).reshape((4, 4)).astype(np.uint16)
+    # tile the 4x4 array the size of the input array dimensions
+    pix = np.tile(pix, (inputArray.shape[0], inputArray.shape[1]))
+    # "interpolate" input array with nearest neighbour with resolution increase 4
+    data = np.repeat(np.repeat(inputArray, 4, axis=0), 4, axis=1)
+    # decode the corresponding bits to get the 250m mask
+    mask250 = bits_stripping(pix, 1, data)
+
+    return (mask250)
+
 
 
 def calibrate_counts(array, attributes, index):
