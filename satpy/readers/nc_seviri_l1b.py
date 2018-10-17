@@ -22,16 +22,12 @@
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.msg_base import (SEVIRICalibrationHandler,
-                                    CHANNEL_NAMES, CALIB, SATNUM,)
-from satpy.readers.eum_base import (time_cds_short, time_cds,
-                                    time_cds_expanded)
+                                    CHANNEL_NAMES, CALIB,)
 import xarray as xr
-import dask.array as da
 
 from satpy import CHUNK_SIZE
 from pyresample import geometry
 
-import numpy as np
 import datetime
 
 
@@ -62,8 +58,8 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     def _read_file(self):
         if self.nc is None:
             self.nc = xr.open_dataset(self.filename,
-                                      decode_cf=False,
-                                      mask_and_scale=True,
+                                      decode_cf=True,
+                                      mask_and_scale=False,
                                       chunks={'num_columns_vis_ir': CHUNK_SIZE,
                                               'num_rows_vis_ir': CHUNK_SIZE})
 
@@ -87,36 +83,34 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         i = list(CHANNEL_NAMES.values()).index(channel)
         dataset = self.nc[dataset_info['nc_key']]
 
-        # Temp array to store channel data before assignment to data set
-        arr1 = xr.DataArray(self.nc[dataset_info['nc_key']],
-                            dims=['y', 'x']).where(self.nc[dataset_info['nc_key']].values != 0).astype(np.float32)
-
         dataset.attrs.update(dataset_info)
 
         # Calibrate the data as needed
         # MPEF MSG calibration coeffiencts (gain and count)
-        offset = dataset.attrs['add_offset']
-        gain = dataset.attrs['scale_factor']
+        offset = dataset.attrs['add_offset'].astype('float32')
+        gain = dataset.attrs['scale_factor'].astype('float32')
         self.platform_id = int(self.nc.attrs['satellite_id'])
         cal_type = self.nc['planned_chan_processing'].values[i]
 
         # Correct for the scan line order
-        arr1 = da.flipud(arr1)
+        dataset = dataset.sel(y=slice(None, None, -1))
 
         if dataset_id.calibration == 'counts':
-            return dataset
+            dataset.attrs['_FillValue'] = 0
 
         if dataset_id.calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            arr1 = self._convert_to_radiance(arr1, gain, offset)
+            dataset = dataset.where(dataset != 0).astype('float32')
+            dataset = self._convert_to_radiance(dataset, gain, offset)
 
         if dataset_id.calibration == 'reflectance':
             solar_irradiance = CALIB[int(self.platform_id)][channel]["F"]
-            arr1 = self._vis_calibrate(arr1, solar_irradiance)
+            dataset = self._vis_calibrate(dataset, solar_irradiance)
 
         elif dataset_id.calibration == 'brightness_temperature':
-            arr1 = self._ir_calibrate(arr1, channel, cal_type)
+            dataset = self._ir_calibrate(dataset, channel, cal_type)
 
-        dataset.values = da.from_array(arr1, chunks=(CHUNK_SIZE, CHUNK_SIZE))
+        dataset.attrs.update(self.nc[dataset_info['nc_key']].attrs)
+        dataset.attrs.update(dataset_info)
         return dataset
 
     def get_area_def(self, dataset_id):
