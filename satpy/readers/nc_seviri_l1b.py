@@ -22,8 +22,10 @@
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.msg_base import (SEVIRICalibrationHandler,
-                                    CHANNEL_NAMES, CALIB,)
+                                    CHANNEL_NAMES, CALIB, SATNUM)
 import xarray as xr
+# Needed for xarray netcdf workaround
+from netCDF4 import Dataset as tmpDataset
 
 from satpy import CHUNK_SIZE
 from pyresample import geometry
@@ -31,32 +33,29 @@ from pyresample import geometry
 import datetime
 
 
+def _time_format(tval):
+    return datetime.datetime.strftime(tval, '%Y-%m-%d %H:%M:%S.%f')
+
+
 class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.nc = None
         self.mda = {}
-        self._read_file()
         self.reference = datetime.datetime(1958, 1, 1)
+        self._read_file()
 
     @property
     def start_time(self):
-        delta = datetime.timedelta(days=int(self.nc.attrs['true_repeat_cycle_start_day']),
-                                   milliseconds=int(self.nc.attrs['true_repeat_cycle_start_mi_sec']))
-        mydate = self.reference + delta
-        start_time_str = datetime.datetime.strftime(mydate, '%Y%m%d%H%M%S')+'Z'
-        return start_time_str
+        return (_time_format(self.deltaSt))
 
     @property
     def end_time(self):
-        delta = datetime.timedelta(days=int(self.nc.attrs['true_repeat_cycle_start_day']),
-                                   milliseconds=int(self.nc.attrs['true_repeat_cycle_start_mi_sec']))
-        mydate = self.reference + delta
-        end_time_str = datetime.datetime.strftime(mydate, '%Y%m%d%H%M%S')+'Z'
-        return end_time_str
+        return (_time_format(self.deltaEnd))
 
     def _read_file(self):
         if self.nc is None:
+
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=False,
@@ -76,6 +75,20 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         self.mda['number_of_lines'] = int(self.nc.dims['y'])
         self.mda['number_of_columns'] = int(self.nc.dims['x'])
+
+        self.deltaSt = self.reference + datetime.timedelta(days=int(self.nc.attrs['true_repeat_cycle_start_day']),
+                            milliseconds=int(self.nc.attrs['true_repeat_cycle_start_mi_sec']))
+
+        self.deltaEnd = self.reference + datetime.timedelta(days=int(self.nc.attrs['planned_repeat_cycle_end_day']),
+                            milliseconds=int(self.nc.attrs['planned_repeat_cycle_end_mi_sec']))
+
+        # Netcdf xrray dimensions workaround - these 4 dimensions not found in the dataset
+        # but ncdump confirms they are there
+        tmp = tmpDataset(self.filename)
+        self.north = int(tmp.dimensions['north_most_line'].size)
+        self.east = int(tmp.dimensions['east_most_pixel'].size)
+        self.west = int(tmp.dimensions['west_most_pixel'].size)
+        self.south = int(tmp.dimensions['south_most_line'].size)
 
     def get_dataset(self, dataset_id, dataset_info):
 
@@ -111,6 +124,8 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         dataset.attrs.update(self.nc[dataset_info['nc_key']].attrs)
         dataset.attrs.update(dataset_info)
+        dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
+        dataset.attrs['sensor'] = 'seviri'
         return dataset
 
     def get_area_def(self, dataset_id):
@@ -159,11 +174,6 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
             center_point = 3712/2
 
-            north = self.nc.attrs['northern_line_planned']
-            east = self.nc.attrs['eastern_line_planned']
-            west = self.nc.attrs['western_line_planned']
-            south = self.nc.attrs['southern_line_planned']
-
             column_step = self.nc.attrs['vis_ir_column_dir_grid_step'] * 1000.0
 
             line_step = self.nc.attrs['vis_ir_line_dir_grid_step'] * 1000.0
@@ -180,10 +190,10 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                     'unrecognised earth model: {}'.format(earth_model)
                 )
             # section 3.1.5 of MSG Level 1.5 Image Data Format Description
-            ll_c = (center_point - west - 0.5 + we_offset) * column_step
-            ll_l = (south - center_point - 0.5 + ns_offset) * line_step
-            ur_c = (center_point - east + 0.5 + we_offset) * column_step
-            ur_l = (north - center_point + 0.5 + ns_offset) * line_step
+            ll_c = (center_point - self.west - 0.5 + we_offset) * column_step
+            ll_l = (self.south - center_point - 0.5 + ns_offset) * line_step
+            ur_c = (center_point - self.east + 0.5 + we_offset) * column_step
+            ur_l = (self.north - center_point + 0.5 + ns_offset) * line_step
             area_extent = (ll_c, ll_l, ur_c, ur_l)
 
         else:
