@@ -2,7 +2,7 @@ reader:
   default_datasets: [cloud_mask]
   description: MODIS HDF-EOS Cloud Mask Reader
   name: hdfeos_mod35
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [modis]
 
 navigations:
@@ -96,31 +96,15 @@ datasets:
 
 
 file_types:
-#  hdf_eos_data_250m:
-#    file_patterns:
-#    - 'M{platform_indicator:1s}D02Qkm_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
-#    - 'M{platform_indicator:1s}D02QKM.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
-#    - 'M{platform_indicator:1s}D02QKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
-#    - 'M{platform_indicator:1s}D02QKM.{start_time:%y%j%H%M%S}.hdf'
-#    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.250m.hdf'
-#    file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSBandReader
-#  hdf_eos_data_500m:
-#    file_patterns:
-#    - 'M{platform_indicator:1s}D02Hkm_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
-#    - 'M{platform_indicator:1s}D02HKM.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
-#    - 'M{platform_indicator:1s}D02HKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
-#    - 'M{platform_indicator:1s}D02HKM.{start_time:%y%j%H%M%S}.hdf'
-#    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.500m.hdf'
-#    file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSBandReader
   hdf_eos_data_1000m:
     file_patterns:
     - 'M{platform_indicator:1s}D35_L2_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
     - 'M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
     - 'M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
-    - 'thin_M{platform_indicator:1s}D021KM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
-    - 'M{platform_indicator:1s}D021KM.{start_time:%y%j%H%M%S}.hdf'
+    - 'thin_M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'M{platform_indicator:1s}D35_L2.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.1000m.hdf'
-    file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSBandReader
+    file_reader: !!python/name:satpy.readers.hdfeos_mod35.HDFEOSBandReader
   hdf_eos_geo:
     file_patterns:
     - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
@@ -128,4 +112,4 @@ file_types:
     - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
-    file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSGeoReader ''
+    file_reader: !!python/name:satpy.readers.hdfeos_mod35.HDFEOSGeoReader

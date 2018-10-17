@@ -1,45 +1,9 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2010-2014, 2017.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping,
-# Sweden
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Ronald Scheirer <ronald.scheirer@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-
-# This file is part of satpy.
-
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-"""Interface to Modis level 1b format.
-http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
-http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
-3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&vie\
-w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
-"""
-
 import logging
 from datetime import datetime
 
 import numpy as np
 from pyhdf.error import HDF4Error
-from pyhdf.SD import SD
+from pyhdf.SD import SD, SDC
 
 import dask.array as da
 import xarray.ufuncs as xu
@@ -58,7 +22,7 @@ class HDFEOSFileReader(BaseFileHandler):
         super(HDFEOSFileReader, self).__init__(filename, filename_info, filetype_info)
         self.filename = filename
         try:
-            self.sd = SD(str(self.filename))
+            self.sd = SD(str(self.filename), SDC.READ)
         except HDF4Error as err:
             raise ValueError("Could not load data from " + str(self.filename)
                              + ": " + str(err))
@@ -86,14 +50,20 @@ class HDFEOSFileReader(BaseFileHandler):
         current_dict = mda
         path = []
         for line in lines:
+            if "gdas1" in line:
+                continue
             if not line:
                 continue
             if line == 'END':
                 break
-            key, val = line.split('=')
+            keyval = line.split('=')
+            if len(keyval) <= 1:
+                continue
+            key, val =  keyval
             key = key.strip()
             val = val.strip()
             try:
+               # print("####", val)
                 val = eval(val)
             except NameError:
                 pass
@@ -286,9 +256,11 @@ class HDFEOSBandReader(HDFEOSFileReader):
 
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
-
+        print("test")
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
+
+        print(ds)
         #resolution not coded in shortname of product
         #in mod35 resolution is 1km, 250m mask is encoded in last 2 byte
         #self.resolution = self.res[ds[-3]]
@@ -309,7 +281,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
 
         info.update({'platform_name': 'EOS-' + platform_name})
         info.update({'sensor': 'modis'})
-
+        #print(info)
 
         index, startbit, endbit = info.get("bits", "{}".format(key))
         file_key = info.get("file_key", "{}".format(key))
@@ -317,95 +289,20 @@ class HDFEOSBandReader(HDFEOSFileReader):
         #datasets = datadict[self.resolution]
         #for dataset in datasets:
         subdata = self.sd.select(file_key)
-        subdata = subdata[index,:,:]
+        #subdata = subdata[index,:,:]
 
         var_attrs = subdata.attributes()
 
-            #for dataset "Cloud_Mask" there are no bands
-           # band_names = var_attrs["band_names"].split(",")
-
-            # get the relative indices of the desired channel
-            #try:
-            #    index = band_names.index(key.name)
-           # except ValueError:
-            #    continue
-
-            #uncertainty is in sds "Quality Assurance"
-            #uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
-
-
-            #strip bits
-        subdata = bits_stripping(startbit, endbit, subdata)
-
-
-        array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE),
+        array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index,:,:],
                                  dims=['y', 'x']).astype(np.float32)
-            #valid range is 0L, -1L but maybe decoding cloud mask to different height classes makes sense?
-        valid_range = var_attrs['valid_range']
 
-            #array = array.where(array >= np.float32(valid_range[0]))
-            #array = array.where(array <= np.float32(valid_range[1]))
-            #array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
+        # strip bits
+        array = bits_stripping(startbit, endbit, array)
+
+        #valid_range = var_attrs['valid_range']
 
 
-            # if key.calibration == 'brightness_temperature':
-            #     projectable = calibrate_bt(array, var_attrs, index, key.name)
-            #     info.setdefault('units', 'K')
-            #     info.setdefault('standard_name', 'toa_brightness_temperature')
-            # elif key.calibration == 'reflectance':
-            #     projectable = calibrate_refl(array, var_attrs, index)
-            #     info.setdefault('units', '%')
-            #     info.setdefault('standard_name',
-            #                     'toa_bidirectional_reflectance')
-            # elif key.calibration == 'radiance':
-            #     projectable = calibrate_radiance(array, var_attrs, index)
-            #     info.setdefault('units', var_attrs.get('radiance_units'))
-            #     info.setdefault('standard_name',
-            #                     'toa_outgoing_radiance_per_unit_wavelength')
-            # elif key.calibration == 'counts':
-            #     projectable = calibrate_counts(array, var_attrs, index)
-            #     info.setdefault('units', 'counts')
-            #     info.setdefault('standard_name', 'counts')  # made up
-            # else:
-            #     raise ValueError("Unknown calibration for "
-            #                      "key: {}".format(key))
-            # projectable.attrs = info
-
-            # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
-            #         (platform_name == 'Terra' and key.name in ["29"])):
-            #     height, width = projectable.shape
-            #     row_indices = projectable.mask.sum(1) == width
-            #     if row_indices.sum() != height:
-            #         projectable.mask[row_indices, :] = True
-
-            # Get the orbit number
-            # if not satscene.orbit:
-            #     mda = self.data.attributes()["CoreMetadata.0"]
-            #     orbit_idx = mda.index("ORBITNUMBER")
-            #     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
-
-            # Get the geolocation
-            # if resolution != 1000:
-            #    logger.warning("Cannot load geolocation at this resolution (yet).")
-            #    return
-
-            # Trimming out dead sensor lines (detectors) on terra:
-            # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
-            # if satscene.satname == "terra":
-            #     for band in ["29"]:
-            #         if not satscene[band].is_loaded() or satscene[band].data.mask.all():
-            #             continue
-            #         width = satscene[band].data.shape[1]
-            #         height = satscene[band].data.shape[0]
-            #         indices = satscene[band].data.mask.sum(1) < width
-            #         if indices.sum() == height:
-            #             continue
-            #         satscene[band] = satscene[band].data[indices, :]
-            #         satscene[band].area = geometry.SwathDefinition(
-            #             lons=satscene[band].area.lons[indices, :],
-            #             lats=satscene[band].area.lats[indices, :])
-            #return projectable
-            return array
+        return array
 
     # These have to be interpolated...
     def get_height(self):
@@ -473,36 +370,6 @@ def BitShiftCombine(byte1, byte2):
     return (twoByte)
 
 
-# https://modis-atmos.gsfc.nasa.gov/sites/default/files/ModAtmo/MYD35_L2.C6.CDL.fs
-
-# bit field       Description                             Key                        \n",
-#    " ---------       -----------                             ---                        \n",
-#    "                                                                                    \n",
-#    "                 250-m Cloud Flag - Visible Tests                                   \n",
-#    "                 --------------------------------                                   \n",
-#    " 0               Element(1,1)                            0 =  Yes / 1 = No          \n",
-#    " 1               Element(1,2)                            0 =  Yes / 1 = No          \n",
-#    " 2               Element(1,3)                            0 =  Yes / 1 = No          \n",
-#    " 3               Element(1,4)                            0 =  Yes / 1 = No          \n",
-#    " 4               Element(2,1)                            0 =  Yes / 1 = No          \n",
-#    " 5               Element(2,2)                            0 =  Yes / 1 = No          \n",
-#    " 6               Element(2,3)                            0 =  Yes / 1 = No          \n",
-#    " 7               Element(2,4)                            0 =  Yes / 1 = No          \n",
-#    " ____ END BYTE 5 ______________ ___________________________________________         \n",
-#    "                                                                                    \n",
-#    " bit field       Description                             Key                        \n",
-#    " ----------      -----------                             ---                        \n",
-#    "                                                                                    \n",
-#    " 0               Element(3,1)                            0 =  Yes / 1 = No          \n",
-#    " 1               Element(3,2)                            0 =  Yes / 1 = No          \n",
-#    " 2               Element(3,3)                            0 =  Yes / 1 = No          \n",
-#    " 3               Element(3,4)                            0 =  Yes / 1 = No          \n",
-#    " 4               Element(4,1)                            0 =  Yes / 1 = No          \n",
-#    " 5               Element(4,2)                            0 =  Yes / 1 = No          \n",
-#    " 6               Element(4,3)                            0 =  Yes / 1 = No          \n",
-#    " 7               Element(4,4)                            0 =  Yes / 1 = No          \n",
-#    " ____ END BYTE 6 ______________ ___________________________________________         \n",
-
 def bit_strip_250m_mask(inputArray):
     """
     Create 250m cloud mask from the last 16 bits of the modis 48 bit array.
@@ -535,92 +402,6 @@ def bit_strip_250m_mask(inputArray):
     mask250 = bits_stripping(pix, 1, data)
 
     return (mask250)
-
-
-
-def calibrate_counts(array, attributes, index):
-    """Calibration for counts channels."""
-    offset = np.float32(attributes["corrected_counts_offsets"][index])
-    scale = np.float32(attributes["corrected_counts_scales"][index])
-    array = (array - offset) * scale
-    return array
-
-
-def calibrate_radiance(array, attributes, index):
-    """Calibration for radiance channels."""
-    offset = np.float32(attributes["radiance_offsets"][index])
-    scale = np.float32(attributes["radiance_scales"][index])
-    array = (array - offset) * scale
-    return array
-
-
-def calibrate_refl(array, attributes, index):
-    """Calibration for reflective channels."""
-    offset = np.float32(attributes["reflectance_offsets"][index])
-    scale = np.float32(attributes["reflectance_scales"][index])
-    # convert to reflectance and convert from 1 to %
-    array = (array - offset) * scale * 100
-    return array
-
-
-def calibrate_bt(array, attributes, index, band_name):
-    """Calibration for the emissive channels."""
-    offset = np.float32(attributes["radiance_offsets"][index])
-    scale = np.float32(attributes["radiance_scales"][index])
-
-    array = (array - offset) * scale
-
-    # Planck constant (Joule second)
-    h__ = np.float32(6.6260755e-34)
-
-    # Speed of light in vacuum (meters per second)
-    c__ = np.float32(2.9979246e+8)
-
-    # Boltzmann constant (Joules per Kelvin)
-    k__ = np.float32(1.380658e-23)
-
-    # Derived constants
-    c_1 = 2 * h__ * c__ * c__
-    c_2 = (h__ * c__) / k__
-
-    # Effective central wavenumber (inverse centimeters)
-    cwn = np.array([
-        2.641775E+3, 2.505277E+3, 2.518028E+3, 2.465428E+3,
-        2.235815E+3, 2.200346E+3, 1.477967E+3, 1.362737E+3,
-        1.173190E+3, 1.027715E+3, 9.080884E+2, 8.315399E+2,
-        7.483394E+2, 7.308963E+2, 7.188681E+2, 7.045367E+2],
-        dtype=np.float32)
-
-    # Temperature correction slope (no units)
-    tcs = np.array([
-        9.993411E-1, 9.998646E-1, 9.998584E-1, 9.998682E-1,
-        9.998819E-1, 9.998845E-1, 9.994877E-1, 9.994918E-1,
-        9.995495E-1, 9.997398E-1, 9.995608E-1, 9.997256E-1,
-        9.999160E-1, 9.999167E-1, 9.999191E-1, 9.999281E-1],
-        dtype=np.float32)
-
-    # Temperature correction intercept (Kelvin)
-    tci = np.array([
-        4.770532E-1, 9.262664E-2, 9.757996E-2, 8.929242E-2,
-        7.310901E-2, 7.060415E-2, 2.204921E-1, 2.046087E-1,
-        1.599191E-1, 8.253401E-2, 1.302699E-1, 7.181833E-2,
-        1.972608E-2, 1.913568E-2, 1.817817E-2, 1.583042E-2],
-        dtype=np.float32)
-
-    # Transfer wavenumber [cm^(-1)] to wavelength [m]
-    cwn = 1. / (cwn * 100)
-
-    # Some versions of the modis files do not contain all the bands.
-    emmissive_channels = ["20", "21", "22", "23", "24", "25", "27", "28", "29",
-                          "30", "31", "32", "33", "34", "35", "36"]
-    global_index = emmissive_channels.index(band_name)
-
-    cwn = cwn[global_index]
-    tcs = tcs[global_index]
-    tci = tci[global_index]
-    array = c_2 / (cwn * xu.log(c_1 / (1000000 * array * cwn ** 5) + 1))
-    array = (array - tci) / tcs
-    return array
 
 
 if __name__ == '__main__':
