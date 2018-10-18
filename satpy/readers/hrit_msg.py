@@ -247,7 +247,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         offsets = loff, coff
         # count starts at 1
         cols = 1 - 0.5
-        lines = 1 - 0.5
+        lines = 0.5 - 1
         ll_x, ll_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
 
         cols += ncols
