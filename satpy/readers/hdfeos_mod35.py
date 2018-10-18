@@ -15,6 +15,7 @@ from satpy.readers.hdf4_utils import from_sds
 
 logger = logging.getLogger(__name__)
 
+import time
 
 class HDFEOSFileReader(BaseFileHandler):
 
@@ -63,7 +64,6 @@ class HDFEOSFileReader(BaseFileHandler):
             key = key.strip()
             val = val.strip()
             try:
-               # print("####", val)
                 val = eval(val)
             except NameError:
                 pass
@@ -85,6 +85,21 @@ class HDFEOSFileReader(BaseFileHandler):
                 current_dict[key] = val
         return mda
 
+def timeit(method):
+    def timed(*args, **kw):
+        ts = time.time()
+        result = method(*args, **kw)
+        te = time.time()
+
+        if 'log_time' in kw:
+            name = kw.get('log_name', method.__name__.upper())
+            kw['log_time'][name] = int((te - ts) * 1000)
+        else:
+            print '%r  %2.2f ms' % \
+                  (method.__name__, (te - ts) * 1000)
+        return result
+
+    return timed
 
 class HDFEOSGeoReader(HDFEOSFileReader):
 
@@ -256,25 +271,15 @@ class HDFEOSBandReader(HDFEOSFileReader):
 
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
-        print("test")
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
 
-        print(ds)
         #resolution not coded in shortname of product
         #in mod35 resolution is 1km, 250m mask is encoded in last 2 byte
         #self.resolution = self.res[ds[-3]]
 
     def get_dataset(self, key, info):
         """Read data from file and return the corresponding projectables."""
-        # datadict = {
-        #     1000: ['EV_250_Aggr1km_RefSB',
-        #            'EV_500_Aggr1km_RefSB',
-        #            'EV_1KM_RefSB',
-        #            'EV_1KM_Emissive'],
-        #     500: ['EV_250_Aggr500_RefSB',
-        #           'EV_500_RefSB'],
-        #     250: ['EV_250_RefSB']}
 
         platform_name = self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
             'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
@@ -286,15 +291,12 @@ class HDFEOSBandReader(HDFEOSFileReader):
         index, startbit, endbit = info.get("bits", "{}".format(key))
         file_key = info.get("file_key", "{}".format(key))
 
-        #datasets = datadict[self.resolution]
-        #for dataset in datasets:
         subdata = self.sd.select(file_key)
-        #subdata = subdata[index,:,:]
-
+ 
         var_attrs = subdata.attributes()
 
         array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index,:,:],
-                                 dims=['y', 'x']).astype(np.float32)
+                                 dims=['y', 'x']).astype(np.int8)
 
         # strip bits
         array = bits_stripping(startbit, endbit, array)
@@ -321,6 +323,10 @@ class HDFEOSBandReader(HDFEOSFileReader):
         return self.data.select("SensorAzimuth")
 
 
+#right_shift = da.array.frompyfunc(np.right_shift)
+#left_shift = da.array.frompyfunc(np.left_shift)
+
+
 def bits_stripping(bit_start, bit_count, value):
     """Extract specified bit from bit representation of integer value.
 
@@ -342,7 +348,8 @@ def bits_stripping(bit_start, bit_count, value):
 
     bitmask = pow(2, bit_start + bit_count) - 1
 
-    return np.right_shift(np.bitwise_and(value, bitmask), bit_start)
+    return np.right_shift(da.bitwise_and(value, bitmask), bit_start)
+#    return da.bitwise_and(value, bitmask)
 
 
 def BitShiftCombine(byte1, byte2):
@@ -363,9 +370,9 @@ def BitShiftCombine(byte1, byte2):
     # make sure byte1 is 16 bit
     twoByte = np.uint16(byte1)
     # shift bits to the left
-    twoByte = np.left_shift(twoByte, 8)  # twoByte << 8
+    twoByte = left_shift(twoByte, 8)  # twoByte << 8
     # concatenate the two bytes
-    twoByte = np.bitwise_or(twoByte, byte2).astype(np.uint16)  # casting = "no")
+    twoByte = da.bitwise_or(twoByte, byte2).astype(np.uint16)  # casting = "no")
 
     return (twoByte)
 
@@ -408,6 +415,6 @@ if __name__ == '__main__':
     from satpy.utils import debug_on
     debug_on()
     br = HDFEOSBandReader(
-        '/data/temp/Martin.Raspaud/MYD021km_A16220_130933_2016220132537.hdf')
+        '/media/droplet_data/data/modis_lcrs_2005_2006/mod35/2005/MOD35_L2.A2005001.0740.006.2014340132609.hdf')
     gr = HDFEOSGeoReader(
-        '/data/temp/Martin.Raspaud/MYD03_A16220_130933_2016220132537.hdf')
+        '/media/droplet_data/data/modis_lcrs_2005_2006/mod03/2005/MOD03.A2005001.0740.006.2012274114305.hdf')

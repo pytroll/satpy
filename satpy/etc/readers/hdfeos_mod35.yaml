@@ -26,17 +26,6 @@ datasets:
     coordinates: [longitude, latitude]
     file_key: Cloud_Mask
 
-#  quality_assurance:
-#    file_type: hdf_eos_data_1000m
-#    name: quality_assurance
-#    resolution: 1000
-#    calibration: [reflectance, radiance, counts]
-#    coordinates: [longitude, latitude]
-#    wavelength:
-#    - 0.405
-#    - 0.4125
-#    - 0.42
-#
   longitude1k:
     file_type: hdf_eos_geo
     name: longitude
