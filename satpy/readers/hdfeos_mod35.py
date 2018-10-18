@@ -292,14 +292,17 @@ class HDFEOSBandReader(HDFEOSFileReader):
         file_key = info.get("file_key", "{}".format(key))
 
         subdata = self.sd.select(file_key)
- 
+
         var_attrs = subdata.attributes()
 
         array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index,:,:],
                                  dims=['y', 'x']).astype(np.int8)
 
+
         # strip bits
         array = bits_stripping(startbit, endbit, array)
+  
+        array.attrs = info
 
         #valid_range = var_attrs['valid_range']
 
