@@ -170,7 +170,7 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
         self.mda["projection_parameters"]["h"] = 35785831.0
         self.mda["projection_parameters"]["SSP_longitude"] = 0.0
         self.mda["projection_parameters"]["SSP_latitude"] = 0.0
-        self.platform_id = 11
+        self.platform_id = 324
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
         self.mda["platform_name"] = self.platform_name
         #service = self._filename_info["service"]
@@ -182,15 +182,15 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
 
     @property
     def start_time(self):
-        time = self.mda["ImageProductionStats"]["ImageProductionStats_DESCR"]["ActualScanningSummary"]["ForwardScanStart"]
+        #time = self.mda["ImageProductionStats"]["ImageProductionStats_DESCR"]["ActualScanningSummary"]["ForwardScanStart"]
 
-        return timecds2datetime({k.capitalize(): v for k,v in time.items()})
+        return self._filename_info["slot_time"]
 
     @property
     def end_time(self):
-        time = self.mda["ImageProductionStats"]["ImageProductionStats_DESCR"]["ActualScanningSummary"]["ForwardScanEnd"]
+        #time = self.mda["ImageProductionStats"]["ImageProductionStats_DESCR"]["ActualScanningSummary"]["ForwardScanEnd"]
 
-        return timecds2datetime({k.capitalize(): v for k,v in time.items()})
+        return self._filename_info["slot_time"]
 
     def get_xy_from_linecol(self, line, col, offsets, factors):
         """Get the intermediate coordinates from line & col.
@@ -246,13 +246,6 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
         ds_type = "VIS_IR"
-        #refGrid = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ReferenceGridVIS_IR"]
-
-        #if dsid.name == "HRV":
-         #   ds_type = "HRV"
-            #refGrid = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ReferenceGridHRV"]
-
-        refGrid = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ReferenceGrid" + ds_type]
 
         nlines = 3712
         ncols = 3712
@@ -260,30 +253,17 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
         colgridstep = 3.00040316582 * 1000
         gridsteps = (colgridstep, linegridstep)
 
-        #cfac = np.int32(self.mda["cfac"])
-        #lfac = np.int32(self.mda["lfac"])
-        #loff = np.float32(self.mda["loff"])
         loff = nlines/2
         coff = ncols/2
         offsets = (coff, loff)
 
-        #cases: - file contains fulldisk load fulldisk x
-        #       - file contains fulldisk and subset defined
-        #       - file contains subset load full subset x
-        #       - file contains subset and load subset of subset
-
-        bounds = (0, 0, ncols, nlines)
-        #bounds = (ncols, nlines, 0, 0)
-        if "METADATA" in self.mda.keys():
-            subset = self.mda["METADATA"]["SUBSET"]
-            [1488, 763, 2455, 53]
-            ll_x = 1488
-            ll_y = 2455
-            ur_x = 763
-            ur_y = 53
-            bounds = (ll_x, ur_y, ur_x, ul_y)
-            ncols = ll_x - ur_x + 1
-            nlines = ur_y - ll_y + 1
+        ll_x = 1488
+        ll_y = 763
+        ur_x = 2455
+        ur_y = 53
+        bounds = (ll_x, ur_y, ur_x, ll_y)
+        ncols = ur_x -ll_x
+        nlines = ll_y - ur_y
 
 
         area_extent = self.get_area_extent(bounds, offsets, gridsteps)
@@ -315,7 +295,7 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
     def get_dataset(self, dataset_id, ds_info):
         ds_path = ds_info.get("file_key", "{}".format(dataset_id))
         #channel_id = int(self.mda[ds_path]["LineSideInfo_DESCR"]["ChannelId"])
-        res = self[ds_path]#[::-1,:]
+        res = self[ds_path][::-1,:]
         #calib = ds_info.get("calibration", "{}".format(dataset_id))
         #res = self.calibrate(res, calib, channel_id) #key.calibration)
         res.attrs["units"] = ds_info["units"]
