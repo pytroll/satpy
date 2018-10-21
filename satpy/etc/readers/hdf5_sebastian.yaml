@@ -1,14 +1,14 @@
 reader:
-  description: MSG HDF5 Reader
-  name: hdf5_msg
+  description: MSG sebastian
+  name: hdf5_sebastian
   sensors: [seviri]
-  default_channels: [HRV, IR_016, IR_039, IR_087, IR_097, IR_108, IR_120, IR_134, VIS006, VIS008, WV_062, WV_073]
+  default_channels: [IR_016, IR_039, IR_087, IR_097, IR_108, IR_120, IR_134, VIS006, VIS008, WV_062, WV_073]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
     HDF5_MSG:
-        file_reader: !!python/name:satpy.readers.hdf5_msg.HDF5MSGFileHandler
-        file_patterns: ['{platform_shortname:4s}-{instrument:4s}-MSG{data_level:2s}-{base_algo_version:4s}-{prod_algo_version:2s}-{reception_stop_time:%Y%m%d%H%M%S}.{subseconds:9s}Z-{processing_start_time:%Y%m%d%H%M%S}-{order_number:7s}.h5']
+        file_reader: !!python/name:satpy.readers.hdf5_sebastian.HDF5MSGFileHandler
+        file_patterns: ['{slot_time:%Y%m%d_%H%M}.h5']
 
 datasets:
   VIS006:
@@ -25,7 +25,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 01"
+    file_key: "VIS006"
 
   VIS008:
     name: VIS008
@@ -41,7 +41,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 02"
+    file_key: "VIS008"
 
   IR_016:
     name: IR_016
@@ -57,7 +57,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 03"
+    file_key: "IR_016"
 
   IR_039:
     name: IR_039
@@ -73,7 +73,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 04"
+    file_key: "IR_039"
 
   WV_062:
     name: WV_062
@@ -89,7 +89,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 05"
+    file_key: "WV_062"
 
   WV_073:
     name: WV_073
@@ -105,7 +105,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 06"
+    file_key: "WV_073"
 
   IR_087:
     name: IR_087
@@ -121,7 +121,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 07"
+    file_key: "IR_087"
 
   IR_097:
     name: IR_097
@@ -137,7 +137,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 08"
+    file_key: "IR_097"
 
   IR_108:
     name: IR_108
@@ -153,7 +153,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 09"
+    file_key: "IR_108"
 
   IR_120:
     name: IR_120
@@ -169,7 +169,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 10"
+    file_key: "IR_120"
 
   IR_134:
     name: IR_134
@@ -201,4 +201,4 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 12"
+    file_key: "IR_134"
