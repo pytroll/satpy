@@ -86,6 +86,7 @@ class HDFEOSFileReader(BaseFileHandler):
         return mda
 
 def timeit(method):
+    import time
     def timed(*args, **kw):
         ts = time.time()
         result = method(*args, **kw)
@@ -296,12 +297,12 @@ class HDFEOSBandReader(HDFEOSFileReader):
         var_attrs = subdata.attributes()
 
         array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index,:,:],
-                                 dims=['y', 'x']).astype(np.int8)
+                                 dims=['y', 'x']).astype(np.int32)
 
 
         # strip bits
-        array = bits_stripping(startbit, endbit, array)
-  
+        array = bits_stripping(startbit, endbit, array).astype(np.float32)
+
         array.attrs = info
 
         #valid_range = var_attrs['valid_range']
