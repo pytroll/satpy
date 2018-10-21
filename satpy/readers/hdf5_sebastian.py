@@ -163,25 +163,14 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
 
         self.mda = defaultdict(dict)
 
-        for k, d in self.file_content.items():
-            if isinstance(d, h5py.Dataset) and k.endswith("DESCR") or k.endswith("SUBSET"):
-                group = k.split("/")[-2]
-                key = k.split("/")[-1]
-                dset = np.array(self[k])
-                self.mda[group][key] = rec2dict(dset)
+        #self.calib_coeffs = np.array(self["U-MARF/MSG/Level1.5/METADATA/HEADER/RadiometricProcessing/Level15ImageCalibration_ARRAY"])
 
-        self.calib_coeffs = np.array(self["U-MARF/MSG/Level1.5/METADATA/HEADER/RadiometricProcessing/Level15ImageCalibration_ARRAY"])
-
-        earth_model = self.mda["GeometricProcessing"]["GeometricProcessing_DESCR"]["EarthModel"]
-        self.mda["offset_corrected"] = int(earth_model["TypeOfEarthModel"]) == 1
-        b = (float(earth_model["NorthPolarRadius"]) + float(earth_model["SouthPolarRadius"])) / 2.0 * 1000
-        self.mda["projection_parameters"]["a"] = float(earth_model["EquatorialRadius"]) * 1000
-        self.mda["projection_parameters"]["b"] = b
+        self.mda["projection_parameters"]["a"] = 6378169.0
+        self.mda["projection_parameters"]["b"] = 6356583.8
         self.mda["projection_parameters"]["h"] = 35785831.0
-        ssp = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ProjectionDescription"]["LongitudeOfSSP"]
-        self.mda["projection_parameters"]["SSP_longitude"] = float(ssp)
+        self.mda["projection_parameters"]["SSP_longitude"] = 0.0
         self.mda["projection_parameters"]["SSP_latitude"] = 0.0
-        self.platform_id = int(self.mda["ImageProductionStats"]["ImageProductionStats_DESCR"]["SatelliteId"])
+        self.platform_id = 11
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
         self.mda["platform_name"] = self.platform_name
         #service = self._filename_info["service"]
@@ -259,16 +248,16 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
         ds_type = "VIS_IR"
         #refGrid = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ReferenceGridVIS_IR"]
 
-        if dsid.name == "HRV":
-            ds_type = "HRV"
+        #if dsid.name == "HRV":
+         #   ds_type = "HRV"
             #refGrid = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ReferenceGridHRV"]
 
         refGrid = self.mda["ImageDescription"]["ImageDescription_DESCR"]["ReferenceGrid" + ds_type]
 
-        nlines = int(refGrid["NumberOfLines"])
-        ncols = int(refGrid["NumberOfColumns"])
-        linegridstep = float(refGrid["LineDirGridStep"]) * 1000
-        colgridstep = float(refGrid["ColumnDirGridStep"]) * 1000
+        nlines = 3712
+        ncols = 3712
+        linegridstep = 3.00040316582 * 1000
+        colgridstep = 3.00040316582 * 1000
         gridsteps = (colgridstep, linegridstep)
 
         #cfac = np.int32(self.mda["cfac"])
@@ -287,14 +276,14 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
         #bounds = (ncols, nlines, 0, 0)
         if "METADATA" in self.mda.keys():
             subset = self.mda["METADATA"]["SUBSET"]
-            ll_x = int(subset[ds_type + "WestColumnSelectedRectangle"])
-            ll_y = int(subset[ds_type + "SouthLineSelectedRectangle"])
-            ur_x = int(subset[ds_type + "EastColumnSelectedRectangle"])
-            ur_y = int(subset[ds_type + "NorthLineSelectedRectangle"])
-            bounds = (ncols - ll_x, nlines - ur_y, ncols - ur_x, nlines - ll_y)
+            [1488, 763, 2455, 53]
+            ll_x = 1488
+            ll_y = 2455
+            ur_x = 763
+            ur_y = 53
+            bounds = (ll_x, ur_y, ur_x, ul_y)
             ncols = ll_x - ur_x + 1
             nlines = ur_y - ll_y + 1
-
 
 
         area_extent = self.get_area_extent(bounds, offsets, gridsteps)
@@ -325,10 +314,10 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         ds_path = ds_info.get("file_key", "{}".format(dataset_id))
-        channel_id = int(self.mda[ds_path]["LineSideInfo_DESCR"]["ChannelId"])
-        res = self["U-MARF/MSG/Level1.5/DATA/" + ds_path + "/IMAGE_DATA"][::-1,:]
-        calib = ds_info.get("calibration", "{}".format(dataset_id))
-        res = self.calibrate(res, calib, channel_id) #key.calibration)
+        #channel_id = int(self.mda[ds_path]["LineSideInfo_DESCR"]["ChannelId"])
+        res = self[ds_path]#[::-1,:]
+        #calib = ds_info.get("calibration", "{}".format(dataset_id))
+        #res = self.calibrate(res, calib, channel_id) #key.calibration)
         res.attrs["units"] = ds_info["units"]
         res.attrs["wavelength"] = ds_info["wavelength"]
         res.attrs["standard_name"] = ds_info["standard_name"]
