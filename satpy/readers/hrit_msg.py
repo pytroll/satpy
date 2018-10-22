@@ -192,7 +192,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         """Read the header info, and fill the metadata dictionary"""
 
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
-        self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 1
+        self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 2
         b = (earth_model['NorthPolarRadius'] +
              earth_model['SouthPolarRadius']) / 2.0 * 1000
         self.mda['projection_parameters'][
