@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Martin Raspaud
+# Copyright (c) 2017-2018 Martin Raspaud
 
 # Author(s):
 
@@ -50,39 +50,40 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         fromfile.return_value = np.array([(1, 2)], dtype=[('total_header_length', int),
                                                           ('hdr_id', int)])
 
-        with mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen, mock.patch('satpy.readers.hrit_msg.CHANNEL_NAMES') as chnnames:
-            newopen.return_value.__enter__.return_value.tell.return_value = 1
-            prologue = mock.MagicMock()
-            prologue.prologue = {"SatelliteStatus": {"SatelliteDefinition": {"SatelliteId": 324}},
-                                 'GeometricProcessing': {'EarthModel': {'TypeOfEarthModel': 2,
-                                                                        'NorthPolarRadius': 10,
-                                                                        'SouthPolarRadius': 10,
-                                                                        'EquatorialRadius': 10}},
-                                 'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0}}}
-            self.reader = HRITMSGFileHandler(
-                'filename',
-                {'platform_shortname': 'MSG3',
-                 'start_time': datetime(2016, 3, 3, 0, 0),
-                 'service': 'MSG'},
-                {'filetype': 'info'},
-                prologue,
-                mock.MagicMock())
-            ncols = 3712
-            nlines = 464
-            nbits = 10
-            self.reader.mda['number_of_bits_per_pixel'] = nbits
-            self.reader.mda['number_of_lines'] = nlines
-            self.reader.mda['number_of_columns'] = ncols
-            self.reader.mda['data_field_length'] = nlines * ncols * nbits
-            self.reader.mda['cfac'] = 5
-            self.reader.mda['lfac'] = 5
-            self.reader.mda['coff'] = 10
-            self.reader.mda['loff'] = 10
-            self.reader.mda['projection_parameters'] = {}
-            self.reader.mda['projection_parameters']['a'] = 6378169.0
-            self.reader.mda['projection_parameters']['b'] = 6356583.8
-            self.reader.mda['projection_parameters']['h'] = 35785831.0
-            self.reader.mda['projection_parameters']['SSP_longitude'] = 44
+        with mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen:
+            with mock.patch('satpy.readers.hrit_msg.CHANNEL_NAMES'):
+                newopen.return_value.__enter__.return_value.tell.return_value = 1
+                prologue = mock.MagicMock()
+                prologue.prologue = {"SatelliteStatus": {"SatelliteDefinition": {"SatelliteId": 324}},
+                                     'GeometricProcessing': {'EarthModel': {'TypeOfEarthModel': 2,
+                                                                            'NorthPolarRadius': 10,
+                                                                            'SouthPolarRadius': 10,
+                                                                            'EquatorialRadius': 10}},
+                                     'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0}}}
+                self.reader = HRITMSGFileHandler(
+                    'filename',
+                    {'platform_shortname': 'MSG3',
+                     'start_time': datetime(2016, 3, 3, 0, 0),
+                     'service': 'MSG'},
+                    {'filetype': 'info'},
+                    prologue,
+                    mock.MagicMock())
+                ncols = 3712
+                nlines = 464
+                nbits = 10
+                self.reader.mda['number_of_bits_per_pixel'] = nbits
+                self.reader.mda['number_of_lines'] = nlines
+                self.reader.mda['number_of_columns'] = ncols
+                self.reader.mda['data_field_length'] = nlines * ncols * nbits
+                self.reader.mda['cfac'] = 5
+                self.reader.mda['lfac'] = 5
+                self.reader.mda['coff'] = 10
+                self.reader.mda['loff'] = 10
+                self.reader.mda['projection_parameters'] = {}
+                self.reader.mda['projection_parameters']['a'] = 6378169.0
+                self.reader.mda['projection_parameters']['b'] = 6356583.8
+                self.reader.mda['projection_parameters']['h'] = 35785831.0
+                self.reader.mda['projection_parameters']['SSP_longitude'] = 44
 
     def test_get_xy_from_linecol(self):
         """Test get_xy_from_linecol."""
