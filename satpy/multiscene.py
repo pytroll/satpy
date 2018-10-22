@@ -156,6 +156,14 @@ class MultiScene(object):
 
         return new_scn
 
+    def __str__(self, *args, **kwargs):
+        """Generate a nice print out for the scene."""
+        res = []
+        for layer in self.scenes:
+            res.append("\n".join((str(proj) for proj in layer.datasets.values())))
+
+        return "\n\n".join(res)
+
     def _get_animation_info(self, all_datasets, filename, fill_value=None):
         """Determine filename and shape of animation to be created."""
         valid_datasets = [ds for ds in all_datasets if ds is not None]
