@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # Copyright (c) 2017-2018 PyTroll Community
 
 # Author(s):
@@ -17,7 +20,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """SEVIRI netcdf format reader. """
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -66,7 +68,7 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         # Obtain some area definition attributes
         equatorial_radius = (self.nc.attrs['equatorial_radius'] * 1000.)
-        polar_radius = (self.nc.attrs['north_polar_radius'] * 1000 + self.nc.attrs['south_polar_radius']*1000) * 0.5
+        polar_radius = (self.nc.attrs['north_polar_radius'] * 1000 + self.nc.attrs['south_polar_radius'] * 1000) * 0.5
         ssp_lon = self.nc.attrs['longitude_of_SSP']
         self.mda['projection_parameters'] = {'a': equatorial_radius,
                                              'b': polar_radius,
@@ -76,11 +78,13 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.mda['number_of_lines'] = int(self.nc.dims['y'])
         self.mda['number_of_columns'] = int(self.nc.dims['x'])
 
-        self.deltaSt = self.reference + datetime.timedelta(days=int(self.nc.attrs['true_repeat_cycle_start_day']),
-                            milliseconds=int(self.nc.attrs['true_repeat_cycle_start_mi_sec']))
+        self.deltaSt = self.reference + datetime.timedelta(
+            days=int(self.nc.attrs['true_repeat_cycle_start_day']),
+            milliseconds=int(self.nc.attrs['true_repeat_cycle_start_mi_sec']))
 
-        self.deltaEnd = self.reference + datetime.timedelta(days=int(self.nc.attrs['planned_repeat_cycle_end_day']),
-                            milliseconds=int(self.nc.attrs['planned_repeat_cycle_end_mi_sec']))
+        self.deltaEnd = self.reference + datetime.timedelta(
+            days=int(self.nc.attrs['planned_repeat_cycle_end_day']),
+            milliseconds=int(self.nc.attrs['planned_repeat_cycle_end_mi_sec']))
 
         # Netcdf xrray dimensions workaround - these 4 dimensions not found in the dataset
         # but ncdump confirms they are there
