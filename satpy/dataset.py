@@ -78,6 +78,8 @@ def average_datetimes(dt_list):
 def combine_metadata(*metadata_objects, **kwargs):
     """Combine the metadata of two or more Datasets.
 
+    If any keys are not equal or do not exist in all provided dictionaries
+    then they are not included in the returned dictionary.
     By default any keys with the word 'time' in them and consisting
     of datetime objects will be averaged. This is to handle cases where
     data were observed at almost the same time but not exactly.
@@ -87,7 +89,7 @@ def combine_metadata(*metadata_objects, **kwargs):
         average_times (bool): Average any keys with 'time' in the name
 
     Returns:
-        the combined metadata
+        dict: the combined metadata
 
     """
     average_times = kwargs.get('average_times', True)  # python 2 compatibility (no kwarg after *args)
