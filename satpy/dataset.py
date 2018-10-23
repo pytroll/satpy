@@ -65,9 +65,12 @@ def average_datetimes(dt_list):
     if sys.version_info < (3, 3):
         # timestamp added in python 3.3
         import time
-        timestamp_func = lambda x: time.mktime(x.timetuple())
+
+        def timestamp_func(dt):
+            return time.mktime(dt.timetuple())
     else:
-        timestamp_func = lambda x: x.timestamp()
+        timestamp_func = datetime.timestamp
+
     total = [timestamp_func(dt) for dt in dt_list]
     return datetime.fromtimestamp(sum(total) / len(total))
 
