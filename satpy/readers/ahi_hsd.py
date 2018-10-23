@@ -1,30 +1,42 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+#
 # Copyright (c) 2014-2018 PyTroll developers
-
+#
 # Author(s):
-
+#
 #   Adam.Dybbroe <adam.dybbroe@smhi.se>
 #   Cooke, Michael.C, UK Met Office
 #   Martin Raspaud <martin.raspaud@smhi.se>
-
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Advanced Himawari Imager (AHI) standard format data reader
+"""Advanced Himawari Imager (AHI) standard format data reader. The HSD format
+that this reader reads are described at the URL below:
 
 http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
+
+Time Information
+****************
+
+AHI observations use the idea of a "scheduled" time and an "observation time.
+The "scheduled" time is when the instrument was told to record the data,
+usually at a specific and consistent interval. The "observation" time is when
+the data was actually observed. Scheduled time can be accessed from the
+`start_time` metadata key and observation time from the `observation_time`
+key. Scheduled time is used this way so that all bands for a specific scene
+and sector have the same start time.
 
 """
 
