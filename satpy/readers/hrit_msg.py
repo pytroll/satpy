@@ -211,7 +211,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             self.mda['service'] = '0DEG'
         else:
             self.mda['service'] = service
-        self.channel_name = CHANNEL_NAMES[self.mda.get('spectral_channel_id')]
+        self.channel_name = CHANNEL_NAMES[self.mda['spectral_channel_id']]
 
     @property
     def start_time(self):
