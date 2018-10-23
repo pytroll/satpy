@@ -255,8 +255,10 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
-        return (datetime(1858, 11, 17) +
-                timedelta(days=float(self.basic_info['observation_start_time'])))
+        start_time = datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
+        # use the "scheduled" time instead of the observation time
+        timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
+        return start_time.replace(hour=int(timeline[:2]), minute=int(timeline[2:4]), second=0, microsecond=0)
 
     @property
     def end_time(self):
@@ -428,19 +430,18 @@ class AHIHSDFileHandler(BaseFileHandler):
                                           dtype='<u2',  shape=(nlines, ncols), mode='r'),
                                 chunks=CHUNK_SIZE)
         res = da.where(res == 65535, np.float32(np.nan), res)
-
         self._header = header
 
         logger.debug("Reading time " + str(datetime.now() - tic))
-
         res = self.calibrate(res, key.calibration)
-
+        obs_time = datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
         new_info = dict(units=info['units'],
                         standard_name=info['standard_name'],
                         wavelength=info['wavelength'],
                         resolution='resolution',
                         id=key,
                         name=key.name,
+                        observation_time=obs_time,
                         platform_name=self.platform_name,
                         sensor=self.sensor,
                         satellite_longitude=float(
