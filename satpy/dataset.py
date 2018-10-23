@@ -75,7 +75,7 @@ def average_datetimes(dt_list):
     return datetime.fromtimestamp(sum(total) / len(total))
 
 
-def combine_metadata(*metadata_objects, average_times=True):
+def combine_metadata(*metadata_objects, **kwargs):
     """Combine the metadata of two or more Datasets.
 
     By default any keys with the word 'time' in them and consisting
@@ -90,6 +90,7 @@ def combine_metadata(*metadata_objects, average_times=True):
         the combined metadata
 
     """
+    average_times = kwargs.get('average_times', True)  # python 2 compatibility (no kwarg after *args)
     shared_keys = None
     info_dicts = []
     # grab all of the dictionary objects provided and make a set of the shared keys
