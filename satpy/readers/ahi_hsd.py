@@ -56,11 +56,6 @@ AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
                      "11", "12", "13", "14", "15", "16")
 
-
-class CalibrationError(ValueError):
-    pass
-
-
 logger = logging.getLogger('ahi_hsd')
 
 # Basic information block:
@@ -227,9 +222,7 @@ _SPARE_TYPE = np.dtype([
 
 
 class AHIHSDFileHandler(BaseFileHandler):
-
-    """AHI standard format reader
-    """
+    """AHI standard format reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
@@ -262,20 +255,19 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.platform_name = np2str(self.basic_info['satellite'])
         self.sensor = 'ahi'
 
-    def get_shape(self, dsid, ds_info):
-        return int(self.data_info['number_of_lines']), int(self.data_info['number_of_columns'])
-
     @property
     def start_time(self):
-        start_time = datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
-        # use the "scheduled" time instead of the observation time
-        timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
-        return start_time.replace(hour=int(timeline[:2]), minute=int(timeline[2:4]), second=0, microsecond=0)
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
 
     @property
     def end_time(self):
-        return (datetime(1858, 11, 17) +
-                timedelta(days=float(self.basic_info['observation_end_time'])))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_end_time']))
+
+    @property
+    def scheduled_time(self):
+        """Time this band was scheduled to be recorded."""
+        timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
+        return self.start_time.replace(hour=int(timeline[:2]), minute=int(timeline[2:4]), second=0, microsecond=0)
 
     def get_dataset(self, key, info):
         return self.read_band(key, info)
@@ -325,10 +317,6 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def get_lonlats(self, key, info, lon_out, lat_out):
-        logger.debug('Computing area for %s', str(key))
-        lon_out[:], lat_out[:] = self.area.get_lonlats()
-
     def geo_mask(self):
         """Masking the space pixels from geometry info."""
         cfac = np.uint32(self.proj_info['CFAC'])
@@ -360,7 +348,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         return ellipse(lines_idx[:, None], cols_idx[None, :])
 
     def read_band(self, key, info):
-        """Read the data"""
+        """Read the data."""
         tic = datetime.now()
         header = {}
         with open(self.filename, "rb") as fp_:
@@ -446,14 +434,13 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         logger.debug("Reading time " + str(datetime.now() - tic))
         res = self.calibrate(res, key.calibration)
-        obs_time = datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
         new_info = dict(units=info['units'],
                         standard_name=info['standard_name'],
                         wavelength=info['wavelength'],
                         resolution='resolution',
                         id=key,
                         name=key.name,
-                        observation_time=obs_time,
+                        scheduled_time=self.scheduled_time,
                         platform_name=self.platform_name,
                         sensor=self.sensor,
                         satellite_longitude=float(
@@ -486,8 +473,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         return data
 
     def convert_to_radiance(self, data):
-        """Calibrate to radiance.
-        """
+        """Calibrate to radiance."""
 
         gain = self._header["block5"]["gain_count2rad_conversion"][0]
         offset = self._header["block5"]["offset_count2rad_conversion"][0]
@@ -495,14 +481,12 @@ class AHIHSDFileHandler(BaseFileHandler):
         return data * gain + offset
 
     def _vis_calibrate(self, data):
-        """Visible channel calibration only.
-        """
+        """Visible channel calibration only."""
         coeff = self._header["calibration"]["coeff_rad2albedo_conversion"]
         return (data * coeff * 100).clip(0)
 
     def _ir_calibrate(self, data):
-        """IR calibration
-        """
+        """IR calibration."""
 
         cwl = self._header['block5']["central_wave_length"][0] * 1e-6
         c__ = self._header['calibration']["speed_of_light"][0]
