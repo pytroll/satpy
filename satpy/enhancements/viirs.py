@@ -16,4 +16,4 @@ def water_detection(img, **kwargs):
     
     apply_enhancement(img.data, func, pass_dask=True)
     cm = Colormap(*palette['colors'])
-    img.colorize(cm)
+    img.palettize(cm)

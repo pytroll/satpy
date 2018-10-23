@@ -29,7 +29,7 @@ from satpy.tests import (reader_tests, test_dataset, test_file_handlers,
                          test_readers, test_resample,
                          test_scene, test_utils, test_writers,
                          test_yaml_reader, writer_tests,
-                         test_enhancements, compositor_tests, test_multiscene)
+                         enhancement_tests, compositor_tests, test_multiscene)
 
 
 if sys.version_info < (2, 7):
@@ -54,7 +54,7 @@ def suite():
     mysuite.addTests(writer_tests.suite())
     mysuite.addTests(test_file_handlers.suite())
     mysuite.addTests(test_utils.suite())
-    mysuite.addTests(test_enhancements.suite())
+    mysuite.addTests(enhancement_tests.suite())
     mysuite.addTests(compositor_tests.suite())
     mysuite.addTests(test_multiscene.suite())
 
