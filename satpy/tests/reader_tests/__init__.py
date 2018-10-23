@@ -36,7 +36,8 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_iasi_l2, test_generic_image,
                                       test_scmi, test_hrit_jma, test_nc_goes,
                                       test_nc_slstr, test_nc_olci,
-                                      test_viirs_flood, test_nc_nwcsaf)
+                                      test_viirs_flood, test_nc_nwcsaf,
+                                      test_hrit_msg)
 
 
 if sys.version_info < (2, 7):
@@ -77,5 +78,6 @@ def suite():
     mysuite.addTests(test_nc_goes.suite())
     mysuite.addTests(test_nc_slstr.suite())
     mysuite.addTests(test_nc_nwcsaf.suite())
+    mysuite.addTests(test_hrit_msg.suite())
 
     return mysuite
