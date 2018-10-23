@@ -75,11 +75,16 @@ def average_datetimes(dt_list):
     return datetime.fromtimestamp(sum(total) / len(total))
 
 
-def combine_metadata(*metadata_objects):
+def combine_metadata(*metadata_objects, average_times=True):
     """Combine the metadata of two or more Datasets.
+
+    By default any keys with the word 'time' in them and consisting
+    of datetime objects will be averaged. This is to handle cases where
+    data were observed at almost the same time but not exactly.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
+        average_times (bool): Average any keys with 'time' in the name
 
     Returns:
         the combined metadata
@@ -110,7 +115,7 @@ def combine_metadata(*metadata_objects):
         if any_arrays:
             if all(np.all(val == values[0]) for val in values[1:]):
                 shared_info[k] = values[0]
-        elif 'time' in k and isinstance(values[0], datetime):
+        elif 'time' in k and isinstance(values[0], datetime) and average_times:
             shared_info[k] = average_datetimes(values)
         elif all(val == values[0] for val in values[1:]):
             shared_info[k] = values[0]

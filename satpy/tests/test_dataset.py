@@ -75,6 +75,22 @@ class TestCombineMetadata(unittest.TestCase):
         ret = average_datetimes(dts)
         self.assertEqual(dts[2], ret)
 
+    def test_combine_times(self):
+        """Test the combine_metadata with times."""
+        from satpy.dataset import combine_metadata
+        dts = (
+            {'start_time': datetime(2018, 2, 1, 11, 58, 0)},
+            {'start_time': datetime(2018, 2, 1, 11, 59, 0)},
+            {'start_time': datetime(2018, 2, 1, 12, 0, 0)},
+            {'start_time': datetime(2018, 2, 1, 12, 1, 0)},
+            {'start_time': datetime(2018, 2, 1, 12, 2, 0)},
+        )
+        ret = combine_metadata(*dts)
+        self.assertEqual(dts[2]['start_time'], ret['start_time'])
+        ret = combine_metadata(*dts, average_times=False)
+        # times are not equal so don't include it in the final result
+        self.assertNotIn('start_time', ret)
+
 
 def suite():
     """The test suite for test_projector.
