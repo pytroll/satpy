@@ -34,9 +34,7 @@ AHI observations use the idea of a "scheduled" time and an "observation time.
 The "scheduled" time is when the instrument was told to record the data,
 usually at a specific and consistent interval. The "observation" time is when
 the data was actually observed. Scheduled time can be accessed from the
-`start_time` metadata key and observation time from the `observation_time`
-key. Scheduled time is used this way so that all bands for a specific scene
-and sector have the same start time.
+`scheduled_time` metadata key and observation time from the `start_time` key.
 
 """
 
