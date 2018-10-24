@@ -24,15 +24,21 @@ file_types:
     esa_l1b_co:
         file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTR1B
         file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_co.nc']
-    esa_l1b_tir:
+    esa_l1b_ntir:
         file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}{view:1s}.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}n.nc']
+    esa_l1b_otir:
+        file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTR1B
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}o.nc']
     esa_angles:
         file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTRAngles
         file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geometry_t{view:1s}.nc']
     esa_geo_an:
         file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTRGeo
         file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_a{view:1s}.nc']
+    esa_geo_bn:
+        file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTRGeo
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_b{view:1s}.nc']
     esa_geo_in:
         file_reader: !!python/name:satpy.readers.nc_slstr.NCSLSTRGeo
         file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_i{view:1s}.nc']
@@ -64,44 +70,133 @@ file_types:
 
 datasets:
   longitude_an:
-    name: longitude
+    name: longitude_an
     resolution: 500
+    view: nadir
+    stripe: a
     file_type: esa_geo_an
     file_key: longitude_an
     standard_name: longitude
     units: degree
 
   latitude_an:
-    name: latitude
+    name: latitude_an
     resolution: 500
+    view: nadir
+    stripe: a
     file_type: esa_geo_an
     file_key: latitude_an
     standard_name: latitude
     units: degree
 
+  longitude_bn:
+    name: longitude_bn
+    resolution: 500
+    view: nadir
+    stripe: b
+    file_type: esa_geo_bn
+    file_key: longitude_bn
+    standard_name: longitude
+    units: degree
+
+  latitude_bn:
+    name: latitude_bn
+    resolution: 500
+    view: nadir
+    stripe: b
+    file_type: esa_geo_bn
+    file_key: latitude_bn
+    standard_name: latitude
+    units: degree
+
   longitude_in:
-    name: longitude
+    name: longitude_in
     resolution: 1000
+    view: nadir
+    stripe: i
     file_type: esa_geo_in
     file_key: longitude_in
     standard_name: longitude
     units: degree
 
   latitude_in:
-    name: latitude
+    name: latitude_in
     resolution: 1000
+    view: nadir
+    stripe: i
     file_type: esa_geo_in
     standard_name: latitude
     file_key: latitude_in
     units: degree
 
+  longitude_ao:
+    name: longitude_ao
+    resolution: 500
+    view: oblique
+    stripe: a
+    file_type: esa_geo_an
+    file_key: longitude_ao
+    standard_name: longitude
+    units: degree
+
+  latitude_ao:
+    name: latitude_ao
+    resolution: 500
+    view: oblique
+    stripe: a
+    file_type: esa_geo_an
+    file_key: latitude_ao
+    standard_name: latitude
+    units: degree
+
+  longitude_bo:
+    name: longitude_bo
+    resolution: 500
+    view: oblique
+    stripe: b
+    file_type: esa_geo_bn
+    file_key: longitude_bo
+    standard_name: longitude
+    units: degree
+
+  latitude_bo:
+    name: latitude_bo
+    resolution: 500
+    view: oblique
+    stripe: b
+    file_type: esa_geo_bn
+    file_key: latitude_bo
+    standard_name: latitude
+    units: degree
+
+  longitude_io:
+    name: longitude_io
+    resolution: 1000
+    view: oblique
+    stripe: i
+    file_type: esa_geo_in
+    file_key: longitude_io
+    standard_name: longitude
+    units: degree
+
+  latitude_io:
+    name: latitude_io
+    resolution: 1000
+    view: oblique
+    stripe: i
+    file_type: esa_geo_in
+    standard_name: latitude
+    file_key: latitude_io
+    units: degree
 
   # The channels S1-S3 are available in nadir (default) and oblique view.
-  S1_n:
-    name: S1_n
+  S1_an:
+    name: S1_an
     sensor: slstr
     wavelength: [0.545,0.555,0.565]
     resolution: 500
+    view: nadir
+    stripe: a
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -109,14 +204,16 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
     file_type: esa_l1b_an
 
-  S1_o:
-    name: S1_o
+  S1_ao:
+    name: S1_ao
     sensor: slstr
     wavelength: [0.545,0.555,0.565]
     resolution: 500
+    view: oblique
+    stripe: a
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -124,14 +221,16 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
     file_type: esa_l1b_ao
 
-  S2_n:
-    name: S2_n
+  S2_an:
+    name: S2_an
     sensor: slstr
     wavelength: [0.649, 0.659, 0.669]
     resolution: 500
+    view: nadir
+    stripe: a
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -139,14 +238,16 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
     file_type: esa_l1b_an
 
-  S2_o:
-    name: S2_o
+  S2_ao:
+    name: S2_ao
     sensor: slstr
+    stripe: a
     wavelength: [0.649, 0.659, 0.669]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -154,14 +255,15 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
     file_type: esa_l1b_ao
 
-  S3_n:
-    name: S3_n
+  S3_an:
+    name: S3_an
     sensor: slstr
     wavelength: [0.855, 0.865, 0.875]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -169,14 +271,15 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
     file_type: esa_l1b_an
 
-  S3_o:
-    name: S3_o
+  S3_ao:
+    name: S3_ao
     sensor: slstr
-    wavelength: [0.545,0.555,0.565]
+    wavelength: [0.855, 0.865, 0.875]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -184,7 +287,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
     file_type: esa_l1b_ao
 
   # The channels S4-S6 are available in nadir (default) and oblique view and for both in the
@@ -194,6 +297,7 @@ datasets:
     sensor: slstr
     wavelength: [1.3675, 1.375, 1.36825]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -201,7 +305,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
     file_type: esa_l1b_an
 
   S4_ao:
@@ -209,6 +313,7 @@ datasets:
     sensor: slstr
     wavelength: [1.3675, 1.375, 1.36825]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -216,7 +321,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
     file_type: esa_l1b_ao
 
   S5_an:
@@ -224,6 +329,7 @@ datasets:
     sensor: slstr
     wavelength: [1.58, 1.61, 1.64]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -231,7 +337,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
     file_type: esa_l1b_an
 
   S5_ao:
@@ -239,6 +345,7 @@ datasets:
     sensor: slstr
     wavelength: [1.58, 1.61, 1.64]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -246,7 +353,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
     file_type: esa_l1b_ao
 
   S6_an:
@@ -254,6 +361,7 @@ datasets:
     sensor: slstr
     wavelength: [2.225, 2.25, 2.275]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -261,7 +369,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
     file_type: esa_l1b_an
 
   S6_ao:
@@ -269,6 +377,7 @@ datasets:
     sensor: slstr
     wavelength: [2.225, 2.25, 2.275]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -276,7 +385,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
     file_type: esa_l1b_ao
 
   S4_bn:
@@ -284,6 +393,7 @@ datasets:
     sensor: slstr
     wavelength: [1.3675, 1.375, 1.36825]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -291,7 +401,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bn, latitude_bn]
     file_type: esa_l1b_bn
 
   S4_bo:
@@ -299,6 +409,7 @@ datasets:
     sensor: slstr
     wavelength: [1.3675, 1.375, 1.36825]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -306,7 +417,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bo, latitude_bo]
     file_type: esa_l1b_bo
 
   S5_bn:
@@ -314,6 +425,7 @@ datasets:
     sensor: slstr
     wavelength: [1.58, 1.61, 1.64]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -321,7 +433,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bn, latitude_bn]
     file_type: esa_l1b_bn
 
   S5_bo:
@@ -329,6 +441,7 @@ datasets:
     sensor: slstr
     wavelength: [1.58, 1.61, 1.64]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -336,7 +449,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bo, latitude_bo]
     file_type: esa_l1b_bo
 
   S6_bn:
@@ -344,6 +457,7 @@ datasets:
     sensor: slstr
     wavelength: [2.225, 2.25, 2.275]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -351,7 +465,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bn, latitude_bn]
     file_type: esa_l1b_bn
 
   S6_bo:
@@ -359,6 +473,7 @@ datasets:
     sensor: slstr
     wavelength: [2.225, 2.25, 2.275]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -366,7 +481,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bo, latitude_bo]
     file_type: esa_l1b_bo
 
   S4_cn:
@@ -374,6 +489,7 @@ datasets:
     sensor: slstr
     wavelength: [1.3675, 1.375, 1.36825]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -381,7 +497,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_cn, latitude_cn]
     file_type: esa_l1b_cn
 
   S4_co:
@@ -389,6 +505,7 @@ datasets:
     sensor: slstr
     wavelength: [1.3675, 1.375, 1.36825]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -396,7 +513,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_co, latitude_co]
     file_type: esa_l1b_co
 
   S5_cn:
@@ -404,6 +521,7 @@ datasets:
     sensor: slstr
     wavelength: [1.58, 1.61, 1.64]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -411,7 +529,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_cn, latitude_cn]
     file_type: esa_l1b_cn
 
   S5_co:
@@ -419,6 +537,7 @@ datasets:
     sensor: slstr
     wavelength: [1.58, 1.61, 1.64]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -426,7 +545,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_co, latitude_co]
     file_type: esa_l1b_co
 
   S6_cn:
@@ -434,6 +553,7 @@ datasets:
     sensor: slstr
     wavelength: [2.225, 2.25, 2.275]
     resolution: 500
+    view: nadir
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -441,7 +561,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_cn, latitude_cn]
     file_type: esa_l1b_cn
 
   S6_co:
@@ -449,6 +569,7 @@ datasets:
     sensor: slstr
     wavelength: [2.225, 2.25, 2.275]
     resolution: 500
+    view: oblique
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -456,45 +577,140 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_co, latitude_co]
     file_type: esa_l1b_co
 
   # The channels S7-S9, F1 and F2 are available in nadir (default) and oblique view.
-  S7:
-    name: S7
+  S7_in:
+    name: S7_in
     sensor: slstr
     wavelength: [3.55, 3.74, 3.93]
     resolution: 1000
+    view: nadir
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-    coordinates: [longitude, latitude]
-    file_type: esa_l1b_tir
+    coordinates: [longitude_in, latitude_in]
+    file_type: esa_l1b_ntir
 
-  S8:
-    name: S8
+  S7_io:
+    name: S7_io
+    sensor: slstr
+    wavelength: [3.55, 3.74, 3.93]
+    resolution: 1000
+    view: oblique
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude_io, latitude_io]
+    file_type: esa_l1b_otir
+
+  S8_in:
+    name: S8_in
     sensor: slstr
     wavelength: [10.4, 10.85, 11.3]
     resolution: 1000
+    view: nadir
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-    coordinates: [longitude, latitude]
-    file_type: esa_l1b_tir
+    coordinates: [longitude_in, latitude_in]
+    file_type: esa_l1b_ntir
 
-  S9:
-    name: S9
+  S8_io:
+    name: S8_io
+    sensor: slstr
+    wavelength: [10.4, 10.85, 11.3]
+    resolution: 1000
+    view: oblique
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude_io, latitude_io]
+    file_type: esa_l1b_otir
+
+  S9_in:
+    name: S9_in
     sensor: slstr
     wavelength: [11.0, 12.0, 13.0]
     resolution: 1000
+    view: nadir
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-    coordinates: [longitude, latitude]
-    file_type: esa_l1b_tir
+    coordinates: [longitude_in, latitude_in]
+    file_type: esa_l1b_ntir
+
+  S9_io:
+    name: S9_io
+    sensor: slstr
+    wavelength: [11.0, 12.0, 13.0]
+    resolution: 1000
+    view: oblique
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude_io, latitude_io]
+    file_type: esa_l1b_otir
+
+  F1_in:
+    name: F1_in
+    sensor: slstr
+    wavelength: [3.55, 3.74, 3.93]
+    resolution: 1000
+    view: nadir
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude_in, latitude_in]
+    file_type: esa_l1b_ntir
+
+  F1_io:
+    name: F1_io
+    sensor: slstr
+    wavelength: [3.55, 3.74, 3.93]
+    resolution: 1000
+    view: oblique
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude_io, latitude_io]
+    file_type: esa_l1b_otir
+
+  F2_in:
+    name: F2_in
+    sensor: slstr
+    wavelength: [10.4, 10.85, 11.3]
+    resolution: 1000
+    view: nadir
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude_in, latitude_in]
+    file_type: esa_l1b_ntir
+
+  F2_io:
+    name: F2_io
+    sensor: slstr
+    wavelength: [10.4, 10.85, 11.3]
+    resolution: 1000
+    view: oblique
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    coordinates: [longitude_io, latitude_io]
+    file_type: esa_l1b_otir
+
 
   solar_zenith_angle:
     name: solar_zenith_angle
@@ -758,4 +974,3 @@ datasets:
     resolution: 1000
     file_type: esa_l1b_flag_io
     coordinates: [longitude, latitude]
-
