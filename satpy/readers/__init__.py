@@ -42,6 +42,10 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
+class TooManyResults(KeyError):
+    pass
+
+
 def _wl_dist(wl_a, wl_b):
     """Return the distance between two requested wavelengths."""
     if isinstance(wl_a, tuple):
@@ -238,7 +242,7 @@ def get_key(key, key_container, num_results=1, best=True,
     if num_results == 1 and not res:
         raise KeyError("No dataset matching '{}' found".format(str(key)))
     elif num_results == 1 and len(res) != 1:
-        raise KeyError("No unique dataset matching {}".format(str(key)))
+        raise TooManyResults("No unique dataset matching {}".format(str(key)))
     elif num_results == 1:
         return res[0]
     elif num_results == 0:
