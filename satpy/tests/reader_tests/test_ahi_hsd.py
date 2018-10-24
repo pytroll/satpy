@@ -27,6 +27,8 @@ try:
 except ImportError:
     import mock
 
+import numpy as np
+from datetime import datetime
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
 
 
@@ -118,7 +120,53 @@ class TestAHIHSDNavigation(unittest.TestCase):
                                                     5500000.035542117, -2200000.0142168473))
 
 
-# pprint.pprint(dict(zip((item[0] for item in self.proj_info.dtype.descr), self.proj_info)))
+class TestAHIHSDFileHandler(unittest.TestCase):
+    @mock.patch('satpy.readers.ahi_hsd.np2str')
+    @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
+    def setUp(self, fromfile, np2str):
+        """Create a test file handler."""
+        np2str.side_effect = lambda x: x
+        m = mock.mock_open()
+        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
+            fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
+            fh.proj_info = {'CFAC': 40932549,
+                            'COFF': 5500.5,
+                            'LFAC': 40932549,
+                            'LOFF': 5500.5,
+                            'blocklength': 127,
+                            'coeff_for_sd': 1737122264.0,
+                            'distance_from_earth_center': 42164.0,
+                            'earth_equatorial_radius': 6378.137,
+                            'earth_polar_radius': 6356.7523,
+                            'hblock_number': 3,
+                            'req2_rpol2': 1.006739501,
+                            'req2_rpol2_req2': 0.0066943844,
+                            'resampling_size': 4,
+                            'resampling_types': 0,
+                            'rpol2_req2': 0.993305616,
+                            'spare': '',
+                            'sub_lon': 140.7}
+
+            fh.data_info = {'blocklength': 50,
+                            'compression_flag_for_data': 0,
+                            'hblock_number': 2,
+                            'number_of_bits_per_pixel': 16,
+                            'number_of_columns': 11000,
+                            'number_of_lines': 1100,
+                            'spare': ''}
+            fh.basic_info = {
+                'observation_start_time': np.array([58413.12523839]),
+                'observation_end_time': np.array([58413.12562439]),
+                'observation_timeline': np.array([300]),
+            }
+
+            self.fh = fh
+
+    def test_time_properties(self):
+        """Test start/end/scheduled time properties."""
+        self.assertEqual(self.fh.start_time, datetime(2018, 10, 22, 3, 0, 20, 596896))
+        self.assertEqual(self.fh.end_time, datetime(2018, 10, 22, 3, 0, 53, 947296))
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
 
 
 def suite():
@@ -126,6 +174,7 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDNavigation))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDFileHandler))
     return mysuite
 
 

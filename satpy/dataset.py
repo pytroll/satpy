@@ -24,9 +24,11 @@
 """Dataset objects.
 """
 
+import sys
 import logging
 import numbers
 from collections import namedtuple
+from datetime import datetime
 
 import numpy as np
 
@@ -46,20 +48,54 @@ class MetadataObject(object):
         return DatasetID.from_dict(self.attrs)
 
 
-def combine_metadata(*metadata_objects):
+def average_datetimes(dt_list):
+    """Average a series of datetime objects.
+
+    .. note::
+
+        This function assumes all datetime objects are naive and in the same
+        time zone (UTC).
+
+    Args:
+        dt_list (iterable): Datetime objects to average
+
+    Returns: Average datetime as a datetime object
+
+    """
+    if sys.version_info < (3, 3):
+        # timestamp added in python 3.3
+        import time
+
+        def timestamp_func(dt):
+            return time.mktime(dt.timetuple())
+    else:
+        timestamp_func = datetime.timestamp
+
+    total = [timestamp_func(dt) for dt in dt_list]
+    return datetime.fromtimestamp(sum(total) / len(total))
+
+
+def combine_metadata(*metadata_objects, **kwargs):
     """Combine the metadata of two or more Datasets.
+
+    If any keys are not equal or do not exist in all provided dictionaries
+    then they are not included in the returned dictionary.
+    By default any keys with the word 'time' in them and consisting
+    of datetime objects will be averaged. This is to handle cases where
+    data were observed at almost the same time but not exactly.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
+        average_times (bool): Average any keys with 'time' in the name
 
     Returns:
-        the combined metadata
+        dict: the combined metadata
 
     """
+    average_times = kwargs.get('average_times', True)  # python 2 compatibility (no kwarg after *args)
     shared_keys = None
     info_dicts = []
-    # grab all of the dictionary objects provided and make a set of the shared
-    # keys
+    # grab all of the dictionary objects provided and make a set of the shared keys
     for metadata_object in metadata_objects:
         if isinstance(metadata_object, dict):
             metadata_dict = metadata_object
@@ -82,6 +118,8 @@ def combine_metadata(*metadata_objects):
         if any_arrays:
             if all(np.all(val == values[0]) for val in values[1:]):
                 shared_info[k] = values[0]
+        elif 'time' in k and isinstance(values[0], datetime) and average_times:
+            shared_info[k] = average_datetimes(values)
         elif all(val == values[0] for val in values[1:]):
             shared_info[k] = values[0]
 
