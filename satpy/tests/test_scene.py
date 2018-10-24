@@ -1463,6 +1463,26 @@ class TestSceneLoading(unittest.TestCase):
         self.assertIn('comp11', scene.datasets)
         self.assertIn('comp23', scene.datasets)
 
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_too_many(self, cri, cl):
+        """Test dependency tree if too many reader keys match."""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        datasets = [DatasetID(name='duplicate1', wavelength=(0.1, 0.2, 0.3)),
+                    DatasetID(name='duplicate2', wavelength=(0.1, 0.2, 0.3))]
+        reader = create_fake_reader('fake_reader', 'fake_sensor', datasets=datasets)
+        reader.datasets = reader.available_dataset_ids = reader.all_dataset_ids = datasets
+        cri.return_value = {'fake_reader': reader}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+        # mock the available comps/mods in the compositor loader
+        avail_comps = scene.available_composite_ids()
+        self.assertEqual(len(avail_comps), 0)
+        self.assertRaises(KeyError, scene.load, [0.21])
+
 
 class TestSceneResampling(unittest.TestCase):
 
