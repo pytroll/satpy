@@ -185,7 +185,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: HDF5_MSG
-    file_key: "Channel 11"
+    file_key: "IR_134"
 
   HRV:
     name: HRV
