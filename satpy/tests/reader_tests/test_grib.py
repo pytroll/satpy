@@ -224,10 +224,8 @@ class TestGRIBReader(unittest.TestCase):
             self.assertIsInstance(v, xr.DataArray)
 
 
-
 def suite():
-    """The test suite for test_viirs_l1b.
-    """
+    """The test suite for test_grib."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestGRIBReader))
