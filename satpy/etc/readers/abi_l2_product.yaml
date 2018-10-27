@@ -42,193 +42,263 @@ file_types:
     fdc:
         file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
         file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-FDC{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    rrqp:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-RRQPE{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    sst:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-SST{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    vaa:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-VAA{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
 datasets:
-  Clear_Sky_Mask:
-    name: Clear_Sky_Mask
+  CloudMask:
+    name: CloudMask
     sensor: abi
     standard_name: cloud_binary_mask
+    long_name: ABI L2+ Clear Sky Mask
     readvar: BCM
     resolution: 2000
     units: "%"
     file_type: acm
 
-  Cloud_Top_Pressure:
-    name: Cloud_Top_Pressure
+  CloudTopPressure:
+    name: CloudTopPressure
     sensor: abi
     standard_name: air_pressure_at_cloud_top
+    long_name: ABI L2+ Cloud Top Pressure
     readvar: PRES
     resolution: 10000
     units: "hPa"
     file_type: ctp
 
-  Cloud_Top_Height:
-    name: Cloud_Top_Height
+  CloudTopHeight:
+    name: CloudTopHeight
     sensor: abi
     standard_name: geopotential_height_at_cloud_top
+    long_name: ABI L2+ Cloud Top Height
     readvar: HT
     resolution: 10000
     units: "m"
     file_type: acha
 
-  Cloud_Top_Phase:
-    name: Cloud_Top_Phase
+  CloudTopPhase:
+    name: CloudTopPhase
     sensor: abi
     standard_name: cloud_phase_category
+    long_name: ABI L2+ Cloud Top Phase
     readvar: Phase
     resolution: 2000
     units: "%"
     file_type: actp
 
-  Aerosol_Detection_Aerosol:
-    name: Aerosol_Detection_Aerosol
+  AerosolDetection:
+    name: AerosolDetection
     sensor: abi
     standard_name: aerosol_binary_mask
+    long_name: "ABI L2+ Aerosol Detection: Aerosol"
     readvar: Aerosol
     resolution: 2000
     units: "%"
     file_type: adp
 
-  Aerosol_Detection_Smoke:
-    name: Aerosol_Detection_Smoke
+  AerosolDetectionSmoke:
+    name: AerosolDetectionSmoke
     sensor: abi
     standard_name: smoke_binary_mask
+    long_name: "ABI L2+ Aerosol Detection: Smoke"
     readvar: Smoke
     resolution: 2000
     units: "%"
     file_type: adp
 
-  Aerosol_Detection_Dust:
+  AerosolDetectionDust:
     name: Aerosol_Detection_Dust
     sensor: abi
     standard_name: dust_binary_mask
+    long_name: "ABI L2+ Aerosol Detection: Dust"
     readvar: Dust
     resolution: 2000
     units: "%"
     file_type: adp
 
-  Aerosol_Optical_Depth_550nm:
-    name: Aerosol_Optical_Depth_550nm
+  AerosolOpticalDepth:
+    name: AerosolOpticalDepth
     sensor: abi
     standard_name: atmosphere_absorption_optical_thickness_due_to_ambient_aerosol
+    long_name: ABI L2+ Aerosol Optical Depth at 550 nm
     readvar: AOD
     resolution: 2000
     units: "%"
     file_type: aod
-
-  Aerosol_Optical_Depth_640nm:
-    name: Aerosol_Optical_Depth_640nm
+    
+  CloudOpticalDepth:
+    name: CloudOpticalDepth
     sensor: abi
     standard_name: atmosphere_optical_thickness_due_to_cloud
+    long_name: ABI L2+ Cloud Optical Depth at 640 nm
     readvar: COD
     resolution: 2000
     units: "%"
     file_type: cod
 
-  Cloud_Particle_Size:
-    name: Cloud_Particle_Size
+  CloudParticleSize:
+    name: CloudParticleSize
     sensor: abi
     standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+    long_name: ABI L2+ Cloud Particle Size
     readvar: PSD
     resolution: 2000
     units: "um"
     file_type: cps
 
-  Lifted_Index:
-    name: Lifted_Index
+  LiftedIndex:
+    name: LiftedIndex
     sensor: abi
     standard_name: temperature_difference_between_ambient_air_and_air_lifted_adiabatically_from_the_surface
+    long_name: "ABI L2+ Derived Stability Indices: Lifted Index"
     readvar: LI
     resolution: 10000
     units: "K"
     file_type: dsi
 
-  Convective_Available_Potential_Energy:
-    name: Convective_Available_Potential_Energy
+  CAPE:
+    name: CAPE
     sensor: abi
     standard_name: atmosphere_convective_available_potential_energy_wrt_surface
+    long_name: "ABI L2+ Derived Stability Indices: CAPE"
     readvar: CAPE
     resolution: 10000
     units: "J kg-1"
     file_type: dsi
 
-  Total_Totals_Index:
-    name: Total_Totals_Index
+  TotalTotals:
+    name: TotalTotals
     sensor: abi
     standard_name: atmosphere_stability_total_totals_index
+    long_name: "ABI L2+ Derived Stability Indices: Total Totals Index"
     readvar: TT
     resolution: 10000
     units: "K"
     file_type: dsi
 
-  Showalter_Index:
-    name: Showalter_Index
+  ShowalterIndex:
+    name: ShowalterIndex
     sensor: abi
     standard_name: atmosphere_stability_showalter_index
+    long_name: "ABI L2+ Derived Stability Indices: Showalter Index"
     readvar: SI
     resolution: 10000
     units: "K"
     file_type: dsi
 
-  K_Index:
-    name: K_Index
+  KIndex:
+    name: KIndex
     sensor: abi
     standard_name: atmosphere_stability_k_index
+    long_name: "ABI L2+ Derived Stability Indices: K-Index"
     readvar: KI
     resolution: 10000
     units: "K"
     file_type: dsi
 
-  Total_Precipitable_Water:
-    name: Total_Precipitable_Water
+  TotalPrecipitableWater:
+    name: TotalPrecipitableWater
     sensor: abi
     standard_name: lwe_thickness_of_atmosphere_mass_content_of_water_vapor
+    long_name: ABI L2+ Total Precipitable Water
     readvar: TPW
     resolution: 10000
     units: "mm"
     file_type: tpw
 
-  Land_Surface_Skin_Temperature:
+  LandSurfaceTemperature:
     name: Land_Surface_Skin_Temperature
     sensor: abi
     standard_name: surface_temperature
+    long_name: ABI L2+ Land Surface (Skin) Temperature
     readvar: LST
     resolution: 2000
     units: "K"
     file_type: lst
 
-  Fire_Area:
-    name: Fire_Area
+  FireDetectionArea:
+    name: FireDetectionArea
     sensor: abi
     standard_name: fire_area
+    long_name: "ABI L2+ Fire-Hot Spot Characterization: Fire Area"
     readvar: Area
     resolution: 2000
     units: "km2"
     file_type: fdc
 
-  Fire_Temperature:
-    name: Fire_Temperature
+  FireDetectionTemp:
+    name: FireDetectionTemp
     sensor: abi
     standard_name: fire_temperature
+    long_name: "ABI L2+ Fire-Hot Spot Characterization: Fire Temperature"
     readvar: Temp
     resolution: 2000
     units: "K"
     file_type: fdc
 
-  Fire_Mask:
-    name: Fire_Mask
+  FireDetectionMask:
+    name: FireDetectionMask
     sensor: abi
     standard_name: fire_mask
+    long_name: "ABI L2+ Fire - Hot Spot Characterization: Fire Mask"
     readvar: Mask
     resolution: 2000
     units: "1"
     file_type: fdc
 
-  Fire_Radiative_Power:
-    name: Fire_Radiative_Power
+  FireDetectionPower:
+    name: FireDetectionPower
     sensor: abi
     standard_name: fire_radiative_power
+    long_name: "ABI L2+ Fire-Hot Spot Characterization: Fire Radiative Power"
     readvar: Power
     resolution: 2000
     units: "MW"
     file_type: fdc
+
+  RainRateQPE:
+    name: RainRateQPE
+    sensor: abi
+    standard_name: rainfall_rate
+    long_name: ABI L2+ Rainfall Rate - Quantitative Prediction Estimate
+    readvar: RRQPE
+    resolution: 2000
+    units: "mm h-1"
+    file_type: rrqp
+    
+  SeaSurfaceTemperature:
+    name: SeaSurfaceTemperature
+    sensor: abi
+    standard_name: sea_surface_skin_temperature
+    long_name: ABI L2+ Sea Surface (Skin) Temperature
+    readvar: SST
+    resolution: 2000
+    units: "K"
+    file_type: sst
+
+  VolcanicAshHeight:
+    name: VolcanicAshHeight
+    sensor: abi
+    standard_name: geopotential_height_at_volcanic_ash_cloud_top
+    long_name: "ABI L2+ Volcanic Ash: Ash Cloud Height"
+    readvar: VAH
+    resolution: 2000
+    units: "m"
+    file_type: vaa
+
+  VolcanicAshMassLoading:
+    name: VolcanicAshMassLoading
+    sensor: abi
+    standard_name: atmosphere_mass_content_of_volcanic_ash
+    long_name: "ABI L2+ Volcanic Ash: Ash Mass Loading"
+    readvar: VAH
+    resolution: 2000
+    units: "m"
+    file_type: vaa
