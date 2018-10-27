@@ -1,0 +1,236 @@
+reader:
+  description: NC Reader for ABI data L2 CMIP
+  name: abi_l2_CMIP
+  sensors: [abi]
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    c01:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c02:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C02_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc',
+                        '{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C02_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-{chid:6d}_0.nc']
+    c03:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C03_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc',
+                        '{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C03_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-{chid:6d}_0.nc']
+    c04:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C04_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c05:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C05_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc',
+                        '{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C05_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-{chid:6d}_0.nc']
+    c06:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C06_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c07:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C07_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c08:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C08_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c09:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C09_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c10:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C10_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c11:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C11_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c12:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C12_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c13:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C13_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c14:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C14_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c15:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C15_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    c16:
+        file_reader: !!python/name:satpy.readers.abi_l2_CMIP.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{dataset_name:4s}{area_code:s}-{scan_mode:2s}C16_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+datasets:
+  C01:
+    name: C01
+    sensor: abi
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: CMI
+        units: "%"
+    file_type: c01
+
+  C02:
+    name: C02
+    sensor: abi
+    wavelength: [0.590, 0.640, 0.690]
+    resolution: 500
+    calibration:
+      reflectance:
+        standard_name: CMI
+        units: "%"
+    file_type: c02
+
+  C03:
+    name: C03
+    sensor: abi
+    wavelength: [0.8455, 0.865, 0.8845]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: CMI
+        units: "%"
+    file_type: c03
+
+  C04:
+    name: C04
+    sensor: abi
+    wavelength: [1.3705, 1.378, 1.3855]
+    resolution: 2000
+    calibration:
+      reflectance:
+        standard_name: CMI
+        units: "%"
+    file_type: c04
+
+  C05:
+    name: C05
+    sensor: abi
+    wavelength: [1.580, 1.610, 1.640]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: CMI
+        units: "%"
+    file_type: c05
+
+  C06:
+    name: C06
+    sensor: abi
+    wavelength: [2.225, 2.250, 2.275]
+    resolution: 2000
+    calibration:
+      reflectance:
+        standard_name: CMI
+        units: "%"
+    file_type: c06
+
+  C07:
+    name: C07
+    sensor: abi
+    wavelength: [3.70, 3.90, 4.00]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c07
+
+  C08:
+    name: C08
+    sensor: abi
+    wavelength: [5.770, 6.185, 6.700]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c08
+
+  C09:
+    name: C09
+    sensor: abi
+    wavelength: [6.75, 6.95, 7.15]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c09
+
+  C10:
+    name: C10
+    sensor: abi
+    wavelength: [7.24, 7.34, 7.44]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c10
+
+  C11:
+    name: C11
+    sensor: abi
+    wavelength: [8.30, 8.50, 8.70]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c11
+
+  C12:
+    name: C12
+    sensor: abi
+    wavelength: [9.42, 9.61, 9.80]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c12
+
+  C13:
+    name: C13
+    sensor: abi
+    wavelength: [10.10, 10.35, 10.60]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c13
+
+  C14:
+    name: C14
+    sensor: abi
+    wavelength: [10.80, 11.20, 11.60]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c14
+
+  C15:
+    name: C15
+    sensor: abi
+    wavelength: [11.80, 12.30, 12.80]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c15
+
+  C16:
+    name: C16
+    sensor: abi
+    wavelength: [13.00, 13.30, 13.60]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: CMI
+        units: K
+    file_type: c16
