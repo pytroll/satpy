@@ -4,10 +4,7 @@
 # Copyright (c) 2016-2018 PyTroll developers
 
 # Author(s):
-
-#   Guido della Bruna <Guido.DellaBruna@meteoswiss.ch>
-#   Marco Sassi       <Marco.Sassi@meteoswiss.ch>
-#   Martin Raspaud    <Martin.Raspaud@smhi.se>
+# Adapted from original autors
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
