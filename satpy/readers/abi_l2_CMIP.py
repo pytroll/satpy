@@ -23,12 +23,10 @@ Advance Baseline Imager reader
 """
 
 import logging
-import os
 from datetime import datetime
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
