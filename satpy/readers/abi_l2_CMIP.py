@@ -40,10 +40,10 @@ PLATFORM_NAMES = {
 }
 
 
-class NC_ABI_L1B(BaseFileHandler):
+class NC_ABI_L2(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(NC_ABI_L1B, self).__init__(filename, filename_info,
+        super(NC_ABI_L2, self).__init__(filename, filename_info,
                                          filetype_info)
         # xarray's default netcdf4 engine
         self.nc = xr.open_dataset(filename,
