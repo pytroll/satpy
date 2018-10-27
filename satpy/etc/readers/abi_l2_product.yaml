@@ -1,0 +1,234 @@
+reader:
+  description: NC Reader for ABI data L2 Products
+  name: abi_l2_product
+  sensors: [abi]
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    acm:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACM{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    ctp:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CTP{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    acha:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACHA{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    actp:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACTP{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    adp:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ADP{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    aod:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-AOD{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    cod:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-COD{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    cps:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CPS{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    dsi:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DSI{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    tpw:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-TPW{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    lst:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-LST{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    fdc:
+        file_reader: !!python/name:satpy.readers.abi_l2_product.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-FDC{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+datasets:
+  Clear_Sky_Mask:
+    name: Clear_Sky_Mask
+    sensor: abi
+    standard_name: cloud_binary_mask
+    readvar: BCM
+    resolution: 2000
+    units: "%"
+    file_type: acm
+
+  Cloud_Top_Pressure:
+    name: Cloud_Top_Pressure
+    sensor: abi
+    standard_name: air_pressure_at_cloud_top
+    readvar: PRES
+    resolution: 10000
+    units: "hPa"
+    file_type: ctp
+
+  Cloud_Top_Height:
+    name: Cloud_Top_Height
+    sensor: abi
+    standard_name: geopotential_height_at_cloud_top
+    readvar: HT
+    resolution: 10000
+    units: "m"
+    file_type: acha
+
+  Cloud_Top_Phase:
+    name: Cloud_Top_Phase
+    sensor: abi
+    standard_name: cloud_phase_category
+    readvar: Phase
+    resolution: 2000
+    units: "%"
+    file_type: actp
+
+  Aerosol_Detection_Aerosol:
+    name: Aerosol_Detection_Aerosol
+    sensor: abi
+    standard_name: aerosol_binary_mask
+    readvar: Aerosol
+    resolution: 2000
+    units: "%"
+    file_type: adp
+
+  Aerosol_Detection_Smoke:
+    name: Aerosol_Detection_Smoke
+    sensor: abi
+    standard_name: smoke_binary_mask
+    readvar: Smoke
+    resolution: 2000
+    units: "%"
+    file_type: adp
+
+  Aerosol_Detection_Dust:
+    name: Aerosol_Detection_Dust
+    sensor: abi
+    standard_name: dust_binary_mask
+    readvar: Dust
+    resolution: 2000
+    units: "%"
+    file_type: adp
+
+  Aerosol_Optical_Depth_550nm:
+    name: Aerosol_Optical_Depth_550nm
+    sensor: abi
+    standard_name: atmosphere_absorption_optical_thickness_due_to_ambient_aerosol
+    readvar: AOD
+    resolution: 2000
+    units: "%"
+    file_type: aod
+
+  Aerosol_Optical_Depth_640nm:
+    name: Aerosol_Optical_Depth_640nm
+    sensor: abi
+    standard_name: atmosphere_optical_thickness_due_to_cloud
+    readvar: COD
+    resolution: 2000
+    units: "%"
+    file_type: cod
+
+  Cloud_Particle_Size:
+    name: Cloud_Particle_Size
+    sensor: abi
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+    readvar: PSD
+    resolution: 2000
+    units: "um"
+    file_type: cps
+
+  Lifted_Index:
+    name: Lifted_Index
+    sensor: abi
+    standard_name: temperature_difference_between_ambient_air_and_air_lifted_adiabatically_from_the_surface
+    readvar: LI
+    resolution: 10000
+    units: "K"
+    file_type: dsi
+
+  Convective_Available_Potential_Energy:
+    name: Convective_Available_Potential_Energy
+    sensor: abi
+    standard_name: atmosphere_convective_available_potential_energy_wrt_surface
+    readvar: CAPE
+    resolution: 10000
+    units: "J kg-1"
+    file_type: dsi
+
+  Total_Totals_Index:
+    name: Total_Totals_Index
+    sensor: abi
+    standard_name: atmosphere_stability_total_totals_index
+    readvar: TT
+    resolution: 10000
+    units: "K"
+    file_type: dsi
+
+  Showalter_Index:
+    name: Showalter_Index
+    sensor: abi
+    standard_name: atmosphere_stability_showalter_index
+    readvar: SI
+    resolution: 10000
+    units: "K"
+    file_type: dsi
+
+  K_Index:
+    name: K_Index
+    sensor: abi
+    standard_name: atmosphere_stability_k_index
+    readvar: KI
+    resolution: 10000
+    units: "K"
+    file_type: dsi
+
+  Total_Precipitable_Water:
+    name: Total_Precipitable_Water
+    sensor: abi
+    standard_name: lwe_thickness_of_atmosphere_mass_content_of_water_vapor
+    readvar: TPW
+    resolution: 10000
+    units: "mm"
+    file_type: tpw
+
+  Land_Surface_Skin_Temperature:
+    name: Land_Surface_Skin_Temperature
+    sensor: abi
+    standard_name: surface_temperature
+    readvar: LST
+    resolution: 2000
+    units: "K"
+    file_type: lst
+
+  Fire_Area:
+    name: Fire_Area
+    sensor: abi
+    standard_name: fire_area
+    readvar: Area
+    resolution: 2000
+    units: "km2"
+    file_type: fdc
+
+  Fire_Temperature:
+    name: Fire_Temperature
+    sensor: abi
+    standard_name: fire_temperature
+    readvar: Temp
+    resolution: 2000
+    units: "K"
+    file_type: fdc
+
+  Fire_Mask:
+    name: Fire_Mask
+    sensor: abi
+    standard_name: fire_mask
+    readvar: Mask
+    resolution: 2000
+    units: "1"
+    file_type: fdc
+
+  Fire_Radiative_Power:
+    name: Fire_Radiative_Power
+    sensor: abi
+    standard_name: fire_radiative_power
+    readvar: Power
+    resolution: 2000
+    units: "MW"
+    file_type: fdc
