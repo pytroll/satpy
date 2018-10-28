@@ -30,7 +30,6 @@ import numpy as np
 import dask
 import dask.array as da
 import xarray as xr
-# import xarray.ufuncs as xu
 
 from satpy.composites import CompositeBase, GenericCompositor
 from satpy.config import get_environ_ancpath
