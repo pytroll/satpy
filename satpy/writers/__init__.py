@@ -437,11 +437,7 @@ class Writer(Plugin):
     abstract class to be inherited.
     """
 
-    def __init__(self,
-                 name=None,
-                 filename=None,
-                 base_dir=None,
-                 **kwargs):
+    def __init__(self, name=None, filename=None, base_dir=None, **kwargs):
         # Load the config
         Plugin.__init__(self, **kwargs)
         self.info = self.config['writer']
@@ -487,9 +483,13 @@ class Writer(Plugin):
 
     def get_filename(self, **kwargs):
         if self.filename_parser is None:
-            raise RuntimeError(
-                "No filename pattern or specific filename provided")
-        return self.filename_parser.compose(kwargs)
+            raise RuntimeError("No filename pattern or specific filename provided")
+        output_filename = self.filename_parser.compose(kwargs)
+        dirname = os.path.dirname(output_filename)
+        if not os.path.isdir(dirname):
+            LOG.info("Creating output directory: {}".format(dirname))
+            os.makedirs(dirname)
+        return output_filename
 
     def save_datasets(self, datasets, compute=True, **kwargs):
         """Save all datasets to one or more files.
@@ -575,17 +575,10 @@ class Writer(Plugin):
 
 class ImageWriter(Writer):
 
-    def __init__(self,
-                 name=None,
-                 filename=None,
-                 enhancement_config=None,
-                 base_dir=None,
-                 **kwargs):
-        Writer.__init__(self, name, filename, base_dir,
-                        **kwargs)
+    def __init__(self, name=None, filename=None, enhancement_config=None, base_dir=None, **kwargs):
+        Writer.__init__(self, name, filename, base_dir, **kwargs)
         enhancement_config = self.info.get(
-            "enhancement_config",
-            None) if enhancement_config is None else enhancement_config
+            "enhancement_config", None) if enhancement_config is None else enhancement_config
 
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
