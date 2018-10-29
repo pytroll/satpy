@@ -23,38 +23,39 @@
 """
 
 import logging
-import os
 import yaml
 
 from satpy.config import config_search_paths, get_environ_config_dir, recursive_dict_update
-
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser
 
 LOG = logging.getLogger(__name__)
 
 
 class Plugin(object):
+    """Base plugin class for all dynamically loaded and configured objects."""
 
-    """The base plugin class. It is not to be used as is, it has to be
-    inherited by other classes.
-    """
+    def __init__(self, ppp_config_dir=None, default_config_filename=None, config_files=None, **kwargs):
+        """Load configuration files related to this plugin.
 
-    def __init__(self,
-                 ppp_config_dir=None,
-                 default_config_filename=None,
-                 config_files=None,
-                 **kwargs):
+        This initializes a `self.config` dictionary that can be used to customize the subclass.
+
+        Args:
+            ppp_config_dir (str): Base "etc" directory for all configuration
+                files.
+            default_config_filename (str): Configuration filename to use if
+                no other files have been specified with `config_files`.
+            config_files (list or str): Configuration files to load instead
+                of those automatically found in `ppp_config_dir` and other
+                default configuration locations.
+            kwargs (dict): Unused keyword arguments.
+
+        """
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
 
         self.default_config_filename = default_config_filename
         self.config_files = config_files
         if self.config_files is None and self.default_config_filename is not None:
             # Specify a default
-            self.config_files = config_search_paths(
-                self.default_config_filename, self.ppp_config_dir)
+            self.config_files = config_search_paths(self.default_config_filename, self.ppp_config_dir)
         if not isinstance(self.config_files, (list, tuple)):
             self.config_files = [self.config_files]
 
@@ -64,5 +65,6 @@ class Plugin(object):
                 self.load_yaml_config(config_file)
 
     def load_yaml_config(self, conf):
+        """Load a YAML configuration file and recursively update the overall configuration."""
         with open(conf) as fd:
             self.config = recursive_dict_update(self.config, yaml.load(fd))
