@@ -69,6 +69,8 @@ extras_require = {
     'mitiff': ['libtiff'],
     # MultiScene:
     'animations': ['imageio'],
+    # Documentation:
+    'doc': ['sphinx'],
 }
 all_extras = []
 for extra_deps in extras_require.values():
