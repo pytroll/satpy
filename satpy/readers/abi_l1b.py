@@ -134,11 +134,9 @@ class NC_ABI_L1B(BaseFileHandler):
         # add in information from the filename that may be useful to the user
         for key in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname'):
             res.attrs[key] = self.filename_info[key]
-        res.attrs['scene_id'] = self.nc.attrs.get('scene_id')
-        res.attrs['orbital_slot'] = self.nc.attrs.get('orbital_slot')
-        res.attrs['instrument_ID'] = self.nc.attrs.get('instrument_ID')
-        res.attrs['production_site'] = self.nc.attrs.get('production_site')
-        res.attrs['timeline_ID'] = self.nc.attrs.get('timeline_ID')
+        # copy global attributes to metadata
+        for key in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
+            res.attrs[key] = self.nc.attrs.get(key)
 
         return res
 
