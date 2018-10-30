@@ -186,10 +186,7 @@ class Scene(MetadataObject):
         else:
             return set(self.attrs['sensor'])
 
-    def create_reader_instances(self,
-                                filenames=None,
-                                reader=None,
-                                reader_kwargs=None):
+    def create_reader_instances(self, filenames=None, reader=None, reader_kwargs=None):
         """Find readers and return their instances."""
         return load_readers(filenames=filenames,
                             reader=reader,
@@ -575,8 +572,7 @@ class Scene(MetadataObject):
         # get the lowest resolution area, use it as the base of the slice
         # this makes sure that the other areas *should* be a consistent factor
         min_area = new_scn.min_area()
-        new_min_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
-            min_area, area, ll_bbox, xy_bbox)
+        new_min_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(min_area, area, ll_bbox, xy_bbox)
         new_target_areas = {}
         for src_area, dataset_ids in new_scn.iter_by_area():
             if src_area is None:
@@ -584,24 +580,27 @@ class Scene(MetadataObject):
                     new_scn.datasets[ds_id] = self[ds_id]
                 continue
 
-            y_factor, y_remainder = np.divmod(float(src_area.shape[0]),
-                                              min_area.shape[0])
-            x_factor, x_remainder = np.divmod(float(src_area.shape[1]),
-                                              min_area.shape[1])
+            y_factor, y_remainder = np.divmod(float(src_area.shape[0]), min_area.shape[0])
+            x_factor, x_remainder = np.divmod(float(src_area.shape[1]), min_area.shape[1])
             y_factor = int(y_factor)
             x_factor = int(x_factor)
             if y_remainder == 0 and x_remainder == 0:
-                y_slice = slice(min_y_slice.start * y_factor,
-                                min_y_slice.stop * y_factor)
-                x_slice = slice(min_x_slice.start * x_factor,
-                                min_x_slice.stop * x_factor)
+                y_slice = slice(min_y_slice.start * y_factor, min_y_slice.stop * y_factor)
+                x_slice = slice(min_x_slice.start * x_factor, min_x_slice.stop * x_factor)
                 new_area = src_area[y_slice, x_slice]
                 slice_key = (y_slice, x_slice)
                 new_scn._slice_datasets(dataset_ids, slice_key, new_area)
             else:
-                new_target_areas[src_area] = self._slice_area_from_bbox(
-                    src_area, area, ll_bbox, xy_bbox
-                )
+                new_target_areas[src_area] = self._slice_area_from_bbox(src_area, area, ll_bbox, xy_bbox)
+
+            # add metadata to specify what the bounding box was
+            for ds in new_scn:
+                if ds.attrs.get('area') is None:
+                    continue
+                elif ll_bbox is not None:
+                    ds.attrs['ll_bbox'] = ll_bbox
+                elif xy_bbox is not None:
+                    ds.attrs['xy_bbox'] = xy_bbox
 
         return new_scn
 

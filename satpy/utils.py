@@ -207,6 +207,46 @@ def proj_units_to_meters(proj_str):
     return ' '.join(new_parts)
 
 
+def ll_bbox_to_str(ll_bbox, sep='_', float_format='{:0.02f}'):
+    """Convert 4-element bbox to a human-readable string.
+
+    Args:
+        ll_bbox (iterable): (lon_min, lat_min, lon_max, lat_max)
+        sep (str): String used to join elements together
+        float_format (str): Format specified for each element
+
+    Longitude and latitude coordinates are converted to W/E and N/S floats
+    with 2 decimal points.
+
+    """
+    elements = [
+        float_format.format(abs(ll_bbox[0])) + ('W' if ll_bbox[0] < 0 else 'E'),
+        float_format.format(abs(ll_bbox[1])) + ('S' if ll_bbox[1] < 0 else 'N'),
+        float_format.format(abs(ll_bbox[2])) + ('W' if ll_bbox[2] < 0 else 'E'),
+        float_format.format(abs(ll_bbox[3])) + ('S' if ll_bbox[3] < 0 else 'N'),
+    ]
+    return sep.join(elements)
+
+
+def xy_bbox_to_str(xy_bbox, sep='_', float_format='{+0.0f}', units='m'):
+    """Convert 4-elemnet bbox to a human-readable string.
+
+    Args:
+        xy_bbox (iterable): (x_min, y_min, x_max, y_max)
+        sep (str): String used to join elements together
+        float_format (str): Format specified for each element
+        units (str): Units to suffix each element with
+
+    """
+    elements = [
+        float_format.format(xy_bbox[0]) + units,
+        float_format.format(xy_bbox[1]) + units,
+        float_format.format(xy_bbox[2]) + units,
+        float_format.format(xy_bbox[3]) + units,
+    ]
+    return sep.join(elements)
+
+
 def _get_sunz_corr_li_and_shibata(cos_zen):
 
     return 24.35 / (2. * cos_zen +
