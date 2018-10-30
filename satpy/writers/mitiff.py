@@ -327,7 +327,7 @@ class MITIFFWriter(ImageWriter):
         found_calibration = False
         skip_calibration = False
         for i, ds in enumerate(datasets):
-            if isinstance(ds.attrs['prerequisites'][i], DatasetID):
+            if 'prerequisites' in ds.attrs and isinstance(ds.attrs['prerequisites'][i], DatasetID):
                 if ds.attrs['prerequisites'][i][0] == ch:
                     if ds.attrs['prerequisites'][i][4] == 'RADIANCE':
                         raise NotImplementedError(
@@ -533,13 +533,18 @@ class MITIFFWriter(ImageWriter):
 
         _image_description += ' Channels: '
 
+        LOG.debug("datasets.sizes: {}".format(datasets.sizes))
+        LOG.debug("datasets.sizes: {}".format(len(datasets.sizes)))
         if isinstance(datasets, list):
             LOG.debug("len datasets: %s", len(datasets))
             _image_description += str(len(datasets))
-        else:
+        elif 'bands' in datasets.sizes:
             LOG.debug("len datasets: %s", datasets.sizes['bands'])
             _image_description += str(datasets.sizes['bands'])
-
+        elif len(datasets.sizes) == 2:
+            LOG.debug("len datasets: (hardcoded) 1")
+            _image_description += '1'
+            
         _image_description += ' In this file: '
 
         channels = self._make_channel_list(datasets, **kwargs)
