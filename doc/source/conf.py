@@ -51,6 +51,7 @@ for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
 autodoc_mock_imports = ['h5netcdf', 'pyninjotiff', 'pygac', 'cf', 'glymur', 'pyhdf', 'osgeo', 'mipp']
+autoclass_content = 'both'  # append class __init__ docstring to the class docstring
 
 # -- General configuration -----------------------------------------------------
 
@@ -243,4 +244,6 @@ intersphinx_mapping = {
     'xarray': ('https://xarray.pydata.org/en/stable', None),
     'dask': ('https://dask.pydata.org/en/latest', None),
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
+    'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
+    'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
 }
