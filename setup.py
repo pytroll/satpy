@@ -31,7 +31,7 @@ import versioneer
 
 from setuptools import find_packages, setup
 
-requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.10.0', 'trollsift',
+requires = ['numpy >=1.12', 'pillow', 'pyresample >=1.10.0', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
             'dask[array] >=0.17.1']
 
@@ -69,6 +69,8 @@ extras_require = {
     'mitiff': ['libtiff'],
     # MultiScene:
     'animations': ['imageio'],
+    # Documentation:
+    'doc': ['sphinx'],
 }
 all_extras = []
 for extra_deps in extras_require.values():

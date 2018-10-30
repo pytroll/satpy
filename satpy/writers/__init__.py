@@ -432,16 +432,36 @@ def compute_writer_results(results):
 
 
 class Writer(Plugin):
+    """Base Writer class for all other writers.
 
-    """Writer plugins. They must implement the *save_image* method. This is an
-    abstract class to be inherited.
+    A minimal writer subclass should implement the `save_dataset` method.
     """
 
-    def __init__(self,
-                 name=None,
-                 filename=None,
-                 base_dir=None,
-                 **kwargs):
+    def __init__(self, name=None, filename=None, base_dir=None, **kwargs):
+        """Initialize the writer object.
+
+        Args:
+            name (str): A name for this writer for log and error messages.
+                If this writer is configured in a YAML file its name should
+                match the name of the YAML file. Writer names may also appear
+                in output file attributes.
+            filename (str): Filename to save data to. This filename can and
+                should specify certain python string formatting fields to
+                differentiate between data written to the files. Any
+                attributes provided by the ``.attrs`` of a DataArray object
+                may be included. Format and conversion specifiers provided by
+                the :class:`trollsift <trollsift.parser.StringFormatter>`
+                package may also be used. Any directories in the provided
+                pattern will be created if they do not exist. Example::
+
+                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S.tif
+
+            base_dir (str):
+                Base destination directories for all created files.
+            kwargs (dict): Additional keyword arguments to pass to the
+                :class:`~satpy.plugin_base.Plugin` class.
+
+            """
         # Load the config
         Plugin.__init__(self, **kwargs)
         self.info = self.config['writer']
@@ -456,10 +476,8 @@ class Writer(Plugin):
             filename = kwargs.pop('file_pattern')
 
         # Use options from the config file if they weren't passed as arguments
-        self.name = self.info.get("name",
-                                  None) if name is None else name
-        self.file_pattern = self.info.get(
-            "filename", None) if filename is None else filename
+        self.name = self.info.get("name", None) if name is None else name
+        self.file_pattern = self.info.get("filename", None) if filename is None else filename
 
         if self.name is None:
             raise ValueError("Writer 'name' not provided")
@@ -468,6 +486,20 @@ class Writer(Plugin):
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
+        """Helper class method to separate arguments between init and save methods.
+
+        Currently the :class:`~satpy.scene.Scene` is passed one set of
+        arguments to represent the Writer creation and saving steps. This is
+        not preferred for Writer structure, but provides a simpler interface
+        to users. This method splits the provided keyword arguments between
+        those needed for initialization and those needed for the ``save_dataset``
+        and ``save_datasets`` method calls.
+
+        Writer subclasses should try to prefer keyword arguments only for the
+        save methods only and leave the init keyword arguments to the base
+        classes when possible.
+
+        """
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs = {}
         kwargs = kwargs.copy()
@@ -477,6 +509,7 @@ class Writer(Plugin):
         return init_kwargs, kwargs
 
     def create_filename_parser(self, base_dir):
+        """Create a :class:`trollsift.parser.Parser` object for later use."""
         # just in case a writer needs more complex file patterns
         # Set a way to create filenames if we were given a pattern
         if base_dir and self.file_pattern:
@@ -486,10 +519,21 @@ class Writer(Plugin):
         return parser.Parser(file_pattern) if file_pattern else None
 
     def get_filename(self, **kwargs):
+        """Create a filename where output data will be saved.
+
+        Args:
+            kwargs (dict): Attributes and other metadata to use for formatting
+                the previously provided `filename`.
+
+        """
         if self.filename_parser is None:
-            raise RuntimeError(
-                "No filename pattern or specific filename provided")
-        return self.filename_parser.compose(kwargs)
+            raise RuntimeError("No filename pattern or specific filename provided")
+        output_filename = self.filename_parser.compose(kwargs)
+        dirname = os.path.dirname(output_filename)
+        if dirname and not os.path.isdir(dirname):
+            LOG.info("Creating output directory: {}".format(dirname))
+            os.makedirs(dirname)
+        return output_filename
 
     def save_datasets(self, datasets, compute=True, **kwargs):
         """Save all datasets to one or more files.
@@ -575,17 +619,10 @@ class Writer(Plugin):
 
 class ImageWriter(Writer):
 
-    def __init__(self,
-                 name=None,
-                 filename=None,
-                 enhancement_config=None,
-                 base_dir=None,
-                 **kwargs):
-        Writer.__init__(self, name, filename, base_dir,
-                        **kwargs)
+    def __init__(self, name=None, filename=None, enhancement_config=None, base_dir=None, **kwargs):
+        Writer.__init__(self, name, filename, base_dir, **kwargs)
         enhancement_config = self.info.get(
-            "enhancement_config",
-            None) if enhancement_config is None else enhancement_config
+            "enhancement_config", None) if enhancement_config is None else enhancement_config
 
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
