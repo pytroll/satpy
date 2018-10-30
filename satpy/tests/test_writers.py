@@ -273,7 +273,7 @@ sensor_name: visir/test_sensor2
 class TestYAMLFiles(unittest.TestCase):
     """Test and analyze the writer configuration files."""
 
-    def test_filename_matches_reader_name(self):
+    def test_filename_matches_writer_name(self):
         """Test that every writer filename matches the name in the YAML."""
         import yaml
 
@@ -432,6 +432,64 @@ class TestComputeWriterResults(unittest.TestCase):
         self.assertTrue(os.path.isfile(fname2))
 
 
+class TestBaseWriter(unittest.TestCase):
+    """Test the base writer class."""
+
+    def setUp(self):
+        """Set up tests."""
+        import tempfile
+        from datetime import datetime
+
+        from satpy.scene import Scene
+        import dask.array as da
+
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        self.scn = Scene()
+        self.scn['test'] = ds1
+
+        # Temp dir
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
+    def test_save_dataset_static_filename(self):
+        """Test saving a dataset with a static filename specified."""
+        self.scn.save_datasets(base_dir=self.base_dir, filename='geotiff.tif')
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, 'geotiff.tif')))
+
+    def test_save_dataset_dynamic_filename(self):
+        """Test saving a dataset with a format filename specified."""
+        fmt_fn = 'geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif'
+        exp_fn = 'geotiff_test_20180101_000000.tif'
+        self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn)
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+
+    def test_save_dataset_dynamic_filename_with_dir(self):
+        """Test saving a dataset with a format filename that includes a directory."""
+        fmt_fn = os.path.join('{start_time:%Y%m%d}', 'geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif')
+        exp_fn = os.path.join('20180101', 'geotiff_test_20180101_000000.tif')
+        self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn)
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+
+        # change the filename pattern but keep the same directory
+        fmt_fn2 = os.path.join('{start_time:%Y%m%d}', 'geotiff_{name}_{start_time:%Y%m%d_%H}.tif')
+        exp_fn2 = os.path.join('20180101', 'geotiff_test_20180101_00.tif')
+        self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn2)
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn2)))
+        # the original file should still exist
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -441,5 +499,6 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancerUserConfigs))
     my_suite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
     my_suite.addTest(loader.loadTestsFromTestCase(TestComputeWriterResults))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestBaseWriter))
 
     return my_suite

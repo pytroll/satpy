@@ -1057,8 +1057,9 @@ class Scene(MetadataObject):
 
         writer, save_kwargs = load_writer(writer,
                                           ppp_config_dir=self.ppp_config_dir,
+                                          filename=filename,
                                           **kwargs)
-        return writer.save_dataset(self[dataset_id], filename=filename,
+        return writer.save_dataset(self[dataset_id],
                                    overlay=overlay, compute=compute,
                                    **save_kwargs)
 

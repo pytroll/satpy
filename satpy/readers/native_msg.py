@@ -64,7 +64,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
-        self.filename = filename
         self.platform_name = None
 
         # The available channels are only known after the header
@@ -83,13 +82,13 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     @property
     def start_time(self):
-        return [self.header['15_DATA_HEADER']['ImageAcquisition'][
-            'PlannedAcquisitionTime']['TrueRepeatCycleStart']]
+        return self.header['15_DATA_HEADER']['ImageAcquisition'][
+            'PlannedAcquisitionTime']['TrueRepeatCycleStart']
 
     @property
     def end_time(self):
-        return [self.header['15_DATA_HEADER']['ImageAcquisition'][
-            'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']]
+        return self.header['15_DATA_HEADER']['ImageAcquisition'][
+            'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
 
     def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels"""

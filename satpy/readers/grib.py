@@ -55,7 +55,7 @@ class GRIBFileHandler(BaseFileHandler):
         self._start_time = None
         self._end_time = None
         try:
-            with pygrib.open(filename) as grib_file:
+            with pygrib.open(self.filename) as grib_file:
                 first_msg = grib_file.message(1)
                 last_msg = grib_file.message(grib_file.messages)
                 start_time = self._convert_datetime(
@@ -69,10 +69,10 @@ class GRIBFileHandler(BaseFileHandler):
                     self._idx = None
                 else:
                     self._create_dataset_ids(filetype_info['keys'])
-                    self._idx = pygrib.index(filename,
+                    self._idx = pygrib.index(self.filename,
                                              *filetype_info['keys'].keys())
         except (RuntimeError, KeyError):
-            raise IOError("Unknown GRIB file format: {}".format(filename))
+            raise IOError("Unknown GRIB file format: {}".format(self.filename))
 
     def _analyze_messages(self, grib_file):
         grib_file.seek(0)
@@ -139,6 +139,11 @@ class GRIBFileHandler(BaseFileHandler):
 
     def _area_def_from_msg(self, msg):
         proj_params = msg.projparams.copy()
+        # correct for longitudes over 180
+        for lon_param in ['lon_0', 'lon_1', 'lon_2']:
+            if proj_params.get(lon_param, 0) > 180:
+                proj_params[lon_param] -= 360
+
         if proj_params['proj'] == 'cyl':
             proj_params['proj'] = 'eqc'
             proj = Proj(**proj_params)
@@ -171,9 +176,20 @@ class GRIBFileHandler(BaseFileHandler):
         else:
             lats, lons = msg.latlons()
             shape = lats.shape
+            # take the corner points only
+            lons = lons[([0, 0, -1, -1], [0, -1, 0, -1])]
+            lats = lats[([0, 0, -1, -1], [0, -1, 0, -1])]
+            # correct for longitudes over 180
+            lons[lons > 180] -= 360
+
             proj = Proj(**proj_params)
-            min_x, min_y = proj(lons[-1, 0], lats[-1, 0])
-            max_x, max_y = proj(lons[0, -1], lats[0, -1])
+            x, y = proj(lons, lats)
+            x[np.abs(x) >= 1e30] = np.nan
+            y[np.abs(y) >= 1e30] = np.nan
+            min_x = np.nanmin(x)
+            max_x = np.nanmax(x)
+            min_y = np.nanmin(y)
+            max_y = np.nanmax(y)
             extents = (min_x, min_y, max_x, max_y)
 
         return geometry.AreaDefinition(

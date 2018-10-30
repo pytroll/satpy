@@ -67,7 +67,7 @@ def get_filebase(path, pattern):
     """Get the end of *path* of same length as *pattern*."""
     # A pattern can include directories
     tail_len = len(pattern.split(os.path.sep))
-    return os.path.join(*path.split(os.path.sep)[-tail_len:])
+    return os.path.join(*str(path).split(os.path.sep)[-tail_len:])
 
 
 def match_filenames(filenames, pattern):
@@ -101,7 +101,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             filetype_info['file_patterns'] = file_patterns
             self.file_patterns.extend(file_patterns)
 
-        if not isinstance(self.info['sensors'], (list, tuple)):
+        if 'sensors' in self.info and not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
         self.datasets = self.config.get('datasets', {})
         self.info['filenames'] = []
@@ -110,7 +110,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @property
     def sensor_names(self):
-        return self.info['sensors']
+        return self.info['sensors'] or []
 
     @property
     def all_dataset_ids(self):

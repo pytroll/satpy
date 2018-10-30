@@ -30,9 +30,9 @@ import os
 
 import numpy as np
 import yaml
-import dask
 import dask.array as da
 import xarray as xr
+import warnings
 
 from satpy.config import (config_search_paths, glob_config,
                           get_environ_config_dir, recursive_dict_update)
@@ -179,7 +179,7 @@ def _determine_mode(dataset):
 
 
 def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
-                level_coast=1, level_borders=1):
+                level_coast=1, level_borders=1, fill_value=None):
     """Add coastline and political borders to image, using *color* (tuple
     of integers between 0 and 255).
     Warning: Loses the masks !
@@ -224,7 +224,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
         LOG.debug("Automagically choose resolution %s", resolution)
 
-    img = orig.pil_image()
+    img = orig.pil_image(fill_value=fill_value)
     cw_ = ContourWriterAGG(coast_dir)
     cw_.add_coastlines(img, area, outline=color,
                        resolution=resolution, width=width, level=level_coast)
@@ -236,7 +236,8 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
                              coords={'y': orig.data.coords['y'],
                                      'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)})
+                                     'bands': list(img.mode)},
+                             attrs=orig.data.attrs)
 
 
 def add_text(orig, dc, img, text=None):
@@ -255,7 +256,8 @@ def add_text(orig, dc, img, text=None):
     orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
                              coords={'y': orig.data.coords['y'],
                                      'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)})
+                                     'bands': list(img.mode)},
+                             attrs=orig.data.attrs)
 
 
 def add_logo(orig, dc, img, logo=None):
@@ -274,10 +276,11 @@ def add_logo(orig, dc, img, logo=None):
     orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
                              coords={'y': orig.data.coords['y'],
                                      'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)})
+                                     'bands': list(img.mode)},
+                             attrs=orig.data.attrs)
 
 
-def add_decorate(orig, **decorate):
+def add_decorate(orig, fill_value=None, **decorate):
     """Decorate an image with text and/or logos/images.
 
     This call adds text/logos in order as given in the input to keep the
@@ -312,7 +315,7 @@ def add_decorate(orig, **decorate):
 
     # Need to create this here to possible keep the alignment
     # when adding text and/or logo with pydecorate
-    img_orig = orig.pil_image()
+    img_orig = orig.pil_image(fill_value=fill_value)
     from pydecorate import DecoratorAGG
     dc = DecoratorAGG(img_orig)
 
@@ -331,7 +334,8 @@ def get_enhanced_image(dataset,
                        ppp_config_dir=None,
                        enhancement_config_file=None,
                        overlay=None,
-                       decorate=None):
+                       decorate=None,
+                       fill_value=None):
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
@@ -350,10 +354,10 @@ def get_enhanced_image(dataset,
         enhancer.apply(img, **dataset.attrs)
 
     if overlay is not None:
-        add_overlay(img, dataset.attrs['area'], **overlay)
+        add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
 
     if decorate is not None:
-        add_decorate(img, **decorate)
+        add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
 
@@ -407,7 +411,7 @@ def compute_writer_results(results):
 
     Args:
         results (iterable): Iterable of dask graphs resulting from calls to
-                            `scn.save_datasets(..., compute=False)
+                            `scn.save_datasets(..., compute=False)`
     """
     if not results:
         return
@@ -428,25 +432,52 @@ def compute_writer_results(results):
 
 
 class Writer(Plugin):
+    """Base Writer class for all other writers.
 
-    """Writer plugins. They must implement the *save_image* method. This is an
-    abstract class to be inherited.
+    A minimal writer subclass should implement the `save_dataset` method.
     """
 
-    def __init__(self,
-                 name=None,
-                 file_pattern=None,
-                 base_dir=None,
-                 **kwargs):
+    def __init__(self, name=None, filename=None, base_dir=None, **kwargs):
+        """Initialize the writer object.
+
+        Args:
+            name (str): A name for this writer for log and error messages.
+                If this writer is configured in a YAML file its name should
+                match the name of the YAML file. Writer names may also appear
+                in output file attributes.
+            filename (str): Filename to save data to. This filename can and
+                should specify certain python string formatting fields to
+                differentiate between data written to the files. Any
+                attributes provided by the ``.attrs`` of a DataArray object
+                may be included. Format and conversion specifiers provided by
+                the :class:`trollsift <trollsift.parser.StringFormatter>`
+                package may also be used. Any directories in the provided
+                pattern will be created if they do not exist. Example::
+
+                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S.tif
+
+            base_dir (str):
+                Base destination directories for all created files.
+            kwargs (dict): Additional keyword arguments to pass to the
+                :class:`~satpy.plugin_base.Plugin` class.
+
+            """
         # Load the config
         Plugin.__init__(self, **kwargs)
         self.info = self.config['writer']
 
+        if 'file_pattern' in self.info:
+            warnings.warn("Writer YAML config is using 'file_pattern' which "
+                          "has been deprecated, use 'filename' instead.")
+            self.info['filename'] = self.info.pop('file_pattern')
+
+        if 'file_pattern' in kwargs:
+            warnings.warn("'file_pattern' has been deprecated, use 'filename' instead.", DeprecationWarning)
+            filename = kwargs.pop('file_pattern')
+
         # Use options from the config file if they weren't passed as arguments
-        self.name = self.info.get("name",
-                                  None) if name is None else name
-        self.file_pattern = self.info.get(
-            "file_pattern", None) if file_pattern is None else file_pattern
+        self.name = self.info.get("name", None) if name is None else name
+        self.file_pattern = self.info.get("filename", None) if filename is None else filename
 
         if self.name is None:
             raise ValueError("Writer 'name' not provided")
@@ -455,15 +486,30 @@ class Writer(Plugin):
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
+        """Helper class method to separate arguments between init and save methods.
+
+        Currently the :class:`~satpy.scene.Scene` is passed one set of
+        arguments to represent the Writer creation and saving steps. This is
+        not preferred for Writer structure, but provides a simpler interface
+        to users. This method splits the provided keyword arguments between
+        those needed for initialization and those needed for the ``save_dataset``
+        and ``save_datasets`` method calls.
+
+        Writer subclasses should try to prefer keyword arguments only for the
+        save methods only and leave the init keyword arguments to the base
+        classes when possible.
+
+        """
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs = {}
         kwargs = kwargs.copy()
-        for kw in ['base_dir', 'file_pattern']:
+        for kw in ['base_dir', 'filename', 'file_pattern']:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
         return init_kwargs, kwargs
 
     def create_filename_parser(self, base_dir):
+        """Create a :class:`trollsift.parser.Parser` object for later use."""
         # just in case a writer needs more complex file patterns
         # Set a way to create filenames if we were given a pattern
         if base_dir and self.file_pattern:
@@ -473,10 +519,21 @@ class Writer(Plugin):
         return parser.Parser(file_pattern) if file_pattern else None
 
     def get_filename(self, **kwargs):
+        """Create a filename where output data will be saved.
+
+        Args:
+            kwargs (dict): Attributes and other metadata to use for formatting
+                the previously provided `filename`.
+
+        """
         if self.filename_parser is None:
-            raise RuntimeError(
-                "No filename pattern or specific filename provided")
-        return self.filename_parser.compose(kwargs)
+            raise RuntimeError("No filename pattern or specific filename provided")
+        output_filename = self.filename_parser.compose(kwargs)
+        dirname = os.path.dirname(output_filename)
+        if dirname and not os.path.isdir(dirname):
+            LOG.info("Creating output directory: {}".format(dirname))
+            os.makedirs(dirname)
+        return output_filename
 
     def save_datasets(self, datasets, compute=True, **kwargs):
         """Save all datasets to one or more files.
@@ -532,7 +589,7 @@ class Writer(Plugin):
         Args:
             dataset (xarray.DataArray): Dataset to save using this writer.
             filename (str): Optionally specify the filename to save this
-                            dataset to. If not provided then `file_pattern`
+                            dataset to. If not provided then `filename`
                             which can be provided to the init method will be
                             used and formatted by dataset attributes.
             fill_value (int or float): Replace invalid values in the dataset
@@ -562,17 +619,10 @@ class Writer(Plugin):
 
 class ImageWriter(Writer):
 
-    def __init__(self,
-                 name=None,
-                 file_pattern=None,
-                 enhancement_config=None,
-                 base_dir=None,
-                 **kwargs):
-        Writer.__init__(self, name, file_pattern, base_dir,
-                        **kwargs)
+    def __init__(self, name=None, filename=None, enhancement_config=None, base_dir=None, **kwargs):
+        Writer.__init__(self, name, filename, base_dir, **kwargs)
         enhancement_config = self.info.get(
-            "enhancement_config",
-            None) if enhancement_config is None else enhancement_config
+            "enhancement_config", None) if enhancement_config is None else enhancement_config
 
         self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
                                  enhancement_config_file=enhancement_config)
@@ -598,7 +648,7 @@ class ImageWriter(Writer):
         """
         img = get_enhanced_image(
             dataset.squeeze(), self.enhancer, overlay=overlay,
-            decorate=decorate)
+            decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute,
                                fill_value=fill_value, **kwargs)
 

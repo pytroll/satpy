@@ -6,6 +6,7 @@
 # Author(s):
 
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Ulrik Egede <u.egede@imperial.ac.uk>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,6 +25,8 @@
 
 import logging
 import os
+import re
+
 from datetime import datetime
 
 import numpy as np
@@ -44,7 +47,7 @@ class NCSLSTRGeo(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRGeo, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
@@ -84,49 +87,52 @@ class NCSLSTR1B(BaseFileHandler):
         super(NCSLSTR1B, self).__init__(filename, filename_info,
                                         filetype_info)
 
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
         self.channel = filename_info['dataset_name']
-        self.view = 'n'  # n for nadir, o for oblique
-        cal_file = os.path.join(os.path.dirname(
-            filename), 'viscal.nc')
+        self.stripe = self.filename[-5]
+        self.view = self.filename[-4]
+        cal_file = os.path.join(os.path.dirname(self.filename), 'viscal.nc')
         self.cal = xr.open_dataset(cal_file,
                                    decode_cf=True,
                                    mask_and_scale=True,
                                    chunks={'views': CHUNK_SIZE})
-        indices_file = os.path.join(os.path.dirname(filename),
-                                    'indices_a{}.nc'.format(self.view))
+        indices_file = os.path.join(os.path.dirname(self.filename),
+                                    'indices_{}{}.nc'.format(self.stripe, self.view))
         self.indices = xr.open_dataset(indices_file,
                                        decode_cf=True,
                                        mask_and_scale=True,
                                        chunks={'columns': CHUNK_SIZE,
                                                'rows': CHUNK_SIZE})
         self.indices = self.indices.rename({'columns': 'x', 'rows': 'y'})
-        # TODO: get metadata from the manifest file (xfdumanifest.xml)
+
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel != key.name:
+
+        if self.channel not in key.name:
             return
+
         logger.debug('Reading %s.', key.name)
         if key.calibration == 'brightness_temperature':
-            variable = self.nc[self.channel + '_BT_i' + self.view]
+            variable = self.nc['{}_BT_{}{}'.format(self.channel, self.stripe, self.view)]
         else:
-            variable = self.nc[self.channel + '_radiance_a' + self.view]
+            variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe, self.view)]
 
         radiances = variable
         units = variable.attrs['units']
+
         if key.calibration == 'reflectance':
             # TODO take into account sun-earth distance
-            solar_flux = self.cal[key.name + '_solar_irradiances']
-            d_index = self.indices['detector_a' + self.view]
-            idx = 0  # Nadir view
+            solar_flux = self.cal[re.sub('_[^_]*$', '', key.name) + '_solar_irradiances']
+            d_index = self.indices['detector_{}{}'.format(self.stripe, self.view)]
+            idx = 0 if self.view == 'n' else 1   # 0: Nadir view, 1: oblique (check).
 
             def cal_rad(rad, didx, solar_flux=None):
                 indices = np.isfinite(didx)
@@ -143,7 +149,8 @@ class NCSLSTR1B(BaseFileHandler):
         info.update(key.to_dict())
         info.update(dict(units=units,
                          platform_name=self.platform_name,
-                         sensor=self.sensor))
+                         sensor=self.sensor,
+                         view=self.view))
 
         radiances.attrs = info
         return radiances
@@ -159,14 +166,12 @@ class NCSLSTR1B(BaseFileHandler):
 
 class NCSLSTRAngles(BaseFileHandler):
 
-    view = 'n'
-
     def __init__(self, filename, filename_info, filetype_info):
 
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
                                             filetype_info)
 
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
@@ -175,6 +180,10 @@ class NCSLSTRAngles(BaseFileHandler):
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
+
+        self.view = filename_info['view']
+        self._start_time = filename_info['start_time']
+        self._end_time = filename_info['end_time']
 
         cart_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view))
@@ -242,6 +251,46 @@ class NCSLSTRAngles(BaseFileHandler):
 
         variable.attrs.update(key.to_dict())
 
+        return variable
+
+    @property
+    def start_time(self):
+        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+    @property
+    def end_time(self):
+        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+
+class NCSLSTRFlag(BaseFileHandler):
+
+    def __init__(self, filename, filename_info, filetype_info):
+        super(NCSLSTRFlag, self).__init__(filename, filename_info,
+                                          filetype_info)
+        self.nc = xr.open_dataset(self.filename,
+                                  decode_cf=True,
+                                  mask_and_scale=True,
+                                  chunks={'columns': CHUNK_SIZE,
+                                          'rows': CHUNK_SIZE})
+        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
+        self.stripe = self.filename[-5]
+        self.view = self.filename[-4]
+        # TODO: get metadata from the manifest file (xfdumanifest.xml)
+        self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
+        self.sensor = 'slstr'
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        logger.debug('Reading %s.', key.name)
+
+        variable = self.nc[key.name]
+
+        info.update(variable.attrs)
+        info.update(key.to_dict())
+        info.update(dict(platform_name=self.platform_name,
+                         sensor=self.sensor))
+
+        variable.attrs = info
         return variable
 
     @property

@@ -1,28 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2016-2018 PyTroll developers
-
-# Author(s):
-
-#   Guido della Bruna <Guido.DellaBruna@meteoswiss.ch>
-#   Marco Sassi       <Marco.Sassi@meteoswiss.ch>
-#   Martin Raspaud    <Martin.Raspaud@smhi.se>
-
+#
+# Copyright (c) 2016-2018 SatPy developers
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-Advance Baseline Imager reader
+"""Advance Baseline Imager reader for the Level 1b format
+
+The files read by this reader are described in the official PUG document:
+
+    https://www.goes-r.gov/users/docs/PUG-L1b-vol3.pdf
+
 """
 
 import logging
@@ -51,7 +49,7 @@ class NC_ABI_L1B(BaseFileHandler):
         super(NC_ABI_L1B, self).__init__(filename, filename_info,
                                          filetype_info)
         # xarray's default netcdf4 engine
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE})
@@ -102,11 +100,10 @@ class NC_ABI_L1B(BaseFileHandler):
         """Get the shape of the data."""
         return self.nlines, self.ncols
 
-    def get_dataset(self, key, info,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key.name)
-        radiances = self['Rad'][yslice, xslice]
+        radiances = self['Rad']
 
         if key.calibration == 'reflectance':
             logger.debug("Calibrating to reflectances")
@@ -130,6 +127,16 @@ class NC_ABI_L1B(BaseFileHandler):
                           'satellite_longitude': float(self['nominal_satellite_subpoint_lon']),
                           'satellite_altitude': float(self['nominal_satellite_height'])})
         res.attrs.update(key.to_dict())
+        # remove attributes that could be confusing later
+        res.attrs.pop('_FillValue', None)
+        res.attrs.pop('scale_factor', None)
+        res.attrs.pop('add_offset', None)
+        # add in information from the filename that may be useful to the user
+        for key in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname'):
+            res.attrs[key] = self.filename_info[key]
+        # copy global attributes to metadata
+        for key in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
+            res.attrs[key] = self.nc.attrs.get(key)
 
         return res
 
@@ -164,8 +171,8 @@ class NC_ABI_L1B(BaseFileHandler):
                      'sweep': sweep_axis}
 
         area = geometry.AreaDefinition(
-            'abi_geos',
-            "ABI L1B file area",
+            self.nc.attrs.get('orbital_slot', 'abi_geos'),
+            self.nc.attrs.get('spatial_resolution', 'ABI L1B file area'),
             'abi_geos',
             proj_dict,
             self.ncols,
