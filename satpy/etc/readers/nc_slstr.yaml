@@ -755,112 +755,112 @@ datasets:
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_an
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
 
   confidence_an:
     name: confidence_an
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_an
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
 
   pointing_an:
     name: pointing_an
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_an
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
 
   bayes_an:
     name: bayes_an
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_an
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_an, latitude_an]
 
   cloud_bn:
     name: cloud_bn
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_bn
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bn, latitude_bn]
 
   confidence_bn:
     name: confidence_bn
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_bn
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bn, latitude_bn]
 
   pointing_bn:
     name: pointing_bn
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_bn
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bn, latitude_bn]
 
   bayes_bn:
     name: bayes_bn
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_bn
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bn, latitude_bn]
 
   cloud_cn:
     name: cloud_cn
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_cn
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_cn, latitude_cn]
 
   confidence_cn:
     name: confidence_cn
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_cn
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_cn, latitude_cn]
 
   pointing_cn:
     name: pointing_cn
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_cn
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_cn, latitude_cn]
 
   bayes_cn:
     name: bayes_cn
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_cn
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_cn, latitude_cn]
 
   cloud_in:
     name: cloud_in
     sensor: slstr
     resolution: 1000
     file_type: esa_l1b_flag_in
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_in, latitude_in]
 
   confidence_in:
     name: confidence_in
     sensor: slstr
     resolution: 1000
     file_type: esa_l1b_flag_in
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_in, latitude_in]
 
   pointing_in:
     name: pointing_in
     sensor: slstr
     resolution: 1000
     file_type: esa_l1b_flag_in
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_in, latitude_in]
 
   bayes_in:
     name: bayes_in
     sensor: slstr
     resolution: 1000
     file_type: esa_l1b_flag_in
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_in, latitude_in]
 
 # CloudFlags are all bitfields. Now for the oblique view
   cloud_ao:
@@ -868,109 +868,109 @@ datasets:
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_ao
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
 
   confidence_ao:
     name: confidence_ao
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_ao
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
 
   pointing_ao:
     name: pointing_ao
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_ao
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
 
   bayes_ao:
     name: bayes_ao
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_ao
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_ao, latitude_ao]
 
   cloud_bo:
     name: cloud_bo
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_bo
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bo, latitude_bo]
 
   confidence_bo:
     name: confidence_bo
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_bo
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bo, latitude_bo]
 
   pointing_bo:
     name: pointing_bo
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_bo
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bo, latitude_bo]
 
   bayes_bo:
     name: bayes_bo
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_bo
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_bo, latitude_bo]
 
   cloud_co:
     name: cloud_co
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_co
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_co, latitude_co]
 
   confidence_co:
     name: confidence_co
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_co
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_co, latitude_co]
 
   pointing_co:
     name: pointing_co
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_co
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_co, latitude_co]
 
   bayes_co:
     name: bayes_co
     sensor: slstr
     resolution: 500
     file_type: esa_l1b_flag_co
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_co, latitude_co]
 
   cloud_io:
     name: cloud_io
     sensor: slstr
     resolution: 1000
     file_type: esa_l1b_flag_io
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_io, latitude_io]
 
   confidence_io:
     name: confidence_io
     sensor: slstr
     resolution: 1000
     file_type: esa_l1b_flag_io
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_io, latitude_io]
 
   pointing_io:
     name: pointing_io
     sensor: slstr
     resolution: 1000
     file_type: esa_l1b_flag_io
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_io, latitude_io]
 
   bayes_io:
     name: bayes_io
     sensor: slstr
     resolution: 1000
     file_type: esa_l1b_flag_io
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_io, latitude_io]
