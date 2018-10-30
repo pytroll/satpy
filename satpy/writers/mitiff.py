@@ -47,7 +47,7 @@ class MITIFFWriter(ImageWriter):
         ImageWriter.__init__(self,
                              name,
                              filename,
-                             enhancement_config, 
+                             enhancement_config,
                              base_dir,
                              default_config_filename="writers/mitiff.yaml",
                              **kwargs)
@@ -86,17 +86,17 @@ class MITIFFWriter(ImageWriter):
                     self.mitiff_config[kwargs['sensor']] = dataset.attrs['metadata_requirements']['config']
                     self.channel_order[kwargs['sensor']] = dataset.attrs['metadata_requirements']['order']
                     self.file_pattern = dataset.attrs['metadata_requirements']['file_pattern']
-                except KeyError as ke:
-                    #For some mitiff products this info is needed, for others not.
-                    #If needed you should know how to fix this
+                except KeyError:
+                    # For some mitiff products this info is needed, for others not.
+                    # If needed you should know how to fix this
                     pass
 
                 try:
                     self.translate_channel_name[kwargs['sensor']] = \
                         dataset.attrs['metadata_requirements']['translate']
-                except KeyError as ke:
-                    #For some mitiff products this info is needed, for others not.
-                    #If needed you should know how to fix this
+                except KeyError:
+                    # For some mitiff products this info is needed, for others not.
+                    # If needed you should know how to fix this
                     pass
 
                 image_description = self._make_image_description(dataset, **kwargs)
@@ -138,8 +138,8 @@ class MITIFFWriter(ImageWriter):
                     self.channel_order[kwargs['sensor']] = datasets['metadata_requirements']['order']
                     self.file_pattern = datasets['metadata_requirements']['file_pattern']
                 except KeyError:
-                    #For some mitiff products this info is needed, for others not.
-                    #If needed you should know how to fix this
+                    # For some mitiff products this info is needed, for others not.
+                    # If needed you should know how to fix this
                     pass
 
                 image_description = self._make_image_description(datasets, **kwargs)
@@ -538,7 +538,7 @@ class MITIFFWriter(ImageWriter):
         elif len(datasets.sizes) == 2:
             LOG.debug("len datasets: 1")
             _image_description += '1'
-            
+
         _image_description += ' In this file: '
 
         channels = self._make_channel_list(datasets, **kwargs)
