@@ -713,20 +713,6 @@ class NetCDFWrapper(object):
         self.compress = compress
         self.fix_awips = fix_awips
 
-    def __getstate__(self):
-        """State for pickling."""
-        args = (self.filename, self.sector_id, self.ds_info, self.awips_info, self.xy_factors, self.tile_info)
-        kwargs = dict(
-            compress=self.compress,
-            fix_awips=self.fix_awips,
-        )
-        return args, kwargs
-
-    def __setstate__(self, state):
-        """Restore from a pickle."""
-        args, kwargs = state
-        self.__init__(*args, **kwargs)
-
     def __setitem__(self, key, data):
         """Write an entire tile to a file."""
         if np.isnan(data).all():
@@ -1012,7 +998,8 @@ class SCMIWriter(Writer):
                     sources_targets.append((tmp_tile.data, nc_wrapper))
 
         if compute and sources_targets:
-            return da.store(*zip(*sources_targets))
+            # the NetCDF creation is per-file so we don't need to lock
+            return da.store(*zip(*sources_targets), lock=False)
         return sources_targets
 
 
