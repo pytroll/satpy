@@ -68,7 +68,8 @@ class TestSCMIWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'),
+            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                                        '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             x_size=100,
             y_size=200,
             area_extent=(-1000., -1500., 1000., 1500.),
@@ -101,7 +102,8 @@ class TestSCMIWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'),
+            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                                        '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             x_size=100,
             y_size=200,
             area_extent=(-1000., -1500., 1000., 1500.),
@@ -133,7 +135,8 @@ class TestSCMIWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'),
+            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                                        '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             x_size=1000,
             y_size=2000,
             area_extent=(-1000000., -1500000., 1000000., 1500000.),
@@ -165,7 +168,8 @@ class TestSCMIWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'),
+            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                                        '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             x_size=1000,
             y_size=2000,
             area_extent=(4000000., 5000000., 5000000., 6000000.),
@@ -198,7 +202,8 @@ class TestSCMIWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'),
+            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                                        '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             x_size=1000,
             y_size=2000,
             area_extent=(-1000000., -1500000., 1000000., 1500000.),
@@ -233,7 +238,8 @@ class TestSCMIWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. +lat_0=25 +lat_1=25 +units=m +no_defs'),
+            proj_dict=proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                                        '+lat_0=25 +lat_1=25 +units=m +no_defs'),
             x_size=100,
             y_size=200,
             area_extent=(-1000., -1500., 1000., 1500.),
