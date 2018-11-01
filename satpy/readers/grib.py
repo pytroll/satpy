@@ -184,7 +184,7 @@ class GRIBFileHandler(BaseFileHandler):
 
             proj = Proj(**proj_params)
             x, y = proj(lons, lats)
-            if msg.has_key('jScansPositively') and msg['jScansPositively'] == 1:
+            if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
                 min_x, min_y = x[0], y[0]
                 max_x, max_y = x[3], y[3]
             else:
@@ -253,7 +253,7 @@ class GRIBFileHandler(BaseFileHandler):
         ds_info = self.get_metadata(msg, ds_info)
         fill = msg['missingValue']
         data = msg.values.astype(np.float32)
-        if msg.has_key('jScansPositively') and msg['jScansPositively'] == 1:
+        if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
             data = data[::-1]
 
         if isinstance(data, np.ma.MaskedArray):
