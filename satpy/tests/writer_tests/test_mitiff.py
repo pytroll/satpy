@@ -198,21 +198,21 @@ class TestMITIFFWriter(unittest.TestCase):
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset()
         w = MITIFFWriter(base_dir=self.base_dir)
-        w.save_dataset(dataset, writer='mitiff')
+        w.save_dataset(dataset)
 
     def test_save_datasets(self):
         """Test basic writer operation."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset()
         w = MITIFFWriter(base_dir=self.base_dir)
-        w.save_datasets(dataset, writer='mitiff')
+        w.save_datasets(dataset)
 
     def test_save_dataset_with_calibration(self):
         """Test basic writer operation."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset_calibration()
         w = MITIFFWriter(filename=dataset.attrs['metadata_requirements']['file_pattern'], base_dir=self.base_dir)
-        w.save_dataset(dataset, writer='mitiff')
+        w.save_dataset(dataset)
 
 
 def suite():
