@@ -37,6 +37,9 @@ class FakeMessage(object):
     def __getitem__(self, item):
         return self.attrs[item]
 
+    def valid_key(self, key):
+        return True
+
 
 class FakeGRIB(object):
     """Fake GRIB file returned by pygrib.open."""
@@ -66,6 +69,7 @@ class FakeGRIB(object):
                     minimum=100.,
                     maximum=200.,
                     typeOfLevel='isobaricInhPa',
+                    jScansPositively=0,
                     proj_params=proj_params,
                     latlons=latlons,
                 ),
@@ -88,6 +92,7 @@ class FakeGRIB(object):
                     minimum=100.,
                     maximum=200.,
                     typeOfLevel='isobaricInhPa',
+                    jScansPositively=0,
                     proj_params=proj_params,
                     latlons=latlons,
                 ),
@@ -110,6 +115,7 @@ class FakeGRIB(object):
                     minimum=100.,
                     maximum=200.,
                     typeOfLevel='isobaricInhPa',
+                    jScansPositively=0,
                     proj_params=proj_params,
                     latlons=latlons,
                 ),
