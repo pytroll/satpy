@@ -1037,8 +1037,7 @@ class Scene(MetadataObject):
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
-    def save_dataset(self, dataset_id, filename=None, writer=None,
-                     overlay=None, compute=True, **kwargs):
+    def save_dataset(self, dataset_id, filename=None, writer=None, overlay=None, compute=True, **kwargs):
         """Save the *dataset_id* to file using *writer* (default: geotiff)."""
         if writer is None and filename is None:
             writer = 'geotiff'
@@ -1053,8 +1052,7 @@ class Scene(MetadataObject):
                                    overlay=overlay, compute=compute,
                                    **save_kwargs)
 
-    def save_datasets(self, writer="geotiff", datasets=None, compute=True,
-                      **kwargs):
+    def save_datasets(self, writer="geotiff", datasets=None, compute=True, **kwargs):
         """Save all the datasets present in a scene to disk using *writer*."""
         if datasets is not None:
             datasets = [self[ds] for ds in datasets]
@@ -1066,9 +1064,7 @@ class Scene(MetadataObject):
                                "generated or could not be loaded. Requested "
                                "composite inputs may need to have matching "
                                "dimensions (eg. through resampling).")
-        writer, save_kwargs = load_writer(writer,
-                                          ppp_config_dir=self.ppp_config_dir,
-                                          **kwargs)
+        writer, save_kwargs = load_writer(writer, ppp_config_dir=self.ppp_config_dir, **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
 
     @classmethod

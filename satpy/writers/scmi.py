@@ -941,7 +941,7 @@ class SCMIWriter(Writer):
                           "that aren't RGBs to SCMI format: {}".format(ds.name))
             else:
                 # this is an RGB
-                img = get_enhanced_image(ds.squeeze(), self.enhancer)
+                img = get_enhanced_image(ds.squeeze(), enhance=self.enhancer)
                 res_data = img.finalize(fill_value=0, dtype=np.float32)[0]
                 new_datasets.extend(self._split_rgbs(res_data))
 

@@ -50,7 +50,6 @@ NP2GDAL = {
 
 
 class GeoTIFFWriter(ImageWriter):
-
     """Writer to save GeoTIFF images.
 
     Basic example from Scene:
@@ -59,8 +58,7 @@ class GeoTIFFWriter(ImageWriter):
 
     Un-enhanced float geotiff with NaN for fill values:
 
-        scn.save_datasets(writer='geotiff', dtype=np.float32,
-                          enhancement_config=False)
+        scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
 
     """
 
