@@ -210,7 +210,7 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
-        get_enhanced_image(ds, enhancer=e)
+        get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
                             {self.ENH_FN3})
 
@@ -223,7 +223,7 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
-        get_enhanced_image(ds, enhancer=e)
+        get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
                             {self.ENH_FN2, self.ENH_ENH_FN2})
 
@@ -237,7 +237,7 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
-        img = get_enhanced_image(ds, enhancer=e)
+        img = get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(
             set(e.sensor_enhancement_configs),
             {self.ENH_FN, self.ENH_ENH_FN})
@@ -249,7 +249,7 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
-        img = get_enhanced_image(ds, enhancer=e)
+        img = get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
                             {self.ENH_FN, self.ENH_ENH_FN})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 1.)
@@ -264,7 +264,7 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
-        img = get_enhanced_image(ds, enhancer=e)
+        img = get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
                             {self.ENH_FN, self.ENH_ENH_FN})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
