@@ -697,7 +697,7 @@ class ImageWriter(Writer):
             instead.
 
         """
-        Writer.__init__(self, name, filename, base_dir, **kwargs)
+        super(ImageWriter, self).__init__(name, filename, base_dir, **kwargs)
         if enhancement_config is not None:
             warnings.warn("'enhancement_config' has been deprecated. Pass an instance of the "
                           "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
@@ -729,9 +729,8 @@ class ImageWriter(Writer):
         more details on the arguments passed to this method.
 
         """
-        img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, overlay=overlay,
-            decorate=decorate, fill_value=fill_value)
+        img = get_enhanced_image(dataset.squeeze(), enhance=self.enhancer, overlay=overlay,
+                                 decorate=decorate, fill_value=fill_value)
         return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
 
     def save_image(self, img, filename=None, compute=True, **kwargs):
