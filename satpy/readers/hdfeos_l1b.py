@@ -486,7 +486,7 @@ def calibrate_bt(array, attributes, index, band_name):
     tci = tci[global_index]
     array = c_2 / (cwn * xu.log(c_1 / (1000000 * array * cwn ** 5) + 1))
     array = (array - tci) / tcs
-    return array
+    return array.astype(np.float32)
 
 
 if __name__ == '__main__':
