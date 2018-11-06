@@ -639,7 +639,7 @@ class MITIFFWriter(ImageWriter):
 
         else:
             LOG.debug("Saving datasets as enhanced image")
-            img = get_enhanced_image(datasets.squeeze(), self.enhancer)
+            img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
             for i, band in enumerate(img.data['bands']):
                 chn = img.data.sel(bands=band)
                 data = chn.values * 254. + 1
