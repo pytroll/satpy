@@ -25,7 +25,10 @@
 """SEVIRI HRIT format reader.
 
 References:
-    MSG Level 1.5 Image Data FormatDescription
+    - MSG Level 1.5 Image Data Format Description
+    - Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent
+      Spectral Blackbody Radiance
+
 
 TODO:
 - HRV navigation

@@ -22,10 +22,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Advanced Himawari Imager (AHI) standard format data reader. The HSD format
-that this reader reads are described at the URL below:
+"""Advanced Himawari Imager (AHI) standard format data reader.
 
-http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
+References:
+    - Himawari-8/9 Himawari Standard Data User's Guide
+    - http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
 
 Time Information
 ****************
