@@ -1066,7 +1066,6 @@ class TestSceneLoading(unittest.TestCase):
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp18'])
         loaded_ids = list(scene.datasets.keys())
-        print(loaded_ids)
         # depends on:
         #   ds3
         #   ds4 (mod1, mod3)
