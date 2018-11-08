@@ -265,6 +265,27 @@ class HDFEOSBandReader(HDFEOSFileReader):
             array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
                                  dims=['y', 'x']).astype(np.float32)
             valid_range = var_attrs['valid_range']
+
+            # Fill values:
+            # Data Value Meaning
+            # 65535 Fill Value (includes reflective band data at night mode
+            # and completely missing L1A scans)
+            # 65534 L1A DN is missing within a scan
+            # 65533 Detector is saturated
+            # 65532 Cannot compute zero point DN, e.g., SV is saturated
+            # 65531 Detector is dead (see comments below)
+            # 65530 RSB dn** below the minimum of the scaling range
+            # 65529 TEB radiance or RSB dn** exceeds the maximum of the
+            # scaling range
+            # 65528 Aggregation algorithm failure
+            # 65527 Rotation of Earth view Sector from nominal science
+            # collection position
+            # 65526 Calibration coefficient b1 could not be computed
+            # 65525 Subframe is dead
+            # 65524 Both sides of the PCLW electronics on simultaneously
+            # 65501 - 65523 (reserved for future use)
+            # 65500 NAD closed upper limit
+
             array = array.where(array >= np.float32(valid_range[0]))
             array = array.where(array <= np.float32(valid_range[1]))
             array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
