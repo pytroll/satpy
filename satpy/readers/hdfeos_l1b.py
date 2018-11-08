@@ -122,9 +122,9 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         if ds.endswith('D03'):
-            self.resolution = 1000
+            self.georesolution = 1000
         else:
-            self.resolution = 5000
+            self.georesolution = 5000
         self.cache = {}
 
     def get_dataset(self, key, info):
@@ -143,8 +143,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             data = self.load('Latitude')
         else:
             return
-
-        if key.resolution != self.resolution:
+        if key.resolution != self.georesolution:
             # let's see if we have something in the cache
             try:
                 data = self.cache[key.resolution][key.name]
@@ -167,7 +166,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
                 data_b = self.load('SolarZenith') - 90
 
             data_a, data_b = self._interpolate(data_a, data_b, satz,
-                                               self.resolution, key.resolution)
+                                               self.georesolution, key.resolution)
 
             if key.name in ['longitude', 'latitude']:
                 self.cache[key.resolution]['longitude'] = data_a
@@ -343,6 +342,21 @@ class HDFEOSBandReader(HDFEOSFileReader):
 
     def get_sata(self):
         return self.data.select("SensorAzimuth")
+
+
+class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
+
+    def __init__(self, filename, filename_info, filetype_info):
+        HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info)
+
+    def get_dataset(self, key, info):
+        if key.name in ['longitude', 'latitude',
+                        'satellite_azimuth_angle', 'satellite_zenith_angle',
+                        'solar_azimuth_angle', 'solar_zenith_angle']:
+            return HDFEOSGeoReader.get_dataset(self, key, info)
+        else:
+            return HDFEOSBandReader.get_dataset(self, key, info)
 
 
 def calibrate_counts(array, attributes, index):
