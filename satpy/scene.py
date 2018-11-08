@@ -151,7 +151,7 @@ class Scene(MetadataObject):
                                                     reader=reader,
                                                     reader_kwargs=reader_kwargs)
 
-        if filenames and not self.available_dataset_ids():
+        if filenames and not self.available_dataset_ids(reader_name=reader):
             raise RuntimeError("Incomplete set of filenames for the requested "
                                "datasets. Maybe some requirements (such as "
                                "Epilog, Prolog) are missing?")
