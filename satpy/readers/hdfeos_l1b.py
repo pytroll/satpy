@@ -41,11 +41,10 @@ import numpy as np
 from pyhdf.error import HDF4Error
 from pyhdf.SD import SD
 
-import dask.array as da
 import xarray.ufuncs as xu
 import xarray as xr
+from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
 from satpy import CHUNK_SIZE
-from satpy.dataset import DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.hdf4_utils import from_sds
 
@@ -127,153 +126,96 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         else:
             self.resolution = 5000
         self.cache = {}
-        self.cache[250] = {}
-        self.cache[250]['lons'] = None
-        self.cache[250]['lats'] = None
 
-        self.cache[500] = {}
-        self.cache[500]['lons'] = None
-        self.cache[500]['lats'] = None
-
-        self.cache[1000] = {}
-        self.cache[1000]['lons'] = None
-        self.cache[1000]['lats'] = None
-
-    def get_dataset(self, key, info, out=None, xslice=None, yslice=None):
+    def get_dataset(self, key, info):
         """Get the dataset designated by *key*."""
-        if key.name in ['solar_zenith_angle', 'solar_azimuth_angle',
-                        'satellite_zenith_angle', 'satellite_azimuth_angle']:
-
-            if key.name == 'solar_zenith_angle':
-                var = self.sd.select('SolarZenith')
-            if key.name == 'solar_azimuth_angle':
-                var = self.sd.select('SolarAzimuth')
-            if key.name == 'satellite_zenith_angle':
-                var = self.sd.select('SensorZenith')
-            if key.name == 'satellite_azimuth_angle':
-                var = self.sd.select('SensorAzimuth')
-
-            data = xr.DataArray(from_sds(var, chunks=CHUNK_SIZE),
-                                dims=['y', 'x']).astype(np.float32)
-            data = data.where(data != var._FillValue)
-            data = data * np.float32(var.scale_factor)
-
-            data.attrs = info
-            return data
-
-        if key.name not in ['longitude', 'latitude']:
+        if key.name == 'solar_zenith_angle':
+            data = self.load('SolarZenith')
+        elif key.name == 'solar_azimuth_angle':
+            data = self.load('SolarAzimuth')
+        elif key.name == 'satellite_zenith_angle':
+            data = self.load('SensorZenith')
+        elif key.name == 'satellite_azimuth_angle':
+            data = self.load('SensorAzimuth')
+        elif key.name == 'longitude':
+            data = self.load('Longitude')
+        elif key.name == 'latitude':
+            data = self.load('Latitude')
+        else:
             return
 
-        if (self.cache[key.resolution]['lons'] is None or
-                self.cache[key.resolution]['lats'] is None):
+        if key.resolution != self.resolution:
+            # let's see if we have something in the cache
+            try:
+                data = self.cache[key.resolution][key.name]
+                data.attrs.update(info)
+                data.attrs['standard_name'] = data.attrs['name']
+                return data
+            except KeyError:
+                self.cache.setdefault(key.resolution, {})
 
-            lons_id = DatasetID('longitude',
-                                resolution=key.resolution)
-            lats_id = DatasetID('latitude',
-                                resolution=key.resolution)
+            # too bad, now we need to interpolate
+            satz = self.load('SensorZenith')
+            if key.name in ['longitude', 'latitude']:
+                data_a = self.load('Longitude')
+                data_b = self.load('Latitude')
+            elif key.name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
+                data_a = self.load('SensorAzimuth')
+                data_b = self.load('SensorZenith') - 90
+            elif key.name in ['solar_azimuth_angle', 'solar_zenith_angle']:
+                data_a = self.load('SolarAzimuth')
+                data_b = self.load('SolarZenith') - 90
 
-            lons, lats = self.load(
-                [lons_id, lats_id], interpolate=False, raw=True)
-            if key.resolution != self.resolution:
-                from geotiepoints.geointerpolator import GeoInterpolator
-                lons, lats = self._interpolate([lons, lats],
-                                               self.resolution,
-                                               lons_id.resolution,
-                                               GeoInterpolator)
-                lons = np.ma.masked_invalid(np.ascontiguousarray(lons))
-                lats = np.ma.masked_invalid(np.ascontiguousarray(lats))
-            self.cache[key.resolution]['lons'] = lons
-            self.cache[key.resolution]['lats'] = lats
+            data_a, data_b = self._interpolate(data_a, data_b, satz,
+                                               self.resolution, key.resolution)
 
-        if key.name == 'latitude':
-            data = self.cache[key.resolution]['lats'].filled(np.nan)
-            data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                                dims=['y', 'x'])
-        else:
-            data = self.cache[key.resolution]['lons'].filled(np.nan)
-            data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
-                                                            CHUNK_SIZE)),
-                                dims=['y', 'x'])
-        data.attrs = info
+            if key.name in ['longitude', 'latitude']:
+                self.cache[key.resolution]['longitude'] = data_a
+                self.cache[key.resolution]['latitude'] = data_b
+            elif key.name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
+                self.cache[key.resolution]['satellite_azimuth_angle'] = data_a
+                self.cache[key.resolution]['satellite_zenith_angle'] = data_b + 90
+            elif key.name in ['solar_azimuth_angle', 'solar_zenith_angle']:
+                self.cache[key.resolution]['solar_azimuth_angle'] = data_a
+                self.cache[key.resolution]['solar_zenith_angle'] = data_b + 90
+
+            data = self.cache[key.resolution][key.name]
+
+        data.attrs.update(info)
+        data.attrs['standard_name'] = data.attrs['name']
         return data
 
-    def load(self, keys, interpolate=True, raw=False):
+    def load(self, file_key):
         """Load the data."""
-        projectables = []
-        for key in keys:
-            dataset = self.sd.select(key.name.capitalize())
-            fill_value = dataset.attributes()["_FillValue"]
-            try:
-                scale_factor = dataset.attributes()["scale_factor"]
-            except KeyError:
-                scale_factor = 1
-            data = np.ma.masked_equal(dataset.get(), fill_value) * scale_factor
-
-            # TODO: interpolate if needed
-            if (key.resolution is not None and
-                    key.resolution < self.resolution and
-                    interpolate):
-                data = self._interpolate(data, self.resolution, key.resolution)
-            if not raw:
-                data = data.filled(np.nan)
-                data = xr.DataArray(da.from_array(data, chunks=(CHUNK_SIZE,
-                                                                CHUNK_SIZE)),
-                                    dims=['y', 'x'])
-            projectables.append(data)
-
-        return projectables
+        var = self.sd.select(file_key)
+        data = xr.DataArray(from_sds(var, chunks=CHUNK_SIZE),
+                            dims=['y', 'x']).astype(np.float32)
+        data = data.where(data != var._FillValue)
+        try:
+            data = data * np.float32(var.scale_factor)
+        except AttributeError:
+            pass
+        return data
 
     @staticmethod
-    def _interpolate(data, coarse_resolution, resolution, interpolator=None):
+    def _interpolate(clons, clats, csatz, coarse_resolution, resolution):
         if resolution == coarse_resolution:
-            return data
+            return clons, clats
 
-        if interpolator is None:
-            from geotiepoints.interpolator import Interpolator
-            interpolator = Interpolator
+        funs = {(5000, 1000): modis_5km_to_1km,
+                (1000, 500): modis_1km_to_500m,
+                (1000, 250): modis_1km_to_250m}
+
+        try:
+            fun = funs[(coarse_resolution, resolution)]
+        except KeyError:
+            raise NotImplementedError('Interpolation from {}m to {}m not implemented'.format(
+                                      coarse_resolution, resolution))
 
         logger.debug("Interpolating from " + str(coarse_resolution)
                      + " to " + str(resolution))
 
-        if isinstance(data, (tuple, list, set)):
-            lines = data[0].shape[0]
-        else:
-            lines = data.shape[0]
-
-        if coarse_resolution == 5000:
-            coarse_cols = np.arange(2, 1354, 5)
-            lines *= 5
-            coarse_rows = np.arange(2, lines, 5)
-
-        elif coarse_resolution == 1000:
-            coarse_cols = np.arange(1354)
-            coarse_rows = np.arange(lines)
-
-        if resolution == 1000:
-            fine_cols = np.arange(1354)
-            fine_rows = np.arange(lines)
-            chunk_size = 10
-        elif resolution == 500:
-            fine_cols = np.arange(1354 * 2) / 2.0
-            fine_rows = (np.arange(lines * 2) - 0.5) / 2.0
-            chunk_size = 20
-        elif resolution == 250:
-            fine_cols = np.arange(1354 * 4) / 4.0
-            fine_rows = (np.arange(lines * 4) - 1.5) / 4.0
-            chunk_size = 40
-
-        along_track_order = 1
-        cross_track_order = 3
-
-        satint = interpolator(data,
-                              (coarse_rows, coarse_cols),
-                              (fine_rows, fine_cols),
-                              along_track_order,
-                              cross_track_order,
-                              chunk_size=chunk_size)
-
-        satint.fill_borders("y", "x")
-        return satint.interpolate()
+        return fun(clons, clats, csatz)
 
 
 class HDFEOSBandReader(HDFEOSFileReader):

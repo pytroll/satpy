@@ -46,7 +46,7 @@ if sys.version < '3.0':
 extras_require = {
     # Readers:
     'xRIT': ['mipp >= 0.6.0'],
-    'hdfeos_l1b': ['python-hdf4'],
+    'hdfeos_l1b': ['python-hdf4', 'python-geotiepoints >= 1.1.7'],
     'geocat': ['python-hdf4'],
     'acspo': ['netCDF4 >= 1.1.8'],
     'clavrx': ['netCDF4 >= 1.1.8'],
@@ -55,13 +55,13 @@ extras_require = {
     'viirs_compact': ['h5py >= 2.7.0'],
     'omps_edr': ['h5py >= 2.7.0'],
     'amsr2_l1b': ['h5py >= 2.7.0'],
-    'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints'],
+    'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
     'proj': ['pyresample'],
     'pyspectral': ['pyspectral >= 0.7.0'],
     'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
-    'sar_c': ['python-geotiepoints', 'gdal'],
+    'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
     # Writers:
     'scmi': ['netCDF4 >= 1.1.8'],
