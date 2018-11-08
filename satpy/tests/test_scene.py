@@ -48,7 +48,7 @@ class TestScene(unittest.TestCase):
             cri.return_value = {}
             with mock.patch('satpy.scene.Scene.available_dataset_ids') as ids:
                 ids.return_value = [1, 2, 3]
-                satpy.scene.Scene(filenames=['bla'], reader='blo')
+                scene = satpy.scene.Scene(filenames=['bla'], reader='blo')
                 cri.assert_called_once_with(filenames=['bla'], reader='blo',
                                             reader_kwargs=None)
 
@@ -114,7 +114,7 @@ class TestScene(unittest.TestCase):
             with mock.patch('satpy.scene.Scene.available_dataset_ids') as ids:
                 ids.return_value = [1, 2, 3]
                 with mock.patch('satpy.scene.load_readers') as findermock:
-                    satpy.scene.Scene(filenames=filenames)
+                    scene = satpy.scene.Scene(filenames=filenames)
                     findermock.assert_called_once_with(
                         filenames=filenames,
                         reader=reader_name,
@@ -163,11 +163,12 @@ class TestScene(unittest.TestCase):
         from satpy.scene import Scene
         reader = "foo"
         filenames = ["1", "2", "3"]
+        sensors = set()
         with mock.patch('satpy.scene.load_readers') as findermock:
             findermock.return_value = {}
             with mock.patch('satpy.scene.Scene.available_dataset_ids') as ids:
                 ids.return_value = [1, 2, 3]
-                Scene(reader=reader, filenames=filenames)
+                scene = Scene(reader=reader, filenames=filenames)
                 findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
                                                    reader=reader,
                                                    filenames=filenames,
