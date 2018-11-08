@@ -33,8 +33,10 @@ composites:
     standard_name: true_color
 
   true_color_thin:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.FillingCompositor
     prerequisites:
+    - name: '1'
+      modifiers: [sunz_corrected, rayleigh_corrected]
     - name: '1'
       modifiers: [sunz_corrected, rayleigh_corrected]
     - name: '12'
