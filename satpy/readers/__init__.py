@@ -662,4 +662,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
                 remaining_filenames)))
     if not reader_instances:
         raise ValueError("No supported files found")
+    elif not all([list(reader.available_dataset_ids)
+                  for reader in reader_instances.values()]):
+        raise ValueError("No dataset could be loaded. Either missing "
+                         "requirements (such as Epilog, Prolog) or none of the "
+                         "provided files match the filter parameters.")
     return reader_instances

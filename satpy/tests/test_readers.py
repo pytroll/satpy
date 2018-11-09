@@ -274,6 +274,63 @@ class TestReaderLoader(unittest.TestCase):
         ri = load_readers(reader='viirs_sdr', filenames=filenames)
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
+    @mock.patch('satpy.readers.hrit_base.HRITFileHandler._get_hd')
+    @mock.patch('satpy.readers.hrit_msg.HRITMSGFileHandler._get_header')
+    @mock.patch('satpy.readers.hrit_msg.HRITMSGFileHandler.start_time')
+    @mock.patch('satpy.readers.hrit_msg.HRITMSGFileHandler.end_time')
+    @mock.patch(
+        'satpy.readers.hrit_msg.HRITMSGPrologueFileHandler.read_prologue')
+    @mock.patch(
+        'satpy.readers.hrit_msg.HRITMSGEpilogueFileHandler.read_epilogue')
+    def test_missing_requirements(self, *mocks):
+        """Test warnings and exceptions in case of missing requirements"""
+        from satpy.readers import load_readers
+
+        # Filenames from a single scan
+        epi_pro_miss = [
+            'H-000-MSG4__-MSG4________-IR_108___-000006___-201809050900-__']
+        epi_miss = epi_pro_miss + [
+            'H-000-MSG4__-MSG4________-_________-PRO______-201809050900-__']
+        pro_miss = epi_pro_miss + [
+            'H-000-MSG4__-MSG4________-_________-EPI______-201809050900-__'
+        ]
+        for filenames in [epi_miss, pro_miss, epi_pro_miss]:
+            with mock.patch('warnings.warn') as warn_mock:
+                self.assertRaises(ValueError, load_readers, reader='hrit_msg',
+                                  filenames=filenames)
+                warn_mock.assert_called()
+
+        # Filenames from multiple scans
+        at_least_one_complete = [
+            # 09:00 scan is ok
+            'H-000-MSG4__-MSG4________-IR_108___-000006___-201809050900-__',
+            'H-000-MSG4__-MSG4________-_________-PRO______-201809050900-__',
+            'H-000-MSG4__-MSG4________-_________-EPI______-201809050900-__',
+            # 10:00 scan is incomplete
+            'H-000-MSG4__-MSG4________-IR_108___-000006___-201809051000-__',
+        ]
+        try:
+            with mock.patch('warnings.warn') as warn_mock:
+                load_readers(filenames=at_least_one_complete, reader='hrit_msg')
+                warn_mock.assert_called()
+        except ValueError:
+            self.fail('If at least one set of filenames is complete, no '
+                      'exception should be raised')
+
+    def test_all_filtered(self):
+        """Test behaviour if no file matches the filter parameters"""
+        from satpy.readers import load_readers
+        import datetime
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+        }
+        filter_params = {'start_time': datetime.datetime(1970, 1, 1),
+                         'end_time': datetime.datetime(1970, 1, 2),
+                         'area': None}
+        self.assertRaises(ValueError, load_readers, reader='viirs_sdr',
+                          filenames=filenames,
+                          reader_kwargs={'filter_parameters': filter_params})
+
 
 class TestFindFilesAndReaders(unittest.TestCase):
     """Test the find_files_and_readers utility function."""
