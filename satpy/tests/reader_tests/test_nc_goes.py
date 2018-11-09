@@ -270,8 +270,20 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                         'temperature in channel {} detector {}'.format(ch, det))
 
     def test_start_time(self):
-        """Test dataset time stamp"""
+        """Test dataset start time stamp"""
         self.assertEqual(self.reader.start_time, self.time)
+
+    def test_end_time(self):
+        """Test dataset end time stamp"""
+        from satpy.readers.nc_goes import (SCAN_DURATION, FULL_DISC,
+                                           UNKNOWN_SECTOR)
+        expected = {
+            UNKNOWN_SECTOR: self.time,
+            FULL_DISC: self.time + SCAN_DURATION[FULL_DISC]
+        }
+        for sector, end_time in expected.items():
+            self.reader.sector = sector
+            self.assertEqual(self.reader.end_time, end_time)
 
     def test_get_sector(self):
         """Test sector identification"""
