@@ -341,7 +341,7 @@ class FileYAMLReader(AbstractYAMLReader):
                         req_fh.append(fhd)
                         break
                 else:
-                    raise RuntimeError("No matching requirement file of type: "
+                    raise RuntimeError("No matching requirement file of type "
                                        "{}".format(requirement))
                     # break everything and continue to next
                     # filetype!
@@ -392,11 +392,12 @@ class FileYAMLReader(AbstractYAMLReader):
                 req_fh = self.find_required_filehandlers(requirements,
                                                          filename_info)
             except KeyError as req:
-                msg = "Missing requirement {} for {}".format(req, filename)
+                msg = "No handler for reading requirement {} for {}".format(
+                    req, filename)
                 warnings.warn(msg)
                 continue
             except RuntimeError as err:
-                warnings.warn(str(err))
+                warnings.warn(str(err) + ' for {}'.format(filename))
                 continue
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
