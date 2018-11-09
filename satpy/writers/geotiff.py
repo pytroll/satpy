@@ -50,7 +50,6 @@ NP2GDAL = {
 
 
 class GeoTIFFWriter(ImageWriter):
-
     """Writer to save GeoTIFF images.
 
     Basic example from Scene:
@@ -59,8 +58,7 @@ class GeoTIFFWriter(ImageWriter):
 
     Un-enhanced float geotiff with NaN for fill values:
 
-        scn.save_datasets(writer='geotiff', dtype=np.float32,
-                          enhancement_config=False)
+        scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
 
     """
 
@@ -88,13 +86,9 @@ class GeoTIFFWriter(ImageWriter):
                     "copy_src_overviews", )
 
     def __init__(self, dtype=None, tags=None, **kwargs):
-        ImageWriter.__init__(self,
-                             default_config_filename="writers/geotiff.yaml",
-                             **kwargs)
-
+        super(GeoTIFFWriter, self).__init__(default_config_filename="writers/geotiff.yaml", **kwargs)
         self.dtype = self.info.get("dtype") if dtype is None else dtype
-        self.tags = self.info.get("tags",
-                                  None) if tags is None else tags
+        self.tags = self.info.get("tags", None) if tags is None else tags
         if self.tags is None:
             self.tags = {}
         elif not isinstance(self.tags, dict):

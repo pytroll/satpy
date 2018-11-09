@@ -131,7 +131,6 @@ class TestMITIFFWriter(unittest.TestCase):
                                   dims=('y', 'x'),
                                   attrs={'calibration': 'reflectance'})
 
-        print(scene)
         data = xr.concat(scene, 'bands', coords='minimal')
         bands = []
         calibration = []
