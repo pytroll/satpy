@@ -658,10 +658,10 @@ class GOESNCFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """End timestamp of the dataset"""
-        if self.sector is not None:
+        try:
             return self.start_time + SCAN_DURATION[self.sector]
-
-        return self.start_time
+        except KeyError:
+            return self.start_time
 
     @property
     def resolution(self):
