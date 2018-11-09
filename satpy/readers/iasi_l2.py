@@ -89,6 +89,7 @@ class IASIL2HDF5(BaseFileHandler):
         self.finfo = filename_info
         self.lons = None
         self.lats = None
+        self.sensor = 'iasi'
 
         self.mda = {}
         short_name = filename_info['platform_id']
@@ -116,6 +117,7 @@ class IASIL2HDF5(BaseFileHandler):
             else:
                 m_data = read_geo(fid, key)
         m_data.attrs.update(info)
+        m_data.attrs['sensor'] = self.sensor
 
         return m_data
 
