@@ -252,6 +252,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                                         dtype=_NAV_INFO_TYPE,
                                         count=1)[0]
         self.platform_name = np2str(self.basic_info['satellite'])
+        self.observation_area = np2str(self.basic_info['observation_area'])
         self.sensor = 'ahi'
 
     @property
@@ -305,8 +306,8 @@ class AHIHSDFileHandler(BaseFileHandler):
                      'units': 'm'}
 
         area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
+            self.observation_area,
+            "AHI {} area".format(self.observation_area),
             'geosh8',
             proj_dict,
             ncols,
