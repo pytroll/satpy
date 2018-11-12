@@ -1,0 +1,118 @@
+reader:
+  description: NC Reader for ABI data
+  name: epic_l1b
+  sensors: [epic]
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    dscovr:
+        file_reader: !!python/name:satpy.readers.epic_l1b.EPIC_L1B
+        file_patterns: ['epic_{level:2s}_{start_time:%Y%m%d%H%M%S}_{version_number:2s}.h5',]
+        
+datasets:
+  longitude:
+    name: longitude
+    resolution: 10000
+    file_type: dscovr
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    name: latitude
+    resolution: 10000
+    file_type: dscovr
+    standard_name: latitude
+    units: degree
+
+  Band317nm:
+    name: Band317nm
+    sensor: epic
+    wavelength: [0.297, 0.317, 0.337]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+
+  Band325nm:
+    name: Band325nm
+    sensor: epic
+    wavelength: [0.305, 0.325, 0.345]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+
+  Band340nm:
+    name: Band340nm
+    sensor: epic
+    wavelength: [0.32, 0.34, 0.36]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+
+  Band388nm:
+    name: Band388nm
+    sensor: epic
+    wavelength: [0.368, 0.388, 0.408]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+
+  Band443nm:
+    name: Band443nm
+    sensor: epic
+    wavelength: [0.423, 0.443, 0.463]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+
+  Band551nm:
+    name: Band551nm
+    sensor: epic
+    wavelength: [0.531, 0.551, 0.571]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+
+  Band680nm:
+    name: Band680nm
+    sensor: epic
+    wavelength: [0.66, 0.68, 0.70]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+
+  Band688nm:
+    name: Band688nm
+    sensor: epic
+    wavelength: [0.668, 0.688, 0.708]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+
+  Band764nm:
+    name: Band764nm
+    sensor: epic
+    wavelength: [0.744, 0.764, 0.784]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+ 
+  Band780nm:
+    name: Band780nm
+    sensor: epic
+    wavelength: [0.76, 0.78, 0.80]
+    resolution: 10000
+    units: ''
+    coordinates: [longitude, latitude ]
+    file_type: dscovr
+ 
+
