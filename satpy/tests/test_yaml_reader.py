@@ -488,6 +488,18 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         self.assertIs(proj, xarray.concat.return_value)
 
+    def test_file_loading(self):
+        def foo_reader(filename, *args, **kwargs):
+            raise OSError('No file named %s', filename)
+
+        res = self.reader.new_filehandler_instances({'file_reader': foo_reader}, [('a_file.ext', {'some': 'info'})])
+        self.assertListEqual(list(res), [])
+
+        def foo_reader(filename, *args, **kwargs):
+            return 'All good'
+        res = self.reader.new_filehandler_instances({'file_reader': foo_reader}, [('a_file.ext', {'some': 'info'})])
+        self.assertListEqual(list(res), ['All good'])
+
 
 def suite():
     """The test suite for test_scene."""

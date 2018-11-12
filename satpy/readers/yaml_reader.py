@@ -392,8 +392,11 @@ class FileYAMLReader(AbstractYAMLReader):
             except KeyError:
                 logger.warning("Missing requirements for %s", filename)
                 continue
-
-            yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
+            try:
+                yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
+            except (IOError, OSError) as err:
+                logger.warning("Problem loading file %s: %s", filename, str(err))
+                continue
 
     def time_matches(self, fstart, fend):
         start_time = self.filter_parameters.get('start_time')
