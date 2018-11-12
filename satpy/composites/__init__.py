@@ -139,7 +139,6 @@ class CompositorLoader(object):
 
         compositors = self.compositors[sensor_id]
         modifiers = self.modifiers[sensor_id]
-
         try:
             options = conf[composite_type][composite_name]
             loader = options.pop('compositor')
@@ -154,10 +153,21 @@ class CompositorLoader(object):
             prereqs = []
             for item in options.get(prereq_type, []):
                 if isinstance(item, dict):
-                    # we want this prerequisite to act as a query with
-                    # 'modifiers' being None otherwise it will be an empty
-                    # tuple
-                    item.setdefault('modifiers', None)
+                    # Handle in-line composites
+                    if 'compositor' in item:
+                        # Create an unique temporary name for the composite
+                        import uuid
+                        temp_comp_name = 'temp_' + str(uuid.uuid4())
+                        # Minimal composite config
+                        conf_tmp = {composite_type: {temp_comp_name: item}}
+                        self._process_composite_config(
+                            temp_comp_name, conf_tmp, composite_type, sensor_id,
+                            composite_config, **kwargs)
+                    else:
+                        # we want this prerequisite to act as a query with
+                        # 'modifiers' being None otherwise it will be an empty
+                        # tuple
+                        item.setdefault('modifiers', None)
                     key = DatasetID.from_dict(item)
                     prereqs.append(key)
                 else:
