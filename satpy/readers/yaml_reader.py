@@ -329,7 +329,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         Raises:
             KeyError, if no handler for the given requirements is available.
-            RumtimeError, if there is a handler for the given requirements,
+            RuntimeError, if there is a handler for the given requirements,
             but it doesn't match the filename info.
         """
         req_fh = []
