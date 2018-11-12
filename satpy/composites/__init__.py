@@ -151,17 +151,18 @@ class CompositorLoader(object):
         options['name'] = composite_name
         for prereq_type in ['prerequisites', 'optional_prerequisites']:
             prereqs = []
+            dep_num = 0
             for item in options.get(prereq_type, []):
                 if isinstance(item, dict):
                     # Handle in-line composites
                     if 'compositor' in item:
                         # Create an unique temporary name for the composite
-                        import uuid
-                        temp_comp_name = 'temp_' + str(uuid.uuid4())
+                        sub_comp_name = composite_name + '_dep_{}'.format(dep_num)
+                        dep_num += 1
                         # Minimal composite config
-                        conf_tmp = {composite_type: {temp_comp_name: item}}
+                        sub_conf = {composite_type: {sub_comp_name: item}}
                         self._process_composite_config(
-                            temp_comp_name, conf_tmp, composite_type, sensor_id,
+                            sub_comp_name, sub_conf, composite_type, sensor_id,
                             composite_config, **kwargs)
                     else:
                         # we want this prerequisite to act as a query with
