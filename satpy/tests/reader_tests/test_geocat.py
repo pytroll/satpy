@@ -33,6 +33,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler"""
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content"""
+        filename_info.setdefault('platform_shortname', 'HIMAWARI-8')
         file_content = {
             '/attr/Platform_Name': filename_info['platform_shortname'],
             '/attr/Element_Resolution': 2.,
@@ -87,6 +88,15 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         file_content['variable3/attr/units'] = '1'
         file_content['variable3/shape'] = DEFAULT_FILE_SHAPE
 
+        # AHI Level 1
+        if filetype_info['file_type'] == 'ahi_level1':
+            file_content['himawari_8_ahi_channel_1_reflectance'] = DEFAULT_FILE_DATA.astype(np.float32)
+            file_content['himawari_8_ahi_channel_1_reflectance/attr/_FillValue'] = -1
+            file_content['himawari_8_ahi_channel_1_reflectance/attr/scale_factor'] = 1.
+            file_content['himawari_8_ahi_channel_1_reflectance/attr/add_offset'] = 0.
+            file_content['himawari_8_ahi_channel_1_reflectance/attr/units'] = '1'
+            file_content['himawari_8_ahi_channel_1_reflectance/shape'] = DEFAULT_FILE_SHAPE
+
         # convert to xarrays
         from xarray import DataArray
         for key, val in file_content.items():
@@ -99,6 +109,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     file_content[key] = DataArray(val, dims=('lines', 'elements'), attrs=attrs)
                 else:
                     file_content[key] = DataArray(val, attrs=attrs)
+
+        # copy variable names to AHI band
+        file_content['B01'] = file_content['variable1'].copy()
 
         return file_content
 
@@ -134,7 +147,7 @@ class TestGEOCATReader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_all_old_goes(self):
-        """Test loading all test datasets"""
+        """Test loading all test datasets for old GOES data"""
         from satpy.readers import load_reader
         import xarray as xr
         r = load_reader(self.reader_configs)
@@ -143,9 +156,7 @@ class TestGEOCATReader(unittest.TestCase):
                 'geocatL2.GOES-13.2015143.234500.nc',
             ])
             r.create_filehandlers(loadables)
-        datasets = r.load(['variable1',
-                           'variable2',
-                           'variable3'])
+        datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertIs(v.attrs['calibration'], None)
@@ -153,7 +164,7 @@ class TestGEOCATReader(unittest.TestCase):
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
     def test_load_all_himawari8(self):
-        """Test loading all test datasets"""
+        """Test loading all test datasets for Himawari-8 files."""
         from satpy.readers import load_reader
         import xarray as xr
         r = load_reader(self.reader_configs)
@@ -162,15 +173,26 @@ class TestGEOCATReader(unittest.TestCase):
                 'geocatL2.HIMAWARI-8.2017092.210730.R304.R20.nc',
             ])
             r.create_filehandlers(loadables)
-        # with mock.patch('satpy.readers.geocat.GEOCATFileHandler._load_nav', lambda self, x: self[x]):
-        datasets = r.load(['variable1',
-                           'variable2',
-                           'variable3'])
+        datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertIs(v.attrs['calibration'], None)
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
+
+    # def test_load_all_himawari8_scene(self):
+    #     """Test loading all test datasets for Himawari-8 files using a Scene."""
+    #     from satpy import Scene
+    #     import xarray as xr
+    #     with mock.patch('satpy.readers.geocat.netCDF4.Variable', xr.DataArray):
+    #         scn = Scene(reader='geocat', filenames=['geocatL1.HIMAWARI-8.2017092.210730.JP04.R20.nc'])
+    #     scn.load(['B01', 'B02', 'B03'])
+    #     self.assertEqual(len(scn.datasets), 1)
+    #     for v in scn.datasets.values():
+    #         self.assertIs(v.attrs['calibration'], None)
+    #         self.assertEqual(v.attrs['units'], '1')
+    #     self.assertIsNotNone(scn.datasets['variable3'].attrs.get('flag_meanings'))
+
 
 def suite():
     """The test suite for test_viirs_l1b.

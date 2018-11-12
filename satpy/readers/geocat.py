@@ -124,11 +124,18 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         elem_res = self['/attr/Element_Resolution']
         return int(elem_res * 1000)
 
+    def filter_available_dataset(self, dataset_id, dataset_info):
+        """Add resolution to available datasets."""
+        var_name = dataset_info.get('file_key', dataset_id.name)
+        if var_name not in self:
+            return None, None
+        dataset_info['resolution'] = dataset_info.get('resolution') or self.resolution
+        return DatasetID.from_dict(dataset_info), dataset_info
+
     def _calc_area_resolution(self, ds_res):
         elem_res = round(ds_res / 1000.)  # mimic 'Element_Resolution' attribute from above
         sensor = self.get_sensor(self['/attr/Sensor_Name'])
-        return self.resolutions.get(sensor, {}).get(int(elem_res),
-                                                    elem_res * 1000.)
+        return self.resolutions.get(sensor, {}).get(int(elem_res), elem_res * 1000.)
 
     def available_datasets(self):
         """Automatically determine datasets provided by this file"""

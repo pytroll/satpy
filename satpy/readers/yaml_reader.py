@@ -489,18 +489,10 @@ class FileYAMLReader(AbstractYAMLReader):
 
         # load files that we know about by creating the file handlers
         for filetype, filetype_info in self.sorted_filetype_items():
-            filehandlers = self.new_filehandlers_for_filetype(filetype_info,
-                                                              filename_set)
-
+            filehandlers = self.new_filehandlers_for_filetype(filetype_info, filename_set)
             filename_set -= set([fhd.filename for fhd in filehandlers])
             if filehandlers:
-                self.file_handlers[filetype] = sorted(
-                    filehandlers,
-                    key=lambda fhd: (fhd.start_time, fhd.filename))
-
-        # update existing dataset IDs with information from the file handler
-        # TODO: Can be removed if all readers use filter_available_datasets()
-        self.update_ds_ids_from_file_handlers()
+                self.file_handlers[filetype] = sorted(filehandlers, key=lambda fhd: (fhd.start_time, fhd.filename))
 
         # filter and complement available datasets
         self.filter_available_datasets()
@@ -525,8 +517,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
                 # Ask the filehandler to complement the dataset ID and info
                 # using information from the loaded file (if available)
-                new_id, new_info = fh.filter_available_dataset(
-                    dataset_id=ds_id, dataset_info=ds_info)
+                new_id, new_info = fh.filter_available_dataset(ds_id, ds_info)
                 if new_id is None:
                     # Dataset is not available in the file
                     del ids[ds_id]
