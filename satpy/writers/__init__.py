@@ -351,7 +351,7 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
             :func:`add_decorate` for available options.
         fill_value (int or float): Value to use when pixels are masked or
             invalid. Default of `None` means to create an alpha channel.
-            See :method:`~trollimage.xrimage.XRImage.finalize` for more
+            See :meth:`~trollimage.xrimage.XRImage.finalize` for more
             details. Only used when adding overlays or decorations. Otherwise
             it is up to the caller to "finalize" the image before using it
             except if calling ``img.show()`` or providing the image to
