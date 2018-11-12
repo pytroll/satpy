@@ -72,8 +72,13 @@ class EPIC_L1B(BaseFileHandler):
         """Get a dataset from the file."""
 
         logger.debug("Reading %s.", key.name)
-        values = self.file_content[key.name] / 1000
-        values = np.fliplr(np.rot90(values, -1)) 
+        if key.name == "latitude":
+            values = self.lat
+        elif key.name == "longitude":
+            values = self.lon
+        else:
+            values = self.file_content[key.name] / 1000
+            values = np.fliplr(np.rot90(values, -1)) 
         selected = np.array(self.selected)
 #        if key.name in ("latitude", "longitude"):
 #            values = values / 10000.
@@ -95,58 +100,12 @@ class EPIC_L1B(BaseFileHandler):
             fill_value = 0
             info['_FillValue'] = 0
         ds = DataArray(values, dims=['y', 'x'], attrs=info).where(selected, fill_value)
+        
+        ds.attrs.update({'platform_name': self.h5.attrs['keywords'].split(',')[0],
+                  'sensor': self.h5.attrs['keywords'].split(',')[1].strip(),
+                  'satellite_latitude': float(self.h5.attrs['centroid_mean_latitude']),
+                  'satellite_longitude': float(self.h5.attrs['centroid_mean_longitude']),
+                  'satellite_altitude': float(1500000)})
 
         # update dataset info with file_info
         return ds
-
-
-#from datetime import datetime
-#import h5py
-#import numpy as np
-#from xarray import DataArray
-#import dask.array as da
-#
-#from satpy.dataset import Dataset
-#from satpy.readers.file_handlers import BaseFileHandler
-#from satpy import CHUNK_SIZE
-#
-#class EPIC_L1B(BaseFileHandler):
-#
-#    def __init__(self, filename, filename_info, filetype_info):
-#        super(EPIC_L1B, self).__init__(filename, filename_info, filetype_info)
-#        self.h5f = h5py.File(self.filename, "r")
-#        
-#        self.filename_info['start_time'] = datetime.strptime(self.h5f.attrs['begin_time'],'%Y-%m-%d %H:%M:%S')
-#        self.filename_info['end_time'] = datetime.strptime(self.h5f.attrs['end_time'],'%Y-%m-%d %H:%M:%S')
-#
-#        self.lons = None
-#        self.lats = None
-#        
-#    @property
-#    def start_time(self):
-#        return self.filename_info['start_time']
-#
-#    @property
-#    def end_time(self):
-#        return self.filename_info['end_time']
-#    
-#    def get_dataset(self, key, info):
-#        print '_*'*30
-#        #print key 
-#        varname = info.get('name')
-#        print varname
-#        h5data = self.h5f[varname]
-#        #stdname = info.get('standard_name')
-#        #print "---", stdname, "---"
-#        
-#        self.lons = da.from_array(h5data['Geolocation']['Earth']['Longitude'][:], chunks=CHUNK_SIZE)
-#        self.lats = da.from_array(h5data['Geolocation']['Earth']['Latitude'][:], chunks=CHUNK_SIZE)
-#        self.file_content = {}
-#        self.file_content[varname] = da.from_array(h5data['Image'][:], chunks=CHUNK_SIZE)
-
-
-
-
-
-
-
