@@ -52,6 +52,7 @@ logger = logging.getLogger(__name__)
 
 
 class HDFEOSFileReader(BaseFileHandler):
+    """Base file handler for EOS level 1 data."""
 
     def __init__(self, filename, filename_info, filetype_info):
         super(HDFEOSFileReader, self).__init__(filename, filename_info, filetype_info)
@@ -115,6 +116,7 @@ class HDFEOSFileReader(BaseFileHandler):
 
 
 class HDFEOSGeoReader(HDFEOSFileReader):
+    """Handler for the geographical files."""
 
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
@@ -218,6 +220,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
 
 
 class HDFEOSBandReader(HDFEOSFileReader):
+    """Handler for the regular band channels."""
 
     res = {"1": 1000,
            "Q": 250,
