@@ -359,8 +359,7 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
                         'satellite_azimuth_angle', 'satellite_zenith_angle',
                         'solar_azimuth_angle', 'solar_zenith_angle']:
             return HDFEOSGeoReader.get_dataset(self, key, info)
-        else:
-            return HDFEOSBandReader.get_dataset(self, key, info)
+        return HDFEOSBandReader.get_dataset(self, key, info)
 
 
 def calibrate_counts(array, attributes, index):
