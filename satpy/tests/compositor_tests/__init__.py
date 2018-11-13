@@ -210,5 +210,6 @@ def suite():
 
     return mysuite
 
+
 if __name__ == '__main__':
     unittest.main()
