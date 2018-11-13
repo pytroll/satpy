@@ -326,11 +326,6 @@ class HDFEOSBandReader(HDFEOSFileReader):
             #     orbit_idx = mda.index("ORBITNUMBER")
             #     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
 
-            # Get the geolocation
-            # if resolution != 1000:
-            #    logger.warning("Cannot load geolocation at this resolution (yet).")
-            #    return
-
             # Trimming out dead sensor lines (detectors) on terra:
             # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
             # if satscene.satname == "terra":
@@ -348,24 +343,9 @@ class HDFEOSBandReader(HDFEOSFileReader):
             #             lats=satscene[band].area.lats[indices, :])
             return projectable
 
-    # These have to be interpolated...
-    def get_height(self):
-        return self.data.select("Height")
-
-    def get_sunz(self):
-        return self.data.select("SolarZenith")
-
-    def get_suna(self):
-        return self.data.select("SolarAzimuth")
-
-    def get_satz(self):
-        return self.data.select("SensorZenith")
-
-    def get_sata(self):
-        return self.data.select("SensorAzimuth")
-
 
 class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
+    """A file handler for the files that have both regular bands and geographical information in them."""
 
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info)
@@ -463,12 +443,3 @@ def calibrate_bt(array, attributes, index, band_name):
     array = c_2 / (cwn * xu.log(c_1 / (1000000 * array * cwn ** 5) + 1))
     array = (array - tci) / tcs
     return array
-
-
-if __name__ == '__main__':
-    from satpy.utils import debug_on
-    debug_on()
-    br = HDFEOSBandReader(
-        '/data/temp/Martin.Raspaud/MYD021km_A16220_130933_2016220132537.hdf')
-    gr = HDFEOSGeoReader(
-        '/data/temp/Martin.Raspaud/MYD03_A16220_130933_2016220132537.hdf')

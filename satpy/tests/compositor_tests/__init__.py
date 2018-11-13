@@ -19,8 +19,6 @@
 """Tests for compositors.
 """
 
-
-import sys
 from satpy.tests.compositor_tests import test_abi, test_ahi, test_viirs
 
 try:
@@ -28,10 +26,7 @@ try:
 except ImportError:
     import mock
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 
 class TestCheckArea(unittest.TestCase):
