@@ -270,10 +270,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                               mask=(dataset_id.name == '3b' and
                                     np.logical_not(self._is3b))))
 
-        if dataset_id.name == '3a' and np.all(np.isnan(ds)):
-            raise ValueError("Empty dataset for channel 3A")
-        if dataset_id.name == '3b' and np.all(np.isnan(ds)):
-            raise ValueError("Empty dataset for channel 3B")
+#        if dataset_id.name == '3a' and np.all(np.isnan(ds)):
+#            raise ValueError("Empty dataset for channel 3A")
+#        if dataset_id.name == '3b' and np.all(np.isnan(ds)):
+#            raise ValueError("Empty dataset for channel 3B")
 
         ds.attrs['units'] = units[dataset_id.calibration]
         ds.attrs.update(dataset_id._asdict())
