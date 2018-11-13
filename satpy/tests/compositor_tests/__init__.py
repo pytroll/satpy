@@ -185,6 +185,23 @@ class TestDayNightCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.values[0], expected)
 
 
+class TestFillingCompositor(unittest.TestCase):
+
+    def test_fill(self):
+        import numpy as np
+        import xarray as xr
+        from satpy.composites import FillingCompositor
+        comp = FillingCompositor(name='fill_test')
+        filler = xr.DataArray(np.array([1, 2, 3, 4, 3, 2, 1]))
+        red = xr.DataArray(np.array([1, 2, 3, np.nan, 3, 2, 1]))
+        green = xr.DataArray(np.array([np.nan, 2, 3, 4, 3, 2, np.nan]))
+        blue = xr.DataArray(np.array([4, 3, 2, 1, 2, 3, 4]))
+        res = comp([filler, red, green, blue])
+        np.testing.assert_allclose(res.sel(bands='R').data, filler.data)
+        np.testing.assert_allclose(res.sel(bands='G').data, filler.data)
+        np.testing.assert_allclose(res.sel(bands='B').data, blue.data)
+
+
 def suite():
     """Test suite for all reader tests"""
     loader = unittest.TestLoader()
@@ -194,5 +211,9 @@ def suite():
     mysuite.addTests(test_viirs.suite())
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
 
     return mysuite
+
+if __name__ == '__main__':
+    unittest.main()
