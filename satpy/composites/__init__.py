@@ -959,6 +959,9 @@ class Airmass(GenericCompositor):
         | WV6.2              |   243 to 208 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
+        import warnings
+        warnings.warn("Airmass compositor is deprecated, use GenericCompositor "
+                      "with DifferenceCompositor instead.", DeprecationWarning)
         ch1 = sub_arrays(projectables[0], projectables[1])
         ch2 = sub_arrays(projectables[2], projectables[3])
         res = super(Airmass, self).__call__((ch1, ch2,
@@ -982,6 +985,10 @@ class Convection(GenericCompositor):
         | IR1.6 - VIS0.6     |    -70 to 20 %     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
+        import warnings
+        warnings.warn("Convection ompositor is deprecated, use GenericCompositor "
+                      "with DifferenceCompositor instead.", DeprecationWarning)
+
         ch1 = sub_arrays(projectables[3], projectables[4])
         ch2 = sub_arrays(projectables[2], projectables[5])
         ch3 = sub_arrays(projectables[1], projectables[0])
@@ -1017,6 +1024,10 @@ class Dust(GenericCompositor):
         | IR10.8             |   261 to 289 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
+        import warnings
+        warnings.warn("Dust compositor is deprecated, use GenericCompositor "
+                      "with DifferenceCompositor instead.", DeprecationWarning)
+
         ch1 = sub_arrays(projectables[2], projectables[1])
         ch2 = sub_arrays(projectables[1], projectables[0])
         res = super(Dust, self).__call__((ch1, ch2,
