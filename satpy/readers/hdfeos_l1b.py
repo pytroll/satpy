@@ -52,6 +52,7 @@ logger = logging.getLogger(__name__)
 
 
 class HDFEOSFileReader(BaseFileHandler):
+    """Base file handler for EOS level 1 data."""
 
     def __init__(self, filename, filename_info, filetype_info):
         super(HDFEOSFileReader, self).__init__(filename, filename_info, filetype_info)
@@ -115,6 +116,7 @@ class HDFEOSFileReader(BaseFileHandler):
 
 
 class HDFEOSGeoReader(HDFEOSFileReader):
+    """Handler for the geographical files."""
 
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
@@ -122,9 +124,9 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
         if ds.endswith('D03'):
-            self.resolution = 1000
+            self.georesolution = 1000
         else:
-            self.resolution = 5000
+            self.georesolution = 5000
         self.cache = {}
 
     def get_dataset(self, key, info):
@@ -143,8 +145,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
             data = self.load('Latitude')
         else:
             return
-
-        if key.resolution != self.resolution:
+        if key.resolution != self.georesolution:
             # let's see if we have something in the cache
             try:
                 data = self.cache[key.resolution][key.name]
@@ -167,7 +168,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
                 data_b = self.load('SolarZenith') - 90
 
             data_a, data_b = self._interpolate(data_a, data_b, satz,
-                                               self.resolution, key.resolution)
+                                               self.georesolution, key.resolution)
 
             if key.name in ['longitude', 'latitude']:
                 self.cache[key.resolution]['longitude'] = data_a
@@ -219,6 +220,7 @@ class HDFEOSGeoReader(HDFEOSFileReader):
 
 
 class HDFEOSBandReader(HDFEOSFileReader):
+    """Handler for the regular band channels."""
 
     res = {"1": 1000,
            "Q": 250,
@@ -266,6 +268,27 @@ class HDFEOSBandReader(HDFEOSFileReader):
             array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index, :, :],
                                  dims=['y', 'x']).astype(np.float32)
             valid_range = var_attrs['valid_range']
+
+            # Fill values:
+            # Data Value Meaning
+            # 65535 Fill Value (includes reflective band data at night mode
+            # and completely missing L1A scans)
+            # 65534 L1A DN is missing within a scan
+            # 65533 Detector is saturated
+            # 65532 Cannot compute zero point DN, e.g., SV is saturated
+            # 65531 Detector is dead (see comments below)
+            # 65530 RSB dn** below the minimum of the scaling range
+            # 65529 TEB radiance or RSB dn** exceeds the maximum of the
+            # scaling range
+            # 65528 Aggregation algorithm failure
+            # 65527 Rotation of Earth view Sector from nominal science
+            # collection position
+            # 65526 Calibration coefficient b1 could not be computed
+            # 65525 Subframe is dead
+            # 65524 Both sides of the PCLW electronics on simultaneously
+            # 65501 - 65523 (reserved for future use)
+            # 65500 NAD closed upper limit
+
             array = array.where(array >= np.float32(valid_range[0]))
             array = array.where(array <= np.float32(valid_range[1]))
             array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
@@ -306,11 +329,6 @@ class HDFEOSBandReader(HDFEOSFileReader):
             #     orbit_idx = mda.index("ORBITNUMBER")
             #     satscene.orbit = mda[orbit_idx + 111:orbit_idx + 116]
 
-            # Get the geolocation
-            # if resolution != 1000:
-            #    logger.warning("Cannot load geolocation at this resolution (yet).")
-            #    return
-
             # Trimming out dead sensor lines (detectors) on terra:
             # (in addition channel 27, 30, 34, 35, and 36 are nosiy)
             # if satscene.satname == "terra":
@@ -328,21 +346,20 @@ class HDFEOSBandReader(HDFEOSFileReader):
             #             lats=satscene[band].area.lats[indices, :])
             return projectable
 
-    # These have to be interpolated...
-    def get_height(self):
-        return self.data.select("Height")
 
-    def get_sunz(self):
-        return self.data.select("SolarZenith")
+class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
+    """A file handler for the files that have both regular bands and geographical information in them."""
 
-    def get_suna(self):
-        return self.data.select("SolarAzimuth")
+    def __init__(self, filename, filename_info, filetype_info):
+        HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info)
 
-    def get_satz(self):
-        return self.data.select("SensorZenith")
-
-    def get_sata(self):
-        return self.data.select("SensorAzimuth")
+    def get_dataset(self, key, info):
+        if key.name in ['longitude', 'latitude',
+                        'satellite_azimuth_angle', 'satellite_zenith_angle',
+                        'solar_azimuth_angle', 'solar_zenith_angle']:
+            return HDFEOSGeoReader.get_dataset(self, key, info)
+        return HDFEOSBandReader.get_dataset(self, key, info)
 
 
 def calibrate_counts(array, attributes, index):
@@ -428,12 +445,3 @@ def calibrate_bt(array, attributes, index, band_name):
     array = c_2 / (cwn * xu.log(c_1 / (1000000 * array * cwn ** 5) + 1))
     array = (array - tci) / tcs
     return array
-
-
-if __name__ == '__main__':
-    from satpy.utils import debug_on
-    debug_on()
-    br = HDFEOSBandReader(
-        '/data/temp/Martin.Raspaud/MYD021km_A16220_130933_2016220132537.hdf')
-    gr = HDFEOSGeoReader(
-        '/data/temp/Martin.Raspaud/MYD03_A16220_130933_2016220132537.hdf')
