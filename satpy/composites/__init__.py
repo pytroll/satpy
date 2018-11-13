@@ -687,6 +687,15 @@ class GenericCompositor(CompositeBase):
                             dims=data.dims, coords=data.coords)
 
 
+class FillingCompositor(GenericCompositor):
+    """Make a regular RGB, filling the RGB bands with the first provided dataset's values."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        projectables[1] = projectables[1].fillna(projectables[0])
+        projectables[2] = projectables[2].fillna(projectables[0])
+        projectables[3] = projectables[3].fillna(projectables[0])
+        return super(FillingCompositor, self).__call__(projectables[1:], **info)
+
 class RGBCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
