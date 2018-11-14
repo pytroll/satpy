@@ -180,6 +180,7 @@ class TestDayNightCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.values[0], expected)
 
 
+
 class TestFillingCompositor(unittest.TestCase):
 
     def test_fill(self):
@@ -197,6 +198,23 @@ class TestFillingCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.sel(bands='B').data, blue.data)
 
 
+class TestInlineComposites(unittest.TestCase):
+    """Test inline composites."""
+
+    def test_inline_composites(self):
+        """Test that inline composites are working."""
+        from satpy.composites import CompositorLoader
+        cl_ = CompositorLoader()
+        cl_.load_sensor_composites('visir')
+        comps = cl_.compositors
+        # Check that "fog" product has all its prerequisites defined
+        keys = comps['visir'].keys()
+        fog = [comps['visir'][dsid] for dsid in keys if "fog" == dsid.name][0]
+        self.assertEqual(fog.attrs['prerequisites'][0], 'fog_dep_0')
+        self.assertEqual(fog.attrs['prerequisites'][1], 'fog_dep_1')
+        self.assertEqual(fog.attrs['prerequisites'][2], 10.8)
+
+
 def suite():
     """Test suite for all reader tests"""
     loader = unittest.TestLoader()
@@ -207,6 +225,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestInlineComposites))
 
     return mysuite
 
