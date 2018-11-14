@@ -90,18 +90,12 @@ modifiers:
 
 composites:
 
-  diff_10.8_3.9:
-    compositor: !!python/name:satpy.composites.DifferenceCompositor
-    prerequisites:
-      - 10.8
-      - 3.9
-
   airmass:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-      - wavelength: 6.7
+      - wavelength: 6.2
       - wavelength: 7.3
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:

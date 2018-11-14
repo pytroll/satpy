@@ -9,57 +9,6 @@ modifiers:
     - name: satellite_zenith_angle
     - name: solar_azimuth_angle
     - name: solar_zenith_angle
-#  rayleigh_corrected:
-#    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
-#    atmosphere: us-standard
-#    aerosol_type: marine_clean_aerosol
-#    prerequisites:
-#    - name: C02
-#      modifiers: [reducer4, effective_solar_pathlength_corrected]
-#    optional_prerequisites:
-#    - satellite_azimuth_angle
-#    - satellite_zenith_angle
-#    - solar_azimuth_angle
-#    - solar_zenith_angle
-#
-#  rayleigh_corrected_marine_tropical:
-#    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
-#    atmosphere: tropical
-#    aerosol_type: marine_tropical_aerosol
-#    prerequisites:
-#    - name: C02
-#      modifiers: [reducer4, effective_solar_pathlength_corrected]
-#    optional_prerequisites:
-#    - satellite_azimuth_angle
-#    - satellite_zenith_angle
-#    - solar_azimuth_angle
-#    - solar_zenith_angle
-#
-#  rayleigh_corrected_land:
-#    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
-#    atmosphere: us-standard
-#    aerosol_type: continental_average_aerosol
-#    prerequisites:
-#    - name: C02
-#      modifiers: [reducer4, effective_solar_pathlength_corrected]
-#    optional_prerequisites:
-#    - satellite_azimuth_angle
-#    - satellite_zenith_angle
-#    - solar_azimuth_angle
-#    - solar_zenith_angle
-#
-#  rayleigh_corrected_1km:
-#    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
-#    atmosphere: midlatitude summer
-#    aerosol_type: marine_tropical_aerosol
-#    prerequisites:
-#    - name: C02
-#      modifiers: [reducer2, effective_solar_pathlength_corrected]
-#    optional_prerequisites:
-#    - satellite_azimuth_angle
-#    - satellite_zenith_angle
-#    - solar_azimuth_angle
-#    - solar_zenith_angle
 
   rayleigh_corrected_500m:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
@@ -208,10 +157,15 @@ composites:
     standard_name: overview
 
   airmass:
-    compositor: !!python/name:satpy.composites.Airmass
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 6.2
-    - 7.3
-    - 9.7
-    - 10.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.2
+      - wavelength: 7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 9.7
+        - wavelength: 10.8
+    - wavelength: 6.2
     standard_name: airmass
