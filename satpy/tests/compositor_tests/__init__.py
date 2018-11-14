@@ -180,7 +180,6 @@ class TestDayNightCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.values[0], expected)
 
 
-
 class TestFillingCompositor(unittest.TestCase):
 
     def test_fill(self):
