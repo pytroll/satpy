@@ -42,6 +42,11 @@ LOG = logging.getLogger(__name__)
 class VIIRSFog(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
+
+        import warnings
+        warnings.warn("VIIRSFog compositor is deprecated, use DifferenceCompositor "
+                      "instead.", DeprecationWarning)
+
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
