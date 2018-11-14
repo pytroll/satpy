@@ -8,27 +8,27 @@ modifiers:
     compositor: !!python/name:satpy.composites.CO2Corrector
     sensor: [seviri]
     prerequisites:
-    - 10.8
-    - 13.4
+    - IR_108
+    - IR_134
 
 composites:
 
   cloudtop:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 3.75
+    - name: IR_039
       modifiers: [co2_corrected]
-    - 10.8
-    - 12.0
+    - IR_108
+    - IR_120
     standard_name: cloudtop
 
   cloudtop_daytime:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 3.7
+    - name: IR_039
       modifiers: [nir_emissive]
-    - 10.8
-    - 12.0
+    - IR_108
+    - IR_120
     standard_name: cloudtop
 
   convection:
@@ -36,17 +36,17 @@ composites:
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-        - 6.2
-        - 7.3
+        - WV_062
+        - WV_073
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-        - wavelength: 3.9
+        - name: IR_039
           modifiers: [co2_corrected]
-        - 10.8
+        - IR_108
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-        - 1.6
-        - 0.6
+        - IR_016
+        - VIS006
     standard_name: convection
 
   night_fog:
@@ -54,14 +54,14 @@ composites:
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-      - 12.0
-      - 10.8
+      - IR_120
+      - IR_108
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-      - 10.8
-      - name: 3.9
+      - IR_108
+      - name: IR_039
         modifiers: [co2_corrected]
-    - 10.8
+    - IR_108
     standard_name: night_fog
 
   snow:
@@ -69,9 +69,9 @@ composites:
     prerequisites:
     - name: VIS008
       modifiers: [sunz_corrected]
-    - wavelength: 1.63
+    - name: IR_016
       modifiers: [sunz_corrected]
-    - wavelength: 3.7
+    - name: IR_039
       modifiers: [nir_reflectance]
     standard_name: snow
 
@@ -80,9 +80,9 @@ composites:
     prerequisites:
     - name: VIS008
       modifiers: [sunz_corrected]
-    - wavelength: 3.7
+    - name: IR_039
       modifiers: [nir_reflectance]
-    - 10.8
+    - IR_108
     standard_name: day_microphysics
 
   day_microphysics_winter:
@@ -90,23 +90,23 @@ composites:
     prerequisites:
     - name: VIS008
       modifiers: [sunz_corrected]
-    - wavelength: 3.7
+    - name: IR_039
       modifiers: [nir_reflectance]
-    - 10.8
+    - IR_108
     standard_name: day_microphysics_winter
 
   natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 1.63
-    - name: VIS008
-    - name: VIS006
+    - IR_016
+    - VIS008
+    - VIS006
     standard_name: natural_color
 
   natural_color_sun:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 1.63
+    - name: IR_016
       modifiers: [sunz_corrected]
     - name: VIS008
       modifiers: [sunz_corrected]
@@ -275,10 +275,10 @@ composites:
   ir_overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 3.75
+    - name: IR_039
       modifiers: [co2_corrected]
-    - 10.8
-    - 12.0
+    - IR_108
+    - IR_120
     standard_name: ir_overview
 
   overview:
@@ -286,7 +286,7 @@ composites:
     prerequisites:
     - VIS006
     - VIS008
-    - 10.8
+    - IR_108
     standard_name: overview
   overview_sun:
     compositor: !!python/name:satpy.composites.RGBCompositor
@@ -295,5 +295,5 @@ composites:
       modifiers: [sunz_corrected]
     - name: VIS008
       modifiers: [sunz_corrected]
-    - 10.8
+    - IR_108
     standard_name: overview
