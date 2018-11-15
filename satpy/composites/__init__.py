@@ -1250,3 +1250,96 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
         return super(SelfSharpenedRGB, self).__call__(
             (red, green, blue), optional_datasets=(high_res,), **attrs)
+
+
+class LuminanceSharpeningCompositor(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+
+        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
+        if (attrs.get('area') is None and
+                projectables[0].attrs.get('area') is not None and
+                projectables[1].attrs.get('area') is not None):
+            raise IncompatibleAreas
+
+        luminance = projectables[0].copy()
+        luminance /= 100.
+        # Limit between min(luminance) ... 1.0
+        luminance = da.where(luminance > 1., 1., luminance)
+
+        # Get the enhanced version of IR data
+        ir_ = enhance2dataset(projectables[1])
+
+        # Replace luminance of the IR composite
+        y__, cb_, cr_ = rgb2ycbcr(ir_.data[0, :, :],
+                                  ir_.data[1, :, :],
+                                  ir_.data[2, :, :])
+
+        r__, g__, b__ =  ycbcr2rgb(luminance, cb_, cr_)
+        y_size, x_size = r__.shape
+        r__ = da.reshape(r__, (1, y_size, x_size))
+        g__ = da.reshape(g__, (1, y_size, x_size))
+        b__ = da.reshape(b__, (1, y_size, x_size))
+
+        ir_.data = da.vstack((r__, g__, b__))
+
+        res = GenericCompositor.__call__(self, ir_, *args, **kwargs)
+
+        return res
+
+
+class SandwichCompositor(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+
+        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
+        if (attrs.get('area') is None and
+                projectables[0].attrs.get('area') is not None and
+                projectables[1].attrs.get('area') is not None):
+            raise IncompatibleAreas
+
+        luminance = projectables[0].copy()
+        luminance /= 100.
+        # Limit between min(luminance) ... 1.0
+        luminance = da.where(luminance > 1., 1., luminance)
+
+        # Get the enhanced version of IR data
+        ir_ = enhance2dataset(projectables[1])
+
+        data = []
+        for band in ir_['bands'].data:
+            data.append(luminance * ir_.sel(bands=band))
+
+        data = da.vstack(data)
+        ir_.data = da.reshape(data, (3, luminance.shape[0], luminance.shape[1]))
+
+        res = GenericCompositor.__call__(self, ir_, *args, **kwargs)
+
+        return res
+
+
+def ycbcr2rgb(y__, cb_, cr_):
+    """Convert the three YCbCr channels to RGB channels.
+    """
+
+    kb_ = 0.114
+    kr_ = 0.299
+
+    r__ = 2 * cr_ / (1 - kr_) + y__
+    b__ = 2 * cb_ / (1 - kb_) + y__
+    g__ = (y__ - kr_ * r__ - kb_ * b__) / (1 - kr_ - kb_)
+
+    return r__, g__, b__
+
+
+def rgb2ycbcr(r__, g__, b__):
+    """Convert the three RGB channels to YCbCr."""
+
+    kb_ = 0.114
+    kr_ = 0.299
+
+    y__ = kr_ * r__ + (1 - kr_ - kb_) * g__ + kb_ * b__
+    cb_ = 1. / (2 * (1 - kb_)) * (b__ - y__)
+    cr_ = 1. / (2 * (1 - kr_)) * (r__ - y__)
+
+    return y__, cb_, cr_
