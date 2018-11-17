@@ -778,8 +778,11 @@ class NativeResampler(BaseResampler):
         # Update coords if we can
         if ('y' in data.coords or 'x' in data.coords) and isinstance(target_geo_def, AreaDefinition):
             coord_chunks = (d_arr.chunks[y_axis], d_arr.chunks[x_axis])
-            x_coord, y_coord = target_geo_def.get_proj_vectors_dask(
-                chunks=coord_chunks)
+            if hasattr(target_geo_def, 'get_proj_vectors'):
+                x_coord, y_coord = target_geo_def.get_proj_vectors()
+            else:
+                # older version of pyresample
+                x_coord, y_coord = target_geo_def.get_proj_vectors_dask(chunks=coord_chunks)
             if 'y' in data.coords:
                 coords['y'] = y_coord
             if 'x' in data.coords:
