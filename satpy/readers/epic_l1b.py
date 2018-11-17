@@ -4,8 +4,8 @@
 #
 # Author(s):
 #
-#   inspired in maia.py
 #   edited from original autors 
+#   inspired in maia.py and iasi_l2.py readers
 #
 # This file is part of satpy.
 #
@@ -20,8 +20,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for NWPSAF AAPP MAIA Cloud product.
-
+"""Reader for EPIC instrument from DSCOVR
 
 """
 import logging
@@ -37,75 +36,104 @@ from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
+DSET_NAMES = {'B01' : 'Band317nm',
+              'B02' : 'Band325nm',
+              'B03' : 'Band340nm',
+              'B04' : 'Band388nm',
+              'B05' : 'Band443nm',
+              'B06' : 'Band551nm',
+              'B07' : 'Band680nm',
+              'B08' : 'Band688nm',
+              'B09' : 'Band764nm',
+              'B10' : 'Band780nm',}
+
+GEO_NAMES = {'latitude'                 : 'Latitude',
+             'longitude'                : 'Longitude',
+             'satellite_azimuth_angle'  : 'ViewAngleAzimuth',
+             'satellite_zenith_angle'   : 'ViewAngleZenith',
+             'solar_azimuth_angle'      : 'SunAngleAzimuth',
+             'solar_zenith_angle'       : 'SunAngleZenith'
+             }
+
 
 class EPIC_L1B(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(EPIC_L1B, self).__init__(filename, filename_info, filetype_info)
+        
+        self.h5 = h5py.File(self.filename, 'r')
 
         self.finfo = filename_info
         self.selected = None
-        self.read(filename)
+        
+        self.finfo = filename_info
+        self.lons = None
+        self.lats = None
+        self.sensor = self.h5.attrs['keywords'].split(',')[1].strip().lower()
 
-    def read(self, filename):
-        self.h5 = h5py.File(filename, 'r')
-        missing = -9999.
-        lskesy = self.h5.keys()
-        self.lat = da.from_array(self.h5[lskesy[0]]['Geolocation']['Earth']['Longitude'][:], chunks=CHUNK_SIZE) 
-        self.lon = da.from_array(self.h5[lskesy[0]]['Geolocation']['Earth']['Longitude'][:], chunks=CHUNK_SIZE)
-        self.selected = (self.lon > missing)
-        self.file_content = {}
-        for key in lskesy:
-            self.file_content[key] = da.from_array(self.h5[key]['Image'], chunks=CHUNK_SIZE)
-#        for key in self.h5[u'HEADER'].keys():
-#            self.file_content[key] = self.h5[u'HEADER/' + key][:]
+        self.ds = {}
+        self.ds['platform_name'] = self.h5.attrs['keywords'].split(',')[0]
+        self.ds['sensor'] = self.sensor
         
     @property
     def start_time(self):
-        return datetime.strptime(self.h5.attrs['begin_time'],'%Y-%m-%d %H:%M:%S')
+        dtstr = self.h5.attrs['begin_time']
+        return datetime.strptime(dtstr,'%Y-%m-%d %H:%M:%S')
 
     @property
     def end_time(self):
-        return datetime.strptime(self.h5.attrs['end_time'],'%Y-%m-%d %H:%M:%S')
+        dtstr = self.h5.attrs['end_time']
+        return datetime.strptime(dtstr,'%Y-%m-%d %H:%M:%S')
 
-    def get_dataset(self, key, info, out=None):
-        """Get a dataset from the file."""
-
-        logger.debug("Reading %s.", key.name)
-        if key.name == "latitude":
-            values = self.lat
-        elif key.name == "longitude":
-            values = self.lon
+    def get_dataset(self, key, info):
+        """Load a dataset"""
+        fid = self.h5
+        logger.debug('Reading %s.', key.name)
+        if key.name in DSET_NAMES.keys():
+            ds = read_dataset(fid, key)
         else:
-            values = self.file_content[key.name] / 1000
-            values = np.fliplr(np.rot90(values, -1)) 
-        selected = np.array(self.selected)
-#        if key.name in ("latitude", "longitude"):
-#            values = values / 10000.
-#        if key.name in ('Tsurf', 'CloudTopPres', 'CloudTopTemp'):
-#            goods = values > -9998.
-#            selected = np.array(selected & goods)
-#            if key.name in ('Tsurf', "Alt_surface", "CloudTopTemp"):
-#                values = values / 100.
-#            if key.name in ("CloudTopPres"):
-#                values = values / 10.
-#        else:
-#            selected = self.selected
-        selected = self.selected
-        info.update(self.finfo)
+            ds = read_geo(fid, key)
 
-        fill_value = np.nan
-
-        if key.name == 'ct':
-            fill_value = 0
-            info['_FillValue'] = 0
-        ds = DataArray(values, dims=['y', 'x'], attrs=info).where(selected, fill_value)
+        ds.attrs.update(info)
         
         ds.attrs.update({'platform_name': self.h5.attrs['keywords'].split(',')[0],
-                  'sensor': self.h5.attrs['keywords'].split(',')[1].strip(),
+                  'sensor': self.h5.attrs['keywords'].split(',')[1].strip().lower(),
                   'satellite_latitude': float(self.h5.attrs['centroid_mean_latitude']),
                   'satellite_longitude': float(self.h5.attrs['centroid_mean_longitude']),
-                  'satellite_altitude': float(1500000)})
+                  'satellite_altitude': float(1500000)}) #aprox no real
 
-        # update dataset info with file_info
         return ds
+
+
+def read_dataset(fid, key):
+    """Read dataset"""
+
+    dsid = DSET_NAMES[key.name]
+
+    dset = fid[dsid]['Image']
+    values = da.from_array(dset, chunks=CHUNK_SIZE)
+    values /= 1000.
+    
+    fill_value = dset.attrs['_FillValue'][0]
+
+    data = DataArray(values, name=key.name, dims=['y', 'x']).astype(np.float32)
+    data = data.where(data != fill_value)
+    dset_attrs = dict(dset.attrs)
+    data.attrs.update(dset_attrs)
+
+    return data
+
+def read_geo(fid, key):
+    """Read geolocation and related datasets."""
+
+    dsig = GEO_NAMES[key.name]
+
+    gset = fid["Band317nm"]['Geolocation']['Earth'][dsig]    
+    values = da.from_array(gset, chunks=CHUNK_SIZE)
+    
+    fill_value = gset.attrs['_FillValue'][0]
+    
+    data = DataArray(values, dims=['y', 'x']).astype(np.float32)
+    data = data.where(data != fill_value)
+    
+    return data

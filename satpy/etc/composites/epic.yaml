@@ -1,32 +1,29 @@
-sensor_name: visir/epic
+sensor_name: ahi/epic
 
 composites:
+  green:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    # what happens if something requests more modifiers on top of this?
+    - name: B06
+    - name: B10
+    standard_name: toa_bidirection_reflectance
+
+  true_color_ahi:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: B07
+    - name: green
+    - name: B05
+    standard_name: true_color
+
   true_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: 'Band680nm'
-    - name: 'Band551nm'
-    - name: 'Band443nm'
+    - name: B07
+    - name: B06
+    - name: B05
     standard_name: true_color
-
-#  true_color_raw:
-#    compositor: !!python/name:satpy.composites.GenericCompositor
-#    prerequisites:
-#    - name: 'Band680nm'
-#      modifiers: [sunz_corrected]
-#    - name: 'Band551nm'
-#      modifiers: [sunz_corrected]
-#    - name: 'Band443nm'
-#      modifiers: [sunz_corrected]
-#    standard_name: true_color
-#
-#  true_color:
-#    compositor: !!python/name:satpy.composites.GenericCompositor
-#    prerequisites:
-#    - name: 'Band680nm'
-#      modifiers: [sunz_corrected, rayleigh_corrected]
-#    - name: 'Band551nm'
-#      modifiers: [sunz_corrected, rayleigh_corrected]
-#    - name: 'Band443nm'
-#      modifiers: [sunz_corrected, rayleigh_corrected]
-#    standard_name: true_color

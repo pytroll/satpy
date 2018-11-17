@@ -6,7 +6,7 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    dscovr:
+    epic_l2_hdf5:
         file_reader: !!python/name:satpy.readers.epic_l1b.EPIC_L1B
         file_patterns: ['epic_{level:2s}_{start_time:%Y%m%d%H%M%S}_{version_number:2s}.h5',]
         
@@ -14,105 +14,114 @@ datasets:
   longitude:
     name: longitude
     resolution: 10000
-    file_type: dscovr
+    file_type: epic_l2_hdf5
     standard_name: longitude
     units: degree
 
   latitude:
     name: latitude
     resolution: 10000
-    file_type: dscovr
+    file_type: epic_l2_hdf5
     standard_name: latitude
     units: degree
 
-  Band317nm:
-    name: Band317nm
+  B01:
+    name: B01
+    standard_name: Band317nm
     sensor: epic
     wavelength: [0.297, 0.317, 0.337]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
+    file_type: epic_l2_hdf5
 
-  Band325nm:
-    name: Band325nm
+  B02:
+    name: B02
+    standard_name: Band325nm
     sensor: epic
     wavelength: [0.305, 0.325, 0.345]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
+    file_type: epic_l2_hdf5
 
-  Band340nm:
-    name: Band340nm
+  B03:
+    name: B03
+    standard_name: Band340nm
     sensor: epic
     wavelength: [0.32, 0.34, 0.36]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
+    file_type: epic_l2_hdf5
 
-  Band388nm:
-    name: Band388nm
+  B04:
+    name: B04
+    standard_name: Band388nm
     sensor: epic
     wavelength: [0.368, 0.388, 0.408]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
+    file_type: epic_l2_hdf5
 
-  Band443nm:
-    name: Band443nm
+  B05:
+    name: B05
+    standard_name: Band443nm
     sensor: epic
     wavelength: [0.423, 0.443, 0.463]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
+    file_type: epic_l2_hdf5
 
-  Band551nm:
-    name: Band551nm
+  B06:
+    name: B06
+    standard_name: Band551nm
     sensor: epic
     wavelength: [0.531, 0.551, 0.571]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
+    file_type: epic_l2_hdf5
 
-  Band680nm:
-    name: Band680nm
+  B07:
+    name: B07
+    standard_name: Band680nm
     sensor: epic
     wavelength: [0.66, 0.68, 0.70]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
+    file_type: epic_l2_hdf5
 
-  Band688nm:
-    name: Band688nm
+  B08:
+    name: B08
+    standard_name: Band688nm
     sensor: epic
     wavelength: [0.668, 0.688, 0.708]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
+    file_type: epic_l2_hdf5
 
-  Band764nm:
-    name: Band764nm
+  B09:
+    name: B09
+    standard_name: Band764nm
     sensor: epic
     wavelength: [0.744, 0.764, 0.784]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
+    file_type: epic_l2_hdf5
  
-  Band780nm:
-    name: Band780nm
+  B10:
+    name: B10
+    standard_name: Band780nm
     sensor: epic
     wavelength: [0.76, 0.78, 0.80]
     resolution: 10000
     units: ''
     coordinates: [longitude, latitude ]
-    file_type: dscovr
- 
-
+    file_type: epic_l2_hdf5
+    
