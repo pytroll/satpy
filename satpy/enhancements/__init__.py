@@ -124,9 +124,6 @@ def crefl_scaling(img, **kwargs):
                                  attrs=band_data.attrs)
         return band_data
 
-    # mask reflectances that are below 0
-    bad_mask = (img.data < 0).any(axis=0)
-    img.data = img.data.where(~bad_mask)
     return apply_enhancement(img.data, func, separate=True)
 
 
