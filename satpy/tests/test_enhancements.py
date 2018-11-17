@@ -122,7 +122,7 @@ class TestEnhancementStretch(unittest.TestCase):
     def test_crefl_scaling(self):
         from satpy.enhancements import crefl_scaling
         expected = np.array([[
-            [np.nan, 0., np.nan, 0.44378, 0.631734],
+            [np.nan, 0., 0., 0.44378, 0.631734],
             [0.737562, 0.825041, 0.912521, 1., 1.]]])
         self._test_enhancement(crefl_scaling, self.ch2, expected, idx=[0., 25., 55., 100., 255.],
                                sc=[0., 90., 140., 175., 255.])
