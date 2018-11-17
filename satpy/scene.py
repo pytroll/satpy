@@ -892,7 +892,8 @@ class Scene(MetadataObject):
             missing = self.missing_datasets.copy()
             self._remove_failed_datasets(keepables)
             missing_str = ", ".join(str(x) for x in missing)
-            LOG.debug("The following datasets were not created: {}".format(missing_str))
+            LOG.warning("The following datasets were not created and may require "
+                        "resampling to be generated: {}".format(missing_str))
         if unload:
             self.unload(keepables=keepables)
 
