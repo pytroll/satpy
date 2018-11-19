@@ -102,12 +102,12 @@ installation.
     * - Terra and Aqua MODIS data in EOS-hdf4 level-1 format as produced by IMAPP and IPOPP or downloaded from LAADS
       - `hdfeos_l1b`
       - Nominal
-    * - NWCSAF MSG 2016 products in netCDF4 format
-      - `nc_nwcsaf_msg`
+    * - NWCSAF GEO 2016 products in netCDF4 format
+      - `nc_nwcsaf`
       - In development
-    * - NWCSAF PPS 2014 products in netCDF4 format
+    * - NWCSAF PPS 2014, 2018 products in netCDF4 format
       - `nc_nwcsaf_pps`
-      - | Not yet support for remapped netCDF products. 
+      - | Not yet support for remapped netCDF products.
         | Only the standard swath based output is supported.
         | CPP products not supported yet
     * - Sentinel-1 A and B SAR-C data in SAFE format
