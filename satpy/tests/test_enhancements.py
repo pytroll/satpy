@@ -30,8 +30,7 @@ import dask.array as da
 
 
 class TestEnhancementStretch(unittest.TestCase):
-
-    """Class for testing enhancements in satpy.enhancements"""
+    """Class for testing enhancements in satpy.enhancements."""
 
     def setUp(self):
         """Setup the test"""
