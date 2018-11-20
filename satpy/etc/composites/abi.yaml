@@ -9,6 +9,7 @@ modifiers:
     - name: satellite_zenith_angle
     - name: solar_azimuth_angle
     - name: solar_zenith_angle
+
   rayleigh_corrected_500m:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: midlatitude summer
@@ -134,10 +135,15 @@ composites:
     standard_name: overview
 
   airmass:
-    compositor: !!python/name:satpy.composites.Airmass
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - C08
-    - C10
-    - C12
-    - C13
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: C08
+      - wavelength: C10
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: C12
+        - wavelength: C13
+    - wavelength: C08
     standard_name: airmass
