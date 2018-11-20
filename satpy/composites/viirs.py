@@ -1013,10 +1013,13 @@ def _linear_normalization_from_0to1(
 
 
 class NCCZinke(CompositeBase):
-    """Equalized DNB composite using the Zinke algorithm.
+    """Equalized DNB composite using the Zinke algorithm [#ncc1]_.
 
-    http://www.tandfonline.com/doi/full/10.1080/01431161.2017.1338838
-    DOI: 10.1080/01431161.2017.1338838
+    References:
+
+        .. [#ncc1] Stephan Zinke (2017),
+               A simplified high and near-constant contrast approach for the display of VIIRS day/night band imagery
+               :doi:`10.1080/01431161.2017.1338838`
 
     """
 

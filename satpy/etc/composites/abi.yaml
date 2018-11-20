@@ -9,58 +9,6 @@ modifiers:
     - name: satellite_zenith_angle
     - name: solar_azimuth_angle
     - name: solar_zenith_angle
-#  rayleigh_corrected:
-#    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
-#    atmosphere: us-standard
-#    aerosol_type: marine_clean_aerosol
-#    prerequisites:
-#    - name: C02
-#      modifiers: [reducer4, effective_solar_pathlength_corrected]
-#    optional_prerequisites:
-#    - satellite_azimuth_angle
-#    - satellite_zenith_angle
-#    - solar_azimuth_angle
-#    - solar_zenith_angle
-#
-#  rayleigh_corrected_marine_tropical:
-#    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
-#    atmosphere: tropical
-#    aerosol_type: marine_tropical_aerosol
-#    prerequisites:
-#    - name: C02
-#      modifiers: [reducer4, effective_solar_pathlength_corrected]
-#    optional_prerequisites:
-#    - satellite_azimuth_angle
-#    - satellite_zenith_angle
-#    - solar_azimuth_angle
-#    - solar_zenith_angle
-#
-#  rayleigh_corrected_land:
-#    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
-#    atmosphere: us-standard
-#    aerosol_type: continental_average_aerosol
-#    prerequisites:
-#    - name: C02
-#      modifiers: [reducer4, effective_solar_pathlength_corrected]
-#    optional_prerequisites:
-#    - satellite_azimuth_angle
-#    - satellite_zenith_angle
-#    - solar_azimuth_angle
-#    - solar_zenith_angle
-#
-#  rayleigh_corrected_1km:
-#    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
-#    atmosphere: midlatitude summer
-#    aerosol_type: marine_tropical_aerosol
-#    prerequisites:
-#    - name: C02
-#      modifiers: [reducer2, effective_solar_pathlength_corrected]
-#    optional_prerequisites:
-#    - satellite_azimuth_angle
-#    - satellite_zenith_angle
-#    - solar_azimuth_angle
-#    - solar_zenith_angle
-
   rayleigh_corrected_500m:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: midlatitude summer
@@ -117,28 +65,6 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirection_reflectance
 
-#  true_color_2km_marine_tropical:
-#    compositor: !!python/name:satpy.composites.abi.TrueColor2km
-#    prerequisites:
-#    - name: C01
-#      modifiers: [reducer2, effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
-#    - name: C02
-#      modifiers: [reducer4, effective_solar_pathlength_corrected, rayleigh_corrected_marine_tropical]
-#    - name: C03
-#      modifiers: [reducer2, effective_solar_pathlength_corrected]
-#    standard_name: true_color
-#
-#  true_color_2km_land:
-#    compositor: !!python/name:satpy.composites.abi.TrueColor2km
-#    prerequisites:
-#    - name: C01
-#      modifiers: [reducer2, effective_solar_pathlength_corrected, rayleigh_corrected_land]
-#    - name: C02
-#      modifiers: [reducer4, effective_solar_pathlength_corrected, rayleigh_corrected_land]
-#    - name: C03
-#      modifiers: [reducer2, effective_solar_pathlength_corrected]
-#    standard_name: true_color
-
   true_color_crefl:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
@@ -172,11 +98,11 @@ composites:
   natural_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
-    - wavelength: 1.63
+    - name: C05
       modifiers: [sunz_corrected]
-    - wavelength: 0.85
+    - name: C03
       modifiers: [sunz_corrected]
-    - wavelength: 0.635
+    - name: C02
       modifiers: [sunz_corrected]
     high_resolution_band: blue
     standard_name: natural_color
@@ -184,34 +110,34 @@ composites:
   natural_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 1.63
-    - wavelength: 0.85
-    - wavelength: 0.635
+    - name: C05
+    - name: C03
+    - name: C02
     standard_name: natural_color
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 0.65
+    - name: C02
       modifiers: [sunz_corrected]
-    - wavelength: 0.85
+    - name: C03
       modifiers: [sunz_corrected]
-    - 11.0
+    - C14
     standard_name: overview
 
   overview_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 0.65
-    - 0.85
-    - 11.0
+    - C02
+    - C03
+    - C14
     standard_name: overview
 
   airmass:
     compositor: !!python/name:satpy.composites.Airmass
     prerequisites:
-    - 6.2
-    - 7.3
-    - 9.7
-    - 10.3
+    - C08
+    - C10
+    - C12
+    - C13
     standard_name: airmass
