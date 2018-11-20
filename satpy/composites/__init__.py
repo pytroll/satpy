@@ -434,8 +434,6 @@ class PSPRayleighReflectance(CompositeBase):
             suna = suna.data
             sunz = sunz.data
 
-        LOG.info('Removing Rayleigh scattering and aerosol absorption')
-
         # First make sure the two azimuth angles are in the range 0-360:
         sata = sata % 360.
         suna = suna % 360.
@@ -447,6 +445,8 @@ class PSPRayleighReflectance(CompositeBase):
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
         rayleigh_key = (vis.attrs['platform_name'],
                         vis.attrs['sensor'], atmosphere, aerosol_type)
+        LOG.info("Removing Rayleigh scattering with atmospher '{}' and aerosol type '{}' for '{}'".format(
+            atmosphere, aerosol_type, vis.attrs['name']))
         if rayleigh_key not in self._rayleigh_cache:
             corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
                                  atmosphere=atmosphere,
