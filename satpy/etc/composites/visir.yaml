@@ -90,34 +90,13 @@ modifiers:
 
 composites:
 
-  diff_6.7_7.3:
-    compositor: !!python/name:satpy.composites.DifferenceCompositor
-    prerequisites:
-      - wavelength: 6.7
-      - wavelength: 7.3
-
-  diff_12.0_10.8:
-    compositor: !!python/name:satpy.composites.DifferenceCompositor
-    prerequisites:
-      - 12.0
-      - 10.8
-
-  diff_10.8_8.7:
-    compositor: !!python/name:satpy.composites.DifferenceCompositor
-    prerequisites:
-      - 10.8
-      - 8.7
-
-  diff_10.8_3.9:
-    compositor: !!python/name:satpy.composites.DifferenceCompositor
-    prerequisites:
-      - 10.8
-      - 3.9
-
   airmass:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - diff_6.7_7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.2
+      - wavelength: 7.3
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
         - wavelength: 9.7
@@ -128,8 +107,14 @@ composites:
   ash:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - diff_12.0_10.8
-    - diff_10.8_8.7
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 8.7
     - 10.8
     standard_name: ash
 
@@ -182,16 +167,28 @@ composites:
   dust:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - diff_12.0_10.8
-    - diff_10.8_8.7
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 8.7
     - 10.8
     standard_name: dust
 
   fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - diff_12.0_10.8
-    - diff_10.8_8.7
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 8.7
     - 10.8
     standard_name: fog
 
@@ -225,8 +222,14 @@ composites:
   night_fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - diff_12.0_10.8
-    - diff_10.8_3.9
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 3.9
     - 10.8
     standard_name: night_fog
 
@@ -324,8 +327,14 @@ composites:
   night_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - diff_12.0_10.8
-    - diff_10.8_3.9
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 3.9
     - 10.8
     standard_name: night_microphysics
 
