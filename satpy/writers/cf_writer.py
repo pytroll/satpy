@@ -149,7 +149,10 @@ def make_time_bounds(dataarray, start_times, end_times):
                      if start_time is not None)
     end_time = min(end_time for end_time in end_times
                    if end_time is not None)
-    dtnp64 = dataarray['time'].data[0]
+    try:
+        dtnp64 = dataarray['time'].data[0]
+    except IndexError:
+        dtnp64 = dataarray['time'].data
     time_bnds = [(np.datetime64(start_time) - dtnp64),
                  (np.datetime64(end_time) - dtnp64)]
     return xr.DataArray(np.array(time_bnds) / np.timedelta64(1, 's'),
