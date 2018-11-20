@@ -139,11 +139,11 @@ composites:
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-      - wavelength: C08
-      - wavelength: C10
+      - name: C08
+      - name: C10
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-        - wavelength: C12
-        - wavelength: C13
-    - wavelength: C08
+        - name: C12
+        - name: C13
+    - name: C08
     standard_name: airmass
