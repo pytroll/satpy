@@ -445,7 +445,7 @@ class PSPRayleighReflectance(CompositeBase):
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
         rayleigh_key = (vis.attrs['platform_name'],
                         vis.attrs['sensor'], atmosphere, aerosol_type)
-        LOG.info("Removing Rayleigh scattering with atmospher '{}' and aerosol type '{}' for '{}'".format(
+        LOG.info("Removing Rayleigh scattering with atmosphere '{}' and aerosol type '{}' for '{}'".format(
             atmosphere, aerosol_type, vis.attrs['name']))
         if rayleigh_key not in self._rayleigh_cache:
             corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
