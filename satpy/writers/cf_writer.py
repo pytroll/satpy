@@ -249,7 +249,7 @@ class CFWriter(Writer):
         dataset.attrs['history'] = ("Created by pytroll/satpy on " +
                                     str(datetime.utcnow()))
         dataset.attrs['conventions'] = 'CF-1.7'
-        engine = kwargs.pop("engine", 'h5netcdf')
+        engine = kwargs.pop("engine", 'netcdf4')
         kwargs.pop('config_files')
         kwargs.pop('compute')
         kwargs.pop('overlay', None)
