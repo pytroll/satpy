@@ -232,6 +232,32 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.data, 0.0, atol=1e-9)
 
 
+class TestSandwichCompositor(unittest.TestCase):
+    """Test sandwich compositor."""
+
+    @mock.patch('satpy.composites.enhance2dataset')
+    def test_compositor(self, e2d):
+        """Test luminance sharpening compositor."""
+        import numpy as np
+        import xarray as xr
+        from satpy.composites import SandwichCompositor
+
+        rgb_arr = np.random.random((3, 2, 2))
+        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'])
+        lum_arr = 100 * np.random.random((2, 2))
+        lum = xr.DataArray(lum_arr, dims=['y', 'x'])
+
+        # Make enhance2dataset return unmodified dataset
+        e2d.return_value = rgb
+        comp = SandwichCompositor(name='test')
+
+        res = comp([lum, rgb])
+
+        for i in range(3):
+            np.testing.assert_allclose(res.data[i, :, :],
+                                       rgb_arr[i, :, :] * lum_arr / 100.)
+
+
 def suite():
     """Test suite for all reader tests"""
     loader = unittest.TestLoader()
