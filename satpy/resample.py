@@ -860,7 +860,7 @@ def get_fill_value(dataset):
 
 
 def resample_dataset(dataset, destination_area, **kwargs):
-    """Resample the current projectable and return the resampled one.
+    """Resample *dataset* and return the resampled version.
 
     Args:
         dataset (xarray.DataArray): Data to be resampled.
@@ -870,7 +870,8 @@ def resample_dataset(dataset, destination_area, **kwargs):
         **kwargs: The extra parameters to pass to the resampler objects.
 
     Returns:
-        A resampled DataArray with updated ``.attrs["area"]`` field.
+        A resampled DataArray with updated ``.attrs["area"]`` field. The dtype
+        of the array is preserved.
 
     """
     # call the projection stuff here

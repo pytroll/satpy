@@ -34,8 +34,10 @@ except ImportError:
 
 
 class TestHLResample(unittest.TestCase):
+    """Test the higher level resampling functions."""
 
     def test_type_preserve(self):
+        """Check that the type of resampled datasets is preserved."""
         from satpy.resample import resample_dataset
         import xarray as xr
         import dask.array as da
