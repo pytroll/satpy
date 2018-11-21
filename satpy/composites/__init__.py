@@ -1255,6 +1255,7 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 class LuminanceSharpeningCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
+        from trollimage.image import rgb2ycbcr, ycbcr2rgb
 
         attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
         if (attrs.get('area') is None and
@@ -1316,30 +1317,3 @@ class SandwichCompositor(GenericCompositor):
         res = GenericCompositor.__call__(self, ir_, *args, **kwargs)
 
         return res
-
-
-def ycbcr2rgb(y__, cb_, cr_):
-    """Convert the three YCbCr channels to RGB channels.
-    """
-
-    kb_ = 0.114
-    kr_ = 0.299
-
-    r__ = 2 * cr_ / (1 - kr_) + y__
-    b__ = 2 * cb_ / (1 - kb_) + y__
-    g__ = (y__ - kr_ * r__ - kb_ * b__) / (1 - kr_ - kb_)
-
-    return r__, g__, b__
-
-
-def rgb2ycbcr(r__, g__, b__):
-    """Convert the three RGB channels to YCbCr."""
-
-    kb_ = 0.114
-    kr_ = 0.299
-
-    y__ = kr_ * r__ + (1 - kr_ - kb_) * g__ + kb_ * b__
-    cb_ = 1. / (2 * (1 - kb_)) * (b__ - y__)
-    cr_ = 1. / (2 * (1 - kr_)) * (r__ - y__)
-
-    return y__, cb_, cr_
