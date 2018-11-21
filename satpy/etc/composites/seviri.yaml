@@ -114,6 +114,20 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: natural_color
 
+  fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - IR_120
+      - IR_108
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - IR_108
+      - IR_087
+    - IR_108
+    standard_name: fog
+
   cloudmask:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
