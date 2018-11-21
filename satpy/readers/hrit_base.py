@@ -20,7 +20,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader
+"""HRIT/LRIT format reader
+
+This module is the base module for all HRIT-based formats. Here, you will find
+the common building blocks for hrit reading.
+
+One of the features here is the on-the-fly decompression of hrit files. It needs
+a path to the xRITDecompress binary to be provided through the environment
+variable called XRIT_DECOMPRESS_PATH. When compressed hrit files are then
+encountered (files finishing with `.C_`), they are decompressed to the system's
+temporary directory for reading.
 
 """
 
