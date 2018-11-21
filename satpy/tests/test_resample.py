@@ -33,6 +33,27 @@ except ImportError:
     import mock
 
 
+class TestHLResample(unittest.TestCase):
+
+    def test_type_preserve(self):
+        from satpy.resample import resample_dataset
+        import xarray as xr
+        import dask.array as da
+        import numpy as np
+        from pyresample.geometry import SwathDefinition
+        source_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=['y', 'x']),
+                                      xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=['y', 'x']))
+        dest_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)) + .0001, dims=['y', 'x']),
+                                    xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)) + .0001, dims=['y', 'x']))
+        expected = np.array([[1, 2], [3, 255]])
+        data = xr.DataArray(da.from_array(expected, chunks=5), dims=['y', 'x'])
+        data.attrs['_FillValue'] = 255
+        data.attrs['area'] = source_area
+        res = resample_dataset(data, dest_area)
+        self.assertEqual(res.dtype, data.dtype)
+        self.assertTrue(np.all(res.values == expected))
+
+
 class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
@@ -369,6 +390,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestNativeResampler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestKDTreeResampler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestEWAResampler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestHLResample))
 
     return mysuite
 

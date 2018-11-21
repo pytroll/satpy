@@ -851,6 +851,14 @@ def resample(source_area, data, destination_area,
     return res
 
 
+def get_fill_value(dataset):
+    """Get the fill value of the *dataset*, defaulting to np.nan."""
+    if np.issubdtype(dataset.dtype, np.integer):
+        return dataset.attrs.get('_FillValue', np.nan)
+    else:
+        return np.nan
+
+
 def resample_dataset(dataset, destination_area, **kwargs):
     """Resample the current projectable and return the resampled one.
 
@@ -874,7 +882,8 @@ def resample_dataset(dataset, destination_area, **kwargs):
 
         return dataset
 
-    new_data = resample(source_area, dataset, destination_area, **kwargs)
+    fill_value = kwargs.pop('fill_value', get_fill_value(dataset))
+    new_data = resample(source_area, dataset, destination_area, fill_value=fill_value, **kwargs)
     new_attrs = new_data.attrs
     new_data.attrs = dataset.attrs.copy()
     new_data.attrs.update(new_attrs)
