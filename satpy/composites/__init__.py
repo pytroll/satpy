@@ -1281,7 +1281,7 @@ class LuminanceSharpeningCompositor(GenericCompositor):
                                   rgb_img.data[1, :, :],
                                   rgb_img.data[2, :, :])
 
-        r__, g__, b__ =  ycbcr2rgb(luminance, cb_, cr_)
+        r__, g__, b__ = ycbcr2rgb(luminance, cb_, cr_)
         y_size, x_size = r__.shape
         r__ = da.reshape(r__, (1, y_size, x_size))
         g__ = da.reshape(g__, (1, y_size, x_size))
