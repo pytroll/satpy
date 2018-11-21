@@ -1271,6 +1271,11 @@ class LuminanceSharpeningCompositor(GenericCompositor):
         # Get the enhanced version of the composite to be sharpened
         rgb_img = enhance2dataset(projectables[1])
 
+        # This all will be eventually replaced with trollimage convert() method
+        # ycbcr_img = rgb_img.convert('YCbCr')
+        # ycbcr_img.data[0, :, :] = luminance
+        # rgb_img = ycbcr_img.convert('RGB')
+
         # Replace luminance of the IR composite
         y__, cb_, cr_ = rgb2ycbcr(rgb_img.data[0, :, :],
                                   rgb_img.data[1, :, :],
