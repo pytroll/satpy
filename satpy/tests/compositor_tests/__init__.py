@@ -213,6 +213,27 @@ class TestInlineComposites(unittest.TestCase):
         self.assertEqual(fog.attrs['prerequisites'][1], 'fog_dep_1')
         self.assertEqual(fog.attrs['prerequisites'][2], 10.8)
 
+        # Check that the sub-composite dependencies use wavelengths
+        # (numeric values)
+        keys = comps['visir'].keys()
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid.name]
+        self.assertEqual(comps['visir'][fog_dep_ids[0]].attrs['prerequisites'],
+                         [12.0, 10.8])
+        self.assertEqual(comps['visir'][fog_dep_ids[1]].attrs['prerequisites'],
+                         [10.8, 8.7])
+
+        # Check the same for SEVIRI and verify channel names are used
+        # in the sub-composite dependencies instead of wavelengths
+        cl_ = CompositorLoader()
+        cl_.load_sensor_composites('seviri')
+        comps = cl_.compositors
+        keys = comps['seviri'].keys()
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid.name]
+        self.assertEqual(comps['seviri'][fog_dep_ids[0]].attrs['prerequisites'],
+                         ['IR_120', 'IR_108'])
+        self.assertEqual(comps['seviri'][fog_dep_ids[1]].attrs['prerequisites'],
+                         ['IR_108', 'IR_087'])
+
 
 def suite():
     """Test suite for all reader tests"""
