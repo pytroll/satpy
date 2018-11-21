@@ -101,11 +101,9 @@ def get_xritdecompress_cmd():
     """Find a valid binary for the xRITDecompress command."""
     cmd = os.environ.get('XRIT_DECOMPRESS_PATH', None)
     if not cmd:
-        raise IOError("XRIT_DECOMPRESS_PATH is not defined" +
-                      " (complete path to xRITDecompress)")
+        raise IOError("XRIT_DECOMPRESS_PATH is not defined (complete path to xRITDecompress)")
 
-    question = ("Did you set the environment variable " +
-                "XRIT_DECOMPRESS_PATH correctly?")
+    question = ("Did you set the environment variable XRIT_DECOMPRESS_PATH correctly?")
     if not os.path.exists(cmd):
         raise IOError(str(cmd) + " does not exist!\n" + question)
     elif os.path.isdir(cmd):
@@ -126,9 +124,8 @@ def get_xritdecompress_output(stdout, status):
             outfile = v
             break
 
-    if not outfile:
-        raise IOError("xrit_decompress '%s', failed, no output file is generated" % infile)
     return outfile
+
 
 def decompress(infile, outdir='.'):
     """Decompress an XRIT data file and return the path to the decompressed file.
@@ -152,6 +149,9 @@ def decompress(infile, outdir='.'):
         raise IOError("xrit_decompress '%s', failed, status=%d" % (infile, status))
 
     outfile = get_xritdecompress_output(stdout, status)
+
+    if not outfile:
+        raise IOError("xrit_decompress '%s', failed, no output file is generated" % infile)
 
     return os.path.join(outdir, outfile.decode('utf-8'))
 
