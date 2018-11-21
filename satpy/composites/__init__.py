@@ -1268,13 +1268,13 @@ class LuminanceSharpeningCompositor(GenericCompositor):
         # Limit between min(luminance) ... 1.0
         luminance = da.where(luminance > 1., 1., luminance)
 
-        # Get the enhanced version of IR data
-        ir_ = enhance2dataset(projectables[1])
+        # Get the enhanced version of the composite to be sharpened
+        rgb_img = enhance2dataset(projectables[1])
 
         # Replace luminance of the IR composite
-        y__, cb_, cr_ = rgb2ycbcr(ir_.data[0, :, :],
-                                  ir_.data[1, :, :],
-                                  ir_.data[2, :, :])
+        y__, cb_, cr_ = rgb2ycbcr(rgb_img.data[0, :, :],
+                                  rgb_img.data[1, :, :],
+                                  rgb_img.data[2, :, :])
 
         r__, g__, b__ =  ycbcr2rgb(luminance, cb_, cr_)
         y_size, x_size = r__.shape
@@ -1282,9 +1282,9 @@ class LuminanceSharpeningCompositor(GenericCompositor):
         g__ = da.reshape(g__, (1, y_size, x_size))
         b__ = da.reshape(b__, (1, y_size, x_size))
 
-        ir_.data = da.vstack((r__, g__, b__))
+        rgb_img.data = da.vstack((r__, g__, b__))
 
-        res = GenericCompositor.__call__(self, ir_, *args, **kwargs)
+        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
 
         return res
 
@@ -1304,16 +1304,17 @@ class SandwichCompositor(GenericCompositor):
         # Limit between min(luminance) ... 1.0
         luminance = da.where(luminance > 1., 1., luminance)
 
-        # Get the enhanced version of IR data
-        ir_ = enhance2dataset(projectables[1])
+        # Get the enhanced version of the RGB composite to be sharpened
+        rgb_img = enhance2dataset(projectables[1])
 
         data = []
-        for band in ir_['bands'].data:
-            data.append(luminance * ir_.sel(bands=band))
+        for band in rgb_img['bands'].data:
+            data.append(luminance * rgb_img.sel(bands=band))
 
         data = da.vstack(data)
-        ir_.data = da.reshape(data, (3, luminance.shape[0], luminance.shape[1]))
+        rgb_img.data = da.reshape(data,
+                                  (3, luminance.shape[0], luminance.shape[1]))
 
-        res = GenericCompositor.__call__(self, ir_, *args, **kwargs)
+        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
 
         return res
