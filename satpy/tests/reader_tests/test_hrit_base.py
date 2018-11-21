@@ -26,7 +26,7 @@ from datetime import datetime
 
 import numpy as np
 
-from satpy.readers.hrit_base import HRITFileHandler
+from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -37,6 +37,38 @@ try:
     from unittest import mock
 except ImportError:
     import mock
+
+
+class TestHRITDecompress(unittest.TestCase):
+    """Test the on-the-fly decompression."""
+
+    def test_xrit_cmd(self):
+        import os
+        from tempfile import gettempdir, mkstemp
+        old_env = os.environ.get('XRIT_DECOMPRESS_PATH', None)
+
+        os.environ['XRIT_DECOMPRESS_PATH'] = '/path/to/my/bin'
+        self.assertRaises(IOError, get_xritdecompress_cmd)
+
+        os.environ['XRIT_DECOMPRESS_PATH'] = gettempdir()
+        self.assertRaises(IOError, get_xritdecompress_cmd)
+
+        handle, fname = mkstemp()
+        os.close(handle)
+        os.environ['XRIT_DECOMPRESS_PATH'] = fname
+        self.assertEqual(fname, get_xritdecompress_cmd())
+        os.remove(fname)
+
+        if old_env is not None:
+            os.environ['XRIT_DECOMPRESS_PATH'] = old_env
+
+    def test_xrit_outfile(self):
+        stdout = ["Decompressed file: bla.__\n"]
+        outfile = get_xritdecompress_outfile(stdout)
+        self.assertEqual(outfile, 'bla.__')
+
+    def test_decompress(self):
+        pass
 
 
 class TestHRITFileHandler(unittest.TestCase):
@@ -120,6 +152,8 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHRITFileHandler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITDecompress))
+
     return mysuite
 
 
