@@ -88,20 +88,12 @@ base_hdr_map = {0: primary_header,
                 }
 
 
-def decompress(infile, outdir='.'):
-    """Will decompress an XRIT data file and return the path to the
-    decompressed file. It expect to find Eumetsat's xRITDecompress through the
-    environment variable XRIT_DECOMPRESS_PATH
-    """
-    from subprocess import Popen, PIPE
+def get_xritdecompress_cmd():
+    """Find a valid binary for the xRITDecompress command."""
     cmd = os.environ.get('XRIT_DECOMPRESS_PATH', None)
     if not cmd:
         raise IOError("XRIT_DECOMPRESS_PATH is not defined" +
                       " (complete path to xRITDecompress)")
-
-    infile = os.path.abspath(infile)
-    cwd = os.getcwd()
-    os.chdir(outdir)
 
     question = ("Did you set the environment variable " +
                 "XRIT_DECOMPRESS_PATH correctly?")
@@ -110,11 +102,11 @@ def decompress(infile, outdir='.'):
     elif os.path.isdir(cmd):
         raise IOError(str(cmd) + " is a directory!\n" + question)
 
-    p = Popen([cmd, infile], stdout=PIPE)
-    stdout = BytesIO(p.communicate()[0])
-    status = p.returncode
-    os.chdir(cwd)
+    return cmd
 
+
+def get_xritdecompress_output(stdout, status):
+    """Analyse the output of the xRITDecompress command call and return the file."""
     outfile = b''
     for line in stdout:
         try:
@@ -125,10 +117,33 @@ def decompress(infile, outdir='.'):
             outfile = v
             break
 
-    if status != 0:
-        raise IOError("xrit_decompress '%s', failed, status=%d" % (infile, status))
     if not outfile:
         raise IOError("xrit_decompress '%s', failed, no output file is generated" % infile)
+    return outfile
+
+def decompress(infile, outdir='.'):
+    """Decompress an XRIT data file and return the path to the decompressed file.
+
+    It expect to find Eumetsat's xRITDecompress through the environment variable
+    XRIT_DECOMPRESS_PATH.
+    """
+    from subprocess import Popen, PIPE
+
+    cmd = get_xritdecompress_cmd()
+    infile = os.path.abspath(infile)
+    cwd = os.getcwd()
+    os.chdir(outdir)
+
+    p = Popen([cmd, infile], stdout=PIPE)
+    stdout = BytesIO(p.communicate()[0])
+    status = p.returncode
+    os.chdir(cwd)
+
+    if status != 0:
+        raise IOError("xrit_decompress '%s', failed, status=%d" % (infile, status))
+
+    outfile = get_xritdecompress_output(stdout, status)
+
     return os.path.join(outdir, outfile.decode('utf-8'))
 
 
