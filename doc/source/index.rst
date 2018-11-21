@@ -103,7 +103,7 @@ installation.
       - `hdfeos_l1b`
       - Nominal
     * - NWCSAF GEO 2016 products in netCDF4 format
-      - `nc_nwcsaf`
+      - `nc_nwcsaf_msg`
       - In development
     * - NWCSAF PPS 2014, 2018 products in netCDF4 format
       - `nc_nwcsaf_pps`
