@@ -112,7 +112,7 @@ def get_xritdecompress_cmd():
     return cmd
 
 
-def get_xritdecompress_output(stdout, status):
+def get_xritdecompress_outfile(stdout):
     """Analyse the output of the xRITDecompress command call and return the file."""
     outfile = b''
     for line in stdout:
@@ -148,7 +148,7 @@ def decompress(infile, outdir='.'):
     if status != 0:
         raise IOError("xrit_decompress '%s', failed, status=%d" % (infile, status))
 
-    outfile = get_xritdecompress_output(stdout, status)
+    outfile = get_xritdecompress_outfile(stdout)
 
     if not outfile:
         raise IOError("xrit_decompress '%s', failed, no output file is generated" % infile)
