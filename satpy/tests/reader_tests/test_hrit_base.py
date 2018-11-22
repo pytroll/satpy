@@ -89,6 +89,7 @@ class TestHRITDecompress(unittest.TestCase):
 
         self.assertEqual(res, './bla.__')
 
+
 class TestHRITFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
