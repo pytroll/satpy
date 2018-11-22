@@ -113,3 +113,19 @@ Adding a Reader to SatPy
 ========================
 
 Coming soon...
+
+Implemented readers
+===================
+
+xRIT-based readers
+------------------
+
+.. automodule:: satpy.readers.hrit_base
+
+.. automodule:: satpy.readers.hrit_msg
+
+.. automodule:: satpy.readers.hrit_jma
+
+.. automodule:: satpy.readers.hrit_goes
+
+.. automodule:: satpy.readers.hrit_electrol

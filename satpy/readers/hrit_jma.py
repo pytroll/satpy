@@ -20,7 +20,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader for JMA data.
+"""HRIT format reader for JMA data
+************************************
 
 References:
     JMA HRIT - Mission Specific Implementation
