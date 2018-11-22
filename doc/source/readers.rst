@@ -112,4 +112,4 @@ more information on the possible parameters.
 Adding a Reader to SatPy
 ========================
 
-Coming soon...
+This is described in the developer guide, see :ref:`custom-reader`
