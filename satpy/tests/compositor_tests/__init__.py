@@ -268,6 +268,8 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestLuminanceSharpeningCompositor))
 
     return mysuite
 
