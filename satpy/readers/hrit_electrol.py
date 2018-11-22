@@ -279,6 +279,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         res = self.calibrate(res, key.calibration)
         res.attrs['units'] = info['units']
         res.attrs['standard_name'] = info['standard_name']
+        res.attrs['wavelength'] = info['wavelength']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'msu-gs'
         res.attrs['satellite_longitude'] = self.mda['projection_parameters']['SSP_longitude']
