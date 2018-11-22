@@ -38,6 +38,7 @@ from datetime import timedelta
 from tempfile import gettempdir
 import os
 from six import BytesIO
+from subprocess import Popen, PIPE
 
 import numpy as np
 import xarray as xr
@@ -133,8 +134,6 @@ def decompress(infile, outdir='.'):
     It expect to find Eumetsat's xRITDecompress through the environment variable
     XRIT_DECOMPRESS_PATH.
     """
-    from subprocess import Popen, PIPE
-
     cmd = get_xritdecompress_cmd()
     infile = os.path.abspath(infile)
     cwd = os.getcwd()

@@ -23,10 +23,12 @@
 
 import sys
 from datetime import datetime
+import os
+from tempfile import gettempdir, NamedTemporaryFile
 
 import numpy as np
 
-from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile
+from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile, decompress
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -43,8 +45,6 @@ class TestHRITDecompress(unittest.TestCase):
     """Test the on-the-fly decompression."""
 
     def test_xrit_cmd(self):
-        import os
-        from tempfile import gettempdir, mkstemp
         old_env = os.environ.get('XRIT_DECOMPRESS_PATH', None)
 
         os.environ['XRIT_DECOMPRESS_PATH'] = '/path/to/my/bin'
@@ -53,23 +53,41 @@ class TestHRITDecompress(unittest.TestCase):
         os.environ['XRIT_DECOMPRESS_PATH'] = gettempdir()
         self.assertRaises(IOError, get_xritdecompress_cmd)
 
-        handle, fname = mkstemp()
-        os.close(handle)
-        os.environ['XRIT_DECOMPRESS_PATH'] = fname
-        self.assertEqual(fname, get_xritdecompress_cmd())
-        os.remove(fname)
+        with NamedTemporaryFile() as fd:
+            os.environ['XRIT_DECOMPRESS_PATH'] = fd.name
+            fname = fd.name
+            res = get_xritdecompress_cmd()
 
         if old_env is not None:
             os.environ['XRIT_DECOMPRESS_PATH'] = old_env
+        else:
+            os.environ.pop('XRIT_DECOMPRESS_PATH')
+
+        self.assertEqual(fname, res)
 
     def test_xrit_outfile(self):
-        stdout = ["Decompressed file: bla.__\n"]
+        stdout = [b"Decompressed file: bla.__\n"]
         outfile = get_xritdecompress_outfile(stdout)
-        self.assertEqual(outfile, 'bla.__')
+        self.assertEqual(outfile, b'bla.__')
 
-    def test_decompress(self):
-        pass
+    @mock.patch('satpy.readers.hrit_base.Popen')
+    def test_decompress(self, popen):
 
+        popen.return_value.returncode = 0
+        popen.return_value.communicate.return_value = [b"Decompressed file: bla.__\n"]
+
+        old_env = os.environ.get('XRIT_DECOMPRESS_PATH', None)
+
+        with NamedTemporaryFile() as fd:
+            os.environ['XRIT_DECOMPRESS_PATH'] = fd.name
+            res = decompress('bla.C_')
+
+        if old_env is not None:
+            os.environ['XRIT_DECOMPRESS_PATH'] = old_env
+        else:
+            os.environ.pop('XRIT_DECOMPRESS_PATH')
+
+        self.assertEqual(res, './bla.__')
 
 class TestHRITFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
