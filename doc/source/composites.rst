@@ -7,21 +7,38 @@ Documentation coming soon...
 Modifiers
 =========
 
-Making custom composites
-========================
+Compositors
+===========
 
-.. note::
+There are several different built-in compositors available in SatPy.
+All of them should eventually use :class:`GenericCompositor` class,
+which handles all the different image modes (`L`, `LA`, `RGB` and
+`RGBA` at the moment) and updates attributes.
 
-    These features will be added to the ``Scene`` object in the future.
+Below is shown how to create composites within the Python code, but
+the preferred way for repeated use is to store the composite receipes
+to general-use (e.g. `visir.yaml`) or instrument-specific
+(e.g. `seviri.yaml`) configuration files, see LINK HERE.
 
-Building custom composites makes use of the :class:`GenericCompositor` class. For example,
-building an overview composite can be done manually with::
+GenericCompositor
+-----------------
+
+:class:`GenericCompositor` class can be used to create basic single
+channel and RGB composites. For example, building an overview composite
+can be done manually within Python code with::
 
     >>> from satpy.composites import GenericCompositor
-    >>> compositor = GenericCompositor("myoverview", "bla", "")
+    >>> compositor = GenericCompositor("overview")
     >>> composite = compositor([local_scene[0.6],
     ...                         local_scene[0.8],
     ...                         local_scene[10.8]])
+
+One important thing to notice is that there is an internal difference
+between a composite and an image. A composite is defined as a special
+dataset which may have several bands (like `R`, `G` and `B`  bands). However,
+the data isn't stretched, or clipped or gamma filtered until an image
+is generated.  To get an image out of the above composite::
+
     >>> from satpy.writers import to_image
     >>> img = to_image(composite)
     >>> img.invert([False, False, True])
@@ -29,21 +46,266 @@ building an overview composite can be done manually with::
     >>> img.gamma(1.7)
     >>> img.show()
 
+This part is called `enhancement`, and is covered in more detail in LINK HERE.
 
-One important thing to notice is that there is an internal difference between a composite and an image. A composite
-is defined as a special dataset which may have several bands (like R, G, B bands). However, the data isn't stretched,
-or clipped or gamma filtered until an image is generated.
 
+DifferenceCompositor
+--------------------
+
+:class:`DifferenceCompositor` calculates a difference of two datasets::
+
+    >>> from satpy.composites import DifferenceCompositor
+    >>> compositor = DifferenceCompositor("diffcomp")
+    >>> composite = compositor([local_scene[10.8], local_scene[12.0]])
+
+FillingCompositor
+-----------------
+
+:class:`FillingCompositor`:: fills the missing values in three datasets
+with the values of another dataset:::
+
+    >>> from satpy.composites import FillingCompositor
+    >>> compositor = FillingCompositor("fillcomp")
+    >>> filler = local_scene[0.6]
+    >>> data_with_holes_1 = local_scene['ch_a']
+    >>> data_with_holes_2 = local_scene['ch_b']
+    >>> data_with_holes_3 = local_scene['ch_c']
+    >>> composite = compositor([filler, data_with_holes_1, data_with_holes_2,
+    ...                         data_with_holes_3])
+
+
+PaletteCompositor
+------------------
+
+:class:`PaletteCompositor` creates a color version of a single channel
+categorical dataset using a colormap::
+
+    >>> from satpy.composites import PaletteCompositor
+    >>> compositor = PaletteCompositor("palcomp")
+    >>> composite = compositor([local_scene['cma'], local_scene['cma_pal']])
+
+The palette should have a single entry for all the (possible) values
+in the dataset mapping the value to an RGB triplet.  Typically the
+palette comes with the categorical (e.g. cloud mask) product that is
+being visualized.
+
+DayNightCompositor
+------------------
+
+:class:`DayNightCompositor` merges two different composites.  The
+first composite will be placed on the day-side of the scene, and the
+second one on the night side.  The transition from day to night is
+done by calculating solar zenith angle (SZA) weighed average of the
+two composites.  The SZA can optionally be given as third dataset, and
+if not given, the angles will be calculated.  Width of the blending
+zone can be defined when initializing the compositor (default values
+shown in the example below).
+
+    >>> from satpy.composites import DayNightCompositor
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=95.)
+    >>> composite = compositor([local_scene['true_color'],
+    ...                         local_scene['night_fog']])
+
+RealisticColors
+---------------
+
+:class:`RealisticColors` compositor is a special compositor that is
+used to create realistic near-true-color composite from MSG/SEVIRI
+data::
+
+    >>> from satpy.composites import RealisticColors
+    >>> compositor = RealisticColors("realcols", lim_low=85., lim_high=95.)
+    >>> composite = compositor([local_scene['VIS_006'],
+    ...                         local_scene['VIS_008'],
+    ...                         local_scene['HRV']])
+
+
+CloudCompositor
+---------------
+
+:class:`CloudCompositor` can be used to threshold the data so that
+"only" clouds are visible.  These composites can be used as an overlay
+on top of e.g. static terrain images to show a rough idea where there
+are clouds.  The data are thresholded using three variables::
+
+ - `transition_min`: values below or equal to this are clouds -> opaque white
+ - `transition_max`: values above this are cloud free -> transparent
+ - `transition_gamma`: gamma correction applied to clarify the clouds
+
+Usage (with default values)::
+
+    >>> from satpy.composites import CloudCompositor
+    >>> compositor = CloudCompositor("clouds", transition_min=258.15,
+    ...                              transition_max=298.15,
+    ...                              transition_gamma=3.0)
+    >>> composite = compositor([local_scene[10.8]])
+
+Support for using this compositor for VIS data, where the values for
+high/thick clouds tend to be in reverse order to brightness
+temperatures, is to be added.
+
+RatioSharpenedRGB
+-----------------
+
+:class:`RatioSharpenedRGB`
+
+SelfSharpenedRGB
+----------------
+
+:class:`SelfSharpenedRGB` sharpens the RGB with ratio of a band with a
+strided version of itself.
+
+LuminanceSharpeningCompositor
+-----------------------------
+
+:class:`LuminanceSharpeningCompositor` replaces the luminance from an
+RGB composite with luminance created from reflectance data.  If the
+resolutions of the reflectance data _and_ of the target area
+definition are higher than the base RGB, more details can be
+retrieved.  This compositor can be useful also with matching
+resolutions, e.g. to highlight shadowing at cloudtops in colorized
+infrared composite.
+
+    >>> from satpy.composites import LuminanceSharpeningCompositor
+    >>> compositor = LuminanceSharpeningCompositor("vis_sharpened_ir")
+    >>> vis_data = local_scene['HRV']
+    >>> colorized_ir_clouds = local_scene['colorized_ir_clouds']
+    >>> composite = compositor([vis_data, colorized_ir_clouds])
+
+SandwichCompositor
+------------------
+
+Similar to :class:`LuminanceSharpeningCompositor`,
+:class:`SandwichCompositor` uses reflectance data to bring out more
+details out of infrared or low-resolution composites.
+:class:`SandwichCompositor` multiplies the RGB channels with (scaled)
+reflectance.
+
+    >>> from satpy.composites import SandwichCompositor
+    >>> compositor = SandwichCompositor("ir_sandwich")
+    >>> vis_data = local_scene['HRV']
+    >>> colorized_ir_clouds = local_scene['colorized_ir_clouds']
+    >>> composite = compositor([vis_data, colorized_ir_clouds])
+
+
+Creating composite configuration files
+======================================
 
 To save the custom composite, the following procedure can be used:
 
 1. Create a custom directory for your custom configs.
 2. Set it in the environment variable called PPP_CONFIG_DIR.
-3. Write config files with your changes only (look at eg satpy/etc/composites/seviri.yaml for inspiration), pointing to the custom module containing your composites. Don't forget to add changes to the enhancement/generic.cfg file too.
-4. Put your composites module on the python path.
+3. Write config files with your changes only (see examples below), pointing to the (custom) module containing your composites. Don't forget to add changes to the enhancement/generic.yaml file too.
+4. If custom compositors were created, add the module in the python path.
 
 With that, you should be able to load your new composite directly.
 
-.. todo::
+Example composite configurations
+--------------------------------
 
-    How to save custom-made composites
+Here are some examples how composites can be configured so that they
+are directly loadable.  Many composites are already built-in (see
+e.g. satpy/etc/composites/visir.yaml), but the user might want to have
+their own.  In this case the user can point `PPP_CONFIG_DIR`
+environment variable to a directory, which has a subdirectory
+`composites` and the composites added to either `visir.yaml` or an
+instrument-specific file, e.g. `seviri.yaml`.
+
+Simple RGB composite
+____________________
+
+This is the overview composite shown in the first code example above
+using :class:`GenericCompositor`::
+
+.. code-block:: yaml
+
+    sensor_name: visir
+
+    composites:
+      overview:
+        compositor: !!python/name:satpy.composites.GenericCompositor
+        prerequisites:
+        - 0.6
+        - 0.8
+        - 10.8
+        standard_name: overview
+
+For an instrument specific version (here MSG/SEVIRI), we should use
+the channel _names_ instead of wavelengths.  Note also that the
+sensor_name is now combination of visir and seviri, which means that
+it extends the generic visir composites.
+
+.. code-block:: yaml
+
+    sensor_name: visir/seviri
+
+    composites:
+
+      overview:
+        compositor: !!python/name:satpy.composites.GenericCompositor
+        prerequisites:
+        - VIS_006
+        - VIS_008
+        - IR_108
+        standard_name: overview
+
+In the following examples only the composite receipes are shown, and
+the header information (sensor_name, composites) and intendation needs
+to be added.
+
+
+Using modifiers
+_______________
+
+Using other composites
+______________________
+
+Often it is handy to use other composites as a part of the composite.
+In this example we have one composite that relies on solar channels on
+the day side, and another for the night side::
+
+.. code-block:: yaml
+
+    natural_with_night_fog:
+      compositor: !!python/name:satpy.composites.DayNightCompositor
+      prerequisites:
+        - natural_color
+        - night_fog
+      standard_name: natural_with_night_fog
+
+This compositor has two additional keyword arguments that can be
+defined (shown with the default values, thus identical result as
+above)::
+
+.. code-block:: yaml
+
+    natural_with_night_fog:
+      compositor: !!python/name:satpy.composites.DayNightCompositor
+      prerequisites:
+        - natural_color
+        - night_fog
+      lim_low: 85.0
+      lim_high: 95.0
+      standard_name: natural_with_night_fog
+
+Defining other composites in-line
+_________________________________
+
+It is also possible to define sub-composites in-line.  This example is
+the built-in airmass composite::
+
+.. code-block:: yaml
+
+    airmass:
+      compositor: !!python/name:satpy.composites.GenericCompositor
+      prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+        - wavelength: 6.2
+        - wavelength: 7.3
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - wavelength: 9.7
+          - wavelength: 10.8
+      - wavelength: 6.2
+      standard_name: airmass
