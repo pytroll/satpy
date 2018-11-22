@@ -87,7 +87,7 @@ class TestHRITDecompress(unittest.TestCase):
         else:
             os.environ.pop('XRIT_DECOMPRESS_PATH')
 
-        self.assertEqual(res, './bla.__')
+        self.assertEqual(res, os.path.join('.', 'bla.__'))
 
 
 class TestHRITFileHandler(unittest.TestCase):
