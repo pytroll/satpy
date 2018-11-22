@@ -21,6 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """HRIT/LRIT format reader
+***************************
 
 This module is the base module for all HRIT-based formats. Here, you will find
 the common building blocks for hrit reading.
