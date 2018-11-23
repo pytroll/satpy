@@ -197,6 +197,67 @@ class TestFillingCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.sel(bands='B').data, blue.data)
 
 
+class TestLuminanceSharpeningCompositor(unittest.TestCase):
+    """Test luminance sharpening compositor."""
+
+    def test_compositor(self):
+        """Test luminance sharpening compositor."""
+        import numpy as np
+        import xarray as xr
+        from satpy.composites import LuminanceSharpeningCompositor
+        comp = LuminanceSharpeningCompositor(name='test')
+        # Three shades of grey
+        rgb_arr = np.array([1, 50, 100, 200, 1, 50, 100, 200, 1, 50, 100, 200])
+        rgb = xr.DataArray(rgb_arr.reshape((3, 2, 2)),
+                           dims=['bands', 'y', 'x'])
+        # 100 % luminance -> all result values ~1.0
+        lum = xr.DataArray(np.array([[100., 100.], [100., 100.]]),
+                           dims=['y', 'x'])
+        res = comp([lum, rgb])
+        np.testing.assert_allclose(res.data, 1., atol=1e-9)
+        # 50 % luminance, all result values ~0.5
+        lum = xr.DataArray(np.array([[50., 50.], [50., 50.]]),
+                           dims=['y', 'x'])
+        res = comp([lum, rgb])
+        np.testing.assert_allclose(res.data, 0.5, atol=1e-9)
+        # 30 % luminance, all result values ~0.3
+        lum = xr.DataArray(np.array([[30., 30.], [30., 30.]]),
+                           dims=['y', 'x'])
+        res = comp([lum, rgb])
+        np.testing.assert_allclose(res.data, 0.3, atol=1e-9)
+        # 0 % luminance, all values ~0.0
+        lum = xr.DataArray(np.array([[0., 0.], [0., 0.]]),
+                           dims=['y', 'x'])
+        res = comp([lum, rgb])
+        np.testing.assert_allclose(res.data, 0.0, atol=1e-9)
+
+
+class TestSandwichCompositor(unittest.TestCase):
+    """Test sandwich compositor."""
+
+    @mock.patch('satpy.composites.enhance2dataset')
+    def test_compositor(self, e2d):
+        """Test luminance sharpening compositor."""
+        import numpy as np
+        import xarray as xr
+        from satpy.composites import SandwichCompositor
+
+        rgb_arr = np.random.random((3, 2, 2))
+        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'])
+        lum_arr = 100 * np.random.random((2, 2))
+        lum = xr.DataArray(lum_arr, dims=['y', 'x'])
+
+        # Make enhance2dataset return unmodified dataset
+        e2d.return_value = rgb
+        comp = SandwichCompositor(name='test')
+
+        res = comp([lum, rgb])
+
+        for i in range(3):
+            np.testing.assert_allclose(res.data[i, :, :],
+                                       rgb_arr[i, :, :] * lum_arr / 100.)
+
+
 class TestInlineComposites(unittest.TestCase):
     """Test inline composites."""
 
@@ -245,6 +306,8 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestLuminanceSharpeningCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestInlineComposites))
 
     return mysuite
