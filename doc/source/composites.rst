@@ -203,7 +203,7 @@ Example composite configurations
 Here are some examples how composites can be configured so that they
 are directly loadable.  Many composites are already built-in (see
 e.g. satpy/etc/composites/visir.yaml), but the user might want to have
-their own.  In this case the user can point `PPP_CONFIG_DIR`
+their own.  In this case the user can point `$PPP_CONFIG_DIR`
 environment variable to a directory, which has a subdirectory
 `composites` and the composites added to either `visir.yaml` or an
 instrument-specific file, e.g. `seviri.yaml`.
@@ -338,7 +338,11 @@ The first step is to convert the composite to
     >>> from satpy.writers import to_image
     >>> img = to_image(composite)
 
-Now it is possible to apply enhancements::
+.. todo::
+
+    Add a link to XRImage documentation
+
+Now it is possible to apply enhancements available in the class::
 
     >>> img.invert([False, False, True])
     >>> img.stretch("linear")
@@ -349,3 +353,34 @@ And finally either show or save the image::
     >>> img.show()
     >>> img.save('image.tif')
 
+As pointed out in the composite section, it is better to define
+frequently used enhancements in configuration files under
+`$PPP_CONFIG_DIR/enhancements/`.  The enhancements can either be in
+`generic.yaml`, or instrument-specific file, e.g. `seviri.yaml`.
+
+The above enhancement can be written (with the headers necessary for
+the file) as::
+
+  enhancements:
+    overview:
+      standard_name: overview
+      operations:
+        - name: inverse
+          method: !!python/name:satpy.enhancements.invert
+          args: [False, False, True]
+        - name: stretch
+          method: !!python/name:satpy.enhancements.stretch
+          kwargs:
+            stretch: linear
+        - name: gamma
+          method: !!python/name:satpy.enhancements.gamma
+          kwargs:
+            gamma: [1.7, 1.7, 1.7]
+
+More examples can be found in SatPy source code directory
+`satpy/etc/enhancements/generic.yaml`.
+
+.. todo::
+
+    Explain how composite names, composite standard_name, enhancement
+    names, and enhancement standard_name are related to each other
