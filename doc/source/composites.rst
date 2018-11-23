@@ -322,6 +322,30 @@ the built-in airmass composite::
 Enhancing (stretching) the images
 =================================
 
+.. todo::
+
+    Explain how composite names, composite standard_name, enhancement
+    names, and enhancement standard_name are related to each other
+
+    Explain what happens when no enhancement is configured for a
+    product (= use the default enhancement).
+
+    Explain that the methods are often just a wrapper for XRImage
+    methods, but can also be something completely custom.
+
+    List and explain in detail the built-in enhancements:
+
+    - stretch
+    - gamma
+    - invert
+    - crefl_scaling
+    - cira_stretch
+    - lookup
+    - colorize
+    - palettize
+    - three_d_effect
+    - btemp_threshold
+    
 .. note::
 
     Should this be in another file/page?
@@ -380,7 +404,57 @@ the file) as::
 More examples can be found in SatPy source code directory
 `satpy/etc/enhancements/generic.yaml`.
 
-.. todo::
+Built-in enhancement methods
+----------------------------
 
-    Explain how composite names, composite standard_name, enhancement
-    names, and enhancement standard_name are related to each other
+stretch
+_______
+
+The most basic operation is to stretch the image so that the data fits
+to the output format.  There are many different ways to stretch the data.
+
+linear
+******
+
+crude
+*****
+
+histogram
+*********
+
+gamma
+_____
+
+invert
+______
+
+crefl_scaling
+_____________
+
+cira_stretch
+____________
+
+lookup
+______
+
+colorize
+________
+
+palettize
+_________
+
+three_d_effect
+______________
+
+The `three_d_effect` enhancement adds an 3D look to an image by
+convolving with a 3x3 kernel.  User can adjust the strength of the
+effect by determining the weight (default: 1.0).  Example::
+
+    - name: 3d_effect
+      method: !!python/name:satpy.enhancements.three_d_effect
+      kwargs:
+        weight: 1.0
+
+
+btemp_threshold
+_______________
