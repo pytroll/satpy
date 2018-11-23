@@ -38,6 +38,7 @@ installation.
     readers
     composites
     resample
+    enhancements
     writers
     multiscene
     dev_guide/index
