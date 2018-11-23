@@ -73,7 +73,6 @@ with the values of another dataset:::
     >>> composite = compositor([filler, data_with_holes_1, data_with_holes_2,
     ...                         data_with_holes_3])
 
-
 PaletteCompositor
 ------------------
 
@@ -118,7 +117,6 @@ data::
     >>> composite = compositor([local_scene['VIS_006'],
     ...                         local_scene['VIS_008'],
     ...                         local_scene['HRV']])
-
 
 CloudCompositor
 ---------------
@@ -187,7 +185,6 @@ reflectance.
     >>> colorized_ir_clouds = local_scene['colorized_ir_clouds']
     >>> composite = compositor([vis_data, colorized_ir_clouds])
 
-
 Creating composite configuration files
 ======================================
 
@@ -248,7 +245,6 @@ it extends the generic visir composites::
 In the following examples only the composite receipes are shown, and
 the header information (sensor_name, composites) and intendation needs
 to be added.
-
 
 Using modifiers
 _______________
@@ -322,3 +318,34 @@ the built-in airmass composite::
           - wavelength: 10.8
       - wavelength: 6.2
       standard_name: airmass
+
+Enhancing (stretching) the images
+=================================
+
+.. note::
+
+    Should this be in another file/page?
+
+After the composite is defined and created, it needs to be converted
+to an image.  To do this, it is necessary to describe how the data
+values are mapped to values stored in the image format.  This
+procedure is called `stretching`, and in SatPy it is implemented by
+`enhancements`.
+
+The first step is to convert the composite to
+:class:`trollimage.xrimage.XRImage` object::
+
+    >>> from satpy.writers import to_image
+    >>> img = to_image(composite)
+
+Now it is possible to apply enhancements::
+
+    >>> img.invert([False, False, True])
+    >>> img.stretch("linear")
+    >>> img.gamma(1.7)
+
+And finally either show or save the image::
+
+    >>> img.show()
+    >>> img.save('image.tif')
+
