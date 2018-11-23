@@ -112,7 +112,7 @@ more information on the possible parameters.
 Adding a Reader to SatPy
 ========================
 
-Coming soon...
+This is described in the developer guide, see :ref:`custom-reader`
 
 Implemented readers
 ===================
@@ -129,3 +129,4 @@ xRIT-based readers
 .. automodule:: satpy.readers.hrit_goes
 
 .. automodule:: satpy.readers.hrit_electrol
+

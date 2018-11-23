@@ -24,6 +24,7 @@
 import os
 import sys
 from datetime import datetime
+from satpy import DatasetID
 
 import numpy as np
 
@@ -49,7 +50,8 @@ class TestCFWriter(unittest.TestCase):
         end_time = datetime(2018, 5, 30, 10, 15)
         scn['test-array'] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
-                                                    end_time=end_time))
+                                                    end_time=end_time,
+                                                    prerequisites=[DatasetID('hej')]))
         try:
             handle, filename = tempfile.mkstemp()
             os.close(handle)
@@ -57,6 +59,11 @@ class TestCFWriter(unittest.TestCase):
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['test-array'][:] == [1, 2, 3]))
+                expected_prereq = ("DatasetID(name='hej', wavelength=None, "
+                                   "resolution=None, polarization=None, "
+                                   "calibration=None, level=None, modifiers=())")
+                self.assertEqual(f['test-array'].attrs['prerequisites'][0],
+                                 np.string_(expected_prereq))
         finally:
             os.remove(filename)
 

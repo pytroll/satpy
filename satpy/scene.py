@@ -694,26 +694,20 @@ class Scene(MetadataObject):
                 delayed_gen = True
                 continue
             elif not skip:
-                LOG.warning("Missing prerequisite for '{}': '{}'".format(
-                    comp_id, prereq_id))
+                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
                 raise KeyError("Missing composite prerequisite")
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(
-                    comp_id, prereq_id))
+                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         if delayed_gen:
             keepables.add(comp_id)
             keepables.update([x.name for x in prereq_nodes])
-            LOG.warning("Delaying generation of %s "
-                        "because of dependency's delayed generation: %s",
-                        comp_id, prereq_id)
+            LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
             if not skip:
-                LOG.warning("Missing prerequisite for '{}': '{}'".format(
-                    comp_id, prereq_id))
+                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
                 raise KeyError("Missing composite prerequisite")
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(
-                    comp_id, prereq_id))
+                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -763,9 +757,7 @@ class Scene(MetadataObject):
                 self.wishlist.add(cid)
             comp_node.name = cid
         except IncompatibleAreas:
-            LOG.warning("Delaying generation of %s "
-                        "because of incompatible areas",
-                        str(compositor.id))
+            LOG.debug("Delaying generation of %s because of incompatible areas", str(compositor.id))
             preservable_datasets = set(self.datasets.keys())
             prereq_ids = set(p.name for p in prereqs)
             opt_prereq_ids = set(p.name for p in optional_prereqs)
@@ -900,8 +892,8 @@ class Scene(MetadataObject):
             missing = self.missing_datasets.copy()
             self._remove_failed_datasets(keepables)
             missing_str = ", ".join(str(x) for x in missing)
-            LOG.warning(
-                "The following datasets were not created: {}".format(missing_str))
+            LOG.warning("The following datasets were not created and may require "
+                        "resampling to be generated: {}".format(missing_str))
         if unload:
             self.unload(keepables=keepables)
 
@@ -1037,8 +1029,7 @@ class Scene(MetadataObject):
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
-    def save_dataset(self, dataset_id, filename=None, writer=None,
-                     overlay=None, compute=True, **kwargs):
+    def save_dataset(self, dataset_id, filename=None, writer=None, overlay=None, compute=True, **kwargs):
         """Save the *dataset_id* to file using *writer* (default: geotiff)."""
         if writer is None and filename is None:
             writer = 'geotiff'
@@ -1053,8 +1044,7 @@ class Scene(MetadataObject):
                                    overlay=overlay, compute=compute,
                                    **save_kwargs)
 
-    def save_datasets(self, writer="geotiff", datasets=None, compute=True,
-                      **kwargs):
+    def save_datasets(self, writer="geotiff", datasets=None, compute=True, **kwargs):
         """Save all the datasets present in a scene to disk using *writer*."""
         if datasets is not None:
             datasets = [self[ds] for ds in datasets]
@@ -1066,9 +1056,7 @@ class Scene(MetadataObject):
                                "generated or could not be loaded. Requested "
                                "composite inputs may need to have matching "
                                "dimensions (eg. through resampling).")
-        writer, save_kwargs = load_writer(writer,
-                                          ppp_config_dir=self.ppp_config_dir,
-                                          **kwargs)
+        writer, save_kwargs = load_writer(writer, ppp_config_dir=self.ppp_config_dir, **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
 
     @classmethod

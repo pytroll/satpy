@@ -21,6 +21,7 @@ import sys
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.append(os.path.abspath('../../'))
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 from satpy import __version__  # noqa
 
 
@@ -51,13 +52,14 @@ for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
 autodoc_mock_imports = ['h5netcdf', 'pyninjotiff', 'pygac', 'cf', 'glymur', 'pyhdf', 'osgeo', 'mipp']
+autoclass_content = 'both'  # append class __init__ docstring to the class docstring
 
 # -- General configuration -----------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.todo', 'sphinx.ext.coverage',
-              'sphinx.ext.doctest', 'sphinx.ext.napoleon']
+              'sphinx.ext.doctest', 'sphinx.ext.napoleon', 'doi_role']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -126,7 +128,7 @@ pygments_style = 'sphinx'
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = 'default'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -156,6 +158,12 @@ html_theme = 'default'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_context = {
+    'css_files': [
+        '_static/theme_overrides.css',  # override wide tables in RTD theme
+        ],
+     }
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -235,6 +243,8 @@ intersphinx_mapping = {
     'numpy': ('https://docs.scipy.org/doc/numpy', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
-    'dask': ('https://dask.pydata.org/en/latest', None),
+    'dask': ('https://docs.dask.org/en/latest', None),
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
+    'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
+    'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
 }

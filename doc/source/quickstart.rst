@@ -219,6 +219,16 @@ on saving datasets and customizing enhancements see the documentation on
 Troubleshooting
 ===============
 
+When something goes wrong, a first step to take is check that the latest Version
+of satpy and its dependencies are installed. Satpy drags in a few packages as
+dependencies per default, but each reader and writer has it's own dependencies
+which can be unfortunately easy to miss when just doing a regular `pip install`.
+To check the missing dependencies for the readers and writers, a utility
+function called `check_satpy` can be used:
+
+  >>> from satpy.config import check_satpy
+  >>> check_satpy()
+
 Due to the way SatPy works, producing as many datasets as possible, there are
 times that behavior can be unexpected but with no exceptions raised. To help
 troubleshoot these situations log messages can be turned on. To do this run

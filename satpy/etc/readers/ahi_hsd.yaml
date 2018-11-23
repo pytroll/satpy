@@ -1,3 +1,6 @@
+# References:
+#  - Himawari-8/9 Himawari Standard Data User's Guide
+
 reader:
   description: Generic HSD AHI Reader
   name: ahi_hsd

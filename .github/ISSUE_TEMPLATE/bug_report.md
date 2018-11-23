@@ -27,7 +27,8 @@ If applicable, add screenshots to help explain your problem.
 **Environment Info:**
  - OS: [e.g. OSX, Windows, Linux]
  - SatPy Version: [e.g. 0.9.0]
- - PyResample Version: 
+ - PyResample Version:
+ - Readers and writers dependencies (when relevant): [run `from satpy.config import check_satpy; check_satpy()`]
 
 **Additional context**
 Add any other context about the problem here.
