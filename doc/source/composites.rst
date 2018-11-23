@@ -217,8 +217,6 @@ ____________________
 This is the overview composite shown in the first code example above
 using :class:`GenericCompositor`::
 
-.. code-block:: yaml
-
     sensor_name: visir
 
     composites:
@@ -233,9 +231,7 @@ using :class:`GenericCompositor`::
 For an instrument specific version (here MSG/SEVIRI), we should use
 the channel _names_ instead of wavelengths.  Note also that the
 sensor_name is now combination of visir and seviri, which means that
-it extends the generic visir composites.
-
-.. code-block:: yaml
+it extends the generic visir composites::
 
     sensor_name: visir/seviri
 
@@ -257,14 +253,13 @@ to be added.
 Using modifiers
 _______________
 
+
 Using other composites
 ______________________
 
 Often it is handy to use other composites as a part of the composite.
 In this example we have one composite that relies on solar channels on
 the day side, and another for the night side::
-
-.. code-block:: yaml
 
     natural_with_night_fog:
       compositor: !!python/name:satpy.composites.DayNightCompositor
@@ -276,8 +271,6 @@ the day side, and another for the night side::
 This compositor has two additional keyword arguments that can be
 defined (shown with the default values, thus identical result as
 above)::
-
-.. code-block:: yaml
 
     natural_with_night_fog:
       compositor: !!python/name:satpy.composites.DayNightCompositor
@@ -293,8 +286,6 @@ _________________________________
 
 It is also possible to define sub-composites in-line.  This example is
 the built-in airmass composite::
-
-.. code-block:: yaml
 
     airmass:
       compositor: !!python/name:satpy.composites.GenericCompositor
