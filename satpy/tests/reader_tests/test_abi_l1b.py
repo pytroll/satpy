@@ -85,7 +85,8 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
             "earth_sun_distance_anomaly_in_AU": np.array(0.99)}, {})
 
         self.reader = NC_ABI_L1B('filename',
-                                 {'platform_shortname': 'G16'},
+                                 {'platform_shortname': 'G16', 'observation_type': 'Rad',
+                                  'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
 
     def test_ir_calibrate(self):
@@ -153,7 +154,8 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
             })
 
         self.reader = NC_ABI_L1B('filename',
-                                 {'platform_shortname': 'G16'},
+                                 {'platform_shortname': 'G16', 'observation_type': 'Rad',
+                                  'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
 
     def test_bad_calibration(self):
@@ -221,7 +223,8 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
             'Rad': np.ones((2, 2))}, {})
 
         self.reader = NC_ABI_L1B('filename',
-                                 {'platform_shortname': 'G16'},
+                                 {'platform_shortname': 'G16', 'observation_type': 'Rad',
+                                  'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
 
     @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')

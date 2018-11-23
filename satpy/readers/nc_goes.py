@@ -508,7 +508,7 @@ class GOESNCFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(GOESNCFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks={'xc': CHUNK_SIZE, 'yc': CHUNK_SIZE})
@@ -658,10 +658,10 @@ class GOESNCFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         """End timestamp of the dataset"""
-        if self.sector is not None:
+        try:
             return self.start_time + SCAN_DURATION[self.sector]
-
-        return self.start_time
+        except KeyError:
+            return self.start_time
 
     @property
     def resolution(self):

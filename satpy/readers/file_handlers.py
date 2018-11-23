@@ -35,7 +35,7 @@ from satpy.dataset import combine_metadata
 class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
 
     def __init__(self, filename, filename_info, filetype_info):
-        self.filename = filename
+        self.filename = str(filename)
         self.navigation_reader = None
         self.filename_info = filename_info
         self.filetype_info = filetype_info

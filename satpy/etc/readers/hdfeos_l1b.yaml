@@ -423,44 +423,44 @@ datasets:
   longitude5k:
     file_type: hdf_eos_data_1000m
     name: longitude
-    resolution: 5000
+    resolution: [5000, 1000]
     standard_name: longitude
     units: degree
 
   latitude5k:
     file_type: hdf_eos_data_1000m
     name: latitude
-    resolution: 5000
+    resolution: [5000, 1000]
     standard_name: latitude
     units: degree
 
   solar_zenith_angle:
     name: solar_zenith_angle
     sensor: modis
-    resolution: 1000
+    resolution: [1000, 500, 250]
     coordinates: [longitude, latitude]
-    file_type: hdf_eos_geo
+    file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
   solar_azimuth_angle:
     name: solar_azimuth_angle
     sensor: modis
-    resolution: 1000
+    resolution: [1000, 500, 250]
     coordinates: [longitude, latitude]
-    file_type: hdf_eos_geo
+    file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
   satellite_zenith_angle:
     name: satellite_zenith_angle
     sensor: modis
-    resolution: 1000
+    resolution: [1000, 500, 250]
     coordinates: [longitude, latitude]
-    file_type: hdf_eos_geo
+    file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
   satellite_azimuth_angle:
     name: satellite_azimuth_angle
     sensor: modis
-    resolution: 1000
+    resolution: [1000, 500, 250]
     coordinates: [longitude, latitude]
-    file_type: hdf_eos_geo
+    file_type: [hdf_eos_geo, hdf_eos_data_1000m]
 
 
 file_types:
@@ -488,7 +488,8 @@ file_types:
     - 'thin_M{platform_indicator:1s}D021KM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D021KM.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.1000m.hdf'
-    file_reader: !!python/name:satpy.readers.hdfeos_l1b.HDFEOSBandReader
+    - 'M{platform_indicator:1s}D021KM_A{start_time:%Y%j_%H%M}_{collection:03d}_NRT.hdf'
+    file_reader: !!python/name:satpy.readers.hdfeos_l1b.MixedHDFEOSReader
   hdf_eos_geo:
     file_patterns:
     - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'

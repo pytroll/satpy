@@ -687,6 +687,15 @@ class GenericCompositor(CompositeBase):
                             dims=data.dims, coords=data.coords)
 
 
+class FillingCompositor(GenericCompositor):
+    """Make a regular RGB, filling the RGB bands with the first provided dataset's values."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        projectables[1] = projectables[1].fillna(projectables[0])
+        projectables[2] = projectables[2].fillna(projectables[0])
+        projectables[3] = projectables[3].fillna(projectables[0])
+        return super(FillingCompositor, self).__call__(projectables[1:], **info)
+
 class RGBCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
@@ -810,9 +819,7 @@ class PaletteCompositor(ColormapCompositor):
 
 
 class DayNightCompositor(GenericCompositor):
-
-    """A compositor that takes one composite on the night side, another on day
-    side, and then blends them together."""
+    """A compositor that blends a day data with night data."""
 
     def __init__(self, lim_low=85., lim_high=95., **kwargs):
         """Collect custom configuration values.
@@ -828,7 +835,6 @@ class DayNightCompositor(GenericCompositor):
         super(DayNightCompositor, self).__init__(**kwargs)
 
     def __call__(self, projectables, **kwargs):
-
         projectables = self.check_areas(projectables)
 
         day_data = projectables[0]
@@ -867,6 +873,10 @@ class DayNightCompositor(GenericCompositor):
         day_data = add_bands(day_data, night_data['bands'])
         night_data = add_bands(night_data, day_data['bands'])
 
+        # Replace missing channel data with zeros
+        day_data = zero_missing_data(day_data, night_data)
+        night_data = zero_missing_data(night_data, day_data)
+
         # Get merged metadata
         attrs = combine_metadata(day_data, night_data)
 
@@ -877,9 +887,7 @@ class DayNightCompositor(GenericCompositor):
         # Split to separate bands so the mode is correct
         data = [data.sel(bands=b) for b in data['bands']]
 
-        res = super(DayNightCompositor, self).__call__(data, **kwargs)
-
-        return res
+        return super(DayNightCompositor, self).__call__(data, **kwargs)
 
 
 def enhance2dataset(dset):
@@ -917,6 +925,12 @@ def add_bands(data, bands):
         data = new_data
 
     return data
+
+
+def zero_missing_data(data1, data2):
+    """Replace NaN values with zeros in data1 if the data is valid in data2."""
+    nans = xu.logical_and(xu.isnan(data1), xu.logical_not(xu.isnan(data2)))
+    return data1.where(~nans, 0)
 
 
 class Airmass(GenericCompositor):

@@ -102,8 +102,6 @@ file_types:
         - 'IMG_DK01B16_{start_time:%Y%m%d%H%M}_{segment:03d}'
         - 'IMG_DK01B16_{start_time:%Y%m%d%H%M}'
 
-
-
 datasets:
   B01:
     name: B01
