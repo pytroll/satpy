@@ -258,6 +258,44 @@ class TestSandwichCompositor(unittest.TestCase):
                                        rgb_arr[i, :, :] * lum_arr / 100.)
 
 
+class TestInlineComposites(unittest.TestCase):
+    """Test inline composites."""
+
+    def test_inline_composites(self):
+        """Test that inline composites are working."""
+        from satpy.composites import CompositorLoader
+        cl_ = CompositorLoader()
+        cl_.load_sensor_composites('visir')
+        comps = cl_.compositors
+        # Check that "fog" product has all its prerequisites defined
+        keys = comps['visir'].keys()
+        fog = [comps['visir'][dsid] for dsid in keys if "fog" == dsid.name][0]
+        self.assertEqual(fog.attrs['prerequisites'][0], 'fog_dep_0')
+        self.assertEqual(fog.attrs['prerequisites'][1], 'fog_dep_1')
+        self.assertEqual(fog.attrs['prerequisites'][2], 10.8)
+
+        # Check that the sub-composite dependencies use wavelengths
+        # (numeric values)
+        keys = comps['visir'].keys()
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid.name]
+        self.assertEqual(comps['visir'][fog_dep_ids[0]].attrs['prerequisites'],
+                         [12.0, 10.8])
+        self.assertEqual(comps['visir'][fog_dep_ids[1]].attrs['prerequisites'],
+                         [10.8, 8.7])
+
+        # Check the same for SEVIRI and verify channel names are used
+        # in the sub-composite dependencies instead of wavelengths
+        cl_ = CompositorLoader()
+        cl_.load_sensor_composites('seviri')
+        comps = cl_.compositors
+        keys = comps['seviri'].keys()
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid.name]
+        self.assertEqual(comps['seviri'][fog_dep_ids[0]].attrs['prerequisites'],
+                         ['IR_120', 'IR_108'])
+        self.assertEqual(comps['seviri'][fog_dep_ids[1]].attrs['prerequisites'],
+                         ['IR_108', 'IR_087'])
+
+
 def suite():
     """Test suite for all reader tests"""
     loader = unittest.TestLoader()
@@ -270,6 +308,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestLuminanceSharpeningCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestInlineComposites))
 
     return mysuite
 
