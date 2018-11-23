@@ -2,23 +2,26 @@
 Composites
 ==========
 
-Documentation coming soon...
+Built-in Compositors
+====================
 
-Modifiers
-=========
+.. py:currentmodule:: satpy.composites
 
-Compositors
-===========
-
-There are several different built-in compositors available in SatPy.
-All of them should eventually use :class:`GenericCompositor` class,
-which handles all the different image modes (`L`, `LA`, `RGB` and
+There are several built-in compositors available in SatPy.
+All of them use the :class:`GenericCompositor` base class
+which handles various image modes (`L`, `LA`, `RGB`, and
 `RGBA` at the moment) and updates attributes.
 
-Below is shown how to create composites within the Python code, but
-the preferred way for repeated use is to store the composite receipes
-to general-use (e.g. `visir.yaml`) or instrument-specific
-(e.g. `seviri.yaml`) configuration files, see LINK HERE.
+The below sections summarize the composites that come with SatPy and
+show basic examples of creating and using them with an existing
+:class:`~satpy.scene.Scene` object. It is recommended that any composites
+that are used repeatedly be configured in YAML configuration files.
+General-use compositor code dealing with visible or infrared satellite
+data can be put in a configuration file called ``visir.yaml``. Composites
+that are specific to an instrument can be placed in YAML config files named
+accordingly (e.g., ``seviri.yaml`` or ``viirs.yaml``). See the
+`satpy repository <https://github.com/pytroll/satpy/tree/master/satpy/etc/composites>`_
+for more examples.
 
 GenericCompositor
 -----------------
@@ -191,25 +194,22 @@ Creating composite configuration files
 To save the custom composite, the following procedure can be used:
 
 1. Create a custom directory for your custom configs.
-2. Set it in the environment variable called PPP_CONFIG_DIR.
-3. Write config files with your changes only (see examples below), pointing to the (custom) module containing your composites. Don't forget to add changes to the enhancement/generic.yaml file too.
-4. If custom compositors were created, add the module in the python path.
+2. Set the environment variable ``PPP_CONFIG_DIR`` to this path.
+3. Write config files with your changes only (see examples below), pointing
+   to the (custom) module containing your composites. Generic compositors can
+   be placed in ``$PPP_CONFIG_DIR/composites/visir.yaml`` and instrument-
+   specific ones in ``$PPP_CONFIG_DIR/composites/<sensor>.yaml``. Don't forget
+   to add changes to the ``enhancement/generic.yaml`` file too.
+4. If custom compositing code was used then it must be importable by python.
+   If the code is not installed in your python environment then another option
+   it to add it to your ``PYTHONPATH``.
 
-With that, you should be able to load your new composite directly.
-
-Example composite configurations
---------------------------------
-
-Here are some examples how composites can be configured so that they
-are directly loadable.  Many composites are already built-in (see
-e.g. satpy/etc/composites/visir.yaml), but the user might want to have
-their own.  In this case the user can point `$PPP_CONFIG_DIR`
-environment variable to a directory, which has a subdirectory
-`composites` and the composites added to either `visir.yaml` or an
-instrument-specific file, e.g. `seviri.yaml`.
+With that, you should be able to load your new composite directly. Example
+configuration files can be found in the satpy repository as well as a few
+simple examples below.
 
 Simple RGB composite
-____________________
+--------------------
 
 This is the overview composite shown in the first code example above
 using :class:`GenericCompositor`::
@@ -247,7 +247,7 @@ the header information (sensor_name, composites) and intendation needs
 to be added.
 
 Using modifiers
-_______________
+---------------
 
 In many cases the basic datasets need to be adjusted, e.g. for Solar
 zenith angle normalization.  These modifiers can be applied in the
@@ -273,7 +273,7 @@ The modifier above is a built-in that normalizes the Solar zenith
 angle to Sun being directly at the zenith.
 
 Using other composites
-______________________
+----------------------
 
 Often it is handy to use other composites as a part of the composite.
 In this example we have one composite that relies on solar channels on
@@ -300,7 +300,7 @@ above)::
       standard_name: natural_with_night_fog
 
 Defining other composites in-line
-_________________________________
+---------------------------------
 
 It is also possible to define sub-composites in-line.  This example is
 the built-in airmass composite::
@@ -319,8 +319,8 @@ the built-in airmass composite::
       - wavelength: 6.2
       standard_name: airmass
 
-Enhancing (stretching) the images
-=================================
+Enhancing the images
+====================
 
 .. todo::
 
@@ -346,25 +346,21 @@ Enhancing (stretching) the images
     - three_d_effect
     - btemp_threshold
     
-.. note::
+.. todo::
 
     Should this be in another file/page?
 
 After the composite is defined and created, it needs to be converted
 to an image.  To do this, it is necessary to describe how the data
 values are mapped to values stored in the image format.  This
-procedure is called `stretching`, and in SatPy it is implemented by
-`enhancements`.
+procedure is called ``stretching``, and in SatPy it is implemented by
+``enhancements``.
 
-The first step is to convert the composite to
-:class:`trollimage.xrimage.XRImage` object::
+The first step is to convert the composite to an
+:class:`~trollimage.xrimage.XRImage` object::
 
     >>> from satpy.writers import to_image
     >>> img = to_image(composite)
-
-.. todo::
-
-    Add a link to XRImage documentation
 
 Now it is possible to apply enhancements available in the class::
 
@@ -379,8 +375,8 @@ And finally either show or save the image::
 
 As pointed out in the composite section, it is better to define
 frequently used enhancements in configuration files under
-`$PPP_CONFIG_DIR/enhancements/`.  The enhancements can either be in
-`generic.yaml`, or instrument-specific file, e.g. `seviri.yaml`.
+``$PPP_CONFIG_DIR/enhancements/``.  The enhancements can either be in
+``generic.yaml`` or instrument-specific file (e.g., ``seviri.yaml``).
 
 The above enhancement can be written (with the headers necessary for
 the file) as::
@@ -402,87 +398,7 @@ the file) as::
             gamma: [1.7, 1.7, 1.7]
 
 More examples can be found in SatPy source code directory
-`satpy/etc/enhancements/generic.yaml`.
+``satpy/etc/enhancements/generic.yaml``.
 
-Built-in enhancement methods
-----------------------------
-
-stretch
-_______
-
-The most basic operation is to stretch the image so that the data fits
-to the output format.  There are many different ways to stretch the
-data, which are configured by giving them in `kwargs` dictionary, like
-in the example above.  The default, if nothing else is defined, is to
-apply a linear stretch.  For more details, see below.
-
-linear
-******
-
-As the name suggests, linear stretch converts the input values to
-output values in a linear fashion.  By default, 5 % of the data is cut
-on both ends of the scale, but these can be overriden with
-`cutoffs=(0.005, 0.005)` argument::
-
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
-      kwargs:
-        stretch: linear
-        cutoffs: (0.003, 0.005)
-
-crude
-*****
-
-The crude stretching is used to limit the input values to a certain
-range.  After this clipping the data is stretched linearly (without
-cutoffs!) to fill the output range.  Example::
-
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
-      kwargs:
-        stretch: crude
-        min_stretch: [0, 0, 0]
-        max_stretch: [100, 100, 100]
-
-It is worth to not, that this stretch can also be used to _invert_ the
-data by giving larger values to the min_stretch than to max_stretch.
-
-histogram
-*********
-
-gamma
-_____
-
-invert
-______
-
-crefl_scaling
-_____________
-
-cira_stretch
-____________
-
-lookup
-______
-
-colorize
-________
-
-palettize
-_________
-
-three_d_effect
-______________
-
-The `three_d_effect` enhancement adds an 3D look to an image by
-convolving with a 3x3 kernel.  User can adjust the strength of the
-effect by determining the weight (default: 1.0).  Example::
-
-    - name: 3d_effect
-      method: !!python/name:satpy.enhancements.three_d_effect
-      kwargs:
-        weight: 1.0
-
-
-btemp_threshold
-_______________
+See the :doc:`enhancements` documentation for more information on
+available built-in enhancements.

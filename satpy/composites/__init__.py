@@ -1171,7 +1171,6 @@ class RatioSharpenedRGB(GenericCompositor):
 
 
 class SelfSharpenedRGB(RatioSharpenedRGB):
-
     """Sharpen RGB with ratio of a band with a strided-version of itself.
 
     Example:
@@ -1183,7 +1182,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         ratio = R / four_element_average(R)
         new_R = R
         new_G = G
-
 
     """
 
