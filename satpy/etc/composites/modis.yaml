@@ -67,15 +67,16 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: overview
 
-  airmass_corr:
-    compositor: !!python/name:satpy.composites.Airmass
+  airmass:
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.7
+      - wavelength: 7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 9.7
+        - wavelength: 10.8
     - wavelength: 6.7
-      modifiers: [atm_correction]
-    - wavelength: 7.3
-      modifiers: [atm_correction]
-    - wavelength: 9.7
-      modifiers: [atm_correction]
-    - wavelength: 10.8
-      modifiers: [atm_correction]
     standard_name: airmass

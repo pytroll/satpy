@@ -139,7 +139,6 @@ class CompositorLoader(object):
 
         compositors = self.compositors[sensor_id]
         modifiers = self.modifiers[sensor_id]
-
         try:
             options = conf[composite_type][composite_name]
             loader = options.pop('compositor')
@@ -152,12 +151,24 @@ class CompositorLoader(object):
         options['name'] = composite_name
         for prereq_type in ['prerequisites', 'optional_prerequisites']:
             prereqs = []
+            dep_num = 0
             for item in options.get(prereq_type, []):
                 if isinstance(item, dict):
-                    # we want this prerequisite to act as a query with
-                    # 'modifiers' being None otherwise it will be an empty
-                    # tuple
-                    item.setdefault('modifiers', None)
+                    # Handle in-line composites
+                    if 'compositor' in item:
+                        # Create an unique temporary name for the composite
+                        sub_comp_name = composite_name + '_dep_{}'.format(dep_num)
+                        dep_num += 1
+                        # Minimal composite config
+                        sub_conf = {composite_type: {sub_comp_name: item}}
+                        self._process_composite_config(
+                            sub_comp_name, sub_conf, composite_type, sensor_id,
+                            composite_config, **kwargs)
+                    else:
+                        # we want this prerequisite to act as a query with
+                        # 'modifiers' being None otherwise it will be an empty
+                        # tuple
+                        item.setdefault('modifiers', None)
                     key = DatasetID.from_dict(item)
                     prereqs.append(key)
                 else:
@@ -423,8 +434,6 @@ class PSPRayleighReflectance(CompositeBase):
             suna = suna.data
             sunz = sunz.data
 
-        LOG.info('Removing Rayleigh scattering and aerosol absorption')
-
         # First make sure the two azimuth angles are in the range 0-360:
         sata = sata % 360.
         suna = suna % 360.
@@ -436,6 +445,8 @@ class PSPRayleighReflectance(CompositeBase):
         aerosol_type = self.attrs.get('aerosol_type', 'marine_clean_aerosol')
         rayleigh_key = (vis.attrs['platform_name'],
                         vis.attrs['sensor'], atmosphere, aerosol_type)
+        LOG.info("Removing Rayleigh scattering with atmosphere '{}' and aerosol type '{}' for '{}'".format(
+            atmosphere, aerosol_type, vis.attrs['name']))
         if rayleigh_key not in self._rayleigh_cache:
             corrector = Rayleigh(vis.attrs['platform_name'], vis.attrs['sensor'],
                                  atmosphere=atmosphere,
@@ -948,6 +959,9 @@ class Airmass(GenericCompositor):
         | WV6.2              |   243 to 208 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
+        import warnings
+        warnings.warn("Airmass compositor is deprecated, use GenericCompositor "
+                      "with DifferenceCompositor instead.", DeprecationWarning)
         ch1 = sub_arrays(projectables[0], projectables[1])
         ch2 = sub_arrays(projectables[2], projectables[3])
         res = super(Airmass, self).__call__((ch1, ch2,
@@ -971,6 +985,10 @@ class Convection(GenericCompositor):
         | IR1.6 - VIS0.6     |    -70 to 20 %     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
+        import warnings
+        warnings.warn("Convection ompositor is deprecated, use GenericCompositor "
+                      "with DifferenceCompositor instead.", DeprecationWarning)
+
         ch1 = sub_arrays(projectables[3], projectables[4])
         ch2 = sub_arrays(projectables[2], projectables[5])
         ch3 = sub_arrays(projectables[1], projectables[0])
@@ -1006,6 +1024,10 @@ class Dust(GenericCompositor):
         | IR10.8             |   261 to 289 K     | gamma 1            |
         +--------------------+--------------------+--------------------+
         """
+        import warnings
+        warnings.warn("Dust compositor is deprecated, use GenericCompositor "
+                      "with DifferenceCompositor instead.", DeprecationWarning)
+
         ch1 = sub_arrays(projectables[2], projectables[1])
         ch2 = sub_arrays(projectables[1], projectables[0])
         res = super(Dust, self).__call__((ch1, ch2,
