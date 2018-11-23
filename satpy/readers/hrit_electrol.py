@@ -271,8 +271,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         satellite_id = self.prologue['SatelliteStatus']['SatelliteID']
         self.platform_name = SPACECRAFTS[satellite_id]
 
-    def get_dataset(self, key, info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, key, info):
         """Get the data  from the files."""
         res = super(HRITGOMSFileHandler, self).get_dataset(key, info)
 
