@@ -666,3 +666,33 @@ enhancements:
         method: *3d_filter
         kwargs:
           weight: 1.0
+
+  colorized_ir_clouds:
+    standard_name: colorized_ir_clouds
+    operations:
+      - name: colorize
+        method: &colorizefun !!python/name:satpy.enhancements.colorize ''
+        kwargs:
+          palettes:
+            - {colors: spectral, min_value: 203.15, max_value: 243.149999}
+            - {colors: greys, min_value: 243.15, max_value: 303.15}
+
+  vis_sharpened_ir:
+    standard_name: vis_sharpened_ir
+    operations:
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [1, 1, 1]
+
+  ir_sandwich:
+    standard_name: ir_sandwich
+    operations:
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [1, 1, 1]

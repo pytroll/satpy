@@ -1272,3 +1272,76 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
         return super(SelfSharpenedRGB, self).__call__(
             (red, green, blue), optional_datasets=(high_res,), **attrs)
+
+
+class LuminanceSharpeningCompositor(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        from trollimage.image import rgb2ycbcr, ycbcr2rgb
+
+        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
+        if (attrs.get('area') is None and
+                projectables[0].attrs.get('area') is not None and
+                projectables[1].attrs.get('area') is not None):
+            raise IncompatibleAreas
+
+        luminance = projectables[0].copy()
+        luminance /= 100.
+        # Limit between min(luminance) ... 1.0
+        luminance = da.where(luminance > 1., 1., luminance)
+
+        # Get the enhanced version of the composite to be sharpened
+        rgb_img = enhance2dataset(projectables[1])
+
+        # This all will be eventually replaced with trollimage convert() method
+        # ycbcr_img = rgb_img.convert('YCbCr')
+        # ycbcr_img.data[0, :, :] = luminance
+        # rgb_img = ycbcr_img.convert('RGB')
+
+        # Replace luminance of the IR composite
+        y__, cb_, cr_ = rgb2ycbcr(rgb_img.data[0, :, :],
+                                  rgb_img.data[1, :, :],
+                                  rgb_img.data[2, :, :])
+
+        r__, g__, b__ = ycbcr2rgb(luminance, cb_, cr_)
+        y_size, x_size = r__.shape
+        r__ = da.reshape(r__, (1, y_size, x_size))
+        g__ = da.reshape(g__, (1, y_size, x_size))
+        b__ = da.reshape(b__, (1, y_size, x_size))
+
+        rgb_img.data = da.vstack((r__, g__, b__))
+
+        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
+
+        return res
+
+
+class SandwichCompositor(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+
+        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
+        if (attrs.get('area') is None and
+                projectables[0].attrs.get('area') is not None and
+                projectables[1].attrs.get('area') is not None):
+            raise IncompatibleAreas
+
+        luminance = projectables[0].copy()
+        luminance /= 100.
+        # Limit between min(luminance) ... 1.0
+        luminance = da.where(luminance > 1., 1., luminance)
+
+        # Get the enhanced version of the RGB composite to be sharpened
+        rgb_img = enhance2dataset(projectables[1])
+
+        data = []
+        for band in rgb_img['bands'].data:
+            data.append(luminance * rgb_img.sel(bands=band))
+
+        data = da.vstack(data)
+        rgb_img.data = da.reshape(data,
+                                  (3, luminance.shape[0], luminance.shape[1]))
+
+        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
+
+        return res
