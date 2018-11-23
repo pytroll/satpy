@@ -411,13 +411,41 @@ stretch
 _______
 
 The most basic operation is to stretch the image so that the data fits
-to the output format.  There are many different ways to stretch the data.
+to the output format.  There are many different ways to stretch the
+data, which are configured by giving them in `kwargs` dictionary, like
+in the example above.  The default, if nothing else is defined, is to
+apply a linear stretch.  For more details, see below.
 
 linear
 ******
 
+As the name suggests, linear stretch converts the input values to
+output values in a linear fashion.  By default, 5 % of the data is cut
+on both ends of the scale, but these can be overriden with
+`cutoffs=(0.005, 0.005)` argument::
+
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: linear
+        cutoffs: (0.003, 0.005)
+
 crude
 *****
+
+The crude stretching is used to limit the input values to a certain
+range.  After this clipping the data is stretched linearly (without
+cutoffs!) to fill the output range.  Example::
+
+    - name: stretch
+      method: !!python/name:satpy.enhancements.stretch
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [100, 100, 100]
+
+It is worth to not, that this stretch can also be used to _invert_ the
+data by giving larger values to the min_stretch than to max_stretch.
 
 histogram
 *********
