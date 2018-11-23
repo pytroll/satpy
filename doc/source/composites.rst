@@ -253,6 +253,28 @@ to be added.
 Using modifiers
 _______________
 
+In many cases the basic datasets need to be adjusted, e.g. for Solar
+zenith angle normalization.  These modifiers can be applied in the
+following way::
+
+      overview:
+        compositor: !!python/name:satpy.composites.GenericCompositor
+        prerequisites:
+        - name: VIS_006
+          modifiers: [sunz_corrected]
+        - name: VIS_008
+          modifiers: [sunz_corrected]
+        - IR_108
+        standard_name: overview
+
+Here we see two changes:
+
+1. channels with modifiers need to have either `name` or `wavelength`
+   added in front of the channel name or wavelength, respectively
+2. a list of modifiers attached to the dictionary defining the channel
+
+The modifier above is a built-in that normalizes the Solar zenith
+angle to Sun being directly at the zenith.
 
 Using other composites
 ______________________
