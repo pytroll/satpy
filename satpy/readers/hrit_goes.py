@@ -21,7 +21,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""GOES HRIT format reader.
+"""GOES HRIT format reader
+****************************
 
 References:
       LRIT/HRIT Mission Specific Implementation, February 2012

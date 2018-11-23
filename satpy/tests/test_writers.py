@@ -212,7 +212,7 @@ sensor_name: visir/test_sensor2
         self.assertIsNotNone(e.enhancement_tree)
         get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {self.ENH_FN3})
+                            {os.path.abspath(self.ENH_FN3)})
 
     def test_enhance_with_sensor_no_entry(self):
         """Test enhancing an image that has no configuration sections."""
@@ -225,7 +225,8 @@ sensor_name: visir/test_sensor2
         self.assertIsNotNone(e.enhancement_tree)
         get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {self.ENH_FN2, self.ENH_ENH_FN2})
+                            {os.path.abspath(self.ENH_FN2),
+                             os.path.abspath(self.ENH_ENH_FN2)})
 
     def test_deprecated_enhance_with_file_specified(self):
         """Test enhancing an image when config file is specified."""
@@ -259,7 +260,8 @@ sensor_name: visir/test_sensor2
         img = get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(
             set(e.sensor_enhancement_configs),
-            {self.ENH_FN, self.ENH_ENH_FN})
+            {os.path.abspath(self.ENH_FN),
+             os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values,
                                        1.)
 
@@ -270,7 +272,8 @@ sensor_name: visir/test_sensor2
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {self.ENH_FN, self.ENH_ENH_FN})
+                            {os.path.abspath(self.ENH_FN),
+                             os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 1.)
 
     def test_enhance_with_sensor_entry2(self):
@@ -285,7 +288,8 @@ sensor_name: visir/test_sensor2
         self.assertIsNotNone(e.enhancement_tree)
         img = get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {self.ENH_FN, self.ENH_ENH_FN})
+                            {os.path.abspath(self.ENH_FN),
+                             os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
 
 

@@ -22,16 +22,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""SEVIRI HRIT format reader.
+"""SEVIRI HRIT format reader
+******************************
 
 References:
     - MSG Level 1.5 Image Data Format Description
     - Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent
       Spectral Blackbody Radiance
 
-
-TODO:
-- HRV navigation
 
 """
 
