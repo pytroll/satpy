@@ -24,9 +24,7 @@
 """
 
 import sys
-
 import numpy as np
-
 from satpy.readers.msg_base import dec10216
 
 if sys.version_info < (2, 7):
@@ -34,16 +32,9 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 
 class TestDec10216(unittest.TestCase):
-
-    """Test the dec10216 function.
-    """
+    """Test the dec10216 function."""
 
     def test_dec10216(self):
         res = dec10216(np.array([255, 255, 255, 255, 255], dtype=np.uint8))
@@ -55,14 +46,8 @@ class TestDec10216(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_scene.
-    """
+    """The test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestDec10216))
     return mysuite
-
-
-if __name__ == "__main__":
-    # So you can run tests from this module individually.
-    unittest.main()

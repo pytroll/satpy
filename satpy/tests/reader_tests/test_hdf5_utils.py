@@ -126,11 +126,9 @@ class TestHDF5FileHandler(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_hdf5_utils.
-    """
+    """The test suite for test_hdf5_utils."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHDF5FileHandler))
 
     return mysuite
-
