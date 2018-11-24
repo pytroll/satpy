@@ -35,23 +35,23 @@ use_step_matcher("re")
 
 
 @given(u'data is available')
-def step_impl(context):
+def step_impl_data_available(context):
     if not os.path.exists('/tmp/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5'):
-        response = urlopen(
-            'https://zenodo.org/record/16355/files/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5')
+        response = urlopen('https://zenodo.org/record/16355/files/'
+                           'SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5')
         with open('/tmp/SVM02_npp_d20150311_t1122204_e1123446_b17451_c20150311113206961730_cspp_dev.h5',
                   mode="w") as fp:
             fp.write(response.read())
     if not os.path.exists('/tmp/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5'):
-        response = urlopen(
-            'https://zenodo.org/record/16355/files/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5')
+        response = urlopen('https://zenodo.org/record/16355/files/'
+                           'GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5')
         with open('/tmp/GMTCO_npp_d20150311_t1122204_e1123446_b17451_c20150311113205873710_cspp_dev.h5',
                   mode="w") as fp:
             fp.write(response.read())
 
 
 @when(u'user loads the data without providing a config file')
-def step_impl(context):
+def step_impl_user_loads_no_config(context):
     from satpy import Scene, find_files_and_readers
     from datetime import datetime
     os.chdir("/tmp/")
@@ -64,22 +64,22 @@ def step_impl(context):
 
 
 @then(u'the data is available in a scene object')
-def step_impl(context):
+def step_impl_data_available_in_scene(context):
     assert (context.scene["M02"] is not None)
     try:
         context.scene["M01"] is None
-        assert (False)
+        assert False
     except KeyError:
-        assert (True)
+        assert True
 
 
 @when(u'some items are not available')
-def step_impl(context):
+def step_impl_items_not_available(context):
     context.scene.load(["M01"])
 
 
 @when(u'user wants to know what data is available')
-def step_impl(context):
+def step_impl_user_checks_availability(context):
     from satpy import Scene, find_files_and_readers
     from datetime import datetime
     os.chdir("/tmp/")
@@ -90,14 +90,14 @@ def step_impl(context):
     context.available_dataset_ids = scn.available_dataset_ids()
 
 
-@then(u'available datasets is returned')
-def step_impl(context):
+@then(u'available datasets are returned')
+def step_impl_available_datasets_are_returned(context):
     assert (len(context.available_dataset_ids) >= 5)
 
 
 @given("datasets with the same name")
-def step_impl(context):
-    """Datasets with the same name but different other ID parameters"""
+def step_impl_datasets_with_same_name(context):
+    """Datasets with the same name but different other ID parameters."""
     from satpy import Scene
     from xarray import DataArray
     from satpy.dataset import DatasetID
@@ -107,17 +107,18 @@ def step_impl(context):
     scn[DatasetID('ds1', resolution=250, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
     scn[DatasetID('ds1', resolution=1000, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
     scn[DatasetID('ds1', resolution=500, calibration='radiance', modifiers=('mod1',))] = DataArray([[5, 6], [7, 8]])
-    scn[DatasetID('ds1', resolution=1000, calibration='radiance', modifiers=('mod1', 'mod2'))] = DataArray([[5, 6], [7, 8]])
+    ds_id = DatasetID('ds1', resolution=1000, calibration='radiance', modifiers=('mod1', 'mod2'))
+    scn[ds_id] = DataArray([[5, 6], [7, 8]])
     context.scene = scn
 
 
 @when("a dataset is retrieved by name")
-def step_impl(context):
-    """Use the Scene's getitem method to get a dataset"""
+def step_impl_dataset_retrieved_by_name(context):
+    """Use the Scene's getitem method to get a dataset."""
     context.returned_dataset = context.scene['ds1']
 
 
 @then("the least modified version of the dataset is returned")
-def step_impl(context):
-    """The dataset should be one of the least modified datasets"""
+def step_impl_least_modified_dataset_returned(context):
+    """The dataset should be one of the least modified datasets."""
     assert(len(context.returned_dataset.attrs['modifiers']) == 0)
