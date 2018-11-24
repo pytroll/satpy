@@ -36,6 +36,7 @@ from datetime import datetime
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
 # FIXME: This is not xarray/dask compatible
+# TODO: Once migrated to xarray/dask, remove ignored path in setup.cfg
 from satpy.dataset import Dataset
 
 logger = logging.getLogger(__name__)
