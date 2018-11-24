@@ -66,10 +66,11 @@ In this release 13 issues were closed.
 * [PR 443](https://github.com/pytroll/satpy/pull/443) - Add long_description to setup.py ([397](https://github.com/pytroll/satpy/issues/397))
 * [PR 440](https://github.com/pytroll/satpy/pull/440) - Fix CI badges in README
 
-In this release 36 pull requests were closed.
+#### Backwards incompatible changes
 
+* [PR 485](https://github.com/pytroll/satpy/pull/485) - Deprecate 'enhancement_config' keyword argument in favor of 'enhance'
 
-
+In this release 37 pull requests were closed.
 
 
 ## Version 0.9.4 (2018/09/29)
