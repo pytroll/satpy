@@ -104,7 +104,7 @@ class MITIFFWriter(ImageWriter):
                 LOG.info("Saving mitiff to: %s ...", gen_filename)
                 self._save_datasets_as_mitiff(dataset, image_description,
                                               gen_filename, **kwargs)
-            except:
+            except (KeyError, ValueError, RuntimeError):
                 raise
 
         create_opts = ()
@@ -151,7 +151,7 @@ class MITIFFWriter(ImageWriter):
                 gen_filename = filename or self.get_filename(**kwargs)
                 LOG.info("Saving mitiff to: %s ...", gen_filename)
                 self._save_datasets_as_mitiff(datasets, image_description, gen_filename, **kwargs)
-            except:
+            except (KeyError, ValueError, RuntimeError):
                 raise
 
         create_opts = ()

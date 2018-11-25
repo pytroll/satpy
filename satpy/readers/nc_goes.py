@@ -527,7 +527,7 @@ class GOESNCFileHandler(BaseFileHandler):
     @staticmethod
     def _get_platform_name(ncattr):
         """Determine name of the platform"""
-        match = re.match('G-(\d+)', ncattr)
+        match = re.match(r'G-(\d+)', ncattr)
         if match:
             return SPACECRAFTS.get(int(match.groups()[0]))
 
@@ -1071,7 +1071,7 @@ class GOESCoefficientReader(object):
         Take care of numbers in exponential format
         """
         string = self._denoise(string)
-        exp_match = re.match('^[-.\d]+x10-(\d)$', string)
+        exp_match = re.match(r'^[-.\d]+x10-(\d)$', string)
         if exp_match:
             exp = int(exp_match.groups()[0])
             fac = 10 ** -exp

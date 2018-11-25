@@ -24,7 +24,6 @@ The files read by this reader are described in the official PUG document:
 """
 
 import logging
-import os
 from datetime import datetime
 
 import numpy as np

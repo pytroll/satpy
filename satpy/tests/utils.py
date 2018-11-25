@@ -22,7 +22,7 @@
 """Utilities for various satpy tests.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 try:
     from unittest import mock
@@ -64,6 +64,7 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     c.id = ds_id
 
     se = mock.MagicMock()
+
     def _se(datasets, optional_datasets=None, ds_id=ds_id, **kwargs):
         if ds_id.name == 'comp14':
             # used as a test when composites update the dataset id with
@@ -144,18 +145,15 @@ def test_composites(sensor_name):
         DatasetID(name='comp11'): ([0.22, 0.48, 0.85], []),
         DatasetID(name='comp12'): ([DatasetID(wavelength=0.22, modifiers=('mod1',)),
                                     DatasetID(wavelength=0.48, modifiers=('mod1',)),
-                                    DatasetID(wavelength=0.85, modifiers=('mod1',))],
-                                    []),
+                                    DatasetID(wavelength=0.85, modifiers=('mod1',))], []),
         DatasetID(name='comp13'): ([DatasetID(name='ds5', modifiers=('res_change',))], []),
         DatasetID(name='comp14'): (['ds1'], []),
         DatasetID(name='comp15'): (['ds1', 'ds9_fail_load'], []),
         DatasetID(name='comp16'): (['ds1'], ['ds9_fail_load']),
         DatasetID(name='comp17'): (['ds1', 'comp15'], []),
         DatasetID(name='comp18'): (['ds3',
-                                    DatasetID(name='ds4',
-                                              modifiers=('mod1', 'mod3',)),
-                                    DatasetID(name='ds5',
-                                              modifiers=('mod1', 'incomp_areas'))], []),
+                                    DatasetID(name='ds4', modifiers=('mod1', 'mod3',)),
+                                    DatasetID(name='ds5', modifiers=('mod1', 'incomp_areas'))], []),
         DatasetID(name='comp19'): ([DatasetID('ds5', modifiers=('res_change',)), 'comp13', 'ds2'], []),
         DatasetID(name='comp20'): ([DatasetID(name='ds5', modifiers=('mod_opt_prereq',))], []),
         DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),

@@ -22,7 +22,6 @@
 """Testing of helper functions."""
 
 
-import random
 import unittest
 
 try:
@@ -36,12 +35,10 @@ from satpy.readers import utils as hf
 
 
 class TestSatinHelpers(unittest.TestCase):
-    '''Class for testing satpy.satin'''
+    """Class for testing satpy.satin."""
 
     def test_boundaries_to_extent(self):
-        '''Test conversion of area boundaries to area extent.
-        '''
-
+        """Test conversion of area boundaries to area extent."""
         from satpy.satin.helper_functions import boundaries_to_extent
 
         # MSG3 proj4 string from

@@ -24,13 +24,6 @@ Based on the test for geotiff writer
 """
 import sys
 
-import logging
-
-logger = logging.getLogger()
-logger.level = logging.DEBUG
-stream_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stream_handler)
-
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -167,7 +160,6 @@ class TestMITIFFWriter(unittest.TestCase):
             calibration.append(p.attrs['calibration'])
             bands.append(p.attrs['name'])
         data['bands'] = list(bands)
-        new_attrs = {}
         new_attrs = {'name': 'datasets',
                      'start_time': datetime.utcnow(),
                      'platform_name': "TEST_PLATFORM_NAME",
