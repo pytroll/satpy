@@ -149,9 +149,11 @@ class NumberedTileGenerator(object):
     def _get_tile_properties(self, tile_shape, tile_count):
         if tile_shape is not None:
             tile_shape = (int(min(tile_shape[0], self._rows)), int(min(tile_shape[1], self._cols)))
-            tile_count = (int(np.ceil(self._rows / float(tile_shape[0]))), int(np.ceil(self._cols / float(tile_shape[1]))))
+            tile_count = (int(np.ceil(self._rows / float(tile_shape[0]))),
+                          int(np.ceil(self._cols / float(tile_shape[1]))))
         elif tile_count:
-            tile_shape = (int(np.ceil(self._rows / float(tile_count[0]))), int(np.ceil(self._cols / float(tile_count[1]))))
+            tile_shape = (int(np.ceil(self._rows / float(tile_count[0]))),
+                          int(np.ceil(self._cols / float(tile_count[1]))))
         else:
             raise ValueError("Either 'tile_count' or 'tile_shape' must be provided")
 
@@ -347,7 +349,8 @@ class LetteredTileGenerator(NumberedTileGenerator):
 
         total_alphas = (max_cols * max_rows) / (st[0] * st[1])
         if total_alphas > 26:
-            raise ValueError("Too many lettered grid cells '{}' (sector cell size too small). Maximum of 26".format(total_alphas))
+            raise ValueError("Too many lettered grid cells '{}' (sector cell size too small). "
+                             "Maximum of 26".format(total_alphas))
 
         self.tile_shape = (num_pixels_y, num_pixels_x)
         self.total_tile_count = (max_rows, max_cols)
@@ -1025,12 +1028,12 @@ def _create_debug_array(sector_info, num_subtiles, font_path='Verdana.ttf'):
     total_cells_y = np.ceil(total_meters_y / fcs_y)
     total_cells_x = np.ceil(total_cells_x / num_subtiles[1]) * num_subtiles[1]
     total_cells_y = np.ceil(total_cells_y / num_subtiles[0]) * num_subtiles[0]
-    total_alpha_cells_x = int(total_cells_x / num_subtiles[1])
-    total_alpha_cells_y = int(total_cells_y / num_subtiles[0])
+    # total_alpha_cells_x = int(total_cells_x / num_subtiles[1])
+    # total_alpha_cells_y = int(total_cells_y / num_subtiles[0])
 
     # "round" the total meters up to the number of alpha cells
-    total_meters_x = total_cells_x * fcs_x
-    total_meters_y = total_cells_y * fcs_y
+    # total_meters_x = total_cells_x * fcs_x
+    # total_meters_y = total_cells_y * fcs_y
 
     # Pixels per tile
     ppt_x = np.floor(float(size[0]) / total_cells_x)
@@ -1125,28 +1128,28 @@ def create_debug_lettered_tiles(init_args, create_args):
 def add_backend_argument_groups(parser):
     group_1 = parser.add_argument_group(title="Backend Initialization")
     group_1.add_argument("--backend-configs", nargs="*", dest="backend_configs",
-                       help="alternative backend configuration files")
+                         help="alternative backend configuration files")
     group_1.add_argument("--compress", action="store_true",
-                       help="zlib compress each netcdf file")
+                         help="zlib compress each netcdf file")
     group_1.add_argument("--fix-awips", action="store_true",
-                       help="modify NetCDF output to work with the old/broken AWIPS NetCDF library")
+                         help="modify NetCDF output to work with the old/broken AWIPS NetCDF library")
     group_2 = parser.add_argument_group(title="Backend Output Creation")
     group_2.add_argument("--tiles", dest="tile_count", nargs=2, type=int, default=[1, 1],
-                       help="Number of tiles to produce in Y (rows) and X (cols) direction respectively")
+                         help="Number of tiles to produce in Y (rows) and X (cols) direction respectively")
     group_2.add_argument("--tile-size", dest="tile_size", nargs=2, type=int, default=None,
-                       help="Specify how many pixels are in each tile (overrides '--tiles')")
+                         help="Specify how many pixels are in each tile (overrides '--tiles')")
     # group.add_argument('--tile-offset', nargs=2, default=(0, 0),
     #                    help="Start counting tiles from this offset ('row_offset col_offset')")
     group_2.add_argument("--letters", dest="lettered_grid", action='store_true',
-                       help="Create tiles from a static letter-based grid based on the product projection")
+                         help="Create tiles from a static letter-based grid based on the product projection")
     group_2.add_argument("--letter-subtiles", nargs=2, type=int, default=(2, 2),
-                       help="Specify number of subtiles in each lettered tile: \'row col\'")
+                         help="Specify number of subtiles in each lettered tile: \'row col\'")
     group_2.add_argument("--output-pattern", default=DEFAULT_OUTPUT_PATTERN,
-                       help="output filenaming pattern")
+                         help="output filenaming pattern")
     group_2.add_argument("--source-name", default='SSEC',
-                       help="specify processing source name used in attributes and filename (default 'SSEC')")
+                         help="specify processing source name used in attributes and filename (default 'SSEC')")
     group_2.add_argument("--sector-id", required=True,
-                       help="specify name for sector/region used in attributes and filename (example 'LCC')")
+                         help="specify name for sector/region used in attributes and filename (example 'LCC')")
     return group_1, group_2
 
 
@@ -1157,7 +1160,8 @@ def main():
     parser.add_argument("--create-debug", action='store_true',
                         help='Create debug NetCDF files to show tile locations in AWIPS')
     parser.add_argument('-v', '--verbose', dest='verbosity', action="count", default=0,
-                        help='each occurrence increases verbosity 1 level through ERROR-WARNING-INFO-DEBUG (default INFO)')
+                        help='each occurrence increases verbosity 1 level through '
+                             'ERROR-WARNING-INFO-DEBUG (default INFO)')
     parser.add_argument('-l', '--log', dest="log_fn", default=None,
                         help="specify the log filename")
     args = parser.parse_args()

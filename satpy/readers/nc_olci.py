@@ -33,6 +33,7 @@ import xarray as xr
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, xyz2angle
 from satpy import CHUNK_SIZE
+from functools import reduce
 
 logger = logging.getLogger(__name__)
 

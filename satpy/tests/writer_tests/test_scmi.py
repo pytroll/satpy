@@ -25,11 +25,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import dask.array as da
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -37,15 +32,15 @@ else:
 
 
 class TestSCMIWriter(unittest.TestCase):
-    """Test basic functionality of SCMI writer"""
+    """Test basic functionality of SCMI writer."""
 
     def setUp(self):
-        """Create temporary directory to save files to"""
+        """Create temporary directory to save files to."""
         import tempfile
         self.base_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             import shutil
             shutil.rmtree(self.base_dir, ignore_errors=True)
@@ -53,12 +48,12 @@ class TestSCMIWriter(unittest.TestCase):
             pass
 
     def test_init(self):
-        """Test basic init method of writer"""
+        """Test basic init method of writer."""
         from satpy.writers.scmi import SCMIWriter
-        w = SCMIWriter(base_dir=self.base_dir)
+        SCMIWriter(base_dir=self.base_dir)
 
     def test_basic_numbered_1_tile(self):
-        """Test creating a single numbered tile"""
+        """Test creating a single numbered tile."""
         from satpy.writers.scmi import SCMIWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -92,7 +87,7 @@ class TestSCMIWriter(unittest.TestCase):
         self.assertEqual(os.path.basename(all_files[0]), 'TESTS_AII_PLAT_SENSOR_test_ds_TEST_T001_20180101_1200.nc')
 
     def test_basic_numbered_tiles(self):
-        """Test creating a multiple numbered tiles"""
+        """Test creating a multiple numbered tiles."""
         from satpy.writers.scmi import SCMIWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -125,7 +120,7 @@ class TestSCMIWriter(unittest.TestCase):
         self.assertEqual(len(all_files), 9)
 
     def test_basic_lettered_tiles(self):
-        """Test creating a lettered grid"""
+        """Test creating a lettered grid."""
         from satpy.writers.scmi import SCMIWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -158,7 +153,7 @@ class TestSCMIWriter(unittest.TestCase):
         self.assertEqual(len(all_files), 16)
 
     def test_lettered_tiles_no_fit(self):
-        """Test creating a lettered grid with no data"""
+        """Test creating a lettered grid with no data."""
         from satpy.writers.scmi import SCMIWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -192,7 +187,7 @@ class TestSCMIWriter(unittest.TestCase):
         self.assertEqual(len(all_files), 0)
 
     def test_lettered_tiles_bad_filename(self):
-        """Test creating a lettered grid with a bad filename"""
+        """Test creating a lettered grid with a bad filename."""
         from satpy.writers.scmi import SCMIWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -228,7 +223,7 @@ class TestSCMIWriter(unittest.TestCase):
                           lettered_grid=True)
 
     def test_basic_numbered_tiles_rgb(self):
-        """Test creating a multiple numbered tiles with RGB"""
+        """Test creating a multiple numbered tiles with RGB."""
         from satpy.writers.scmi import SCMIWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition

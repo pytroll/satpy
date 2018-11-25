@@ -5,6 +5,9 @@
 
 import os
 import sys
+import numpy as np
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -14,9 +17,6 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-
-import numpy as np
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -172,9 +172,9 @@ class TestGEOCATReader(unittest.TestCase):
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
+
 def suite():
-    """The test suite for test_viirs_l1b.
-    """
+    """The test suite for test_viirs_l1b."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestGEOCATReader))

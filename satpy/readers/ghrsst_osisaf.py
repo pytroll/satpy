@@ -38,9 +38,7 @@ SENSOR_NAME = {'VIIRS': 'viirs',
 
 
 class GHRSST_OSISAFL2(NetCDF4FileHandler):
-
-    """Reader for the OSISAF SST GHRSST format
-    """
+    """Reader for the OSISAF SST GHRSST format."""
 
     def _parse_datetime(self, datestr):
         return datetime.strptime(datestr, '%Y%m%dT%H%M%SZ')
@@ -50,9 +48,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
         raise NotImplementedError
 
     def get_dataset(self, dataset_id, ds_info, out=None):
-        """Load a dataset
-        """
-
+        """Load a dataset."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         dtype = ds_info.get('dtype', np.float32)
         if var_path + '/shape' not in self:
@@ -79,9 +75,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
             out = np.ma.empty(shape, dtype=dtype)
             out.mask = np.zeros(shape, dtype=np.bool)
 
-        #out.data[:] = np.require(self[var_path][:][0][::-1], dtype=dtype)
         out.data[:] = np.require(self[var_path][0][::-1], dtype=dtype)
-
         valid_min = self[var_path + '/attr/valid_min']
         valid_max = self[var_path + '/attr/valid_max']
         try:
@@ -100,10 +94,8 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
 
         ds_info.update({
             "units": ds_info.get("units", file_units),
-            "platform_name": PLATFORM_NAME.get(self['/attr/platform'],
-                                          self['/attr/platform']),
-            "sensor": SENSOR_NAME.get(self['/attr/sensor'],
-                                      self['/attr/sensor']),
+            "platform_name": PLATFORM_NAME.get(self['/attr/platform'], self['/attr/platform']),
+            "sensor": SENSOR_NAME.get(self['/attr/sensor'], self['/attr/sensor']),
         })
         ds_info.update(dataset_id.to_dict())
         cls = ds_info.pop("container", Dataset)

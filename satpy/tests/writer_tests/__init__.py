@@ -25,8 +25,10 @@
 import sys
 
 from satpy.tests.writer_tests import (test_cf, test_geotiff,
-                                      test_ninjotiff, test_simple_image,
+                                      test_simple_image,
                                       test_scmi, test_mitiff)
+# FIXME: pyninjotiff is not xarray/dask friendly
+from satpy.tests.writer_tests import test_ninjotiff  # noqa
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
