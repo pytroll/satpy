@@ -201,9 +201,9 @@ class DatasetID(DatasetID):
             a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
             b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
         """
-        if type(a) == (type(b) or
+        if isinstance(a, (type(b) or
                        isinstance(a, numbers.Number) and
-                       isinstance(b, numbers.Number)):
+                       isinstance(b, numbers.Number))):
             return a == b
         elif a is None or b is None:
             return False
