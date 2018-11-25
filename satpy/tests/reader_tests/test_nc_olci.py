@@ -23,7 +23,6 @@
 """Module for testing the satpy.readers.nc_olci module.
 """
 import sys
-from functools import reduce
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
