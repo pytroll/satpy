@@ -224,7 +224,6 @@ class SAFEGRD(BaseFileHandler):
         self.calibration = calfh
         self.noise = noisefh
 
-        self.filename = filename
         self.get_gdal_filehandle()
 
     def get_gdal_filehandle(self):

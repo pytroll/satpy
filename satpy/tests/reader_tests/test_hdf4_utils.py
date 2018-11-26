@@ -12,7 +12,7 @@ try:
     from satpy.readers.hdf4_utils import HDF4FileHandler
 except ImportError:
     # fake the import so we can at least run the tests in this file
-    HDF4FileHandler = None
+    HDF4FileHandler = object
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -21,7 +21,7 @@ else:
 
 
 class FakeHDF4FileHandler(HDF4FileHandler):
-    """Swap-in NetCDF4 File Handler for reader tests to use"""
+    """Swap-in NetCDF4 File Handler for reader tests to use."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Get fake file content from 'get_test_content'"""
@@ -33,15 +33,15 @@ class FakeHDF4FileHandler(HDF4FileHandler):
         self.file_content.update(kwargs)
 
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content
-        
+        """Mimic reader input file content.
+
         Args:
-            filename (str): input filename 
+            filename (str): input filename
             filename_info (dict): Dict of metadata pulled from filename
             filetype_info (dict): Dict of metadata from the reader's yaml config for this file type
 
         Returns: dict of file content with keys like:
-        
+
             - 'dataset'
             - '/attr/global_attr'
             - 'dataset/attr/global_attr'
@@ -107,8 +107,7 @@ class TestHDF4FileHandler(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_netcdf_utils.
-    """
+    """The test suite for test_hdf4_utils."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHDF4FileHandler))

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2017.
+# Copyright (c) 2015-2018.
 
 # Author(s):
 
@@ -40,6 +40,10 @@ except ImportError:
     from six.moves import configparser  # noqa
 
 LOG = logging.getLogger(__name__)
+
+
+class TooManyResults(KeyError):
+    pass
 
 
 def _wl_dist(wl_a, wl_b):
@@ -200,6 +204,9 @@ def get_key(key, key_container, num_results=1, best=True,
     elif isinstance(key, (str, six.text_type)):
         # ID should act as a query (see wl comment above)
         key = DatasetID(name=key, modifiers=None)
+    elif not isinstance(key, DatasetID):
+        raise ValueError("Expected 'DatasetID', str, or number dict key, "
+                         "not {}".format(str(type(key))))
 
     res = filter_keys_by_dataset_id(key, key_container)
 
@@ -235,7 +242,7 @@ def get_key(key, key_container, num_results=1, best=True,
     if num_results == 1 and not res:
         raise KeyError("No dataset matching '{}' found".format(str(key)))
     elif num_results == 1 and len(res) != 1:
-        raise KeyError("No unique dataset matching {}".format(str(key)))
+        raise TooManyResults("No unique dataset matching {}".format(str(key)))
     elif num_results == 1:
         return res[0]
     elif num_results == 0:
@@ -429,8 +436,9 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
             os.path.join("readers", config_basename), *search_paths)
 
         if not reader_configs:
-            LOG.warning("No reader configs found for '%s'", reader)
-            continue
+            # either the reader they asked for does not exist
+            # or satpy is improperly configured and can't find its own readers
+            raise ValueError("No reader(s) named: {}".format(reader))
 
         yield reader_configs
 
@@ -473,6 +481,13 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     The returned dictionary can be passed directly to the `Scene` object
     through the `filenames` keyword argument.
 
+    The behaviour of time-based filtering depends on whether or not the filename
+    contains information about the end time of the data or not:
+
+      - if the end time is not present in the filename, the start time of the filename
+        is used and has to fall between (inclusive) the requested start and end times
+      - otherwise, the timespan of the filename has to overlap the requested timespan
+
     Args:
         start_time (datetime): Limit used files by starting time.
         end_time (datetime): Limit used files by ending time.
@@ -507,6 +522,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         except (KeyError, IOError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
+            if reader and (isinstance(reader, str) or len(reader) == 1):
+                # if it is a single reader then give a more usable error
+                raise
             continue
 
         if not reader_instance.supports_sensor(sensor):
@@ -571,7 +589,6 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
 
     for idx, reader_configs in enumerate(configs_for_reader(reader, ppp_config_dir)):
         if isinstance(filenames, dict):
-            print(idx, reader_configs, reader)
             readers_files = set(filenames[reader[idx]])
         else:
             readers_files = remaining_filenames

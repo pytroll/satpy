@@ -41,24 +41,18 @@ The MultiScene can take "frames" of data and join them together in a single
 animation movie file. Saving animations required the `imageio` python library
 and for most available formats the ``ffmpeg`` command line tool suite should
 also be installed. The below example saves a series of GOES-EAST ABI channel
-1 and channel 2 frames to MP4 movie files.
+1 and channel 2 frames to MP4 movie files. Note that currently there is no
+easy way to map files from multiple time steps/orbits in to individual Scene
+objects. The `glob` function and for loops are used to group files into Scene
+objects that, if used individually, could load the data we want.
 
     >>> from satpy import Scene, MultiScene
     >>> from glob import glob
+    >>> scene_files = []
+    >>> for time_step in ['1800', '1810', '1820', '1830']:
+    ...     scene_files.append(glob('/data/abi/day_1/*C0[12]*s???????{}*.nc'.format(time_step)))
     >>> scenes = [
-    ...     Scene(reader='abi_l1b', filenames=[fn]) for fn in sorted(glob('/data/abi/day_1/*C0[12]*.nc'))
-        ... ]
-        >>> mscn = MultiScene(scenes)
-        >>> mscn.load(['C01', 'C02'])
-        >>> mscn.save_animation('{name}_{start_time:%Y%m%d_%H%M%S}.mp4', fps=2)
-
-
-        ... ]
-        >>> mscn = MultiScene(scenes)
-        >>> mscn.load(['C01', 'C02'])
-        >>> mscn.save_animation('{name}_{start_time:%Y%m%d_%H%M%S}.mp4', fps=2)
-
-
+    ...     Scene(reader='abi_l1b', filenames=files) for files in sorted(scene_files)
     ... ]
     >>> mscn = MultiScene(scenes)
     >>> mscn.load(['C01', 'C02'])

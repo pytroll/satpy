@@ -23,8 +23,6 @@
 
 import sys
 import numpy as np
-
-from satpy.readers.abi_l1b import NC_ABI_L1B
 import xarray as xr
 
 if sys.version_info < (2, 7):
@@ -62,6 +60,7 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
     @mock.patch('satpy.readers.abi_l1b.xr')
     def setUp(self, xr_):
         """Setup for test."""
+        from satpy.readers.abi_l1b import NC_ABI_L1B
         rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
         rad_data = (rad_data + 1.) / 0.5
         rad_data = rad_data.astype(np.int16)
@@ -86,7 +85,8 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
             "earth_sun_distance_anomaly_in_AU": np.array(0.99)}, {})
 
         self.reader = NC_ABI_L1B('filename',
-                                 {'platform_shortname': 'G16'},
+                                 {'platform_shortname': 'G16', 'observation_type': 'Rad',
+                                  'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
 
     def test_ir_calibrate(self):
@@ -95,11 +95,14 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
         res = self.reader.get_dataset(
             DatasetID(name='C05', calibration='brightness_temperature'), {})
 
-        expected = np.array([[267.55572248, 305.15576503, 332.37383249,
-                                 354.73895301, 374.19710115],
-                                [391.68679226, 407.74064808, 422.69329105,
-                                 436.77021913, np.nan]])
+        expected = np.array([[267.55572248, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
+                             [391.68679226, 407.74064808, 422.69329105, 436.77021913, np.nan]])
         self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+        # make sure the attributes from the file are in the data array
+        self.assertNotIn('scale_factor', res.attrs)
+        self.assertNotIn('_FillValue', res.attrs)
+        self.assertEqual(res.attrs['standard_name'],
+                         'toa_brightness_temperature')
 
 
 class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
@@ -108,16 +111,27 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
     @mock.patch('satpy.readers.abi_l1b.xr')
     def setUp(self, xr_):
         """Setup for test."""
+        from satpy.readers.abi_l1b import NC_ABI_L1B
         rad_data = (np.arange(10.).reshape((2, 5)) + 1.)
         rad_data = (rad_data + 1.) / 0.5
         rad_data = rad_data.astype(np.int16)
+        x_image = xr.DataArray(0.)
+        y_image = xr.DataArray(0.)
+        time = xr.DataArray(0.)
         rad = xr.DataArray(
             rad_data,
+            dims=('y', 'x'),
             attrs={
                 'scale_factor': 0.5,
                 'add_offset': -1.,
                 '_FillValue': 20,
-            })
+            },
+            coords={
+                'time': time,
+                'x_image': x_image,
+                'y_image': y_image,
+            }
+        )
         xr_.open_dataset.return_value = FakeDataset({
             'band_id': np.array(5),
             'Rad': rad,
@@ -126,6 +140,8 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
             "planck_bc1": np.array(0.09102),
             "planck_bc2": np.array(0.99971),
             "esun": np.array(2017),
+            "x_image": x_image,
+            "y_image": y_image,
             "nominal_satellite_subpoint_lat": np.array(0.0),
             "nominal_satellite_subpoint_lon": np.array(-89.5),
             "nominal_satellite_height": np.array(35786.02),
@@ -136,7 +152,8 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
             })
 
         self.reader = NC_ABI_L1B('filename',
-                                 {'platform_shortname': 'G16'},
+                                 {'platform_shortname': 'G16', 'observation_type': 'Rad',
+                                  'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
 
     def test_bad_calibration(self):
@@ -162,19 +179,22 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
         res = self.reader.get_dataset(
             DatasetID(name='C05', calibration='reflectance'), {})
 
-        expected = np.array([[0.15265617, 0.30531234, 0.45796851,
-                                 0.61062468, 0.76328085],
-                                [0.91593702, 1.06859319, 1.22124936,
-                                 np.nan, 1.52656171]])
+        expected = np.array([[0.15265617, 0.30531234, 0.45796851, 0.61062468, 0.76328085],
+                             [0.91593702, 1.06859319, 1.22124936, np.nan, 1.52656171]])
         self.assertTrue(np.allclose(res.data, expected, equal_nan=True))
+        self.assertNotIn('scale_factor', res.attrs)
+        self.assertNotIn('_FillValue', res.attrs)
+        self.assertEqual(res.attrs['standard_name'],
+                         'toa_bidirectional_reflectance')
 
 
 class Test_NC_ABI_L1B_area(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
+
     @mock.patch('satpy.readers.abi_l1b.xr')
     def setUp(self, xr_):
         """Setup for test."""
-        import xarray as xr
+        from satpy.readers.abi_l1b import NC_ABI_L1B
         proj = xr.DataArray(
             [],
             attrs={
@@ -186,21 +206,22 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
             }
         )
         x__ = xr.DataArray(
-            [-1., 1.],
-            attrs={'scale_factor': 1., 'add_offset': 0.},
+            [0, 1],
+            attrs={'scale_factor': 2., 'add_offset': -1.},
         )
         y__ = xr.DataArray(
-            [-1., 1.],
-            attrs={'scale_factor': 1., 'add_offset': 0.},
+            [0, 1],
+            attrs={'scale_factor': -2., 'add_offset': 1.},
         )
         xr_.open_dataset.return_value = FakeDataset({
             'goes_imager_projection': proj,
             'x': x__,
             'y': y__,
-            'Rad': np.ones((10, 10))}, {})
+            'Rad': np.ones((2, 2))}, {})
 
         self.reader = NC_ABI_L1B('filename',
-                                 {'platform_shortname': 'G16'},
+                                 {'platform_shortname': 'G16', 'observation_type': 'Rad',
+                                  'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
 
     @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
@@ -210,20 +231,15 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
 
         self.assertEqual(adef.call_count, 1)
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {'a': 1.0, 'b': 1.0, 'h': 1.0,
-                                      'lon_0': -90.0, 'proj': 'geos',
-                                      'sweep': 'x', 'units': 'm'})
+        self.assertDictEqual(call_args[3], {'a': 1.0, 'b': 1.0, 'h': 1.0, 'lon_0': -90.0, 'proj': 'geos',
+                                            'sweep': 'x', 'units': 'm'})
         self.assertEqual(call_args[4], self.reader.ncols)
         self.assertEqual(call_args[5], self.reader.nlines)
-        np.testing.assert_allclose(call_args[6], (-1.1111111111111112,
-                                                  1.1111111111111112,
-                                                  1.1111111111111112,
-                                                  -1.1111111111111112))
+        np.testing.assert_allclose(call_args[6], (-2, -2, 2, 2))
 
 
 def suite():
-    """The test suite for test_scene.
-    """
+    """The test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_ir_cal))

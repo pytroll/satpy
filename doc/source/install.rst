@@ -34,22 +34,25 @@ dependencies:
 Conda-based Installation
 ========================
 
-Currently SatPy is not available on any common conda environment. However, it
-is possible to install SatPy in a conda environment with a combination of
-the `conda-forge` channel and pip. A typical conda environment for SatPy can
-be created with the following commands:
+Starting with version 0.9, SatPy is available from the conda-forge channel. If
+you have not configured your conda environment to search conda-forge already
+then do:
 
 .. code-block:: bash
 
     $ conda config --add channels conda-forge
-    $ conda env create -n satpy-env python=3.6 xarray dask pyresample netcdf4 h5py gdal
-    $ source activate satpy-env
-    $ pip install satpy
 
-Using the `pip` commands as described above you should now have a
-complete conda environment with a majority of SatPy's dependencies installed.
-Activate the environment with ``source activate satpy-env`` to use the
-environment in the future.
+Then to install SatPy in to your current environment run:
+
+.. code-block:: bash
+
+    $ conda install satpy
+
+.. note::
+
+    SatPy only automatically installs the dependencies needed to process the
+    most common use cases. Additional dependencies may need to be installed
+    with conda or pip if import errors are encountered.
 
 Ubuntu System Python Installation
 =================================

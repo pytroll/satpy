@@ -39,11 +39,11 @@ file_types:
         file_patterns: ['S_NWC_CI_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_rdt:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_RDT-CW_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
     nc_nwcsaf_asii:
-        file_reader: !!python/name:satpy.readers.nc_nwcsaf_msg.NcNWCSAFMSG
+        file_reader: !!python/name:satpy.readers.nc_nwcsaf.NcNWCSAF
         file_patterns: ['S_NWC_ASII-NG_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
 datasets:

@@ -19,20 +19,16 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
-Reading and calibrating GAC and LAC avhrr data.
-Todo:
-- Fine grained calibration
+"""Reading and calibrating GAC and LAC avhrr data.
+
+.. todo::
+
+    Fine grained calibration
 
 """
 
 import logging
 from datetime import datetime, timedelta
-
-import numpy as np
-from pyresample.geometry import SwathDefinition
-
-from pygac.gac_calibration import calibrate_solar, calibrate_thermal
 from pygac.gac_klm import GACKLMReader
 from pygac.gac_pod import GACPODReader
 import xarray as xr
@@ -49,8 +45,7 @@ AVHRR_CHANNEL_NAMES = {"1": 0, "2": 1, "3": 2, "4": 3, "5": 4}
 
 
 class GACLACFile(BaseFileHandler):
-    """Reader for GAC and LAC data.
-    """
+    """Reader for GAC and LAC data."""
 
     def __init__(self, filename, filename_info, filetype_info):
         super(GACLACFile, self).__init__(
@@ -65,11 +60,8 @@ class GACLACFile(BaseFileHandler):
         if self._end_time < self._start_time:
             self._end_time += timedelta(days=1)
 
-
     def get_dataset(self, key, info):
-
         if self.reader is None:
-
             with open(self.filename) as fdes:
                 data = fdes.read(3)
             if data in ["CMS", "NSS", "UKM", "DSS"]:
@@ -84,7 +76,7 @@ class GACLACFile(BaseFileHandler):
 
         if key.name in ['latitude', 'longitude']:
             if self.reader.lons is None or self.reader.lats is None:
-                #self.reader.get_lonlat(clock_drift_adjust=False)
+                # self.reader.get_lonlat(clock_drift_adjust=False)
                 self.reader.get_lonlat()
             if key.name == 'latitude':
                 return xr.DataArray(da.from_array(self.reader.lats, chunks=1000),

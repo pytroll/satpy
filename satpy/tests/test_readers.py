@@ -212,7 +212,7 @@ class TestReaderLoader(unittest.TestCase):
 
     def test_no_args(self):
         """Test no args provided.
-        
+
         This should check the local directory which should have no files.
         """
         from satpy.readers import load_readers
@@ -231,9 +231,7 @@ class TestReaderLoader(unittest.TestCase):
         """Test with filenames and reader specified"""
         from satpy.readers import load_readers
         ri = load_readers(reader='viirs_sdr',
-                filenames=[
-                    'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
-        ])
+                          filenames=['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'])
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_bad_reader_name_with_filenames(self):
@@ -242,6 +240,16 @@ class TestReaderLoader(unittest.TestCase):
         self.assertRaises(ValueError, load_readers, reader='i_dont_exist', filenames=[
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             ])
+
+    @unittest.skipIf(sys.version_info < (3, 4), "pathlib added in Python 3.4")
+    def test_filenames_as_path(self):
+        """Test with filenames specified as pathlib.Path"""
+        from pathlib import Path
+        from satpy.readers import load_readers
+        ri = load_readers(filenames=[
+            Path('SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'),
+        ])
+        self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_filenames_as_dict(self):
         """Test loading readers where filenames are organized by reader"""
@@ -268,8 +276,10 @@ class TestReaderLoader(unittest.TestCase):
 
 
 class TestFindFilesAndReaders(unittest.TestCase):
+    """Test the find_files_and_readers utility function."""
+
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
+        """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         from satpy.tests.reader_tests.test_viirs_sdr import FakeHDF5FileHandler2
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -278,7 +288,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF5 file handler"""
+        """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
     # def test_sensor(self):
@@ -292,7 +302,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
     #
 
     def test_reader_name(self):
-        """Test with default base_dir and reader specified"""
+        """Test with default base_dir and reader specified."""
         from satpy.readers import find_files_and_readers
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
@@ -305,7 +315,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
             os.remove(fn)
 
     def test_reader_other_name(self):
-        """Test with default base_dir and reader specified"""
+        """Test with default base_dir and reader specified."""
         from satpy.readers import find_files_and_readers
         fn = 'S_NWC_CPP_npp_32505_20180204T1114116Z_20180204T1128227Z.nc'
         # touch the file so it exists on disk
@@ -318,9 +328,9 @@ class TestFindFilesAndReaders(unittest.TestCase):
             os.remove(fn)
 
     def test_reader_name_matched_start_end_time(self):
-        """Test with start and end time matching the filename"""
+        """Test with start and end time matching the filename."""
         from satpy.readers import find_files_and_readers
-        from datetime import datetime, timedelta
+        from datetime import datetime
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
         open(fn, 'w')
@@ -340,14 +350,12 @@ class TestFindFilesAndReaders(unittest.TestCase):
         Start time in the middle of the file time should still match the file.
         """
         from satpy.readers import find_files_and_readers
-        from datetime import datetime, timedelta
+        from datetime import datetime
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
         open(fn, 'w')
         try:
-            ri = find_files_and_readers(reader='viirs_sdr',
-                                        start_time=datetime(2012, 2, 25, 18, 1, 30),
-                                        )
+            ri = find_files_and_readers(reader='viirs_sdr', start_time=datetime(2012, 2, 25, 18, 1, 30))
             self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
             self.assertListEqual(ri['viirs_sdr'], [fn])
         finally:
@@ -360,21 +368,19 @@ class TestFindFilesAndReaders(unittest.TestCase):
 
         """
         from satpy.readers import find_files_and_readers
-        from datetime import datetime, timedelta
+        from datetime import datetime
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
         open(fn, 'w')
         try:
-            ri = find_files_and_readers(reader='viirs_sdr',
-                                        end_time=datetime(2012, 2, 25, 18, 1, 30),
-                                        )
+            ri = find_files_and_readers(reader='viirs_sdr', end_time=datetime(2012, 2, 25, 18, 1, 30))
             self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
             self.assertListEqual(ri['viirs_sdr'], [fn])
         finally:
             os.remove(fn)
 
     def test_reader_name_unmatched_start_end_time(self):
-        """Test with start and end time matching the filename"""
+        """Test with start and end time matching the filename."""
         from satpy.readers import find_files_and_readers
         from datetime import datetime
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
@@ -436,6 +442,16 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # 'viirs' so we just pass it and hope that this works
         self.assertRaises(ValueError, find_files_and_readers,
                           sensor='viirs')
+
+    def test_reader_load_failed(self):
+        """Test that an exception is raised when a reader can't be loaded."""
+        from satpy.readers import find_files_and_readers
+        import yaml
+        # touch the file so it exists on disk
+        with mock.patch('yaml.load') as load:
+            load.side_effect = yaml.YAMLError("Import problems")
+            self.assertRaises(yaml.YAMLError, find_files_and_readers,
+                              reader='viirs_sdr')
 
 
 class TestYAMLFiles(unittest.TestCase):

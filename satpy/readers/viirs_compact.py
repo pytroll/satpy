@@ -32,6 +32,7 @@ import xarray.ufuncs as xu
 import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.utils import np2str
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
 from satpy import CHUNK_SIZE
 
@@ -116,7 +117,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         self.cache = {}
 
         self.mda = {}
-        short_name = self.h5f.attrs['Platform_Short_Name'][0][0]
+        short_name = np2str(self.h5f.attrs['Platform_Short_Name'])
         self.mda['platform_name'] = short_names.get(short_name, short_name)
         self.mda['sensor'] = 'viirs'
 
@@ -211,7 +212,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                             name=dataset_key.name,
                             dims=['y', 'x']).astype(np.float32)
         h5attrs = h5rads.attrs
-        # scans = h5f["All_Data"]["NumberOfScans"][0]
+        scans = h5f["All_Data"]["NumberOfScans"][0]
+        rads = rads[:scans * 16, :]
         # if channel in ("M9", ):
         #     arr = rads[:scans * 16, :].astype(np.float32)
         #     arr[arr > 65526] = np.nan

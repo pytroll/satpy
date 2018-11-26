@@ -30,8 +30,6 @@ import unittest
 import numpy as np
 import xarray as xr
 
-from satpy.writers import show, to_image
-
 try:
     from unittest import mock
 except ImportError:
@@ -61,12 +59,14 @@ class TestWritersModule(unittest.TestCase):
     def test_to_image_1D(self):
         """Conversion to image."""
         # 1D
+        from satpy.writers import to_image
         p = xr.DataArray(np.arange(25), dims=['y'])
         self.assertRaises(ValueError, to_image, p)
 
     @mock.patch('satpy.writers.XRImage')
     def test_to_image_2D(self, mock_geoimage):
         """Conversion to image."""
+        from satpy.writers import to_image
         # 2D
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, attrs=dict(mode="L", fill_value=0,
@@ -82,6 +82,7 @@ class TestWritersModule(unittest.TestCase):
     def test_to_image_3D(self, mock_geoimage):
         """Conversion to image."""
         # 3D
+        from satpy.writers import to_image
         data = np.arange(75).reshape((3, 5, 5))
         p = xr.DataArray(data, dims=['bands', 'y', 'x'])
         p['bands'] = ['R', 'G', 'B']
@@ -93,6 +94,8 @@ class TestWritersModule(unittest.TestCase):
     @mock.patch('satpy.writers.get_enhanced_image')
     def test_show(self, mock_get_image):
         """Check showing."""
+        from satpy.writers import show
+
         data = np.arange(25).reshape((5, 5))
         p = xr.DataArray(data, dims=['y', 'x'])
         show(p)
@@ -141,6 +144,7 @@ class TestEnhancerUserConfigs(unittest.TestCase):
     ENH_ENH_FN = os.path.join('enhancements', ENH_FN)
     ENH_FN2 = 'test_sensor2.yaml'
     ENH_ENH_FN2 = os.path.join('enhancements', ENH_FN2)
+    ENH_FN3 = 'test_empty.yaml'
 
     TEST_CONFIGS = {
         ENH_FN: """
@@ -175,6 +179,7 @@ sensor_name: visir/test_sensor2
 sensor_name: visir/test_sensor2
 
         """,
+        ENH_FN3: """""",
     }
 
     @classmethod
@@ -196,6 +201,19 @@ sensor_name: visir/test_sensor2
             elif os.path.isfile(fn):
                 os.remove(fn)
 
+    def test_enhance_empty_config(self):
+        """Test Enhancer doesn't fail with empty enhancement file."""
+        from satpy.writers import Enhancer, get_enhanced_image
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs=dict(sensor='test_empty', mode='L'),
+                       dims=['y', 'x'])
+        e = Enhancer()
+        self.assertIsNotNone(e.enhancement_tree)
+        get_enhanced_image(ds, enhance=e)
+        self.assertSetEqual(set(e.sensor_enhancement_configs),
+                            {os.path.abspath(self.ENH_FN3)})
+
     def test_enhance_with_sensor_no_entry(self):
         """Test enhancing an image that has no configuration sections."""
         from satpy.writers import Enhancer, get_enhanced_image
@@ -205,9 +223,29 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
-        get_enhanced_image(ds, enhancer=e)
+        get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {self.ENH_FN2, self.ENH_ENH_FN2})
+                            {os.path.abspath(self.ENH_FN2),
+                             os.path.abspath(self.ENH_ENH_FN2)})
+
+    def test_deprecated_enhance_with_file_specified(self):
+        """Test enhancing an image when config file is specified."""
+        from satpy.writers import get_enhanced_image
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs=dict(name='test1', sensor='test_sensor', mode='L'),
+                       dims=['y', 'x'])
+        get_enhanced_image(ds, enhancement_config_file=self.ENH_ENH_FN)
+
+    def test_no_enhance(self):
+        """Test turning off enhancements."""
+        from satpy.writers import get_enhanced_image
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs=dict(name='test1', sensor='test_sensor', mode='L'),
+                       dims=['y', 'x'])
+        img = get_enhanced_image(ds, enhance=False)
+        np.testing.assert_allclose(img.data.data.compute().squeeze(), ds.data)
 
     def test_enhance_with_sensor_entry(self):
         """Test enhancing an image with a configuration section."""
@@ -219,10 +257,11 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
-        img = get_enhanced_image(ds, enhancer=e)
+        img = get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(
             set(e.sensor_enhancement_configs),
-            {self.ENH_FN, self.ENH_ENH_FN})
+            {os.path.abspath(self.ENH_FN),
+             os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values,
                                        1.)
 
@@ -231,9 +270,10 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
-        img = get_enhanced_image(ds, enhancer=e)
+        img = get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {self.ENH_FN, self.ENH_ENH_FN})
+                            {os.path.abspath(self.ENH_FN),
+                             os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 1.)
 
     def test_enhance_with_sensor_entry2(self):
@@ -246,20 +286,22 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         e = Enhancer()
         self.assertIsNotNone(e.enhancement_tree)
-        img = get_enhanced_image(ds, enhancer=e)
+        img = get_enhanced_image(ds, enhance=e)
         self.assertSetEqual(set(e.sensor_enhancement_configs),
-                            {self.ENH_FN, self.ENH_ENH_FN})
+                            {os.path.abspath(self.ENH_FN),
+                             os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
 
 
 class TestYAMLFiles(unittest.TestCase):
     """Test and analyze the writer configuration files."""
 
-    def test_filename_matches_reader_name(self):
+    def test_filename_matches_writer_name(self):
         """Test that every writer filename matches the name in the YAML."""
         import yaml
 
         class IgnoreLoader(yaml.SafeLoader):
+
             def _ignore_all_tags(self, tag_suffix, node):
                 return tag_suffix + ' ' + node.value
         IgnoreLoader.add_multi_constructor('', IgnoreLoader._ignore_all_tags)
@@ -290,6 +332,187 @@ class TestYAMLFiles(unittest.TestCase):
             self.assertIn('name', writer_info)
 
 
+class TestComputeWriterResults(unittest.TestCase):
+    """Test compute_writer_results()."""
+
+    def setUp(self):
+        """Create temporary directory to save files to and a mock scene"""
+        import tempfile
+        from datetime import datetime
+
+        from satpy.scene import Scene
+        import dask.array as da
+
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        self.scn = Scene()
+        self.scn['test'] = ds1
+
+        # Temp dir
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
+    def test_empty(self):
+        """Test empty result list"""
+        from satpy.writers import compute_writer_results
+        compute_writer_results([])
+
+    def test_simple_image(self):
+        """Test writing to PNG file"""
+        from satpy.writers import compute_writer_results
+        fname = os.path.join(self.base_dir, 'simple_image.png')
+        res = self.scn.save_datasets(filename=fname,
+                                     datasets=['test'],
+                                     writer='simple_image',
+                                     compute=False)
+        compute_writer_results([res])
+        self.assertTrue(os.path.isfile(fname))
+
+    def test_geotiff(self):
+        """Test writing to mitiff file"""
+        from satpy.writers import compute_writer_results
+        fname = os.path.join(self.base_dir, 'geotiff.tif')
+        res = self.scn.save_datasets(filename=fname,
+                                     datasets=['test'],
+                                     writer='geotiff', compute=False)
+        compute_writer_results([res])
+        self.assertTrue(os.path.isfile(fname))
+
+# FIXME: This reader needs more information than exist at the moment
+#    def test_mitiff(self):
+#        """Test writing to mitiff file"""
+#        fname = os.path.join(self.base_dir, 'mitiff.tif')
+#        res = self.scn.save_datasets(filename=fname,
+#                                     datasets=['test'],
+#                                     writer='mitiff')
+#        compute_writer_results([res])
+#        self.assertTrue(os.path.isfile(fname))
+
+# FIXME: This reader needs more information than exist at the moment
+#    def test_cf(self):
+#        """Test writing to NetCDF4 file"""
+#        fname = os.path.join(self.base_dir, 'cf.nc')
+#        res = self.scn.save_datasets(filename=fname,
+#                                     datasets=['test'],
+#                                     writer='cf')
+#        compute_writer_results([res])
+#        self.assertTrue(os.path.isfile(fname))
+
+    def test_multiple_geotiff(self):
+        """Test writing to mitiff file"""
+        from satpy.writers import compute_writer_results
+        fname1 = os.path.join(self.base_dir, 'geotiff1.tif')
+        res1 = self.scn.save_datasets(filename=fname1,
+                                      datasets=['test'],
+                                      writer='geotiff', compute=False)
+        fname2 = os.path.join(self.base_dir, 'geotiff2.tif')
+        res2 = self.scn.save_datasets(filename=fname2,
+                                      datasets=['test'],
+                                      writer='geotiff', compute=False)
+        compute_writer_results([res1, res2])
+        self.assertTrue(os.path.isfile(fname1))
+        self.assertTrue(os.path.isfile(fname2))
+
+    def test_multiple_simple(self):
+        """Test writing to geotiff files"""
+        from satpy.writers import compute_writer_results
+        fname1 = os.path.join(self.base_dir, 'simple_image1.png')
+        res1 = self.scn.save_datasets(filename=fname1,
+                                      datasets=['test'],
+                                      writer='simple_image', compute=False)
+        fname2 = os.path.join(self.base_dir, 'simple_image2.png')
+        res2 = self.scn.save_datasets(filename=fname2,
+                                      datasets=['test'],
+                                      writer='simple_image', compute=False)
+        compute_writer_results([res1, res2])
+        self.assertTrue(os.path.isfile(fname1))
+        self.assertTrue(os.path.isfile(fname2))
+
+    def test_mixed(self):
+        """Test writing to multiple mixed-type files"""
+        from satpy.writers import compute_writer_results
+        fname1 = os.path.join(self.base_dir, 'simple_image3.png')
+        res1 = self.scn.save_datasets(filename=fname1,
+                                      datasets=['test'],
+                                      writer='simple_image', compute=False)
+        fname2 = os.path.join(self.base_dir, 'geotiff3.tif')
+        res2 = self.scn.save_datasets(filename=fname2,
+                                      datasets=['test'],
+                                      writer='geotiff', compute=False)
+        res3 = []
+        compute_writer_results([res1, res2, res3])
+        self.assertTrue(os.path.isfile(fname1))
+        self.assertTrue(os.path.isfile(fname2))
+
+
+class TestBaseWriter(unittest.TestCase):
+    """Test the base writer class."""
+
+    def setUp(self):
+        """Set up tests."""
+        import tempfile
+        from datetime import datetime
+
+        from satpy.scene import Scene
+        import dask.array as da
+
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        self.scn = Scene()
+        self.scn['test'] = ds1
+
+        # Temp dir
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test"""
+        try:
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
+    def test_save_dataset_static_filename(self):
+        """Test saving a dataset with a static filename specified."""
+        self.scn.save_datasets(base_dir=self.base_dir, filename='geotiff.tif')
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, 'geotiff.tif')))
+
+    def test_save_dataset_dynamic_filename(self):
+        """Test saving a dataset with a format filename specified."""
+        fmt_fn = 'geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif'
+        exp_fn = 'geotiff_test_20180101_000000.tif'
+        self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn)
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+
+    def test_save_dataset_dynamic_filename_with_dir(self):
+        """Test saving a dataset with a format filename that includes a directory."""
+        fmt_fn = os.path.join('{start_time:%Y%m%d}', 'geotiff_{name}_{start_time:%Y%m%d_%H%M%S}.tif')
+        exp_fn = os.path.join('20180101', 'geotiff_test_20180101_000000.tif')
+        self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn)
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+
+        # change the filename pattern but keep the same directory
+        fmt_fn2 = os.path.join('{start_time:%Y%m%d}', 'geotiff_{name}_{start_time:%Y%m%d_%H}.tif')
+        exp_fn2 = os.path.join('20180101', 'geotiff_test_20180101_00.tif')
+        self.scn.save_datasets(base_dir=self.base_dir, filename=fmt_fn2)
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn2)))
+        # the original file should still exist
+        self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -298,5 +521,7 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancer))
     my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancerUserConfigs))
     my_suite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestComputeWriterResults))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestBaseWriter))
 
     return my_suite
