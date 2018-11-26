@@ -384,6 +384,47 @@ class TestNativeResampler(unittest.TestCase):
         self.assertRaises(ValueError, resampler.resample, ds1)
 
 
+class TestBilinearResampler(unittest.TestCase):
+    """Test the bilinear resampler."""
+
+    @mock.patch('satpy.resample.BilinearResampler.load_bil_info')
+    @mock.patch('satpy.resample.np.savez')
+    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample.BilinearResampler._create_cache_filename')
+    @mock.patch('satpy.resample.XArrayResamplerBilinear')
+    def test_bil_resampling(self, resampler, create_filename, load, savez,
+                            load_bil_info):
+        """Test the bilinear resampler."""
+        import numpy as np
+        import dask.array as da
+        from satpy.resample import BilinearResampler
+        from pyresample.geometry import SwathDefinition
+        source_area = mock.MagicMock()
+        source_swath = SwathDefinition(
+            da.arange(5, chunks=5), da.arange(5, chunks=5))
+        target_area = mock.MagicMock()
+
+        # Test that bilinear resampling info calculation is called,
+        # and the info is saved
+        load_bil_info.side_effect = IOError()
+        resampler = BilinearResampler(source_swath, target_area)
+        resampler.precompute(
+            mask=da.arange(5, chunks=5).astype(np.bool))
+        resampler.resampler.get_bil_info.assert_called()
+        resampler.resampler.get_bil_info.assert_called_with()
+        self.assertFalse(len(savez.mock_calls), 1)
+        resampler.resampler.reset_mock()
+        load_bil_info.reset_mock()
+
+        # Test that get_sample_from_bil_info is called properly
+        data = mock.MagicMock()
+        data.name = 'foo'
+        data.data = [1, 2, 3]
+        fill_value = 8
+        resampler.compute(data, fill_value=fill_value)
+        resampler.resampler.get_sample_from_bil_info.assert_called_with(data, fill_value=fill_value, output_shape=target_area.shape)
+
+
 def suite():
     """The test suite for test_scene.
     """
