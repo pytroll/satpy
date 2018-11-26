@@ -5,6 +5,9 @@
 
 import os
 import sys
+import numpy as np
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -14,9 +17,6 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-
-import numpy as np
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -103,8 +103,10 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
         # convert to xarrays
         from xarray import DataArray
+        import dask.array as da
         for key, val in file_content.items():
             if isinstance(val, np.ndarray):
+                val = da.from_array(val, chunks=val.shape)
                 if val.ndim > 1:
                     file_content[key] = DataArray(val, dims=('y', 'x'))
                 else:

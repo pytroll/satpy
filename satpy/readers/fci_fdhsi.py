@@ -25,15 +25,12 @@
 """Interface to MTG-FCI Retrieval NetCDF files
 
 """
-from datetime import datetime, timedelta
 import numpy as np
 from pyresample import geometry
 import h5py
 import xarray as xr
 import logging
-from collections import defaultdict
 
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -47,12 +44,11 @@ class FCIFDHSIFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(FCIFDHSIFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info)
-        logger.debug('Reading: {}'.format(filename))
+        logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
-        self.nc = h5py.File(filename, 'r')
-        self.filename = filename
+        self.nc = h5py.File(self.filename, 'r')
         self.cache = {}
 
     @property
@@ -64,8 +60,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         return self.filename_info['end_time']
 
     def get_dataset(self, key, info=None):
-        """Load a dataset
-        """
+        """Load a dataset."""
         if key in self.cache:
             return self.cache[key]
 
@@ -84,7 +79,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         # Apply scale factor and offset
         radiances = radiances * (radiances.attrs['scale_factor'] * 1.0) + radiances.attrs['offset']
 
-        #TODO Calibration is disabled, waiting for calibration parameters from EUMETSAT
+        # TODO: Calibration is disabled, waiting for calibration parameters from EUMETSAT
         res = self.calibrate(radiances, key)
 
         self.cache[key] = res
@@ -93,8 +88,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         return res
 
     def calc_area_extent(self, key):
-        """Calculate area extent for a dataset.
-        """
+        """Calculate area extent for a dataset."""
         # Calculate the area extent of the swath based on start line and column
         # information, total number of segments and channel resolution
         xyres = {500: 22272, 1000: 11136, 2000: 5568}
@@ -113,11 +107,9 @@ class FCIFDHSIFileHandler(BaseFileHandler):
 
         logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
         logger.debug('Row/Cols: {} / {}'.format(self.nlines, self.ncols))
-        logger.debug('Start/End row: {} / {}'.format(self.startline,
-                                                     self.endline))
-        logger.debug('Start/End col: {} / {}'.format(self.startcol,
-                                                     self.endcol))
-        total_segments = 70
+        logger.debug('Start/End row: {} / {}'.format(self.startline, self.endline))
+        logger.debug('Start/End col: {} / {}'.format(self.startcol, self.endcol))
+        # total_segments = 70
 
         # Calculate full globe line extent
         max_y = 5432229.9317116784
@@ -134,38 +126,36 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         return(chk_extent)
 
     def get_area_def(self, key, info=None):
-        """Calculate on-fly area definition for 0 degree geos-projection
-        for a dataset
-        """
+        """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
         # TODO Projection information are hard coded for 0 degree geos projection
         # Test dataset doen't provide the values in the file container.
         # Only fill values are inserted
-        #cfac = np.uint32(self.proj_info['CFAC'])
-        #lfac = np.uint32(self.proj_info['LFAC'])
-        #coff = np.float32(self.proj_info['COFF'])
-        #loff = np.float32(self.proj_info['LOFF'])
-        #a = self.nc['/state/processor/earth_equatorial_radius']
+        # cfac = np.uint32(self.proj_info['CFAC'])
+        # lfac = np.uint32(self.proj_info['LFAC'])
+        # coff = np.float32(self.proj_info['COFF'])
+        # loff = np.float32(self.proj_info['LOFF'])
+        # a = self.nc['/state/processor/earth_equatorial_radius']
         a = 6378169.
-        #h = self.nc['/state/processor/reference_altitude'] * 1000 - a
+        # h = self.nc['/state/processor/reference_altitude'] * 1000 - a
         h = 35785831.
-        #b = self.nc['/state/processor/earth_polar_radius']
+        # b = self.nc['/state/processor/earth_polar_radius']
         b = 6356583.8
-        #lon_0 = self.nc['/state/processor/projection_origin_longitude']
+        # lon_0 = self.nc['/state/processor/projection_origin_longitude']
         lon_0 = 0.
-        #nlines = self.nc['/state/processor/reference_grid_number_of_columns']
-        #ncols = self.nc['/state/processor/reference_grid_number_of_rows']
-        #nlines = 5568
-        #ncols = 5568
+        # nlines = self.nc['/state/processor/reference_grid_number_of_columns']
+        # ncols = self.nc['/state/processor/reference_grid_number_of_rows']
+        # nlines = 5568
+        # ncols = 5568
         # Channel dependent swath resoultion
         area_extent = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
 
-        #c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
-        #ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
-        # c, l = ncols, (1 + self.total_segments -
-        #                self.segment_number) * nlines - nlines
-        #ur_x, ur_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
+        # c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
+        # ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
+        #  c, l = ncols, (1 + self.total_segments -
+        #                 self.segment_number) * nlines - nlines
+        # ur_x, ur_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
 
         # area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ur_y) * h,
         #               np.deg2rad(ur_x) * h, np.deg2rad(ll_y) * h)
@@ -189,29 +179,26 @@ class FCIFDHSIFileHandler(BaseFileHandler):
             area_extent)
 
         self.area = area
-
         return area
 
     def calibrate(self, data, key):
-        """Data calibration.
-        """
+        """Data calibration."""
 
-#        logger.debug('Calibration: %s' % key.calibration)
+        # logger.debug('Calibration: %s' % key.calibration)
         logger.warning('Calibration disabled!')
         if key.calibration == 'brightness_temperature':
+            # self._ir_calibrate(data, key)
             pass
-#            self._ir_calibrate(data, key)
         elif key.calibration == 'reflectance':
+            # self._vis_calibrate(data, key)
             pass
-#            self._vis_calibrate(data, key)
         else:
             pass
 
-        return(data)
+        return data
 
     def _ir_calibrate(self, data, key):
-        """IR channel calibration
-        """
+        """IR channel calibration."""
         # Not sure if Lv is correct, FCI User Guide is a bit unclear
 
         Lv = data.data * \
@@ -234,8 +221,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         data.data[:] = nom / denom - b / a
 
     def _vis_calibrate(self, data, key):
-        """VIS channel calibration
-        """
+        """VIS channel calibration."""
         # radiance to reflectance taken as in mipp/xrit/MSG.py
         # again FCI User Guide is not clear on how to do this
 

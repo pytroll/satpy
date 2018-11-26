@@ -8,61 +8,111 @@ reader:
 file_types:
     HRIT_00_6_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-00_6_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-00_6_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_00_7_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-00_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-00_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_00_9_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-00_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-00_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_03_8_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-03_8_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-03_8_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_06_4_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-06_4_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-06_4_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_08_0_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-08_0_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-08_0_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_08_7_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-08_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-08_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_09_7_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-09_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-09_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_10_7_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-10_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-10_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_11_9_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-11_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-11_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_00_6_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-00_6_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_00_7_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-00_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_00_9_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-00_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_03_8_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-03_8_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_06_4_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-06_4_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_08_0_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-08_0_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_08_7_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-08_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_09_7_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-09_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_10_7_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-10_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_4, HRIT_EPI_4]
+
+    HRIT_11_9_4_C:
+        file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-11_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO_4, HRIT_EPI_4]
 
     HRIT_PRO_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSPrologueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-_________-PRO______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-_________-PRO______-{start_time:%Y%m%d%H%M}-__']
 
     HRIT_EPI_4:
         file_reader: !!python/name:satpy.readers.hrit_electrol.HRITGOMSEpilogueFileHandler
-        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-_________-EPI______-{start_time:%Y%m%d%H%M}-{compressed:_<2s}']
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}4_____-_________-EPI______-{start_time:%Y%m%d%H%M}-__']
 
 datasets:
   '00_6':
@@ -79,7 +129,7 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_00_6_4
+    file_type: [HRIT_00_6_4, HRIT_00_6_4_C]
 
   '00_7':
     name: '00_7'
@@ -95,7 +145,7 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_00_7_4
+    file_type: [HRIT_00_7_4, HRIT_00_7_4_C]
 
   '00_9':
     name: '00_9'
@@ -111,7 +161,7 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_00_9_4
+    file_type: [HRIT_00_9_4, HRIT_00_9_4_C]
 
   '03_8':
     name: '03_8'
@@ -127,7 +177,7 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_03_8_4
+    file_type: [HRIT_03_8_4, HRIT_03_8_4_C]
 
   '06_4':
     name: '06_4'
@@ -143,7 +193,7 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_06_4_4
+    file_type: [HRIT_06_4_4, HRIT_06_4_4_C]
 
   '08_0':
     name: '08_0'
@@ -159,7 +209,7 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_08_0_4
+    file_type: [HRIT_08_0_4, HRIT_08_0_4_C]
 
   '08_7':
     name: '08_7'
@@ -175,7 +225,7 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_08_7_4
+    file_type: [HRIT_08_7_4, HRIT_08_7_4_C]
 
   '09_7':
     name: '09_7'
@@ -191,7 +241,7 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_09_7_4
+    file_type: [HRIT_09_7_4, HRIT_09_7_4_C]
 
   '10_7':
     name: '10_7'
@@ -207,7 +257,7 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_10_7_4
+    file_type: [HRIT_10_7_4, HRIT_10_7_4_C]
 
   '11_9':
     name: '11_9'
@@ -223,4 +273,4 @@ datasets:
       counts:
         standard_name: counts
         units: '1'
-    file_type: HRIT_11_9_4
+    file_type: [HRIT_11_9_4, HRIT_11_9_4_C]

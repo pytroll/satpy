@@ -36,7 +36,7 @@ composites:
     - 10.4
     standard_name: overview
 
-  natural:
+  natural_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
     - wavelength: 1.63
@@ -46,7 +46,7 @@ composites:
     - wavelength: 0.635
       modifiers: [sunz_corrected] #, rayleigh_corrected]
     high_resolution_band: blue
-    standard_name: natural
+    standard_name: natural_color
 
   true_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
@@ -136,14 +136,20 @@ composites:
     standard_name: water_vapors2
 
   convection:
-    compositor: !!python/name:satpy.composites.Convection
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 0.635
-    - 1.63
-    - 3.75
-    - 6.7
-    - 7.3
-    - 10.4
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - 6.7
+        - 7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - 3.75
+        - 10.4
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - 1.63
+        - 0.635
     standard_name: convection
 
   ir_cloud_day:

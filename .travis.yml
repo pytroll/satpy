@@ -5,14 +5,13 @@ env:
         - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
         - NUMPY_VERSION=stable
         - MAIN_CMD='python setup.py'
-        # 'krb5' is added as a workaround for an issue with gdal
-        # see: https://github.com/conda-forge/gdal-feedstock/issues/205
-        - CONDA_DEPENDENCIES='xarray dask toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock krb5 libtiff'
-        - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital'
+        - CONDA_DEPENDENCIES='xarray dask toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff'
+        - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
         - SETUP_CMD='test'
         - CONDA_CHANNELS='conda-forge'
+        - CONDA_CHANNEL_PRIORITY='True'
 matrix:
   include:
   - env: PYTHON_VERSION=2.7

@@ -21,7 +21,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""GOES HRIT format reader.
+"""GOES HRIT format reader
+****************************
 
 References:
       LRIT/HRIT Mission Specific Implementation, February 2012
@@ -34,6 +35,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import xarray as xr
+import dask.array as da
 
 from pyresample import geometry
 
@@ -49,6 +51,10 @@ class CalibrationError(Exception):
 
 logger = logging.getLogger('hrit_goes')
 
+# Geometric constants [meters]
+EQUATOR_RADIUS = 6378169.00
+POLE_RADIUS = 6356583.80
+ALTITUDE = 35785831.00
 
 # goes implementation:
 key_header = np.dtype([('key_number', 'u1'),
@@ -425,6 +431,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         """Calibrate *data*."""
         idx = self.mda['calibration_parameters']['indices']
         val = self.mda['calibration_parameters']['values']
+        data.data = da.where(data.data == 0, np.nan, data.data)
         ddata = data.data.map_blocks(lambda block: np.interp(block, idx, val), dtype=val.dtype)
         res = xr.DataArray(ddata,
                            dims=data.dims, attrs=data.attrs,
@@ -442,9 +449,9 @@ class HRITGOESFileHandler(HRITFileHandler):
         coff = np.float32(self.mda['coff'])
         loff = np.float32(self.mda['loff'])
 
-        a = 6378169.00
-        b = 6356583.80
-        h = 35785831.00
+        a = EQUATOR_RADIUS
+        b = POLE_RADIUS
+        h = ALTITUDE
 
         lon_0 = self.prologue['SubSatLongitude']
 

@@ -10,14 +10,16 @@ datasets:
     name: image
     file_type: graphic
 
-
-
 file_types:
     graphic:
         file_reader: !!python/name:satpy.readers.generic_image.GenericImageFileHandler
         file_patterns:
-         - '{filename}_{start_time:%Y%m%d%H%M}.png'
-         - '{filename}_{start_time:%Y%m%d%H%M}.jpg'
-         - '{filename}{start_time:%Y%m%d%H%M}.gif'
-         - '{filename}{start_time:%Y%m%d%H%M}.tif'
-
+         - '{start_time:%Y%m%d_%H%M}{filename}.png'
+         - '{start_time:%Y%m%d_%H%M}{filename}.jpg'
+         - '{start_time:%Y%m%d_%H%M}{filename}.tif'
+         - '{filename}{start_time:%Y%m%d_%H%M}.png'
+         - '{filename}{start_time:%Y%m%d_%H%M}.jpg'
+         - '{filename}{start_time:%Y%m%d_%H%M}.tif'
+         - '{filename}.png'
+         - '{filename}.jpg'
+         - '{filename}.tif'

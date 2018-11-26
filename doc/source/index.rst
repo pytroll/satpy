@@ -33,6 +33,7 @@ installation.
 
     overview
     install
+    examples
     quickstart
     readers
     composites
@@ -47,6 +48,7 @@ installation.
 
 .. list-table:: SatPy Readers
     :header-rows: 1
+    :widths: 45 25 30
 
     * - Description
       - Reader name
@@ -70,6 +72,9 @@ installation.
     * - GOES 11 to 15 imager data in HRIT format
       - `hrit_goes`
       - Nominal
+    * - GOES 8 to 15 imager data in netCDF format (from NOAA CLASS)
+      - `nc_goes`
+      - Beta
     * - Electro-L N2 MSU-GS data in HRIT format
       - `hrit_electrol`
       - Nominal
@@ -83,26 +88,26 @@ installation.
       - `gac_lac_l1b`
       - Nominal
     * - NOAA 15 to 19 AVHRR data in raw HRPT format
-      - `avhrr_hrpt`
-      - Nominal
+      - `avhrr_hrpt_l1b`
+      - In development
     * - GCOM-W1 AMSR2 data in HDF5 format
       - `amsr2_l1b`
       - Nominal
     * - MTG FCI data in netcdf format
       - `fci_fdhsi`
-      - Nominal
+      - In development
     * - Callipso Caliop data in EOS-hdf4 format
       - `hdf4_caliopv3`
-      - Nominal
+      - In development
     * - Terra and Aqua MODIS data in EOS-hdf4 level-1 format as produced by IMAPP and IPOPP or downloaded from LAADS
       - `hdfeos_l1b`
       - Nominal
-    * - NWCSAF MSG 2016 products in netCDF4 format
+    * - NWCSAF GEO 2016 products in netCDF4 format
       - `nc_nwcsaf_msg`
-      - Nominal
-    * - NWCSAF PPS 2014 products in netCDF4 format
+      - In development
+    * - NWCSAF PPS 2014, 2018 products in netCDF4 format
       - `nc_nwcsaf_pps`
-      - | Not yet support for remapped netCDF products. 
+      - | Not yet support for remapped netCDF products.
         | Only the standard swath based output is supported.
         | CPP products not supported yet
     * - Sentinel-1 A and B SAR-C data in SAFE format
@@ -116,10 +121,10 @@ installation.
       - Nominal
     * - Sentinel-3 A and B SLSTR data in netCDF4 format
       - `nc_slstr`
-      - Nominal
+      - In development
     * - OSISAF SST data in GHRSST (netcdf) format
       - `ghrsst_osisaf`
-      - Nominal
+      - In development
     * - NUCAPS EDR Retrieval in NetCDF4 format
       - `nucaps`
       - Nominal
@@ -144,8 +149,14 @@ installation.
     * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
       - `maia`
       - Nominal
+    * - VIIRS EDR Flood data in hdf4 format
+      - `viirs_edr_flood`
+      - Beta
     * - GRIB2 format
       - `grib`
+      - Beta
+    * - SCMI ABI L1B format
+      - `scmi_abi_l1b`
       - Beta
 
 Indices and tables

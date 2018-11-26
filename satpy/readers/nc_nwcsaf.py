@@ -65,12 +65,12 @@ class NcNWCSAF(BaseFileHandler):
         super(NcNWCSAF, self).__init__(filename, filename_info,
                                        filetype_info)
 
-        self._unzipped = unzip_file(filename)
+        self._unzipped = unzip_file(self.filename)
         if self._unzipped:
-            filename = self._unzipped
+            self.filename = self._unzipped
 
         self.cache = {}
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks=CHUNK_SIZE)
@@ -109,7 +109,7 @@ class NcNWCSAF(BaseFileHandler):
             logger.debug('Get the data set from cache: %s.', dsid_name)
             return self.cache[dsid_name]
 
-        if dsid_name in ['lon', 'lat'] and dsid_name not in self.nc.keys():
+        if dsid_name in ['lon', 'lat'] and dsid_name not in self.nc:
             dsid_name = dsid_name + '_reduced'
 
         logger.debug('Reading %s.', dsid_name)
@@ -210,17 +210,9 @@ class NcNWCSAF(BaseFileHandler):
         if dsid.name.endswith('_pal'):
             raise NotImplementedError
 
-        try:
-            proj_str = self.nc.attrs['gdal_projection'] + ' +units=km'
-        except TypeError:
-            proj_str = self.nc.attrs['gdal_projection'].decode() + ' +units=km'
+        proj_str, area_extent = self._get_projection()
 
         nlines, ncols = self.nc[dsid.name].shape
-
-        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / 1000,
-                       float(self.nc.attrs['gdal_ygeo_low_right']) / 1000,
-                       float(self.nc.attrs['gdal_xgeo_low_right']) / 1000,
-                       float(self.nc.attrs['gdal_ygeo_up_left']) / 1000)
 
         area = get_area_def('some_area_name',
                             "On-the-fly area",
@@ -270,6 +262,32 @@ class NcNWCSAF(BaseFileHandler):
             # PPS:
             return datetime.strptime(self.nc.attrs['time_coverage_end'],
                                      '%Y%m%dT%H%M%S%fZ')
+
+    def _get_projection(self):
+        """Get projection from the NetCDF4 attributes"""
+        try:
+            proj_str = self.nc.attrs['gdal_projection']
+        except TypeError:
+            proj_str = self.nc.attrs['gdal_projection'].decode()
+
+        # Check the a/b/h units
+        radius_a = proj_str.split('+a=')[-1].split()[0]
+        if float(radius_a) > 10e3:
+            units = 'm'
+            scale = 1.0
+        else:
+            units = 'km'
+            scale = 1e3
+
+        if 'units' not in proj_str:
+            proj_str = proj_str + ' +units=' + units
+
+        area_extent = (float(self.nc.attrs['gdal_xgeo_up_left']) / scale,
+                       float(self.nc.attrs['gdal_ygeo_low_right']) / scale,
+                       float(self.nc.attrs['gdal_xgeo_low_right']) / scale,
+                       float(self.nc.attrs['gdal_ygeo_up_left']) / scale)
+
+        return proj_str, area_extent
 
 
 def remove_empties(variable):

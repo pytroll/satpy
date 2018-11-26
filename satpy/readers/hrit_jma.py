@@ -20,7 +20,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader for JMA data.
+"""HRIT format reader for JMA data
+************************************
 
 References:
     JMA HRIT - Mission Specific Implementation
@@ -86,20 +87,6 @@ time_cds_expanded = np.dtype([('days', '>u2'),
                               ('nanoseconds', '>u2')])
 
 
-def recarray2dict(arr):
-    res = {}
-    for dtuple in arr.dtype.descr:
-        key = dtuple[0]
-        ntype = dtuple[1]
-        data = arr[key]
-        if isinstance(ntype, list):
-            res[key] = recarray2dict(data)
-        else:
-            res[key] = data
-
-    return res
-
-
 class HRITJMAFileHandler(HRITFileHandler):
     """JMA HRIT format reader."""
 
@@ -115,7 +102,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         self.mda['planned_end_segment_number'] = self.mda['total_no_image_segm']
         self.mda['planned_start_segment_number'] = 1
 
-        items = self.mda['image_data_function'].split('\r')
+        items = self.mda['image_data_function'].decode().split('\r')
         if items[0].startswith('$HALFTONE'):
             self.calibration_table = []
             for item in items[1:]:
@@ -133,7 +120,8 @@ class HRITJMAFileHandler(HRITFileHandler):
 
             self.calibration_table = np.array(self.calibration_table)
 
-        sublon = float(self.mda['projection_name'].strip().split('(')[1][:-1])
+        self.projection_name = self.mda['projection_name'].decode().strip()
+        sublon = float(self.projection_name.split('(')[1][:-1])
         self.mda['projection_parameters']['SSP_longitude'] = sublon
 
     def get_area_def(self, dsid):
@@ -168,16 +156,13 @@ class HRITJMAFileHandler(HRITFileHandler):
                      'units': 'm'}
 
         area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
+            "FLDK",
+            "HRIT FLDK Area: {}".format(self.projection_name),
             'geosmsg',
             proj_dict,
             ncols,
             nlines,
             area_extent)
-
-        self.area = area
-
         return area
 
     def get_dataset(self, key, info):
@@ -188,6 +173,9 @@ class HRITJMAFileHandler(HRITFileHandler):
         res.attrs.update(info)
         res.attrs['platform_name'] = 'Himawari-8'
         res.attrs['sensor'] = 'ahi'
+        res.attrs['satellite_longitude'] = float(self.mda['projection_parameters']['SSP_longitude'])
+        res.attrs['satellite_latitude'] = 0.
+        res.attrs['satellite_altitude'] = float(self.mda['projection_parameters']['h'])
         return res
 
     def calibrate(self, data, calibration):

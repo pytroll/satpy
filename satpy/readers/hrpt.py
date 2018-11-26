@@ -39,7 +39,6 @@ from datetime import datetime
 import numpy as np
 
 from pygac.gac_calibration import calibrate_solar, calibrate_thermal
-from pyresample.geometry import SwathDefinition
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 

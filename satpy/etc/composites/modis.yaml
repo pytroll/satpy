@@ -1,4 +1,13 @@
 sensor_name: visir/modis
+modifiers:
+  rayleigh_corrected_crefl:
+    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    dem_filename: CMGDEM.hdf
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+    - name: satellite_zenith_angle
+    - name: solar_azimuth_angle
+    - name: solar_zenith_angle
 
 composites:
   true_color_uncorrected:
@@ -23,6 +32,30 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
 
+  true_color_thin:
+    compositor: !!python/name:satpy.composites.FillingCompositor
+    prerequisites:
+    - name: '1'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: '1'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: '12'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: '10'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  true_color_crefl:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: '1'
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: '4'
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: '3'
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    standard_name: true_color
+
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -34,15 +67,16 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: overview
 
-  airmass_corr:
-    compositor: !!python/name:satpy.composites.Airmass
+  airmass:
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.7
+      - wavelength: 7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 9.7
+        - wavelength: 10.8
     - wavelength: 6.7
-      modifiers: [atm_correction]
-    - wavelength: 7.3
-      modifiers: [atm_correction]
-    - wavelength: 9.7
-      modifiers: [atm_correction]
-    - wavelength: 10.8
-      modifiers: [atm_correction]
     standard_name: airmass

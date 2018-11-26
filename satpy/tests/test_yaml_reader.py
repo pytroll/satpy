@@ -73,6 +73,7 @@ class TestUtils(unittest.TestCase):
                    'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
                    've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
                    '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
+        pattern = os.path.join(*pattern.split('/'))
         filename = os.path.join(base_dir, 'Oa05_radiance.nc')
         expected = os.path.join(base_data, 'Oa05_radiance.nc')
         self.assertEqual(yr.get_filebase(filename, pattern), expected)
@@ -90,6 +91,7 @@ class TestUtils(unittest.TestCase):
                    'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
                    've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
                    '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
+        pattern = os.path.join(*pattern.split('/'))
         filenames = [os.path.join(base_dir, 'Oa05_radiance.nc'),
                      os.path.join(base_dir, 'geo_coordinates.nc')]
         expected = os.path.join(base_dir, 'geo_coordinates.nc')
@@ -107,9 +109,6 @@ class DummyReader(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(DummyReader, self).__init__(
             filename, filename_info, filetype_info)
-        self.filename = filename
-        self.filename_info = filename_info
-        self.filetype_info = filetype_info
         self._start_time = datetime(2000, 1, 1, 12, 1)
         self._end_time = datetime(2000, 1, 1, 12, 2)
         self.metadata = {}
@@ -219,7 +218,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                         filter_parameters={
                                             'start_time': datetime(2000, 1, 1),
                                             'end_time': datetime(2000, 1, 2),
-                                        })
+        })
 
     def test_all_dataset_ids(self):
         """Check that all datasets ids are returned."""
@@ -295,6 +294,10 @@ class TestFileFileYAMLReader(unittest.TestCase):
             res = self.reader.time_matches(fh.start_time, fh.end_time)
             # only the first one should be false
             self.assertEqual(res, idx not in [0, 4])
+
+        for idx, fh in enumerate([fh0, fh1, fh2, fh3, fh4, fh5]):
+            res = self.reader.time_matches(fh.start_time, None)
+            self.assertEqual(res, idx not in [0, 1, 4, 5])
 
     @patch('satpy.readers.yaml_reader.get_area_def')
     @patch('satpy.readers.yaml_reader.AreaDefBoundary')
@@ -492,7 +495,8 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReader))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReaderMultiplePatterns))
+    mysuite.addTest(loader.loadTestsFromTestCase(
+        TestFileFileYAMLReaderMultiplePatterns))
 
     return mysuite
 

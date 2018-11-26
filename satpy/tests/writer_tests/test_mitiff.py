@@ -24,13 +24,6 @@ Based on the test for geotiff writer
 """
 import sys
 
-import logging
-
-logger = logging.getLogger()
-logger.level = logging.DEBUG
-stream_handler = logging.StreamHandler(sys.stdout)
-logger.addHandler(stream_handler)
-
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -83,6 +76,35 @@ class TestMITIFFWriter(unittest.TestCase):
         )
         return ds1
 
+    def _get_test_one_dataset(self):
+        """Helper function to create a single test dataset."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict=proj4_str_to_dict('+proj=geos +datum=WGS84 +ellps=WGS84 \
+            +lon_0=0. h=36000. +units=km'),
+            x_size=100,
+            y_size=200,
+            area_extent=(-1000., -1500., 1000., 1500.),
+        )
+
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow(),
+                   'platform_name': "TEST_PLATFORM_NAME",
+                   'sensor': 'TEST_SENSOR_NAME',
+                   'area': area_def}
+        )
+        return ds1
+
     def _get_test_dataset_calibration(self, bands=6):
         """Helper function to create a single test dataset."""
         import xarray as xr
@@ -131,7 +153,6 @@ class TestMITIFFWriter(unittest.TestCase):
                                   dims=('y', 'x'),
                                   attrs={'calibration': 'reflectance'})
 
-        print(scene)
         data = xr.concat(scene, 'bands', coords='minimal')
         bands = []
         calibration = []
@@ -139,7 +160,6 @@ class TestMITIFFWriter(unittest.TestCase):
             calibration.append(p.attrs['calibration'])
             bands.append(p.attrs['name'])
         data['bands'] = list(bands)
-        new_attrs = {}
         new_attrs = {'name': 'datasets',
                      'start_time': datetime.utcnow(),
                      'platform_name': "TEST_PLATFORM_NAME",
@@ -197,22 +217,29 @@ class TestMITIFFWriter(unittest.TestCase):
         """Test basic writer operation."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset()
-        w = MITIFFWriter(mitiff_dir=self.base_dir)
-        w.save_dataset(dataset, writer='mitiff', mitiff_dir=self.base_dir)
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_dataset(dataset)
 
     def test_save_datasets(self):
         """Test basic writer operation."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset()
-        w = MITIFFWriter(mitiff_dir=self.base_dir)
-        w.save_datasets(dataset, writer='mitiff', mitiff_dir=self.base_dir)
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_datasets(dataset)
+
+    def test_save_one_dataset(self):
+        """Test basic writer operation."""
+        from satpy.writers.mitiff import MITIFFWriter
+        dataset = self._get_test_one_dataset()
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_dataset(dataset)
 
     def test_save_dataset_with_calibration(self):
         """Test basic writer operation."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset_calibration()
-        w = MITIFFWriter(mitiff_dir=self.base_dir)
-        w.save_dataset(dataset, writer='mitiff', mitiff_dir=self.base_dir)
+        w = MITIFFWriter(filename=dataset.attrs['metadata_requirements']['file_pattern'], base_dir=self.base_dir)
+        w.save_dataset(dataset)
 
 
 def suite():

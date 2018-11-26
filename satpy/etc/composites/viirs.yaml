@@ -4,15 +4,28 @@ modifiers:
   rayleigh_corrected_crefl:
     compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
-    prerequisites:
+    optional_prerequisites:
     - name: satellite_azimuth_angle
-      resolution: 742    
+      resolution: 742
     - name: satellite_zenith_angle
       resolution: 742
     - name: solar_azimuth_angle
       resolution: 742
     - name: solar_zenith_angle
       resolution: 742
+
+  rayleigh_corrected_crefl_iband:
+    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    dem_filename: CMGDEM.hdf
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+      resolution: 371
+    - name: satellite_zenith_angle
+      resolution: 371
+    - name: solar_azimuth_angle
+      resolution: 371
+    - name: solar_zenith_angle
+      resolution: 371
 
   rayleigh_corrected_iband:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
@@ -191,7 +204,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected_marine_tropical]
     standard_name: true_color
 
-  natural_color:
+  false_color:
     compositor: !!python/name:satpy.composites.RatioSharpenedRGB
     prerequisites:
     - name: M11
@@ -203,10 +216,25 @@ composites:
     optional_prerequisites:
     - name: I01
       modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
+    standard_name: false_color
+    high_resolution_band: blue
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+    - name: M10
+      modifiers: [sunz_corrected]
+    - name: M07
+      modifiers: [sunz_corrected]
+    - name: M05
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    optional_prerequisites:
+    - name: I01
+      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
     standard_name: natural_color
     high_resolution_band: blue
 
-  natural_sun:
+  natural_color_sun:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: I03
@@ -215,9 +243,9 @@ composites:
       modifiers: [sunz_corrected_iband]
     - name: I01
       modifiers: [sunz_corrected_iband]
-    standard_name: natural
+    standard_name: natural_color
 
-  natural_sun_lowres:
+  natural_color_sun_lowres:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: M10
@@ -226,7 +254,7 @@ composites:
       modifiers: [sunz_corrected]
     - name: M05
       modifiers: [sunz_corrected]
-    standard_name: natural
+    standard_name: natural_color
 
   true_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -272,39 +300,63 @@ composites:
     standard_name: night_microphysics
 
   fog:
-    compositor: !!python/name:satpy.composites.Dust
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - M14
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - M16
+      - M15
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - M15
+      - M14
     - M15
-    - M16
     standard_name: fog
 
   dust:
-    compositor: !!python/name:satpy.composites.Dust
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - M14
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - M16
+      - M15
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - M15
+      - M14
     - M15
-    - M16
     standard_name: dust
 
   ash:
-    compositor: !!python/name:satpy.composites.Dust
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - M14
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - M16
+      - M15
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - M15
+      - M14
     - M15
-    - M16
     standard_name: ash
 
   night_fog:
-    compositor: !!python/name:satpy.composites.Dust
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - M12
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - M16
+      - M15
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - M15
+      - M14
     - M15
-    - M16
     standard_name: night_fog
 
   ssec_fog:
-    compositor: !!python/name:satpy.composites.viirs.VIIRSFog
+    compositor: !!python/name:satpy.composites.DifferenceCompositor
     prerequisites:
     - I05
     - I04

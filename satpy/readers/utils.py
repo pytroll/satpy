@@ -48,7 +48,7 @@ def np2str(value):
 
     """
     if hasattr(value, 'dtype') and \
-            issubclass(value.dtype.type, np.string_) and value.size == 1:
+            issubclass(value.dtype.type, (np.string_, np.object_)) and value.size == 1:
         value = np.asscalar(value)
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
@@ -189,3 +189,19 @@ def unzip_file(filename):
         return tmpfilepath
 
     return None
+
+
+def bbox(img):
+    """Find the bounding box around nonzero elements in the given array
+
+    Copied from https://stackoverflow.com/a/31402351/5703449 .
+
+    Returns:
+        rowmin, rowmax, colmin, colmax
+    """
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax

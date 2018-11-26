@@ -22,13 +22,14 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""SEVIRI HRIT format reader.
+"""SEVIRI HRIT format reader
+******************************
 
 References:
-    MSG Level 1.5 Image Data FormatDescription
+    - MSG Level 1.5 Image Data Format Description
+    - Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent
+      Spectral Blackbody Radiance
 
-TODO:
-- HRV navigation
 
 """
 
@@ -192,7 +193,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         """Read the header info, and fill the metadata dictionary"""
 
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
-        self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 1
+        self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 2
         b = (earth_model['NorthPolarRadius'] +
              earth_model['SouthPolarRadius']) / 2.0 * 1000
         self.mda['projection_parameters'][
@@ -247,7 +248,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         offsets = loff, coff
         # count starts at 1
         cols = 1 - 0.5
-        lines = 1 - 0.5
+        lines = 0.5 - 1
         ll_x, ll_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
 
         cols += ncols

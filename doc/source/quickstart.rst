@@ -10,36 +10,96 @@ Loading data
     >>> reload(sys)
     >>> sys.setdefaultencoding('utf8')
 
-To work with weather satellite data you must create a :class:`~satpy.scene.Scene` object. In order for SatPy to
-get access to the data it must be told what files to read and what :ref:`SatPy Reader <reader_table>` should read them:
+To work with weather satellite data you must create a
+:class:`~satpy.scene.Scene` object. SatPy does not currently provide an
+interface to download satellite data, it assumes that the data is on a
+local hard disk already. In order for SatPy to get access to the data the
+Scene must be told what files to read and what
+:ref:`SatPy Reader <reader_table>` should read them:
 
     >>> from satpy import Scene
     >>> from glob import glob
     >>> filenames = glob("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT/*201504201000*")
     >>> global_scene = Scene(reader="hrit_msg", filenames=filenames)
 
-To load data from the files use the :meth:`Scene.load <satpy.scene.Scene.load>` method:
+To load data from the files use the :meth:`Scene.load <satpy.scene.Scene.load>`
+method. Printing the Scene object will list each of the
+:class:`xarray.DataArray` objects currently loaded:
 
     >>> global_scene.load([0.6, 0.8, 10.8])
     >>> print(global_scene)
-    seviri/IR_108:
-            area: On-the-fly area
-            start_time: 2015-04-20 10:00:00
-            units: K
-            wavelength_range: (9.8, 10.8, 11.8) μm
-            shape: (3712, 3712)
-    seviri/VIS006:
-            area: On-the-fly area
-            start_time: 2015-04-20 10:00:00
-            units: %
-            wavelength_range: (0.56, 0.635, 0.71) μm
-            shape: (3712, 3712)
-    seviri/VIS008:
-            area: On-the-fly area
-            start_time: 2015-04-20 10:00:00
-            units: %
-            wavelength_range: (0.74, 0.81, 0.88) μm
-            shape: (3712, 3712)
+    <xarray.DataArray 'reshape-d66223a8e05819b890c4535bc7e74356' (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+      * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
+      * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
+    Attributes:
+        satellite_longitude:  0.0
+        sensor:               seviri
+        satellite_altitude:   35785831.0
+        platform_name:        Meteosat-11
+        standard_name:        brightness_temperature
+        units:                K
+        wavelength:           (9.8, 10.8, 11.8)
+        satellite_latitude:   0.0
+        start_time:           2018-02-28 15:00:10.814000
+        end_time:             2018-02-28 15:12:43.956000
+        area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
+        name:                 IR_108
+        resolution:           3000.40316582
+        calibration:          brightness_temperature
+        polarization:         None
+        level:                None
+        modifiers:            ()
+        ancillary_variables:  []
+    <xarray.DataArray 'reshape-1982d32298aca15acb42c481fd74a629' (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+      * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
+      * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
+    Attributes:
+        satellite_longitude:  0.0
+        sensor:               seviri
+        satellite_altitude:   35785831.0
+        platform_name:        Meteosat-11
+        standard_name:        toa_bidirectional_reflectance
+        units:                %
+        wavelength:           (0.74, 0.81, 0.88)
+        satellite_latitude:   0.0
+        start_time:           2018-02-28 15:00:10.814000
+        end_time:             2018-02-28 15:12:43.956000
+        area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
+        name:                 VIS008
+        resolution:           3000.40316582
+        calibration:          reflectance
+        polarization:         None
+        level:                None
+        modifiers:            ()
+        ancillary_variables:  []
+    <xarray.DataArray 'reshape-e86d03c30ce754995ff9da484c0dc338' (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+      * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
+      * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
+    Attributes:
+        satellite_longitude:  0.0
+        sensor:               seviri
+        satellite_altitude:   35785831.0
+        platform_name:        Meteosat-11
+        standard_name:        toa_bidirectional_reflectance
+        units:                %
+        wavelength:           (0.56, 0.635, 0.71)
+        satellite_latitude:   0.0
+        start_time:           2018-02-28 15:00:10.814000
+        end_time:             2018-02-28 15:12:43.956000
+        area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
+        name:                 VIS006
+        resolution:           3000.40316582
+        calibration:          reflectance
+        polarization:         None
+        level:                None
+        modifiers:            ()
+        ancillary_variables:  []
 
 SatPy allows loading file data by wavelengths in micrometers (shown above) or by channel name::
 
@@ -158,6 +218,16 @@ on saving datasets and customizing enhancements see the documentation on
 
 Troubleshooting
 ===============
+
+When something goes wrong, a first step to take is check that the latest Version
+of satpy and its dependencies are installed. Satpy drags in a few packages as
+dependencies per default, but each reader and writer has it's own dependencies
+which can be unfortunately easy to miss when just doing a regular `pip install`.
+To check the missing dependencies for the readers and writers, a utility
+function called `check_satpy` can be used:
+
+  >>> from satpy.config import check_satpy
+  >>> check_satpy()
 
 Due to the way SatPy works, producing as many datasets as possible, there are
 times that behavior can be unexpected but with no exceptions raised. To help

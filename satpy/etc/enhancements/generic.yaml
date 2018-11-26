@@ -11,6 +11,22 @@ enhancements:
     operations:
     - name: cira_stretch
       method: !!python/name:satpy.enhancements.cira_stretch
+  true_color_crefl:
+    name: true_color_crefl
+    standard_name: true_color
+    operations:
+    - name: crefl_scaling
+      method: !!python/name:satpy.enhancements.crefl_scaling
+      kwargs:
+#      Polar2Grid's scaling: "Preferred".
+       idx: [0., 25., 55., 100., 255.]
+       sc: [0., 90., 140., 175., 255.]
+#       Ralph's new scaling: Looks darker.
+#       idx: [0., 30., 60., 120., 190., 255.]
+#       sc: [0., 100., 128., 188., 223., 255.]
+#       Ralph's old scaling: Looks lighter.
+#       idx: [0., 30., 60., 120., 190., 255.]
+#       sc: [0, 110, 160, 210, 240, 255]
   overview_default:
     standard_name: overview
     operations:
@@ -45,8 +61,8 @@ enhancements:
     - name: gamma
       method: *gammafun
       kwargs: {gamma: 1.6}
-  natural_default:
-    standard_name: natural
+  natural_color_default:
+    standard_name: natural_color
     operations:
     - name: stretch
       method: *stretchfun
@@ -650,3 +666,33 @@ enhancements:
         method: *3d_filter
         kwargs:
           weight: 1.0
+
+  colorized_ir_clouds:
+    standard_name: colorized_ir_clouds
+    operations:
+      - name: colorize
+        method: &colorizefun !!python/name:satpy.enhancements.colorize ''
+        kwargs:
+          palettes:
+            - {colors: spectral, min_value: 203.15, max_value: 243.149999}
+            - {colors: greys, min_value: 243.15, max_value: 303.15}
+
+  vis_sharpened_ir:
+    standard_name: vis_sharpened_ir
+    operations:
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [1, 1, 1]
+
+  ir_sandwich:
+    standard_name: ir_sandwich
+    operations:
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [1, 1, 1]
