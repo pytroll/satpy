@@ -422,7 +422,8 @@ class TestBilinearResampler(unittest.TestCase):
         data.data = [1, 2, 3]
         fill_value = 8
         resampler.compute(data, fill_value=fill_value)
-        resampler.resampler.get_sample_from_bil_info.assert_called_with(data, fill_value=fill_value, output_shape=target_area.shape)
+        resampler.resampler.get_sample_from_bil_info.assert_called_with(
+            data, fill_value=fill_value, output_shape=target_area.shape)
 
 
 def suite():
@@ -434,6 +435,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestKDTreeResampler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestEWAResampler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestHLResample))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBilinearResampler))
 
     return mysuite
 
