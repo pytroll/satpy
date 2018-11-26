@@ -606,10 +606,8 @@ class BilinearResampler(BaseResampler):
 
         del kwargs
 
-        source_geo_def = mask_source_lonlats(self.source_geo_def, mask)
-
         if self.resampler is None:
-            kwargs = dict(source_geo_def=source_geo_def,
+            kwargs = dict(source_geo_def=self.source_geo_def,
                           target_geo_def=self.target_geo_def,
                           radius_of_influence=radius_of_influence,
                           neighbours=32,
@@ -900,28 +898,3 @@ def resample_dataset(dataset, destination_area, **kwargs):
     new_data.attrs.update(area=destination_area)
 
     return new_data
-
-
-def mask_source_lonlats(source_def, mask):
-    """Mask source longitudes and latitudes to match data mask."""
-    source_geo_def = source_def
-
-    # the data may have additional masked pixels
-    # let's compare them to see if we can use the same area
-    # assume lons and lats mask are the same
-    if mask is not None and mask is not False and isinstance(source_geo_def, SwathDefinition):
-        import xarray.ufuncs as xu
-        if np.issubsctype(mask.dtype, np.bool):
-            # copy the source area and use it for the rest of the calculations
-            LOG.debug("Copying source area to mask invalid dataset points")
-            if mask.ndim != source_geo_def.lons.ndim:
-                raise ValueError("Can't mask area, mask has different number "
-                                 "of dimensions.")
-
-            return SwathDefinition(source_geo_def.lons.where(~mask),
-                                   source_geo_def.lats.where(~mask))
-        else:
-            return SwathDefinition(source_geo_def.lons.where(~xu.isnan(mask)),
-                                   source_geo_def.lats.where(~xu.isnan(mask)))
-
-    return source_geo_def
