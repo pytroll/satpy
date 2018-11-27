@@ -13,7 +13,8 @@ reader:
 file_types:
     nc_goes_00_7:
         file_reader: !!python/name:satpy.readers.nc_goes.GOESNCFileHandler
-        file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_01.nc']
+        file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_01.nc',
+                        'goes15.{start_time:%Y.%j.%H%M%S}_1.nc']
     nc_goes_03_9:
         file_reader: !!python/name:satpy.readers.nc_goes.GOESNCFileHandler
         file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_02.nc']
