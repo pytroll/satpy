@@ -197,9 +197,13 @@ class MITIFFWriter(ImageWriter):
         return _image_description
 
     def _add_sizes(self, datasets, first_dataset):
+        print "datasets.sizes: ", datasets.sizes
+        print type(datasets.sizes)
         _image_description = ' Xsize: '
         if isinstance(datasets, list):
             _image_description += str(first_dataset.sizes['x']) + '\n'
+        elif isinstance(datasets, dict):
+            print "DICT?"
         else:
             _image_description += str(datasets.sizes['x']) + '\n'
 
