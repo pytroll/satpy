@@ -616,7 +616,6 @@ class BilinearResampler(BaseResampler):
                           reduce_data=reduce_data)
 
             self.resampler = XArrayResamplerBilinear(**kwargs)
-
             try:
                 self.load_bil_info(cache_dir, **kwargs)
                 LOG.debug("Loaded bilinear parameters")
