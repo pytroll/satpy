@@ -1,0 +1,104 @@
+reader:
+  default_datasets: [cloud_mask]
+  description: MODIS HDF-EOS Cloud Mask Reader
+  name: hdfeos_mod35
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [modis]
+
+navigations:
+  hdf_eos_geo:
+      description: MODIS navigation
+      file_type: hdf_eos_geo
+      latitude_key: Latitude
+      longitude_key: Longitude
+      nadir_resolution: [1000]
+      rows_per_scan: 10
+
+datasets:
+  cloud_mask:
+    name:
+      fov: {bits: [0,1,2]}
+      cloud_mask: {bits: [0,0,1]}
+    resolution:
+      #250: {file_type: hdf_eos_data_250m}
+      1000: {file_type: hdf_eos_data_1000m}
+    #calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    file_key: Cloud_Mask
+
+  longitude1k:
+    file_type: hdf_eos_geo
+    name: longitude
+    resolution: [1000, 500, 250]
+    standard_name: longitude
+    units: degree
+
+  latitude1k:
+    file_type: hdf_eos_geo
+    name: latitude
+    resolution: [1000, 500, 250]
+    standard_name: latitude
+    units: degree
+
+  # For EUM reduced (thinned) files
+  longitude5k:
+    file_type: hdf_eos_data_1000m
+    name: longitude
+    resolution: 5000
+    standard_name: longitude
+    units: degree
+
+  latitude5k:
+    file_type: hdf_eos_data_1000m
+    name: latitude
+    resolution: 5000
+    standard_name: latitude
+    units: degree
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: hdf_eos_geo
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: hdf_eos_geo
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: hdf_eos_geo
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    sensor: modis
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: hdf_eos_geo
+
+
+file_types:
+  hdf_eos_data_1000m:
+    file_patterns:
+    - 'M{platform_indicator:1s}D35_L2_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'thin_M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'M{platform_indicator:1s}D35_L2.{start_time:%y%j%H%M%S}.hdf'
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.1000m.hdf'
+    file_reader: !!python/name:satpy.readers.hdfeos_mod35.HDFEOSBandReader
+  hdf_eos_geo:
+    file_patterns:
+    - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
+    file_reader: !!python/name:satpy.readers.hdfeos_mod35.HDFEOSGeoReader
