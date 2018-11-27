@@ -49,5 +49,5 @@ class NinjoTIFFWriter(ImageWriter):
 
         .. _ninjotiff: http://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html
         """
-        filename = filename or self.get_filename(**img.info)
+        filename = filename or self.get_filename(**img.data.attrs)
         nt.save(img, filename, **kwargs)
