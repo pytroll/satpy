@@ -2,7 +2,7 @@ sensor_name: ahi/epic
 
 composites:
   green:
-    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    compositor_raw: !!python/name:satpy.composites.ahi.GreenCorrector
     # FUTURE: Set a wavelength...see what happens. Dependency finding
     #         probably wouldn't work.
     prerequisites:
@@ -20,10 +20,21 @@ composites:
     - name: B05
     standard_name: true_color
 
-  true_color:
+  true_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: B07
     - name: B06
     - name: B05
+    standard_name: true_color
+
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: B07
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: B06
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: B05
+      modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
