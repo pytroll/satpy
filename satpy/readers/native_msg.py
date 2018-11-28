@@ -277,7 +277,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
         earth_model = data15hd['GeometricProcessing']['EarthModel'][
             'TypeOfEarthModel']
-        if earth_model not in [1,2]:
+        if earth_model not in [1, 2]:
             raise NotImplementedError(
                 'Unrecognised Earth model: {}'.format(earth_model)
             )
@@ -359,8 +359,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
             else:
                 raise NotImplementedError('HRV not supported!')
-
-
 
         return area_extent
 
