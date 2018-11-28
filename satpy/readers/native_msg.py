@@ -84,9 +84,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.trailer = {}
         self._read_trailer()
 
-        data15hd = self.header['15_DATA_HEADER']['ImageDescription']['PlannedCoverageHRV']
-        trail = self.trailer['15TRAILER']['ImageProductionStats']['ActualL15CoverageHRV']
-
     @property
     def start_time(self):
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
