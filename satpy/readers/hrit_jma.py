@@ -91,10 +91,10 @@ FULL_DISK = 1
 NORTH_HEMIS = 2
 SOUTH_HEMIS = 3
 UNKNOWN_AREA = -1
-AREA_NAMES = {FULL_DISK: 'Full Disk',
-              NORTH_HEMIS: 'Northern Hemisphere',
-              SOUTH_HEMIS: 'Southern Hemisphere',
-              UNKNOWN_AREA: 'Unknown Area'}
+AREA_NAMES = {FULL_DISK: {'short': 'FLDK', 'long': 'Full Disk'},
+              NORTH_HEMIS: {'short': 'NH', 'long': 'Northern Hemisphere'},
+              SOUTH_HEMIS: {'short': 'SH', 'long': 'Southern Hemisphere'},
+              UNKNOWN_AREA: {'short': 'UNKNOWN', 'long': 'Unknown Area'}}
 
 MTSAT1R = 'MTSAT-1R'
 MTSAT2 = 'MTSAT-2'
@@ -266,10 +266,9 @@ class HRITJMAFileHandler(HRITFileHandler):
                      'proj': 'geos',
                      'units': 'm'}
 
-        area_name = '{} {}'.format(self.platform, AREA_NAMES[self.area_id])
         area = geometry.AreaDefinition(
-            area_id=area_name.replace(' ', '-').lower(),
-            name=area_name,
+            area_id=AREA_NAMES[self.area_id]['short'],
+            name=AREA_NAMES[self.area_id]['long'],
             proj_id='geosmsg',
             proj_dict=proj_dict,
             x_size=ncols,
