@@ -26,6 +26,7 @@
 import logging
 
 from contextlib import closing
+import dask.array as da
 import tempfile
 import bz2
 import os
@@ -77,6 +78,35 @@ def get_geostationary_angle_extent(geos_area):
     xmax = np.arccos(np.sqrt(aeq))
     ymax = np.arccos(np.sqrt(ap_))
     return xmax, ymax
+
+
+def get_geostationary_mask(area, flip=False):
+    """Compute a mask of the earth's shape as seen by a geostationary satellite
+
+    Args:
+        area (pyresample.geometry.AreaDefinition) : Corresponding area
+                                                    definition
+        flip (bool) : Flip mask vertically to account for scanning direction
+                      (north-south vs south-north)
+
+    Returns:
+        Boolean mask, True inside the earth's shape, False outside.
+    """
+    # Compute projection coordinates at the earth's limb
+    h = area.proj_dict['h']
+    xmax, ymax = get_geostationary_angle_extent(area)
+    xmax *= h
+    ymax *= h
+
+    # Compute projection coordinates at the centre of each pixel
+    x, y = area.get_proj_coords_dask()
+    if flip:
+        # TODO: It would probably be faster to flip the 1D vector in
+        # get_proj_vectors_dask() before meshgridding
+        y = da.flipud(y)
+
+    # Compute mask of the earth's elliptical shape
+    return ((x / xmax) ** 2 + (y / ymax) ** 2) <= 1
 
 
 def _lonlat_from_geos_angle(x, y, geos_area):
