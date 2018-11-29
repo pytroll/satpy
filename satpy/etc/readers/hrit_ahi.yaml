@@ -1,6 +1,10 @@
+# References:
+#   - http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
+#   - http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
+
 reader:
   description: JMA HRIT Reader
-  name: hrit_jma
+  name: hrit_ahi
   sensors: [ahi]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -112,9 +116,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b01
 
   B02:
@@ -126,9 +130,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b02
 
   B03:
@@ -140,9 +144,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b03
 
   B04:
@@ -154,9 +158,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b04
 
   B05:
@@ -168,9 +172,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b05
 
   B06:
@@ -182,9 +186,9 @@ datasets:
       reflectance:
         standard_name: toa_bidirectional_reflectance
         units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b06
 
   B07:
@@ -196,9 +200,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b07
 
   B08:
@@ -210,9 +214,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b08
 
   B09:
@@ -224,9 +228,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b09
 
   B10:
@@ -238,9 +242,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b10
 
   B11:
@@ -252,9 +256,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b11
 
   B12:
@@ -266,9 +270,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b12
 
   B13:
@@ -280,9 +284,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b13
 
   B14:
@@ -294,9 +298,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b14
 
   B15:
@@ -308,9 +312,9 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b15
 
   B16:
@@ -322,7 +326,7 @@ datasets:
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hrit_b16

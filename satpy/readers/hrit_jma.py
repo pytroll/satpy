@@ -39,6 +39,7 @@ from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
+from .utils import get_geostationary_mask
 
 logger = logging.getLogger('hrit_jma')
 
@@ -86,6 +87,31 @@ time_cds_expanded = np.dtype([('days', '>u2'),
                               ('microseconds', '>u2'),
                               ('nanoseconds', '>u2')])
 
+FULL_DISK = 1
+NORTH_HEMIS = 2
+SOUTH_HEMIS = 3
+UNKNOWN_AREA = -1
+AREA_NAMES = {FULL_DISK: 'Full Disk',
+              NORTH_HEMIS: 'Northern Hemisphere',
+              SOUTH_HEMIS: 'Southern Hemisphere',
+              UNKNOWN_AREA: 'Unknown Area'}
+
+MTSAT1R = 'MTSAT-1R'
+MTSAT2 = 'MTSAT-2'
+HIMAWARI8 = 'Himawari-8'
+UNKNOWN_PLATFORM = 'Unknown Platform'
+PLATFORMS = {
+    'GEOS(140.00)': MTSAT1R,
+    'GEOS(140.25)': MTSAT1R,
+    'GEOS(140.70)': HIMAWARI8,
+    'GEOS(145.00)': MTSAT2,
+}
+SENSORS = {
+    MTSAT1R: 'jami',
+    MTSAT2: 'mtsat2_imager',
+    HIMAWARI8: 'ahi'
+}
+
 
 class HRITJMAFileHandler(HRITFileHandler):
     """JMA HRIT format reader."""
@@ -123,13 +149,102 @@ class HRITJMAFileHandler(HRITFileHandler):
         self.projection_name = self.mda['projection_name'].decode().strip()
         sublon = float(self.projection_name.split('(')[1][:-1])
         self.mda['projection_parameters']['SSP_longitude'] = sublon
+        self.platform = self._get_platform()
+        self.is_segmented = self.mda['segment_sequence_number'] > 0
+        self.area_id = filename_info.get('area', UNKNOWN_AREA)
+        self.area = self._get_area_def()
 
-    def get_area_def(self, dsid):
+    def _get_platform(self):
+        """Get the platform name
+
+        The platform is not specified explicitly in JMA HRIT files. For
+        segmented data it is not even specified in the filename. But it
+        can be derived indirectly from the projection name:
+
+            GEOS(140.00): MTSAT-1R
+            GEOS(140.25): MTSAT-1R    # TODO: Check if there is more...
+            GEOS(140.70): Himawari-8
+            GEOS(145.00): MTSAT-2
+
+        See [MTSAT], section 3.1. Unfortunately Himawari-8 and 9 are not
+        distinguishable using that method at the moment. From [HIMAWARI]:
+
+        "HRIT/LRIT files have the same file naming convention in the same
+        format in Himawari-8 and Himawari-9, so there is no particular
+        difference."
+
+        TODO: Find another way to distinguish Himawari-8 and 9.
+
+        References:
+        [MTSAT] http://www.data.jma.go.jp/mscweb/notice/Himawari7_e.html
+        [HIMAWARI] http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
+        """
+        try:
+            return PLATFORMS[self.projection_name]
+        except KeyError:
+            logger.error('Unable to determine platform: Unknown projection '
+                         'name "{}"'.format(self.projection_name))
+            return UNKNOWN_PLATFORM
+
+    def _check_sensor_platform_consistency(self, sensor):
+        """Make sure sensor and platform are consistent
+
+        Args:
+            sensor (str) : Sensor name from YAML dataset definition
+
+        Raises:
+            ValueError if they don't match
+        """
+        ref_sensor = SENSORS.get(self.platform, None)
+        if ref_sensor and not sensor == ref_sensor:
+            logger.error('Sensor-Platform mismatch: {} is not a payload '
+                         'of {}. Did you choose the correct reader?'
+                         .format(sensor, self.platform))
+
+    def _get_line_offset(self):
+        """Get line offset for the current segment
+
+        Line offset must be set so that (line - loff) is negative in the
+        northern hemisphere and positive in the southern hemisphere (-> image
+        centre has projection coordinates (x,y)=(0,0))
+        """
+        # Get line offset from the file
+        nlines = int(self.mda['number_of_lines'])
+        loff = np.float32(self.mda['loff'])
+
+        # Adapt it to the current segment
+        if self.is_segmented:
+            # Segmented data
+            segment_number = self.mda['segment_sequence_number'] - 1
+            loff -= segment_number * nlines
+        elif self.area_id in (NORTH_HEMIS, SOUTH_HEMIS):
+            # Non-segmented data (segment_sequence_number=0). Half disk images
+            # are cutoff at the northern/southern edge (compared to the full
+            # disk image), but still have half the lines so that they overlap
+            # the equator by <cutoff> scanlines. Example for IR channels:
+            #
+            # Northern hemisphere:
+            #   - Ideal line offset 1375
+            #   - Offset in the file: ca 50 (due to cutoff at the northern
+            #     edge)
+            #   - Adapted line offset: ca 1325 -> last scanline a little bit
+            #     below the equator
+            # Southern Hemisphere:
+            #   - Ideal line offset 0
+            #   - Offset in the file: ca 1325 (= 1375 - ca. 50 due due to
+            #     cutoff at the southern edge)
+            #   - Adapted line offset: ca 50 -> first scanline a little bit
+            #     above the equator
+            loff = nlines - loff
+
+        return loff
+
+    def _get_area_def(self):
         """Get the area definition of the band."""
         cfac = np.int32(self.mda['cfac'])
         lfac = np.int32(self.mda['lfac'])
         coff = np.float32(self.mda['coff'])
-        loff = np.float32(self.mda['loff'])
+        loff = self._get_line_offset()
 
         a = self.mda['projection_parameters']['a']
         b = self.mda['projection_parameters']['b']
@@ -138,10 +253,6 @@ class HRITJMAFileHandler(HRITFileHandler):
 
         nlines = int(self.mda['number_of_lines'])
         ncols = int(self.mda['number_of_columns'])
-
-        segment_number = self.mda['segment_sequence_number'] - 1
-
-        loff -= segment_number * nlines
 
         area_extent = self.get_area_extent((nlines, ncols),
                                            (loff, coff),
@@ -155,28 +266,46 @@ class HRITJMAFileHandler(HRITFileHandler):
                      'proj': 'geos',
                      'units': 'm'}
 
+        area_name = '{} {}'.format(self.platform, AREA_NAMES[self.area_id])
         area = geometry.AreaDefinition(
-            "FLDK",
-            "HRIT FLDK Area: {}".format(self.projection_name),
-            'geosmsg',
-            proj_dict,
-            ncols,
-            nlines,
-            area_extent)
+            area_id=area_name.replace(' ', '-').lower(),
+            name=area_name,
+            proj_id='geosmsg',
+            proj_dict=proj_dict,
+            x_size=ncols,
+            y_size=nlines,
+            area_extent=area_extent)
+
         return area
+
+    def get_area_def(self, dsid):
+        """Get the area definition of the band."""
+        return self.area
 
     def get_dataset(self, key, info):
         """Get the dataset designated by *key*."""
         res = super(HRITJMAFileHandler, self).get_dataset(key, info)
 
-        res = self.calibrate(res, key.calibration)
+        # Filenames of segmented data is identical for MTSAT-1R, MTSAT-2
+        # and Himawari-8/9. Make sure we have the correct reader for the data
+        # at hand.
+        self._check_sensor_platform_consistency(info['sensor'])
+
+        res = self._mask_space(self.calibrate(res, key.calibration))
+
         res.attrs.update(info)
-        res.attrs['platform_name'] = 'Himawari-8'
-        res.attrs['sensor'] = 'ahi'
+        res.attrs['platform_name'] = self.platform
         res.attrs['satellite_longitude'] = float(self.mda['projection_parameters']['SSP_longitude'])
         res.attrs['satellite_latitude'] = 0.
         res.attrs['satellite_altitude'] = float(self.mda['projection_parameters']['h'])
+
         return res
+
+    def _mask_space(self, data):
+        """Mask space pixels"""
+        geomask = get_geostationary_mask(area=self.area,
+                                         flip=self.is_segmented)
+        return data.where(geomask)
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
