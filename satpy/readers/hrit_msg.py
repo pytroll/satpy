@@ -38,6 +38,8 @@ from datetime import datetime
 
 import numpy as np
 
+import json
+
 from pyresample import geometry
 
 from satpy.readers.eum_base import (time_cds_short,
@@ -338,6 +340,35 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.area = area.squeeze()
         return area
 
+
+    class SatpyEncoder(json.JSONEncoder):
+        def default(self, obj):
+            if isinstance(obj, np.integer):
+                return int(obj)
+            elif isinstance(obj, np.floating):
+                return float(obj)
+            elif isinstance(obj, np.ndarray):
+                return obj.tolist()
+            else:
+                try:
+                    return json.JSONEncoder.default(self, obj)
+                except:
+                    return str(obj) 
+
+
+    def _process_metadata(self, metadata, result):
+        for key in metadata:
+            if isinstance(metadata[key], dict):
+                result.attrs[key] = json.dumps(metadata[key], cls = self.SatpyEncoder)
+            elif isinstance(metadata[key], np.void):
+                result.attrs[key] = tuple(metadata[key])
+            elif isinstance(metadata[key], np.bool_):
+                result.attrs[key] = str(metadata[key])
+            else:
+                result.attrs[key] = metadata[key]
+        return result
+
+
     def get_dataset(self, key, info):
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key.calibration)
@@ -351,6 +382,11 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['satellite_latitude'] = self.mda[
             'projection_parameters']['SSP_latitude']
         res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
+		
+        res = self._process_metadata(self.mda, res)
+        res = self._process_metadata(self.epilogue, res)
+        res = self._process_metadata(self.prologue, res)
+
         return res
 
     def calibrate(self, data, calibration):
@@ -385,7 +421,6 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
-
 
 def show(data, negate=False):
     """Show the stretched data.

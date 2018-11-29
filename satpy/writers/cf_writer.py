@@ -90,7 +90,13 @@ def create_grid_mapping(area):
         grid_mapping = mappings[area.proj_dict['proj']](area)
         grid_mapping['name'] = area.proj_dict['proj']
     except KeyError:
-        raise NotImplementedError
+        #raise NotImplementedError
+        logger.warning('This projection is not yet implemented or it is not supported' 
+                       'by the CF convention. Using the proj4 string instead,' 
+                       'the result will be a not CF compliant file.')
+        grid_mapping = {}
+        grid_mapping['name'] = 'proj4'
+        grid_mapping['proj4'] = area.proj4_string
 
     return grid_mapping
 
@@ -127,8 +133,16 @@ def area2lonlat(dataarray):
 def area2gridmapping(dataarray):
     area = dataarray.attrs['area']
     attrs = create_grid_mapping(area)
-    name = attrs['name']
-    dataarray.attrs['grid_mapping'] = name
+    name = None
+    if attrs != None and 'name' in attrs.keys() and attrs['name'] != "proj4":
+        dataarray.attrs['grid_mapping'] = attrs['name']
+        name = attrs['name']
+    else:
+        # Handle the case when the projection cannot be converted to a
+        # standard CF representation or this  has not been implemented yet.
+        dataarray.attrs['grid_proj4'] = area.proj4_string
+        name = "proj4"
+    print(name)
     return [dataarray, xr.DataArray(0, attrs=attrs, name=name)]
 
 
@@ -192,6 +206,7 @@ class CFWriter(Writer):
             new_data['y'].attrs['units'] = 'm'
 
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
+
         if 'prerequisites' in new_data.attrs:
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
         return new_data
