@@ -25,13 +25,13 @@
 """Interface to MTG-FCI Retrieval NetCDF files
 
 """
-import numpy as np
+import xarray.ufuncs as xu
 from pyresample import geometry
-import h5py
 import xarray as xr
 import logging
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +48,12 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
-        self.nc = h5py.File(self.filename, 'r')
+        nc = xr.open_dataset(self.filename,
+                             mask_and_scale=True,
+                             decode_cf=True,
+                             chunks=CHUNK_SIZE)
+
+        self.nc = {'root': nc}
         self.cache = {}
 
     @property
@@ -61,31 +66,38 @@ class FCIFDHSIFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, info=None):
         """Load a dataset."""
-        if key in self.cache:
-            return self.cache[key]
 
         logger.debug('Reading {}'.format(key.name))
         # Get the dataset
         # Get metadata for given dataset
-        variable = self.nc['/data/{}/measured/effective_radiance'
-                           .format(key.name)]
-        # Convert to xarray
-        radiances = xr.DataArray(np.asarray(variable, np.float32), dims=['y', 'x'])
-        radiances.attrs['scale_factor'] = variable.attrs['scale_factor']
-        radiances.attrs['offset'] = variable.attrs.get('add_offset', 0)
-        radiances.attrs['FillValue'] = variable.attrs['_FillValue']
-        # Set invalid values to NaN
-        radiances.values[radiances == radiances.attrs['FillValue']] = np.nan
-        # Apply scale factor and offset
-        radiances = radiances * (radiances.attrs['scale_factor'] * 1.0) + radiances.attrs['offset']
+        measured, root = self.get_channel_dataset(key.name)
+        radiances = measured['effective_radiance']
+        radiances = radiances.where(radiances > radiances.attrs['valid_range'][0])
+        radiances = radiances.where(radiances < radiances.attrs['valid_range'][1])
+        radiances = radiances * radiances.attrs['scale_factor'] + radiances.attrs['add_offset']
 
-        # TODO: Calibration is disabled, waiting for calibration parameters from EUMETSAT
-        res = self.calibrate(radiances, key)
+        res = self.calibrate(radiances, key, measured, root)
 
-        self.cache[key] = res
         self.nlines, self.ncols = res.shape
 
         return res
+
+    def get_channel_dataset(self, channel):
+        if channel not in self.nc:
+            root_group = '/data/{}'.format(channel)
+            group = '/data/{}/measured'.format(channel)
+            measured = xr.open_dataset(self.filename,
+                                       mask_and_scale=False,
+                                       decode_cf=True,
+                                       group=group,
+                                       chunks=CHUNK_SIZE)
+            root = xr.open_dataset(self.filename,
+                                   mask_and_scale=False,
+                                   decode_cf=True,
+                                   group=root_group,
+                                   chunks=CHUNK_SIZE)
+            self.nc[channel] = measured, root
+        return self.nc[channel]
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
@@ -95,15 +107,14 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         chkres = xyres[key.resolution]
 
         # Get metadata for given dataset
-        measured = self.nc['/data/{}/measured'.format(key.name)]
-        variable = self.nc['/data/{}/measured/effective_radiance'
-                           .format(key.name)]
+        measured, root = self.get_channel_dataset(key.name)
+        variable = measured['effective_radiance']
         # Get start/end line and column of loaded swath.
-        self.startline = int(measured['start_position_row'][...])
-        self.endline = int(measured['end_position_row'][...])
-        self.startcol = int(measured['start_position_column'][...])
-        self.endcol = int(measured['end_position_column'][...])
-        self.nlines, self.ncols = variable[:].shape
+        self.startline = int(measured['start_position_row'])
+        self.endline = int(measured['end_position_row'])
+        self.startcol = int(measured['start_position_column'])
+        self.endcol = int(measured['end_position_column'])
+        self.nlines, self.ncols = variable.shape
 
         logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
         logger.debug('Row/Cols: {} / {}'.format(self.nlines, self.ncols))
@@ -130,10 +141,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         # TODO Projection information are hard coded for 0 degree geos projection
         # Test dataset doen't provide the values in the file container.
         # Only fill values are inserted
-        # cfac = np.uint32(self.proj_info['CFAC'])
-        # lfac = np.uint32(self.proj_info['LFAC'])
-        # coff = np.float32(self.proj_info['COFF'])
-        # loff = np.float32(self.proj_info['LOFF'])
+
         # a = self.nc['/state/processor/earth_equatorial_radius']
         a = 6378169.
         # h = self.nc['/state/processor/reference_altitude'] * 1000 - a
@@ -142,25 +150,11 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         b = 6356583.8
         # lon_0 = self.nc['/state/processor/projection_origin_longitude']
         lon_0 = 0.
-        # nlines = self.nc['/state/processor/reference_grid_number_of_columns']
-        # ncols = self.nc['/state/processor/reference_grid_number_of_rows']
-        # nlines = 5568
-        # ncols = 5568
+
         # Channel dependent swath resoultion
         area_extent = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
-
-        # c, l = 0, (1 + self.total_segments - self.segment_number) * nlines
-        # ll_x, ll_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
-        #  c, l = ncols, (1 + self.total_segments -
-        #                 self.segment_number) * nlines - nlines
-        # ur_x, ur_y = (c - coff) / cfac * 2**16, (l - loff) / lfac * 2**16
-
-        # area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ur_y) * h,
-        #               np.deg2rad(ur_x) * h, np.deg2rad(ll_y) * h)
-        # area_extent = (-5432229.9317116784, -5429229.5285458621,
-        #                5429229.5285458621, 5432229.9317116784)
 
         proj_dict = {'a': float(a),
                      'b': float(b),
@@ -181,54 +175,39 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def calibrate(self, data, key):
+    def calibrate(self, data, key, measured, root):
         """Data calibration."""
 
         # logger.debug('Calibration: %s' % key.calibration)
-        logger.warning('Calibration disabled!')
         if key.calibration == 'brightness_temperature':
-            # self._ir_calibrate(data, key)
+            self._ir_calibrate(data, measured, root)
             pass
         elif key.calibration == 'reflectance':
-            # self._vis_calibrate(data, key)
-            pass
+            self._vis_calibrate(data, measured)
         else:
-            pass
+            logger.warning('Calibration disabled!')
 
         return data
 
-    def _ir_calibrate(self, data, key):
+    def _ir_calibrate(self, radiance, measured, root):
         """IR channel calibration."""
         # Not sure if Lv is correct, FCI User Guide is a bit unclear
 
-        Lv = data.data * \
-            self.nc[
-                '/data/{}/measured/radiance_unit_conversion_coefficient'
-                .format(key.name)][...]
+        Lv = radiance * measured['radiance_unit_conversion_coefficient']
+        vc = root['central_wavelength_actual']
+        a, b, c, d = measured['radiance_to_bt_conversion_coefficients']
 
-        vc = self.nc['/data/{}/central_wavelength_actual'
-                     .format(key.name)][...]
-        a, b, dummy = self.nc[
-            '/data/{}/measured/radiance_to_bt_conversion_coefficients'
-            .format(key.name)][...]
-        c1, c2 = self.nc[
-            '/data/{}/measured/radiance_to_bt_conversion_constants'
-            .format(key.name)][...]
+        c1, c2 = measured['radiance_to_bt_conversion_constants']
 
         nom = c2 * vc
-        denom = a * np.log(1 + (c1 * vc**3) / Lv)
+        denom = a * xu.log(1 + (c1 * vc**3) / Lv)
 
-        data.data[:] = nom / denom - b / a
+        return nom / denom - b / a
 
-    def _vis_calibrate(self, data, key):
+    def _vis_calibrate(self, radiance, measured):
         """VIS channel calibration."""
         # radiance to reflectance taken as in mipp/xrit/MSG.py
         # again FCI User Guide is not clear on how to do this
 
-        sirr = self.nc[
-            '/data/{}/measured/channel_effective_solar_irradiance'
-            .format(key.name)][...]
-
-        # reflectance = radiance / sirr * 100
-        data.data[:] /= sirr
-        data.data[:] *= 100
+        sirr = float(measured['channel_effective_solar_irradiance'])
+        return radiance / sirr * 100
