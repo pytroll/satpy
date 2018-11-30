@@ -152,6 +152,8 @@ class HRITJMAFileHandler(HRITFileHandler):
         self.platform = self._get_platform()
         self.is_segmented = self.mda['segment_sequence_number'] > 0
         self.area_id = filename_info.get('area', UNKNOWN_AREA)
+        if self.area_id not in AREA_NAMES:
+            self.area_id = UNKNOWN_AREA
         self.area = self._get_area_def()
 
     def _get_platform(self):
