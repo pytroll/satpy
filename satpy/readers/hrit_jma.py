@@ -206,9 +206,12 @@ class HRITJMAFileHandler(HRITFileHandler):
     def _get_line_offset(self):
         """Get line offset for the current segment
 
-        Line offset must be set so that (line - loff) is negative in the
-        northern hemisphere and positive in the southern hemisphere (-> image
-        centre has projection coordinates (x,y)=(0,0))
+        Read line offset from the file and adapt it to the current segment
+        or half disk scan so that
+
+            y(l) ~ l - loff
+
+        because this is what get_geostationary_area_extent() expects.
         """
         # Get line offset from the file
         nlines = int(self.mda['number_of_lines'])
@@ -216,28 +219,16 @@ class HRITJMAFileHandler(HRITFileHandler):
 
         # Adapt it to the current segment
         if self.is_segmented:
-            # Segmented data
+            # loff in the file specifies the offset of the full disk image
+            # centre (1375/2750 for VIS/IR)
             segment_number = self.mda['segment_sequence_number'] - 1
-            loff -= segment_number * nlines
+            loff -= (self.mda['total_no_image_segm'] - segment_number - 1) * nlines
         elif self.area_id in (NORTH_HEMIS, SOUTH_HEMIS):
-            # Non-segmented data (segment_sequence_number=0). Half disk images
-            # are cutoff at the northern/southern edge (compared to the full
-            # disk image), but still have half the lines so that they overlap
-            # the equator by <cutoff> scanlines. Example for IR channels:
-            #
-            # Northern hemisphere:
-            #   - Ideal line offset 1375
-            #   - Offset in the file: ca 50 (due to cutoff at the northern
-            #     edge)
-            #   - Adapted line offset: ca 1325 -> last scanline a little bit
-            #     below the equator
-            # Southern Hemisphere:
-            #   - Ideal line offset 0
-            #   - Offset in the file: ca 1325 (= 1375 - ca. 50 due due to
-            #     cutoff at the southern edge)
-            #   - Adapted line offset: ca 50 -> first scanline a little bit
-            #     above the equator
+            # loff in the file specifies the start line of the half disk image
+            # in the full disk image
             loff = nlines - loff
+        elif self.area_id == UNKNOWN_AREA:
+            logger.error('Cannot compute line offset for unknown area')
 
         return loff
 
@@ -292,8 +283,10 @@ class HRITJMAFileHandler(HRITFileHandler):
         # at hand.
         self._check_sensor_platform_consistency(info['sensor'])
 
+        # Calibrate and mask space pixels
         res = self._mask_space(self.calibrate(res, key.calibration))
 
+        # Update attributes
         res.attrs.update(info)
         res.attrs['platform_name'] = self.platform
         res.attrs['satellite_longitude'] = float(self.mda['projection_parameters']['SSP_longitude'])
@@ -304,8 +297,7 @@ class HRITJMAFileHandler(HRITFileHandler):
 
     def _mask_space(self, data):
         """Mask space pixels"""
-        geomask = get_geostationary_mask(area=self.area,
-                                         flip=self.is_segmented)
+        geomask = get_geostationary_mask(area=self.area)
         return data.where(geomask)
 
     def calibrate(self, data, calibration):
