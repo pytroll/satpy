@@ -358,7 +358,7 @@ class TestNIRReflectance(unittest.TestCase):
         refl_from_tbs.reset_mock()
 
         co2_arr = np.random.random((2, 2))
-        co2 = xr.DataArray(nir_arr, dims=['y', 'x'])
+        co2 = xr.DataArray(co2_arr, dims=['y', 'x'])
         co2.attrs['wavelength'] = [12.0, 13.0, 14.0]
         co2.attrs['units'] = 'K'
         res = comp([nir, ir_], optional_datasets=[co2], **info)
