@@ -48,6 +48,10 @@ try:
     from pyspectral.near_infrared_reflectance import Calculator
 except ImportError:
     Calculator = None
+try:
+    from pyorbital.astronomy import sun_zenith_angle
+except ImportError:
+    sun_zenith_angle = None
 
 
 LOG = logging.getLogger(__name__)
@@ -508,9 +512,10 @@ class NIRReflectance(CompositeBase):
 
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
-            from pyorbital.astronomy import sun_zenith_angle as sza
+            if sun_zenith_angle is None:
+                raise ImportError("No module named pyorbital.astronomy")
             lons, lats = _nir.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
-            sun_zenith = sza(_nir.attrs['start_time'], lons, lats)
+            sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
 
         return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
 
