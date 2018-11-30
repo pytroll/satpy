@@ -52,8 +52,13 @@ class FCIFDHSIFileHandler(BaseFileHandler):
                              mask_and_scale=True,
                              decode_cf=True,
                              chunks=CHUNK_SIZE)
-
-        self.nc = {'root': nc}
+        processor = xr.open_dataset(self.filename,
+                                    mask_and_scale=False,
+                                    decode_cf=True,
+                                    group='/state/processor',
+                                    chunks=CHUNK_SIZE)
+        self.nc = {'root': nc,
+                   'processor': processor}
         self.cache = {}
 
     @property
@@ -79,7 +84,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         res = self.calibrate(radiances, key, measured, root)
 
         self.nlines, self.ncols = res.shape
-
+        res.attrs.update(key.to_dict())
         return res
 
     def get_channel_dataset(self, channel):
@@ -142,15 +147,10 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         # Test dataset doen't provide the values in the file container.
         # Only fill values are inserted
 
-        # a = self.nc['/state/processor/earth_equatorial_radius']
-        a = 6378169.
-        # h = self.nc['/state/processor/reference_altitude'] * 1000 - a
-        h = 35785831.
-        # b = self.nc['/state/processor/earth_polar_radius']
-        b = 6356583.8
-        # lon_0 = self.nc['/state/processor/projection_origin_longitude']
-        lon_0 = 0.
-
+        a = float(self.nc['processor']['earth_equatorial_radius'])
+        b = float(self.nc['processor']['earth_polar_radius'])
+        h = float(self.nc['processor']['reference_altitude'])
+        lon_0 = float(self.nc['processor']['projection_origin_longitude'])
         # Channel dependent swath resoultion
         area_extent = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
