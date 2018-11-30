@@ -1167,7 +1167,7 @@ class GOESEUMNCFileHandler(BaseFileHandler):
         # not needed this will be popped here.
         if 'file_type' in info:
             info.pop('file_type')
-            
+
         # Update metadata
         data.attrs.update(info)
         data.attrs.update(
