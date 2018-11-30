@@ -1156,7 +1156,7 @@ class GOESEUMNCFileHandler(BaseFileHandler):
         logger.debug('Calibration time: {}'.format(datetime.now() - tic))
 
         # Mask space pixels
-        #data = data.where(self.meta['earth_mask'])
+        # data = data.where(self.meta['earth_mask'])
 
         # Set proper dimension names
         data = data.rename({'xc': 'x', 'yc': 'y'})
@@ -1167,7 +1167,7 @@ class GOESEUMNCFileHandler(BaseFileHandler):
         # not needed this will be popped here.
         if 'file_type' in info:
             info.pop('file_type')
-
+            
         # Update metadata
         data.attrs.update(info)
         data.attrs.update(
@@ -1295,7 +1295,7 @@ class GOESEUMNCFileHandler(BaseFileHandler):
         Returns:
             Radiance [W m-2 um-1 sr-1]
         """
-        #rad = counts * slope + offset
+        # rad = counts * slope + offset
         return counts.clip(min=0)
 
     @staticmethod
@@ -1324,8 +1324,8 @@ class GOESEUMNCFileHandler(BaseFileHandler):
         logger.debug('Calibrating to reflectance')
         # FIXME: quick hack commented out here as VIS is aleady calivrated to
         # Albdo
-        #refl = 100 * k * radiance
-        #refl = k
+        # refl = 100 * k * radiance
+        # refl = k
         return radiance.clip(min=0)
 
     def __del__(self):
