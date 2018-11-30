@@ -44,6 +44,12 @@ from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 from satpy import CHUNK_SIZE
 
+try:
+    from pyspectral.near_infrared_reflectance import Calculator
+except ImportError:
+    Calculator = None
+
+
 LOG = logging.getLogger(__name__)
 
 
@@ -477,12 +483,9 @@ class NIRReflectance(CompositeBase):
 
     def _init_refl3x(self, projectables):
         """Initiate the 3.x reflectance derivations."""
-        try:
-            from pyspectral.near_infrared_reflectance import Calculator
-        except ImportError:
+        if not Calculator:
             LOG.info("Couldn't load pyspectral")
-            raise
-
+            raise ImportError("No module named pyspectral.near_infrared_reflectance")
         _nir, _tb11 = projectables
         self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'])
 
