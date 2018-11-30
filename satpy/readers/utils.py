@@ -26,7 +26,6 @@
 import logging
 
 from contextlib import closing
-import dask.array as da
 import tempfile
 import bz2
 import os

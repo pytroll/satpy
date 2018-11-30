@@ -69,8 +69,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                 'loff': loff,
                 'number_of_columns': ncols,
                 'number_of_lines': nlines,
-                'image_data_function': idf
-        }
+                'image_data_function': idf}
 
     def test_init(self):
         """Test creating the file handler."""
