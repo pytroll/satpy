@@ -64,24 +64,18 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
-        self.platform_name = None
 
-        # to be (re)set in read_header in order to keep track whether
-        # we're dealing with a file with an area of interest
-        self.roi = False
-
-        # The available channels are only known after the header
-        # has been read, after that we know what the indices are for each channel
+        # Declare required variables.
+        # Assume a full disk file, reset in _read_header if otherwise.
         self.header = {}
-        self.available_channels = {}
         self.mda = {}
-        self._read_header()
-
-        # Prepare dask-array
-        self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
-
-        # Read trailer
+        self.mda['is_full_disk'] = True
         self.trailer = {}
+
+        # Read header, prepare dask-array, read trailer
+        # Available channels are known only after the header has been read
+        self._read_header()
+        self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
         self._read_trailer()
 
     @property
@@ -93,6 +87,17 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     def end_time(self):
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
+
+    @staticmethod
+    def _calculate_area_extent(center_point, north, east, south, west,
+                               we_offset, ns_offset, column_step, line_step):
+
+        ll_c = (center_point - west - 0.5 + we_offset) * column_step
+        ll_l = (south - center_point - 0.5 + ns_offset) * line_step
+        ur_c = (center_point - east + 0.5 + we_offset) * column_step
+        ur_l = (north - center_point + 0.5 + ns_offset) * line_step
+
+        return (ll_c, ll_l, ur_c, ur_l)
 
     def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels"""
@@ -123,11 +128,11 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # each pixel is 10-bits -> one line of data has 25% more bytes
         # than the number of columns suggest (10/8 = 1.25)
         visir_rec = get_lrec(int(self.mda['number_of_columns'] * 1.25))
-        number_of_lowres_channels = len(
-            [s for s in self._channel_list if not s == 'HRV'])
-        drec = [('visir', (visir_rec, number_of_lowres_channels))]
+        number_of_visir_channels = len(
+            [s for s in self.mda['channel_list'] if not s == 'HRV'])
+        drec = [('visir', (visir_rec, number_of_visir_channels))]
 
-        if self.available_channels['HRV']:
+        if self.mda['available_channels']['HRV']:
             hrv_rec = get_lrec(int(self.mda['hrv_number_of_columns'] * 1.25))
             drec.append(('hrv', (hrv_rec, 3)))
 
@@ -157,13 +162,13 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
 
         # Set the list of available channels:
-        self.available_channels = get_available_channels(self.header)
-        self._channel_list = [i for i in CHANNEL_NAMES.values()
-                              if self.available_channels[i]]
+        self.mda['available_channels'] = get_available_channels(self.header)
+        self.mda['channel_list'] = [i for i in CHANNEL_NAMES.values()
+                                    if self.mda['available_channels'][i]]
 
-        self.platform_id = data15hd[
+        self.mda['platform_id'] = data15hd[
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
-        self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
+        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.mda['platform_id']]
 
         equator_radius = data15hd['GeometricProcessing'][
             'EarthModel']['EquatorialRadius'] * 1000.
@@ -185,19 +190,22 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         south = int(sec15hd['SouthLineSelectedRectangle']['Value'])
         west = int(sec15hd['WestColumnSelectedRectangle']['Value'])
 
+        ncolumns = west - east + 1
+        nrows = north - south + 1
+
         # check if the file has less rows or columns than
         # the maximum, if so it is an area of interest file
         # columns and rows start at 1 -> 3712 - 1 = 3711
-        if (north - south < 3711) or (west - east < 3711):
-            self.roi = True
+        if (nrows < 3712) or (ncolumns < 3712):
+            self.mda['is_full_disk'] = False
 
         # If the number of columns in the file is not divisible by 4,
         # UMARF will add extra columns to the file
-        modulo = (west - east + 1) % 4
+        modulo = ncolumns % 4
         padding = 0
         if modulo > 0:
             padding = 4 - modulo
-        cols_visir = west - east + 1 + padding
+        cols_visir = ncolumns + padding
 
         # Check the VISIR calculated column dimension against
         # the header information
@@ -211,7 +219,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # HRV Channel - check if the area is reduced in east west
         # direction as this affects the number of columns in the file
         cols_hrv_hdr = int(sec15hd['NumberColumnsHRV']['Value'])
-        if (west - east) < 3711:
+        if ncolumns < 3712:
             cols_hrv = cols_hrv_hdr
         else:
             cols_hrv = int(cols_hrv_hdr / 2)
@@ -277,108 +285,89 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
         earth_model = data15hd['GeometricProcessing']['EarthModel'][
             'TypeOfEarthModel']
-        if earth_model not in [1, 2]:
+        if earth_model == 2:
+            ns_offset = 0
+            we_offset = 0
+        elif earth_model == 1:
+            ns_offset = -0.5
+            we_offset = 0.5
+            if dsid.name == 'HRV':
+                ns_offset = -1.5
+                we_offset = 1.5
+        else:
             raise NotImplementedError(
                 'Unrecognised Earth model: {}'.format(earth_model)
             )
-        else:
-            # initialize offset assuming no correction needs to be done
-            ns_offset = 0
-            we_offset = 0
 
         # Calculations assume grid origin is south-east corner
         # section 7.2.4 of MSG Level 1.5 Image Data Format Description
+        if dsid.name == 'HRV':
+            reference_grid = 'ReferenceGridHRV'
+        else:
+            reference_grid = 'ReferenceGridVIS_IR'
+
         origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
         grid_origin = data15hd['ImageDescription'][
-            "ReferenceGridVIS_IR"]["GridOrigin"]
+            reference_grid]['GridOrigin']
         if grid_origin != 2:
-            raise NotImplementedError(
-                'Grid origin not supported number: {}, {} corner'
-                .format(grid_origin, origins[grid_origin])
+            msg = 'Grid origin not supported number: {}, {} corner'.format(
+                grid_origin, origins[grid_origin]
             )
+            raise NotImplementedError(msg)
 
-        if dsid.name != 'HRV':
+        # When dealing with HRV channel and full disk, area extent is
+        # in two pieces
+        if (dsid.name == 'HRV') and self.mda['is_full_disk']:
+            # TODO: Implement HRV full disk area_extent
+            # NotImplementedError does not catch this, it must
+            # be used elsewhere already
+            msg = 'HRV full disk area extent not implemented.'
+            raise RuntimeError(msg)
 
-            center_point = 3712/2
-
-            north = int(sec15hd['NorthLineSelectedRectangle']['Value'])
-            east = int(sec15hd['EastColumnSelectedRectangle']['Value'])
-            west = int(sec15hd['WestColumnSelectedRectangle']['Value'])
-            south = int(sec15hd['SouthLineSelectedRectangle']['Value'])
-
-            column_step = data15hd['ImageDescription'][
-                'ReferenceGridVIS_IR']['ColumnDirGridStep'] * 1000.0
-            line_step = data15hd['ImageDescription'][
-                'ReferenceGridVIS_IR']['LineDirGridStep'] * 1000.0
-
-            # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
-            if earth_model == 1:
-                ns_offset = -0.5  # north +ve
-                we_offset = 0.5  # west +ve
-
-            # section 3.1.5 of MSG Level 1.5 Image Data Format Description
-            ll_c = (center_point - west - 0.5 + we_offset) * column_step
-            ll_l = (south - center_point - 0.5 + ns_offset) * line_step
-            ur_c = (center_point - east + 0.5 + we_offset) * column_step
-            ur_l = (north - center_point + 0.5 + ns_offset) * line_step
-
-            area_extent = (ll_c, ll_l, ur_c, ur_l)
-
+        # Otherwise area extent is in one piece, corner points are
+        # the same as for VISIR channels, HRV channel is having
+        # three times the amount of columns and rows
         else:
 
-            # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
-            if earth_model == 1:
-                ns_offset = -1.5  # north +ve
-                we_offset = 1.5  # west +ve
-
-            if self.roi:
+            if dsid.name == 'HRV':
                 center_point = 11136/2
-
-                north = int(sec15hd['NorthLineSelectedRectangle']['Value']) * 3
-                east = int(sec15hd['EastColumnSelectedRectangle']['Value']) * 3
-                west = int(sec15hd['WestColumnSelectedRectangle']['Value']) * 3
-                south = int(sec15hd['SouthLineSelectedRectangle']['Value']) * 3
-
-                column_step = data15hd['ImageDescription'][
-                    'ReferenceGridHRV']['ColumnDirGridStep'] * 1000.0
-                line_step = data15hd['ImageDescription'][
-                    'ReferenceGridHRV']['LineDirGridStep'] * 1000.0
-
-                # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
-                if earth_model == 1:
-                    ns_offset = -1.5  # north +ve
-                    we_offset = 1.5  # west +ve
-
-                # section 3.1.5 of MSG Level 1.5 Image Data Format Description
-                ll_c = (center_point - west - 0.5 + we_offset) * column_step
-                ll_l = (south - center_point - 0.5 + ns_offset) * line_step
-                ur_c = (center_point - east + 0.5 + we_offset) * column_step
-                ur_l = (north - center_point + 0.5 + ns_offset) * line_step
-
-                area_extent = (ll_c, ll_l, ur_c, ur_l)
-
+                coeff = 3
             else:
-                raise NotImplementedError('HRV not supported!')
+                center_point = 3712/2
+                coeff = 1
+
+            north = coeff * int(sec15hd['NorthLineSelectedRectangle']['Value'])
+            east = coeff * int(sec15hd['EastColumnSelectedRectangle']['Value'])
+            west = coeff * int(sec15hd['WestColumnSelectedRectangle']['Value'])
+            south = coeff * int(sec15hd['SouthLineSelectedRectangle']['Value'])
+
+            column_step = data15hd['ImageDescription'][
+                reference_grid]['ColumnDirGridStep'] * 1000.0
+            line_step = data15hd['ImageDescription'][
+                reference_grid]['LineDirGridStep'] * 1000.0
+
+            area_extent = self._calculate_area_extent(
+                center_point, north, east,
+                south, west, we_offset,
+                ns_offset, column_step, line_step
+            )
 
         return area_extent
 
     def get_dataset(self, dsid, info,
                     xslice=slice(None), yslice=slice(None)):
 
-        channel = dsid.name
-        channel_list = self._channel_list
-
-        if channel not in channel_list:
-            raise KeyError('Channel % s not available in the file' % channel)
-        elif channel not in ['HRV']:
+        if dsid.name not in self.mda['channel_list']:
+            raise KeyError('Channel % s not available in the file' % dsid.name)
+        elif dsid.name not in ['HRV']:
             shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
 
             # Check if there is only 1 channel in the list as a change
             # is needed in the arrray assignment ie channl id is not present
-            if len(channel_list) == 1:
+            if len(self.mda['channel_list']) == 1:
                 raw = self.dask_array['visir']['line_data']
             else:
-                i = channel_list.index(channel)
+                i = self.mda['channel_list'].index(dsid.name)
                 raw = self.dask_array['visir']['line_data'][:, i, :]
 
             data = dec10216(raw.flatten())
@@ -416,7 +405,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset.attrs['units'] = info['units']
             dataset.attrs['wavelength'] = info['wavelength']
             dataset.attrs['standard_name'] = info['standard_name']
-            dataset.attrs['platform_name'] = self.platform_name
+            dataset.attrs['platform_name'] = self.mda['platform_name']
             dataset.attrs['sensor'] = 'seviri'
 
         return dataset
@@ -460,7 +449,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             res = self._convert_to_radiance(data, gain, offset)
 
         if calibration == 'reflectance':
-            solar_irradiance = CALIB[self.platform_id][channel]["F"]
+            solar_irradiance = CALIB[self.mda['platform_id']][channel]["F"]
             res = self._vis_calibrate(res, solar_irradiance)
 
         elif calibration == 'brightness_temperature':
