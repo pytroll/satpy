@@ -1088,8 +1088,6 @@ class GOESEUMNCFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(GOESEUMNCFileHandler, self).__init__(filename, filename_info,
                                                    filetype_info)
-        print('INIT EUM')
-
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
@@ -1151,9 +1149,6 @@ class GOESEUMNCFileHandler(BaseFileHandler):
         """Load dataset designated by the given key from file"""
         logger.debug('Reading dataset {}'.format(key.name))
 
-        print "data select:", self.nc['data'].isel(time=0)
-        print key.calibration
-        print key.name
         tic = datetime.now()
         data = self.calibrate(self.nc['data'].isel(time=0),
                               calibration=key.calibration,
@@ -1165,34 +1160,37 @@ class GOESEUMNCFileHandler(BaseFileHandler):
 
         # Set proper dimension names
         data = data.rename({'xc': 'x', 'yc': 'y'})
-        print 'data before drop', data
         data = data.drop('time')
-        print 'data after drop', data
-        
+
+        # If the file_type attribute is a list and the data is xarray
+        # the concat of the dataset will not work. As the file_type is
+        # not needed this will be popped here.
+        if 'file_type' in info:
+            info.pop('file_type')
+
         # Update metadata
         data.attrs.update(info)
         data.attrs.update(
             {'platform_name': self.platform_name,
              'sensor': self.sensor}
         )
-        print data
         return data
 
     def calibrate(self, counts, calibration, channel):
         """Perform calibration"""
         # Convert 16bit counts from netCDF4 file to the original 10bit
         # GVAR counts by dividing by 32. See [FAQ].
-        #counts = counts / 32.
+        # FIXME quick hack as EUM data already are Albedo or radiance
+        # counts = counts / 32.
 
-        print self.platform_name, channel
         coefs = CALIB_COEFS[self.platform_name][channel]
-        print('calibration: ', calibration)
         if calibration == 'counts':
             return counts
         elif calibration in ['radiance', 'reflectance',
                              'brightness_temperature']:
-            #radiance = self._counts2radiance(counts=counts, coefs=coefs,
-            #channel=channel)
+            # FIXME quick hack as the EUM data is already in Albedo
+            # radiance = self._counts2radiance(counts=counts, coefs=coefs,
+            # channel=channel)
             radiance = counts
             if calibration == 'radiance':
                 return radiance
@@ -1254,7 +1252,7 @@ class GOESEUMNCFileHandler(BaseFileHandler):
             Radiance [mW m-2 cm-1 sr-1]
         """
         rad = (counts - offset) / scale
-        return counts.clip(min=0)
+        return rad.clip(min=0)
 
     @staticmethod
     def _calibrate_ir(radiance, coefs):
@@ -1279,8 +1277,7 @@ class GOESEUMNCFileHandler(BaseFileHandler):
         # Compute brightness temperature using inverse Planck formula
         n = coefs['n']
         bteff = C2 * n / xu.log(1 + C1 * n**3 / radiance.where(radiance > 0))
-        bt = xr.DataArray(bteff * coefs['b'] + coefs['a'])
-
+        bt = (bteff * coefs['b'] + coefs['a'])
         # Apply BT threshold
         return bt.where(xu.logical_and(bt >= coefs['btmin'],
                                        bt <= coefs['btmax']))
@@ -1325,6 +1322,8 @@ class GOESEUMNCFileHandler(BaseFileHandler):
             Reflectance [%]
         """
         logger.debug('Calibrating to reflectance')
+        # FIXME: quick hack commented out here as VIS is aleady calivrated to
+        # Albdo
         #refl = 100 * k * radiance
         #refl = k
         return radiance.clip(min=0)
@@ -1342,8 +1341,6 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(GOESEUMGEONCFileHandler, self).__init__(filename, filename_info,
                                                       filetype_info)
-        print('INIT EUM GEO')
-
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
@@ -1354,10 +1351,6 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
         self.platform_name = self._get_platform_name(
             self.nc.attrs['Satellite Sensor'])
         self.platform_shortname = self.platform_name.replace('-', '').lower()
-        #self.gvar_channel = "1" # int(self.nc['bands'].values)
-        #self.sector = self._get_sector(channel=self.gvar_channel,
-        #                               nlines=self.nlines,
-        #                               ncols=self.ncols)
         self._meta = None
 
     def get_dataset(self, key, info):
@@ -1372,16 +1365,11 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
         else:
             logger.debug("Unknown key.name: ", key.name)
 
-        print "LONLAT data: ", data
         # Set proper dimension names
         data = data.rename({'xc': 'x', 'yc': 'y'})
+
         # Update metadata
         data.attrs.update(info)
-        #data.attrs.update(
-        #    {'platform_name': self.platform_name,
-        #     'sensor': self.sensor,
-        #     'sector': self.sector}
-        #)
         return data
 
     @staticmethod
@@ -1418,6 +1406,7 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
             return channel == 1
         else:
             raise ValueError('Invalid channel')
+
 
 def test_coefs(ir_url, vis_url):
     """Test calibration coefficients against NOAA reference pages
