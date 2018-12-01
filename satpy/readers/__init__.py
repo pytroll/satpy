@@ -657,13 +657,10 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             break
 
     if remaining_filenames:
-        LOG.warning(
-            "Don't know how to open the following files: {}".format(str(
-                remaining_filenames)))
+        LOG.warning("Don't know how to open the following files: {}".format(str(remaining_filenames)))
     if not reader_instances:
         raise ValueError("No supported files found")
-    elif not all([list(r.available_dataset_ids)
-                  for r in reader_instances.values()]):
+    elif not any(list(r.available_dataset_ids) for r in reader_instances.values()):
         raise ValueError("No dataset could be loaded. Either missing "
                          "requirements (such as Epilog, Prolog) or none of the "
                          "provided files match the filter parameters.")
