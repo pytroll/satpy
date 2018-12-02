@@ -29,6 +29,7 @@ install:
     - "dir tiff.dll"
     - "echo %cd%"
     - "copy tiff.dll libtiff.dll"
+    - "cd C:\\projects\\satpy"
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
