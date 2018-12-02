@@ -25,7 +25,10 @@ install:
     - "activate test"
     # HACK: Copy tiff.dll to libtiff.dll
     - "cd %PYTHON%\\Library\\bin"
-    - "cp tiff.dll libtiff.dll"
+    - "dir"
+    - "dir tiff.dll"
+    - "echo %cd%"
+    - "copy tiff.dll libtiff.dll"
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
