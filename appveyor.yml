@@ -24,7 +24,7 @@ install:
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
     - "activate test"
     # HACK: Copy tiff.dll to libtiff.dll
-    - "cd %PYTHON%\\Library\\bin"
+    - "cd %PYTHON%\\envs\\test\\Library\\bin"
     - "dir"
     - "dir tiff.dll"
     - "echo %cd%"
