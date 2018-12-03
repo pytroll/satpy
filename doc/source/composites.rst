@@ -49,7 +49,8 @@ is generated.  To get an image out of the above composite::
     >>> img.gamma(1.7)
     >>> img.show()
 
-This part is called `enhancement`, and is covered in more detail in LINK HERE.
+This part is called `enhancement`, and is covered in more detail `enhancements 
+<enhancements.html>`_ section.
 
 
 DifferenceCompositor
@@ -64,7 +65,7 @@ DifferenceCompositor
 FillingCompositor
 -----------------
 
-:class:`FillingCompositor`:: fills the missing values in three datasets
+:class:`FillingCompositor` fills the missing values in three datasets
 with the values of another dataset:::
 
     >>> from satpy.composites import FillingCompositor
