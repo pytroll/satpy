@@ -8,7 +8,7 @@
 
 reader:
   description: Reader for MTSAT-1R JAMI data in JMA HRIT Format
-  name: hrit_mtsat1
+  name: jami_hrit
   sensors: [jami]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
