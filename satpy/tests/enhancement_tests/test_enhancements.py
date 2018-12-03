@@ -30,7 +30,6 @@ import dask.array as da
 
 
 class TestEnhancementStretch(unittest.TestCase):
-
     """Class for testing enhancements in satpy.enhancements"""
 
     def setUp(self):
@@ -50,11 +49,11 @@ class TestEnhancementStretch(unittest.TestCase):
     def _test_enhancement(self, func, data, expected, **kwargs):
         """Helper for testing enhancement functions."""
         from trollimage.xrimage import XRImage
-        
+
         pre_attrs = data.attrs
         img = XRImage(data)
         func(img, **kwargs)
-    
+
         self.assertIsInstance(img.data.data, da.Array)
         self.assertListEqual(sorted(pre_attrs.keys()),
                              sorted(img.data.attrs.keys()),
@@ -97,14 +96,14 @@ class TestEnhancementStretch(unittest.TestCase):
              4.35952940e-06, 4.35952940e-06],
             [4.35952940e-06, 4.35952940e-06, 4.35952940e-06,
              4.35952940e-06, 4.35952940e-06]],
-           [[np.nan, 1.88249866e-01, 1.88249866e-01,
-             2.35302110e-01, 2.35302110e-01],
-            [2.35302110e-01, 2.35302110e-01, 2.35302110e-01,
-             2.35302110e-01, 2.35302110e-01]],
-           [[np.nan, 1.96102817e-02, 1.96102817e-02,
-             1.88238767e-01, 1.88238767e-01],
-            [1.88238767e-01, 1.88238767e-01, 1.88238767e-01,
-             1.88238767e-01, 1.88238767e-01]]])
+            [[np.nan, 1.88249866e-01, 1.88249866e-01,
+              2.35302110e-01, 2.35302110e-01],
+             [2.35302110e-01, 2.35302110e-01, 2.35302110e-01,
+              2.35302110e-01, 2.35302110e-01]],
+            [[np.nan, 1.96102817e-02, 1.96102817e-02,
+              1.88238767e-01, 1.88238767e-01],
+             [1.88238767e-01, 1.88238767e-01, 1.88238767e-01,
+              1.88238767e-01, 1.88238767e-01]]])
         self._test_enhancement(colorize, self.ch1, expected, palettes=brbg)
 
     def test_palettize(self):
