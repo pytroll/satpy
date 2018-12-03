@@ -4,6 +4,11 @@ from satpy.enhancements import apply_enhancement
 
 
 def water_detection(img, **kwargs):
+    """Palettizes images from VIIRS flood data.
+
+    This modifies the image's data so the correct colors
+    can be applied to it, and then palettizes the image.
+    """
     palette = kwargs['palettes']
     palette['colors'] = tuple(map(tuple, palette['colors']))
 
