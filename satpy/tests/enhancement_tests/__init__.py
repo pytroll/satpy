@@ -14,6 +14,6 @@ else:
 def suite():
     """Test suite for all enhancement tests"""
     mysuite = unittest.TestSuite()
-    mysuite.addTests(test_enhancements.suite())    
-    
+    mysuite.addTests(test_enhancements.suite())
+
     return mysuite
