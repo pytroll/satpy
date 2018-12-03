@@ -23,13 +23,6 @@ install:
     - "powershell ci-helpers/appveyor/install-miniconda.ps1"
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
     - "activate test"
-    # HACK: Copy tiff.dll to libtiff.dll
-    - "cd %PYTHON%\\envs\\test\\Library\\bin"
-    - "dir"
-    - "dir tiff.dll"
-    - "echo %cd%"
-    - "copy tiff.dll libtiff.dll"
-    - "cd C:\\projects\\satpy"
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
