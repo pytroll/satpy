@@ -66,6 +66,9 @@ installation.
     * - Himawari 8 and 9 AHI data in HRIT format
       - `hrit_jma`
       - Nominal
+    * - MTSAT-1R/2 data in JMA HRIT format
+      - `hrit_mtsat1`, `hrit_mtsat2`
+      - Beta
     * - GOES 16 imager data in netcdf format
       - `abi_l1b`
       - Nominal
