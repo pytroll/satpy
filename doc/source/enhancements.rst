@@ -10,9 +10,9 @@ stretch
 
 The most basic operation is to stretch the image so that the data fits
 to the output format.  There are many different ways to stretch the
-data, which are configured by giving them in `kwargs` dictionary, like
-in the example above.  The default, if nothing else is defined, is to
-apply a linear stretch.  For more details, see below.
+data, which are configured in YAML files by defining them in a `kwargs`
+dictionary.  The default, if nothing else is defined, is to apply a
+linear stretch.  For more details, see below.
 
 linear
 ******
