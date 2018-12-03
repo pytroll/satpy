@@ -9,8 +9,8 @@ Built-in Compositors
 
 There are several built-in compositors available in SatPy.
 All of them use the :class:`GenericCompositor` base class
-which handles various image modes (`L`, `LA`, `RGB`, and
-`RGBA` at the moment) and updates attributes.
+which handles various image modes (``L``, ``LA``, ``RGB``, and
+``RGBA`` at the moment) and updates attributes.
 
 The below sections summarize the composites that come with SatPy and
 show basic examples of creating and using them with an existing
@@ -38,9 +38,10 @@ can be done manually within Python code with::
 
 One important thing to notice is that there is an internal difference
 between a composite and an image. A composite is defined as a special
-dataset which may have several bands (like `R`, `G` and `B`  bands). However,
-the data isn't stretched, or clipped or gamma filtered until an image
-is generated.  To get an image out of the above composite::
+dataset which may have several bands (like ``R``, ``G`` and ``B``
+bands). However, the data isn't stretched, or clipped or gamma
+filtered until an image is generated.  To get an image out of the
+above composite::
 
     >>> from satpy.writers import to_image
     >>> img = to_image(composite)
@@ -49,8 +50,8 @@ is generated.  To get an image out of the above composite::
     >>> img.gamma(1.7)
     >>> img.show()
 
-This part is called `enhancement`, and is covered in more detail `enhancements 
-<enhancements.html>`_ section.
+This part is called ``enhancement``, and is covered in more detail
+`enhancements <enhancements.html>`_ section.
 
 
 DifferenceCompositor
@@ -130,9 +131,9 @@ CloudCompositor
 on top of e.g. static terrain images to show a rough idea where there
 are clouds.  The data are thresholded using three variables::
 
- - `transition_min`: values below or equal to this are clouds -> opaque white
- - `transition_max`: values above this are cloud free -> transparent
- - `transition_gamma`: gamma correction applied to clarify the clouds
+ - ``transition_min``: values below or equal to this are clouds -> opaque white
+ - ``transition_max``: values above this are cloud free -> transparent
+ - ``transition_gamma``: gamma correction applied to clarify the clouds
 
 Usage (with default values)::
 
@@ -266,7 +267,7 @@ following way::
 
 Here we see two changes:
 
-1. channels with modifiers need to have either `name` or `wavelength`
+1. channels with modifiers need to have either ``name`` or ``wavelength``
    added in front of the channel name or wavelength, respectively
 2. a list of modifiers attached to the dictionary defining the channel
 
