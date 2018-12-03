@@ -4,7 +4,7 @@
 
 reader:
   description: JMA HRIT Reader
-  name: hrit_ahi
+  name: ahi_hrit
   sensors: [ahi]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
