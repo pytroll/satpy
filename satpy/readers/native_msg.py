@@ -48,7 +48,7 @@ from satpy.readers.eum_base import recarray2dict
 from satpy.readers.msg_base import (SEVIRICalibrationHandler,
                                     CHANNEL_NAMES, CALIB, SATNUM,
                                     dec10216, VISIR_NUM_COLUMNS,
-                                    HRV_NUM_COLUMNS)
+                                    VISIR_NUM_LINES, HRV_NUM_COLUMNS)
 from satpy.readers.native_msg_hdr import (GSDTRecords, native_header,
                                           native_trailer)
 
@@ -196,8 +196,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         # check if the file has less rows or columns than
         # the maximum, if so it is an area of interest file
-        # columns and rows start at 1 -> 3712 - 1 = 3711
-        if (nrows < 3712) or (ncolumns < 3712):
+        if (nrows < VISIR_NUM_LINES) or (ncolumns < VISIR_NUM_COLUMNS):
             self.mda['is_full_disk'] = False
 
         # If the number of columns in the file is not divisible by 4,
@@ -220,7 +219,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # HRV Channel - check if the area is reduced in east west
         # direction as this affects the number of columns in the file
         cols_hrv_hdr = int(sec15hd['NumberColumnsHRV']['Value'])
-        if ncolumns < 3712:
+        if ncolumns < VISIR_NUM_COLUMNS:
             cols_hrv = cols_hrv_hdr
         else:
             cols_hrv = int(cols_hrv_hdr / 2)
