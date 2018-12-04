@@ -559,7 +559,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                                        ncols=self.ncols)
         self._meta = None
         self.geo_data = geo_data if geo_data is not None else self.nc
-    
+
     @abstractmethod
     def get_dataset(self, key, info):
         """Load dataset designated by the given key from file"""
