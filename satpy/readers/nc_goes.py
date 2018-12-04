@@ -882,6 +882,36 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         refl = 100 * k * radiance
         return refl.clip(min=0)
 
+    def _update_metadata(self, data, ds_info):
+        """Update metadata of the given DataArray"""
+        # Metadata from the dataset definition
+        data.attrs.update(ds_info)
+
+        # If the file_type attribute is a list and the data is xarray
+        # the concat of the dataset will not work. As the file_type is
+        # not needed this will be popped here.
+        if 'file_type' in data.attrs:
+            data.attrs.pop('file_type')
+
+        # Metadata discovered from the file
+        data.attrs.update(
+            {'platform_name': self.platform_name,
+             'sensor': self.sensor,
+             'sector': self.sector,
+             'yaw_flip': self.meta['yaw_flip']}
+        )
+        if self.meta['lon0'] is not None:
+            # Attributes only available for full disc images. YAML reader
+            # doesn't like it if satellite_* is present but None
+            data.attrs.update(
+                {'satellite_longitude': self.meta['lon0'],
+                 'satellite_latitude': self.meta['lat0'],
+                 'satellite_altitude': ALTITUDE,
+                 'nadir_row': self.meta['nadir_row'],
+                 'nadir_col': self.meta['nadir_col'],
+                 'area_def_uniform_sampling': self.meta['area_def_uni']}
+            )
+
     def __del__(self):
         try:
             self.nc.close()
@@ -919,24 +949,7 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
         data = data.rename({'xc': 'x', 'yc': 'y'})
 
         # Update metadata
-        data.attrs.update(info)
-        data.attrs.update(
-            {'platform_name': self.platform_name,
-             'sensor': self.sensor,
-             'sector': self.sector,
-             'yaw_flip': self.meta['yaw_flip']}
-        )
-        if self.meta['lon0'] is not None:
-            # Attributes only available for full disc images. YAML reader
-            # doesn't like it if satellite_* is present but None
-            data.attrs.update(
-                {'satellite_longitude': self.meta['lon0'],
-                 'satellite_latitude': self.meta['lat0'],
-                 'satellite_altitude': ALTITUDE,
-                 'nadir_row': self.meta['nadir_row'],
-                 'nadir_col': self.meta['nadir_col'],
-                 'area_def_uniform_sampling': self.meta['area_def_uni']}
-            )
+        self._update_metadata(data, ds_info=info)
 
         return data
 
@@ -968,7 +981,6 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
 
     TODO: Remove datasets which are not available in the file (counts,
     VIS radiance) via available_datasets()  -> See #434
-
     """
     def __init__(self, filename, filename_info, filetype_info, geo_data):
         """Initialize the reader."""
@@ -992,31 +1004,8 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
         data = data.rename({'xc': 'x', 'yc': 'y'})
         data = data.drop('time')
 
-        # If the file_type attribute is a list and the data is xarray
-        # the concat of the dataset will not work. As the file_type is
-        # not needed this will be popped here.
-        if 'file_type' in info:
-            info.pop('file_type')
-
         # Update metadata
-        data.attrs.update(info)
-        data.attrs.update(
-            {'platform_name': self.platform_name,
-             'sensor': self.sensor,
-             'sector': self.sector,
-             'yaw_flip': self.meta['yaw_flip']}
-        )
-        if self.meta['lon0'] is not None:
-            # Attributes only available for full disc images. YAML reader
-            # doesn't like it if satellite_* is present but None
-            data.attrs.update(
-                {'satellite_longitude': self.meta['lon0'],
-                 'satellite_latitude': self.meta['lat0'],
-                 'satellite_altitude': ALTITUDE,
-                 'nadir_row': self.meta['nadir_row'],
-                 'nadir_col': self.meta['nadir_col'],
-                 'area_def_uniform_sampling': self.meta['area_def_uni']}
-            )
+        self._update_metadata(data, ds_info=info)
 
         return data
 
