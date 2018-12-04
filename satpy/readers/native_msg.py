@@ -47,7 +47,8 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.eum_base import recarray2dict
 from satpy.readers.msg_base import (SEVIRICalibrationHandler,
                                     CHANNEL_NAMES, CALIB, SATNUM,
-                                    dec10216)
+                                    dec10216, VISIR_NUM_COLUMNS,
+                                    HRV_NUM_COLUMNS)
 from satpy.readers.native_msg_hdr import (GSDTRecords, native_header,
                                           native_trailer)
 
@@ -318,7 +319,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # When dealing with HRV channel and full disk, area extent is
         # in two pieces
         if (dsid.name == 'HRV') and self.mda['is_full_disk']:
-            # TODO: Implement HRV full disk area_extent
+            # NOTE: Implement HRV full disk area_extent
             # NotImplementedError does not catch this, it must
             # be used elsewhere already
             msg = 'HRV full disk area extent not implemented.'
@@ -330,10 +331,10 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         else:
 
             if dsid.name == 'HRV':
-                center_point = 11136/2
+                center_point = HRV_NUM_COLUMNS/2
                 coeff = 3
             else:
-                center_point = 3712/2
+                center_point = VISIR_NUM_COLUMNS/2
                 coeff = 1
 
             north = coeff * int(sec15hd['NorthLineSelectedRectangle']['Value'])
