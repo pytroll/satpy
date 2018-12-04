@@ -1,4 +1,28 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2018.
+
+# Author(s):
+
+#   Stephan Finkensieper <sfinkes@dwd.de>
+#   Trygve Aspenes <trygveas@met.no>
+
+# This file is part of satpy.
+
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for GOES 8-15 imager data in netCDF format from NOAA CLASS
+   Also handles GOES 15 data in netCDF format reformated by Eumetsat
 
 GOES Imager netCDF files contain geolocated detector counts. If ordering via
 NOAA CLASS, select 16 bits/pixel. The instrument oversamples the viewed scene
@@ -122,6 +146,16 @@ References:
 [FAQ] https://www.ncdc.noaa.gov/sites/default/files/attachments/Satellite-Frequently-Asked-Questions_2.pdf
 [SCHED-W] http://www.ospo.noaa.gov/Operations/GOES/west/imager-routine.html
 [SCHED-E] http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
+
+Eumetsat formated netCDF data:
+
+The main differences are:
+1: The geolocation is in a separate file, used for all bands
+2: VIS data is calibrated to Albedo( or reflectance)
+3: IR data is calibrated to radiance.
+4: File name differs also slightly
+5: Data is received via EumetCast
+
 """
 
 from abc import abstractmethod
