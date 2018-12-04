@@ -1,4 +1,28 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2018.
+
+# Author(s):
+
+#   Stephan Finkensieper <sfinkes@dwd.de>
+#   Trygve Aspenes <trygveas@met.no>
+
+# This file is part of satpy.
+
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+
 """Reader for GOES 8-15 imager data in netCDF format from NOAA CLASS
+   Also handles GOES 15 data in netCDF format reformated by Eumetsat
 
 GOES Imager netCDF files contain geolocated detector counts. If ordering via
 NOAA CLASS, select 16 bits/pixel. The instrument oversamples the viewed scene
@@ -122,8 +146,19 @@ References:
 [FAQ] https://www.ncdc.noaa.gov/sites/default/files/attachments/Satellite-Frequently-Asked-Questions_2.pdf
 [SCHED-W] http://www.ospo.noaa.gov/Operations/GOES/west/imager-routine.html
 [SCHED-E] http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
+
+Eumetsat formated netCDF data:
+
+The main differences are:
+1: The geolocation is in a separate file, used for all bands
+2: VIS data is calibrated to Albedo( or reflectance)
+3: IR data is calibrated to radiance.
+4: File name differs also slightly
+5: Data is received via EumetCast
+
 """
 
+from abc import abstractmethod
 from collections import namedtuple
 from datetime import datetime, timedelta
 import logging
@@ -502,12 +537,12 @@ SCAN_DURATION = {
 }  # Source: [SCHED-W], [SCHED-E]
 
 
-class GOESNCFileHandler(BaseFileHandler):
+class GOESNCBaseFileHandler(BaseFileHandler):
     """File handler for GOES Imager data in netCDF format"""
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, geo_data=None):
         """Initialize the reader."""
-        super(GOESNCFileHandler, self).__init__(filename, filename_info,
-                                                filetype_info)
+        super(GOESNCBaseFileHandler, self).__init__(filename, filename_info,
+                                                    filetype_info)
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
@@ -523,6 +558,17 @@ class GOESNCFileHandler(BaseFileHandler):
                                        nlines=self.nlines,
                                        ncols=self.ncols)
         self._meta = None
+        self.geo_data = geo_data if geo_data is not None else self.nc
+
+    @abstractmethod
+    def get_dataset(self, key, info):
+        """Load dataset designated by the given key from file"""
+        raise NotImplementedError
+
+    @abstractmethod
+    def calibrate(self, data, calibration, channel):
+        """Perform calibration"""
+        raise NotImplementedError
 
     @staticmethod
     def _get_platform_name(ncattr):
@@ -692,7 +738,7 @@ class GOESNCFileHandler(BaseFileHandler):
         """Derive metadata from the coordinates"""
         # Use buffered data if available
         if self._meta is None:
-            lat = self.nc['lat']
+            lat = self.geo_data['lat']
             earth_mask = self._get_earth_mask(lat)
             crow, ccol = self._get_nadir_pixel(earth_mask=earth_mask,
                                                sector=self.sector)
@@ -700,7 +746,7 @@ class GOESNCFileHandler(BaseFileHandler):
             yaw_flip = self._is_yaw_flip(lat)
             del lat
 
-            lon = self.nc['lon']
+            lon = self.geo_data['lon']
             lon0 = lon.values[crow, ccol] if crow is not None else None
             area_def_uni = self._get_area_def_uniform_sampling(
                 lon0=lon0, channel=self.gvar_channel)
@@ -714,72 +760,6 @@ class GOESNCFileHandler(BaseFileHandler):
                           'nadir_col': ccol,
                           'area_def_uni': area_def_uni}
         return self._meta
-
-    def get_dataset(self, key, info):
-        """Load dataset designated by the given key from file"""
-        logger.debug('Reading dataset {}'.format(key.name))
-
-        # Read data from file and calibrate if necessary
-        if 'longitude' in key.name:
-            data = self.nc['lon']
-        elif 'latitude' in key.name:
-            data = self.nc['lat']
-        else:
-            tic = datetime.now()
-            data = self.calibrate(self.nc['data'].isel(time=0),
-                                  calibration=key.calibration,
-                                  channel=key.name)
-            logger.debug('Calibration time: {}'.format(datetime.now() - tic))
-
-        # Mask space pixels
-        data = data.where(self.meta['earth_mask'])
-
-        # Set proper dimension names
-        data = data.rename({'xc': 'x', 'yc': 'y'})
-
-        # Update metadata
-        data.attrs.update(info)
-        data.attrs.update(
-            {'platform_name': self.platform_name,
-             'sensor': self.sensor,
-             'sector': self.sector,
-             'yaw_flip': self.meta['yaw_flip']}
-        )
-        if self.meta['lon0'] is not None:
-            # Attributes only available for full disc images. YAML reader
-            # doesn't like it if satellite_* is present but None
-            data.attrs.update(
-                {'satellite_longitude': self.meta['lon0'],
-                 'satellite_latitude': self.meta['lat0'],
-                 'satellite_altitude': ALTITUDE,
-                 'nadir_row': self.meta['nadir_row'],
-                 'nadir_col': self.meta['nadir_col'],
-                 'area_def_uniform_sampling': self.meta['area_def_uni']}
-            )
-
-        return data
-
-    def calibrate(self, counts, calibration, channel):
-        """Perform calibration"""
-        # Convert 16bit counts from netCDF4 file to the original 10bit
-        # GVAR counts by dividing by 32. See [FAQ].
-        counts = counts / 32.
-
-        coefs = CALIB_COEFS[self.platform_name][channel]
-        if calibration == 'counts':
-            return counts
-        elif calibration in ['radiance', 'reflectance',
-                             'brightness_temperature']:
-            radiance = self._counts2radiance(counts=counts, coefs=coefs,
-                                             channel=channel)
-            if calibration == 'radiance':
-                return radiance
-
-            return self._calibrate(radiance=radiance, coefs=coefs,
-                                   channel=channel, calibration=calibration)
-        else:
-            raise ValueError('Unsupported calibration for channel {}: {}'
-                             .format(channel, calibration))
 
     def _counts2radiance(self, counts, coefs, channel):
         """Convert raw detector counts to radiance"""
@@ -911,6 +891,196 @@ class GOESNCFileHandler(BaseFileHandler):
             self.nc.close()
         except (AttributeError, IOError, OSError):
             pass
+
+
+class GOESNCFileHandler(GOESNCBaseFileHandler):
+    """File handler for GOES Imager data in netCDF format"""
+    def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the reader."""
+        super(GOESNCFileHandler, self).__init__(filename, filename_info,
+                                                filetype_info)
+
+    def get_dataset(self, key, info):
+        """Load dataset designated by the given key from file"""
+        logger.debug('Reading dataset {}'.format(key.name))
+
+        # Read data from file and calibrate if necessary
+        if 'longitude' in key.name:
+            data = self.geo_data['lon']
+        elif 'latitude' in key.name:
+            data = self.geo_data['lat']
+        else:
+            tic = datetime.now()
+            data = self.calibrate(self.nc['data'].isel(time=0),
+                                  calibration=key.calibration,
+                                  channel=key.name)
+            logger.debug('Calibration time: {}'.format(datetime.now() - tic))
+
+        # Mask space pixels
+        data = data.where(self.meta['earth_mask'])
+
+        # Set proper dimension names
+        data = data.rename({'xc': 'x', 'yc': 'y'})
+
+        # Update metadata
+        data.attrs.update(info)
+        data.attrs.update(
+            {'platform_name': self.platform_name,
+             'sensor': self.sensor,
+             'sector': self.sector,
+             'yaw_flip': self.meta['yaw_flip']}
+        )
+        if self.meta['lon0'] is not None:
+            # Attributes only available for full disc images. YAML reader
+            # doesn't like it if satellite_* is present but None
+            data.attrs.update(
+                {'satellite_longitude': self.meta['lon0'],
+                 'satellite_latitude': self.meta['lat0'],
+                 'satellite_altitude': ALTITUDE,
+                 'nadir_row': self.meta['nadir_row'],
+                 'nadir_col': self.meta['nadir_col'],
+                 'area_def_uniform_sampling': self.meta['area_def_uni']}
+            )
+
+        return data
+
+    def calibrate(self, counts, calibration, channel):
+        """Perform calibration"""
+        # Convert 16bit counts from netCDF4 file to the original 10bit
+        # GVAR counts by dividing by 32. See [FAQ].
+        counts = counts / 32.
+
+        coefs = CALIB_COEFS[self.platform_name][channel]
+        if calibration == 'counts':
+            return counts
+        elif calibration in ['radiance', 'reflectance',
+                             'brightness_temperature']:
+            radiance = self._counts2radiance(counts=counts, coefs=coefs,
+                                             channel=channel)
+            if calibration == 'radiance':
+                return radiance
+
+            return self._calibrate(radiance=radiance, coefs=coefs,
+                                   channel=channel, calibration=calibration)
+        else:
+            raise ValueError('Unsupported calibration for channel {}: {}'
+                             .format(channel, calibration))
+
+
+class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
+    """File handler for GOES Imager data in EUM netCDF format
+
+    TODO: Remove datasets which are not available in the file (counts,
+    VIS radiance) via available_datasets()  -> See #434
+
+    """
+    def __init__(self, filename, filename_info, filetype_info, geo_data):
+        """Initialize the reader."""
+        super(GOESEUMNCFileHandler, self).__init__(filename, filename_info,
+                                                   filetype_info, geo_data)
+
+    def get_dataset(self, key, info):
+        """Load dataset designated by the given key from file"""
+        logger.debug('Reading dataset {}'.format(key.name))
+
+        tic = datetime.now()
+        data = self.calibrate(self.nc['data'].isel(time=0),
+                              calibration=key.calibration,
+                              channel=key.name)
+        logger.debug('Calibration time: {}'.format(datetime.now() - tic))
+
+        # Mask space pixels
+        data = data.where(self.meta['earth_mask'])
+
+        # Set proper dimension names
+        data = data.rename({'xc': 'x', 'yc': 'y'})
+        data = data.drop('time')
+
+        # If the file_type attribute is a list and the data is xarray
+        # the concat of the dataset will not work. As the file_type is
+        # not needed this will be popped here.
+        if 'file_type' in info:
+            info.pop('file_type')
+
+        # Update metadata
+        data.attrs.update(info)
+        data.attrs.update(
+            {'platform_name': self.platform_name,
+             'sensor': self.sensor,
+             'sector': self.sector,
+             'yaw_flip': self.meta['yaw_flip']}
+        )
+        if self.meta['lon0'] is not None:
+            # Attributes only available for full disc images. YAML reader
+            # doesn't like it if satellite_* is present but None
+            data.attrs.update(
+                {'satellite_longitude': self.meta['lon0'],
+                 'satellite_latitude': self.meta['lat0'],
+                 'satellite_altitude': ALTITUDE,
+                 'nadir_row': self.meta['nadir_row'],
+                 'nadir_col': self.meta['nadir_col'],
+                 'area_def_uniform_sampling': self.meta['area_def_uni']}
+            )
+
+        return data
+
+    def calibrate(self, data, calibration, channel):
+        """Perform calibration"""
+        coefs = CALIB_COEFS[self.platform_name][channel]
+        is_vis = self._is_vis(channel)
+
+        # IR files provide radiances, VIS file provides reflectances
+        if is_vis and calibration == 'reflectance':
+            return data
+        elif not is_vis and calibration == 'radiance':
+            return data
+        elif not is_vis and calibration == 'brightness_temperature':
+            return self._calibrate(radiance=data, calibration=calibration,
+                                   coefs=coefs, channel=channel)
+        else:
+            raise ValueError('Unsupported calibration for channel {}: {}'
+                             .format(channel, calibration))
+
+
+class GOESEUMGEONCFileHandler(BaseFileHandler):
+    """File handler for GOES Geolocation data in EUM netCDF format"""
+    def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the reader."""
+        super(GOESEUMGEONCFileHandler, self).__init__(filename, filename_info,
+                                                      filetype_info)
+        self.nc = xr.open_dataset(self.filename,
+                                  decode_cf=True,
+                                  mask_and_scale=False,
+                                  chunks={'xc': CHUNK_SIZE, 'yc': CHUNK_SIZE})
+        self.sensor = 'goes_imager'
+        self.nlines = self.nc.dims['yc']
+        self.ncols = self.nc.dims['xc']
+        self.platform_name = GOESNCBaseFileHandler._get_platform_name(
+            self.nc.attrs['Satellite Sensor'])
+        self.platform_shortname = self.platform_name.replace('-', '').lower()
+        self._meta = None
+
+    def __getitem__(self, item):
+        return getattr(self.nc, item)
+
+    def get_dataset(self, key, info):
+        """Load dataset designated by the given key from file"""
+        logger.debug('Reading dataset {}'.format(key.name))
+
+        # Read data from file and calibrate if necessary
+        if 'longitude' in key.name:
+            data = self.nc['lon']
+        elif 'latitude' in key.name:
+            data = self.nc['lat']
+        else:
+            raise KeyError("Unknown dataset: {}".format(key.name))
+
+        # Set proper dimension names
+        data = data.rename({'xc': 'x', 'yc': 'y'})
+
+        # Update metadata
+        data.attrs.update(info)
+        return data
 
 
 class GOESCoefficientReader(object):
