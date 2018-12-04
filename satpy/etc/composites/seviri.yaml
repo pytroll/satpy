@@ -12,13 +12,7 @@ modifiers:
     - IR_134
 
 composites:
-  hrv:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - HRV
-    - HRV
-    - HRV
-    standard_name: hrv
+
   cloudtop:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
