@@ -146,10 +146,11 @@ Eumetsat formated netCDF data:
 
 The main differences are:
 1: The geolocation is in a separate file, used for all bands
-2: VIS data is calibrated to Albedo( or reflectance)
+2: VIS data is calibrated to Albedo (or reflectance)
 3: IR data is calibrated to radiance.
-4: File name differs also slightly
-5: Data is received via EumetCast
+4: VIS data is downsampled to IR resolution (4km)
+5: File name differs also slightly
+6: Data is received via EumetCast
 
 """
 
@@ -1076,6 +1077,14 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
         # Update metadata
         data.attrs.update(info)
         return data
+
+    @property
+    def resolution(self):
+        """Specify the spatial resolution of the dataset.
+
+        In the EUMETSAT format VIS data is downsampled to IR resolution (4km).
+        """
+        return 4000.0
 
 
 class GOESCoefficientReader(object):
