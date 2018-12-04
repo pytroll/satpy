@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018.
-
-# Author(s):
-
-#   Stephan Finkensieper <sfinkes@dwd.de>
-#   Trygve Aspenes <trygveas@met.no>
+# Copyright (c) 2018 PyTroll developers
 
 # This file is part of satpy.
 
