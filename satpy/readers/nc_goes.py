@@ -566,6 +566,16 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         """Perform calibration"""
         raise NotImplementedError
 
+    @property
+    @abstractmethod
+    def vis_sectors(self):
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def ir_sectors(self):
+        raise NotImplementedError
+
     @staticmethod
     def _get_platform_name(ncattr):
         """Determine name of the platform"""
@@ -579,10 +589,10 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         """Determine which sector was scanned"""
         if self._is_vis(channel):
             margin = 100
-            sectors_ref = VIS_SECTORS
+            sectors_ref = self.vis_sectors
         else:
             margin = 50
-            sectors_ref = IR_SECTORS
+            sectors_ref = self.ir_sectors
 
         for (nlines_ref, ncols_ref), sector in sectors_ref.items():
             if np.fabs(ncols - ncols_ref) < margin and \
@@ -921,6 +931,10 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
 class GOESNCFileHandler(GOESNCBaseFileHandler):
     """File handler for GOES Imager data in netCDF format"""
+
+    vis_sectors = VIS_SECTORS
+    ir_sectors = IR_SECTORS
+
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
         super(GOESNCFileHandler, self).__init__(filename, filename_info,
@@ -982,6 +996,10 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
     TODO: Remove datasets which are not available in the file (counts,
     VIS radiance) via available_datasets()  -> See #434
     """
+
+    vis_sectors = IR_SECTORS  # VIS channel is downsampled to IR resolution
+    ir_sectors = IR_SECTORS
+
     def __init__(self, filename, filename_info, filetype_info, geo_data):
         """Initialize the reader."""
         super(GOESEUMNCFileHandler, self).__init__(filename, filename_info,
