@@ -20,113 +20,47 @@ except ImportError:
     import mock
 
 
-class GOESNCFileHandlerTest(unittest.TestCase):
+class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
     longMessage = True
 
     @mock.patch('satpy.readers.nc_goes.xr')
+    @mock.patch.multiple('satpy.readers.nc_goes.GOESNCBaseFileHandler',
+                         __abstractmethods__=set())
     def setUp(self, xr_):
-        # Disable logging
-        logging.getLogger("urllib3").setLevel(logging.WARNING)
-
-        from satpy.readers.nc_goes import GOESNCFileHandler, CALIB_COEFS
+        from satpy.readers.nc_goes import CALIB_COEFS, GOESNCBaseFileHandler
 
         self.coefs = CALIB_COEFS['GOES-15']
-        self.all_coefs = CALIB_COEFS
-        self.channels = sorted(self.coefs.keys())
-        self.ir_channels = sorted([ch for ch in self.channels
-                                   if not GOESNCFileHandler._is_vis(ch)])
-        self.vis_channels = sorted([ch for ch in self.channels
-                                    if GOESNCFileHandler._is_vis(ch)])
 
-        # Mock file access to return a fake dataset. Choose a medium count value
-        # (100) to avoid elements being masked due to invalid
-        # radiance/reflectance/BT
-        nrows = ncols = 300
-        self.counts = 100 * 32 * np.ones((1, nrows, ncols))  # emulate 10-bit
-        self.lon = np.zeros((nrows, ncols))  # Dummy
-        self.lat = np.repeat(np.linspace(-150, 150, nrows), ncols).reshape(
-            nrows, ncols)  # Includes invalid values to be masked
+        # Mock file access to return a fake dataset.
         self.time = datetime.datetime(2018, 8, 16, 16, 7)
-
-        xr_.open_dataset.return_value = xr.Dataset(
-            {'data': xr.DataArray(data=self.counts, dims=('time', 'yc', 'xc')),
-             'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
-             'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc')),
+        self.dummy3d = np.zeros((1, 2, 2))
+        self.dummy2d = np.zeros((2, 2))
+        self.band = 1
+        self.nc = xr.Dataset(
+            {'data': xr.DataArray(self.dummy3d, dims=('time', 'yc', 'xc')),
+             'lon': xr.DataArray(data=self.dummy2d,  dims=('yc', 'xc')),
+             'lat': xr.DataArray(data=self.dummy2d, dims=('yc', 'xc')),
              'time': xr.DataArray(data=np.array([self.time],
                                                 dtype='datetime64[ms]'),
                                   dims=('time',)),
-             'bands': xr.DataArray(data=np.array([1]))},
+             'bands': xr.DataArray(data=np.array([self.band]))},
             attrs={'Satellite Sensor': 'G-15'})
+        xr_.open_dataset.return_value = self.nc
 
-        # Instantiate reader using the mocked open_dataset() method
-        self.reader = GOESNCFileHandler(filename='dummy', filename_info={},
-                                        filetype_info={})
+        # Instantiate reader using the mocked open_dataset() method. Also, make
+        # the reader believe all abstract methods have been implemented.
+        self.reader = GOESNCBaseFileHandler(filename='dummy', filename_info={},
+                                            filetype_info={})
 
-    def test_get_dataset_coords(self):
-        """Test whether coordinates returned by get_dataset() are correct"""
-        lon = self.reader.get_dataset(key=DatasetID(name='longitude',
-                                                    calibration=None),
-                                      info={})
-        lat = self.reader.get_dataset(key=DatasetID(name='latitude',
-                                                    calibration=None),
-                                      info={})
-        # ... this only compares the valid (unmasked) elements
-        self.assertTrue(np.all(lat.to_masked_array() == self.lat),
-                        msg='get_dataset() returns invalid latitude')
-        self.assertTrue(np.all(lon.to_masked_array() == self.lon),
-                        msg='get_dataset() returns invalid longitude')
-
-    def test_get_dataset_counts(self):
-        """Test whether counts returned by get_dataset() are correct"""
-        for ch in self.channels:
-            counts = self.reader.get_dataset(
-                key=DatasetID(name=ch, calibration='counts'), info={})
-            # ... this only compares the valid (unmasked) elements
-            self.assertTrue(np.all(self.counts/32. == counts.to_masked_array()),
-                            msg='get_dataset() returns invalid counts for '
-                                'channel {}'.format(ch))
-
-    def test_get_dataset_masks(self):
-        """Test whether data and coordinates are masked consistently"""
-        # Requires that no element has been masked due to invalid
-        # radiance/reflectance/BT (see setUp()).
-        lon = self.reader.get_dataset(key=DatasetID(name='longitude',
-                                                    calibration=None),
-                                      info={})
-        lon_mask = lon.to_masked_array().mask
-        for ch in self.channels:
-            for calib in ('counts', 'radiance', 'reflectance',
-                          'brightness_temperature'):
-                try:
-                    data = self.reader.get_dataset(
-                        key=DatasetID(name=ch, calibration=calib), info={})
-                except ValueError:
-                    continue
-                data_mask = data.to_masked_array().mask
-                self.assertTrue(np.all(data_mask == lon_mask),
-                                msg='get_dataset() returns inconsistently '
-                                    'masked {} in channel {}'.format(calib, ch))
-
-    def test_get_dataset_invalid(self):
-        """Test handling of invalid calibrations"""
-        # VIS -> BT
-        args = dict(key=DatasetID(name='00_7',
-                                  calibration='brightness_temperature'),
-                    info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
-
-        # IR -> Reflectance
-        args = dict(key=DatasetID(name='10_7',
-                                  calibration='reflectance'),
-                    info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
-
-        # Unsupported calibration
-        args = dict(key=DatasetID(name='10_7',
-                                  calibration='invalid'),
-                    info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+    def test_init(self):
+        """Tests reader initialization"""
+        self.assertEqual(self.reader.nlines, self.dummy2d.shape[0])
+        self.assertEqual(self.reader.ncols, self.dummy2d.shape[1])
+        self.assertEqual(self.reader.platform_name, 'GOES-15')
+        self.assertEqual(self.reader.platform_shortname, 'goes15')
+        self.assertEqual(self.reader.gvar_channel, self.band)
+        self.assertIsInstance(self.reader.geo_data, xr.Dataset)
 
     def test_get_nadir_pixel(self):
         """Test identification of the nadir pixel"""
@@ -162,21 +96,6 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                          msg='Yaw flip not identified')
         self.assertEqual(self.reader._is_yaw_flip(lat_dsc, delta=1), False,
                          msg='Yaw flip false alarm')
-
-    def test_calibrate(self):
-        """Test whether the correct calibration methods are called"""
-        for ch in self.channels:
-            if self.reader._is_vis(ch):
-                calibs = {'radiance': '_viscounts2radiance',
-                          'reflectance': '_calibrate_vis'}
-            else:
-                calibs = {'radiance': '_ircounts2radiance',
-                          'brightness_temperature': '_calibrate_ir'}
-            for calib, method in calibs.items():
-                with mock.patch.object(self.reader, method) as target_func:
-                    self.reader.calibrate(counts=self.reader.nc['data'],
-                                          calibration=calib, channel=ch)
-                    target_func.assert_called()
 
     def test_viscounts2radiance(self):
         """Test conversion from VIS counts to radiance"""
@@ -269,22 +188,6 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                     msg='Incorrect conversion from radiance to brightness '
                         'temperature in channel {} detector {}'.format(ch, det))
 
-    def test_start_time(self):
-        """Test dataset start time stamp"""
-        self.assertEqual(self.reader.start_time, self.time)
-
-    def test_end_time(self):
-        """Test dataset end time stamp"""
-        from satpy.readers.nc_goes import (SCAN_DURATION, FULL_DISC,
-                                           UNKNOWN_SECTOR)
-        expected = {
-            UNKNOWN_SECTOR: self.time,
-            FULL_DISC: self.time + SCAN_DURATION[FULL_DISC]
-        }
-        for sector, end_time in expected.items():
-            self.reader.sector = sector
-            self.assertEqual(self.reader.end_time, end_time)
-
     def test_get_sector(self):
         """Test sector identification"""
         from satpy.readers.nc_goes import (FULL_DISC, NORTH_HEMIS_EAST,
@@ -318,12 +221,159 @@ class GOESNCFileHandlerTest(unittest.TestCase):
             self.assertEqual(sector, sector_ref,
                              msg='Incorrect sector identification')
 
+    def test_start_time(self):
+        """Test dataset start time stamp"""
+        self.assertEqual(self.reader.start_time, self.time)
+
+    def test_end_time(self):
+        """Test dataset end time stamp"""
+        from satpy.readers.nc_goes import (SCAN_DURATION, FULL_DISC,
+                                           UNKNOWN_SECTOR)
+        expected = {
+            UNKNOWN_SECTOR: self.time,
+            FULL_DISC: self.time + SCAN_DURATION[FULL_DISC]
+        }
+        for sector, end_time in expected.items():
+            self.reader.sector = sector
+            self.assertEqual(self.reader.end_time, end_time)
+
+
+class GOESNCFileHandlerTest(unittest.TestCase):
+
+    longMessage = True
+
+    @mock.patch('satpy.readers.nc_goes.xr')
+    def setUp(self, xr_):
+        from satpy.readers.nc_goes import GOESNCFileHandler, CALIB_COEFS
+
+        self.coefs = CALIB_COEFS['GOES-15']
+        self.all_coefs = CALIB_COEFS
+        self.channels = sorted(self.coefs.keys())
+        self.ir_channels = sorted([ch for ch in self.channels
+                                   if not GOESNCFileHandler._is_vis(ch)])
+        self.vis_channels = sorted([ch for ch in self.channels
+                                    if GOESNCFileHandler._is_vis(ch)])
+
+        # Mock file access to return a fake dataset. Choose a medium count value
+        # (100) to avoid elements being masked due to invalid
+        # radiance/reflectance/BT
+        nrows = ncols = 300
+        self.counts = 100 * 32 * np.ones((1, nrows, ncols))  # emulate 10-bit
+        self.lon = np.zeros((nrows, ncols))  # Dummy
+        self.lat = np.repeat(np.linspace(-150, 150, nrows), ncols).reshape(
+            nrows, ncols)  # Includes invalid values to be masked
+
+        xr_.open_dataset.return_value = xr.Dataset(
+            {'data': xr.DataArray(data=self.counts, dims=('time', 'yc', 'xc')),
+             'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
+             'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc')),
+             'time': xr.DataArray(data=np.array([0], dtype='datetime64[ms]'),
+                                  dims=('time',)),
+             'bands': xr.DataArray(data=np.array([1]))},
+            attrs={'Satellite Sensor': 'G-15'})
+
+        # Instantiate reader using the mocked open_dataset() method
+        self.reader = GOESNCFileHandler(filename='dummy', filename_info={},
+                                        filetype_info={})
+
+    def test_get_dataset_coords(self):
+        """Test whether coordinates returned by get_dataset() are correct"""
+        lon = self.reader.get_dataset(key=DatasetID(name='longitude',
+                                                    calibration=None),
+                                      info={})
+        lat = self.reader.get_dataset(key=DatasetID(name='latitude',
+                                                    calibration=None),
+                                      info={})
+        # ... this only compares the valid (unmasked) elements
+        self.assertTrue(np.all(lat.to_masked_array() == self.lat),
+                        msg='get_dataset() returns invalid latitude')
+        self.assertTrue(np.all(lon.to_masked_array() == self.lon),
+                        msg='get_dataset() returns invalid longitude')
+
+    def test_get_dataset_counts(self):
+        """Test whether counts returned by get_dataset() are correct"""
+        for ch in self.channels:
+            counts = self.reader.get_dataset(
+                key=DatasetID(name=ch, calibration='counts'), info={})
+            # ... this only compares the valid (unmasked) elements
+            self.assertTrue(np.all(self.counts/32. == counts.to_masked_array()),
+                            msg='get_dataset() returns invalid counts for '
+                                'channel {}'.format(ch))
+
+    def test_get_dataset_masks(self):
+        """Test whether data and coordinates are masked consistently"""
+        # Requires that no element has been masked due to invalid
+        # radiance/reflectance/BT (see setUp()).
+        lon = self.reader.get_dataset(key=DatasetID(name='longitude',
+                                                    calibration=None),
+                                      info={})
+        lon_mask = lon.to_masked_array().mask
+        for ch in self.channels:
+            for calib in ('counts', 'radiance', 'reflectance',
+                          'brightness_temperature'):
+                try:
+                    data = self.reader.get_dataset(
+                        key=DatasetID(name=ch, calibration=calib), info={})
+                except ValueError:
+                    continue
+                data_mask = data.to_masked_array().mask
+                self.assertTrue(np.all(data_mask == lon_mask),
+                                msg='get_dataset() returns inconsistently '
+                                    'masked {} in channel {}'.format(calib, ch))
+
+    def test_get_dataset_invalid(self):
+        """Test handling of invalid calibrations"""
+        # VIS -> BT
+        args = dict(key=DatasetID(name='00_7',
+                                  calibration='brightness_temperature'),
+                    info={})
+        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+
+        # IR -> Reflectance
+        args = dict(key=DatasetID(name='10_7',
+                                  calibration='reflectance'),
+                    info={})
+        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+
+        # Unsupported calibration
+        args = dict(key=DatasetID(name='10_7',
+                                  calibration='invalid'),
+                    info={})
+        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+
+    def test_calibrate(self):
+        """Test whether the correct calibration methods are called"""
+        for ch in self.channels:
+            if self.reader._is_vis(ch):
+                calibs = {'radiance': '_viscounts2radiance',
+                          'reflectance': '_calibrate_vis'}
+            else:
+                calibs = {'radiance': '_ircounts2radiance',
+                          'brightness_temperature': '_calibrate_ir'}
+            for calib, method in calibs.items():
+                with mock.patch.object(self.reader, method) as target_func:
+                    self.reader.calibrate(counts=self.reader.nc['data'],
+                                          calibration=calib, channel=ch)
+                    target_func.assert_called()
+
+
+class GOESNCEUMFileHandlerTest(unittest.TestCase):
+    def test_get_dataset(self):
+        # TODO
+        pass
+
+    def test_calibrate(self):
+        # TODO
+        pass
+
 
 def suite():
     """Test suite for GOES netCDF reader"""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(GOESNCBaseFileHandlerTest))
     mysuite.addTest(loader.loadTestsFromTestCase(GOESNCFileHandlerTest))
+    mysuite.addTest(loader.loadTestsFromTestCase(GOESNCEUMFileHandlerTest))
     return mysuite
 
 
