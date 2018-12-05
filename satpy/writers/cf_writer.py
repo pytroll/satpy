@@ -253,4 +253,7 @@ class CFWriter(Writer):
         kwargs.pop('config_files')
         kwargs.pop('compute')
         kwargs.pop('overlay', None)
+        for key in list(kwargs.keys()):
+            if key not in ['mode', 'format', 'group', 'encoding', 'unlimited_dims', 'compute']:
+                kwargs.pop(key)
         dataset.to_netcdf(filename, engine=engine, **kwargs)
