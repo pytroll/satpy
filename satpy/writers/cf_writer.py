@@ -134,6 +134,7 @@ def area2gridmapping(dataarray):
 
 def area2cf(dataarray, strict=False):
     res = []
+    dataarray = dataarray.copy(deep=True)
     if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
         res = area2lonlat(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
@@ -213,7 +214,7 @@ class CFWriter(Writer):
             try:
                 new_datasets = area2cf(ds)
             except KeyError:
-                new_datasets = [ds]
+                new_datasets = [ds.copy(deep=True)]
             start_times = []
             end_times = []
             for new_ds in new_datasets:
