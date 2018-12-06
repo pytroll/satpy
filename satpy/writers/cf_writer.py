@@ -230,7 +230,6 @@ class CFWriter(Writer):
         logger.info('Saving datasets to NetCDF4/CF.')
         # XXX: Should we combine the info of all datasets?
         filename = filename or self.get_filename(**datasets[0].attrs)
-
         datas, start_times, end_times = self._collect_datasets(datasets, kwargs)
 
         dataset = xr.Dataset(datas)
@@ -254,4 +253,4 @@ class CFWriter(Writer):
         for key in list(kwargs.keys()):
             if key not in ['mode', 'format', 'group', 'encoding', 'unlimited_dims', 'compute']:
                 kwargs.pop(key, None)
-        dataset.to_netcdf(filename, engine=engine, **kwargs)
+        return dataset.to_netcdf(filename, engine=engine, **kwargs)
