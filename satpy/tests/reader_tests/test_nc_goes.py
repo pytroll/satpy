@@ -357,15 +357,112 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                     target_func.assert_called()
 
 
-class GOESNCEUMFileHandlerTest(unittest.TestCase):
-    def test_get_dataset(self):
-        # TODO
-        pass
+class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
+    longMessage = True
+
+    @mock.patch('satpy.readers.nc_goes.xr')
+    def setUp(self, xr_):
+        from satpy.readers.nc_goes import GOESEUMNCFileHandler, CALIB_COEFS
+
+        self.coefs = CALIB_COEFS['GOES-15']
+        self.all_coefs = CALIB_COEFS
+        self.channels = sorted(self.coefs.keys())
+        self.ir_channels = sorted([ch for ch in self.channels
+                                   if not GOESEUMNCFileHandler._is_vis(ch)])
+        self.vis_channels = sorted([ch for ch in self.channels
+                                    if GOESEUMNCFileHandler._is_vis(ch)])
+
+        # Mock file access to return a fake dataset.
+        nrows = ncols = 300
+        self.radiance = np.ones((1, nrows, ncols))  # IR channels
+        self.lon = np.zeros((nrows, ncols))  # Dummy
+        self.lat = np.repeat(np.linspace(-150, 150, nrows), ncols).reshape(
+            nrows, ncols)  # Includes invalid values to be masked
+
+        xr_.open_dataset.return_value = xr.Dataset(
+            {'data': xr.DataArray(data=self.radiance, dims=('time', 'yc', 'xc')),
+             'time': xr.DataArray(data=np.array([0], dtype='datetime64[ms]'),
+                                  dims=('time',)),
+             'bands': xr.DataArray(data=np.array([1]))},
+            attrs={'Satellite Sensor': 'G-15'})
+
+        geo_data = xr.Dataset(
+            {'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
+             'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc'))},
+            attrs={'Satellite Sensor': 'G-15'})
+
+        # Instantiate reader using the mocked open_dataset() method
+        self.reader = GOESEUMNCFileHandler(filename='dummy', filename_info={},
+                                           filetype_info={}, geo_data=geo_data)
+                
+    def test_get_dataset_radiance(self):
+        for ch in self.channels:
+            if not self.reader._is_vis(ch):
+                radiance = self.reader.get_dataset(
+                    key=DatasetID(name=ch, calibration='radiance'), info={})
+                # ... this only compares the valid (unmasked) elements
+                self.assertTrue(np.all(self.radiance == radiance.to_masked_array()),
+                                msg='get_dataset() returns invalid radiance for '
+                                'channel {}'.format(ch))
 
     def test_calibrate(self):
-        # TODO
-        pass
+        """Test whether the correct calibration methods are called"""
+        for ch in self.channels:
+            if not self.reader._is_vis(ch):
+                calibs = {'brightness_temperature': '_calibrate_ir'}
+                for calib, method in calibs.items():
+                    with mock.patch.object(self.reader, method) as target_func:
+                        self.reader.calibrate(data=self.reader.nc['data'],
+                                              calibration=calib, channel=ch)
+                        target_func.assert_called()
 
+class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
+    longMessage = True
+
+    @mock.patch('satpy.readers.nc_goes.xr')
+    def setUp(self, xr_):
+        from satpy.readers.nc_goes import GOESEUMNCFileHandler, CALIB_COEFS
+
+        self.coefs = CALIB_COEFS['GOES-15']
+        self.all_coefs = CALIB_COEFS
+        self.channels = sorted(self.coefs.keys())
+        self.ir_channels = sorted([ch for ch in self.channels
+                                   if not GOESEUMNCFileHandler._is_vis(ch)])
+        self.vis_channels = sorted([ch for ch in self.channels
+                                    if GOESEUMNCFileHandler._is_vis(ch)])
+
+        # Mock file access to return a fake dataset.
+        nrows = ncols = 300
+        self.reflectance = 50 * np.ones((1, nrows, ncols))  # Vis channel
+        self.lon = np.zeros((nrows, ncols))  # Dummy
+        self.lat = np.repeat(np.linspace(-150, 150, nrows), ncols).reshape(
+            nrows, ncols)  # Includes invalid values to be masked
+
+        xr_.open_dataset.return_value = xr.Dataset(
+            {'data': xr.DataArray(data=self.reflectance, dims=('time', 'yc', 'xc')),
+             'time': xr.DataArray(data=np.array([0], dtype='datetime64[ms]'),
+                                  dims=('time',)),
+             'bands': xr.DataArray(data=np.array([1]))},
+            attrs={'Satellite Sensor': 'G-15'})
+
+        geo_data = xr.Dataset(
+            {'lon': xr.DataArray(data=self.lon,  dims=('yc', 'xc')),
+             'lat': xr.DataArray(data=self.lat, dims=('yc', 'xc'))},
+            attrs={'Satellite Sensor': 'G-15'})
+
+        # Instantiate reader using the mocked open_dataset() method
+        self.reader = GOESEUMNCFileHandler(filename='dummy', filename_info={},
+                                           filetype_info={}, geo_data=geo_data)
+
+    def test_get_dataset_reflectance(self):
+        for ch in self.channels:
+            if self.reader._is_vis(ch):
+                refl = self.reader.get_dataset(
+                    key=DatasetID(name=ch, calibration='reflectance'), info={})
+                # ... this only compares the valid (unmasked) elements
+                self.assertTrue(np.all(self.reflectance == refl.to_masked_array()),
+                                msg='get_dataset() returns invalid reflectance for '
+                                'channel {}'.format(ch))
 
 def suite():
     """Test suite for GOES netCDF reader"""
@@ -373,7 +470,8 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(GOESNCBaseFileHandlerTest))
     mysuite.addTest(loader.loadTestsFromTestCase(GOESNCFileHandlerTest))
-    mysuite.addTest(loader.loadTestsFromTestCase(GOESNCEUMFileHandlerTest))
+    mysuite.addTest(loader.loadTestsFromTestCase(GOESNCEUMFileHandlerRadianceTest))
+    mysuite.addTest(loader.loadTestsFromTestCase(GOESNCEUMFileHandlerReflectanceTest))
     return mysuite
 
 
