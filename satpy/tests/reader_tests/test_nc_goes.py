@@ -394,7 +394,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
         # Instantiate reader using the mocked open_dataset() method
         self.reader = GOESEUMNCFileHandler(filename='dummy', filename_info={},
                                            filetype_info={}, geo_data=geo_data)
-                
+
     def test_get_dataset_radiance(self):
         for ch in self.channels:
             if not self.reader._is_vis(ch):
@@ -415,6 +415,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
                         self.reader.calibrate(data=self.reader.nc['data'],
                                               calibration=calib, channel=ch)
                         target_func.assert_called()
+
 
 class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
     longMessage = True
