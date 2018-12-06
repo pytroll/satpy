@@ -26,7 +26,8 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
     @mock.patch('satpy.readers.nc_goes.xr')
     @mock.patch.multiple('satpy.readers.nc_goes.GOESNCBaseFileHandler',
-                         __abstractmethods__=set())
+                         __abstractmethods__=set(),
+                         _get_sector=mock.MagicMock())
     def setUp(self, xr_):
         from satpy.readers.nc_goes import CALIB_COEFS, GOESNCBaseFileHandler
 
@@ -188,39 +189,6 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                     msg='Incorrect conversion from radiance to brightness '
                         'temperature in channel {} detector {}'.format(ch, det))
 
-    def test_get_sector(self):
-        """Test sector identification"""
-        from satpy.readers.nc_goes import (FULL_DISC, NORTH_HEMIS_EAST,
-                                           SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
-                                           SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
-        shapes_vis = {
-            (10800, 20754): FULL_DISC,
-            (7286, 13900): NORTH_HEMIS_EAST,
-            (2301, 13840): SOUTH_HEMIS_EAST,
-            (5400, 13200): NORTH_HEMIS_WEST,
-            (4300, 11090): SOUTH_HEMIS_WEST,
-            (123, 456): UNKNOWN_SECTOR
-        }
-        shapes_ir = {
-            (2700, 5200): FULL_DISC,
-            (1850, 3450): NORTH_HEMIS_EAST,
-            (600, 3500): SOUTH_HEMIS_EAST,
-            (1310, 3300): NORTH_HEMIS_WEST,
-            (1099, 2800): SOUTH_HEMIS_WEST,
-            (123, 456): UNKNOWN_SECTOR
-        }
-        shapes = shapes_ir.copy()
-        shapes.update(shapes_vis)
-        for (nlines, ncols), sector_ref in shapes.items():
-            if (nlines, ncols) in shapes_vis:
-                channel = '00_7'
-            else:
-                channel = '10_7'
-            sector = self.reader._get_sector(channel=channel, nlines=nlines,
-                                             ncols=ncols)
-            self.assertEqual(sector, sector_ref,
-                             msg='Incorrect sector identification')
-
     def test_start_time(self):
         """Test dataset start time stamp"""
         self.assertEqual(self.reader.start_time, self.time)
@@ -356,6 +324,39 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                                           calibration=calib, channel=ch)
                     target_func.assert_called()
 
+    def test_get_sector(self):
+        """Test sector identification"""
+        from satpy.readers.nc_goes import (FULL_DISC, NORTH_HEMIS_EAST,
+                                           SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
+                                           SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
+        shapes_vis = {
+            (10800, 20754): FULL_DISC,
+            (7286, 13900): NORTH_HEMIS_EAST,
+            (2301, 13840): SOUTH_HEMIS_EAST,
+            (5400, 13200): NORTH_HEMIS_WEST,
+            (4300, 11090): SOUTH_HEMIS_WEST,
+            (123, 456): UNKNOWN_SECTOR
+        }
+        shapes_ir = {
+            (2700, 5200): FULL_DISC,
+            (1850, 3450): NORTH_HEMIS_EAST,
+            (600, 3500): SOUTH_HEMIS_EAST,
+            (1310, 3300): NORTH_HEMIS_WEST,
+            (1099, 2800): SOUTH_HEMIS_WEST,
+            (123, 456): UNKNOWN_SECTOR
+        }
+        shapes = shapes_ir.copy()
+        shapes.update(shapes_vis)
+        for (nlines, ncols), sector_ref in shapes.items():
+            if (nlines, ncols) in shapes_vis:
+                channel = '00_7'
+            else:
+                channel = '10_7'
+            sector = self.reader._get_sector(channel=channel, nlines=nlines,
+                                             ncols=ncols)
+            self.assertEqual(sector, sector_ref,
+                             msg='Incorrect sector identification')
+
 
 class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
     longMessage = True
@@ -415,6 +416,26 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
                         self.reader.calibrate(data=self.reader.nc['data'],
                                               calibration=calib, channel=ch)
                         target_func.assert_called()
+
+    def test_get_sector(self):
+        """Test sector identification"""
+        from satpy.readers.nc_goes import (FULL_DISC, NORTH_HEMIS_EAST,
+                                           SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
+                                           SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
+        shapes = {
+            (2700, 5200): FULL_DISC,
+            (1850, 3450): NORTH_HEMIS_EAST,
+            (600, 3500): SOUTH_HEMIS_EAST,
+            (1310, 3300): NORTH_HEMIS_WEST,
+            (1099, 2800): SOUTH_HEMIS_WEST,
+            (123, 456): UNKNOWN_SECTOR
+        }
+        for (nlines, ncols), sector_ref in shapes.items():
+            for channel in ('00_7', '10_7'):
+                sector = self.reader._get_sector(channel=channel, nlines=nlines,
+                                                 ncols=ncols)
+                self.assertEqual(sector, sector_ref,
+                                 msg='Incorrect sector identification')
 
 
 class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
