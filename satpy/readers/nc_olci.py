@@ -33,6 +33,7 @@ import xarray as xr
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.utils import angle2xyz, xyz2angle
 from satpy import CHUNK_SIZE
+from functools import reduce
 
 logger = logging.getLogger(__name__)
 
@@ -40,12 +41,38 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
 
+class BitFlags(object):
+
+    """Manipulate flags stored bitwise.
+    """
+    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
+                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
+                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
+                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
+                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
+                 'Extra_1',
+                 'KDM_FAIL',
+                 'Extra_2',
+                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
+                 'LOWRW', 'HIGHRW']
+
+    meaning = {f: i for i, f in enumerate(flag_list)}
+
+    def __init__(self, value):
+
+        self._value = value
+
+    def __getitem__(self, item):
+        pos = self.meaning[item]
+        return ((self._value >> pos) % 2).astype(np.bool)
+
+
 class NCOLCIBase(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCIBase, self).__init__(filename, filename_info,
                                          filetype_info)
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   engine='h5netcdf',
@@ -85,13 +112,16 @@ class NCOLCIGeo(NCOLCIBase):
 
 
 class NCOLCIChannelBase(NCOLCIBase):
+
     def __init__(self, filename, filename_info, filetype_info):
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
                                                 filetype_info)
-        self.channel = filename_info['dataset_name']
+
+        self.channel = filename_info.get('dataset_name')
 
 
 class NCOLCI1B(NCOLCIChannelBase):
+
     def __init__(self, filename, filename_info, filetype_info, cal):
         super(NCOLCI1B, self).__init__(filename, filename_info,
                                        filetype_info)
@@ -164,15 +194,34 @@ class NCOLCI2(NCOLCIChannelBase):
     def get_dataset(self, key, info):
         """Load a dataset
         """
-        if self.channel != key.name:
+        if self.channel is not None and self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
-        reflectances = self.nc[self.channel + '_reflectance']
 
-        reflectances.attrs['platform_name'] = self.platform_name
-        reflectances.attrs['sensor'] = self.sensor
-        reflectances.attrs.update(key.to_dict())
-        return reflectances
+        if self.channel is not None and self.channel.startswith('Oa'):
+            dataset = self.nc[self.channel + '_reflectance']
+        else:
+            dataset = self.nc[info['nc_key']]
+
+        if key.name == 'wqsf':
+            dataset.attrs['_FillValue'] = 1
+        elif key.name == 'mask':
+            mask = self.getbitmask(dataset.to_masked_array().data)
+            dataset = dataset * np.nan
+            dataset = dataset.where(~ mask, True)
+
+        dataset.attrs['platform_name'] = self.platform_name
+        dataset.attrs['sensor'] = self.sensor
+        dataset.attrs.update(key.to_dict())
+        return dataset
+
+    def getbitmask(self, wqsf, items=[]):
+        """ """
+        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                 "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+        bflags = BitFlags(wqsf)
+        return reduce(np.logical_or, [bflags[item] for item in items])
 
 
 class NCOLCIAngles(BaseFileHandler):

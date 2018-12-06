@@ -46,7 +46,7 @@ class CloudTopHeightCompositor(ColormapCompositor):
 
         sf = info.get('scale_factor', np.array(1))
         colormap.set_range(
-            *info['valid_range'] * sf + info.get('add_offset', 0))
+            *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
 
         return colormap
 

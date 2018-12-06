@@ -1,0 +1,32 @@
+reader:
+  description: GRIB2 file reader
+  name: grib
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [unknown]
+
+file_types:
+  grib:
+    file_reader: !!python/name:satpy.readers.grib.GRIBFileHandler
+    file_patterns:
+     # NOAA NCEP:
+     # gfs.t18z.sfluxgrbf106.grib2
+     - '{stem}.grib2'
+     - 'gfs{stem}.f{forecast_time:3d}'
+     - 'gdas{stem}.f{forecast_time:3d}'
+     # EUMETSAT:
+     # S-OSI_-NOR_-MULT-AHLDLI_FIELD-201805011200Z.grb.gz
+     - '{stem}.grb'
+     - '{stem}.grb2'
+#  grib_ncep:
+#    file_reader: !!python/name:satpy.readers.grib.GRIBFileHandler
+#    file_patterns:
+#     # NOAA NCEP:
+#     # gfs.t18z.sfluxgrbf106.grib2
+#     - '{model_name}.t{model_hour:2d}z.{field_set}.grib2'
+#    keys:
+#     shortName:
+#       id_key: name
+#       values: ['gh', 't', 'u', 'v', 'r', 'icaht']
+#     level:
+#       id_key: level
+#       values: [0, 100, 125, 150, 175, 200, 225, 250, 275, 300, 350, 400, 450, 500, 600, 700, 750, 850]

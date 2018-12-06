@@ -7,15 +7,25 @@ reader:
 
 file_types:
 
-    esa_l2:
+    esa_l2_reflectance:
         file_reader: !!python/name:satpy.readers.nc_olci.NCOLCI2
         file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_reflectance.nc']
+    esa_l2_chl_nn:
+        file_reader: !!python/name:satpy.readers.nc_olci.NCOLCI2
+        file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/chl_nn.nc']
+    esa_l2_chl_oc4me:
+        file_reader: !!python/name:satpy.readers.nc_olci.NCOLCI2
+        file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/chl_oc4me.nc']
+    esa_l2_wqsf:
+        file_reader: !!python/name:satpy.readers.nc_olci.NCOLCI2
+        file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/wqsf.nc']
     esa_angles:
         file_reader: !!python/name:satpy.readers.nc_olci.NCOLCIAngles
         file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/tie_geometries.nc']
     esa_geo:
         file_reader: !!python/name:satpy.readers.nc_olci.NCOLCIGeo
         file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geo_coordinates.nc']
+
 
 datasets:
   longitude:
@@ -43,7 +53,7 @@ datasets:
         standard_name: water_leaving_reflectance
         units: "%"
     coordinates: [longitude, latitude]
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa02:
     name: Oa02
@@ -56,7 +66,7 @@ datasets:
         standard_name: water_leaving_reflectance
         units: "%"
     coordinates: [longitude, latitude]
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa03:
     name: Oa03
@@ -69,7 +79,7 @@ datasets:
         standard_name: water_leaving_reflectance
         units: "%"
     coordinates: [longitude, latitude]
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa04:
     name: Oa04
@@ -82,7 +92,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa05:
     name: Oa05
@@ -95,7 +105,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa06:
     name: Oa06
@@ -108,7 +118,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa07:
     name: Oa07
@@ -121,7 +131,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa08:
     name: Oa08
@@ -134,7 +144,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa09:
     name: Oa09
@@ -147,7 +157,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa10:
     name: Oa10
@@ -160,7 +170,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa11:
     name: Oa11
@@ -173,7 +183,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa12:
     name: Oa12
@@ -186,7 +196,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa13:
     name: Oa13
@@ -199,7 +209,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa14:
     name: Oa14
@@ -212,7 +222,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa15:
     name: Oa15
@@ -225,7 +235,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa16:
     name: Oa16
@@ -238,7 +248,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa17:
     name: Oa17
@@ -251,7 +261,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa18:
     name: Oa18
@@ -264,7 +274,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa19:
     name: Oa19
@@ -277,7 +287,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa20:
     name: Oa20
@@ -290,7 +300,7 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
 
   Oa21:
     name: Oa21
@@ -303,7 +313,47 @@ datasets:
       reflectance:
         standard_name: water_leaving_reflectance
         units: "%"
-    file_type: esa_l2
+    file_type: esa_l2_reflectance
+
+  chl_oc4me:
+    name: chl_oc4me
+    sensor: olci
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: algal_pigment_concentration
+        units: "lg(re mg.m-3)"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_chl_oc4me
+    nc_key: CHL_OC4ME
+
+  chl_nn:
+    name: chl_nn
+    sensor: olci
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: algal_pigment_concentration
+        units: "lg(re mg.m-3)"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_chl_nn
+    nc_key: CHL_NN
+
+  wqsf:
+    name: wqsf
+    sensor: olci
+    resolution: 300
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_wqsf
+    nc_key: WQSF
+
+  mask:
+    name: mask
+    sensor: olci
+    resolution: 300
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_wqsf
+    nc_key: WQSF
 
   solar_zenith_angle:
     name: solar_zenith_angle

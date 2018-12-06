@@ -33,6 +33,13 @@ datasets:
     resolution: 12000
     coordinates: [longitude, latitude]
 
+  ozone_total_column:
+    name: ozone_total_column
+    file_type: iasi_l2_hdf5
+    units: "kg/m^2"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
   pressure:
     name: pressure
     file_type: iasi_l2_hdf5
@@ -65,6 +72,41 @@ datasets:
     name: water_mixing_ratio
     file_type: iasi_l2_hdf5
     units: "kg/kg"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  water_total_column:
+    name: water_total_column
+    file_type: iasi_l2_hdf5
+    units: "mm"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_skin_temperature:
+    name: surface_skin_temperature
+    file_type: iasi_l2_hdf5
+    units: "K"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_skin_temperature_quality:
+    name: surface_skin_temperature_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  emissivity:
+    name: emissivity
+    file_type: iasi_l2_hdf5
+    units: "1"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  emissivity_quality:
+    name: emissivity_quality
+    file_type: iasi_l2_hdf5
+    units: ""
     resolution: 12000
     coordinates: [longitude, latitude]
 

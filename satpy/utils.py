@@ -39,6 +39,7 @@ except ImportError:
     from six.moves import configparser
 
 _is_logging_on = False
+TRACE_LEVEL = 5
 
 
 class OrderedConfigParser(object):
@@ -80,28 +81,20 @@ class OrderedConfigParser(object):
 
 
 def ensure_dir(filename):
-    """Checks if the dir of f exists, otherwise create it.
-    """
+    """Checks if the dir of f exists, otherwise create it."""
     directory = os.path.dirname(filename)
     if directory and not os.path.isdir(directory):
         os.makedirs(directory)
 
 
-class NullHandler(logging.Handler):
-
-    """Empty handler.
-    """
-
-    def emit(self, record):
-        """Record a message.
-        """
-        pass
-
-
 def debug_on():
-    """Turn debugging logging on.
-    """
+    """Turn debugging logging on."""
     logging_on(logging.DEBUG)
+
+
+def trace_on():
+    """Turn trace logging on."""
+    logging_on(TRACE_LEVEL)
 
 
 def logging_on(level=logging.WARNING):
@@ -127,17 +120,33 @@ def logging_on(level=logging.WARNING):
 def logging_off():
     """Turn logging off.
     """
-    logging.getLogger('').handlers = [NullHandler()]
+    logging.getLogger('').handlers = [logging.NullHandler()]
 
 
 def get_logger(name):
-    """Return logger with null handle
-    """
+    """Return logger with null handler added if needed."""
+    if not hasattr(logging.Logger, 'trace'):
+        logging.addLevelName(TRACE_LEVEL, 'TRACE')
+
+        def trace(self, message, *args, **kwargs):
+            if self.isEnabledFor(TRACE_LEVEL):
+                # Yes, logger takes its '*args' as 'args'.
+                self._log(TRACE_LEVEL, message, args, **kwargs)
+
+        logging.Logger.trace = trace
 
     log = logging.getLogger(name)
     if not log.handlers:
-        log.addHandler(NullHandler())
+        log.addHandler(logging.NullHandler())
     return log
+
+
+def in_ipynb():
+    """Are we in a jupyter notebook?"""
+    try:
+        return 'ZMQ' in get_ipython().__class__.__name__
+    except NameError:
+        return False
 
 
 # Spherical conversions

@@ -8,69 +8,99 @@ reader:
 file_types:
     hrit_b01:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B01_{start_time:%Y%m%d%H%M}_{segment:3s}']
+        file_patterns:
+        - 'IMG_DK01B01_{start_time:%Y%m%d%H%M}_{segment:3s}'
+        - 'IMG_DK01B01_{start_time:%Y%m%d%H%M}'
 
     hrit_b02:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B02_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01B02_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B02_{start_time:%Y%m%d%H%M}'
 
     hrit_b03:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01VIS_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01VIS_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01VIS_{start_time:%Y%m%d%H%M}'
 
     hrit_b04:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B04_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01B04_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B04_{start_time:%Y%m%d%H%M}'
 
     hrit_b05:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B05_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01B05_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B05_{start_time:%Y%m%d%H%M}'
 
     hrit_b06:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B06_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01B06_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B06_{start_time:%Y%m%d%H%M}'
 
     hrit_b07:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01IR4_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01IR4_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01IR4_{start_time:%Y%m%d%H%M}'
 
     hrit_b08:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01IR3_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01IR3_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01IR3_{start_time:%Y%m%d%H%M}'
 
     hrit_b09:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B09_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01B09_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B09_{start_time:%Y%m%d%H%M}'
 
     hrit_b10:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B10_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01B10_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B10_{start_time:%Y%m%d%H%M}'
 
     hrit_b11:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B11_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01B11_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B11_{start_time:%Y%m%d%H%M}'
 
     hrit_b12:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B12_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01B12_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B12_{start_time:%Y%m%d%H%M}'
 
     hrit_b13:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01IR1_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01IR1_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01IR1_{start_time:%Y%m%d%H%M}'
 
     hrit_b14:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B14_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01B14_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B14_{start_time:%Y%m%d%H%M}'
 
     hrit_b15:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01IR2_{start_time:%Y%m%d%H%M}_{segment:03d}']
+        file_patterns:
+        - 'IMG_DK01IR2_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01IR2_{start_time:%Y%m%d%H%M}'
 
     hrit_b16:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
-        file_patterns: ['IMG_DK01B16_{start_time:%Y%m%d%H%M}_{segment:03d}']
-
-
+        file_patterns:
+        - 'IMG_DK01B16_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK01B16_{start_time:%Y%m%d%H%M}'
 
 datasets:
   B01:

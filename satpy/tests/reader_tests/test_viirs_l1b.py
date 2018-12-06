@@ -5,13 +5,14 @@
 
 import os
 import sys
+from datetime import datetime, timedelta
+import numpy as np
+from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
-from datetime import datetime, timedelta
-import numpy as np
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 try:
     from unittest import mock

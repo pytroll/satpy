@@ -26,39 +26,38 @@ import logging
 from datetime import datetime
 
 import xarray as xr
+import numpy as np
 
 from pyresample.geometry import AreaDefinition, SwathDefinition
 from satpy.writers import Writer
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 EPOCH = u"seconds since 1970-01-01 00:00:00 +00:00"
 
 
-def omerc2cf(proj_dict):
+def omerc2cf(area):
     """Return the cf grid mapping for the omerc projection."""
-    if "no_rot" in proj_dict:
-        no_rotation = " "
-    else:
-        no_rotation = None
+    proj_dict = area.proj_dict
 
     args = dict(azimuth_of_central_line=proj_dict.get('alpha'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lonc'),
                 grid_mapping_name='oblique_mercator',
-                # longitude_of_projection_origin=0.,
-                no_rotation=no_rotation,
-                # reference_ellipsoid_name=proj_dict.get('ellps'),
-                semi_major_axis=6378137.0,
-                semi_minor_axis=6356752.3142,
+                reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
                 false_easting=0.,
-                false_northing=0.,
+                false_northing=0.
                 )
+    if "no_rot" in proj_dict:
+        args['no_rotation'] = 1
+    if "gamma" in proj_dict:
+        args['gamma'] = proj_dict['gamma']
     return args
 
 
-def geos2cf(proj_dict):
+def geos2cf(area):
     """Return the cf grid mapping for the geos projection."""
+    proj_dict = area.proj_dict
     args = dict(perspective_point_height=proj_dict.get('h'),
                 latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lon_0'),
@@ -70,8 +69,9 @@ def geos2cf(proj_dict):
     return args
 
 
-def laea2cf(proj_dict):
+def laea2cf(area):
     """Return the cf grid mapping for the laea projection."""
+    proj_dict = area.proj_dict
     args = dict(latitude_of_projection_origin=proj_dict.get('lat_0'),
                 longitude_of_projection_origin=proj_dict.get('lon_0'),
                 grid_mapping_name='lambert_azimuthal_equal_area',
@@ -87,7 +87,7 @@ mappings = {'omerc': omerc2cf,
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
     try:
-        grid_mapping = mappings[area.proj_dict['proj']](area.proj_dict)
+        grid_mapping = mappings[area.proj_dict['proj']](area)
         grid_mapping['name'] = area.proj_dict['proj']
     except KeyError:
         raise NotImplementedError
@@ -143,6 +143,19 @@ def area2cf(dataarray, strict=False):
     return res
 
 
+def make_time_bounds(dataarray, start_times, end_times):
+    import numpy as np
+    start_time = min(start_time for start_time in start_times
+                     if start_time is not None)
+    end_time = min(end_time for end_time in end_times
+                   if end_time is not None)
+    dtnp64 = dataarray['time'].data[0]
+    time_bnds = [(np.datetime64(start_time) - dtnp64),
+                 (np.datetime64(end_time) - dtnp64)]
+    return xr.DataArray(np.array(time_bnds) / np.timedelta64(1, 's'),
+                        dims=['time_bnds'], coords={'time_bnds': [0, 1]})
+
+
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
@@ -150,9 +163,6 @@ class CFWriter(Writer):
     def da2cf(dataarray, epoch=EPOCH):
         """Convert the dataarray to something cf-compatible."""
         new_data = dataarray.copy()
-        # TODO: make these boundaries of the time dimension
-        new_data.attrs.pop('start_time', None)
-        new_data.attrs.pop('end_time', None)
 
         # Remove the area
         new_data.attrs.pop('area', None)
@@ -182,16 +192,15 @@ class CFWriter(Writer):
             new_data['y'].attrs['units'] = 'm'
 
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
+        if 'prerequisites' in new_data.attrs:
+            new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
         return new_data
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
-    def save_datasets(self, datasets, filename, **kwargs):
-        """Save all datasets to one or more files."""
-        LOG.info('Saving datasets to NetCDF4/CF.')
-
+    def _collect_datasets(self, datasets, kwargs):
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
@@ -202,13 +211,43 @@ class CFWriter(Writer):
                 new_datasets = area2cf(ds)
             except KeyError:
                 new_datasets = [ds]
+            start_times = []
+            end_times = []
             for new_ds in new_datasets:
+                start_times.append(new_ds.attrs.pop("start_time", None))
+                end_times.append(new_ds.attrs.pop("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds,
                                                          kwargs.get('epoch',
                                                                     EPOCH))
+        return datas, start_times, end_times
+
+    def save_datasets(self, datasets, filename=None, **kwargs):
+        """Save all datasets to one or more files."""
+        logger.info('Saving datasets to NetCDF4/CF.')
+        # XXX: Should we combine the info of all datasets?
+        filename = filename or self.get_filename(**datasets[0].attrs)
+
+        datas, start_times, end_times = self._collect_datasets(datasets, kwargs)
 
         dataset = xr.Dataset(datas)
+        try:
+            dataset['time_bnds'] = make_time_bounds(dataset,
+                                                    start_times,
+                                                    end_times)
+            dataset['time'].attrs['bounds'] = "time_bnds"
+        except KeyError:
+            logger.warning('No time dimension in datasets, skipping time bounds creation.')
+
+        header_attrs = kwargs.pop('header_attrs', None)
+
+        if header_attrs is not None:
+            dataset.attrs.update({k: v for k, v in header_attrs.items() if v})
+
         dataset.attrs['history'] = ("Created by pytroll/satpy on " +
                                     str(datetime.utcnow()))
         dataset.attrs['conventions'] = 'CF-1.7'
-        dataset.to_netcdf(filename, engine='h5netcdf')
+        engine = kwargs.pop("engine", 'h5netcdf')
+        kwargs.pop('config_files')
+        kwargs.pop('compute')
+        kwargs.pop('overlay', None)
+        dataset.to_netcdf(filename, engine=engine, **kwargs)

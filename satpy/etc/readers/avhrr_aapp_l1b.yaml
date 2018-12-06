@@ -2,7 +2,7 @@ reader:
     name: avhrr_aapp_l1b
     description: AAPP l1b Reader for AVHRR
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-    sensors: [avhrr-3, avhrr-2]
+    sensors: [avhrr-3,]
     default_channels: [1, 2, 3a, 3b, 4, 5]
 
 datasets:
@@ -124,4 +124,4 @@ datasets:
 file_types:
     avhrr_aapp_l1b:
         file_reader: !!python/name:satpy.readers.aapp_l1b.AVHRRAAPPL1BFile
-        file_patterns: ['hrpt_{platform_name}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b']
+        file_patterns: ['hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b']

@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017 Adam.Dybbroe
+# Copyright (c) 2017-2018 PyTroll Community
 
 # Author(s):
 
 #   Adam Dybbroe <adam.dybbroe@smhi.se>
 #   Ulrich Hamann <ulrich.hamann@meteoswiss.ch>
-#   Sauli Joro <sauli.joro@icloud.com>
+#   Sauli Joro <sauli.joro@eumetsat.int>
+#   Colin Duff <colin.duff@external.eumetsat.int>
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,46 +23,40 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""A reader for the EUMETSAT MSG native format
+"""SEVIRI native format reader.
 
-https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
-
+References:
+    MSG Level 1.5 Native Format File Definition
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
+    MSG Level 1.5 Image Data Format Description
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
+import os
 import logging
 from datetime import datetime
 import numpy as np
 
 import xarray as xr
+import dask.array as da
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.hrit_msg import (CALIB, SATNUM, BTFIT)
-
+from satpy import CHUNK_SIZE
 from pyresample import geometry
 
-from satpy.readers.native_msg_hdr import Msg15NativeHeaderRecord
-from satpy.readers.msg_base import get_cds_time
-from satpy.readers.msg_base import dec10216
-import satpy.readers.msg_base as mb
-
-import os
-
-
-CHANNEL_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
-                'WV_062', 'WV_073', 'IR_087', 'IR_097',
-                'IR_108', 'IR_120', 'IR_134', 'HRV']
-
-
-class CalibrationError(Exception):
-    pass
+from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.eum_base import recarray2dict
+from satpy.readers.msg_base import (SEVIRICalibrationHandler,
+                                    CHANNEL_NAMES, CALIB, SATNUM,
+                                    dec10216)
+from satpy.readers.native_msg_hdr import (GSDTRecords, native_header,
+                                          native_trailer)
 
 
 logger = logging.getLogger('native_msg')
 
 
-class NativeMSGFileHandler(BaseFileHandler):
-
-    """Native MSG format reader
+class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
+    """SEVIRI native format reader.
     """
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -69,58 +64,40 @@ class NativeMSGFileHandler(BaseFileHandler):
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
-
-        self.filename = filename
         self.platform_name = None
+
+        # The available channels are only known after the header
+        # has been read, after that we know what the indices are for each channel
+        self.header = {}
         self.available_channels = {}
-        self.channel_order_list = []
-        for item in CHANNEL_LIST:
-            self.available_channels[item] = False
+        self.mda = {}
+        self._read_header()
 
-        self._get_header()
-        for item in CHANNEL_LIST:
-            if self.available_channels.get(item):
-                self.channel_order_list.append(item)
+        # Prepare dask-array
+        self.dask_array = da.from_array(self._get_memmap(), chunks=(CHUNK_SIZE,))
 
-        self.memmap = self._get_memmap()
+        # Read trailer
+        self.trailer = {}
+        self._read_trailer()
 
     @property
     def start_time(self):
-        tstart = self.header['15_DATA_HEADER']['ImageAcquisition'][
+        return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
-        return get_cds_time(
-            tstart['Day'][0], tstart['MilliSecsOfDay'][0])
 
     @property
     def end_time(self):
-        tend = self.header['15_DATA_HEADER']['ImageAcquisition'][
+        return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
-        return get_cds_time(
-            tend['Day'][0], tend['MilliSecsOfDay'][0])
 
-    def _get_memmap(self):
-        """Get the numpy memory map for the SEVIRI data"""
-
-        with open(self.filename) as fp_:
-
-            dt = self._get_filedtype()
-
-            # Lazy reading:
-            hdr_size = self.header.dtype.itemsize
-
-            return np.memmap(fp_, dtype=dt, shape=(self.data_len,),
-                             offset=hdr_size, mode="r")
-
-    def _get_filedtype(self):
+    def _get_data_dtype(self):
         """Get the dtype of the file based on the actual available channels"""
 
         pkhrec = [
-            ('GP_PK_HEADER', self.header['GP_PK_HEADER'].dtype),
-            ('GP_PK_SH1', self.header['GP_PK_SH1'].dtype)
+            ('GP_PK_HEADER', GSDTRecords.gp_pk_header),
+            ('GP_PK_SH1', GSDTRecords.gp_pk_sh1)
         ]
         pk_head_dtype = np.dtype(pkhrec)
-
-        # Create memory map for lazy reading of channel data:
 
         def get_lrec(cols):
             lrec = [
@@ -139,112 +116,129 @@ class NativeMSGFileHandler(BaseFileHandler):
 
             return lrec
 
-        visir_rec = get_lrec(self._cols_visir)
-
+        visir_rec = get_lrec(int(self.mda['number_of_columns']*1.25))
         number_of_lowres_channels = len(
-            [s for s in self.channel_order_list if not s == 'HRV'])
+            [s for s in self._channel_list if not s == 'HRV'])
         drec = [('visir', (visir_rec, number_of_lowres_channels))]
+
         if self.available_channels['HRV']:
-            hrv_rec = get_lrec(self._cols_hrv)
+            hrv_rec = get_lrec(int(self.mda['hrv_number_of_columns'] * 1.25))
             drec.append(('hrv', (hrv_rec, 3)))
 
         return np.dtype(drec)
 
-    def _get_header(self):
+    def _get_memmap(self):
+        """Get the memory map for the SEVIRI data"""
+
+        with open(self.filename) as fp:
+
+            data_dtype = self._get_data_dtype()
+            hdr_size = native_header.itemsize
+
+            return np.memmap(fp, dtype=data_dtype,
+                             shape=(self.mda['number_of_lines'],),
+                             offset=hdr_size, mode="r")
+
+    def _read_header(self):
         """Read the header info"""
 
-        hdrrec = Msg15NativeHeaderRecord().get()
-        hd_dt = np.dtype(hdrrec)
-        hd_dt = hd_dt.newbyteorder('>')
-        self.header = np.fromfile(self.filename, dtype=hd_dt, count=1)
+        data = np.fromfile(self.filename,
+                           dtype=native_header, count=1)
+
+        self.header.update(recarray2dict(data))
+
+        data15hd = self.header['15_DATA_HEADER']
+        sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
+
         # Set the list of available channels:
-        chlist_str = self.header['15_SECONDARY_PRODUCT_HEADER'][
-            'SelectedBandIDs'][0][-1].strip().decode()
+        self.available_channels = get_available_channels(self.header)
+        self._channel_list = [i for i in CHANNEL_NAMES.values()
+                              if self.available_channels[i]]
 
-        for item, chmark in zip(CHANNEL_LIST, chlist_str):
-            self.available_channels[item] = (chmark == 'X')
-
-        self.platform_id = self.header['15_DATA_HEADER'][
-            'SatelliteStatus']['SatelliteDefinition']['SatelliteId'][0]
+        self.platform_id = data15hd[
+            'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
 
-        ssp_lon = self.header['15_DATA_HEADER']['ImageDescription'][
-            'ProjectionDescription']['LongitudeOfSSP'][0]
-
-        self.mda = {}
-        equator_radius = self.header['15_DATA_HEADER']['GeometricProcessing'][
-            'EarthModel']['EquatorialRadius'][0] * 1000.
-        north_polar_radius = self.header['15_DATA_HEADER'][
-            'GeometricProcessing']['EarthModel']['NorthPolarRadius'][0] * 1000.
-        south_polar_radius = self.header['15_DATA_HEADER'][
-            'GeometricProcessing']['EarthModel']['SouthPolarRadius'][0] * 1000.
+        equator_radius = data15hd['GeometricProcessing'][
+            'EarthModel']['EquatorialRadius'] * 1000.
+        north_polar_radius = data15hd[
+            'GeometricProcessing']['EarthModel']['NorthPolarRadius'] * 1000.
+        south_polar_radius = data15hd[
+            'GeometricProcessing']['EarthModel']['SouthPolarRadius'] * 1000.
         polar_radius = (north_polar_radius + south_polar_radius) * 0.5
+        ssp_lon = data15hd['ImageDescription'][
+            'ProjectionDescription']['LongitudeOfSSP']
+
         self.mda['projection_parameters'] = {'a': equator_radius,
                                              'b': polar_radius,
                                              'h': 35785831.00,
-                                             'SSP_longitude': ssp_lon}
-        self.mda['number_of_lines'] = self.header['15_DATA_HEADER'][
-            'ImageDescription']['ReferenceGridVIS_IR']['NumberOfLines'][0]
-        # The number of columns is incorrect - seems to be fixed at 3712
-        # EUMETSAT will fix this
-        self.mda['number_of_columns'] = self.header['15_DATA_HEADER'][
-            'ImageDescription']['ReferenceGridVIS_IR']['NumberOfColumns'][0]
+                                             'ssp_longitude': ssp_lon}
 
-        sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
-        numlines_visir = int(sec15hd['NumberLinesVISIR']['Value'][0])
-
-        west = int(sec15hd['WestColumnSelectedRectangle']['Value'][0])
-        east = int(sec15hd['EastColumnSelectedRectangle']['Value'][0])
-        north = int(sec15hd["NorthLineSelectedRectangle"]['Value'][0])
-        south = int(sec15hd["SouthLineSelectedRectangle"]['Value'][0])
-
-        numcols_hrv = int(sec15hd["NumberColumnsHRV"]['Value'][0])
-
+        west = int(sec15hd['WestColumnSelectedRectangle']['Value'])
+        east = int(sec15hd['EastColumnSelectedRectangle']['Value'])
+        ncols_hrv_hdr = int(sec15hd['NumberColumnsHRV']['Value'])
         # We suspect the UMARF will pad out any ROI colums that
         # arent divisible by 4 so here we work out how many pixels have
         # been added to the column.
-        x = ((west-east+1)*(10.0/8) % 1)
-        y = int((1-x)*4)
+        x = ((west - east + 1) * (10.0 / 8) % 1)
+        y = int((1 - x) * 4)
 
         if y < 4:
             # column has been padded with y pixels
-            self._cols_visir = int((west-east+1+y)*1.25)
+            cols_visir = int((west - east + 1 + y) * 1.25)
         else:
             # no padding has occurred
-            self._cols_visir = int((west-east+1)*1.25)
+            cols_visir = int((west - east + 1) * 1.25)
 
+        # HRV Channel - check if an ROI
         if (west - east) < 3711:
-            self._cols_hrv = int(np.ceil(numcols_hrv * 10.0 / 8))  # 6960
+            cols_hrv = int(np.ceil(ncols_hrv_hdr * 10.0 / 8))  # 6960
         else:
-            self._cols_hrv = int(np.ceil(5568 * 10.0 / 8))  # 6960
+            cols_hrv = int(np.ceil(5568 * 10.0 / 8))  # 6960
 
-        # 'WestColumnSelectedRectangle' - 'EastColumnSelectedRectangle'
-        # 'NorthLineSelectedRectangle' - 'SouthLineSelectedRectangle'
+        # self.mda should represent the 16bit dimensions not 10bit
+        self.mda['number_of_lines'] = int(sec15hd['NumberLinesVISIR']['Value'])
+        self.mda['number_of_columns'] = int(cols_visir / 1.25)
+        self.mda['hrv_number_of_lines'] = int(sec15hd["NumberLinesHRV"]['Value'])
+        self.mda['hrv_number_of_columns'] = int(cols_hrv / 1.25)
 
-        coldir_step = self.header['15_DATA_HEADER']['ImageDescription'][
-            "ReferenceGridVIS_IR"]["ColumnDirGridStep"][0] * 1000.0
+        # Check the calculated row,column dimensions against the header information:
+        ncols = self.mda['number_of_columns']
+        ncols_hdr = int(sec15hd['NumberLinesVISIR']['Value'])
 
-        lindir_step = self.header['15_DATA_HEADER']['ImageDescription'][
-            "ReferenceGridVIS_IR"]["LineDirGridStep"][0] * 1000.0
+        if ncols != ncols_hdr:
+            logger.warning(
+                "Number of VISIR columns from header and derived from data are not consistent!")
+            logger.warning("Number of columns read from header = %d", ncols_hdr)
+            logger.warning("Number of columns calculated from data = %d", ncols)
 
-        area_extent = ((1856 - west - 0.5) * coldir_step,
-                       (1856 - north + 0.5) * lindir_step,
-                       (1856 - east + 0.5) * coldir_step,
-                       (1856 - south + 1.5) * lindir_step)
+        ncols_hrv = self.mda['hrv_number_of_columns']
 
-        self.area_extent = area_extent
+        if ncols_hrv != ncols_hrv_hdr:
+            logger.warning(
+                "Number of HRV columns from header and derived from data are not consistent!")
+            logger.warning("Number of columns read from header = %d", ncols_hrv_hdr)
+            logger.warning("Number of columns calculated from data = %d", ncols_hrv)
 
-        self.data_len = numlines_visir
+    def _read_trailer(self):
+
+        hdr_size = native_header.itemsize
+        data_size = (self._get_data_dtype().itemsize *
+                     self.mda['number_of_lines'])
+
+        with open(self.filename) as fp:
+
+            fp.seek(hdr_size + data_size)
+            data = np.fromfile(fp, dtype=native_trailer, count=1)
+
+        self.trailer.update(recarray2dict(data))
 
     def get_area_def(self, dsid):
 
         a = self.mda['projection_parameters']['a']
         b = self.mda['projection_parameters']['b']
         h = self.mda['projection_parameters']['h']
-        lon_0 = self.mda['projection_parameters']['SSP_longitude']
-
-        nlines = int(self.mda['number_of_lines'])
-        ncols = int(self.mda['number_of_columns'])
+        lon_0 = self.mda['projection_parameters']['ssp_longitude']
 
         proj_dict = {'a': float(a),
                      'b': float(b),
@@ -253,6 +247,13 @@ class NativeMSGFileHandler(BaseFileHandler):
                      'proj': 'geos',
                      'units': 'm'}
 
+        if dsid.name == 'HRV':
+            nlines = self.mda['hrv_number_of_lines']
+            ncols = self.mda['hrv_number_of_columns']
+        else:
+            nlines = self.mda['number_of_lines']
+            ncols = self.mda['number_of_columns']
+
         area = geometry.AreaDefinition(
             'some_area_name',
             "On-the-fly area",
@@ -260,36 +261,104 @@ class NativeMSGFileHandler(BaseFileHandler):
             proj_dict,
             ncols,
             nlines,
-            self.area_extent)
+            self.get_area_extent(dsid))
 
-        self.area = area
         return area
 
-    def get_dataset(self, key, info,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_area_extent(self, dsid):
 
-        if key.name not in self.channel_order_list:
-            raise KeyError('Channel % s not available in the file' % key.name)
-        elif key.name not in ['HRV']:
-            ch_idn = self.channel_order_list.index(key.name)
-            # Check if there is only 1 channel in the list as a change
-            # is needed in the arrray assignment ie channl id is not present
-            if len(self.channel_order_list) == 1:
-                data = dec10216(
-                        self.memmap['visir']['line_data'][:, :])[::-1, ::-1]
+        data15hd = self.header['15_DATA_HEADER']
+        sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
+
+        if dsid.name != 'HRV':
+
+            # following calculations assume grid origin is south-east corner
+            # section 7.2.4 of MSG Level 1.5 Image Data Format Description
+            origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
+            grid_origin = data15hd['ImageDescription'][
+                "ReferenceGridVIS_IR"]["GridOrigin"]
+            if grid_origin != 2:
+                raise NotImplementedError(
+                    'Grid origin not supported number: {}, {} corner'
+                    .format(grid_origin, origins[grid_origin])
+                )
+
+            center_point = 3712/2
+
+            north = int(sec15hd["NorthLineSelectedRectangle"]['Value'])
+            east = int(sec15hd['EastColumnSelectedRectangle']['Value'])
+            west = int(sec15hd['WestColumnSelectedRectangle']['Value'])
+            south = int(sec15hd["SouthLineSelectedRectangle"]['Value'])
+
+            column_step = data15hd['ImageDescription'][
+                "ReferenceGridVIS_IR"]["ColumnDirGridStep"] * 1000.0
+            line_step = data15hd['ImageDescription'][
+                "ReferenceGridVIS_IR"]["LineDirGridStep"] * 1000.0
+            # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
+            earth_model = data15hd['GeometricProcessing']['EarthModel'][
+                'TypeOfEarthModel']
+            if earth_model == 2:
+                ns_offset = 0  # north +ve
+                we_offset = 0  # west +ve
+            elif earth_model == 1:
+                ns_offset = -0.5  # north +ve
+                we_offset = 0.5  # west +ve
             else:
-                data = dec10216(
-                    self.memmap['visir']['line_data'][:, ch_idn, :])[::-1, ::-1]
+                raise NotImplementedError(
+                    'unrecognised earth model: {}'.format(earth_model)
+                )
+
+            # section 3.1.5 of MSG Level 1.5 Image Data Format Description
+            ll_c = (center_point - west - 0.5 + we_offset) * column_step
+            ll_l = (south - center_point - 0.5 + ns_offset) * line_step
+            ur_c = (center_point - east + 0.5 + we_offset) * column_step
+            ur_l = (north - center_point + 0.5 + ns_offset) * line_step
+
+            area_extent = (ll_c, ll_l, ur_c, ur_l)
 
         else:
-            data2 = dec10216(
-                self.memmap["hrv"]["line_data"][:, 2, :])[::-1, ::-1]
-            data1 = dec10216(
-                self.memmap["hrv"]["line_data"][:, 1, :])[::-1, ::-1]
-            data0 = dec10216(
-                self.memmap["hrv"]["line_data"][:, 0, :])[::-1, ::-1]
-            # Make empty array:
-            shape = data0.shape[0] * 3, data0.shape[1]
+
+            raise NotImplementedError('HRV not supported!')
+
+        return area_extent
+
+    def get_dataset(self, dsid, info,
+                    xslice=slice(None), yslice=slice(None)):
+
+        channel = dsid.name
+        channel_list = self._channel_list
+
+        if channel not in channel_list:
+            raise KeyError('Channel % s not available in the file' % channel)
+        elif channel not in ['HRV']:
+            shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
+
+            # Check if there is only 1 channel in the list as a change
+            # is needed in the arrray assignment ie channl id is not present
+            if len(channel_list) == 1:
+                raw = self.dask_array['visir']['line_data']
+            else:
+                i = channel_list.index(channel)
+                raw = self.dask_array['visir']['line_data'][:, i, :]
+
+            data = dec10216(raw.flatten())
+            data = da.flipud(da.fliplr((data.reshape(shape))))
+
+        else:
+            shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
+
+            raw2 = self.dask_array['hrv']['line_data'][:, 2, :]
+            raw1 = self.dask_array['hrv']['line_data'][:, 1, :]
+            raw0 = self.dask_array['hrv']['line_data'][:, 0, :]
+
+            shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
+            data2 = dec10216(raw2.flatten())
+            data2 = da.flipud(da.fliplr((data2.reshape(shape_layer))))
+            data1 = dec10216(raw1.flatten())
+            data1 = da.flipud(da.fliplr((data1.reshape(shape_layer))))
+            data0 = dec10216(raw0.flatten())
+            data0 = da.flipud(da.fliplr((data0.reshape(shape_layer))))
+
             data = np.zeros(shape)
             idx = range(0, shape[0], 3)
             data[idx, :] = data2
@@ -298,96 +367,79 @@ class NativeMSGFileHandler(BaseFileHandler):
             idx = range(2, shape[0], 3)
             data[idx, :] = data0
 
-        res = xr.DataArray(data, dims=['y', 'x']).where(data != 0).astype(np.float32)
+        xarr = xr.DataArray(data, dims=['y', 'x']).where(data != 0).astype(np.float32)
 
-        if res is not None:
-            out = res
+        if xarr is None:
+            dataset = None
         else:
-            return None
+            dataset = self.calibrate(xarr, dsid)
+            dataset.attrs['units'] = info['units']
+            dataset.attrs['wavelength'] = info['wavelength']
+            dataset.attrs['standard_name'] = info['standard_name']
+            dataset.attrs['platform_name'] = self.platform_name
+            dataset.attrs['sensor'] = 'seviri'
 
-        out = self.calibrate(out, key)
-        out.attrs['units'] = info['units']
-        out.attrs['wavelength'] = info['wavelength']
-        out.attrs['standard_name'] = info['standard_name']
-        out.attrs['platform_name'] = self.platform_name
-        out.attrs['sensor'] = 'seviri'
+        return dataset
 
-        return out
-
-    def calibrate(self, data, key):
+    def calibrate(self, data, dsid):
         """Calibrate the data."""
         tic = datetime.now()
-        calibration = key.calibration
+
+        data15hdr = self.header['15_DATA_HEADER']
+        calibration = dsid.calibration
+        channel = dsid.name
+
+        # even though all the channels may not be present in the file,
+        # the header does have calibration coefficients for all the channels
+        # hence, this channel index needs to refer to full channel list
+        i = list(CHANNEL_NAMES.values()).index(channel)
+
         if calibration == 'counts':
-            return
+            return data
+
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            res = self.convert_to_radiance(data, key.name)
+            # you cant apply GSICS values to the VIS channels
+            visual_channels = ['HRV', 'VIS006', 'VIS008', 'IR_016']
+
+            # determine the required calibration coefficients to use
+            # for the Level 1.5 Header
+            calMode = os.environ.get('CAL_MODE', 'NOMINAL')
+
+            # NB GSICS doesn't have calibration coeffs for VIS channels
+            if (calMode.upper() != 'GSICS' or channel in visual_channels):
+                coeffs = data15hdr[
+                    'RadiometricProcessing']['Level15ImageCalibration']
+                gain = coeffs['CalSlope'][i]
+                offset = coeffs['CalOffset'][i]
+            else:
+                coeffs = data15hdr[
+                    'RadiometricProcessing']['MPEFCalFeedback']
+                gain = coeffs['GSICSCalCoeff'][i]
+                offset = coeffs['GSICSOffsetCount'][i]
+                offset = offset * gain
+            res = self._convert_to_radiance(data, gain, offset)
+
         if calibration == 'reflectance':
-            res = self._vis_calibrate(res, key.name)
+            solar_irradiance = CALIB[self.platform_id][channel]["F"]
+            res = self._vis_calibrate(res, solar_irradiance)
+
         elif calibration == 'brightness_temperature':
-            res = self._ir_calibrate(res, key.name)
+            cal_type = data15hdr['ImageDescription'][
+                'Level15ImageProduction']['PlannedChanProcessing'][i]
+            res = self._ir_calibrate(res, channel, cal_type)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
-    def convert_to_radiance(self, data, key_name):
-        """Calibrate to radiance."""
-        # all 12 channels are in calibration coefficients
-        # regardless of how many channels are in file
-        channel_index = CHANNEL_LIST.index(key_name)
-        calMode = 'NOMINAL'
-        # determine the required calibration coefficients to use
-        # for the Level 1.5 Header
-        # NB gsics doesnt apply to VIS channels so ignore them
-        if (channel_index > 2):
-            calMode = os.environ.get('CAL_MODE', 'NOMINAL')
 
-        if (calMode.upper() != 'GSICS'):
-            coeffs = self.header['15_DATA_HEADER'][
-              'RadiometricProcessing']['Level15ImageCalibration']
-            gain = coeffs['CalSlope'][0][channel_index]
-            offset = coeffs['CalOffset'][0][channel_index]
-        else:
-            coeffs = self.header['15_DATA_HEADER'][
-              'RadiometricProcessing']['MPEFCalFeedback']
-            gain = coeffs['GSICSCalCoeff'][0][channel_index]
-            offset = coeffs['GSICSOffsetCount'][0][channel_index]
-            offset = offset*gain
+def get_available_channels(header):
+    """Get the available channels from the header information"""
 
-        return mb.convert_to_radiance(data, gain, offset)
+    chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
+        'SelectedBandIDs']['Value']
+    retv = {}
 
-    def _vis_calibrate(self, data, key_name):
-        """Visible channel calibration only."""
-        solar_irradiance = CALIB[self.platform_id][key_name]["F"]
-        return mb.vis_calibrate(data, solar_irradiance)
+    for idx, char in zip(range(12), chlist_str):
+        retv[CHANNEL_NAMES[idx + 1]] = (char == 'X')
 
-    def _erads2bt(self, data, key_name):
-        """computation based on effective radiance."""
-        cal_info = CALIB[self.platform_id][key_name]
-        alpha = cal_info["ALPHA"]
-        beta = cal_info["BETA"]
-        wavenumber = CALIB[self.platform_id][key_name]["VC"]
-        return mb.erads2bt(data, wavenumber, alpha, beta)
-
-    def _srads2bt(self, data, key_name):
-        """computation based on spectral radiance."""
-        coef_a, coef_b, coef_c = BTFIT[key_name]
-        wavenumber = CALIB[self.platform_id][key_name]["VC"]
-
-        return mb.srads2bt(data, wavenumber, coef_a, coef_b, coef_c)
-
-    def _ir_calibrate(self, data, key_name):
-        """IR calibration."""
-        channel_index = self.channel_order_list.index(key_name)
-
-        cal_type = self.header['15_DATA_HEADER']['ImageDescription'][
-            'Level15ImageProduction']['PlannedChanProcessing'][0][channel_index]
-
-        if cal_type == 1:
-            # spectral radiances
-            return self._srads2bt(data, key_name)
-        elif cal_type == 2:
-            # effective radiances
-            return self._erads2bt(data, key_name)
-        else:
-            raise NotImplementedError('Unknown calibration type')
+    return retv

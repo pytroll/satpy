@@ -29,12 +29,9 @@ https://podaac.jpl.nasa.gov/dataset/VIIRS_NPP-OSPO-L2P-v2.3
 
 """
 import logging
-from datetime import datetime, timedelta
-
+from datetime import datetime
 import numpy as np
-
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
-from satpy.dataset import Dataset
 
 LOG = logging.getLogger(__name__)
 
@@ -66,14 +63,14 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         """Get numpy array shape for the specified dataset.
-        
+
         Args:
             ds_id (DatasetID): ID of dataset that will be loaded
             ds_info (dict): Dictionary of dataset information from config file
-            
+
         Returns:
             tuple: (rows, cols)
-            
+
         """
         var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
         if var_path + '/shape' not in self:
@@ -112,7 +109,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         info.update({
             'shape': shape,
             'units': units,
-            'platform': self.platform_name,
+            'platform_name': self.platform_name,
             'sensor': self.sensor_name,
             'standard_name': standard_name,
             'resolution': resolution,

@@ -6,7 +6,13 @@
 import os
 import sys
 import numpy as np
-from satpy.readers.hdf5_utils import HDF5FileHandler
+
+try:
+    from satpy.readers.hdf5_utils import HDF5FileHandler
+except ImportError:
+    # fake the import so we can at least run the tests in this file
+    HDF5FileHandler = object
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -15,22 +21,27 @@ else:
 
 class FakeHDF5FileHandler(HDF5FileHandler):
     """Swap-in HDF5 File Handler for reader tests to use"""
+
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Get fake file content from 'get_test_content'"""
+        if HDF5FileHandler is object:
+            raise ImportError("Base 'HDF5FileHandler' could not be "
+                              "imported.")
+        filename = str(filename)
         super(HDF5FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         self.file_content.update(kwargs)
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content
-        
+
         Args:
-            filename (str): input filename 
+            filename (str): input filename
             filename_info (dict): Dict of metadata pulled from filename
             filetype_info (dict): Dict of metadata from the reader's yaml config for this file type
 
         Returns: dict of file content with keys like:
-        
+
             - 'dataset'
             - '/attr/global_attr'
             - 'dataset/attr/global_attr'
@@ -115,11 +126,9 @@ class TestHDF5FileHandler(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_hdf5_utils.
-    """
+    """The test suite for test_hdf5_utils."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHDF5FileHandler))
 
     return mysuite
-

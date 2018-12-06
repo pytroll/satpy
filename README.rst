@@ -4,19 +4,14 @@ Satpy
 .. image:: https://travis-ci.org/pytroll/satpy.svg?branch=develop
     :target: https://travis-ci.org/pytroll/satpy
 
-.. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=develop
-    :target: https://coveralls.io/github/pytroll/satpy?branch=develop
+.. image:: https://ci.appveyor.com/api/projects/status/a82tm59hldt4ycor/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/pytroll/satpy/branch/master
 
-.. image:: https://landscape.io/github/pytroll/satpy/develop/landscape.svg?style=flat
-    :target: https://landscape.io/github/pytroll/satpy/develop
-    :alt: Code Health
+.. image:: https://coveralls.io/repos/github/pytroll/satpy/badge.svg?branch=master
+    :target: https://coveralls.io/github/pytroll/satpy?branch=master
 
 .. image:: https://badge.fury.io/py/satpy.svg
     :target: https://badge.fury.io/py/satpy
-
-.. image:: https://www.quantifiedcode.com/api/v1/project/87e41e5e8fa045dba2cb4912df5c4fad/snapshot/origin:develop:HEAD/badge.svg
-    :target: https://www.quantifiedcode.com/app/project/87e41e5e8fa045dba2cb4912df5c4fad
-    :alt: Code issues
 
 
 The SatPy package is a python library for reading and manipulating

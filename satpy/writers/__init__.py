@@ -30,12 +30,12 @@ import os
 
 import numpy as np
 import yaml
-import dask
 import dask.array as da
 import xarray as xr
+import warnings
 
-from satpy.config import (config_search_paths, get_environ_config_dir,
-                          recursive_dict_update)
+from satpy.config import (config_search_paths, glob_config,
+                          get_environ_config_dir, recursive_dict_update)
 from satpy import CHUNK_SIZE
 from satpy.plugin_base import Plugin
 from satpy.resample import get_area_def
@@ -47,15 +47,31 @@ from trollimage.xrimage import XRImage
 LOG = logging.getLogger(__name__)
 
 
+def read_writer_config(config_files, loader=yaml.Loader):
+    """Read the writer `config_files` and return the info extracted."""
+
+    conf = {}
+    LOG.debug('Reading %s', str(config_files))
+    for config_file in config_files:
+        with open(config_file) as fd:
+            conf.update(yaml.load(fd.read(), loader))
+
+    try:
+        writer_info = conf['writer']
+    except KeyError:
+        raise KeyError(
+            "Malformed config file {}: missing writer 'writer'".format(
+                config_files))
+    writer_info['config_files'] = config_files
+    return writer_info
+
+
 def load_writer_configs(writer_configs, ppp_config_dir,
                         **writer_kwargs):
     """Load the writer from the provided `writer_configs`."""
-    conf = {}
     try:
-        for conf_fn in writer_configs:
-            with open(conf_fn) as fd:
-                conf = recursive_dict_update(conf, yaml.load(fd))
-        writer_class = conf['writer']['writer']
+        writer_info = read_writer_config(writer_configs)
+        writer_class = writer_info['writer']
     except (ValueError, KeyError, yaml.YAMLError):
         raise ValueError("Invalid writer configs: "
                          "'{}'".format(writer_configs))
@@ -87,6 +103,64 @@ def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
                          "loaded".format(writer))
 
 
+def configs_for_writer(writer=None, ppp_config_dir=None):
+    """Generator of writer configuration files for one or more writers
+
+    Args:
+        writer (Optional[str]): Yield configs only for this writer
+        ppp_config_dir (Optional[str]): Additional configuration directory
+            to search for writer configuration files.
+
+    Returns: Generator of lists of configuration files
+
+    """
+    search_paths = (ppp_config_dir,) if ppp_config_dir else tuple()
+    if writer is not None:
+        if not isinstance(writer, (list, tuple)):
+            writer = [writer]
+        # given a config filename or writer name
+        config_files = [w if w.endswith('.yaml') else w + '.yaml' for w in writer]
+    else:
+        writer_configs = glob_config(os.path.join('writers', '*.yaml'),
+                                     *search_paths)
+        config_files = set(writer_configs)
+
+    for config_file in config_files:
+        config_basename = os.path.basename(config_file)
+        writer_configs = config_search_paths(
+            os.path.join("writers", config_basename), *search_paths)
+
+        if not writer_configs:
+            LOG.warning("No writer configs found for '%s'", writer)
+            continue
+
+        yield writer_configs
+
+
+def available_writers(as_dict=False):
+    """Available writers based on current configuration.
+
+    Args:
+        as_dict (bool): Optionally return writer information as a dictionary.
+                        Default: False
+
+    Returns: List of available writer names. If `as_dict` is `True` then
+             a list of dictionaries including additionally writer information
+             is returned.
+
+    """
+    writers = []
+    for writer_configs in configs_for_writer():
+        try:
+            writer_info = read_writer_config(writer_configs)
+        except (KeyError, IOError, yaml.YAMLError):
+            LOG.warning("Could not import writer config from: %s", writer_configs)
+            LOG.debug("Error loading YAML", exc_info=True)
+            continue
+        writers.append(writer_info if as_dict else writer_info['name'])
+    return writers
+
+
 def _determine_mode(dataset):
     if "mode" in dataset.attrs:
         return dataset.attrs["mode"]
@@ -105,7 +179,7 @@ def _determine_mode(dataset):
 
 
 def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
-                level_coast=1, level_borders=1):
+                level_coast=1, level_borders=1, fill_value=None):
     """Add coastline and political borders to image, using *color* (tuple
     of integers between 0 and 255).
     Warning: Loses the masks !
@@ -150,7 +224,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
         LOG.debug("Automagically choose resolution %s", resolution)
 
-    img = orig.pil_image()
+    img = orig.pil_image(fill_value=fill_value)
     cw_ = ContourWriterAGG(coast_dir)
     cw_.add_coastlines(img, area, outline=color,
                        resolution=resolution, width=width, level=level_coast)
@@ -162,7 +236,8 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
                              coords={'y': orig.data.coords['y'],
                                      'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)})
+                                     'bands': list(img.mode)},
+                             attrs=orig.data.attrs)
 
 
 def add_text(orig, dc, img, text=None):
@@ -176,13 +251,13 @@ def add_text(orig, dc, img, text=None):
 
     dc.add_text(**text)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if len(orig.channels) == 1:
-        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)},
+                             attrs=orig.data.attrs)
 
 
 def add_logo(orig, dc, img, logo=None):
@@ -196,16 +271,16 @@ def add_logo(orig, dc, img, logo=None):
 
     dc.add_logo(**logo)
 
-    arr = np.array(img)
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    if len(orig.channels) == 1:
-        orig.channels[0] = np.ma.array(arr[:, :] / 255.0)
-    else:
-        for idx in range(len(orig.channels)):
-            orig.channels[idx] = np.ma.array(arr[:, :, idx] / 255.0)
+    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                             coords={'y': orig.data.coords['y'],
+                                     'x': orig.data.coords['x'],
+                                     'bands': list(img.mode)},
+                             attrs=orig.data.attrs)
 
 
-def add_decorate(orig, **decorate):
+def add_decorate(orig, fill_value=None, **decorate):
     """Decorate an image with text and/or logos/images.
 
     This call adds text/logos in order as given in the input to keep the
@@ -240,7 +315,7 @@ def add_decorate(orig, **decorate):
 
     # Need to create this here to possible keep the alignment
     # when adding text and/or logo with pydecorate
-    img_orig = orig.pil_image()
+    img_orig = orig.pil_image(fill_value=fill_value)
     from pydecorate import DecoratorAGG
     dc = DecoratorAGG(img_orig)
 
@@ -254,24 +329,59 @@ def add_decorate(orig, **decorate):
                 add_text(orig, dc, img_orig, text=dec['text'])
 
 
-def get_enhanced_image(dataset,
-                       enhancer=None,
-                       fill_value=None,
-                       ppp_config_dir=None,
-                       enhancement_config_file=None,
-                       overlay=None,
-                       decorate=None):
-    mode = _determine_mode(dataset)
+def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_config_file=None,
+                       overlay=None, decorate=None, fill_value=None):
+    """Get an enhanced version of `dataset` as an :class:`~trollimage.xrimage.XRImage` instance.
+
+    Args:
+        dataset (xarray.DataArray): Data to be enhanced and converted to an image.
+        ppp_config_dir (str): Root configuration directory.
+        enhance (bool or Enhancer): Whether to automatically enhance
+            data to be more visually useful and to fit inside the file
+            format being saved to. By default this will default to using
+            the enhancement configuration files found using the default
+            :class:`~satpy.writers.Enhancer` class. This can be set to
+            `False` so that no enhancments are performed. This can also
+            be an instance of the :class:`~satpy.writers.Enhancer` class
+            if further custom enhancement is needed.
+        enhancement_config_file (str): Deprecated.
+        overlay (dict): Options for image overlays. See :func:`add_overlay`
+            for available options.
+        decorate (dict): Options for decorating the image. See
+            :func:`add_decorate` for available options.
+        fill_value (int or float): Value to use when pixels are masked or
+            invalid. Default of `None` means to create an alpha channel.
+            See :meth:`~trollimage.xrimage.XRImage.finalize` for more
+            details. Only used when adding overlays or decorations. Otherwise
+            it is up to the caller to "finalize" the image before using it
+            except if calling ``img.show()`` or providing the image to
+            a writer as these will finalize the image.
+
+    .. versionchanged:: 0.10
+
+        Deprecated `enhancement_config_file` and 'enhancer' in favor of
+        `enhance`. Pass an instance of the `Enhancer` class to `enhance`
+        instead.
+
+    """
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
-    if enhancer is None:
+    if enhancement_config_file is not None:
+        warnings.warn("'enhancement_config_file' has been deprecated. Pass an instance of the "
+                      "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
+
+    if enhance is False:
+        enhancer = None
+    elif enhance is None:
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
+    else:
+        enhancer = enhance
 
     # Create an image for enhancement
-    img = to_image(dataset, mode=mode, fill_value=fill_value)
+    img = to_image(dataset)
 
-    if enhancer.enhancement_tree is None:
+    if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
         if dataset.attrs.get("sensor", None):
@@ -280,10 +390,10 @@ def get_enhanced_image(dataset,
         enhancer.apply(img, **dataset.attrs)
 
     if overlay is not None:
-        add_overlay(img, dataset.attrs['area'], **overlay)
+        add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
 
     if decorate is not None:
-        add_decorate(img, **decorate)
+        add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
 
@@ -296,39 +406,114 @@ def show(dataset, **kwargs):
     return img
 
 
-def to_image(dataset, copy=False, **kwargs):
-    # Only add keywords if they are present
-    for key in ["mode", "fill_value", "palette"]:
-        if key in dataset.attrs:
-            kwargs.setdefault(key, dataset.attrs[key])
+def to_image(dataset):
     dataset = dataset.squeeze()
-
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
     else:
         return XRImage(dataset)
 
 
-class Writer(Plugin):
+def split_results(results):
+    """Get sources, targets and delayed objects to separate lists from a
+    list of results collected from (multiple) writer(s)."""
+    from dask.delayed import Delayed
 
-    """Writer plugins. They must implement the *save_image* method. This is an
-    abstract class to be inherited.
+    def flatten(results):
+        out = []
+        if isinstance(results, (list, tuple)):
+            for itm in results:
+                out.extend(flatten(itm))
+            return out
+        return [results]
+
+    sources = []
+    targets = []
+    delayeds = []
+
+    for res in flatten(results):
+        if isinstance(res, da.Array):
+            sources.append(res)
+        elif isinstance(res, Delayed):
+            delayeds.append(res)
+        else:
+            targets.append(res)
+    return sources, targets, delayeds
+
+
+def compute_writer_results(results):
+    """Compute all the given dask graphs `results` so that the files are
+    saved.
+
+    Args:
+        results (iterable): Iterable of dask graphs resulting from calls to
+                            `scn.save_datasets(..., compute=False)`
+    """
+    if not results:
+        return
+
+    sources, targets, delayeds = split_results(results)
+
+    # one or more writers have targets that we need to close in the future
+    if targets:
+        delayeds.append(da.store(sources, targets, compute=False))
+
+    if delayeds:
+        da.compute(delayeds)
+
+    if targets:
+        for target in targets:
+            if hasattr(target, 'close'):
+                target.close()
+
+
+class Writer(Plugin):
+    """Base Writer class for all other writers.
+
+    A minimal writer subclass should implement the `save_dataset` method.
     """
 
-    def __init__(self,
-                 name=None,
-                 file_pattern=None,
-                 base_dir=None,
-                 **kwargs):
+    def __init__(self, name=None, filename=None, base_dir=None, **kwargs):
+        """Initialize the writer object.
+
+        Args:
+            name (str): A name for this writer for log and error messages.
+                If this writer is configured in a YAML file its name should
+                match the name of the YAML file. Writer names may also appear
+                in output file attributes.
+            filename (str): Filename to save data to. This filename can and
+                should specify certain python string formatting fields to
+                differentiate between data written to the files. Any
+                attributes provided by the ``.attrs`` of a DataArray object
+                may be included. Format and conversion specifiers provided by
+                the :class:`trollsift <trollsift.parser.StringFormatter>`
+                package may also be used. Any directories in the provided
+                pattern will be created if they do not exist. Example::
+
+                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S.tif
+
+            base_dir (str):
+                Base destination directories for all created files.
+            kwargs (dict): Additional keyword arguments to pass to the
+                :class:`~satpy.plugin_base.Plugin` class.
+
+            """
         # Load the config
         Plugin.__init__(self, **kwargs)
         self.info = self.config['writer']
 
+        if 'file_pattern' in self.info:
+            warnings.warn("Writer YAML config is using 'file_pattern' which "
+                          "has been deprecated, use 'filename' instead.")
+            self.info['filename'] = self.info.pop('file_pattern')
+
+        if 'file_pattern' in kwargs:
+            warnings.warn("'file_pattern' has been deprecated, use 'filename' instead.", DeprecationWarning)
+            filename = kwargs.pop('file_pattern')
+
         # Use options from the config file if they weren't passed as arguments
-        self.name = self.info.get("name",
-                                  None) if name is None else name
-        self.file_pattern = self.info.get(
-            "file_pattern", None) if file_pattern is None else file_pattern
+        self.name = self.info.get("name", None) if name is None else name
+        self.file_pattern = self.info.get("filename", None) if filename is None else filename
 
         if self.name is None:
             raise ValueError("Writer 'name' not provided")
@@ -337,15 +522,30 @@ class Writer(Plugin):
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
+        """Helper class method to separate arguments between init and save methods.
+
+        Currently the :class:`~satpy.scene.Scene` is passed one set of
+        arguments to represent the Writer creation and saving steps. This is
+        not preferred for Writer structure, but provides a simpler interface
+        to users. This method splits the provided keyword arguments between
+        those needed for initialization and those needed for the ``save_dataset``
+        and ``save_datasets`` method calls.
+
+        Writer subclasses should try to prefer keyword arguments only for the
+        save methods only and leave the init keyword arguments to the base
+        classes when possible.
+
+        """
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs = {}
         kwargs = kwargs.copy()
-        for kw in ['base_dir', 'file_pattern']:
+        for kw in ['base_dir', 'filename', 'file_pattern']:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
         return init_kwargs, kwargs
 
     def create_filename_parser(self, base_dir):
+        """Create a :class:`trollsift.parser.Parser` object for later use."""
         # just in case a writer needs more complex file patterns
         # Set a way to create filenames if we were given a pattern
         if base_dir and self.file_pattern:
@@ -355,10 +555,21 @@ class Writer(Plugin):
         return parser.Parser(file_pattern) if file_pattern else None
 
     def get_filename(self, **kwargs):
+        """Create a filename where output data will be saved.
+
+        Args:
+            kwargs (dict): Attributes and other metadata to use for formatting
+                the previously provided `filename`.
+
+        """
         if self.filename_parser is None:
-            raise RuntimeError(
-                "No filename pattern or specific filename provided")
-        return self.filename_parser.compose(kwargs)
+            raise RuntimeError("No filename pattern or specific filename provided")
+        output_filename = self.filename_parser.compose(kwargs)
+        dirname = os.path.dirname(output_filename)
+        if dirname and not os.path.isdir(dirname):
+            LOG.info("Creating output directory: {}".format(dirname))
+            os.makedirs(dirname)
+        return output_filename
 
     def save_datasets(self, datasets, compute=True, **kwargs):
         """Save all datasets to one or more files.
@@ -390,32 +601,20 @@ class Writer(Plugin):
             close any objects that have a "close" method.
 
         """
-        sources = []
-        targets = []
+        results = []
         for ds in datasets:
-            res = self.save_dataset(ds, compute=False, **kwargs)
-            if isinstance(res, tuple):
-                # source, target to be passed to da.store
-                sources.append(res[0])
-                targets.append(res[1])
-            else:
-                # delayed object
-                sources.append(res)
+            results.append(self.save_dataset(ds, compute=False, **kwargs))
 
-        # we have targets, we should save sources to targets
-        if targets and compute:
-            res = da.store(sources, targets)
-            for target in targets:
-                if hasattr(target, 'close'):
-                    target.close()
-            return res
-        elif targets:
-            return sources, targets
-
-        delayed = dask.delayed(sources)
         if compute:
-            return delayed.compute()
-        return delayed
+            LOG.info("Computing and writing results...")
+            return compute_writer_results([results])
+
+        targets, sources, delayeds = split_results([results])
+        if delayeds:
+            # This writer had only delayed writes
+            return delayeds
+        else:
+            return targets, sources
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      compute=True, **kwargs):
@@ -426,7 +625,7 @@ class Writer(Plugin):
         Args:
             dataset (xarray.DataArray): Dataset to save using this writer.
             filename (str): Optionally specify the filename to save this
-                            dataset to. If not provided then `file_pattern`
+                            dataset to. If not provided then `filename`
                             which can be provided to the init method will be
                             used and formatted by dataset attributes.
             fill_value (int or float): Replace invalid values in the dataset
@@ -436,7 +635,7 @@ class Writer(Plugin):
                             If `False` return either a `dask.delayed.Delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
-            **kwargs: Other keyword arguments for this particular reader.
+            **kwargs: Other keyword arguments for this particular writer.
 
         Returns:
             Value returned depends on `compute`. If `compute` is `True` then
@@ -455,27 +654,67 @@ class Writer(Plugin):
 
 
 class ImageWriter(Writer):
+    """Base writer for image file formats."""
 
-    def __init__(self,
-                 name=None,
-                 file_pattern=None,
-                 enhancement_config=None,
-                 base_dir=None,
-                 **kwargs):
-        Writer.__init__(self, name, file_pattern, base_dir,
-                        **kwargs)
-        enhancement_config = self.info.get(
-            "enhancement_config",
-            None) if enhancement_config is None else enhancement_config
+    def __init__(self, name=None, filename=None, base_dir=None, enhance=None, enhancement_config=None, **kwargs):
+        """Initialize image writer object.
 
-        self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
-                                 enhancement_config_file=enhancement_config)
+        Args:
+            name (str): A name for this writer for log and error messages.
+                If this writer is configured in a YAML file its name should
+                match the name of the YAML file. Writer names may also appear
+                in output file attributes.
+            filename (str): Filename to save data to. This filename can and
+                should specify certain python string formatting fields to
+                differentiate between data written to the files. Any
+                attributes provided by the ``.attrs`` of a DataArray object
+                may be included. Format and conversion specifiers provided by
+                the :class:`trollsift <trollsift.parser.StringFormatter>`
+                package may also be used. Any directories in the provided
+                pattern will be created if they do not exist. Example::
+
+                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S.tif
+
+            base_dir (str):
+                Base destination directories for all created files.
+            enhance (bool or Enhancer): Whether to automatically enhance
+                data to be more visually useful and to fit inside the file
+                format being saved to. By default this will default to using
+                the enhancement configuration files found using the default
+                :class:`~satpy.writers.Enhancer` class. This can be set to
+                `False` so that no enhancments are performed. This can also
+                be an instance of the :class:`~satpy.writers.Enhancer` class
+                if further custom enhancement is needed.
+            enhancement_config (str): Deprecated.
+
+            kwargs (dict): Additional keyword arguments to pass to the
+                :class:`~satpy.writer.Writer` base class.
+
+        .. versionchanged:: 0.10
+
+            Deprecated `enhancement_config_file` and 'enhancer' in favor of
+            `enhance`. Pass an instance of the `Enhancer` class to `enhance`
+            instead.
+
+        """
+        super(ImageWriter, self).__init__(name, filename, base_dir, **kwargs)
+        if enhancement_config is not None:
+            warnings.warn("'enhancement_config' has been deprecated. Pass an instance of the "
+                          "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
+        else:
+            enhancement_config = self.info.get("enhancement_config", None)
+
+        if enhance is False:
+            self.enhancer = None
+        elif enhance is None:
+            self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
+        else:
+            self.enhancer = None
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
-        init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(
-            kwargs)
+        init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(kwargs)
         for kw in ['enhancement_config']:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
@@ -490,11 +729,9 @@ class ImageWriter(Writer):
         more details on the arguments passed to this method.
 
         """
-        img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, fill_value, overlay=overlay,
-            decorate=decorate)
-        return self.save_image(img, filename=filename, compute=compute,
-                               **kwargs)
+        img = get_enhanced_image(dataset.squeeze(), enhance=self.enhancer, overlay=overlay,
+                                 decorate=decorate, fill_value=fill_value)
+        return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
 
     def save_image(self, img, filename=None, compute=True, **kwargs):
         """Save Image object to a given ``filename``.
@@ -523,8 +760,7 @@ class ImageWriter(Writer):
             this method.
 
         """
-        raise NotImplementedError(
-            "Writer '%s' has not implemented image saving" % (self.name, ))
+        raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
 
 
 class DecisionTree(object):
@@ -615,7 +851,12 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             if os.path.isfile(config_file):
                 with open(config_file) as fd:
-                    enhancement_section = yaml.load(fd).get(self.prefix, {})
+                    enhancement_config = yaml.load(fd)
+                    if enhancement_config is None:
+                        # empty file
+                        continue
+                    enhancement_section = enhancement_config.get(
+                        self.prefix, {})
                     if not enhancement_section:
                         LOG.debug("Config '{}' has no '{}' section or it is empty".format(config_file, self.prefix))
                         continue
@@ -642,7 +883,6 @@ class EnhancementDecisionTree(DecisionTree):
 
 
 class Enhancer(object):
-
     """Helper class to get enhancement information for images."""
 
     def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
@@ -650,8 +890,7 @@ class Enhancer(object):
 
         Args:
             ppp_config_dir: Points to the base configuration directory
-            enhancement_config_file: The enhancement configuration to
-                apply, False to leave as is.
+            enhancement_config_file: The enhancement configuration to apply, False to leave as is.
         """
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         self.enhancement_config_file = enhancement_config_file
@@ -660,8 +899,7 @@ class Enhancer(object):
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            self.enhancement_config_file = config_search_paths(
-                config_fn, self.ppp_config_dir)
+            self.enhancement_config_file = config_search_paths(config_fn, self.ppp_config_dir)
 
         if not self.enhancement_config_file:
             # They don't want any automatic enhancements
@@ -670,8 +908,7 @@ class Enhancer(object):
             if not isinstance(self.enhancement_config_file, (list, tuple)):
                 self.enhancement_config_file = [self.enhancement_config_file]
 
-            self.enhancement_tree = EnhancementDecisionTree(
-                *self.enhancement_config_file)
+            self.enhancement_tree = EnhancementDecisionTree(*self.enhancement_config_file)
 
         self.sensor_enhancement_configs = []
 

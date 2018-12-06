@@ -65,7 +65,8 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     """
 
-    def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=False):
+    def __init__(self, filename, filename_info, filetype_info,
+                 auto_maskandscale=False, xarray_kwargs=None):
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
@@ -83,6 +84,9 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.collect_metadata("", file_handle)
         self.collect_dimensions("", file_handle)
         file_handle.close()
+        self._xarray_kwargs = xarray_kwargs or {}
+        self._xarray_kwargs.setdefault('chunks', CHUNK_SIZE)
+        self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
 
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object.
@@ -128,8 +132,9 @@ class NetCDF4FileHandler(BaseFileHandler):
                 group, key = parts
             else:
                 group = None
-            val = xr.open_dataset(self.filename, group=group, chunks=CHUNK_SIZE,
-                                  mask_and_scale=self.auto_maskandscale)[key]
+            with xr.open_dataset(self.filename, group=group,
+                                 **self._xarray_kwargs) as nc:
+                val = nc[key]
         return val
 
     def __contains__(self, item):

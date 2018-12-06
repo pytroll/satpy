@@ -12,6 +12,14 @@ around all the complexity of these various formats through its ``load``
 method. The following sections describe the different way data can be loaded,
 requested, or added to a Scene object.
 
+Available Readers
+=================
+
+To get a list of available readers use the `available_readers` function::
+
+    >>> from satpy import available_readers
+    >>> available_readers()
+
 Filter loaded files
 ===================
 
@@ -104,4 +112,21 @@ more information on the possible parameters.
 Adding a Reader to SatPy
 ========================
 
-Coming soon...
+This is described in the developer guide, see :ref:`custom-reader`
+
+Implemented readers
+===================
+
+xRIT-based readers
+------------------
+
+.. automodule:: satpy.readers.hrit_base
+
+.. automodule:: satpy.readers.hrit_msg
+
+.. automodule:: satpy.readers.hrit_jma
+
+.. automodule:: satpy.readers.hrit_goes
+
+.. automodule:: satpy.readers.hrit_electrol
+

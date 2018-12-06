@@ -25,10 +25,9 @@
 import glob
 import itertools
 import logging
-import numbers
 import os
 from abc import ABCMeta, abstractmethod, abstractproperty
-from collections import deque, namedtuple, OrderedDict
+from collections import deque, OrderedDict
 from fnmatch import fnmatch
 
 import six
@@ -37,16 +36,16 @@ import yaml
 from weakref import WeakValueDictionary
 
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
+from pyresample.boundary import AreaDefBoundary, Boundary
+from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
-from satpy.readers import DatasetDict
+from satpy.readers import DatasetDict, get_key
 from satpy.readers.utils import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
-
-Shuttle = namedtuple('Shuttle', ['data', 'mask', 'info'])
 
 
 def listify_string(something):
@@ -68,7 +67,7 @@ def get_filebase(path, pattern):
     """Get the end of *path* of same length as *pattern*."""
     # A pattern can include directories
     tail_len = len(pattern.split(os.path.sep))
-    return os.path.join(*path.split(os.path.sep)[-tail_len:])
+    return os.path.join(*str(path).split(os.path.sep)[-tail_len:])
 
 
 def match_filenames(filenames, pattern):
@@ -102,7 +101,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             filetype_info['file_patterns'] = file_patterns
             self.file_patterns.extend(file_patterns)
 
-        if not isinstance(self.info['sensors'], (list, tuple)):
+        if 'sensors' in self.info and not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
         self.datasets = self.config.get('datasets', {})
         self.info['filenames'] = []
@@ -111,7 +110,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @property
     def sensor_names(self):
-        return self.info['sensors']
+        return self.info['sensors'] or []
 
     @property
     def all_dataset_ids(self):
@@ -189,158 +188,23 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             logger.warning("No filenames found for reader: %s", self.name)
         return selected_filenames
 
-    def get_ds_ids_by_wavelength(self, wavelength, ids=None):
-        """Get the dataset ids matching a given a *wavelength*."""
-        if ids is None:
-            ids = self.ids
-        if isinstance(wavelength, (tuple, list)):
-            datasets = [ds for ds in ids
-                        if ds.wavelength == tuple(wavelength)]
-        else:
-            datasets = [ds for ds in ids if ds.wavelength
-                        and ds.wavelength[0] <= wavelength <= ds.wavelength[2]]
-            datasets = sorted(datasets,
-                              key=lambda ch: abs(ch.wavelength[1] - wavelength))
-        if not datasets:
-            raise KeyError("Can't find any projectable at %sum" %
-                           str(wavelength))
+    def get_dataset_key(self, key, **kwargs):
+        """Get the fully qualified `DatasetID` matching `key`.
 
-        return datasets
+        See `satpy.readers.get_key` for more information about kwargs.
 
-    def get_ds_ids_by_id(self, dsid, ids=None):
-        """Get the dataset ids matching a given a dataset id."""
-        if ids is None:
-            ids = self.ids.keys()
-        for key in DATASET_KEYS:
-            value = getattr(dsid, key)
-            if value is None or (key == 'modifiers' and not value):
-                # filter everything else except modifiers if it isn't
-                # specified (None or tuple())
-                continue
-            if key == "wavelength":
-                ids = self.get_ds_ids_by_wavelength(dsid.wavelength, ids)
-            else:
-                ids = [ds_id for ds_id in ids if value == getattr(ds_id, key)]
-        if len(ids) == 0:
-            raise KeyError(
-                "Can't find any projectable matching '{}'".format(dsid))
-        return ids
-
-    def get_ds_ids_by_name(self, name, ids=None):
-        """Get the datasets ids by *name*."""
-        if ids is None:
-            ids = self.ids
-        datasets = [ds_id for ds_id in ids if ds_id.name == name]
-        if not datasets:
-            raise KeyError("Can't find any projectable called '{}'".format(
-                name))
-
-        return datasets
-
-    @staticmethod
-    def dfilter_from_key(dfilter, key):
-        """Create a dataset filter from a *key*."""
-        if dfilter is None:
-            dfilter = {}
-        else:
-            dfilter = dfilter.copy()
-        for attr in ['calibration', 'polarization', 'resolution']:
-            dfilter[attr] = dfilter.get(attr) or getattr(key, attr, None)
-        # modifiers default is an empty tuple so handle it specially
-        dfilter['modifiers'] = dfilter.get('modifiers',
-                                           getattr(key, 'modifiers', None) or None)
-
-        for attr in ['calibration', 'polarization', 'resolution']:
-            if (dfilter[attr] is not None
-                    and not isinstance(dfilter[attr], (list, tuple, set))):
-                dfilter[attr] = [dfilter[attr]]
-        return dfilter
-
-    @staticmethod
-    def _get_best_calibration(calibration):
-        # default calibration choices
-        if calibration is None:
-            calibration = ["brightness_temperature", "reflectance", 'radiance',
-                           'counts']
-        else:
-            calibration = [x
-                           for x in ["brightness_temperature", "reflectance",
-                                     "radiance", "counts"] if x in calibration]
-        return calibration
-
-    def _ds_ids_with_best_calibration(self, datasets, calibration):
-        """Get the datasets with the best available calibration."""
-
-        calibrations = self._get_best_calibration(calibration)
-
-        new_datasets = []
-
-        for cal in calibrations:
-            for ds_id in datasets:
-                if ds_id.calibration == cal:
-                    new_datasets.append(ds_id)
-        for ds_id in datasets:
-            if (ds_id not in new_datasets and
-                    (ds_id.calibration is None and calibration is None)):
-                new_datasets.append(ds_id)
-        return new_datasets
-
-    def _ds_ids_from_any_key(self, key):
-        """Return a dataset ids from any type of key."""
-        if isinstance(key, numbers.Number):
-            datasets = self.get_ds_ids_by_wavelength(key)
-        elif isinstance(key, DatasetID):
-            datasets = self.get_ds_ids_by_id(key)
-        else:
-            datasets = self.get_ds_ids_by_name(key)
-
-        return datasets
-
-    def filter_ds_ids(self, dataset_ids, dfilter):
-        """Filter *dataset_ids* based on *dfilter*."""
-        # sort by resolution, highest resolution first (lowest number)
-        dataset_ids = sorted(dataset_ids, key=lambda x: x.resolution or -1)
-
-        for attr in ['resolution', 'polarization']:
-            if dfilter.get(attr) is not None:
-                dataset_ids = [ds_id for ds_id in dataset_ids
-                               if getattr(ds_id, attr) in dfilter[attr]]
-
-        calibration = dfilter.get('calibration')
-        dataset_ids = self._ds_ids_with_best_calibration(dataset_ids,
-                                                         calibration)
-
-        if dfilter.get('modifiers') is not None:
-            dataset_ids = [ds_id for ds_id in dataset_ids
-                           if ds_id.modifiers == dfilter['modifiers']]
-
-        return dataset_ids
-
-    def get_dataset_key(self, key, dfilter=None, aslist=False):
-        """Get the fully qualified dataset id corresponding to *key*.
-
-        Can be either by name or centerwavelength. If `key` is a `DatasetID`
-        object its name is searched if it exists, otherwise its wavelength is
-        used.
         """
-        datasets = self._ds_ids_from_any_key(key)
-
-        dfilter = self.dfilter_from_key(dfilter, key)
-
-        datasets = self.filter_ds_ids(datasets, dfilter)
-
-        if not datasets:
-            raise KeyError("Can't find any projectable matching '{}'".format(
-                str(key)))
-        if aslist:
-            return datasets
-        else:
-            return datasets[0]
+        return get_key(key, self.ids.keys(), **kwargs)
 
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
         ids = []
         for dataset in self.datasets.values():
+            # xarray doesn't like concatenating attributes that are lists
+            # https://github.com/pydata/xarray/issues/2060
+            if 'coordinates' in dataset and \
+                    isinstance(dataset['coordinates'], list):
+                dataset['coordinates'] = tuple(dataset['coordinates'])
             # Build each permutation/product of the dataset
             id_kwargs = []
             for key in DATASET_KEYS:
@@ -444,8 +308,6 @@ class FileYAMLReader(AbstractYAMLReader):
         If the file doesn't provide any bounding box information or 'area'
         was not provided in `filter_parameters`, the check returns True.
         """
-        from trollsched.boundary import AreaDefBoundary, Boundary
-        from satpy.resample import get_area_def
         try:
             gbb = Boundary(*file_handler.get_bounding_box())
         except NotImplementedError as err:
@@ -536,6 +398,7 @@ class FileYAMLReader(AbstractYAMLReader):
     def time_matches(self, fstart, fend):
         start_time = self.filter_parameters.get('start_time')
         end_time = self.filter_parameters.get('end_time')
+        fend = fend or fstart
         if start_time and fend and fend < start_time:
             return False
         if end_time and fstart and fstart > end_time:
@@ -624,6 +487,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.info.setdefault('filenames', []).extend(filenames)
         filename_set = set(filenames)
 
+        # load files that we know about by creating the file handlers
         for filetype, filetype_info in self.sorted_filetype_items():
             filehandlers = self.new_filehandlers_for_filetype(filetype_info,
                                                               filename_set)
@@ -633,6 +497,56 @@ class FileYAMLReader(AbstractYAMLReader):
                 self.file_handlers[filetype] = sorted(
                     filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
+
+        # update existing dataset IDs with information from the file handler
+        self.update_ds_ids_from_file_handlers()
+
+        # load any additional dataset IDs determined dynamically from the file
+        self.add_ds_ids_from_files()
+
+    def update_ds_ids_from_file_handlers(self):
+        """Update DatasetIDs with information from loaded files.
+
+        This is useful, for example, if dataset resolution may change
+        depending on what files were loaded.
+
+        """
+        for file_handlers in self.file_handlers.values():
+            fh = file_handlers[0]
+            # update resolution in the dataset IDs for this files resolution
+            res = getattr(fh, 'resolution', None)
+            if res is None:
+                continue
+
+            for ds_id, ds_info in list(self.ids.items()):
+                if fh.filetype_info['file_type'] != ds_info['file_type']:
+                    continue
+                if ds_id.resolution is not None:
+                    continue
+                ds_info['resolution'] = res
+                new_id = DatasetID.from_dict(ds_info)
+                self.ids[new_id] = ds_info
+                del self.ids[ds_id]
+
+    def add_ds_ids_from_files(self):
+        """Check files for more dynamically discovered datasets."""
+        for file_handlers in self.file_handlers.values():
+            try:
+                fh = file_handlers[0]
+                avail_ids = fh.available_datasets()
+            except NotImplementedError:
+                continue
+
+            # dynamically discover other available datasets
+            for ds_id, ds_info in avail_ids:
+                # don't overwrite an existing dataset
+                # especially from the yaml config
+                coordinates = ds_info.get('coordinates')
+                if isinstance(coordinates, list):
+                    # xarray doesn't like concatenating attributes that are
+                    # lists: https://github.com/pydata/xarray/issues/2060
+                    ds_info['coordinates'] = tuple(ds_info['coordinates'])
+                self.ids.setdefault(ds_id, ds_info)
 
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
@@ -833,7 +747,7 @@ class FileYAMLReader(AbstractYAMLReader):
         for dataset in datasets.values():
             ancillary_variables = dataset.attrs.get('ancillary_variables', [])
             if not isinstance(ancillary_variables, (list, tuple, set)):
-                ancillary_variables = ancillary_variables.split(',')
+                ancillary_variables = ancillary_variables.split(' ')
             av_ids = []
             for key in ancillary_variables:
                 try:
@@ -843,16 +757,20 @@ class FileYAMLReader(AbstractYAMLReader):
 
             all_av_ids |= set(av_ids)
             dataset.attrs['ancillary_variables'] = av_ids
-        all_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
+        loadable_av_ids = [av_id for av_id in all_av_ids if av_id not in datasets]
         if not all_av_ids:
             return
-        av_ds = self.load(all_av_ids, datasets)
+        if loadable_av_ids:
+            self.load(loadable_av_ids, previous_datasets=datasets)
+
         for dataset in datasets.values():
             new_vars = []
             for av_id in dataset.attrs.get('ancillary_variables', []):
-                new_vars.append(av_ds.get(av_id, datasets.get(av_id, av_id)))
+                if isinstance(av_id, DatasetID):
+                    new_vars.append(datasets[av_id])
+                else:
+                    new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
-        datasets.update(av_ds)
 
     def load(self, dataset_keys, previous_datasets=None):
         """Load `dataset_keys`.

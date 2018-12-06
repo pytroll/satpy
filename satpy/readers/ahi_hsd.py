@@ -1,30 +1,41 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+#
 # Copyright (c) 2014-2018 PyTroll developers
-
+#
 # Author(s):
-
+#
 #   Adam.Dybbroe <adam.dybbroe@smhi.se>
 #   Cooke, Michael.C, UK Met Office
 #   Martin Raspaud <martin.raspaud@smhi.se>
-
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Advanced Himawari Imager (AHI) standard format data reader
+"""Advanced Himawari Imager (AHI) standard format data reader.
 
-http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
+References:
+    - Himawari-8/9 Himawari Standard Data User's Guide
+    - http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
+
+Time Information
+****************
+
+AHI observations use the idea of a "scheduled" time and an "observation time.
+The "scheduled" time is when the instrument was told to record the data,
+usually at a specific and consistent interval. The "observation" time is when
+the data was actually observed. Scheduled time can be accessed from the
+`scheduled_time` metadata key and observation time from the `start_time` key.
 
 """
 
@@ -32,19 +43,17 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import dask.array as da
+import xarray as xr
 
 from pyresample import geometry
-from satpy.dataset import Dataset
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import get_geostationary_angle_extent, np2str
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
                      "11", "12", "13", "14", "15", "16")
-
-
-class CalibrationError(Exception):
-    pass
 
 logger = logging.getLogger('ahi_hsd')
 
@@ -212,9 +221,7 @@ _SPARE_TYPE = np.dtype([
 
 
 class AHIHSDFileHandler(BaseFileHandler):
-
-    """AHI standard format reader
-    """
+    """AHI standard format reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
@@ -245,33 +252,25 @@ class AHIHSDFileHandler(BaseFileHandler):
                                         dtype=_NAV_INFO_TYPE,
                                         count=1)[0]
         self.platform_name = np2str(self.basic_info['satellite'])
+        self.observation_area = np2str(self.basic_info['observation_area'])
         self.sensor = 'ahi'
-
-    def get_shape(self, dsid, ds_info):
-        return int(self.data_info['number_of_lines']), int(self.data_info['number_of_columns'])
 
     @property
     def start_time(self):
-        return (datetime(1858, 11, 17) +
-                timedelta(days=float(self.basic_info['observation_start_time'])))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
 
     @property
     def end_time(self):
-        return (datetime(1858, 11, 17) +
-                timedelta(days=float(self.basic_info['observation_end_time'])))
+        return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_end_time']))
 
-    def get_dataset(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
-        to_return = out is None
-        if out is None:
-            nlines = int(self.data_info['number_of_lines'])
-            ncols = int(self.data_info['number_of_columns'])
-            out = Dataset(np.ma.empty((nlines, ncols), dtype=np.float32))
+    @property
+    def scheduled_time(self):
+        """Time this band was scheduled to be recorded."""
+        timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
+        return self.start_time.replace(hour=int(timeline[:2]), minute=int(timeline[2:4]), second=0, microsecond=0)
 
-        self.read_band(key, info, out, xslice, yslice)
-
-        if to_return:
-            from satpy.yaml_reader import Shuttle
-            return Shuttle(out.data, out.mask, out.info)
+    def get_dataset(self, key, info):
+        return self.read_band(key, info)
 
     def get_area_def(self, dsid):
         del dsid
@@ -288,17 +287,16 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         # count starts at 1
         cols = 1 - 0.5
-        lines = (self.total_segments - self.segment_number) * nlines + 1 - 0.5
-        ll_x = (cols - coff) / cfac * 2**16
-        ll_y = (lines - loff) / lfac * 2**16
-
+        left_x = (cols - coff) * (2.**16 / cfac)
         cols += ncols
-        lines += nlines
-        ur_x = (cols - coff) / cfac * 2**16
-        ur_y = (lines - loff) / lfac * 2**16
+        right_x = (cols - coff) * (2.**16 / cfac)
 
-        area_extent = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
-                       np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
+        lines = (self.segment_number - 1) * nlines + 1 - 0.5
+        upper_y = -(lines - loff) * (2.**16 / lfac)
+        lines += nlines
+        lower_y = -(lines - loff) * (2.**16 / lfac)
+        area_extent = (np.deg2rad(left_x) * h, np.deg2rad(lower_y) * h,
+                       np.deg2rad(right_x) * h, np.deg2rad(upper_y) * h)
 
         proj_dict = {'a': float(a),
                      'b': float(b),
@@ -308,8 +306,8 @@ class AHIHSDFileHandler(BaseFileHandler):
                      'units': 'm'}
 
         area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
+            self.observation_area,
+            "AHI {} area".format(self.observation_area),
             'geosh8',
             proj_dict,
             ncols,
@@ -319,11 +317,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def get_lonlats(self, key, info, lon_out, lat_out):
-        logger.debug('Computing area for %s', str(key))
-        lon_out[:], lat_out[:] = self.area.get_lonlats()
-
-    def geo_mask(self, lineslice=None, colslice=None):
+    def geo_mask(self):
         """Masking the space pixels from geometry info."""
         cfac = np.uint32(self.proj_info['CFAC'])
         lfac = np.uint32(self.proj_info['LFAC'])
@@ -342,24 +336,19 @@ class AHIHSDFileHandler(BaseFileHandler):
         pixel_lmax = np.rad2deg(ymax) * lfac * 1.0 / 2**16
 
         def ellipse(line, col):
-            line /= pixel_lmax
-            line *= line
-            col /= pixel_cmax
-            col *= col
-            return (line + col) > 1
+            return ((line / pixel_lmax) ** 2) + ((col / pixel_cmax) ** 2) <= 1
 
-        cols_idx = np.arange(-(coff - local_coff),
+        cols_idx = da.arange(-(coff - local_coff),
                              ncols - (coff - local_coff),
-                             dtype=np.float)[colslice]
-        lines_idx = np.arange(nlines - (loff - local_loff),
+                             dtype=np.float, chunks=CHUNK_SIZE)
+        lines_idx = da.arange(nlines - (loff - local_loff),
                               -(loff - local_loff),
                               -1,
-                              dtype=np.float)[lineslice]
-
+                              dtype=np.float, chunks=CHUNK_SIZE)
         return ellipse(lines_idx[:, None], cols_idx[None, :])
 
-    def read_band(self, key, info, out=None, xslice=slice(None), yslice=slice(None)):
-        """Read the data"""
+    def read_band(self, key, info):
+        """Read the data."""
         tic = datetime.now()
         header = {}
         with open(self.filename, "rb") as fp_:
@@ -432,32 +421,26 @@ class AHIHSDFileHandler(BaseFileHandler):
             header['error_information_data'] = err_info_data
             fp_.seek(40, 1)
 
-            dummy = np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
+            np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
 
             nlines = int(header["block2"]['number_of_lines'][0])
             ncols = int(header["block2"]['number_of_columns'][0])
-            out.data[:] = np.fromfile(
-                fp_, dtype='<u2', count=nlines * ncols).reshape((nlines, ncols)).astype(np.float32)[yslice, xslice]
 
+            res = da.from_array(np.memmap(self.filename, offset=fp_.tell(),
+                                          dtype='<u2',  shape=(nlines, ncols), mode='r'),
+                                chunks=CHUNK_SIZE)
+        res = da.where(res == 65535, np.float32(np.nan), res)
         self._header = header
 
-        out.mask[header['block5']["count_value_outside_scan_pixels"]
-                 [0] == out.data] = True
-        out.mask[header['block5']["count_value_error_pixels"]
-                 [0] == out.data] = True
-
-        out.mask[self.geo_mask(yslice, xslice)] = True
-
         logger.debug("Reading time " + str(datetime.now() - tic))
-
-        self.calibrate(out, key.calibration)
-
+        res = self.calibrate(res, key.calibration)
         new_info = dict(units=info['units'],
                         standard_name=info['standard_name'],
                         wavelength=info['wavelength'],
                         resolution='resolution',
                         id=key,
                         name=key.name,
+                        scheduled_time=self.scheduled_time,
                         platform_name=self.platform_name,
                         sensor=self.sensor,
                         satellite_longitude=float(
@@ -466,7 +449,11 @@ class AHIHSDFileHandler(BaseFileHandler):
                             self.nav_info['SSP_latitude']),
                         satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
                                                  self.proj_info['earth_equatorial_radius']) * 1000)
-        out.info.update(new_info)
+        res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
+        res = res.where(header['block5']["count_value_outside_scan_pixels"][0] != res)
+        res = res.where(header['block5']["count_value_error_pixels"][0] != res)
+        res = res.where(self.geo_mask())
+        return res
 
     def calibrate(self, data, calibration):
         """Calibrate the data"""
@@ -476,34 +463,30 @@ class AHIHSDFileHandler(BaseFileHandler):
             return
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            self.convert_to_radiance(data)
+            data = self.convert_to_radiance(data)
         if calibration == 'reflectance':
-            self._vis_calibrate(data)
+            data = self._vis_calibrate(data)
         elif calibration == 'brightness_temperature':
-            self._ir_calibrate(data)
+            data = self._ir_calibrate(data)
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
+        return data
 
     def convert_to_radiance(self, data):
-        """Calibrate to radiance.
-        """
+        """Calibrate to radiance."""
 
         gain = self._header["block5"]["gain_count2rad_conversion"][0]
         offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
-        data.data[:] *= gain
-        data.data[:] += offset
+        return data * gain + offset
 
     def _vis_calibrate(self, data):
-        """Visible channel calibration only.
-        """
+        """Visible channel calibration only."""
         coeff = self._header["calibration"]["coeff_rad2albedo_conversion"]
-        data.data[:] *= coeff * 100
-        data.mask[data.data < 0] = True
+        return (data * coeff * 100).clip(0)
 
     def _ir_calibrate(self, data):
-        """IR calibration
-        """
+        """IR calibration."""
 
         cwl = self._header['block5']["central_wave_length"][0] * 1e-6
         c__ = self._header['calibration']["speed_of_light"][0]
@@ -511,59 +494,12 @@ class AHIHSDFileHandler(BaseFileHandler):
         k__ = self._header['calibration']["boltzmann_constant"][0]
         a__ = (h__ * c__) / (k__ * cwl)
 
-        #b__ = ((2 * h__ * c__ ** 2) / (1.0e6 * cwl ** 5 * data.data)) + 1
+        b__ = ((2 * h__ * c__ ** 2) / (data * 1.0e6 * cwl ** 5)) + 1
 
-        data.data[:] *= 1.0e6 * cwl ** 5
-        data.data[:] **= -1
-        data.data[:] *= (2 * h__ * c__ ** 2)
-        data.data[:] += 1
-
-        #Te_ = a__ / np.log(b__)
-
-        data.data[:] = a__ / np.log(data.data)
+        Te_ = a__ / da.log(b__)
 
         c0_ = self._header['calibration']["c0_rad2tb_conversion"][0]
         c1_ = self._header['calibration']["c1_rad2tb_conversion"][0]
         c2_ = self._header['calibration']["c2_rad2tb_conversion"][0]
 
-        #data.data[:] = c0_ + c1_ * Te_ + c2_ * Te_ ** 2
-
-        data.data[:] = np.polyval([c2_, c1_, c0_], data.data)
-
-        data.mask[data.data < 0] = True
-        data.mask[np.isnan(data.data)] = True
-
-
-def show(data, negate=False):
-    """Show the stretched data.
-    """
-    from PIL import Image as pil
-    data = np.array((data - data.min()) * 255.0 /
-                    (data.max() - data.min()), np.uint8)
-    if negate:
-        data = 255 - data
-    img = pil.fromarray(data)
-    img.show()
-
-
-if __name__ == "__main__":
-
-    # TESTFILE = ("/media/My Passport/HIMAWARI-8/HISD/Hsfd/" +
-    #            "201502/07/201502070200/00/B13/" +
-    #            "HS_H08_20150207_0200_B13_FLDK_R20_S0101.DAT")
-    TESTFILE = ("/local_disk/data/himawari8/testdata/" +
-                "HS_H08_20130710_0300_B13_FLDK_R20_S1010.DAT")
-    #"HS_H08_20130710_0300_B01_FLDK_R10_S1010.DAT")
-    SCENE = ahisf([TESTFILE])
-    SCENE.read_band(TESTFILE)
-    SCENE.calibrate(['13'])
-    # SCENE.calibrate(['13'], calibrate=0)
-
-    # print SCENE._data['13']['counts'][0].shape
-
-    show(SCENE.channels['13'], negate=False)
-
-    import matplotlib.pyplot as plt
-    plt.imshow(SCENE.channels['13'])
-    plt.colorbar()
-    plt.show()
+        return (c0_ + c1_ * Te_ + c2_ * Te_ ** 2).clip(0)
