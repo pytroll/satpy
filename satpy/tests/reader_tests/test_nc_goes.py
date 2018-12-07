@@ -486,6 +486,7 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
                                 msg='get_dataset() returns invalid reflectance for '
                                 'channel {}'.format(ch))
 
+
 def suite():
     """Test suite for GOES netCDF reader"""
     loader = unittest.TestLoader()
