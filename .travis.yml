@@ -45,4 +45,4 @@ deploy:
 notifications:
   slack:
     rooms:
-    - pytroll:96mNSYSI1dBjGyzVXkBT6qFt#satpy
+    - pytroll:96mNSYSI1dBjGyzVXkBT6qFt#github
