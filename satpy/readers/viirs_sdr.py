@@ -83,11 +83,43 @@ def _get_invalid_info(granule_data):
                " soub:" + str((granule_data == -999.2).sum()))
     return msg
 
+DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
+                'SVDNB': 'VIIRS-DNB-SDR',
+                'GITCO': 'VIIRS-IMG-GEO-TC',
+                'GIMGO': 'VIIRS-IMG-GEO',
+                'SVI01': 'VIIRS-I1-SDR',
+                'SVI02': 'VIIRS-I2-SDR',
+                'SVI03': 'VIIRS-I3-SDR',
+                'SVI04': 'VIIRS-I4-SDR',
+                'SVI05': 'VIIRS-I5-SDR',
+                'GMTCO': 'VIIRS-MOD-GEO-TC',
+                'GMODO': 'VIIRS-MOD-GEO',
+                'SVM01': 'VIIRS-M1-SDR',
+                'SVM02': 'VIIRS-M2-SDR',
+                'SVM03': 'VIIRS-M3-SDR',
+                'SVM04': 'VIIRS-M4-SDR',
+                'SVM05': 'VIIRS-M5-SDR',
+                'SVM06': 'VIIRS-M6-SDR',
+                'SVM07': 'VIIRS-M7-SDR',
+                'SVM08': 'VIIRS-M8-SDR',
+                'SVM09': 'VIIRS-M9-SDR',
+                'SVM10': 'VIIRS-M10-SDR',
+                'SVM11': 'VIIRS-M11-SDR',
+                'SVM12': 'VIIRS-M12-SDR',
+                'SVM13': 'VIIRS-M13-SDR',
+                'SVM14': 'VIIRS-M14-SDR',
+                'SVM15': 'VIIRS-M15-SDR',
+                'SVM16': 'VIIRS-M16-SDR',
+                }
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
 
     """VIIRS HDF5 File Reader
     """
+
+    def __init__(self, filename, filename_info, filetype_info):
+        super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info)
+        self.datasets = filename_info['datasets'].split('-')
 
     def __getitem__(self, item):
         if '*' in item:
@@ -125,30 +157,34 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     @property
     def start_time(self):
-        default_start_date = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateBeginningDate'
-        default_start_time = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateBeginningTime'
-        date_var_path = self.filetype_info.get('start_date', default_start_date).format(**self.filetype_info)
-        time_var_path = self.filetype_info.get('start_time', default_start_time).format(**self.filetype_info)
+        dataset_group = DATASET_KEYS[self.datasets[0]]
+        default_start_date = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningDate'
+        default_start_time = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningTime'
+        date_var_path = self.filetype_info.get('start_date', default_start_date).format(dataset_group=dataset_group)
+        time_var_path = self.filetype_info.get('start_time', default_start_time).format(dataset_group=dataset_group)
         return self._parse_datetime(self[date_var_path], self[time_var_path])
 
     @property
     def end_time(self):
-        default_end_date = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateEndingDate'
-        default_end_time = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateEndingTime'
-        date_var_path = self.filetype_info.get('end_date', default_end_date).format(**self.filetype_info)
-        time_var_path = self.filetype_info.get('end_time', default_end_time).format(**self.filetype_info)
+        dataset_group = DATASET_KEYS[self.datasets[0]]
+        default_end_date = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingDate'
+        default_end_time = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingTime'
+        date_var_path = self.filetype_info.get('end_date', default_end_date).format(dataset_group=dataset_group)
+        time_var_path = self.filetype_info.get('end_time', default_end_time).format(dataset_group=dataset_group)
         return self._parse_datetime(self[date_var_path], self[time_var_path])
 
     @property
     def start_orbit_number(self):
-        default = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateBeginningOrbitNumber'
-        start_orbit_path = self.filetype_info.get('start_orbit', default).format(**self.filetype_info)
+        dataset_group = DATASET_KEYS[self.datasets[0]]
+        default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningOrbitNumber'
+        start_orbit_path = self.filetype_info.get('start_orbit', default).format(dataset_group=dataset_group)
         return int(self[start_orbit_path])
 
     @property
     def end_orbit_number(self):
-        default = 'Data_Products/{file_group}/{file_group}_Aggr/attr/AggregateEndingOrbitNumber'
-        end_orbit_path = self.filetype_info.get('end_orbit', default).format(**self.filetype_info)
+        dataset_group = DATASET_KEYS[self.datasets[0]]
+        default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingOrbitNumber'
+        end_orbit_path = self.filetype_info.get('end_orbit', default).format(dataset_group=dataset_group)
         return int(self[end_orbit_path])
 
     @property
@@ -165,9 +201,10 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     @property
     def sensor_name(self):
-        default = 'Data_Products/{file_group}/attr/Instrument_Short_Name'
+        dataset_group = DATASET_KEYS[self.datasets[0]]
+        default = 'Data_Products/{dataset_group}/attr/Instrument_Short_Name'
         sensor_path = self.filetype_info.get(
-            'sensor_name', default).format(**self.filetype_info)
+            'sensor_name', default).format(dataset_group=dataset_group)
         return self[sensor_path].lower()
 
     def get_file_units(self, dataset_id, ds_info):
@@ -225,13 +262,13 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             return factors
 
     def _generate_file_key(self, ds_id, ds_info, factors=False):
-        var_path = ds_info.get('file_key', 'All_Data/{file_group}_All/{calibration}')
+        var_path = ds_info.get('file_key', 'All_Data/{dataset_group}_All/{calibration}')
         calibration = {
             'radiance': 'Radiance',
             'reflectance': 'Reflectance',
             'brightness_temperature': 'BrightnessTemperature',
         }.get(ds_id.calibration)
-        var_path = var_path.format(calibration=calibration, **self.filetype_info)
+        var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
         return var_path
 
     def get_shape(self, ds_id, ds_info):
@@ -239,9 +276,26 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         return self[var_path + "/shape"]
 
     def get_dataset(self, dataset_id, ds_info):
+        dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
+        if not dataset_group:
+            return
+        else:
+            dataset_group = dataset_group[0]
+            ds_info['dataset_group'] = dataset_group
         var_path = self._generate_file_key(dataset_id, ds_info)
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
-        data = self[var_path]
+        if 'I' in dataset_group:
+            scan_size = 32
+        else:
+            scan_size = 16
+        scans_path = 'All_Data/{dataset_group}_All/NumberOfScans'
+        scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        start_scan = 0
+        data_chunks = []
+        for scans in self[scans_path].values:
+            data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + scans * scan_size)))
+            start_scan += scan_size * 48
+        data = xr.concat(data_chunks, 'y')
         is_floating = np.issubdtype(data.dtype, np.floating)
 
         if is_floating:
