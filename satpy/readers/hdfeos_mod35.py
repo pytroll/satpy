@@ -247,21 +247,14 @@ class HDFEOSGeoReader(HDFEOSFileReader):
         return satint.interpolate()
 
 
-class HDFEOSBandReader(HDFEOSFileReader):
-
-    #not meeded because resolution is not coded in filename
-    res = {"1": 1000,
-           "Q": 250,
-           "H": 500}
+class HDFEOSCloudMask1000(HDFEOSFileReader):
 
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
 
-        #resolution not coded in shortname of product
-        #in mod35 resolution is 1km, 250m mask is encoded in last 2 byte
-        #self.resolution = self.res[ds[-3]]
+        self.resolution = 1000
 
     def get_dataset(self, key, info):
         """Read data from file and return the corresponding projectables."""
@@ -271,26 +264,22 @@ class HDFEOSBandReader(HDFEOSFileReader):
 
         info.update({'platform_name': 'EOS-' + platform_name})
         info.update({'sensor': 'modis'})
-        #print(info)
 
-        index, startbit, endbit = info.get("bits", "{}".format(key))
+        index, startbit, numbits = info.get("bits", "{}".format(key))
         file_key = info.get("file_key", "{}".format(key))
 
         subdata = self.sd.select(file_key)
 
-        var_attrs = subdata.attributes()
+        #can class value definition be stored as attribute in DataArray?
+        #var_attrs = subdata.attributes()
 
         array = xr.DataArray(from_sds(subdata, chunks=CHUNK_SIZE)[index,:,:],
                                  dims=['y', 'x']).astype(np.int32)
 
-
         # strip bits
-        array = bits_stripping(startbit, endbit, array).astype(np.float32)
+        array = bits_stripping(startbit, numbits, array).astype(np.float32)
 
         array.attrs = info
-
-        #valid_range = var_attrs['valid_range']
-
 
         return array
 
@@ -310,6 +299,44 @@ class HDFEOSBandReader(HDFEOSFileReader):
     def get_sata(self):
         return self.data.select("SensorAzimuth")
 
+
+class HDFEOSCloudMask250(HDFEOSFileReader):
+
+    def __init__(self, filename, filename_info, filetype_info):
+        HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
+        ds = self.metadata['INVENTORYMETADATA'][
+            'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
+
+        self.resolution = 250
+
+    def get_dataset(self, key, info):
+        """Read data from file and return the corresponding projectables."""
+
+        platform_name = self.metadata['INVENTORYMETADATA']['ASSOCIATEDPLATFORMINSTRUMENTSENSOR'][
+            'ASSOCIATEDPLATFORMINSTRUMENTSENSORCONTAINER']['ASSOCIATEDPLATFORMSHORTNAME']['VALUE']
+
+        info.update({'platform_name': 'EOS-' + platform_name})
+        info.update({'sensor': 'modis'})
+
+        file_key = info.get("file_key", "{}".format(key))
+
+        subdata = self.sd.select(file_key)
+
+        # can class value definition be stored as attribute in DataArray?
+        #var_attrs = subdata.attributes()
+
+        arr1 = from_sds(subdata, chunks=CHUNK_SIZE)[4,:,:],
+                                 dims=['y', 'x']).astype(np.int8)
+        arr1 = from_sds(subdata, chunks=CHUNK_SIZE)[5, :, :],
+               dims = ['y', 'x']).astype(np.int8)
+
+        arr3 = BitShiftCombine(arr1, arr2)
+
+        array = xr.DataArray(bit_strip_250m_mask(arr3), dims=['y', 'x'])
+
+        array.attrs = info
+
+        return array
 
 #right_shift = da.array.frompyfunc(np.right_shift)
 #left_shift = da.array.frompyfunc(np.left_shift)
@@ -337,7 +364,6 @@ def bits_stripping(bit_start, bit_count, value):
     bitmask = pow(2, bit_start + bit_count) - 1
 
     return np.right_shift(da.bitwise_and(value, bitmask), bit_start)
-#    return da.bitwise_and(value, bitmask)
 
 
 def BitShiftCombine(byte1, byte2):
@@ -358,11 +384,11 @@ def BitShiftCombine(byte1, byte2):
     # make sure byte1 is 16 bit
     twoByte = np.uint16(byte1)
     # shift bits to the left
-    twoByte = left_shift(twoByte, 8)  # twoByte << 8
+    twoByte = np.left_shift(twoByte, 8)  # twoByte << 8
     # concatenate the two bytes
     twoByte = da.bitwise_or(twoByte, byte2).astype(np.uint16)  # casting = "no")
 
-    return (twoByte)
+    return twoByte
 
 
 def bit_strip_250m_mask(inputArray):
@@ -388,15 +414,15 @@ def bit_strip_250m_mask(inputArray):
     """
 
     # create 4x4 array with numbers from 1 to 16 (count of bits)
-    pix = np.arange(0, 16).reshape((4, 4)).astype(np.uint16)
+    pix = da.arange(0, 16, chunks = (1, )).reshape((4, 4)).astype(np.uint16)
     # tile the 4x4 array the size of the input array dimensions
-    pix = np.tile(pix, (inputArray.shape[0], inputArray.shape[1]))
+    pix = da.tile(pix, (inputArray.shape[0], inputArray.shape[1]))
     # "interpolate" input array with nearest neighbour with resolution increase 4
-    data = np.repeat(np.repeat(inputArray, 4, axis=0), 4, axis=1)
+    data = da.repeat(np.repeat(inputArray, 4, axis=0), 4, axis=1)
     # decode the corresponding bits to get the 250m mask
     mask250 = bits_stripping(pix, 1, data)
 
-    return (mask250)
+    return mask250
 
 
 if __name__ == '__main__':
