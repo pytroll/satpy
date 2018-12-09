@@ -15,14 +15,53 @@ navigations:
       rows_per_scan: 10
 
 datasets:
-  cloud_mask:
+  cloud_mask_1k:
     name:
-      fov: {bits: [0,1,2]}
+    #bits: [num_byte, start_bit, num_bits]
+    #Byte 1
       cloud_mask: {bits: [0,0,1]}
+      fov_quality: {bits: [0,1,2]}
+      day_night_path: {bits: [0,3,1]}
+      sunglint_path: {bits: [0,4,1]}
+      snow_ice_path: {bits: [0,5,1]}
+      land_water_path: {bits: [0,6,2]}
+    #Byte 2
+      cloud_obstruction: {bits: [1,0,1]}
+      thin_cirrus_solar: {bits: [1,1,1]}
+      snow_acillary: {bits: [1,2,1]}
+      thin_cirrus_ir: {bits: [1,3,1]}
+      cloud_adj: {bits: [1,4,1]}
+      cloud_ir_thresh: {bits: [1,5,1]}
+      high_cloud_co2: {bits: [1,6,1]}
+      high_cloud_67: {bits: [1,7,1]}
+    #Byte 3
+      high_cloud_138: {bits: [2,0,1]}
+      high_cloud_39_12: {bits: [2,1,1]}
+      cloud_ir_diff: {bits: [2,2,1]}
+      cloud_39_11: {bits: [2,3,1]}
+      cloud_vis_refl: {bits: [2,4,1]}
+      cloud_vis_vir_refl: {bits: [2,5,1]}
+      cloud_ndvi: {bits: [2,6,1]}
+      cloud_land_polar: {bits: [2,7,1]}
+    #Byte 4
+      ocean_86_11: {bits: [3,0,1]}
+      clear_sky_spatial_consistency: {bits: [3,1,1]}
+      clear_sky_night_land_sun_glint: {bits: [3,2,1]}
+      surface_temp: {bits: [3,3,1]}
+      suspended_dust: {bits: [3,4,1]}
+      night_ocean_86_73: {bits: [3,5,1]}
+      nicht_ocean_spatial_var: {bits: [3,6,1]}
+      night_ocean_low_cloud_39_11: {bits: [3,7,1]}
     resolution:
-      #250: {file_type: hdf_eos_data_250m}
       1000: {file_type: hdf_eos_data_1000m}
     #calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    file_key: Cloud_Mask
+
+   cloud_mask_250m:
+    name: cloud_mask_250
+    resolution:
+      250: {file_type: hdf_eos_data_250m}
     coordinates: [longitude, latitude]
     file_key: Cloud_Mask
 
@@ -93,7 +132,16 @@ file_types:
     - 'thin_M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D35_L2.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.1000m.hdf'
-    file_reader: !!python/name:satpy.readers.hdfeos_mod35.HDFEOSBandReader
+    file_reader: !!python/name:satpy.readers.hdfeos_mod35.HDFEOSCloudMask1000
+  hdf_eos_data_250m:
+    file_patterns:
+    - 'M{platform_indicator:1s}D35_L2_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'thin_M{platform_indicator:1s}D35_L2.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'M{platform_indicator:1s}D35_L2.{start_time:%y%j%H%M%S}.hdf'
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.1000m.hdf'
+    file_reader: !!python/name:satpy.readers.hdfeos_mod35.HDFEOSCloudMask250
   hdf_eos_geo:
     file_patterns:
     - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
