@@ -36,7 +36,15 @@ from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
+from satpy.utils import scn_to_xrds
 from pyresample.geometry import AreaDefinition, BaseDefinition
+from pyresample.utils import proj4_str_to_dict
+
+import holoviews as hv
+import geoviews as gv
+import geoviews.feature as gf
+from cartopy import crs
+
 from xarray import DataArray
 import numpy as np
 import six
@@ -1022,6 +1030,51 @@ class Scene(MetadataObject):
         if not in_ipynb():
             img.show()
         return img
+
+    def to_geoviews(self, gvtype=gv.Image, datasets=None, kdims=None, vdims=None, dynamic=False):
+        """Convert satpy Scene to geoviews.
+
+        Parameters
+        ----------
+        scene : satpy scene
+        gvtype : gv plot type, optional, default gv.Image
+            One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
+            See Geoviews documentation for details.
+        datasets : list of string
+        kdims : list of str, optional
+        vdims : list of str, optional
+            If not given defaults to first data variable
+        dynamic : boolean, optional, default False
+
+        Returns
+        -------
+        geoviews object
+
+        Todo
+        ----
+        - better handling of projection information in datasets which are
+          to be passed to geoviews
+        """
+        ds = scn_to_xrds(self, datasets)
+
+        if vdims is None:
+            # by default select first data variable as display variable
+            vdims = ds.data_vars[ds.data_vars.keys()[0]].name
+
+        if hasattr(ds, "area"):
+            proj = proj4_str_to_dict(ds.area.proj_str)["proj"]
+            if proj == "geos":
+                dscrs = crs.Geostationary()
+                gvds = gv.Dataset(ds, crs=dscrs)
+        else:
+            gvds = gv.Dataset(ds)
+
+        if "latitude" in ds.coords.keys():
+            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
+        else:
+            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)
+
+        return gview
 
     def images(self):
         """Generate images for all the datasets from the scene."""
