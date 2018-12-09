@@ -13,12 +13,17 @@ examples will walk through some basic use cases of the MultiScene.
     These features are still early in development and may change overtime as
     more user feedback is received and more features added.
 
+Blending Scenes in MultiScene
+-----------------------------
+Scenes contained in a MultiScene can be combined in different ways.
+
 Stacking scenes
 ---------------
 
-The MultiScene makes it easy to take multiple Scenes and stack them on top of
-each other. The code below takes two separate orbits from a VIIRS sensor and
-stacks them on top of each other.
+The code below uses the `stack` function of the :meth:`~MultiScene.blend`
+method to stack two separate orbits from a VIIRS sensor. The `stack` function uses
+the first dataset as the base and then iteratively fills in missing values from
+all other datasets.
 
     >>> from satpy import Scene, MultiScene
     >>> from glob import glob
@@ -33,6 +38,13 @@ stacks them on top of each other.
     >>> new_mscn = mscn.resample(my_area)
     >>> blended_scene = new_mscn.blend()
     >>> blended_scene.save_datasets()
+
+Timeseries
+----------
+Using the :meth:`~MultiScene.blend` method with the `timeseries` function will combine              
+multiple scenes from different time slots by time. A single `Scene` with each dataset/channel       
+extended by the time dimension will be returned. If used together with the :meth:`~Scene.to_geoviews`
+method, creation of interactive timeseries Bokeh plots is possible.
 
 Saving frames of an animation
 -----------------------------
