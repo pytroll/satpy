@@ -32,7 +32,10 @@ import os
 import re
 
 import numpy as np
+import xarray as xr
 import xarray.ufuncs as xu
+
+from satpy.dataset import combine_metadata
 
 try:
     import configparser
@@ -288,3 +291,36 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
     corr = corr.where(cos_zen.notnull(), 0)
 
     return data * corr
+
+
+def scn_to_xrds(scn, datasets = None):
+    """Merge all xr.DataArrays of a scene to a xr.DataSet.
+
+    Parameters
+    ----------
+    scn : satpy Scene
+    datasets : list of string, optional
+        List of datasets to include in the xr.Dataset
+
+    Returns
+    -------
+    xr.DataSet
+    """
+    dslist = [(i, j) for i, j in scn.datasets.items() if i.name not in ["latitude", "longitude"]]
+
+    if not datasets is None:
+        dslist = [(i, j) for i, j in dslist if i.name in datasets]
+
+    ds_dict = {i.name: it.rename(i.name) for (i, it) in dslist}
+    mdata = combine_metadata(*tuple(i.attrs for i in scn.datasets.values()))
+
+    if "latitude" in [k.name for k in scn.datasets.keys()]:
+        ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], scn["latitude"]),
+                                         "longitude": (["y", "x"], scn["longitude"],)})
+        # ds.longitude.values[ds.longitude.values>180] -= 360
+    else:
+        ds = xr.merge(ds_dict.values())
+
+    ds.attrs = mdata
+
+    return ds
