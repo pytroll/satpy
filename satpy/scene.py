@@ -1036,13 +1036,14 @@ class Scene(MetadataObject):
 
         Parameters
         ----------
-        scene : satpy scene
         gvtype : gv plot type, optional, default gv.Image
             One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
             See Geoviews documentation for details.
         datasets : list of string
         kdims : list of str, optional
+            Key dimensions. See geoviews documentation for more information.
         vdims : list of str, optional
+            Value dimensions. See geoviews documentation for more information.
             If not given defaults to first data variable
         dynamic : boolean, optional, default False
 
