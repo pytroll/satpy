@@ -719,8 +719,8 @@ class ColormapCompositor(GenericCompositor):
         """Create the colormap from the `raw_palette` and the valid_range."""
         from trollimage.colormap import Colormap
         sqpalette = np.asanyarray(palette).squeeze() / 255.0
-        if 'palette_meanings' in palette.attrs:
-            meanings = [int(val) for val in palette.attrs['palette_meanings'].split()]
+        if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
+            meanings = palette.attrs['palette_meanings']
             iterator = zip(meanings, sqpalette)
         else:
             iterator = enumerate(sqpalette[:-1])

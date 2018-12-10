@@ -162,6 +162,10 @@ class NcNWCSAF(BaseFileHandler):
         except AttributeError:
             pass
 
+        if 'palette_meanings' in variable.attrs:
+            variable.attrs['palette_meanings'] = [int(val)
+                                                  for val in variable.attrs['palette_meanings'].split()]
+
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])
         if self.sw_version == 'NWC/PPS version v2014' and dsid.name == 'ctth_alti':
