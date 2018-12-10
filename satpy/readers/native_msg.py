@@ -32,7 +32,6 @@ References:
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
-import os
 import logging
 from datetime import datetime
 import numpy as np
