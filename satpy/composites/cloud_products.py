@@ -39,7 +39,7 @@ class CloudTopHeightCompositor(ColormapCompositor):
 
         from trollimage.colormap import Colormap
         if 'palette_meanings' in palette.attrs:
-            palette_indices = [int(val) for val in palette.attrs['palette_meanings'].split()]
+            palette_indices = palette.attrs['palette_meanings']
         else:
             palette_indices = range(len(palette))
 
