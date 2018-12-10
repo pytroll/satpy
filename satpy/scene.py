@@ -36,14 +36,9 @@ from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
-from satpy.utils import scn_to_xrds
+from satpy.utils import scene_to_xarray_dataset
 from pyresample.geometry import AreaDefinition, BaseDefinition
 from pyresample.utils import proj4_str_to_dict
-
-import holoviews as hv
-import geoviews as gv
-import geoviews.feature as gf
-from cartopy import crs
 
 from xarray import DataArray
 import numpy as np
@@ -1056,7 +1051,13 @@ class Scene(MetadataObject):
         - better handling of projection information in datasets which are
           to be passed to geoviews
         """
-        ds = scn_to_xrds(self, datasets)
+        try:
+            import geoviews as gv
+            from cartopy import crs
+        except ImportError:
+            warnings.warn("This method needs the geoviews package installed.")
+
+        ds = scene_to_xarray_dataset(self, datasets)
 
         if vdims is None:
             # by default select first data variable as display variable
