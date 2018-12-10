@@ -136,7 +136,8 @@ To visualize loaded data in a pop-up window:
                                                                                                     
 Alternatively if working in a Jupyter notebook the scene can be converted to a `geoviews            
 <http://geo.holoviews.org/index.html>` object using the :meth:`~satpy.scene.Scene.to_geoviews`      
-method.                                                                                             
+method. The geoviews package is not a rquirement of the satpy install so in order to use this
+feature the user needs to install the geoviews package himself.
                                                                                                     
     >>> import holoviews as hv                                                                      
     >>> import geoviews as gv                                                                       
