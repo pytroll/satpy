@@ -38,17 +38,21 @@ class CloudTopHeightCompositor(ColormapCompositor):
         """Create the colormap from the `raw_palette` and the valid_range."""
 
         from trollimage.colormap import Colormap
+        if 'palette_meanings' in palette.attrs:
+            palette_indices = [int(val) for val in palette.attrs['palette_meanings'].split()]
+        else:
+            palette_indices = range(len(palette))
 
-        palette = np.asanyarray(palette).squeeze()
+        palette = np.asanyarray(palette).squeeze() / 255.0
         tups = [(val, tuple(tup))
-                for (val, tup) in enumerate(palette)]
+                for (val, tup) in zip(palette_indices, palette)]
         colormap = Colormap(*tups)
 
         sf = info.get('scale_factor', np.array(1))
         colormap.set_range(
             *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
 
-        return colormap
+        return colormap, palette
 
     def __call__(self, projectables, **info):
         """Create the composite."""
@@ -56,8 +60,7 @@ class CloudTopHeightCompositor(ColormapCompositor):
             raise ValueError("Expected 3 datasets, got %d" %
                              (len(projectables), ))
         data, palette, status = projectables
-        palette = np.asanyarray(palette).squeeze() / 255.0
-        colormap = self.build_colormap(palette, data.attrs)
+        colormap, palette = self.build_colormap(palette, data.attrs)
         channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
         channels = palette[channels]
         mask_nan = data.notnull()
