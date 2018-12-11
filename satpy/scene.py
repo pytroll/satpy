@@ -36,7 +36,6 @@ from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
-from satpy.utils import scene_to_xarray_dataset
 from pyresample.geometry import AreaDefinition, BaseDefinition
 from pyresample.utils import proj4_str_to_dict
 
@@ -1114,6 +1113,37 @@ class Scene(MetadataObject):
                                "dimensions (eg. through resampling).")
         writer, save_kwargs = load_writer(writer, ppp_config_dir=self.ppp_config_dir, **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
+
+    def to_xarray_dataset(self, datasets = None):
+        """Merge all xr.DataArrays of a scene to a xr.DataSet.
+
+        Parameters
+        ----------
+        datasets : list of string, optional
+            List of datasets to include in the xr.Dataset
+
+        Returns
+        -------
+        xr.DataSet
+        """
+        dslist = [(i, j) for i, j in self.datasets.items() if i.name not in ["latitude", "longitude"]]
+
+        if datasets is not None:
+            dslist = [(i, j) for i, j in dslist if i.name in datasets]
+
+        ds_dict = {i.name: it.rename(i.name) for (i, it) in dslist}
+        mdata = combine_metadata(*tuple(i.attrs for i in self.datasets.values()))
+
+        if "latitude" in [k.name for k in self.datasets.keys()]:
+            ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], self["latitude"]),
+                                             "longitude": (["y", "x"], self["longitude"],)})
+            # ds.longitude.values[ds.longitude.values>180] -= 360
+        else:
+            ds = xr.merge(ds_dict.values())
+
+        ds.attrs = mdata
+
+        return ds
 
     @classmethod
     def get_writer_by_ext(cls, extension):
