@@ -31,7 +31,6 @@ import logging
 import os
 import re
 
-import xarray as xr
 import xarray.ufuncs as xu
 
 from satpy.dataset import combine_metadata

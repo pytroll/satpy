@@ -39,6 +39,7 @@ from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition, BaseDefinition
 from pyresample.utils import proj4_str_to_dict
 
+import xarray as xr
 from xarray import DataArray
 import numpy as np
 import six
