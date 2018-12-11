@@ -30,7 +30,7 @@ import os
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
 from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
-                           replace_anc)
+                           replace_anc, combine_metadata)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
@@ -1027,7 +1027,7 @@ class Scene(MetadataObject):
             img.show()
         return img
 
-    def to_geoviews(self, gvtype=gv.Image, datasets=None, kdims=None, vdims=None, dynamic=False):
+    def to_geoviews(self, gvtype=None, datasets=None, kdims=None, vdims=None, dynamic=False):
         """Convert satpy Scene to geoviews.
 
         Parameters
@@ -1056,9 +1056,13 @@ class Scene(MetadataObject):
             import geoviews as gv
             from cartopy import crs
         except ImportError:
+            import warnings
             warnings.warn("This method needs the geoviews package installed.")
 
-        ds = scene_to_xarray_dataset(self, datasets)
+        íf gvtype is None:
+            gvtype = gv.Image
+
+        ds = self.to_xarray_dataset(datasets)
 
         if vdims is None:
             # by default select first data variable as display variable
@@ -1115,7 +1119,7 @@ class Scene(MetadataObject):
         writer, save_kwargs = load_writer(writer, ppp_config_dir=self.ppp_config_dir, **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
 
-    def to_xarray_dataset(self, datasets = None):
+    def to_xarray_dataset(self, datasets=None):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.
 
         Parameters
