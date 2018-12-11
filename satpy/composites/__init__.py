@@ -718,23 +718,28 @@ class ColormapCompositor(GenericCompositor):
     def build_colormap(palette, dtype, info):
         """Create the colormap from the `raw_palette` and the valid_range."""
         from trollimage.colormap import Colormap
+        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
+            meanings = palette.attrs['palette_meanings']
+            iterator = zip(meanings, sqpalette)
+        else:
+            iterator = enumerate(sqpalette[:-1])
 
-        palette = np.asanyarray(palette).squeeze()
         if dtype == np.dtype('uint8'):
             tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
+                    for (val, tup) in iterator]
             colormap = Colormap(*tups)
 
         elif 'valid_range' in info:
             tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
+                    for (val, tup) in iterator]
             colormap = Colormap(*tups)
 
             sf = info.get('scale_factor', np.array(1))
             colormap.set_range(
                 *info['valid_range'] * sf + info.get('add_offset', 0))
 
-        return colormap
+        return colormap, sqpalette
 
 
 class ColorizeCompositor(ColormapCompositor):
@@ -749,8 +754,7 @@ class ColorizeCompositor(ColormapCompositor):
         # writer.
 
         data, palette = projectables
-        palette = np.asanyarray(palette).squeeze()
-        colormap = self.build_colormap(palette / 255.0, data.dtype, data.attrs)
+        colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
         r, g, b = colormap.colorize(np.asanyarray(data))
         r[data.mask] = palette[-1][0]
@@ -776,8 +780,7 @@ class PaletteCompositor(ColormapCompositor):
         # writer.
 
         data, palette = projectables
-        palette = np.asanyarray(palette).squeeze() / 255.0
-        colormap = self.build_colormap(palette, data.dtype, data.attrs)
+        colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
         channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
         channels = palette[channels]

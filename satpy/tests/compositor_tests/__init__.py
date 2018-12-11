@@ -296,6 +296,73 @@ class TestInlineComposites(unittest.TestCase):
                          ['IR_108', 'IR_087'])
 
 
+class TestColormapCompositor(unittest.TestCase):
+    """Test the ColormapCompositor."""
+
+    def test_build_colormap(self):
+        from satpy.composites import ColormapCompositor
+        import numpy as np
+        import xarray as xr
+        cmap_comp = ColormapCompositor('test_cmap_compositor')
+        palette = np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]])
+        cmap, sqpal = cmap_comp.build_colormap(palette, np.uint8, {})
+        self.assertTrue(np.allclose(cmap.values, [0, 1]))
+        self.assertTrue(np.allclose(sqpal, palette / 255.0))
+
+        palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
+                               dims=['value', 'band'])
+        palette.attrs['palette_meanings'] = [2, 3, 4]
+        cmap, sqpal = cmap_comp.build_colormap(palette, np.uint8, {})
+        self.assertTrue(np.allclose(cmap.values, [2, 3, 4]))
+        self.assertTrue(np.allclose(sqpal, palette / 255.0))
+
+
+class TestPaletteCompositor(unittest.TestCase):
+    """Test the PaletteCompositor."""
+
+    def test_call(self):
+        from satpy.composites import PaletteCompositor
+        import numpy as np
+        import xarray as xr
+        cmap_comp = PaletteCompositor('test_cmap_compositor')
+        palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
+                               dims=['value', 'band'])
+        palette.attrs['palette_meanings'] = [2, 3, 4]
+
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8), dims=['y', 'x'])
+        res = cmap_comp([data, palette])
+        exp = np.array([[[1., 0.498039, 0.],
+                         [0., 0.498039, 1.]],
+                        [[1., 0.498039, 0.],
+                         [0., 0.498039, 1.]],
+                        [[1., 0.498039, 0.],
+                         [0., 0.498039, 1.]]])
+        self.assertTrue(np.allclose(res, exp))
+
+
+class TestCloudTopHeightCompositor(unittest.TestCase):
+    """Test the CloudTopHeightCompositor."""
+
+    def test_call(self):
+        from satpy.composites.cloud_products import CloudTopHeightCompositor
+        import numpy as np
+        import xarray as xr
+        cmap_comp = CloudTopHeightCompositor('test_cmap_compositor')
+        palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
+                               dims=['value', 'band'])
+        palette.attrs['palette_meanings'] = [2, 3, 4]
+        status = np.array([1, 0, 1])
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8), dims=['y', 'x'])
+        res = cmap_comp([data, palette, status])
+        exp = np.array([[[0., 0.498039, 0.],
+                         [0., 0.498039, 0.]],
+                        [[0., 0.498039, 0.],
+                         [0., 0.498039, 0.]],
+                        [[0., 0.498039, 0.],
+                         [0., 0.498039, 0.]]])
+        self.assertTrue(np.allclose(res, exp))
+
+
 def suite():
     """Test suite for all reader tests"""
     loader = unittest.TestLoader()
@@ -309,6 +376,9 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestLuminanceSharpeningCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestInlineComposites))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestColormapCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPaletteCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestCloudTopHeightCompositor))
 
     return mysuite
 
