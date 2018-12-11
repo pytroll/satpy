@@ -1059,7 +1059,7 @@ class Scene(MetadataObject):
             import warnings
             warnings.warn("This method needs the geoviews package installed.")
 
-        íf gvtype is None:
+        if gvtype is None:
             gvtype = gv.Image
 
         ds = self.to_xarray_dataset(datasets)
