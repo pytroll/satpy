@@ -32,7 +32,6 @@ import os
 import re
 
 import numpy as np
-import xarray as xr
 import xarray.ufuncs as xu
 
 from satpy.dataset import combine_metadata
