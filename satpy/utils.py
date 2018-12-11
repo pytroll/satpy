@@ -266,34 +266,3 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88.):
     return data * corr
 
 
-def scene_to_xarray_dataset(scene, datasets = None):
-    """Merge all xr.DataArrays of a scene to a xr.DataSet.
-
-    Parameters
-    ----------
-    scene : satpy Scene
-    datasets : list of string, optional
-        List of datasets to include in the xr.Dataset
-
-    Returns
-    -------
-    xr.DataSet
-    """
-    dslist = [(i, j) for i, j in scene.datasets.items() if i.name not in ["latitude", "longitude"]]
-
-    if datasets is not None:
-        dslist = [(i, j) for i, j in dslist if i.name in datasets]
-
-    ds_dict = {i.name: it.rename(i.name) for (i, it) in dslist}
-    mdata = combine_metadata(*tuple(i.attrs for i in scene.datasets.values()))
-
-    if "latitude" in [k.name for k in scene.datasets.keys()]:
-        ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], scene["latitude"]),
-                                         "longitude": (["y", "x"], scene["longitude"],)})
-        # ds.longitude.values[ds.longitude.values>180] -= 360
-    else:
-        ds = xr.merge(ds_dict.values())
-
-    ds.attrs = mdata
-
-    return ds
