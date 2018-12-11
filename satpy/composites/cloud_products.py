@@ -43,16 +43,16 @@ class CloudTopHeightCompositor(ColormapCompositor):
         else:
             palette_indices = range(len(palette))
 
-        palette = np.asanyarray(palette).squeeze() / 255.0
+        sqpalette = np.asanyarray(palette).squeeze() / 255.0
         tups = [(val, tuple(tup))
-                for (val, tup) in zip(palette_indices, palette)]
+                for (val, tup) in zip(palette_indices, sqpalette)]
         colormap = Colormap(*tups)
+        if 'palette_meanings' not in palette.attrs:
+            sf = info.get('scale_factor', np.array(1))
+            colormap.set_range(
+                *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
 
-        sf = info.get('scale_factor', np.array(1))
-        colormap.set_range(
-            *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
-
-        return colormap, palette
+        return colormap, sqpalette
 
     def __call__(self, projectables, **info):
         """Create the composite."""
