@@ -22,7 +22,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader.
+"""HRIT format reader
+**********************
 
 References:
     ELECTRO-L GROUND SEGMENT MSU-GS INSTRUMENT,
@@ -271,14 +272,14 @@ class HRITGOMSFileHandler(HRITFileHandler):
         satellite_id = self.prologue['SatelliteStatus']['SatelliteID']
         self.platform_name = SPACECRAFTS[satellite_id]
 
-    def get_dataset(self, key, info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, key, info):
         """Get the data  from the files."""
         res = super(HRITGOMSFileHandler, self).get_dataset(key, info)
 
         res = self.calibrate(res, key.calibration)
         res.attrs['units'] = info['units']
         res.attrs['standard_name'] = info['standard_name']
+        res.attrs['wavelength'] = info['wavelength']
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'msu-gs'
         res.attrs['satellite_longitude'] = self.mda['projection_parameters']['SSP_longitude']

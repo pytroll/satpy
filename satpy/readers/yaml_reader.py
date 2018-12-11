@@ -519,7 +519,10 @@ class FileYAMLReader(AbstractYAMLReader):
                 continue
 
             for ds_id, ds_info in list(self.ids.items()):
-                if fh.filetype_info['file_type'] != ds_info['file_type']:
+                file_types = ds_info['file_type']
+                if not isinstance(file_types, list):
+                    file_types = [file_types]
+                if fh.filetype_info['file_type'] not in file_types:
                     continue
                 if ds_id.resolution is not None:
                     continue
