@@ -22,10 +22,11 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Advanced Himawari Imager (AHI) standard format data reader. The HSD format
-that this reader reads are described at the URL below:
+"""Advanced Himawari Imager (AHI) standard format data reader.
 
-http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
+References:
+    - Himawari-8/9 Himawari Standard Data User's Guide
+    - http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
 
 Time Information
 ****************
@@ -251,6 +252,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                                         dtype=_NAV_INFO_TYPE,
                                         count=1)[0]
         self.platform_name = np2str(self.basic_info['satellite'])
+        self.observation_area = np2str(self.basic_info['observation_area'])
         self.sensor = 'ahi'
 
     @property
@@ -304,8 +306,8 @@ class AHIHSDFileHandler(BaseFileHandler):
                      'units': 'm'}
 
         area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
+            self.observation_area,
+            "AHI {} area".format(self.observation_area),
             'geosh8',
             proj_dict,
             ncols,

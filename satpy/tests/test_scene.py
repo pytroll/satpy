@@ -40,15 +40,13 @@ os.environ.pop("PPP_CONFIG_DIR", None)
 
 
 class TestScene(unittest.TestCase):
-    """
-    Test the scene class
-    """
+    """Test the scene class."""
 
     def test_init(self):
         import satpy.scene
         with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
             cri.return_value = {}
-            scene = satpy.scene.Scene(filenames=['bla'], reader='blo')
+            satpy.scene.Scene(filenames=['bla'], reader='blo')
             cri.assert_called_once_with(filenames=['bla'], reader='blo',
                                         reader_kwargs=None)
 
@@ -112,7 +110,7 @@ class TestScene(unittest.TestCase):
         with mock.patch('satpy.scene.Scene._compute_metadata_from_readers') as md:
             md.return_value = {'sensor': {'sensor'}}
             with mock.patch('satpy.scene.load_readers') as findermock:
-                scene = satpy.scene.Scene(filenames=filenames)
+                satpy.scene.Scene(filenames=filenames)
                 findermock.assert_called_once_with(
                     filenames=filenames,
                     reader=reader_name,
@@ -161,10 +159,9 @@ class TestScene(unittest.TestCase):
         from satpy.scene import Scene
         reader = "foo"
         filenames = ["1", "2", "3"]
-        sensors = set()
         with mock.patch('satpy.scene.load_readers') as findermock:
             findermock.return_value = {}
-            scene = Scene(reader=reader, filenames=filenames)
+            Scene(reader=reader, filenames=filenames)
             findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
                                                reader=reader,
                                                filenames=filenames,
@@ -417,7 +414,7 @@ class TestScene(unittest.TestCase):
         from xarray import DataArray
         import numpy as np
         scene = Scene()
-        scene["1"] = ds1 = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3)})
+        scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3)})
         self.assertTrue('1' in scene)
         self.assertTrue(0.15 in scene)
         self.assertFalse('2' in scene)
@@ -428,9 +425,9 @@ class TestScene(unittest.TestCase):
         from xarray import DataArray
         import numpy as np
         scene = Scene()
-        scene["1"] = ds1 = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3)})
-        scene["2"] = ds2 = DataArray(np.arange(5), attrs={'wavelength': (0.4, 0.5, 0.6)})
-        scene["3"] = ds3 = DataArray(np.arange(5), attrs={'wavelength': (0.7, 0.8, 0.9)})
+        scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3)})
+        scene["2"] = DataArray(np.arange(5), attrs={'wavelength': (0.4, 0.5, 0.6)})
+        scene["3"] = DataArray(np.arange(5), attrs={'wavelength': (0.7, 0.8, 0.9)})
         del scene['1']
         del scene['3']
         del scene[0.45]
@@ -1066,7 +1063,6 @@ class TestSceneLoading(unittest.TestCase):
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp18'])
         loaded_ids = list(scene.datasets.keys())
-        print(loaded_ids)
         # depends on:
         #   ds3
         #   ds4 (mod1, mod3)

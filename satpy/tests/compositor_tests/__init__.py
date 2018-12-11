@@ -19,8 +19,6 @@
 """Tests for compositors.
 """
 
-
-import sys
 from satpy.tests.compositor_tests import test_abi, test_ahi, test_viirs
 
 try:
@@ -28,10 +26,7 @@ try:
 except ImportError:
     import mock
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 
 class TestCheckArea(unittest.TestCase):
@@ -185,6 +180,122 @@ class TestDayNightCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.values[0], expected)
 
 
+class TestFillingCompositor(unittest.TestCase):
+
+    def test_fill(self):
+        import numpy as np
+        import xarray as xr
+        from satpy.composites import FillingCompositor
+        comp = FillingCompositor(name='fill_test')
+        filler = xr.DataArray(np.array([1, 2, 3, 4, 3, 2, 1]))
+        red = xr.DataArray(np.array([1, 2, 3, np.nan, 3, 2, 1]))
+        green = xr.DataArray(np.array([np.nan, 2, 3, 4, 3, 2, np.nan]))
+        blue = xr.DataArray(np.array([4, 3, 2, 1, 2, 3, 4]))
+        res = comp([filler, red, green, blue])
+        np.testing.assert_allclose(res.sel(bands='R').data, filler.data)
+        np.testing.assert_allclose(res.sel(bands='G').data, filler.data)
+        np.testing.assert_allclose(res.sel(bands='B').data, blue.data)
+
+
+class TestLuminanceSharpeningCompositor(unittest.TestCase):
+    """Test luminance sharpening compositor."""
+
+    def test_compositor(self):
+        """Test luminance sharpening compositor."""
+        import numpy as np
+        import xarray as xr
+        from satpy.composites import LuminanceSharpeningCompositor
+        comp = LuminanceSharpeningCompositor(name='test')
+        # Three shades of grey
+        rgb_arr = np.array([1, 50, 100, 200, 1, 50, 100, 200, 1, 50, 100, 200])
+        rgb = xr.DataArray(rgb_arr.reshape((3, 2, 2)),
+                           dims=['bands', 'y', 'x'])
+        # 100 % luminance -> all result values ~1.0
+        lum = xr.DataArray(np.array([[100., 100.], [100., 100.]]),
+                           dims=['y', 'x'])
+        res = comp([lum, rgb])
+        np.testing.assert_allclose(res.data, 1., atol=1e-9)
+        # 50 % luminance, all result values ~0.5
+        lum = xr.DataArray(np.array([[50., 50.], [50., 50.]]),
+                           dims=['y', 'x'])
+        res = comp([lum, rgb])
+        np.testing.assert_allclose(res.data, 0.5, atol=1e-9)
+        # 30 % luminance, all result values ~0.3
+        lum = xr.DataArray(np.array([[30., 30.], [30., 30.]]),
+                           dims=['y', 'x'])
+        res = comp([lum, rgb])
+        np.testing.assert_allclose(res.data, 0.3, atol=1e-9)
+        # 0 % luminance, all values ~0.0
+        lum = xr.DataArray(np.array([[0., 0.], [0., 0.]]),
+                           dims=['y', 'x'])
+        res = comp([lum, rgb])
+        np.testing.assert_allclose(res.data, 0.0, atol=1e-9)
+
+
+class TestSandwichCompositor(unittest.TestCase):
+    """Test sandwich compositor."""
+
+    @mock.patch('satpy.composites.enhance2dataset')
+    def test_compositor(self, e2d):
+        """Test luminance sharpening compositor."""
+        import numpy as np
+        import xarray as xr
+        from satpy.composites import SandwichCompositor
+
+        rgb_arr = np.random.random((3, 2, 2))
+        rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'])
+        lum_arr = 100 * np.random.random((2, 2))
+        lum = xr.DataArray(lum_arr, dims=['y', 'x'])
+
+        # Make enhance2dataset return unmodified dataset
+        e2d.return_value = rgb
+        comp = SandwichCompositor(name='test')
+
+        res = comp([lum, rgb])
+
+        for i in range(3):
+            np.testing.assert_allclose(res.data[i, :, :],
+                                       rgb_arr[i, :, :] * lum_arr / 100.)
+
+
+class TestInlineComposites(unittest.TestCase):
+    """Test inline composites."""
+
+    def test_inline_composites(self):
+        """Test that inline composites are working."""
+        from satpy.composites import CompositorLoader
+        cl_ = CompositorLoader()
+        cl_.load_sensor_composites('visir')
+        comps = cl_.compositors
+        # Check that "fog" product has all its prerequisites defined
+        keys = comps['visir'].keys()
+        fog = [comps['visir'][dsid] for dsid in keys if "fog" == dsid.name][0]
+        self.assertEqual(fog.attrs['prerequisites'][0], 'fog_dep_0')
+        self.assertEqual(fog.attrs['prerequisites'][1], 'fog_dep_1')
+        self.assertEqual(fog.attrs['prerequisites'][2], 10.8)
+
+        # Check that the sub-composite dependencies use wavelengths
+        # (numeric values)
+        keys = comps['visir'].keys()
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid.name]
+        self.assertEqual(comps['visir'][fog_dep_ids[0]].attrs['prerequisites'],
+                         [12.0, 10.8])
+        self.assertEqual(comps['visir'][fog_dep_ids[1]].attrs['prerequisites'],
+                         [10.8, 8.7])
+
+        # Check the same for SEVIRI and verify channel names are used
+        # in the sub-composite dependencies instead of wavelengths
+        cl_ = CompositorLoader()
+        cl_.load_sensor_composites('seviri')
+        comps = cl_.compositors
+        keys = comps['seviri'].keys()
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid.name]
+        self.assertEqual(comps['seviri'][fog_dep_ids[0]].attrs['prerequisites'],
+                         ['IR_120', 'IR_108'])
+        self.assertEqual(comps['seviri'][fog_dep_ids[1]].attrs['prerequisites'],
+                         ['IR_108', 'IR_087'])
+
+
 def suite():
     """Test suite for all reader tests"""
     loader = unittest.TestLoader()
@@ -194,5 +305,13 @@ def suite():
     mysuite.addTests(test_viirs.suite())
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestLuminanceSharpeningCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestInlineComposites))
 
     return mysuite
+
+
+if __name__ == '__main__':
+    unittest.main()

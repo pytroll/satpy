@@ -20,7 +20,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader for JMA data.
+"""HRIT format reader for JMA data
+************************************
 
 References:
     JMA HRIT - Mission Specific Implementation
@@ -119,8 +120,8 @@ class HRITJMAFileHandler(HRITFileHandler):
 
             self.calibration_table = np.array(self.calibration_table)
 
-        projection_name = self.mda['projection_name'].decode()
-        sublon = float(projection_name.strip().split('(')[1][:-1])
+        self.projection_name = self.mda['projection_name'].decode().strip()
+        sublon = float(self.projection_name.split('(')[1][:-1])
         self.mda['projection_parameters']['SSP_longitude'] = sublon
 
     def get_area_def(self, dsid):
@@ -155,8 +156,8 @@ class HRITJMAFileHandler(HRITFileHandler):
                      'units': 'm'}
 
         area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
+            "FLDK",
+            "HRIT FLDK Area: {}".format(self.projection_name),
             'geosmsg',
             proj_dict,
             ncols,

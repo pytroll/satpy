@@ -30,13 +30,16 @@ import os
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
 from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
-                           replace_anc)
+                           replace_anc, combine_metadata)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition, BaseDefinition
+from pyresample.utils import proj4_str_to_dict
+
+import xarray as xr
 from xarray import DataArray
 import numpy as np
 import six
@@ -701,26 +704,20 @@ class Scene(MetadataObject):
                 delayed_gen = True
                 continue
             elif not skip:
-                LOG.warning("Missing prerequisite for '{}': '{}'".format(
-                    comp_id, prereq_id))
+                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
                 raise KeyError("Missing composite prerequisite")
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(
-                    comp_id, prereq_id))
+                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         if delayed_gen:
             keepables.add(comp_id)
             keepables.update([x.name for x in prereq_nodes])
-            LOG.warning("Delaying generation of %s "
-                        "because of dependency's delayed generation: %s",
-                        comp_id, prereq_id)
+            LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
             if not skip:
-                LOG.warning("Missing prerequisite for '{}': '{}'".format(
-                    comp_id, prereq_id))
+                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
                 raise KeyError("Missing composite prerequisite")
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(
-                    comp_id, prereq_id))
+                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -770,9 +767,7 @@ class Scene(MetadataObject):
                 self.wishlist.add(cid)
             comp_node.name = cid
         except IncompatibleAreas:
-            LOG.warning("Delaying generation of %s "
-                        "because of incompatible areas",
-                        str(compositor.id))
+            LOG.debug("Delaying generation of %s because of incompatible areas", str(compositor.id))
             preservable_datasets = set(self.datasets.keys())
             prereq_ids = set(p.name for p in prereqs)
             opt_prereq_ids = set(p.name for p in optional_prereqs)
@@ -910,8 +905,8 @@ class Scene(MetadataObject):
             missing = self.missing_datasets.copy()
             self._remove_failed_datasets(keepables)
             missing_str = ", ".join(str(x) for x in missing)
-            LOG.warning(
-                "The following datasets were not created: {}".format(missing_str))
+            LOG.warning("The following datasets were not created and may require "
+                        "resampling to be generated: {}".format(missing_str))
         if unload:
             self.unload(keepables=keepables)
 
@@ -1041,14 +1036,69 @@ class Scene(MetadataObject):
             img.show()
         return img
 
+    def to_geoviews(self, gvtype=None, datasets=None, kdims=None, vdims=None, dynamic=False):
+        """Convert satpy Scene to geoviews.
+
+        Parameters
+        ----------
+        gvtype : gv plot type, optional, default gv.Image
+            One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
+            See Geoviews documentation for details.
+        datasets : list of string
+        kdims : list of str, optional
+            Key dimensions. See geoviews documentation for more information.
+        vdims : list of str, optional
+            Value dimensions. See geoviews documentation for more information.
+            If not given defaults to first data variable
+        dynamic : boolean, optional, default False
+
+        Returns
+        -------
+        geoviews object
+
+        Todo
+        ----
+        - better handling of projection information in datasets which are
+          to be passed to geoviews
+        """
+        try:
+            import geoviews as gv
+            from cartopy import crs
+        except ImportError:
+            import warnings
+            warnings.warn("This method needs the geoviews package installed.")
+
+        íf gvtype is None:
+            gvtype = gv.Image
+
+        ds = self.to_xarray_dataset(datasets)
+
+        if vdims is None:
+            # by default select first data variable as display variable
+            vdims = ds.data_vars[ds.data_vars.keys()[0]].name
+
+        if hasattr(ds, "area"):
+            proj = proj4_str_to_dict(ds.area.proj_str)["proj"]
+            if proj == "geos":
+                dscrs = crs.Geostationary()
+                gvds = gv.Dataset(ds, crs=dscrs)
+        else:
+            gvds = gv.Dataset(ds)
+
+        if "latitude" in ds.coords.keys():
+            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
+        else:
+            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)
+
+        return gview
+
     def images(self):
         """Generate images for all the datasets from the scene."""
         for ds_id, projectable in self.datasets.items():
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
-    def save_dataset(self, dataset_id, filename=None, writer=None,
-                     overlay=None, compute=True, **kwargs):
+    def save_dataset(self, dataset_id, filename=None, writer=None, overlay=None, compute=True, **kwargs):
         """Save the *dataset_id* to file using *writer* (default: geotiff)."""
         if writer is None and filename is None:
             writer = 'geotiff'
@@ -1063,8 +1113,7 @@ class Scene(MetadataObject):
                                    overlay=overlay, compute=compute,
                                    **save_kwargs)
 
-    def save_datasets(self, writer="geotiff", datasets=None, compute=True,
-                      **kwargs):
+    def save_datasets(self, writer="geotiff", datasets=None, compute=True, **kwargs):
         """Save all the datasets present in a scene to disk using *writer*."""
         if datasets is not None:
             datasets = [self[ds] for ds in datasets]
@@ -1076,10 +1125,39 @@ class Scene(MetadataObject):
                                "generated or could not be loaded. Requested "
                                "composite inputs may need to have matching "
                                "dimensions (eg. through resampling).")
-        writer, save_kwargs = load_writer(writer,
-                                          ppp_config_dir=self.ppp_config_dir,
-                                          **kwargs)
+        writer, save_kwargs = load_writer(writer, ppp_config_dir=self.ppp_config_dir, **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
+
+    def to_xarray_dataset(self, datasets=None):
+        """Merge all xr.DataArrays of a scene to a xr.DataSet.
+
+        Parameters
+        ----------
+        datasets : list of string, optional
+            List of datasets to include in the xr.Dataset
+
+        Returns
+        -------
+        xr.DataSet
+        """
+        dslist = [(i, j) for i, j in self.datasets.items() if i.name not in ["latitude", "longitude"]]
+
+        if datasets is not None:
+            dslist = [(i, j) for i, j in dslist if i.name in datasets]
+
+        ds_dict = {i.name: it.rename(i.name) for (i, it) in dslist}
+        mdata = combine_metadata(*tuple(i.attrs for i in self.datasets.values()))
+
+        if "latitude" in [k.name for k in self.datasets.keys()]:
+            ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], self["latitude"]),
+                                             "longitude": (["y", "x"], self["longitude"],)})
+            # ds.longitude.values[ds.longitude.values>180] -= 360
+        else:
+            ds = xr.merge(ds_dict.values())
+
+        ds.attrs = mdata
+
+        return ds
 
     @classmethod
     def get_writer_by_ext(cls, extension):

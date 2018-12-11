@@ -268,3 +268,4 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88.):
     corr = corr.where(cos_zen > limit).fillna(corr_lim)
 
     return data * corr
+

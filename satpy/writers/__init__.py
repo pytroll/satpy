@@ -329,23 +329,59 @@ def add_decorate(orig, fill_value=None, **decorate):
                 add_text(orig, dc, img_orig, text=dec['text'])
 
 
-def get_enhanced_image(dataset,
-                       enhancer=None,
-                       ppp_config_dir=None,
-                       enhancement_config_file=None,
-                       overlay=None,
-                       decorate=None,
-                       fill_value=None):
+def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_config_file=None,
+                       overlay=None, decorate=None, fill_value=None):
+    """Get an enhanced version of `dataset` as an :class:`~trollimage.xrimage.XRImage` instance.
+
+    Args:
+        dataset (xarray.DataArray): Data to be enhanced and converted to an image.
+        ppp_config_dir (str): Root configuration directory.
+        enhance (bool or Enhancer): Whether to automatically enhance
+            data to be more visually useful and to fit inside the file
+            format being saved to. By default this will default to using
+            the enhancement configuration files found using the default
+            :class:`~satpy.writers.Enhancer` class. This can be set to
+            `False` so that no enhancments are performed. This can also
+            be an instance of the :class:`~satpy.writers.Enhancer` class
+            if further custom enhancement is needed.
+        enhancement_config_file (str): Deprecated.
+        overlay (dict): Options for image overlays. See :func:`add_overlay`
+            for available options.
+        decorate (dict): Options for decorating the image. See
+            :func:`add_decorate` for available options.
+        fill_value (int or float): Value to use when pixels are masked or
+            invalid. Default of `None` means to create an alpha channel.
+            See :meth:`~trollimage.xrimage.XRImage.finalize` for more
+            details. Only used when adding overlays or decorations. Otherwise
+            it is up to the caller to "finalize" the image before using it
+            except if calling ``img.show()`` or providing the image to
+            a writer as these will finalize the image.
+
+    .. versionchanged:: 0.10
+
+        Deprecated `enhancement_config_file` and 'enhancer' in favor of
+        `enhance`. Pass an instance of the `Enhancer` class to `enhance`
+        instead.
+
+    """
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
-    if enhancer is None:
+    if enhancement_config_file is not None:
+        warnings.warn("'enhancement_config_file' has been deprecated. Pass an instance of the "
+                      "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
+
+    if enhance is False:
+        enhancer = None
+    elif enhance is None:
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
+    else:
+        enhancer = enhance
 
     # Create an image for enhancement
     img = to_image(dataset)
 
-    if enhancer.enhancement_tree is None:
+    if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
         if dataset.attrs.get("sensor", None):
@@ -618,20 +654,67 @@ class Writer(Plugin):
 
 
 class ImageWriter(Writer):
+    """Base writer for image file formats."""
 
-    def __init__(self, name=None, filename=None, enhancement_config=None, base_dir=None, **kwargs):
-        Writer.__init__(self, name, filename, base_dir, **kwargs)
-        enhancement_config = self.info.get(
-            "enhancement_config", None) if enhancement_config is None else enhancement_config
+    def __init__(self, name=None, filename=None, base_dir=None, enhance=None, enhancement_config=None, **kwargs):
+        """Initialize image writer object.
 
-        self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
-                                 enhancement_config_file=enhancement_config)
+        Args:
+            name (str): A name for this writer for log and error messages.
+                If this writer is configured in a YAML file its name should
+                match the name of the YAML file. Writer names may also appear
+                in output file attributes.
+            filename (str): Filename to save data to. This filename can and
+                should specify certain python string formatting fields to
+                differentiate between data written to the files. Any
+                attributes provided by the ``.attrs`` of a DataArray object
+                may be included. Format and conversion specifiers provided by
+                the :class:`trollsift <trollsift.parser.StringFormatter>`
+                package may also be used. Any directories in the provided
+                pattern will be created if they do not exist. Example::
+
+                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S.tif
+
+            base_dir (str):
+                Base destination directories for all created files.
+            enhance (bool or Enhancer): Whether to automatically enhance
+                data to be more visually useful and to fit inside the file
+                format being saved to. By default this will default to using
+                the enhancement configuration files found using the default
+                :class:`~satpy.writers.Enhancer` class. This can be set to
+                `False` so that no enhancments are performed. This can also
+                be an instance of the :class:`~satpy.writers.Enhancer` class
+                if further custom enhancement is needed.
+            enhancement_config (str): Deprecated.
+
+            kwargs (dict): Additional keyword arguments to pass to the
+                :class:`~satpy.writer.Writer` base class.
+
+        .. versionchanged:: 0.10
+
+            Deprecated `enhancement_config_file` and 'enhancer' in favor of
+            `enhance`. Pass an instance of the `Enhancer` class to `enhance`
+            instead.
+
+        """
+        super(ImageWriter, self).__init__(name, filename, base_dir, **kwargs)
+        if enhancement_config is not None:
+            warnings.warn("'enhancement_config' has been deprecated. Pass an instance of the "
+                          "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
+        else:
+            enhancement_config = self.info.get("enhancement_config", None)
+
+        if enhance is False:
+            self.enhancer = None
+        elif enhance is None:
+            self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
+        else:
+            self.enhancer = None
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
-        init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(
-            kwargs)
+        init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(kwargs)
         for kw in ['enhancement_config']:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
@@ -646,11 +729,9 @@ class ImageWriter(Writer):
         more details on the arguments passed to this method.
 
         """
-        img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, overlay=overlay,
-            decorate=decorate, fill_value=fill_value)
-        return self.save_image(img, filename=filename, compute=compute,
-                               fill_value=fill_value, **kwargs)
+        img = get_enhanced_image(dataset.squeeze(), enhance=self.enhancer, overlay=overlay,
+                                 decorate=decorate, fill_value=fill_value)
+        return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
 
     def save_image(self, img, filename=None, compute=True, **kwargs):
         """Save Image object to a given ``filename``.
@@ -679,8 +760,7 @@ class ImageWriter(Writer):
             this method.
 
         """
-        raise NotImplementedError(
-            "Writer '%s' has not implemented image saving" % (self.name, ))
+        raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
 
 
 class DecisionTree(object):
@@ -803,7 +883,6 @@ class EnhancementDecisionTree(DecisionTree):
 
 
 class Enhancer(object):
-
     """Helper class to get enhancement information for images."""
 
     def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
@@ -811,8 +890,7 @@ class Enhancer(object):
 
         Args:
             ppp_config_dir: Points to the base configuration directory
-            enhancement_config_file: The enhancement configuration to
-                apply, False to leave as is.
+            enhancement_config_file: The enhancement configuration to apply, False to leave as is.
         """
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         self.enhancement_config_file = enhancement_config_file
@@ -821,8 +899,7 @@ class Enhancer(object):
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            self.enhancement_config_file = config_search_paths(
-                config_fn, self.ppp_config_dir)
+            self.enhancement_config_file = config_search_paths(config_fn, self.ppp_config_dir)
 
         if not self.enhancement_config_file:
             # They don't want any automatic enhancements
@@ -831,8 +908,7 @@ class Enhancer(object):
             if not isinstance(self.enhancement_config_file, (list, tuple)):
                 self.enhancement_config_file = [self.enhancement_config_file]
 
-            self.enhancement_tree = EnhancementDecisionTree(
-                *self.enhancement_config_file)
+            self.enhancement_tree = EnhancementDecisionTree(*self.enhancement_config_file)
 
         self.sensor_enhancement_configs = []
 

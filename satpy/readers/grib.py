@@ -184,13 +184,15 @@ class GRIBFileHandler(BaseFileHandler):
 
             proj = Proj(**proj_params)
             x, y = proj(lons, lats)
-            x[np.abs(x) >= 1e30] = np.nan
-            y[np.abs(y) >= 1e30] = np.nan
-            min_x = np.nanmin(x)
-            max_x = np.nanmax(x)
-            min_y = np.nanmin(y)
-            max_y = np.nanmax(y)
-            extents = (min_x, min_y, max_x, max_y)
+            if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
+                min_x, min_y = x[0], y[0]
+                max_x, max_y = x[3], y[3]
+            else:
+                min_x, min_y = x[2], y[2]
+                max_x, max_y = x[1], y[1]
+            half_x = abs((max_x - min_x) / (shape[1] - 1)) / 2.
+            half_y = abs((max_y - min_y) / (shape[0] - 1)) / 2.
+            extents = (min_x - half_x, min_y - half_y, max_x + half_x, max_y + half_y)
 
         return geometry.AreaDefinition(
             'on-the-fly grib area',
@@ -251,6 +253,8 @@ class GRIBFileHandler(BaseFileHandler):
         ds_info = self.get_metadata(msg, ds_info)
         fill = msg['missingValue']
         data = msg.values.astype(np.float32)
+        if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
+            data = data[::-1]
 
         if isinstance(data, np.ma.MaskedArray):
             data = data.filled(np.nan)
