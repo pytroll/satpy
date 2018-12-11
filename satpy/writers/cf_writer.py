@@ -186,6 +186,8 @@ class CFWriter(Writer):
             new_data['time'].encoding['units'] = epoch
             new_data['time'].attrs['standard_name'] = 'time'
             new_data['time'].attrs.pop('bounds', None)
+            if 'time' not in new_data.dims:
+                new_data = new_data.expand_dims('time')
 
         if 'x' in new_data.coords:
             new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
