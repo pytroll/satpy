@@ -20,12 +20,26 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""HRIT format reader
+"""HRIT/LRIT format reader
+***************************
+
+This module is the base module for all HRIT-based formats. Here, you will find
+the common building blocks for hrit reading.
+
+One of the features here is the on-the-fly decompression of hrit files. It needs
+a path to the xRITDecompress binary to be provided through the environment
+variable called XRIT_DECOMPRESS_PATH. When compressed hrit files are then
+encountered (files finishing with `.C_`), they are decompressed to the system's
+temporary directory for reading.
 
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import timedelta
+from tempfile import gettempdir
+import os
+from six import BytesIO
+from subprocess import Popen, PIPE
 
 import numpy as np
 import xarray as xr
@@ -85,6 +99,63 @@ base_hdr_map = {0: primary_header,
                 }
 
 
+def get_xritdecompress_cmd():
+    """Find a valid binary for the xRITDecompress command."""
+    cmd = os.environ.get('XRIT_DECOMPRESS_PATH', None)
+    if not cmd:
+        raise IOError("XRIT_DECOMPRESS_PATH is not defined (complete path to xRITDecompress)")
+
+    question = ("Did you set the environment variable XRIT_DECOMPRESS_PATH correctly?")
+    if not os.path.exists(cmd):
+        raise IOError(str(cmd) + " does not exist!\n" + question)
+    elif os.path.isdir(cmd):
+        raise IOError(str(cmd) + " is a directory!\n" + question)
+
+    return cmd
+
+
+def get_xritdecompress_outfile(stdout):
+    """Analyse the output of the xRITDecompress command call and return the file."""
+    outfile = b''
+    for line in stdout:
+        try:
+            k, v = [x.strip() for x in line.split(b':', 1)]
+        except ValueError:
+            break
+        if k == b'Decompressed file':
+            outfile = v
+            break
+
+    return outfile
+
+
+def decompress(infile, outdir='.'):
+    """Decompress an XRIT data file and return the path to the decompressed file.
+
+    It expect to find Eumetsat's xRITDecompress through the environment variable
+    XRIT_DECOMPRESS_PATH.
+    """
+    cmd = get_xritdecompress_cmd()
+    infile = os.path.abspath(infile)
+    cwd = os.getcwd()
+    os.chdir(outdir)
+
+    p = Popen([cmd, infile], stdout=PIPE)
+    stdout = BytesIO(p.communicate()[0])
+    status = p.returncode
+    os.chdir(cwd)
+
+    if status != 0:
+        raise IOError("xrit_decompress '%s', failed, status=%d" % (infile, status))
+
+    outfile = get_xritdecompress_outfile(stdout)
+
+    if not outfile:
+        raise IOError("xrit_decompress '%s', failed, no output file is generated" % infile)
+
+    return os.path.join(outdir, outfile.decode('utf-8'))
+
+
 class HRITFileHandler(BaseFileHandler):
 
     """HRIT standard format reader."""
@@ -93,10 +164,17 @@ class HRITFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(HRITFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
-
         self.mda = {}
-
         self._get_hd(hdr_info)
+
+        if self.mda.get('compression_flag_for_data'):
+            logger.debug('Unpacking %s', filename)
+            try:
+                self.filename = decompress(filename, gettempdir())
+            except IOError as err:
+                logger.warning("Unpacking failed: %s", str(err))
+            self.mda = {}
+            self._get_hd(hdr_info)
 
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)

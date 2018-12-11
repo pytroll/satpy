@@ -38,6 +38,7 @@ Resampling algorithms
     "nearest", "Nearest Neighbor", :class:`~satpy.resample.KDTreeResampler`
     "ewa", "Elliptical Weighted Averaging", :class:`~satpy.resample.EWAResampler`
     "native", "Native", :class:`~satpy.resample.NativeResampler`
+    "bilinear", "Bilinear", :class`~satpy.resample.BilinearResampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
@@ -84,7 +85,7 @@ Caching for geostationary data
 SatPy will do its best to reuse calculations performed to resample datasets,
 but it can only do this for the current processing and will lose this
 information when the process/script ends. Some resampling algorithms, like
-``nearest``, can benefit by caching intermediate data on disk in the directory
+``nearest`` and ``bilinear``, can benefit by caching intermediate data on disk in the directory
 specified by `cache_dir` and using it next time. This is most beneficial with
 geostationary satellite data where the locations of the source data and the
 target pixels don't change over time.
@@ -137,10 +138,10 @@ import xarray as xr
 import dask
 import dask.array as da
 
-from pyresample.bilinear import get_bil_info, get_sample_from_bil_info
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition, AreaDefinition
 from pyresample.kd_tree import XArrayResamplerNN
+from pyresample.bilinear.xarr import XArrayResamplerBilinear
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
 
@@ -587,10 +588,16 @@ class EWAResampler(BaseResampler):
 
 
 class BilinearResampler(BaseResampler):
+
     """Resample using bilinear."""
 
-    def precompute(self, mask=None, radius_of_influence=50000,
-                   cache_dir=None, **kwargs):
+    def __init__(self, source_geo_def, target_geo_def):
+        super(BilinearResampler, self).__init__(source_geo_def, target_geo_def)
+        self.resampler = None
+
+    def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
+                   reduce_data=True, nprocs=1,
+                   cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid
@@ -598,65 +605,66 @@ class BilinearResampler(BaseResampler):
         the `data` numpy masked array passed to the `resample` method.
         """
 
-        raise NotImplementedError("Bilinear interpolation has not been "
-                                  "converted to XArray/Dask yet.")
-
         del kwargs
-        source_geo_def = self.source_geo_def
 
-        bil_hash = self.get_hash(source_geo_def=source_geo_def,
-                                 radius_of_influence=radius_of_influence,
-                                 mode="bilinear")
+        if self.resampler is None:
+            kwargs = dict(source_geo_def=self.source_geo_def,
+                          target_geo_def=self.target_geo_def,
+                          radius_of_influence=radius_of_influence,
+                          neighbours=32,
+                          epsilon=epsilon,
+                          reduce_data=reduce_data)
 
-        filename = self._create_cache_filename(cache_dir, bil_hash)
-        self._read_params_from_cache(cache_dir, bil_hash, filename)
+            self.resampler = XArrayResamplerBilinear(**kwargs)
+            try:
+                self.load_bil_info(cache_dir, **kwargs)
+                LOG.debug("Loaded bilinear parameters")
+            except IOError:
+                LOG.debug("Computing bilinear parameters")
+                self.resampler.get_bil_info()
+                self.save_bil_info(cache_dir, **kwargs)
 
-        if self.cache is not None:
-            LOG.debug("Loaded bilinear parameters")
-            return self.cache
+    def load_bil_info(self, cache_dir, **kwargs):
+
+        if cache_dir:
+            filename = self._create_cache_filename(cache_dir,
+                                                   prefix='resample_lut_bil_',
+                                                   **kwargs)
+            cache = np.load(filename)
+            for elt in ['bilinear_s', 'bilinear_t', 'valid_input_index',
+                        'index_array']:
+                if isinstance(cache[elt], tuple):
+                    setattr(self.resampler, elt, cache[elt][0])
+                else:
+                    setattr(self.resampler, elt, cache[elt])
+            cache.close()
         else:
-            LOG.debug("Computing bilinear parameters")
+            raise IOError
 
-        bilinear_t, bilinear_s, input_idxs, idx_arr = get_bil_info(source_geo_def, self.target_geo_def,
-                                                                   radius_of_influence, neighbours=32,
-                                                                   masked=False)
-        self.cache = {'bilinear_s': bilinear_s,
-                      'bilinear_t': bilinear_t,
-                      'input_idxs': input_idxs,
-                      'idx_arr': idx_arr}
+    def save_bil_info(self, cache_dir, **kwargs):
+        if cache_dir:
+            filename = self._create_cache_filename(cache_dir,
+                                                   prefix='resample_lut_bil_',
+                                                   **kwargs)
+            LOG.info('Saving kd_tree neighbour info to %s', filename)
+            cache = {'bilinear_s': self.resampler.bilinear_s,
+                     'bilinear_t': self.resampler.bilinear_t,
+                     'valid_input_index': self.resampler.valid_input_index,
+                     'index_array': self.resampler.index_array}
 
-        self._update_caches(bil_hash, cache_dir, filename)
-
-        return self.cache
+            np.savez(filename, **cache)
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation"""
         del kwargs
 
+        if fill_value is None:
+            fill_value = data.attrs.get('_FillValue')
         target_shape = self.target_geo_def.shape
-        if data.ndim == 3:
-            output_shape = list(target_shape)
-            output_shape.append(data.shape[-1])
-            res = np.zeros(output_shape, dtype=data.dtype)
-            for i in range(data.shape[-1]):
-                res[:, :, i] = get_sample_from_bil_info(data[:, :, i].ravel(),
-                                                        self.cache[
-                                                            'bilinear_t'],
-                                                        self.cache[
-                                                            'bilinear_s'],
-                                                        self.cache[
-                                                            'input_idxs'],
-                                                        self.cache['idx_arr'],
-                                                        output_shape=target_shape)
 
-        else:
-            res = get_sample_from_bil_info(data.ravel(),
-                                           self.cache['bilinear_t'],
-                                           self.cache['bilinear_s'],
-                                           self.cache['input_idxs'],
-                                           self.cache['idx_arr'],
-                                           output_shape=target_shape)
-        res = np.ma.masked_invalid(res)
+        res = self.resampler.get_sample_from_bil_info(data,
+                                                      fill_value=fill_value,
+                                                      output_shape=target_shape)
 
         return res
 
@@ -796,7 +804,7 @@ class NativeResampler(BaseResampler):
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
-              # "bilinear": BilinearResampler,
+              "bilinear": BilinearResampler,
               "native": NativeResampler,
               }
 
@@ -851,8 +859,15 @@ def resample(source_area, data, destination_area,
     return res
 
 
+def get_fill_value(dataset):
+    """Get the fill value of the *dataset*, defaulting to np.nan."""
+    if np.issubdtype(dataset.dtype, np.integer):
+        return dataset.attrs.get('_FillValue', np.nan)
+    return np.nan
+
+
 def resample_dataset(dataset, destination_area, **kwargs):
-    """Resample the current projectable and return the resampled one.
+    """Resample *dataset* and return the resampled version.
 
     Args:
         dataset (xarray.DataArray): Data to be resampled.
@@ -862,7 +877,8 @@ def resample_dataset(dataset, destination_area, **kwargs):
         **kwargs: The extra parameters to pass to the resampler objects.
 
     Returns:
-        A resampled DataArray with updated ``.attrs["area"]`` field.
+        A resampled DataArray with updated ``.attrs["area"]`` field. The dtype
+        of the array is preserved.
 
     """
     # call the projection stuff here
@@ -874,7 +890,8 @@ def resample_dataset(dataset, destination_area, **kwargs):
 
         return dataset
 
-    new_data = resample(source_area, dataset, destination_area, **kwargs)
+    fill_value = kwargs.pop('fill_value', get_fill_value(dataset))
+    new_data = resample(source_area, dataset, destination_area, fill_value=fill_value, **kwargs)
     new_attrs = new_data.attrs
     new_data.attrs = dataset.attrs.copy()
     new_data.attrs.update(new_attrs)

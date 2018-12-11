@@ -6,7 +6,7 @@
 4. run `loghub` and update the `CHANGELOG.md` file:
 
 ```
-loghub pytroll/satpy -u <username> -st v0.8.0 -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes"
+loghub pytroll/satpy -u <username> -st v0.8.0 -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backwards incompatible changes"
 ```
 
 Don't forget to commit!

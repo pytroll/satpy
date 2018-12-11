@@ -79,6 +79,29 @@ def get_geostationary_angle_extent(geos_area):
     return xmax, ymax
 
 
+def get_geostationary_mask(area):
+    """Compute a mask of the earth's shape as seen by a geostationary satellite
+
+    Args:
+        area (pyresample.geometry.AreaDefinition) : Corresponding area
+                                                    definition
+
+    Returns:
+        Boolean mask, True inside the earth's shape, False outside.
+    """
+    # Compute projection coordinates at the earth's limb
+    h = area.proj_dict['h']
+    xmax, ymax = get_geostationary_angle_extent(area)
+    xmax *= h
+    ymax *= h
+
+    # Compute projection coordinates at the centre of each pixel
+    x, y = area.get_proj_coords_dask()
+
+    # Compute mask of the earth's elliptical shape
+    return ((x / xmax) ** 2 + (y / ymax) ** 2) <= 1
+
+
 def _lonlat_from_geos_angle(x, y, geos_area):
     """Get lons and lats from x, y in projection coordinates."""
     h = (geos_area.proj_dict['h'] + geos_area.proj_dict['a']) / 1000
