@@ -378,6 +378,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestInlineComposites))
     mysuite.addTest(loader.loadTestsFromTestCase(TestColormapCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPaletteCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestCloudTopHeightCompositor))
 
     return mysuite
 
