@@ -25,6 +25,7 @@
 import logging
 import numbers
 import os
+import warnings
 
 import six
 import yaml
@@ -40,6 +41,11 @@ except ImportError:
     from six.moves import configparser  # noqa
 
 LOG = logging.getLogger(__name__)
+
+
+OLD_READER_NAMES = {
+    'hrit_jma': 'ahi_hrit',
+}
 
 
 class TooManyResults(KeyError):
@@ -423,6 +429,24 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
     if reader is not None:
         if not isinstance(reader, (list, tuple)):
             reader = [reader]
+        # check for old reader names
+        new_readers = []
+        for reader_name in reader:
+            if reader_name.endswith('.yaml') or reader_name not in OLD_READER_NAMES:
+                new_readers.append(reader_name)
+                continue
+
+            new_name = OLD_READER_NAMES[reader_name]
+            # SatPy 0.11 only displays a warning
+            warnings.warn("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name),
+                          DeprecationWarning)
+            # SatPy 0.12 will raise an exception
+            # raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
+            # SatPy 0.13 or 1.0, remove exception and mapping
+
+            new_readers.append(new_name)
+
+        reader = new_readers
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:

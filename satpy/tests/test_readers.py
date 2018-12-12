@@ -453,6 +453,18 @@ class TestFindFilesAndReaders(unittest.TestCase):
             self.assertRaises(yaml.YAMLError, find_files_and_readers,
                               reader='viirs_sdr')
 
+    def test_old_reader_name_mapping(self):
+        """Test that requesting old reader names raises a warning."""
+        import warnings
+        from satpy.readers import configs_for_reader
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            configs = list(configs_for_reader('hrit_jma'))[0]
+        self.assertIn('ahi_hrit', configs[0])
+        self.assertNotIn('hrit_jma', configs[0])
+        self.assertEqual(len(w), 1)
+        self.assertTrue(issubclass(w[0].category, DeprecationWarning))
+
 
 class TestYAMLFiles(unittest.TestCase):
     """Test and analyze the reader configuration files."""
