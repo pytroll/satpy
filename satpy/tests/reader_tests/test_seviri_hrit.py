@@ -54,7 +54,7 @@ def new_get_hd(instance, hdr_info):
 class TestHRITMSGFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
-    @mock.patch('satpy.readers.hrit_msg.np.fromfile')
+    @mock.patch('satpy.readers.seviri_hrit.np.fromfile')
     def setUp(self, fromfile):
         """Setup the hrit file handler for testing."""
         m = mock.mock_open()
@@ -62,7 +62,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                                                           ('hdr_id', int)])
 
         with mock.patch('satpy.readers.hrit_base.open', m, create=True) as newopen:
-            with mock.patch('satpy.readers.hrit_msg.CHANNEL_NAMES'):
+            with mock.patch('satpy.readers.seviri_hrit.CHANNEL_NAMES'):
                 with mock.patch.object(HRITMSGFileHandler, '_get_hd', new=new_get_hd):
                     newopen.return_value.__enter__.return_value.tell.return_value = 1
                     prologue = mock.MagicMock()
