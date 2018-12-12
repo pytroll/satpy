@@ -23,7 +23,6 @@
 from datetime import datetime, timedelta
 import h5py
 import xarray as xr
-import xarray.ufuncs as xu
 import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -37,14 +36,19 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
         h5data=h5f['science_data']
         self.filename_info['start_time'] = datetime.strptime(h5data.attrs['Range Beginning Date'],'%Y-%jT%H:%M:%S.%f')
         self.filename_info['end_time'] = datetime.strptime(h5data.attrs['Range Ending Date'],'%Y-%jT%H:%M:%S.%f')
+        self.filename_info['platform_name'] = h5data.attrs['Satellite Name']
+
         self.wind_speed_scale = float(h5data.attrs['Wind Speed Selection Scale'])
         self.wind_direction_scale = float(h5data.attrs['Wind Direction Selection Scale'])
         self.latitude_scale = float(h5data.attrs['Latitude Scale'])
         self.longitude_scale = float(h5data.attrs['Longitude Scale'])
-        self.lons = h5data['Longitude'][:]*self.longitude_scale
-        self.lats = h5data['Latitude'][:]*self.latitude_scale
-        self.windspeed=h5data['Wind_speed_selection'][:,:]*self.wind_speed_scale
-        self.wind_direction = h5data['Wind_direction_selection'][:,:]*self.wind_direction_scale
+        self.lons = h5data['Longitude'][:] * self.longitude_scale
+        self.lons[self.lons>180.0] -= 360.0
+        self.lats = h5data['Latitude'][:] * self.latitude_scale
+        self.windspeed=h5data['Wind_speed_selection'][:, :] * self.wind_speed_scale
+        self.wind_direction = h5data['Wind_direction_selection'][:, :] * self.wind_direction_scale
+
+
 
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -72,18 +76,18 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
 
             if info['standard_name'] == 'longitude':
                 return xr.DataArray(self.lons, name=key,
-                                        attrs=info, dims=('y', 'x'))
+                                    attrs=info, dims=('y', 'x'))
             else:
                 return xr.DataArray(self.lats, name=key,
-                                        attrs=info, dims=('y', 'x'))
+                                    attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_speed']:
             return xr.DataArray(da.from_array(self.windspeed, chunks=CHUNK_SIZE), name=key,
-                                        attrs=info, dims=('y', 'x'))
+                                    attrs=info, dims=('y', 'x'))
 
         if stdname in ['wind_direction']:
             return xr.DataArray(da.from_array(self.wind_direction, chunks=CHUNK_SIZE), name=key,
-                                        attrs=info, dims=('y', 'x'))
+                                    attrs=info, dims=('y', 'x'))
 
 
 

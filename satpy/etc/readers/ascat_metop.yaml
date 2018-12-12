@@ -11,12 +11,14 @@ datasets:
     file_type: ascat_wind
     standard_name: longitude
     units: degree
+    resolution: 5000
 
   latitude:
     name: latitude
     file_type: ascat_wind
     standard_name: latitude
     units: degree
+    resolution: 5000
 
   wind_speed:
     name: wind_speed
@@ -24,6 +26,7 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: ascat_wind
     standard_name: wind_speed
+    resolution: 5000
 
   wind_direction:
     name: wind_direction
@@ -31,6 +34,7 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: ascat_wind
     standard_name: wind_direction
+    resolution: 5000
 
   ice_prob:
     name: ice_prob
@@ -38,6 +42,7 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: ascat_wind
     standard_name: ice_prob
+    resolution: 5000
 
   ice_age:
     name: ice_age
@@ -45,9 +50,10 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: ascat_wind
     standard_name: ice_age
-
+    resolution: 5000
 
 file_types:
   ascat_wind:
     file_reader: !!python/name:satpy.readers.ascat_metop.ASCATMETOPFileHandler ''
-    file_patterns: ['ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_{cell_spacing}_{version}_{product_content}.{product_level}.nc']
+    file_patterns: ['ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_{cell_spacing}_{version}_{product_content}.{product_level}.nc',
+    'ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_{cell_spacing}_{version}_{product_content}.{product_level}.nc.gz']

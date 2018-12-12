@@ -22,57 +22,82 @@
 
 from datetime import datetime, timedelta
 
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 
 from netCDF4 import Dataset as CDF4_Dataset
-
+import xarray as xr
+import dask.array as da
+from satpy import CHUNK_SIZE
 
 
 class ASCATMETOPFileHandler(BaseFileHandler):
 
+
+
+    def _read_data(self, filename):
+        ds = CDF4_Dataset(filename, 'r')
+        self.filename_info['start_time'] = datetime.strptime(ds.getncattr('start_date')
+            + ' ' + ds.getncattr('start_time'),'%Y-%m-%d %H:%M:%S')
+        self.filename_info['end_time'] = datetime.strptime(ds.getncattr('stop_date')
+            + ' ' + ds.getncattr('stop_time'),'%Y-%m-%d %H:%M:%S')
+        self.filename_info['equator_crossing_time'] = datetime.strptime(ds.getncattr('equator_crossing_date')
+            + ' ' + ds.getncattr('equator_crossing_time'),'%Y-%m-%d %H:%M:%S')
+        self.filename_info['orbit_number'] = str(ds.getncattr('orbit_number'))
+        self.wind_speed = ds['wind_speed'][:]
+        self.wind_speed[self.wind_speed.data == ds['wind_speed'].getncattr('missing_value')] = None
+        self.wind_direction = ds['wind_dir'][:]
+        self.wind_direction[self.wind_direction.data == ds['wind_dir'].getncattr('missing_value')] = None
+        self.ice_prob = ds['ice_prob'][:]
+        self.ice_prob[self.ice_prob.data == ds['ice_prob'].getncattr('missing_value')] = None
+        self.ice_age = ds['ice_age'][:]
+        self.ice_age[self.ice_age.data == ds['ice_age'].getncattr('missing_value')] = None
+        self.lons = ds['lon'][:]
+        self.lons[self.lons>180.0] -= 360.0
+        self.lats = ds['lat'][:]
+        ds.close()
+
     def __init__(self, filename, filename_info, filetype_info):
         super(ASCATMETOPFileHandler, self).__init__(filename, filename_info,
                                                       filetype_info)
-        ds = CDF4_Dataset(self.filename, 'r')
-        self.ds = ds
 
-        self.filename_info['start_time'] = datetime.strptime(ds.getncattr('start_date')
-                                                        +' '+ds.getncattr('start_time'),'%Y-%m-%d %H:%M:%S')
-        self.filename_info['end_time'] = datetime.strptime(ds.getncattr('stop_date')
-                                                        +' '+ds.getncattr('stop_time'),'%Y-%m-%d %H:%M:%S')
-        self.filename_info['equator_crossing_time'] = datetime.strptime(ds.getncattr('equator_crossing_date')
-                                                        +' '+ds.getncattr('equator_crossing_time'),'%Y-%m-%d %H:%M:%S')
-        self.filename_info['orbit_number'] = str(ds.getncattr('orbit_number'))
         self.lons = None
         self.lats = None
-
+        if filename.endswith('gz'):
+            from satpy.readers.utils import unzip_file
+            import os
+            unzip_filename = None
+            try:
+                unzip_filename = unzip_file(filename)
+                self._read_data(unzip_filename)
+            finally:
+                if unzip_filename:
+                    os.remove(unzip_filename)
+        else:
+            self._read_data(filename)
 
     def get_dataset(self, key, info):
+        stdname = info['standard_name']
+        if stdname in ['longitude']:
+            return xr.DataArray(self.lons, name=key,
+                                attrs=info, dims=('y', 'x'))
+        elif stdname in ['latitude']:
+            return xr.DataArray(self.lats, name=key,
+                                attrs=info, dims=('y', 'x'))
+        elif stdname in ['wind_speed']:
+            return xr.DataArray(da.from_array(self.wind_speed, chunks=CHUNK_SIZE), name=key,
+                                attrs=info, dims=('y', 'x'))
 
-        stdname = info.get('standard_name')
-        if stdname in ['latitude', 'longitude']:
+        elif stdname in ['wind_direction']:
+            return xr.DataArray(da.from_array(self.wind_direction, chunks=CHUNK_SIZE), name=key,
+                                attrs=info, dims=('y', 'x'))
 
-            if self.lons is None or self.lats is None:
-                self.lons = self.ds['lon'][:]
-                self.lats = self.ds['lat'][:]
+        elif stdname in ['ice_prob']:
+            return xr.DataArray(da.from_array(self.ice_prob, chunks=CHUNK_SIZE), name=key,
+                                attrs=info, dims=('y', 'x'))
 
-            if info['standard_name'] == 'longitude':
-                return Dataset(self.lons, id=key, **info)
-            else:
-                return Dataset(self.lats, id=key, **info)
-
-        if stdname in ['wind_speed']:
-            return Dataset(self.ds['wind_speed'][:], id=key, **info)
-
-        if stdname in ['wind_direction']:
-            return Dataset(self.ds['wind_dir'][:], id=key, **info)
-
-        if stdname in ['ice_prob']:
-            return Dataset(self.ds['ice_prob'][:], id=key, **info)
-
-        if stdname in ['ice_age']:
-            return Dataset(self.ds['ice_age'][:], id=key, **info)
+        elif stdname in ['ice_age']:
+            return xr.DataArray(da.from_array(self.ice_age, chunks=CHUNK_SIZE), name=key,
+                                attrs=info, dims=('y', 'x'))
 
 
 
