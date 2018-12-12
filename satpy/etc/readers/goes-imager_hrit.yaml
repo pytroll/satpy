@@ -1,6 +1,6 @@
 reader:
   description: GOES HRIT Reader
-  name: hrit_goes
+  name: goes-imager_hrit
   sensors: [goes_imager]
   default_channels: [00_7, 03_9, 06_6, 10_7]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -11,59 +11,59 @@ reader:
 
 file_types:
     HRIT_00_7:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-00_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_00]
 
     HRIT_00_7_C:
-          file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESFileHandler
+          file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
           file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-00_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
           requires: [HRIT_PRO_00]
 
     HRIT_03_9:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-03_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_03]
 
     HRIT_03_9_C:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-03_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO_03]
 
     HRIT_06_6:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-06_6_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_06]
 
     HRIT_06_6_C:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-06_6_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO_06]
 
     HRIT_10_7:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-10_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO_10]
 
     HRIT_10_7_C:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-10_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO_10]
 
     HRIT_PRO_00:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESPrologueFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESPrologueFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-00_7_{sublon:4s}-PRO______-{start_time:%Y%m%d%H%M}-__']
 
     HRIT_PRO_03:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESPrologueFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESPrologueFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-03_9_{sublon:4s}-PRO______-{start_time:%Y%m%d%H%M}-__']
 
     HRIT_PRO_06:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESPrologueFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESPrologueFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-06_6_{sublon:4s}-PRO______-{start_time:%Y%m%d%H%M}-__']
 
     HRIT_PRO_10:
-        file_reader: !!python/name:satpy.readers.hrit_goes.HRITGOESPrologueFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESPrologueFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-10_7_{sublon:4s}-PRO______-{start_time:%Y%m%d%H%M}-__']
 
 datasets:

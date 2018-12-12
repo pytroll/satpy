@@ -25,9 +25,9 @@ import sys
 import datetime
 import numpy as np
 from xarray import DataArray
-from satpy.readers.hrit_goes import (make_gvar_float, make_sgs_time,
-                                     HRITGOESPrologueFileHandler, sgs_time,
-                                     HRITGOESFileHandler)
+from satpy.readers.goes_imager_hrit import (make_gvar_float, make_sgs_time,
+                                            HRITGOESPrologueFileHandler, sgs_time,
+                                            HRITGOESFileHandler)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
