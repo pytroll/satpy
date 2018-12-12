@@ -45,7 +45,7 @@ if sys.version < '3.0':
 
 extras_require = {
     # Readers:
-    'hdfeos_l1b': ['python-hdf4', 'python-geotiepoints >= 1.1.7'],
+    'modis_l1b': ['python-hdf4', 'python-geotiepoints >= 1.1.7'],
     'geocat': ['python-hdf4'],
     'acspo': ['netCDF4 >= 1.1.8'],
     'clavrx': ['netCDF4 >= 1.1.8'],
