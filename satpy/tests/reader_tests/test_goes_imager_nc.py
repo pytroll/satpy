@@ -24,12 +24,12 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
     longMessage = True
 
-    @mock.patch('satpy.readers.nc_goes.xr')
-    @mock.patch.multiple('satpy.readers.nc_goes.GOESNCBaseFileHandler',
+    @mock.patch('satpy.readers.goes_imager_nc.xr')
+    @mock.patch.multiple('satpy.readers.goes_imager_nc.GOESNCBaseFileHandler',
                          __abstractmethods__=set(),
                          _get_sector=mock.MagicMock())
     def setUp(self, xr_):
-        from satpy.readers.nc_goes import CALIB_COEFS, GOESNCBaseFileHandler
+        from satpy.readers.goes_imager_nc import CALIB_COEFS, GOESNCBaseFileHandler
 
         self.coefs = CALIB_COEFS['GOES-15']
 
@@ -65,7 +65,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
     def test_get_nadir_pixel(self):
         """Test identification of the nadir pixel"""
-        from satpy.readers.nc_goes import FULL_DISC
+        from satpy.readers.goes_imager_nc import FULL_DISC
 
         earth_mask = np.array([[0, 0, 0, 0],
                                [0, 1, 0, 0],
@@ -195,8 +195,8 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
     def test_end_time(self):
         """Test dataset end time stamp"""
-        from satpy.readers.nc_goes import (SCAN_DURATION, FULL_DISC,
-                                           UNKNOWN_SECTOR)
+        from satpy.readers.goes_imager_nc import (SCAN_DURATION, FULL_DISC,
+                                                  UNKNOWN_SECTOR)
         expected = {
             UNKNOWN_SECTOR: self.time,
             FULL_DISC: self.time + SCAN_DURATION[FULL_DISC]
@@ -210,9 +210,9 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     longMessage = True
 
-    @mock.patch('satpy.readers.nc_goes.xr')
+    @mock.patch('satpy.readers.goes_imager_nc.xr')
     def setUp(self, xr_):
-        from satpy.readers.nc_goes import GOESNCFileHandler, CALIB_COEFS
+        from satpy.readers.goes_imager_nc import GOESNCFileHandler, CALIB_COEFS
 
         self.coefs = CALIB_COEFS['GOES-15']
         self.all_coefs = CALIB_COEFS
@@ -326,9 +326,9 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     def test_get_sector(self):
         """Test sector identification"""
-        from satpy.readers.nc_goes import (FULL_DISC, NORTH_HEMIS_EAST,
-                                           SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
-                                           SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
+        from satpy.readers.goes_imager_nc import (FULL_DISC, NORTH_HEMIS_EAST,
+                                                  SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
+                                                  SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
         shapes_vis = {
             (10800, 20754): FULL_DISC,
             (7286, 13900): NORTH_HEMIS_EAST,
@@ -361,9 +361,9 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
     longMessage = True
 
-    @mock.patch('satpy.readers.nc_goes.xr')
+    @mock.patch('satpy.readers.goes_imager_nc.xr')
     def setUp(self, xr_):
-        from satpy.readers.nc_goes import GOESEUMNCFileHandler, CALIB_COEFS
+        from satpy.readers.goes_imager_nc import GOESEUMNCFileHandler, CALIB_COEFS
 
         self.coefs = CALIB_COEFS['GOES-15']
         self.all_coefs = CALIB_COEFS
@@ -419,9 +419,9 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
 
     def test_get_sector(self):
         """Test sector identification"""
-        from satpy.readers.nc_goes import (FULL_DISC, NORTH_HEMIS_EAST,
-                                           SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
-                                           SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
+        from satpy.readers.goes_imager_nc import (FULL_DISC, NORTH_HEMIS_EAST,
+                                                  SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
+                                                  SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
         shapes = {
             (2700, 5200): FULL_DISC,
             (1850, 3450): NORTH_HEMIS_EAST,
@@ -441,9 +441,9 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
 class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
     longMessage = True
 
-    @mock.patch('satpy.readers.nc_goes.xr')
+    @mock.patch('satpy.readers.goes_imager_nc.xr')
     def setUp(self, xr_):
-        from satpy.readers.nc_goes import GOESEUMNCFileHandler, CALIB_COEFS
+        from satpy.readers.goes_imager_nc import GOESEUMNCFileHandler, CALIB_COEFS
 
         self.coefs = CALIB_COEFS['GOES-15']
         self.all_coefs = CALIB_COEFS
