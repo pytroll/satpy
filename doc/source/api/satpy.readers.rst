@@ -252,6 +252,14 @@ satpy.readers.native\_msg\_hdr module
     :undoc-members:
     :show-inheritance:
 
+satpy.readers.nc\_goes module
+-----------------------------
+
+.. automodule:: satpy.readers.nc_goes
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy.readers.nc\_nwcsaf module
 -------------------------------
 
@@ -260,18 +268,18 @@ satpy.readers.nc\_nwcsaf module
     :undoc-members:
     :show-inheritance:
 
-satpy.readers.nc\_nwcsaf\_msg module
-------------------------------------
-
-.. automodule:: satpy.readers.nc_nwcsaf_msg
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 satpy.readers.nc\_olci module
 -----------------------------
 
 .. automodule:: satpy.readers.nc_olci
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy.readers.nc\_seviri\_l1b module
+------------------------------------
+
+.. automodule:: satpy.readers.nc_seviri_l1b
     :members:
     :undoc-members:
     :show-inheritance:
@@ -328,6 +336,14 @@ satpy.readers.scatsat1\_l2b module
 ----------------------------------
 
 .. automodule:: satpy.readers.scatsat1_l2b
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy.readers.scmi module
+-------------------------
+
+.. automodule:: satpy.readers.scmi
     :members:
     :undoc-members:
     :show-inheritance:

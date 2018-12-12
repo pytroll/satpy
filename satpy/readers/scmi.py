@@ -35,8 +35,8 @@ There are two forms of these files that this reader supports:
     SatPy as part of Polar2Grid's adoption of SatPy for the majority of its
     features. This format is what is produced by SatPy's `scmi` writer.
     This format can be identified by a single variable named "data" and a
-    global attribute named "awips_id" that is set to a string starting with
-    "AWIPS_".
+    global attribute named ``"awips_id"`` that is set to a string starting with
+    ``"AWIPS_"``.
 
 """
 
