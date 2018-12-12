@@ -46,10 +46,11 @@ LOG = logging.getLogger(__name__)
 # Old Name -> New Name
 OLD_READER_NAMES = {
     'hrit_jma': 'ahi_hrit',
-    'scmi_abi_l1b': 'abi_l1b_scmi',
     'hdf4_caliopv3': 'caliop_l2_cloud',
     'hdfeos_l1b': 'modis_l1b',
     'hrit_electrol': 'electrol_hrit',
+    'fci_fdhsi': 'fci_l1c_fdhsi',
+    'scmi_abi_l1b': 'abi_l1b_scmi',
 }
 
 

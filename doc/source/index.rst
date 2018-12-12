@@ -99,8 +99,8 @@ installation.
     * - GCOM-W1 AMSR2 data in HDF5 format
       - `amsr2_l1b`
       - Nominal
-    * - MTG FCI data in netcdf format
-      - `fci_fdhsi`
+    * - MTG FCI Level 1C data for Full Disk High Spectral Imagery (FDHSI) in netcdf format
+      - `fci_l1c_fdhsi`
       - In development
     * - Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
       - `caliop_l2_cloud`
