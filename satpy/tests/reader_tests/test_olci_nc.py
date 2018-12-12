@@ -20,7 +20,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Module for testing the satpy.readers.nc_olci module.
+"""Module for testing the satpy.readers.olci_nc module.
 """
 import sys
 
@@ -36,12 +36,12 @@ except ImportError:
 
 
 class TestOLCIReader(unittest.TestCase):
-    """Test various nc_olci filehandlers."""
+    """Test various olci_nc filehandlers."""
 
     @mock.patch('xarray.open_dataset')
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
-        from satpy.readers.nc_olci import (NCOLCIBase, NCOLCICal, NCOLCIGeo,
+        from satpy.readers.olci_nc import (NCOLCIBase, NCOLCICal, NCOLCIGeo,
                                            NCOLCIChannelBase, NCOLCI1B, NCOLCI2)
         from satpy import DatasetID
 
@@ -92,7 +92,7 @@ class TestBitFlags(unittest.TestCase):
         """Test the BitFlags class."""
         import numpy as np
         from six.moves import reduce
-        from satpy.readers.nc_olci import BitFlags
+        from satpy.readers.olci_nc import BitFlags
         flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
                      'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',
                      'SATURATED', 'MEGLINT', 'HIGHGLINT', 'WHITECAPS',
