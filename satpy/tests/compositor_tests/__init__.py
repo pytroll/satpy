@@ -121,7 +121,6 @@ class TestSunZenithCorrector(unittest.TestCase):
     def setUp(self):
         """Create test data."""
         from pyresample.geometry import AreaDefinition
-        from pyorbital.astronomy import cos_zen
         area = AreaDefinition('test', 'test', 'test',
                               {'proj': 'merc'}, 2, 2,
                               (-2000, -2000, 2000, 2000))
@@ -144,7 +143,6 @@ class TestSunZenithCorrector(unittest.TestCase):
         from satpy.composites import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
         res = comp((self.ds1,), test_attr='test')
-        self.assertIn('test_attr', res.attrs)
         np.testing.assert_allclose(res.values, np.array([[28.653708, 28.653708], [28.653708, 28.653708]]))
 
     def test_basic_lims_not_provided(self):
@@ -152,7 +150,6 @@ class TestSunZenithCorrector(unittest.TestCase):
         from satpy.composites import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         res = comp((self.ds1,), test_attr='test')
-        self.assertIn('test_attr', res.attrs)
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
     def test_basic_default_provided(self):
@@ -160,7 +157,6 @@ class TestSunZenithCorrector(unittest.TestCase):
         from satpy.composites import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
         res = comp((self.ds1, self.sza), test_attr='test')
-        self.assertIn('test_attr', res.attrs)
         np.testing.assert_allclose(res.values, np.array([[28.653708, 28.653708], [28.653708, 28.653708]]))
 
     def test_basic_lims_provided(self):
@@ -168,7 +164,6 @@ class TestSunZenithCorrector(unittest.TestCase):
         from satpy.composites import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         res = comp((self.ds1, self.sza), test_attr='test')
-        self.assertIn('test_attr', res.attrs)
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
 
