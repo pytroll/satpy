@@ -52,6 +52,7 @@ OLD_READER_NAMES = {
     'fci_fdhsi': 'fci_l1c_fdhsi',
     'hrit_goes': 'goes-imager_hrit',
     'hrit_msg': 'seviri_hrit',
+    'native_msg': 'seviri_native',
     'scmi_abi_l1b': 'abi_l1b_scmi',
 }
 
