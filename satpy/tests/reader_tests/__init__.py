@@ -32,12 +32,12 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_acspo, test_amsr2_l1b,
                                       test_omps_edr, test_nucaps, test_geocat,
                                       test_seviri_calibration, test_clavrx,
-                                      test_grib, test_hrit_goes, test_ahi_hsd,
+                                      test_grib, test_goes_imager_hrit, test_ahi_hsd,
                                       test_iasi_l2, test_generic_image,
-                                      test_scmi, test_hrit_jma, test_nc_goes,
+                                      test_scmi, test_ahi_hrit, test_nc_goes,
                                       test_nc_slstr, test_nc_olci,
-                                      test_viirs_flood, test_nc_nwcsaf,
-                                      test_hrit_msg)
+                                      test_viirs_edr_flood, test_nc_nwcsaf,
+                                      test_seviri_hrit)
 
 
 if sys.version_info < (2, 7):
@@ -68,16 +68,16 @@ def suite():
     mysuite.addTests(test_seviri_calibration.suite())
     mysuite.addTests(test_clavrx.suite())
     mysuite.addTests(test_grib.suite())
-    mysuite.addTests(test_hrit_goes.suite())
+    mysuite.addTests(test_goes_imager_hrit.suite())
     mysuite.addTests(test_ahi_hsd.suite())
     mysuite.addTests(test_iasi_l2.suite())
     mysuite.addTests(test_generic_image.suite())
     mysuite.addTests(test_scmi.suite())
-    mysuite.addTests(test_viirs_flood.suite())
-    mysuite.addTests(test_hrit_jma.suite())
+    mysuite.addTests(test_viirs_edr_flood.suite())
+    mysuite.addTests(test_ahi_hrit.suite())
     mysuite.addTests(test_nc_goes.suite())
     mysuite.addTests(test_nc_slstr.suite())
     mysuite.addTests(test_nc_nwcsaf.suite())
-    mysuite.addTests(test_hrit_msg.suite())
+    mysuite.addTests(test_seviri_hrit.suite())
 
     return mysuite
