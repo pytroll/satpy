@@ -54,7 +54,7 @@ installation.
       - Reader name
       - Status
     * - MSG (Meteosat 8 to 11) Seviri data in HRIT format
-      - `hrit_msg`
+      - `seviri_hrit`
       - Nominal
     * - MSG (Meteosat 8 to 11) SEVIRI data in native format
       - `native_msg`

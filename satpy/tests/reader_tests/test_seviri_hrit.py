@@ -26,7 +26,7 @@ from datetime import datetime
 
 import numpy as np
 
-from satpy.readers.hrit_msg import HRITMSGFileHandler
+from satpy.readers.seviri_hrit import HRITMSGFileHandler
 from satpy.dataset import DatasetID
 
 if sys.version_info < (2, 7):
