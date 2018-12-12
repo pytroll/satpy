@@ -120,7 +120,7 @@ installation.
       - `safe_sar_c`
       - Nominal
     * - Sentinel-2 A and B MSI data in SAFE format
-      - `safe_msi`
+      - `msi_safe`
       - Nominal
     * - Sentinel-3 A and B OLCI Level 1B data in netCDF4 format
       - `olci_l1b`
