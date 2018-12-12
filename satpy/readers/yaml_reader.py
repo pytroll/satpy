@@ -378,10 +378,14 @@ class FileYAMLReader(AbstractYAMLReader):
                 matched_files.append(filename)
                 yield filename, filename_info
 
-    def new_filehandler_instances(self, filetype_info, filename_items, reader_kwargs=None):
+    def new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
         """Generate new filehandler instances."""
         requirements = filetype_info.get('requires')
         filetype_cls = filetype_info['file_reader']
+
+        if fh_kwargs is None:
+            fh_kwargs = {}
+
         for filename, filename_info in filename_items:
             try:
                 req_fh = self.find_required_filehandlers(requirements,
@@ -392,10 +396,8 @@ class FileYAMLReader(AbstractYAMLReader):
             except KeyError:
                 logger.warning("Missing requirements for %s", filename)
                 continue
-            if reader_kwargs is None:
-                yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
-            else:
-                yield filetype_cls(filename, filename_info, filetype_info, *req_fh, **reader_kwargs)
+
+            yield filetype_cls(filename, filename_info, filetype_info, *req_fh, **fh_kwargs)
 
     def time_matches(self, fstart, fend):
         start_time = self.filter_parameters.get('start_time')
@@ -468,7 +470,7 @@ class FileYAMLReader(AbstractYAMLReader):
             for fn, _ in filename_iter:
                 yield fn
 
-    def new_filehandlers_for_filetype(self, filetype_info, filenames, reader_kwargs=None):
+    def new_filehandlers_for_filetype(self, filetype_info, filenames, fh_kwargs=None):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
@@ -478,11 +480,11 @@ class FileYAMLReader(AbstractYAMLReader):
             filename_iter = self.filter_filenames_by_info(filename_iter)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
                                                           filename_iter,
-                                                          reader_kwargs=reader_kwargs)
+                                                          fh_kwargs=fh_kwargs)
         filtered_iter = self.filter_fh_by_metadata(filehandler_iter)
         return list(filtered_iter)
 
-    def create_filehandlers(self, filenames, reader_kwargs=None):
+    def create_filehandlers(self, filenames, fh_kwargs=None):
         """Organize the filenames into file types and create file handlers."""
         filenames = list(OrderedDict.fromkeys(filenames))
         logger.debug("Assigning to %s: %s", self.info['name'], filenames)
@@ -494,7 +496,7 @@ class FileYAMLReader(AbstractYAMLReader):
         for filetype, filetype_info in self.sorted_filetype_items():
             filehandlers = self.new_filehandlers_for_filetype(filetype_info,
                                                               filename_set,
-                                                              reader_kwargs=reader_kwargs)
+                                                              fh_kwargs=fh_kwargs)
 
             filename_set -= set([fhd.filename for fhd in filehandlers])
             if filehandlers:
