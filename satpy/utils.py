@@ -31,6 +31,7 @@ import logging
 import os
 import re
 
+import numpy as np
 import xarray.ufuncs as xu
 
 try:
@@ -208,9 +209,7 @@ def proj_units_to_meters(proj_str):
 
 
 def _get_sunz_corr_li_and_shibata(cos_zen):
-
-    return 24.35 / (2. * cos_zen +
-                    xu.sqrt(498.5225 * cos_zen**2 + 1))
+    return 24.35 / (2. * cos_zen + xu.sqrt(498.5225 * cos_zen**2 + 1))
 
 
 def sunzen_corr_cos(data, cos_zen, limit=88.):
@@ -226,13 +225,12 @@ def sunzen_corr_cos(data, cos_zen, limit=88.):
     """
 
     # Convert the zenith angle limit to cosine of zenith angle
-    limit = xu.cos(xu.deg2rad(limit))
+    limit = np.cos(np.deg2rad(limit))
 
     # Cosine correction
     corr = 1. / cos_zen
-    # Use constant value (the limit) for larger zenith
-    # angles
-    corr = corr.where(cos_zen > limit).fillna(1 / limit)
+    # Use constant value (the limit) for larger zenith angles
+    corr = corr.where((cos_zen > limit) | cos_zen.isnull(), 1 / limit)
 
     return data * corr
 
@@ -255,9 +253,8 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88.):
 
     # Cosine correction
     corr = _get_sunz_corr_li_and_shibata(cos_zen)
-    # Use constant value (the limit) for larger zenith
-    # angles
+    # Use constant value (the limit) for larger zenith angles
     corr_lim = _get_sunz_corr_li_and_shibata(limit)
-    corr = corr.where(cos_zen > limit).fillna(corr_lim)
+    corr = corr.where((cos_zen > limit) | cos_zen.isnull(), corr_lim)
 
     return data * corr

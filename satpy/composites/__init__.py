@@ -313,6 +313,20 @@ class SunZenithCorrectorBase(CompositeBase):
 
     coszen = WeakValueDictionary()
 
+    def __init__(self, min_sza=0.0, max_sza=90.0, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            min_sza (float): Minimum solar zenith angle in degrees that is
+                considered valid and correctable. Default 0.0.
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 90.0.
+
+        """
+        self.min_sza = np.cos(np.deg2rad(min_sza)) if min_sza is not None else None
+        self.max_sza = np.cos(np.deg2rad(max_sza)) if max_sza is not None else None
+        super(SunZenithCorrectorBase, self).__init__(**kwargs)
+
     def __call__(self, projectables, **info):
         projectables = self.check_areas(projectables)
         vis = projectables[0]
@@ -320,8 +334,8 @@ class SunZenithCorrectorBase(CompositeBase):
             LOG.debug("Sun zen correction already applied")
             return vis
 
-        if hasattr(vis.attrs["area"], 'name'):
-            area_name = vis.attrs["area"].name
+        if hasattr(vis.attrs["area"], 'area_id'):
+            area_name = vis.attrs["area"].area_id
         else:
             area_name = 'swath' + str(vis.shape)
         key = (vis.attrs["start_time"], area_name)
@@ -334,22 +348,25 @@ class SunZenithCorrectorBase(CompositeBase):
                 LOG.debug("Computing sun zenith angles.")
                 lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
 
-                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"],
-                                              lons, lats),
-                                      dims=['y', 'x'],
-                                      coords=[vis['y'], vis['x']])
-                coszen = coszen.where((coszen > 0.035) & (coszen < 1))
+                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
+                                      dims=['y', 'x'], coords=[vis['y'], vis['x']])
+                # min/max_sza are cos(sza) so min is higher than max
+                if self.max_sza is not None and self.min_sza is not None:
+                    coszen = coszen.where((coszen >= self.max_sza) & (coszen < self.min_sza))
+                elif self.max_sza is not None:
+                    coszen = coszen.where(coszen >= self.max_sza)
+                elif self.min_sza is not None:
+                    coszen = coszen.where(coszen < self.min_sza)
                 self.coszen[key] = coszen
         else:
-            coszen = xu.cos(xu.deg2rad(projectables[1]))
+            coszen = np.cos(np.deg2rad(projectables[1]))
             self.coszen[key] = coszen
 
         proj = self._apply_correction(vis, coszen)
         proj.attrs = vis.attrs.copy()
+        proj.attrs.update(info)
         self.apply_modifier_info(vis, proj)
-        LOG.debug(
-            "Sun-zenith correction applied. Computation time: %5.1f (sec)",
-            time.time() - tic)
+        LOG.debug("Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
 
     def _apply_correction(self, proj, coszen):
@@ -359,9 +376,25 @@ class SunZenithCorrectorBase(CompositeBase):
 class SunZenithCorrector(SunZenithCorrectorBase):
     """Standard sun zenith correction, 1/cos(sunz)."""
 
+    def __init__(self, correction_limit=88., **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            correction_limit (float): Maximum solar zenith angle to apply the
+                correction in degrees. Pixels beyond this limit have a
+                constant correction applied. Default 88.
+            min_sza (float): Minimum solar zenith angle in degrees that is
+                considered valid and correctable. Default 0.0.
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 90.0.
+
+        """
+        self.correction_limit = correction_limit
+        super(SunZenithCorrector, self).__init__(**kwargs)
+
     def _apply_correction(self, proj, coszen):
         LOG.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
-        return sunzen_corr_cos(proj, coszen)
+        return sunzen_corr_cos(proj, coszen, limit=self.correction_limit)
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
@@ -371,9 +404,25 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
     """
 
+    def __init__(self, correction_limit=88., **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            correction_limit (float): Maximum solar zenith angle to apply the
+                correction in degrees. Pixels beyond this limit have a
+                constant correction applied. Default 88.
+            min_sza (float): Minimum solar zenith angle in degrees that is
+                considered valid and correctable. Default 0.0.
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 90.0.
+
+        """
+        self.correction_limit = correction_limit
+        super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
+
     def _apply_correction(self, proj, coszen):
         LOG.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata")
-        return atmospheric_path_length_correction(proj, coszen)
+        return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit)
 
 
 class PSPRayleighReflectance(CompositeBase):
@@ -826,7 +875,7 @@ class DayNightCompositor(GenericCompositor):
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
-            coszen = xu.cos(xu.deg2rad(projectables[2]))
+            coszen = np.cos(np.deg2rad(projectables[2]))
         except IndexError:
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
@@ -1103,8 +1152,7 @@ class RatioSharpenedRGB(GenericCompositor):
             high_res = datasets[-1]
             p1, p2, p3 = datasets[:3]
             if 'rows_per_scan' in high_res.attrs:
-                new_attrs.setdefault('rows_per_scan',
-                                     high_res.attrs['rows_per_scan'])
+                new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
             if self.high_resolution_band == "red":
                 LOG.debug("Sharpening image with high resolution red band")
@@ -1115,8 +1163,8 @@ class RatioSharpenedRGB(GenericCompositor):
                 r = high_res
                 g = p2 * ratio
                 b = p3 * ratio
-                g.attrs = p2.attrs.copy()
-                b.attrs = p3.attrs.copy()
+                g.attrs = p2.attrs
+                b.attrs = p3.attrs
             elif self.high_resolution_band == "green":
                 LOG.debug("Sharpening image with high resolution green band")
                 ratio = high_res / p2
@@ -1124,8 +1172,8 @@ class RatioSharpenedRGB(GenericCompositor):
                 r = p1 * ratio
                 g = high_res
                 b = p3 * ratio
-                r.attrs = p1.attrs.copy()
-                b.attrs = p3.attrs.copy()
+                r.attrs = p1.attrs
+                b.attrs = p3.attrs
             elif self.high_resolution_band == "blue":
                 LOG.debug("Sharpening image with high resolution blue band")
                 ratio = high_res / p3
@@ -1133,8 +1181,8 @@ class RatioSharpenedRGB(GenericCompositor):
                 r = p1 * ratio
                 g = p2 * ratio
                 b = high_res
-                r.attrs = p1.attrs.copy()
-                g.attrs = p2.attrs.copy()
+                r.attrs = p1.attrs
+                g.attrs = p2.attrs
             else:
                 # no sharpening
                 r = p1
@@ -1144,7 +1192,7 @@ class RatioSharpenedRGB(GenericCompositor):
             datasets = self.check_areas(datasets)
             r, g, b = datasets[:3]
         # combine the masks
-        mask = ~(da.isnull(r.data) | da.isnull(g.data) | da.isnull(b.data))
+        mask = ~(r.isnull() | g.isnull() | b.isnull())
         r = r.where(mask)
         g = g.where(mask)
         b = b.where(mask)
@@ -1183,8 +1231,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         """Average every 4 elements (2x2) in a 2D array"""
         def _mean4(data, offset=(0, 0), block_id=None):
             rows, cols = data.shape
-            rows2, cols2 = data.shape
-            pad = []
             # we assume that the chunks except the first ones are aligned
             if block_id[0] == 0:
                 row_offset = offset[0] % 2
@@ -1218,8 +1264,7 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
 
     def __call__(self, datasets, optional_datasets=None, **attrs):
-        high_res = datasets[["red", "green", "blue"].index(
-            self.high_resolution_band)]
+        high_res = datasets[["red", "green", "blue"].index(self.high_resolution_band)]
         high_mean = self.four_element_average_dask(high_res)
 
         if self.high_resolution_band == 'red':
