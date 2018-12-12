@@ -89,9 +89,9 @@ test_pro = {'TISTR': datetime.datetime(2018, 5, 9, 21, 33, 27, 999000),
 class TestHRITGOESPrologueFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
-    @mock.patch('satpy.readers.hrit_goes.recarray2dict')
-    @mock.patch('satpy.readers.hrit_goes.np.fromfile')
-    @mock.patch('satpy.readers.hrit_goes.HRITFileHandler.__init__')
+    @mock.patch('satpy.readers.goes_imager_hrit.recarray2dict')
+    @mock.patch('satpy.readers.goes_imager_hrit.np.fromfile')
+    @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.__init__')
     def test_init(self, new_fh_init, fromfile, recarray2dict):
         """Setup the hrit file handler for testing."""
         recarray2dict.side_effect = lambda x: x[0]
@@ -112,7 +112,7 @@ class TestHRITGOESPrologueFileHandler(unittest.TestCase):
         ret['SatelliteID'] = 15
         fromfile.return_value = [ret]
         m = mock.mock_open()
-        with mock.patch('satpy.readers.hrit_goes.open', m, create=True) as newopen:
+        with mock.patch('satpy.readers.goes_imager_hrit.open', m, create=True) as newopen:
             newopen.return_value.__enter__.return_value.seek.return_value = 1
             self.reader = HRITGOESPrologueFileHandler(
                 'filename', {'platform_shortname': 'GOES15',
@@ -126,7 +126,7 @@ class TestHRITGOESPrologueFileHandler(unittest.TestCase):
 class TestHRITGOESFileHandler(unittest.TestCase):
     """Test the HRITFileHandler."""
 
-    @mock.patch('satpy.readers.hrit_goes.HRITFileHandler.__init__')
+    @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.__init__')
     def setUp(self, new_fh_init):
         """Setup the hrit file handler for testing."""
         mda = {'projection_parameters': {},
@@ -145,7 +145,7 @@ class TestHRITGOESFileHandler(unittest.TestCase):
                'image_data_function': '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'}
         self.assertEqual(self.reader.mda, mda)
 
-    @mock.patch('satpy.readers.hrit_goes.HRITFileHandler.get_dataset')
+    @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset')
     def test_get_dataset(self, base_get_dataset):
         key = mock.MagicMock()
         key.calibration = 'reflectance'

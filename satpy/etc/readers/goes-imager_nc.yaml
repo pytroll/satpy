@@ -4,7 +4,7 @@
 
 reader:
   description: GOES netCDF Reader
-  name: nc_goes
+  name: goes-imager_nc
   sensors: [goes_imager]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -12,65 +12,65 @@ reader:
 
 file_types:
     nc_goes_00_7:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
         file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_01.nc']
     eum_nc_goes_00_7:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESEUMNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
         file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_1.nc']
         requires: [eum_nc_goes_geo]
 
     nc_goes_03_9:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
         file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_02.nc']
     eum_nc_goes_03_9:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESEUMNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
         file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_2.nc']
         requires: [eum_nc_goes_geo]
     nc_goes_06_5:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
         file_patterns: ['goes12.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
                         'goes13.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
                         'goes14.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
                         'goes15.{start_time:%Y.%j.%H%M%S}.BAND_03.nc']
     eum_nc_goes_06_5:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESEUMNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
         file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_3.nc']
         requires: [eum_nc_goes_geo]
     nc_goes_06_8:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
         file_patterns: ['goes08.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
                         'goes09.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
                         'goes10.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
                         'goes11.{start_time:%Y.%j.%H%M%S}.BAND_03.nc']
     nc_goes_10_7:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
         file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_04.nc']
     eum_nc_goes_10_7:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESEUMNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
         file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_4.nc']
         requires: [eum_nc_goes_geo]
     nc_goes_12_0:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
         file_patterns: ['goes08.{start_time:%Y.%j.%H%M%S}.BAND_05.nc',
                         'goes09.{start_time:%Y.%j.%H%M%S}.BAND_05.nc',
                         'goes10.{start_time:%Y.%j.%H%M%S}.BAND_05.nc',
                         'goes11.{start_time:%Y.%j.%H%M%S}.BAND_05.nc']
     eum_nc_goes_12_0:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESEUMNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
         file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_5.nc']
         requires: [eum_nc_goes_geo]
     nc_goes_13_3:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
         file_patterns: ['goes12.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
                         'goes13.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
                         'goes14.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
                         'goes15.{start_time:%Y.%j.%H%M%S}.BAND_06.nc']
     eum_nc_goes_13_3:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESEUMNCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
         file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_6.nc']
         requires: [eum_nc_goes_geo]
     eum_nc_goes_geo:
-        file_reader: !!python/name:satpy.readers.nc_goes.GOESEUMGEONCFileHandler
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMGEONCFileHandler
         file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_geo.nc']
 
 datasets:

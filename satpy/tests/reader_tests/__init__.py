@@ -26,7 +26,7 @@ import sys
 
 from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_viirs_sdr, test_viirs_l1b,
-                                      test_native_msg, test_msg_base,
+                                      test_seviri_native, test_msg_base,
                                       test_hdf5_utils, test_netcdf_utils,
                                       test_hdf4_utils, test_utils,
                                       test_acspo, test_amsr2_l1b,
@@ -34,7 +34,7 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_seviri_calibration, test_clavrx,
                                       test_grib, test_goes_imager_hrit, test_ahi_hsd,
                                       test_iasi_l2, test_generic_image,
-                                      test_scmi, test_ahi_hrit, test_nc_goes,
+                                      test_scmi, test_ahi_hrit, test_goes_imager_nc,
                                       test_nc_slstr, test_nc_olci,
                                       test_viirs_edr_flood, test_nc_nwcsaf,
                                       test_seviri_hrit)
@@ -53,7 +53,7 @@ def suite():
     mysuite.addTests(test_viirs_sdr.suite())
     mysuite.addTests(test_viirs_l1b.suite())
     mysuite.addTests(test_hrit_base.suite())
-    mysuite.addTests(test_native_msg.suite())
+    mysuite.addTests(test_seviri_native.suite())
     mysuite.addTests(test_msg_base.suite())
     mysuite.addTests(test_hdf4_utils.suite())
     mysuite.addTests(test_hdf5_utils.suite())
@@ -75,7 +75,7 @@ def suite():
     mysuite.addTests(test_scmi.suite())
     mysuite.addTests(test_viirs_edr_flood.suite())
     mysuite.addTests(test_ahi_hrit.suite())
-    mysuite.addTests(test_nc_goes.suite())
+    mysuite.addTests(test_goes_imager_nc.suite())
     mysuite.addTests(test_nc_slstr.suite())
     mysuite.addTests(test_nc_nwcsaf.suite())
     mysuite.addTests(test_seviri_hrit.suite())

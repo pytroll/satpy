@@ -79,7 +79,7 @@ installation.
       - `goes-imager_hrit`
       - Nominal
     * - GOES 8 to 15 imager data in netCDF format (from NOAA CLASS)
-      - `nc_goes`
+      - `goes-imager_nc`
       - Beta
     * - Electro-L N2 MSU-GS data in HRIT format
       - `electrol_hrit`
