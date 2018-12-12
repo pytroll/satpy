@@ -20,7 +20,7 @@
 """ ScatSat-1 L2B Reader, distributed by Eumetsat in HDF5 format
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 import h5py
 import xarray as xr
 import dask.array as da
@@ -33,9 +33,9 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
 
     def _read_data(self, filename):
         h5f = h5py.File(filename, "r")
-        h5data=h5f['science_data']
-        self.filename_info['start_time'] = datetime.strptime(h5data.attrs['Range Beginning Date'],'%Y-%jT%H:%M:%S.%f')
-        self.filename_info['end_time'] = datetime.strptime(h5data.attrs['Range Ending Date'],'%Y-%jT%H:%M:%S.%f')
+        h5data = h5f['science_data']
+        self.filename_info['start_time'] = datetime.strptime(h5data.attrs['Range Beginning Date'], '%Y-%jT%H:%M:%S.%f')
+        self.filename_info['end_time'] = datetime.strptime(h5data.attrs['Range Ending Date'], '%Y-%jT%H:%M:%S.%f')
         self.filename_info['platform_name'] = h5data.attrs['Satellite Name']
 
         self.wind_speed_scale = float(h5data.attrs['Wind Speed Selection Scale'])
@@ -43,17 +43,14 @@ class SCATSAT1L2BFileHandler(BaseFileHandler):
         self.latitude_scale = float(h5data.attrs['Latitude Scale'])
         self.longitude_scale = float(h5data.attrs['Longitude Scale'])
         self.lons = h5data['Longitude'][:] * self.longitude_scale
-        self.lons[self.lons>180.0] -= 360.0
+        self.lons[self.lons > 180.0] -= 360.0
         self.lats = h5data['Latitude'][:] * self.latitude_scale
-        self.windspeed=h5data['Wind_speed_selection'][:, :] * self.wind_speed_scale
+        self.windspeed = h5data['Wind_speed_selection'][:, :] * self.wind_speed_scale
         self.wind_direction = h5data['Wind_direction_selection'][:, :] * self.wind_direction_scale
-
-
-
 
     def __init__(self, filename, filename_info, filetype_info):
         super(SCATSAT1L2BFileHandler, self).__init__(filename, filename_info,
-                                                      filetype_info)
+                                                     filetype_info)
 
         self.lons = None
         self.lats = None

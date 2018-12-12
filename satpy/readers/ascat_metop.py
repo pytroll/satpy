@@ -20,7 +20,7 @@
 """ OSI SAF ASCAT reader for Metop wind products as provided by KNMI
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -32,16 +32,14 @@ from satpy import CHUNK_SIZE
 
 class ASCATMETOPFileHandler(BaseFileHandler):
 
-
-
     def _read_data(self, filename):
         ds = CDF4_Dataset(filename, 'r')
-        self.filename_info['start_time'] = datetime.strptime(ds.getncattr('start_date')
-            + ' ' + ds.getncattr('start_time'),'%Y-%m-%d %H:%M:%S')
-        self.filename_info['end_time'] = datetime.strptime(ds.getncattr('stop_date')
-            + ' ' + ds.getncattr('stop_time'),'%Y-%m-%d %H:%M:%S')
-        self.filename_info['equator_crossing_time'] = datetime.strptime(ds.getncattr('equator_crossing_date')
-            + ' ' + ds.getncattr('equator_crossing_time'),'%Y-%m-%d %H:%M:%S')
+        self.filename_info['start_time'] = datetime.strptime(ds.getncattr('start_date') +
+                ' ' + ds.getncattr('start_time'), '%Y-%m-%d %H:%M:%S')
+        self.filename_info['end_time'] = datetime.strptime(ds.getncattr('stop_date') +
+                ' ' + ds.getncattr('stop_time'), '%Y-%m-%d %H:%M:%S')
+        self.filename_info['equator_crossing_time'] = datetime.strptime(ds.getncattr('equator_crossing_date') +
+                ' ' + ds.getncattr('equator_crossing_time'), '%Y-%m-%d %H:%M:%S')
         self.filename_info['orbit_number'] = str(ds.getncattr('orbit_number'))
         self.wind_speed = ds['wind_speed'][:]
         self.wind_speed[self.wind_speed.data == ds['wind_speed'].getncattr('missing_value')] = None
@@ -52,7 +50,7 @@ class ASCATMETOPFileHandler(BaseFileHandler):
         self.ice_age = ds['ice_age'][:]
         self.ice_age[self.ice_age.data == ds['ice_age'].getncattr('missing_value')] = None
         self.lons = ds['lon'][:]
-        self.lons[self.lons>180.0] -= 360.0
+        self.lons[self.lons > 180.0] -= 360.0
         self.lats = ds['lat'][:]
         ds.close()
 
