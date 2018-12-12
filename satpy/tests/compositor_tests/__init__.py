@@ -19,6 +19,10 @@
 """Tests for compositors.
 """
 
+import xarray as xr
+import dask.array as da
+import numpy as np
+from datetime import datetime
 from satpy.tests.compositor_tests import test_abi, test_ahi, test_viirs
 
 try:
@@ -111,6 +115,61 @@ class TestCheckArea(unittest.TestCase):
         ds2 = self._get_test_ds(shape=(3, 50, 100), dims=('bands', 'y', 'x'))
         comp = CompositeBase('test_comp')
         self.assertRaises(IncompatibleAreas, comp.check_areas, (ds1, ds2))
+
+
+class TestSunZenithCorrector(unittest.TestCase):
+    def setUp(self):
+        """Create test data."""
+        from pyresample.geometry import AreaDefinition
+        from pyorbital.astronomy import cos_zen
+        area = AreaDefinition('test', 'test', 'test',
+                              {'proj': 'merc'}, 2, 2,
+                              (-2000, -2000, 2000, 2000))
+        attrs = {'area': area,
+                 'start_time': datetime(2018, 1, 1, 18),
+                 'modifiers': tuple(),
+                 'name': 'test_vis'}
+        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 1], 'x': [0, 1]})
+        self.ds1 = ds1
+        self.sza = xr.DataArray(
+            np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
+                                               chunks=2))),
+            attrs={'area': area},
+            dims=('y', 'x'))
+
+    def test_basic_default_not_provided(self):
+        """Test default limits when SZA isn't provided."""
+        from satpy.composites import SunZenithCorrector
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
+        res = comp((self.ds1,), test_attr='test')
+        self.assertIn('test_attr', res.attrs)
+        np.testing.assert_allclose(res.values, np.array([[28.653708, 28.653708], [28.653708, 28.653708]]))
+
+    def test_basic_lims_not_provided(self):
+        """Test custom limits when SZA isn't provided."""
+        from satpy.composites import SunZenithCorrector
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
+        res = comp((self.ds1,), test_attr='test')
+        self.assertIn('test_attr', res.attrs)
+        np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
+
+    def test_basic_default_provided(self):
+        """Test default limits when SZA is provided."""
+        from satpy.composites import SunZenithCorrector
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
+        res = comp((self.ds1, self.sza), test_attr='test')
+        self.assertIn('test_attr', res.attrs)
+        np.testing.assert_allclose(res.values, np.array([[28.653708, 28.653708], [28.653708, 28.653708]]))
+
+    def test_basic_lims_provided(self):
+        """Test custom limits when SZA is provided."""
+        from satpy.composites import SunZenithCorrector
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
+        res = comp((self.ds1, self.sza), test_attr='test')
+        self.assertIn('test_attr', res.attrs)
+        np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
 
 class TestDayNightCompositor(unittest.TestCase):
@@ -304,6 +363,7 @@ def suite():
     mysuite.addTests(test_ahi.suite())
     mysuite.addTests(test_viirs.suite())
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSunZenithCorrector))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
