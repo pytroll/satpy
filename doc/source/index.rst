@@ -82,7 +82,7 @@ installation.
       - `nc_goes`
       - Beta
     * - Electro-L N2 MSU-GS data in HRIT format
-      - `hrit_electrol`
+      - `electrol_hrit`
       - Nominal
     * - NOAA 15 to 19, Metop A to C AVHRR data in AAPP format
       - `avhrr_aapp_l1b`
