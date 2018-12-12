@@ -49,6 +49,7 @@ OLD_READER_NAMES = {
     'scmi_abi_l1b': 'abi_l1b_scmi',
     'hdf4_caliopv3': 'caliop_l2_cloud',
     'hdfeos_l1b': 'modis_l1b',
+    'hrit_electrol': 'electrol_hrit',
 }
 
 
