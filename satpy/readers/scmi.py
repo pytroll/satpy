@@ -22,7 +22,7 @@ GOES-16/17 satellites. It is the primary format used for providing ABI data
 to the AWIPS visualization clients used by the US National Weather Service
 forecasters. The python code for this reader may be reused by other readers
 as NetCDF schemes/metadata change for different products. The initial reader
-using this code is the "scmi_abi" reader (see `scmi_abi_l1b.yaml` for more
+using this code is the "scmi_abi" reader (see `abi_l1b_scmi.yaml` for more
 information).
 
 There are two forms of these files that this reader supports:
