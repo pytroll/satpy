@@ -117,7 +117,7 @@ installation.
         | Only the standard swath based output is supported.
         | CPP products not supported yet
     * - Sentinel-1 A and B SAR-C data in SAFE format
-      - `safe_sar_c`
+      - `sar-c_safe`
       - Nominal
     * - Sentinel-2 A and B MSI data in SAFE format
       - `msi_safe`
