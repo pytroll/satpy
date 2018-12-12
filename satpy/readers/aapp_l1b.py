@@ -131,9 +131,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                 else:
                     dataset = self.get_angles(key.name)
             else:
-                logger.exception(
-                    "Not a supported sun-sensor viewing angle: %s", key.name)
-                raise
+                raise ValueError("Not a supported sun-sensor viewing angle: %s", key.name)
 
         dataset.attrs.update({'platform_name': self.platform_name,
                               'sensor': self.sensor})
