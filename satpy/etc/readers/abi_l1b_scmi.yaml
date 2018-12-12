@@ -1,6 +1,6 @@
 reader:
   description: SCMI NetCDF4 Reader for ABI data
-  name: scmi_abi_l1b
+  name: abi_l1b_scmi
   sensors: []
   default_channels:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

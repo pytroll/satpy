@@ -45,6 +45,7 @@ LOG = logging.getLogger(__name__)
 
 OLD_READER_NAMES = {
     'hrit_jma': 'ahi_hrit',
+    'scmi_abi_l1b': 'abi_l1b_scmi',
 }
 
 
