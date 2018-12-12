@@ -37,4 +37,4 @@ file_types:
   hdf4_caliop:
     file_patterns:
             - 'CAL_LID_L2_0{resolution:1s}kmCLay-ValStage1-V3-30.{start_time:%Y-%m-%dT%H-%M-%S}ZN.hdf'
-    file_reader: !!python/name:satpy.readers.hdf4_caliopv3.HDF4BandReader ''
+    file_reader: !!python/name:satpy.readers.caliop_l2_cloud.HDF4BandReader ''
