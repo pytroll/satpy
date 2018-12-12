@@ -1,6 +1,6 @@
 reader:
   description: Generic FCI FDSHI Data Reader
-  name: fci_fdhsi
+  name: fci_l1c_fdhsi
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
   sensors: [fci]
   default_datasets:
@@ -354,5 +354,5 @@ datasets:
 # ftp://ftp.eumetsat.int/pub/OPS/out/test-data/FCI_L1C_Format_Familiarisation/FCI_L1_Dataset_User_Guide_[FCIL1DUG].pdf
 file_types:
   fci_fdhsi:
-    file_reader: !!python/name:satpy.readers.fci_fdhsi.FCIFDHSIFileHandler ''
+    file_reader: !!python/name:satpy.readers.fci_l1c_fdhsi.FCIFDHSIFileHandler ''
     file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_evel}-{type}-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}-{oflag}-{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{accumulation_interval_in_day}.nc']
