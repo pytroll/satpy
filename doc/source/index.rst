@@ -64,7 +64,7 @@ installation.
       - `ahi_hsd`
       - Nominal
     * - Himawari 8 and 9 AHI data in HRIT format
-      - `hrit_jma`
+      - `ahi_hrit`
       - Nominal
     * - MTSAT-1R JAMI data in JMA HRIT format
       - `jami_hrit`
