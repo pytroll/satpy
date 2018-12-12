@@ -54,6 +54,8 @@ OLD_READER_NAMES = {
     'hrit_msg': 'seviri_hrit',
     'native_msg': 'seviri_native',
     'nc_goes': 'goes-imager_nc',
+    'nc_olci_l1b': 'olci_l1b',
+    'nc_olci_l2': 'olci_l2',
     'scmi_abi_l1b': 'abi_l1b_scmi',
 }
 

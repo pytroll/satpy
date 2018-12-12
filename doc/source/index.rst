@@ -122,8 +122,11 @@ installation.
     * - Sentinel-2 A and B MSI data in SAFE format
       - `safe_msi`
       - Nominal
-    * - Sentinel-3 A and B OLCI data in netCDF4 format
-      - `nc_olci`
+    * - Sentinel-3 A and B OLCI Level 1B data in netCDF4 format
+      - `olci_l1b`
+      - Nominal
+    * - Sentinel-3 A and B OLCI Level 2 data in netCDF4 format
+      - `olci_l2`
       - Nominal
     * - Sentinel-3 A and B SLSTR data in netCDF4 format
       - `nc_slstr`
