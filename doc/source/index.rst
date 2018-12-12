@@ -76,7 +76,7 @@ installation.
       - `abi_l1b`
       - Nominal
     * - GOES 11 to 15 imager data in HRIT format
-      - `hrit_goes`
+      - `goes-imager_hrit`
       - Nominal
     * - GOES 8 to 15 imager data in netCDF format (from NOAA CLASS)
       - `nc_goes`

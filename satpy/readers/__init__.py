@@ -50,6 +50,7 @@ OLD_READER_NAMES = {
     'hdfeos_l1b': 'modis_l1b',
     'hrit_electrol': 'electrol_hrit',
     'fci_fdhsi': 'fci_l1c_fdhsi',
+    'hrit_goes': 'goes-imager_hrit',
     'scmi_abi_l1b': 'abi_l1b_scmi',
 }
 
