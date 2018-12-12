@@ -58,16 +58,16 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     """SEVIRI native format reader.
     The Level1.5 Image data calibration method can be changed by adding the
     required mode to the Scene object instantiation  kwargs eg
-    kwargs = {"calibMode": "gsics",}
+    kwargs = {"calib_mode": "gsics",}
     """
 
-    def __init__(self, filename, filename_info, filetype_info,  calibMode='nominal'):
+    def __init__(self, filename, filename_info, filetype_info,  calib_mode='nominal'):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
         self.platform_name = None
-        self.calibMode = calibMode
+        self.calib_mode = calib_mode
 
         # The available channels are only known after the header
         # has been read, after that we know what the indices are for each channel
@@ -406,12 +406,12 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
             # determine the required calibration coefficients to use
             # for the Level 1.5 Header
-            if (self.calibMode.upper() != 'GSICS' and self.calibMode.upper() != 'NOMINAL'):
+            if (self.calib_mode.upper() != 'GSICS' and self.calib_mode.upper() != 'NOMINAL'):
                 raise NotImplementedError(
                     'Unknown Calibration mode : Please check')
 
             # NB GSICS doesn't have calibration coeffs for VIS channels
-            if (self.calibMode.upper() != 'GSICS' or channel in visual_channels):
+            if (self.calib_mode.upper() != 'GSICS' or channel in visual_channels):
                 coeffs = data15hdr[
                     'RadiometricProcessing']['Level15ImageCalibration']
                 gain = coeffs['CalSlope'][i]
