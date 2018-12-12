@@ -334,10 +334,7 @@ class SunZenithCorrectorBase(CompositeBase):
             LOG.debug("Sun zen correction already applied")
             return vis
 
-        if hasattr(vis.attrs["area"], 'area_id'):
-            area_name = vis.attrs["area"].area_id
-        else:
-            area_name = 'swath' + str(vis.shape)
+        area_name = hash(vis.attrs['area'])
         key = (vis.attrs["start_time"], area_name)
         tic = time.time()
         LOG.debug("Applying sun zen correction")
@@ -364,7 +361,6 @@ class SunZenithCorrectorBase(CompositeBase):
 
         proj = self._apply_correction(vis, coszen)
         proj.attrs = vis.attrs.copy()
-        proj.attrs.update(info)
         self.apply_modifier_info(vis, proj)
         LOG.debug("Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
