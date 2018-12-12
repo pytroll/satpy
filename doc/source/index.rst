@@ -102,8 +102,8 @@ installation.
     * - MTG FCI data in netcdf format
       - `fci_fdhsi`
       - In development
-    * - Callipso Caliop data in EOS-hdf4 format
-      - `hdf4_caliopv3`
+    * - Callipso Caliop Level 2 Cloud Layer data (v3) in EOS-hdf4 format
+      - `caliop_l2_cloud`
       - In development
     * - Terra and Aqua MODIS data in EOS-hdf4 level-1 format as produced by IMAPP and IPOPP or downloaded from LAADS
       - `hdfeos_l1b`
@@ -143,13 +143,13 @@ installation.
     * - The Clouds from AVHRR Extended (CLAVR-x)
       - `clavrx`
       - Nominal
-    * - SNPP VIIRS data in hdf5 SDR format
+    * - SNPP VIIRS data in HDF5 SDR format
       - `viirs_sdr`
       - Nominal
     * - SNPP VIIRS data in netCDF4 L1B format
       - `viirs_sdr`
       - Nominal
-    * - SNPP VIIRS data in hdf5 Compact format
+    * - SNPP VIIRS SDR data in HDF5 Compact format
       - `viirs_compact`
       - Nominal
     * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
@@ -162,7 +162,7 @@ installation.
       - `grib`
       - Beta
     * - SCMI ABI L1B format
-      - `scmi_abi_l1b`
+      - `abi_l1b_scmi`
       - Beta
 
 Indices and tables
