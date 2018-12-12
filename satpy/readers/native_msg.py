@@ -56,21 +56,21 @@ logger = logging.getLogger('native_msg')
 
 class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     """SEVIRI native format reader.
+    The Level1.5 Image data calibration method can be changed by adding the
+    required mode to the Scene object instantiation  kwargs eg
+    kwargs = {"calibMode": "gsics",}
     """
 
-    def __init__(self, filename, filename_info, filetype_info, **reader_kwargs):
+    def __init__(self, filename, filename_info, filetype_info,  calibMode='nominal'):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
         self.platform_name = None
+        self.calibMode = calibMode
 
         # The available channels are only known after the header
         # has been read, after that we know what the indices are for each channel
-        if reader_kwargs:
-            self.calibMode = reader_kwargs['calibMode']
-        else:
-            self.calibMode = 'Nominal'
         self.header = {}
         self.available_channels = {}
         self.mda = {}
