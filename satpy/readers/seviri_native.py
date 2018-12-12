@@ -48,8 +48,8 @@ from satpy.readers.eum_base import recarray2dict
 from satpy.readers.msg_base import (SEVIRICalibrationHandler,
                                     CHANNEL_NAMES, CALIB, SATNUM,
                                     dec10216)
-from satpy.readers.native_msg_hdr import (GSDTRecords, native_header,
-                                          native_trailer)
+from satpy.readers.seviri_native_hdr import (GSDTRecords, native_header,
+                                             native_trailer)
 
 
 logger = logging.getLogger('native_msg')

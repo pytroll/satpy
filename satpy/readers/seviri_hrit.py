@@ -49,8 +49,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
 from satpy.readers.msg_base import SEVIRICalibrationHandler
 from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
 
-from satpy.readers.native_msg_hdr import (hrit_prologue, hrit_epilogue,
-                                          impf_configuration)
+from satpy.readers.seviri_native_hdr import (hrit_prologue, hrit_epilogue,
+                                             impf_configuration)
 
 logger = logging.getLogger('hrit_msg')
 

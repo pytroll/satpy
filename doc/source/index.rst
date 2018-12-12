@@ -57,7 +57,7 @@ installation.
       - `seviri_hrit`
       - Nominal
     * - MSG (Meteosat 8 to 11) SEVIRI data in native format
-      - `native_msg`
+      - `seviri_native`
       - | No support for reading sub-section of the
         | full disk. HRV data cannot be remapped.
     * - Himawari 8 and 9 AHI data in HSD format
