@@ -1,16 +1,14 @@
 reader:
-  description: NetCDF4 reader for the Eumetsat MSG format
-  name: nc_seviri_l1b
+  description: MSG Seviri Native Reader
+  name: seviri_l1b_native
   sensors: [seviri]
+  default_channels: [HRV, IR_016, IR_039, IR_087, IR_097, IR_108, IR_120, IR_134, VIS006, VIS008, WV_062, WV_073]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    nc_seviri_l1b:
-        file_reader: !!python/name:satpy.readers.nc_seviri_l1b.NCSEVIRIFileHandler
-        file_patterns: ['W_XX-EUMETSAT-Darmstadt,VIS+IR+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
-    nc_seviri_l1b_hrv:
-        file_reader: !!python/name:satpy.readers.nc_seviri_l1b.NCSEVIRIHRVFileHandler
-        file_patterns: ['W_XX-EUMETSAT-Darmstadt,HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
+  native_msg:
+    file_reader: !!python/name:satpy.readers.seviri_l1b_native.NativeMSGFileHandler ''
+    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z-{order_id:s}.nat']
 
 datasets:
   HRV:
@@ -27,8 +25,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b_hrv
-    nc_key: 'ch12'
+    file_type: native_msg
 
   IR_016:
     name: IR_016
@@ -44,8 +41,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch3'
+    file_type: native_msg
 
   IR_039:
     name: IR_039
@@ -61,8 +57,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch4'
+    file_type: native_msg
 
   IR_087:
     name: IR_087
@@ -78,8 +73,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch5'
+    file_type: native_msg
 
   IR_097:
     name: IR_097
@@ -95,8 +89,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch8'
+    file_type: native_msg
 
   IR_108:
     name: IR_108
@@ -112,8 +105,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch9'
+    file_type: native_msg
 
   IR_120:
     name: IR_120
@@ -129,8 +121,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch10'
+    file_type: native_msg
 
   IR_134:
     name: IR_134
@@ -146,8 +137,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch11'
+    file_type: native_msg
 
   VIS006:
     name: VIS006
@@ -163,9 +153,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch1'
-
+    file_type: native_msg
 
   VIS008:
     name: VIS008
@@ -181,8 +169,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch2'
+    file_type: native_msg
 
   WV_062:
     name: WV_062
@@ -198,8 +185,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch6'
+    file_type: native_msg
 
   WV_073:
     name: WV_073
@@ -215,7 +201,4 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
-    nc_key: 'ch7'
-
-
+    file_type: native_msg

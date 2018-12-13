@@ -25,7 +25,7 @@
 
 import sys
 import numpy as np
-from satpy.readers.msg_base import SEVIRICalibrationHandler
+from satpy.readers.seviri_base import SEVIRICalibrationHandler
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest

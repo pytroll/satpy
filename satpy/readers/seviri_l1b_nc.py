@@ -23,8 +23,8 @@
 """SEVIRI netcdf format reader. """
 
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.msg_base import (SEVIRICalibrationHandler,
-                                    CHANNEL_NAMES, CALIB, SATNUM)
+from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
+                                       CHANNEL_NAMES, CALIB, SATNUM)
 import xarray as xr
 # Needed for xarray netcdf workaround
 from netCDF4 import Dataset as tmpDataset

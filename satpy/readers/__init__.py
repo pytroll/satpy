@@ -45,17 +45,18 @@ LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
 OLD_READER_NAMES = {
-    'hrit_jma': 'ahi_hrit',
     'hdf4_caliopv3': 'caliop_l2_cloud',
     'hdfeos_l1b': 'modis_l1b',
     'hrit_electrol': 'electrol_hrit',
+    'hrit_jma': 'ahi_hrit',
     'fci_fdhsi': 'fci_l1c_fdhsi',
     'hrit_goes': 'goes-imager_hrit',
-    'hrit_msg': 'seviri_hrit',
-    'native_msg': 'seviri_native',
+    'hrit_msg': 'seviri_l1b_hrit',
+    'native_msg': 'seviri_l1b_native',
     'nc_goes': 'goes-imager_nc',
     'nc_olci_l1b': 'olci_l1b',
     'nc_olci_l2': 'olci_l2',
+    'nc_seviri_l1b': 'seviri_l1b_nc',
     'safe_msi': 'msi_safe',
     'safe_sar_c': 'sar-c_safe',
     'scmi_abi_l1b': 'abi_l1b_scmi',

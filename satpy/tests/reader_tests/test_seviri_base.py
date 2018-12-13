@@ -25,7 +25,7 @@
 
 import sys
 import numpy as np
-from satpy.readers.msg_base import dec10216
+from satpy.readers.seviri_base import dec10216
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
