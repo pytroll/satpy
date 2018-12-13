@@ -54,10 +54,13 @@ installation.
       - Reader name
       - Status
     * - MSG (Meteosat 8 to 11) Seviri data in HRIT format
-      - `seviri_hrit`
+      - `seviri_l1b_hrit`
+      - Nominal
+    * - MSG (Meteosat 8 to 11) Seviri data in NetCDF format
+      - `seviri_l1b_nc`
       - Nominal
     * - MSG (Meteosat 8 to 11) SEVIRI data in native format
-      - `seviri_native`
+      - `seviri_l1b_native`
       - | No support for reading sub-section of the
         | full disk. HRV data cannot be remapped.
     * - Himawari 8 and 9 AHI data in HSD format

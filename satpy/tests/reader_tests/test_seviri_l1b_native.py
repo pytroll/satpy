@@ -27,7 +27,7 @@
 import sys
 
 import numpy as np
-from satpy.readers.seviri_native import (
+from satpy.readers.seviri_l1b_native import (
     NativeMSGFileHandler,
     get_available_channels,
 )
