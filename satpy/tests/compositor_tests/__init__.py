@@ -39,8 +39,6 @@ class TestCheckArea(unittest.TestCase):
 
     def _get_test_ds(self, shape=(50, 100), dims=('y', 'x')):
         """Helper method to get a fake DataArray."""
-        import xarray as xr
-        import dask.array as da
         from pyresample.geometry import AreaDefinition
         data = da.random.random(shape, chunks=25)
         area = AreaDefinition(
@@ -172,10 +170,6 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def setUp(self):
         """Create test data."""
-        import xarray as xr
-        import dask.array as da
-        import numpy as np
-        from datetime import datetime
         bands = ['R', 'G', 'B']
         start_time = datetime(2018, 1, 1, 18, 0, 0)
 
@@ -215,7 +209,6 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_basic_sza(self):
         """Test compositor when SZA data is included"""
-        import numpy as np
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test')
         res = comp((self.data_a, self.data_b, self.sza))
@@ -225,7 +218,6 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_basic_area(self):
         """Test compositor when SZA data is not provided."""
-        import numpy as np
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test')
         res = comp((self.data_a, self.data_b))
@@ -237,8 +229,6 @@ class TestDayNightCompositor(unittest.TestCase):
 class TestFillingCompositor(unittest.TestCase):
 
     def test_fill(self):
-        import numpy as np
-        import xarray as xr
         from satpy.composites import FillingCompositor
         comp = FillingCompositor(name='fill_test')
         filler = xr.DataArray(np.array([1, 2, 3, 4, 3, 2, 1]))
@@ -256,8 +246,6 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
 
     def test_compositor(self):
         """Test luminance sharpening compositor."""
-        import numpy as np
-        import xarray as xr
         from satpy.composites import LuminanceSharpeningCompositor
         comp = LuminanceSharpeningCompositor(name='test')
         # Three shades of grey
@@ -292,8 +280,6 @@ class TestSandwichCompositor(unittest.TestCase):
     @mock.patch('satpy.composites.enhance2dataset')
     def test_compositor(self, e2d):
         """Test luminance sharpening compositor."""
-        import numpy as np
-        import xarray as xr
         from satpy.composites import SandwichCompositor
 
         rgb_arr = np.random.random((3, 2, 2))
