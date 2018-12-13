@@ -1082,8 +1082,10 @@ class Scene(MetadataObject):
             if proj == "geos":
                 dscrs = crs.Geostationary()
                 gvds = gv.Dataset(ds, crs=dscrs)
+            else:
+                gvds = gv.Dataset(ds)
         else:
-            gvds = gv.Dataset(ds)
+            LOG.error("No area found in dataset")
 
         if "latitude" in ds.coords.keys():
             gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
