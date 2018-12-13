@@ -1091,6 +1091,15 @@ class RatioSharpenedRGB(GenericCompositor):
                              "'{}'".format(self.high_resolution_band))
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
+    def _get_band(self, high_res, low_res, color, ratio):
+        """Figure out what data should represent this color."""
+        if self.high_resolution_band == color:
+            ret = high_res
+        else:
+            ret = low_res * ratio
+            ret.attrs = low_res.attrs.copy()
+        return ret
+
     def __call__(self, datasets, optional_datasets=None, **info):
         if len(datasets) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
@@ -1109,43 +1118,29 @@ class RatioSharpenedRGB(GenericCompositor):
                 new_attrs.setdefault('rows_per_scan',
                                      high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            if self.high_resolution_band == "red":
-                LOG.debug("Sharpening image with high resolution red band")
-                ratio = high_res / p1
+            colors = ['red', 'green', 'blue']
+            high_res = datasets[["red", "green", "blue"].index(self.high_resolution_band)]
+
+            if self.high_resolution_band in colors:
+                LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_band))
+                low_res = datasets[:3][colors.index(self.high_resolution_band)]
+                ratio = high_res / low_res
                 # make ratio a no-op (multiply by 1) where the ratio is NaN or
                 # infinity or it is negative.
-                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
-                r = high_res
-                g = p2 * ratio
-                b = p3 * ratio
-                g.attrs = p2.attrs.copy()
-                b.attrs = p3.attrs.copy()
-            elif self.high_resolution_band == "green":
-                LOG.debug("Sharpening image with high resolution green band")
-                ratio = high_res / p2
-                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
-                r = p1 * ratio
-                g = high_res
-                b = p3 * ratio
-                r.attrs = p1.attrs.copy()
-                b.attrs = p3.attrs.copy()
-            elif self.high_resolution_band == "blue":
-                LOG.debug("Sharpening image with high resolution blue band")
-                ratio = high_res / p3
-                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
-                r = p1 * ratio
-                g = p2 * ratio
-                b = high_res
-                r.attrs = p1.attrs.copy()
-                g.attrs = p2.attrs.copy()
+                ratio = ratio.where(np.isfinite(ratio) & (ratio >= 0), 1.)
+                # we don't need ridiculously high ratios, they just make bright pixels
+                ratio = ratio.clip(0, 1.5)
             else:
-                # no sharpening
-                r = p1
-                g = p2
-                b = p3
+                LOG.debug("No sharpening band specified for ratio sharpening")
+                ratio = 1.
+
+            r = self._get_band(high_res, p1, 'red', ratio)
+            g = self._get_band(high_res, p2, 'green', ratio)
+            b = self._get_band(high_res, p3, 'blue', ratio)
         else:
             datasets = self.check_areas(datasets)
             r, g, b = datasets[:3]
+
         # combine the masks
         mask = ~(da.isnull(r.data) | da.isnull(g.data) | da.isnull(b.data))
         r = r.where(mask)
