@@ -313,14 +313,14 @@ class SunZenithCorrectorBase(CompositeBase):
 
     coszen = WeakValueDictionary()
 
-    def __init__(self, min_sza=0.0, max_sza=90.0, **kwargs):
+    def __init__(self, min_sza=0.0, max_sza=95.0, **kwargs):
         """Collect custom configuration values.
 
         Args:
             min_sza (float): Minimum solar zenith angle in degrees that is
                 considered valid and correctable. Default 0.0.
             max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 90.0.
+                considered valid and correctable. Default 95.0.
 
         """
         self.min_sza = np.cos(np.deg2rad(min_sza)) if min_sza is not None else None
@@ -370,7 +370,13 @@ class SunZenithCorrectorBase(CompositeBase):
 
 
 class SunZenithCorrector(SunZenithCorrectorBase):
-    """Standard sun zenith correction, 1/cos(sunz)."""
+    """Standard sun zenith correction using ``1 / cos(sunz)``.
+
+    In addition to adjusting the provided reflectances by the cosine of the
+    solar zenith angle, this modifier also forces all reflectances beyond a
+    solar zenith angle of `max_sza` to 0.
+
+    """
 
     def __init__(self, correction_limit=88., **kwargs):
         """Collect custom configuration values.
@@ -382,7 +388,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
             min_sza (float): Minimum solar zenith angle in degrees that is
                 considered valid and correctable. Default 0.0.
             max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 90.0.
+                considered valid and correctable. Default 95.0.
 
         """
         self.correction_limit = correction_limit
@@ -398,6 +404,10 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
     (2006): https://doi.org/10.1175/JAS3682.1
 
+    In addition to adjusting the provided reflectances by the cosine of the
+    solar zenith angle, this modifier also forces all reflectances beyond a
+    solar zenith angle of `max_sza` to 0 to reduce noise in the final data.
+
     """
 
     def __init__(self, correction_limit=88., **kwargs):
@@ -410,7 +420,7 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
             min_sza (float): Minimum solar zenith angle in degrees that is
                 considered valid and correctable. Default 0.0.
             max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 90.0.
+                considered valid and correctable. Default 95.0.
 
         """
         self.correction_limit = correction_limit

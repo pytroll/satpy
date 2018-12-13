@@ -134,7 +134,9 @@ class TestSunZenithCorrector(unittest.TestCase):
             np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
                                                chunks=2))),
             attrs={'area': area},
-            dims=('y', 'x'))
+            dims=('y', 'x'),
+            coords={'y': [0, 1], 'x': [0, 1]},
+        )
 
     def test_basic_default_not_provided(self):
         """Test default limits when SZA isn't provided."""

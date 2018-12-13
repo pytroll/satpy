@@ -230,7 +230,9 @@ def sunzen_corr_cos(data, cos_zen, limit=88.):
     # Cosine correction
     corr = 1. / cos_zen
     # Use constant value (the limit) for larger zenith angles
-    corr = corr.where((cos_zen > limit) | cos_zen.isnull(), 1 / limit)
+    corr = corr.where(cos_zen > limit, 1 / limit)
+    # Force "night" pixels to 0 (where SZA is invalid)
+    data = data.where(cos_zen.notnull(), 0)
 
     return data * corr
 
@@ -255,6 +257,8 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88.):
     corr = _get_sunz_corr_li_and_shibata(cos_zen)
     # Use constant value (the limit) for larger zenith angles
     corr_lim = _get_sunz_corr_li_and_shibata(limit)
-    corr = corr.where((cos_zen > limit) | cos_zen.isnull(), corr_lim)
+    corr = corr.where(cos_zen > limit, corr_lim)
+    # Force "night" pixels to 0 (where SZA is invalid)
+    data = data.where(cos_zen.notnull(), 0)
 
     return data * corr
