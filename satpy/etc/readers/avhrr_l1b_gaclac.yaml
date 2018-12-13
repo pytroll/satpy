@@ -1,5 +1,5 @@
 reader:
-    name: gac_lac_l1
+    name: avhrr_l1b_gaclac
     description: AAPP l1b Reader for AVHRR
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [avhrr-3, avhrr-2, avhrr-1]
@@ -135,6 +135,6 @@ datasets:
 
 file_types:
     gac_lac_l1b:
-        file_reader: !!python/name:satpy.readers.gac_lac_l1.GACLACFile
+        file_reader: !!python/name:satpy.readers.avhrr_l1b_gaclac.GACLACFile
         #NSS.GHRR.NJ.D95056.S1116.E1303.B0080506.GC
         file_patterns: ['NSS.GHRR.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:07d}.{station:2s}']

@@ -94,7 +94,7 @@ installation.
       - `avhrr_eps_l1b`
       - Nominal
     * - Tiros-N, NOAA 7 to 19 AVHRR data in GAC and LAC format
-      - `gac_lac_l1b`
+      - `avhrr_l1b_gaclac`
       - Nominal
     * - NOAA 15 to 19 AVHRR data in raw HRPT format
       - `avhrr_hrpt_l1b`
