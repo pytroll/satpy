@@ -143,7 +143,7 @@ class TestSunZenithCorrector(unittest.TestCase):
         from satpy.composites import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
         res = comp((self.ds1,), test_attr='test')
-        np.testing.assert_allclose(res.values, np.array([[28.653708, 28.653708], [28.653708, 28.653708]]))
+        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777 ], [22.437503, 22.353533]]))
 
     def test_basic_lims_not_provided(self):
         """Test custom limits when SZA isn't provided."""
@@ -157,7 +157,7 @@ class TestSunZenithCorrector(unittest.TestCase):
         from satpy.composites import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
         res = comp((self.ds1, self.sza), test_attr='test')
-        np.testing.assert_allclose(res.values, np.array([[28.653708, 28.653708], [28.653708, 28.653708]]))
+        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777 ], [22.437503, 22.353533]]))
 
     def test_basic_lims_provided(self):
         """Test custom limits when SZA is provided."""

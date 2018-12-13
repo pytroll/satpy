@@ -323,8 +323,10 @@ class SunZenithCorrectorBase(CompositeBase):
                 considered valid and correctable. Default 95.0.
 
         """
-        self.min_sza = np.cos(np.deg2rad(min_sza)) if min_sza is not None else None
-        self.max_sza = np.cos(np.deg2rad(max_sza)) if max_sza is not None else None
+        self.min_sza = min_sza
+        self.min_sza_cos = np.cos(np.deg2rad(min_sza)) if min_sza is not None else None
+        self.max_sza = max_sza
+        self.max_sza_cos = np.cos(np.deg2rad(max_sza)) if max_sza is not None else None
         super(SunZenithCorrectorBase, self).__init__(**kwargs)
 
     def __call__(self, projectables, **info):
@@ -349,11 +351,11 @@ class SunZenithCorrectorBase(CompositeBase):
                                       dims=['y', 'x'], coords=[vis['y'], vis['x']])
                 # min/max_sza are cos(sza) so min is higher than max
                 if self.max_sza is not None and self.min_sza is not None:
-                    coszen = coszen.where((coszen >= self.max_sza) & (coszen < self.min_sza))
+                    coszen = coszen.where((coszen >= self.max_sza_cos) & (coszen < self.min_sza_cos))
                 elif self.max_sza is not None:
-                    coszen = coszen.where(coszen >= self.max_sza)
+                    coszen = coszen.where(coszen >= self.max_sza_cos)
                 elif self.min_sza is not None:
-                    coszen = coszen.where(coszen < self.min_sza)
+                    coszen = coszen.where(coszen < self.min_sza_cos)
                 self.coszen[key] = coszen
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
@@ -374,7 +376,20 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     In addition to adjusting the provided reflectances by the cosine of the
     solar zenith angle, this modifier also forces all reflectances beyond a
-    solar zenith angle of `max_sza` to 0.
+    solar zenith angle of ``max_sza`` to 0. It also gradually reduces the
+    amount of correction done between ``correction_limit`` and ``max_sza``. If
+    ``max_sza`` is ``None`` then a constant correction is applied to zenith
+    angles beyond ``correction_limit``.
+
+    To set ``max_sza`` to ``None`` in a YAML configuration file use:
+
+    .. code-block:: yaml
+
+      sunz_corrected:
+        compositor: !!python/name:satpy.composites.SunZenithCorrector
+        max_sza: !!null
+        optional_prerequisites:
+        - satellite_zenith_angleV
 
     """
 
@@ -396,7 +411,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
 
     def _apply_correction(self, proj, coszen):
         LOG.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
-        return sunzen_corr_cos(proj, coszen, limit=self.correction_limit)
+        return sunzen_corr_cos(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
