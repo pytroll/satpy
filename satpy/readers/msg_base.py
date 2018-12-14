@@ -32,6 +32,10 @@ import xarray.ufuncs as xu
 C1 = 1.19104273e-5
 C2 = 1.43877523
 
+VISIR_NUM_COLUMNS = 3712
+VISIR_NUM_LINES = 3712
+HRV_NUM_COLUMNS = 11136
+
 CHANNEL_NAMES = {1: "VIS006",
                  2: "VIS008",
                  3: "IR_016",
