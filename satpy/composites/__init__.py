@@ -313,6 +313,18 @@ class SunZenithCorrectorBase(CompositeBase):
 
     coszen = WeakValueDictionary()
 
+    def __init__(self, max_sza=95.0, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 95.0.
+
+        """
+        self.max_sza = max_sza
+        self.max_sza_cos = np.cos(np.deg2rad(max_sza)) if max_sza is not None else None
+        super(SunZenithCorrectorBase, self).__init__(**kwargs)
+
     def __call__(self, projectables, **info):
         projectables = self.check_areas(projectables)
         vis = projectables[0]
@@ -320,10 +332,7 @@ class SunZenithCorrectorBase(CompositeBase):
             LOG.debug("Sun zen correction already applied")
             return vis
 
-        if hasattr(vis.attrs["area"], 'name'):
-            area_name = vis.attrs["area"].name
-        else:
-            area_name = 'swath' + str(vis.shape)
+        area_name = hash(vis.attrs['area'])
         key = (vis.attrs["start_time"], area_name)
         tic = time.time()
         LOG.debug("Applying sun zen correction")
@@ -334,22 +343,19 @@ class SunZenithCorrectorBase(CompositeBase):
                 LOG.debug("Computing sun zenith angles.")
                 lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
 
-                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"],
-                                              lons, lats),
-                                      dims=['y', 'x'],
-                                      coords=[vis['y'], vis['x']])
-                coszen = coszen.where((coszen > 0.035) & (coszen < 1))
+                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
+                                      dims=['y', 'x'], coords=[vis['y'], vis['x']])
+                if self.max_sza is not None:
+                    coszen = coszen.where(coszen >= self.max_sza_cos)
                 self.coszen[key] = coszen
         else:
-            coszen = xu.cos(xu.deg2rad(projectables[1]))
+            coszen = np.cos(np.deg2rad(projectables[1]))
             self.coszen[key] = coszen
 
         proj = self._apply_correction(vis, coszen)
         proj.attrs = vis.attrs.copy()
         self.apply_modifier_info(vis, proj)
-        LOG.debug(
-            "Sun-zenith correction applied. Computation time: %5.1f (sec)",
-            time.time() - tic)
+        LOG.debug("Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
 
     def _apply_correction(self, proj, coszen):
@@ -357,11 +363,44 @@ class SunZenithCorrectorBase(CompositeBase):
 
 
 class SunZenithCorrector(SunZenithCorrectorBase):
-    """Standard sun zenith correction, 1/cos(sunz)."""
+    """Standard sun zenith correction using ``1 / cos(sunz)``.
+
+    In addition to adjusting the provided reflectances by the cosine of the
+    solar zenith angle, this modifier forces all reflectances beyond a
+    solar zenith angle of ``max_sza`` to 0. It also gradually reduces the
+    amount of correction done between ``correction_limit`` and ``max_sza``. If
+    ``max_sza`` is ``None`` then a constant correction is applied to zenith
+    angles beyond ``correction_limit``.
+
+    To set ``max_sza`` to ``None`` in a YAML configuration file use:
+
+    .. code-block:: yaml
+
+      sunz_corrected:
+        compositor: !!python/name:satpy.composites.SunZenithCorrector
+        max_sza: !!null
+        optional_prerequisites:
+        - solar_zenith_angle
+
+    """
+
+    def __init__(self, correction_limit=88., **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            correction_limit (float): Maximum solar zenith angle to apply the
+                correction in degrees. Pixels beyond this limit have a
+                constant correction applied. Default 88.
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 95.0.
+
+        """
+        self.correction_limit = correction_limit
+        super(SunZenithCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
         LOG.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
-        return sunzen_corr_cos(proj, coszen)
+        return sunzen_corr_cos(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
@@ -369,11 +408,43 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
     (2006): https://doi.org/10.1175/JAS3682.1
 
+    In addition to adjusting the provided reflectances by the cosine of the
+    solar zenith angle, this modifier forces all reflectances beyond a
+    solar zenith angle of `max_sza` to 0 to reduce noise in the final data.
+    It also gradually reduces the amount of correction done between
+    ``correction_limit`` and ``max_sza``. If ``max_sza`` is ``None`` then a
+    constant correction is applied to zenith angles beyond
+    ``correction_limit``.
+
+    To set ``max_sza`` to ``None`` in a YAML configuration file use:
+
+    .. code-block:: yaml
+
+      effective_solar_pathlength_corrected:
+        compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+        max_sza: !!null
+        optional_prerequisites:
+        - solar_zenith_angle
+
     """
+
+    def __init__(self, correction_limit=88., **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            correction_limit (float): Maximum solar zenith angle to apply the
+                correction in degrees. Pixels beyond this limit have a
+                constant correction applied. Default 88.
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 95.0.
+
+        """
+        self.correction_limit = correction_limit
+        super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
         LOG.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata")
-        return atmospheric_path_length_correction(proj, coszen)
+        return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
 
 
 class PSPRayleighReflectance(CompositeBase):
@@ -829,7 +900,7 @@ class DayNightCompositor(GenericCompositor):
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
-            coszen = xu.cos(xu.deg2rad(projectables[2]))
+            coszen = np.cos(np.deg2rad(projectables[2]))
         except IndexError:
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
@@ -1163,7 +1234,7 @@ class RatioSharpenedRGB(GenericCompositor):
             r, g, b = datasets[:3]
 
         # combine the masks
-        mask = ~(da.isnull(r.data) | da.isnull(g.data) | da.isnull(b.data))
+        mask = ~(r.isnull() | g.isnull() | b.isnull())
         r = r.where(mask)
         g = g.where(mask)
         b = b.where(mask)
@@ -1202,8 +1273,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         """Average every 4 elements (2x2) in a 2D array"""
         def _mean4(data, offset=(0, 0), block_id=None):
             rows, cols = data.shape
-            rows2, cols2 = data.shape
-            pad = []
             # we assume that the chunks except the first ones are aligned
             if block_id[0] == 0:
                 row_offset = offset[0] % 2

@@ -160,7 +160,7 @@ class ReflectanceCorrector(CompositeBase):
         lons, lats = vis.attrs['area'].get_lonlats_dask(
             chunks=vis.data.chunks)
         suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
-        suna = xu.rad2deg(suna)
+        suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
         sata, satel = get_observer_look(
             vis.attrs['satellite_longitude'],
