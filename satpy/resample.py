@@ -498,10 +498,14 @@ class EWAResampler(BaseResampler):
 
         # SatPy/PyResample don't support dynamic grids out of the box yet
         lons, lats = source_geo_def.get_lonlats()
+        if isinstance(lons, xr.DataArray):
+            # get dask arrays
+            lons = lons.data
+            lats = lats.data
         # we are remapping to a static unchanging grid/area with all of
         # its parameters specified
         chunks = (2,) + lons.chunks
-        res = da.map_blocks(self._call_ll2cr, lons.data, lats.data,
+        res = da.map_blocks(self._call_ll2cr, lons, lats,
                             target_geo_def, swath_usage,
                             dtype=lons.dtype, chunks=chunks, new_axis=[0])
         cols = res[0]
