@@ -56,7 +56,6 @@ class HDFEOSFileReader(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(HDFEOSFileReader, self).__init__(filename, filename_info, filetype_info)
-        self.filename = filename
         try:
             self.sd = SD(self.filename)
         except HDF4Error as err:
@@ -445,4 +444,4 @@ def calibrate_bt(array, attributes, index, band_name):
     tci = tci[global_index]
     array = c_2 / (cwn * xu.log(c_1 / (1000000 * array * cwn ** 5) + 1))
     array = (array - tci) / tcs
-    return array.astype(np.float32)
+    return array
