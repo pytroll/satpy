@@ -223,6 +223,58 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         np.testing.assert_allclose(res[2], np.array([[4, 4], [4, 4]], dtype=np.float64))
 
 
+class TestSunZenithCorrector(unittest.TestCase):
+    def setUp(self):
+        """Create test data."""
+        from pyresample.geometry import AreaDefinition
+        area = AreaDefinition('test', 'test', 'test',
+                              {'proj': 'merc'}, 2, 2,
+                              (-2000, -2000, 2000, 2000))
+        attrs = {'area': area,
+                 'start_time': datetime(2018, 1, 1, 18),
+                 'modifiers': tuple(),
+                 'name': 'test_vis'}
+        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 1], 'x': [0, 1]})
+        self.ds1 = ds1
+        self.sza = xr.DataArray(
+            np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
+                                               chunks=2))),
+            attrs={'area': area},
+            dims=('y', 'x'),
+            coords={'y': [0, 1], 'x': [0, 1]},
+        )
+
+    def test_basic_default_not_provided(self):
+        """Test default limits when SZA isn't provided."""
+        from satpy.composites import SunZenithCorrector
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
+        res = comp((self.ds1,), test_attr='test')
+        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+
+    def test_basic_lims_not_provided(self):
+        """Test custom limits when SZA isn't provided."""
+        from satpy.composites import SunZenithCorrector
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
+        res = comp((self.ds1,), test_attr='test')
+        np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
+
+    def test_basic_default_provided(self):
+        """Test default limits when SZA is provided."""
+        from satpy.composites import SunZenithCorrector
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
+        res = comp((self.ds1, self.sza), test_attr='test')
+        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+
+    def test_basic_lims_provided(self):
+        """Test custom limits when SZA is provided."""
+        from satpy.composites import SunZenithCorrector
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
+        res = comp((self.ds1, self.sza), test_attr='test')
+        np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
+
+
 class TestDayNightCompositor(unittest.TestCase):
     """Test DayNightCompositor."""
 
@@ -464,6 +516,7 @@ def suite():
     mysuite.addTests(test_viirs.suite())
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
     mysuite.addTest(loader.loadTestsFromTestCase(TestRatioSharpenedCompositors))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSunZenithCorrector))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
