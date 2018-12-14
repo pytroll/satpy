@@ -30,6 +30,7 @@ import os
 
 import numpy as np
 import xarray as xr
+import dask.array as da
 
 from pyresample.utils import get_area_def
 from satpy.readers.file_handlers import BaseFileHandler
@@ -165,6 +166,10 @@ class NcNWCSAF(BaseFileHandler):
         if 'palette_meanings' in variable.attrs:
             variable.attrs['palette_meanings'] = [int(val)
                                                   for val in variable.attrs['palette_meanings'].split()]
+            if variable.attrs['palette_meanings'][0] == 1:
+                variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
+                variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
+                                        coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
 
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])
