@@ -74,7 +74,7 @@ class Scene(MetadataObject):
 
     """
 
-    def __init__(self, filenames=None, reader=None, wishlist = None, filter_parameters=None, reader_kwargs=None,
+    def __init__(self, filenames=None, reader=None, filter_parameters=None, reader_kwargs=None,
                  ppp_config_dir=get_environ_config_dir(),
                  base_dir=None,
                  sensor=None,
@@ -157,10 +157,7 @@ class Scene(MetadataObject):
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
-        if wishlist is None:
-            self.wishlist = set()
-        else:
-            self.wishlist = set(wishlist)
+        self.wishlist = set(wishlist)
         self.dep_tree = DependencyTree(self.readers, comps, mods)
         self.resamplers = {}
 
@@ -396,10 +393,7 @@ class Scene(MetadataObject):
 
     def __str__(self):
         """Generate a nice print out for the scene."""
-        if self.datasets.keys() == []:
-            res = ["Availables Dataset Ids:"] + [str(i.to_dict()) for i in self.available_dataset_ids()]
-        else:
-            res = (str(proj) for proj in self.datasets.values())
+        res = (str(proj) for proj in self.datasets.values())
 
         return "\n".join(res)
 
@@ -796,7 +790,7 @@ class Scene(MetadataObject):
 
         """
         if nodes is None:
-            required_nodes = self.wishlist #- set(self.datasets.keys()) NOT NEEDED BECAUSE DIFFERENCE ALREADY DONE IN LOAD
+            required_nodes = self.wishlist - set(self.datasets.keys())
             nodes = self.dep_tree.leaves(nodes=required_nodes)
         return self._read_datasets(nodes, **kwargs)
 
@@ -836,7 +830,7 @@ class Scene(MetadataObject):
             LOG.debug("Unloading dataset: %r", ds_id)
             del self.datasets[ds_id]
 
-    def load(self, wishlist = None, calibration=None, resolution=None,
+    def load(self, wishlist, calibration=None, resolution=None,
              polarization=None, level=None, generate=True, unload=True,
              **kwargs):
         """Read and generate requested datasets.
@@ -877,9 +871,6 @@ class Scene(MetadataObject):
                            but are no longer needed.
 
         """
-        if wishlist is None:
-            wishlist = self.wishlist
-
         dataset_keys = set(wishlist)
         needed_datasets = (self.wishlist | dataset_keys) - \
             set(self.datasets.keys())

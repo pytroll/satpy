@@ -92,13 +92,6 @@ def debug_on():
     logging_on(logging.DEBUG)
 
 
-def debug_off():
-    """
-    Turn debugging off.
-    """
-    logging_on()
-
-
 def trace_on():
     """Turn trace logging on."""
     logging_on(TRACE_LEVEL)
