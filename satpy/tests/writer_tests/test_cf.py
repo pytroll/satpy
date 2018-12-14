@@ -67,6 +67,29 @@ class TestCFWriter(unittest.TestCase):
         finally:
             os.remove(filename)
 
+    def test_single_time_value(self):
+        from satpy import Scene
+        import xarray as xr
+        import tempfile
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        test_array = np.array([[1, 2], [3, 4]])
+        scn['test-array'] = xr.DataArray(test_array,
+                                         dims=['x', 'y'],
+                                         coords={'time': np.datetime64('2018-05-30T10:05:00')},
+                                         attrs=dict(start_time=start_time,
+                                                    end_time=end_time))
+        try:
+            handle, filename = tempfile.mkstemp()
+            os.close(handle)
+            scn.save_datasets(filename=filename, writer='cf')
+            import h5netcdf as nc4
+            with nc4.File(filename) as f:
+                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
+        finally:
+            os.remove(filename)
+
     def test_bounds(self):
         from satpy import Scene
         import xarray as xr
