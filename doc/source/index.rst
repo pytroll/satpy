@@ -150,7 +150,7 @@ installation.
       - `viirs_sdr`
       - Nominal
     * - SNPP VIIRS data in netCDF4 L1B format
-      - `viirs_sdr`
+      - `viirs_l1b`
       - Nominal
     * - SNPP VIIRS data in hdf5 Compact format
       - `viirs_compact`
