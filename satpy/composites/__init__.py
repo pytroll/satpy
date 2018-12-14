@@ -313,18 +313,14 @@ class SunZenithCorrectorBase(CompositeBase):
 
     coszen = WeakValueDictionary()
 
-    def __init__(self, min_sza=0.0, max_sza=95.0, **kwargs):
+    def __init__(self, max_sza=95.0, **kwargs):
         """Collect custom configuration values.
 
         Args:
-            min_sza (float): Minimum solar zenith angle in degrees that is
-                considered valid and correctable. Default 0.0.
             max_sza (float): Maximum solar zenith angle in degrees that is
                 considered valid and correctable. Default 95.0.
 
         """
-        self.min_sza = min_sza
-        self.min_sza_cos = np.cos(np.deg2rad(min_sza)) if min_sza is not None else None
         self.max_sza = max_sza
         self.max_sza_cos = np.cos(np.deg2rad(max_sza)) if max_sza is not None else None
         super(SunZenithCorrectorBase, self).__init__(**kwargs)
@@ -349,13 +345,8 @@ class SunZenithCorrectorBase(CompositeBase):
 
                 coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
                                       dims=['y', 'x'], coords=[vis['y'], vis['x']])
-                # min/max_sza are cos(sza) so min is higher than max
-                if self.max_sza is not None and self.min_sza is not None:
-                    coszen = coszen.where((coszen >= self.max_sza_cos) & (coszen < self.min_sza_cos))
-                elif self.max_sza is not None:
+                if self.max_sza is not None:
                     coszen = coszen.where(coszen >= self.max_sza_cos)
-                elif self.min_sza is not None:
-                    coszen = coszen.where(coszen < self.min_sza_cos)
                 self.coszen[key] = coszen
         else:
             coszen = np.cos(np.deg2rad(projectables[1]))
@@ -375,7 +366,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
     """Standard sun zenith correction using ``1 / cos(sunz)``.
 
     In addition to adjusting the provided reflectances by the cosine of the
-    solar zenith angle, this modifier also forces all reflectances beyond a
+    solar zenith angle, this modifier forces all reflectances beyond a
     solar zenith angle of ``max_sza`` to 0. It also gradually reduces the
     amount of correction done between ``correction_limit`` and ``max_sza``. If
     ``max_sza`` is ``None`` then a constant correction is applied to zenith
@@ -389,7 +380,7 @@ class SunZenithCorrector(SunZenithCorrectorBase):
         compositor: !!python/name:satpy.composites.SunZenithCorrector
         max_sza: !!null
         optional_prerequisites:
-        - satellite_zenith_angleV
+        - solar_zenith_angle
 
     """
 
@@ -400,8 +391,6 @@ class SunZenithCorrector(SunZenithCorrectorBase):
             correction_limit (float): Maximum solar zenith angle to apply the
                 correction in degrees. Pixels beyond this limit have a
                 constant correction applied. Default 88.
-            min_sza (float): Minimum solar zenith angle in degrees that is
-                considered valid and correctable. Default 0.0.
             max_sza (float): Maximum solar zenith angle in degrees that is
                 considered valid and correctable. Default 95.0.
 
@@ -420,8 +409,22 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
     (2006): https://doi.org/10.1175/JAS3682.1
 
     In addition to adjusting the provided reflectances by the cosine of the
-    solar zenith angle, this modifier also forces all reflectances beyond a
+    solar zenith angle, this modifier forces all reflectances beyond a
     solar zenith angle of `max_sza` to 0 to reduce noise in the final data.
+    It also gradually reduces the amount of correction done between
+    ``correction_limit`` and ``max_sza``. If ``max_sza`` is ``None`` then a
+    constant correction is applied to zenith angles beyond
+    ``correction_limit``.
+
+    To set ``max_sza`` to ``None`` in a YAML configuration file use:
+
+    .. code-block:: yaml
+
+      effective_solar_pathlength_corrected:
+        compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+        max_sza: !!null
+        optional_prerequisites:
+        - solar_zenith_angle
 
     """
 
@@ -432,8 +435,6 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
             correction_limit (float): Maximum solar zenith angle to apply the
                 correction in degrees. Pixels beyond this limit have a
                 constant correction applied. Default 88.
-            min_sza (float): Minimum solar zenith angle in degrees that is
-                considered valid and correctable. Default 0.0.
             max_sza (float): Maximum solar zenith angle in degrees that is
                 considered valid and correctable. Default 95.0.
 
@@ -443,7 +444,7 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
     def _apply_correction(self, proj, coszen):
         LOG.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata")
-        return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit)
+        return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
 
 
 class PSPRayleighReflectance(CompositeBase):
