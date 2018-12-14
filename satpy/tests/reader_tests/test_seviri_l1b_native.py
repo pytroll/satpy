@@ -262,13 +262,13 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
             np.array(test_dict['expected_area_extent'])
         )
 
-        with mock.patch('satpy.readers.native_msg.np.fromfile') as fromfile:
+        with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
             fromfile.return_value = header
-            with mock.patch('satpy.readers.native_msg.recarray2dict') as recarray2dict:
+            with mock.patch('satpy.readers.seviri_l1b_native.recarray2dict') as recarray2dict:
                 recarray2dict.side_effect = (lambda x: x)
-                with mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._get_memmap') as _get_memmap:
+                with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._get_memmap') as _get_memmap:
                     _get_memmap.return_value = np.arange(3)
-                    with mock.patch('satpy.readers.native_msg.NativeMSGFileHandler._read_trailer'):
+                    with mock.patch('satpy.readers.seviri_l1b_native.NativeMSGFileHandler._read_trailer'):
 
                         fh = NativeMSGFileHandler(None, {}, None)
                         fh.header = header
