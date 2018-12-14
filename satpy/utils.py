@@ -209,7 +209,7 @@ def proj_units_to_meters(proj_str):
 
 
 def _get_sunz_corr_li_and_shibata(cos_zen):
-    return 24.35 / (2. * cos_zen + xu.sqrt(498.5225 * cos_zen**2 + 1))
+    return 24.35 / (2. * cos_zen + np.sqrt(498.5225 * cos_zen**2 + 1))
 
 
 def sunzen_corr_cos(data, cos_zen, limit=88., max_sza=95.):
@@ -249,28 +249,42 @@ def sunzen_corr_cos(data, cos_zen, limit=88., max_sza=95.):
     return data * corr
 
 
-def atmospheric_path_length_correction(data, cos_zen, limit=88.):
+def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
     """Perform Sun zenith angle correction.
 
     This function uses the correction method proposed by
     Li and Shibata (2006): https://doi.org/10.1175/JAS3682.1
 
-    The correction is limited to *limit* degrees (default: 88.0 degrees). For
-    larger zenith angles, the correction is the same as at the *limit*. Both
-    *data* and *cos_zen* are given as 2-dimensional Numpy arrays or Numpy
-    MaskedArrays, and they should have equal shapes.
+    The correction is limited to ``limit`` degrees (default: 88.0 degrees). For
+    larger zenith angles, the correction is the same as at the ``limit`` if
+    ``max_sza`` is `None`. The default behavior is to gradually reduce the
+    correction past ``limit`` degrees up to ``max_sza`` where the correction
+    becomes 0. Both ``data`` and ``cos_zen`` should be 2D arrays of the same
+    shape.
 
     """
-
     # Convert the zenith angle limit to cosine of zenith angle
-    limit = xu.cos(xu.radians(limit))
+    limit_rad = np.deg2rad(limit)
+    limit_cos = np.cos(limit_rad)
+    max_sza_rad = np.deg2rad(max_sza) if max_sza is not None else max_sza
 
     # Cosine correction
     corr = _get_sunz_corr_li_and_shibata(cos_zen)
     # Use constant value (the limit) for larger zenith angles
-    corr_lim = _get_sunz_corr_li_and_shibata(limit)
-    corr = corr.where(cos_zen > limit, corr_lim)
+    corr_lim = _get_sunz_corr_li_and_shibata(limit_cos)
+
+    if max_sza is not None:
+        # gradually fall off for larger zenith angle
+        grad_factor = (np.arccos(cos_zen) - limit_rad) / (max_sza_rad - limit_rad)
+        # invert the factor so maximum correction is done at `limit` and falls off later
+        grad_factor = 1. - np.log(grad_factor + 1) / np.log(2)
+        # make sure we don't make anything negative
+        grad_factor = grad_factor.clip(0.)
+    else:
+        # Use constant value (the limit) for larger zenith angles
+        grad_factor = 1.
+    corr = corr.where(cos_zen > limit_cos, grad_factor * corr_lim)
     # Force "night" pixels to 0 (where SZA is invalid)
-    data = data.where(cos_zen.notnull(), 0)
+    corr = corr.where(cos_zen.notnull(), 0)
 
     return data * corr
