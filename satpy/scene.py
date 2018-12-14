@@ -1069,12 +1069,8 @@ class Scene(MetadataObject):
             vdims = ds.data_vars[ds.data_vars.keys()[0]].name
 
         if hasattr(ds, "area"):
-            proj = proj4_str_to_dict(ds.area.proj_str)["proj"]
-            if proj == "geos":
-                dscrs = crs.Geostationary()
-                gvds = gv.Dataset(ds, crs=dscrs)
-            else:
-                gvds = gv.Dataset(ds)
+            dscrs = ds.area.to_cartopy_crs()
+            gvds = gv.Dataset(ds, crs=dscrs)
         else:
             LOG.error("No area found in dataset")
 
