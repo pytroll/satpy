@@ -19,6 +19,10 @@
 """Tests for compositors.
 """
 
+import xarray as xr
+import dask.array as da
+import numpy as np
+from datetime import datetime
 from satpy.tests.compositor_tests import test_abi, test_ahi, test_viirs
 
 try:
@@ -35,8 +39,6 @@ class TestCheckArea(unittest.TestCase):
 
     def _get_test_ds(self, shape=(50, 100), dims=('y', 'x')):
         """Helper method to get a fake DataArray."""
-        import xarray as xr
-        import dask.array as da
         from pyresample.geometry import AreaDefinition
         data = da.random.random(shape, chunks=25)
         area = AreaDefinition(
@@ -113,15 +115,119 @@ class TestCheckArea(unittest.TestCase):
         self.assertRaises(IncompatibleAreas, comp.check_areas, (ds1, ds2))
 
 
+class TestRatioSharpenedCompositors(unittest.TestCase):
+    """Test RatioSharpenedRGB and SelfSharpendRGB compositors."""
+
+    def setUp(self):
+        """Create test data."""
+        from pyresample.geometry import AreaDefinition
+        area = AreaDefinition('test', 'test', 'test',
+                              {'proj': 'merc'}, 2, 2,
+                              (-2000, -2000, 2000, 2000))
+        attrs = {'area': area,
+                 'start_time': datetime(2018, 1, 1, 18),
+                 'modifiers': tuple(),
+                 'resolution': 1000,
+                 'name': 'test_vis'}
+        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 1], 'x': [0, 1]})
+        self.ds1 = ds1
+        ds2 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 2,
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 1], 'x': [0, 1]})
+        ds2.attrs['name'] += '2'
+        self.ds2 = ds2
+        ds3 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 3,
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 1], 'x': [0, 1]})
+        ds3.attrs['name'] += '3'
+        self.ds3 = ds3
+        ds4 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 4,
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 1], 'x': [0, 1]})
+        ds4.attrs['name'] += '4'
+        ds4.attrs['resolution'] = 500
+        self.ds4 = ds4
+
+        # high res version
+        ds4 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64) + 4,
+                           attrs=attrs.copy(), dims=('y', 'x'),
+                           coords={'y': [0, 1, 2, 3], 'x': [0, 1, 2, 3]})
+        ds4.attrs['name'] += '4'
+        ds4.attrs['resolution'] = 500
+        ds4.attrs['rows_per_scan'] = 1
+        ds4.attrs['area'] = AreaDefinition('test', 'test', 'test',
+                                           {'proj': 'merc'}, 4, 4,
+                                           (-2000, -2000, 2000, 2000))
+        self.ds4_big = ds4
+
+    def test_bad_color(self):
+        """Test that only valid band colors can be provided."""
+        from satpy.composites import RatioSharpenedRGB
+        self.assertRaises(ValueError, RatioSharpenedRGB, name='true_color', high_resolution_band='bad')
+
+    def test_check_areas(self):
+        """Test that all of the areas have to be the same resolution."""
+        from satpy.composites import RatioSharpenedRGB, IncompatibleAreas
+        comp = RatioSharpenedRGB(name='true_color')
+        self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4_big,))
+
+    def test_more_than_three_datasets(self):
+        """Test that only 3 datasets can be passed."""
+        from satpy.composites import RatioSharpenedRGB
+        comp = RatioSharpenedRGB(name='true_color')
+        self.assertRaises(ValueError, comp, (self.ds1, self.ds2, self.ds3, self.ds1),
+                          optional_datasets=(self.ds4_big,))
+
+    def test_basic_no_high_res(self):
+        """Test that three datasets can be passed without optional high res."""
+        from satpy.composites import RatioSharpenedRGB
+        comp = RatioSharpenedRGB(name='true_color')
+        res = comp((self.ds1, self.ds2, self.ds3))
+        self.assertEqual(res.shape, (3, 2, 2))
+
+    def test_basic_no_sharpen(self):
+        """Test that color None does no sharpening."""
+        from satpy.composites import RatioSharpenedRGB
+        comp = RatioSharpenedRGB(name='true_color', high_resolution_band=None)
+        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
+        self.assertEqual(res.shape, (3, 2, 2))
+
+    def test_basic_red(self):
+        """Test that basic high resolution red can be passed."""
+        from satpy.composites import RatioSharpenedRGB
+        comp = RatioSharpenedRGB(name='true_color')
+        res = comp((self.ds1, self.ds2, self.ds3), optional_datasets=(self.ds4,))
+        res = res.values
+        self.assertEqual(res.shape, (3, 2, 2))
+        np.testing.assert_allclose(res[0], self.ds4.values)
+        np.testing.assert_allclose(res[1], np.array([[4.5, 4.5], [4.5, 4.5]], dtype=np.float64))
+        np.testing.assert_allclose(res[2], np.array([[6, 6], [6, 6]], dtype=np.float64))
+
+    def test_self_sharpened_no_high_res(self):
+        """Test for exception when no high res band is specified."""
+        from satpy.composites import SelfSharpenedRGB
+        comp = SelfSharpenedRGB(name='true_color', high_resolution_band=None)
+        self.assertRaises(ValueError, comp, (self.ds1, self.ds2, self.ds3))
+
+    def test_self_sharpened_basic(self):
+        """Test that three datasets can be passed without optional high res."""
+        from satpy.composites import SelfSharpenedRGB
+        comp = SelfSharpenedRGB(name='true_color')
+        res = comp((self.ds1, self.ds2, self.ds3))
+        res = res.values
+        self.assertEqual(res.shape, (3, 2, 2))
+        np.testing.assert_allclose(res[0], self.ds1.values)
+        np.testing.assert_allclose(res[1], np.array([[3, 3], [3, 3]], dtype=np.float64))
+        np.testing.assert_allclose(res[2], np.array([[4, 4], [4, 4]], dtype=np.float64))
+
+
 class TestDayNightCompositor(unittest.TestCase):
     """Test DayNightCompositor."""
 
     def setUp(self):
         """Create test data."""
-        import xarray as xr
-        import dask.array as da
-        import numpy as np
-        from datetime import datetime
         bands = ['R', 'G', 'B']
         start_time = datetime(2018, 1, 1, 18, 0, 0)
 
@@ -161,7 +267,6 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_basic_sza(self):
         """Test compositor when SZA data is included"""
-        import numpy as np
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test')
         res = comp((self.data_a, self.data_b, self.sza))
@@ -171,7 +276,6 @@ class TestDayNightCompositor(unittest.TestCase):
 
     def test_basic_area(self):
         """Test compositor when SZA data is not provided."""
-        import numpy as np
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test')
         res = comp((self.data_a, self.data_b))
@@ -183,8 +287,6 @@ class TestDayNightCompositor(unittest.TestCase):
 class TestFillingCompositor(unittest.TestCase):
 
     def test_fill(self):
-        import numpy as np
-        import xarray as xr
         from satpy.composites import FillingCompositor
         comp = FillingCompositor(name='fill_test')
         filler = xr.DataArray(np.array([1, 2, 3, 4, 3, 2, 1]))
@@ -202,8 +304,6 @@ class TestLuminanceSharpeningCompositor(unittest.TestCase):
 
     def test_compositor(self):
         """Test luminance sharpening compositor."""
-        import numpy as np
-        import xarray as xr
         from satpy.composites import LuminanceSharpeningCompositor
         comp = LuminanceSharpeningCompositor(name='test')
         # Three shades of grey
@@ -238,8 +338,6 @@ class TestSandwichCompositor(unittest.TestCase):
     @mock.patch('satpy.composites.enhance2dataset')
     def test_compositor(self, e2d):
         """Test luminance sharpening compositor."""
-        import numpy as np
-        import xarray as xr
         from satpy.composites import SandwichCompositor
 
         rgb_arr = np.random.random((3, 2, 2))
@@ -301,8 +399,6 @@ class TestColormapCompositor(unittest.TestCase):
 
     def test_build_colormap(self):
         from satpy.composites import ColormapCompositor
-        import numpy as np
-        import xarray as xr
         cmap_comp = ColormapCompositor('test_cmap_compositor')
         palette = np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]])
         cmap, sqpal = cmap_comp.build_colormap(palette, np.uint8, {})
@@ -322,8 +418,6 @@ class TestPaletteCompositor(unittest.TestCase):
 
     def test_call(self):
         from satpy.composites import PaletteCompositor
-        import numpy as np
-        import xarray as xr
         cmap_comp = PaletteCompositor('test_cmap_compositor')
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=['value', 'band'])
@@ -345,8 +439,6 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
 
     def test_call(self):
         from satpy.composites.cloud_products import CloudTopHeightCompositor
-        import numpy as np
-        import xarray as xr
         cmap_comp = CloudTopHeightCompositor('test_cmap_compositor')
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=['value', 'band'])
@@ -364,13 +456,14 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
 
 
 def suite():
-    """Test suite for all reader tests"""
+    """Test suite for all reader tests."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTests(test_abi.suite())
     mysuite.addTests(test_ahi.suite())
     mysuite.addTests(test_viirs.suite())
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestRatioSharpenedCompositors))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
