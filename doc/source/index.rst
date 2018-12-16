@@ -88,16 +88,16 @@ installation.
       - `electrol_hrit`
       - Nominal
     * - NOAA 15 to 19, Metop A to C AVHRR data in AAPP format
-      - `avhrr_aapp_l1b`
+      - `avhrr_l1b_aapp`
       - Nominal
     * - Metop A to C AVHRR in native level 1 format
-      - `avhrr_eps_l1b`
+      - `avhrr_l1b_eps`
       - Nominal
     * - Tiros-N, NOAA 7 to 19 AVHRR data in GAC and LAC format
       - `avhrr_l1b_gaclac`
       - Nominal
     * - NOAA 15 to 19 AVHRR data in raw HRPT format
-      - `avhrr_hrpt_l1b`
+      - `avhrr_l1b_hrpt`
       - In development
     * - GCOM-W1 AMSR2 data in HDF5 format
       - `amsr2_l1b`
