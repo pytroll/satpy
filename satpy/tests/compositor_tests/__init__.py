@@ -275,6 +275,58 @@ class TestSunZenithCorrector(unittest.TestCase):
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
 
+class TestDifferenceCompositor(unittest.TestCase):
+
+    def setUp(self):
+        """Create test data."""
+        from pyresample.geometry import AreaDefinition
+        area = AreaDefinition('test', 'test', 'test',
+                              {'proj': 'merc'}, 2, 2,
+                              (-2000, -2000, 2000, 2000))
+        attrs = {'area': area,
+                 'start_time': datetime(2018, 1, 1, 18),
+                 'modifiers': tuple(),
+                 'resolution': 1000,
+                 'name': 'test_vis'}
+        ds1 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64),
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 1], 'x': [0, 1]})
+        self.ds1 = ds1
+        ds2 = xr.DataArray(da.ones((2, 2), chunks=2, dtype=np.float64) + 2,
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 1], 'x': [0, 1]})
+        ds2.attrs['name'] += '2'
+        self.ds2 = ds2
+
+        # high res version
+        ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64) + 4,
+                           attrs=attrs.copy(), dims=('y', 'x'),
+                           coords={'y': [0, 1, 2, 3], 'x': [0, 1, 2, 3]})
+        ds2.attrs['name'] += '2'
+        ds2.attrs['resolution'] = 500
+        ds2.attrs['rows_per_scan'] = 1
+        ds2.attrs['area'] = AreaDefinition('test', 'test', 'test',
+                                           {'proj': 'merc'}, 4, 4,
+                                           (-2000, -2000, 2000, 2000))
+        self.ds2_big = ds2
+
+    def test_basic_diff(self):
+        """Test that a basic difference composite works."""
+        from satpy.composites import DifferenceCompositor
+        comp = DifferenceCompositor(name='diff')
+        res = comp((self.ds1, self.ds2))
+        np.testing.assert_allclose(res.values, -2)
+
+    def test_bad_areas_diff(self):
+        """Test that a difference where resolutions are different fails."""
+        from satpy.composites import DifferenceCompositor, IncompatibleAreas
+        comp = DifferenceCompositor(name='diff')
+        # too many arguments
+        self.assertRaises(ValueError, comp, (self.ds1, self.ds2, self.ds2_big))
+        # different resolution
+        self.assertRaises(IncompatibleAreas, comp, (self.ds1, self.ds2_big))
+
+
 class TestDayNightCompositor(unittest.TestCase):
     """Test DayNightCompositor."""
 
@@ -517,6 +569,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
     mysuite.addTest(loader.loadTestsFromTestCase(TestRatioSharpenedCompositors))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSunZenithCorrector))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestDifferenceCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
