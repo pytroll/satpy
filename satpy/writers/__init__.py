@@ -180,10 +180,16 @@ def _determine_mode(dataset):
 
 def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
                 level_coast=1, level_borders=1, fill_value=None):
-    """Add coastline and political borders to image, using *color* (tuple
-    of integers between 0 and 255).
-    Warning: Loses the masks !
-    *resolution* is chosen automatically if None (default), otherwise it should be one of:
+    """Add coastline and political borders to image.
+
+    Uses ``color`` (tuple of integers between 0 and 255).
+
+    .. warning::
+
+        This function currently loses the data mask (alpha band).
+
+    ``resolution`` is chosen automatically if None (default), otherwise it should be one of:
+
     +-----+-------------------------+---------+
     | 'f' | Full resolution         | 0.04 km |
     | 'h' | High resolution         | 0.2 km  |
@@ -191,6 +197,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     | 'l' | Low resolution          | 5.0 km  |
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
+
     """
 
     if area is None:
@@ -224,6 +231,12 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
         LOG.debug("Automagically choose resolution %s", resolution)
 
+    if hasattr(orig, 'convert'):
+        # image must be in RGB space to work with pycoast/pydecorate
+        orig = orig.convert('RGBA' if orig.mode.endswith('A') else 'RGB')
+    elif not orig.mode.startswith('RGB'):
+        raise RuntimeError("'trollimage' 1.6+ required to support adding "
+                           "overlays/decorations to non-RGB data.")
     img = orig.pil_image(fill_value=fill_value)
     cw_ = ContourWriterAGG(coast_dir)
     cw_.add_coastlines(img, area, outline=color,
@@ -233,19 +246,20 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                             coords={'y': orig.data.coords['y'],
-                                     'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)},
-                             attrs=orig.data.attrs)
+    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                            coords={'y': orig.data.coords['y'],
+                                    'x': orig.data.coords['x'],
+                                    'bands': list(img.mode)},
+                            attrs=orig.data.attrs)
+    return XRImage(new_data)
 
 
 def add_text(orig, dc, img, text=None):
-    """
-    Add text to an image using the pydecorate function add_text
-    All the features in pydecorate are available
+    """Add text to an image using the pydecorate package.
 
-    See documentation of pydecorate
+    All the features of pydecorate's ``add_text`` are available.
+    See documentation of :doc:`pydecorate:index` for more info.
+
     """
     LOG.info("Add text to image.")
 
@@ -253,19 +267,20 @@ def add_text(orig, dc, img, text=None):
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                             coords={'y': orig.data.coords['y'],
-                                     'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)},
-                             attrs=orig.data.attrs)
+    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                            coords={'y': orig.data.coords['y'],
+                                    'x': orig.data.coords['x'],
+                                    'bands': list(img.mode)},
+                            attrs=orig.data.attrs)
+    return XRImage(new_data)
 
 
 def add_logo(orig, dc, img, logo=None):
-    """
-    Add logos or other images to an image using the pydecorate function add_logo
-    All the features in pydecorate are available
+    """Add logos or other images to an image using the pydecorate package.
 
-    See documentation of pydecorate
+    All the features of pydecorate's ``add_logo`` are available.
+    See documentation of :doc:`pydecorate:index` for more info.
+
     """
     LOG.info("Add logo to image.")
 
@@ -273,11 +288,12 @@ def add_logo(orig, dc, img, logo=None):
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                             coords={'y': orig.data.coords['y'],
-                                     'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)},
-                             attrs=orig.data.attrs)
+    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                            coords={'y': orig.data.coords['y'],
+                                    'x': orig.data.coords['x'],
+                                    'bands': list(img.mode)},
+                            attrs=orig.data.attrs)
+    return XRImage(new_data)
 
 
 def add_decorate(orig, fill_value=None, **decorate):
@@ -315,18 +331,26 @@ def add_decorate(orig, fill_value=None, **decorate):
 
     # Need to create this here to possible keep the alignment
     # when adding text and/or logo with pydecorate
+    if hasattr(orig, 'convert'):
+        # image must be in RGB space to work with pycoast/pydecorate
+        orig = orig.convert('RGBA' if orig.mode.endswith('A') else 'RGB')
+    elif not orig.mode.startswith('RGB'):
+        raise RuntimeError("'trollimage' 1.6+ required to support adding "
+                           "overlays/decorations to non-RGB data.")
     img_orig = orig.pil_image(fill_value=fill_value)
     from pydecorate import DecoratorAGG
     dc = DecoratorAGG(img_orig)
 
     # decorate need to be a list to maintain the alignment
     # as ordered in the list
+    img = orig
     if 'decorate' in decorate:
         for dec in decorate['decorate']:
             if 'logo' in dec:
-                add_logo(orig, dc, img_orig, logo=dec['logo'])
+                img = add_logo(img, dc, img_orig, logo=dec['logo'])
             elif 'text' in dec:
-                add_text(orig, dc, img_orig, text=dec['text'])
+                img = add_text(img, dc, img_orig, text=dec['text'])
+    return img
 
 
 def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_config_file=None,
@@ -390,10 +414,10 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
         enhancer.apply(img, **dataset.attrs)
 
     if overlay is not None:
-        add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
+        img = add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
 
     if decorate is not None:
-        add_decorate(img, fill_value=fill_value, **decorate)
+        img = add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
 
