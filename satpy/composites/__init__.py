@@ -677,8 +677,8 @@ class DifferenceCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" %
-                             (len(projectables), ))
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.check_areas(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
 
