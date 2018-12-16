@@ -111,11 +111,11 @@ installation.
     * - Terra and Aqua MODIS data in EOS-hdf4 level-1 format as produced by IMAPP and IPOPP or downloaded from LAADS
       - `modis_l1b`
       - Nominal
-    * - NWCSAF GEO 2016 products in netCDF4 format
-      - `nc_nwcsaf_msg`
+    * - NWCSAF GEO 2016 products in netCDF4 format (limited to SEVIRI)
+      - `nwcgeo`
       - In development
     * - NWCSAF PPS 2014, 2018 products in netCDF4 format
-      - `nc_nwcsaf_pps`
+      - `nwcpps`
       - | Not yet support for remapped netCDF products.
         | Only the standard swath based output is supported.
         | CPP products not supported yet

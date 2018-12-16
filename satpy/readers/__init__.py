@@ -58,6 +58,8 @@ OLD_READER_NAMES = {
     'hrit_msg': 'seviri_l1b_hrit',
     'native_msg': 'seviri_l1b_native',
     'nc_goes': 'goes-imager_nc',
+    'nc_nwcsaf_msg': 'nwcgeo',
+    'nc_nwcsaf_pps': 'nwcpps',
     'nc_olci_l1b': 'olci_l1b',
     'nc_olci_l2': 'olci_l2',
     'nc_seviri_l1b': 'seviri_l1b_nc',
