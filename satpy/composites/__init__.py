@@ -1082,6 +1082,7 @@ class Dust(GenericCompositor):
 class RealisticColors(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
+        projectables = self.check_areas(projectables)
         vis06 = projectables[0]
         vis08 = projectables[1]
         hrv = projectables[2]
@@ -1145,10 +1146,7 @@ class CloudCompositor(GenericCompositor):
 
         # gamma adjustment
         alpha **= gamma
-
-        res = super(CloudCompositor, self).__call__((data, alpha),
-                                                    **kwargs)
-
+        res = super(CloudCompositor, self).__call__((data, alpha), **kwargs)
         return res
 
 
@@ -1323,13 +1321,7 @@ class LuminanceSharpeningCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         from trollimage.image import rgb2ycbcr, ycbcr2rgb
-
-        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
-        if (attrs.get('area') is None and
-                projectables[0].attrs.get('area') is not None and
-                projectables[1].attrs.get('area') is not None):
-            raise IncompatibleAreas
-
+        projectables = self.check_areas(projectables)
         luminance = projectables[0].copy()
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
@@ -1364,13 +1356,7 @@ class LuminanceSharpeningCompositor(GenericCompositor):
 class SandwichCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
-
-        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
-        if (attrs.get('area') is None and
-                projectables[0].attrs.get('area') is not None and
-                projectables[1].attrs.get('area') is not None):
-            raise IncompatibleAreas
-
+        projectables = self.check_areas(projectables)
         luminance = projectables[0].copy()
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
@@ -1379,14 +1365,13 @@ class SandwichCompositor(GenericCompositor):
         # Get the enhanced version of the RGB composite to be sharpened
         rgb_img = enhance2dataset(projectables[1])
 
+        # FIXME: Can't we do `luminance * rgb_img`?
         data = []
         for band in rgb_img['bands'].data:
             data.append(luminance * rgb_img.sel(bands=band))
 
         data = da.vstack(data)
-        rgb_img.data = da.reshape(data,
-                                  (3, luminance.shape[0], luminance.shape[1]))
-
+        rgb_img.data = da.reshape(data, (3, luminance.shape[0], luminance.shape[1]))
         res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
 
         return res
