@@ -157,7 +157,7 @@ class Scene(MetadataObject):
         self.datasets = DatasetDict()
         self.cpl = CompositorLoader(self.ppp_config_dir)
         comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
-        self.wishlist = set(wishlist)
+        self.wishlist = set()
         self.dep_tree = DependencyTree(self.readers, comps, mods)
         self.resamplers = {}
 
