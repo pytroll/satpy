@@ -45,6 +45,9 @@ LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
 OLD_READER_NAMES = {
+    'avhrr_aapp_l1b': 'avhrr_l1b_aapp',
+    'avhrr_eps_l1b': 'avhrr_l1b_eps',
+    'avhrr_hrpt_l1b': 'avhrr_l1b_hrpt',
     'gac_lac_l1': 'avhrr_l1b_gaclac',
     'hdf4_caliopv3': 'caliop_l2_cloud',
     'hdfeos_l1b': 'modis_l1b',
