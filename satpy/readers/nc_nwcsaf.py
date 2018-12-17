@@ -30,6 +30,7 @@ import os
 
 import numpy as np
 import xarray as xr
+import dask.array as da
 
 from pyresample.utils import get_area_def
 from satpy.readers.file_handlers import BaseFileHandler
@@ -76,6 +77,7 @@ class NcNWCSAF(BaseFileHandler):
                                   chunks=CHUNK_SIZE)
 
         self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})
+        self.sw_version = self.nc.attrs['source']
         self.pps = False
 
         try:
@@ -108,7 +110,6 @@ class NcNWCSAF(BaseFileHandler):
         if dsid_name in self.cache:
             logger.debug('Get the data set from cache: %s.', dsid_name)
             return self.cache[dsid_name]
-
         if dsid_name in ['lon', 'lat'] and dsid_name not in self.nc:
             dsid_name = dsid_name + '_reduced'
 
@@ -131,7 +132,7 @@ class NcNWCSAF(BaseFileHandler):
         variable = remove_empties(variable)
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
-        if np.issubdtype((scale + offset).dtype, np.floating):
+        if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
             if '_FillValue' in variable.attrs:
                 variable = variable.where(
                     variable != variable.attrs['_FillValue'])
@@ -162,14 +163,21 @@ class NcNWCSAF(BaseFileHandler):
         except AttributeError:
             pass
 
+        if 'palette_meanings' in variable.attrs:
+            variable.attrs['palette_meanings'] = [int(val)
+                                                  for val in variable.attrs['palette_meanings'].split()]
+            if variable.attrs['palette_meanings'][0] == 1:
+                variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
+                variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
+                                        coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
+
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])
-
-        if self.pps and dsid.name == 'ctth_alti':
-            # pps valid range and palette don't match
+        if self.sw_version == 'NWC/PPS version v2014' and dsid.name == 'ctth_alti':
+            # pps 2014 valid range and palette don't match
             variable.attrs['valid_range'] = (0., 9000.)
-        if self.pps and dsid.name == 'ctth_alti_pal':
-            # pps palette has the nodata color (black) first
+        if self.sw_version == 'NWC/PPS version v2014' and dsid.name == 'ctth_alti_pal':
+            # pps 2014 palette has the nodata color (black) first
             variable = variable[1:, :]
 
         return variable

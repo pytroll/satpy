@@ -134,6 +134,7 @@ def area2gridmapping(dataarray):
 
 def area2cf(dataarray, strict=False):
     res = []
+    dataarray = dataarray.copy(deep=True)
     if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
         res = area2lonlat(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
@@ -149,7 +150,10 @@ def make_time_bounds(dataarray, start_times, end_times):
                      if start_time is not None)
     end_time = min(end_time for end_time in end_times
                    if end_time is not None)
-    dtnp64 = dataarray['time'].data[0]
+    try:
+        dtnp64 = dataarray['time'].data[0]
+    except IndexError:
+        dtnp64 = dataarray['time'].data
     time_bnds = [(np.datetime64(start_time) - dtnp64),
                  (np.datetime64(end_time) - dtnp64)]
     return xr.DataArray(np.array(time_bnds) / np.timedelta64(1, 's'),
@@ -182,6 +186,8 @@ class CFWriter(Writer):
             new_data['time'].encoding['units'] = epoch
             new_data['time'].attrs['standard_name'] = 'time'
             new_data['time'].attrs.pop('bounds', None)
+            if 'time' not in new_data.dims:
+                new_data = new_data.expand_dims('time')
 
         if 'x' in new_data.coords:
             new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
@@ -210,7 +216,7 @@ class CFWriter(Writer):
             try:
                 new_datasets = area2cf(ds)
             except KeyError:
-                new_datasets = [ds]
+                new_datasets = [ds.copy(deep=True)]
             start_times = []
             end_times = []
             for new_ds in new_datasets:
@@ -226,7 +232,6 @@ class CFWriter(Writer):
         logger.info('Saving datasets to NetCDF4/CF.')
         # XXX: Should we combine the info of all datasets?
         filename = filename or self.get_filename(**datasets[0].attrs)
-
         datas, start_times, end_times = self._collect_datasets(datasets, kwargs)
 
         dataset = xr.Dataset(datas)
@@ -247,7 +252,7 @@ class CFWriter(Writer):
                                     str(datetime.utcnow()))
         dataset.attrs['conventions'] = 'CF-1.7'
         engine = kwargs.pop("engine", 'h5netcdf')
-        kwargs.pop('config_files')
-        kwargs.pop('compute')
-        kwargs.pop('overlay', None)
-        dataset.to_netcdf(filename, engine=engine, **kwargs)
+        for key in list(kwargs.keys()):
+            if key not in ['mode', 'format', 'group', 'encoding', 'unlimited_dims', 'compute']:
+                kwargs.pop(key, None)
+        return dataset.to_netcdf(filename, engine=engine, **kwargs)
