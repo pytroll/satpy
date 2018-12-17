@@ -53,19 +53,28 @@ installation.
     * - Description
       - Reader name
       - Status
-    * - MSG (Meteosat 8 to 11) Seviri data in HRIT format
+    * - MSG (Meteosat 8 to 11) SEVIRI data in HRIT format
       - `hrit_msg`
       - Nominal
     * - MSG (Meteosat 8 to 11) SEVIRI data in native format
       - `native_msg`
-      - | No support for reading sub-section of the
-        | full disk. HRV data cannot be remapped.
+      - | HRV full disk data cannot be remapped.
+    * - MSG (Meteosat 8 to 11) SEVIRI data in netCDF format
+      - `nc_seviri_l1b`
+      - | HRV channel not supported, incomplete metadata
+      - | in the files. EUMETSAT has been notified.
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
     * - Himawari 8 and 9 AHI data in HRIT format
       - `hrit_jma`
       - Nominal
+    * - MTSAT-1R JAMI data in JMA HRIT format
+      - `jami_hrit`
+      - Beta
+    * - MTSAT-2 Imager data in JMA HRIT format
+      - `mtsat2-imager_hrit`
+      - Beta
     * - GOES 16 imager data in netcdf format
       - `abi_l1b`
       - Nominal
@@ -141,7 +150,7 @@ installation.
       - `viirs_sdr`
       - Nominal
     * - SNPP VIIRS data in netCDF4 L1B format
-      - `viirs_sdr`
+      - `viirs_l1b`
       - Nominal
     * - SNPP VIIRS data in hdf5 Compact format
       - `viirs_compact`

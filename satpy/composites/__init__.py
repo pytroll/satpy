@@ -313,6 +313,18 @@ class SunZenithCorrectorBase(CompositeBase):
 
     coszen = WeakValueDictionary()
 
+    def __init__(self, max_sza=95.0, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 95.0.
+
+        """
+        self.max_sza = max_sza
+        self.max_sza_cos = np.cos(np.deg2rad(max_sza)) if max_sza is not None else None
+        super(SunZenithCorrectorBase, self).__init__(**kwargs)
+
     def __call__(self, projectables, **info):
         projectables = self.check_areas(projectables)
         vis = projectables[0]
@@ -320,10 +332,7 @@ class SunZenithCorrectorBase(CompositeBase):
             LOG.debug("Sun zen correction already applied")
             return vis
 
-        if hasattr(vis.attrs["area"], 'name'):
-            area_name = vis.attrs["area"].name
-        else:
-            area_name = 'swath' + str(vis.shape)
+        area_name = hash(vis.attrs['area'])
         key = (vis.attrs["start_time"], area_name)
         tic = time.time()
         LOG.debug("Applying sun zen correction")
@@ -334,22 +343,19 @@ class SunZenithCorrectorBase(CompositeBase):
                 LOG.debug("Computing sun zenith angles.")
                 lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
 
-                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"],
-                                              lons, lats),
-                                      dims=['y', 'x'],
-                                      coords=[vis['y'], vis['x']])
-                coszen = coszen.where((coszen > 0.035) & (coszen < 1))
+                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
+                                      dims=['y', 'x'], coords=[vis['y'], vis['x']])
+                if self.max_sza is not None:
+                    coszen = coszen.where(coszen >= self.max_sza_cos)
                 self.coszen[key] = coszen
         else:
-            coszen = xu.cos(xu.deg2rad(projectables[1]))
+            coszen = np.cos(np.deg2rad(projectables[1]))
             self.coszen[key] = coszen
 
         proj = self._apply_correction(vis, coszen)
         proj.attrs = vis.attrs.copy()
         self.apply_modifier_info(vis, proj)
-        LOG.debug(
-            "Sun-zenith correction applied. Computation time: %5.1f (sec)",
-            time.time() - tic)
+        LOG.debug("Sun-zenith correction applied. Computation time: %5.1f (sec)", time.time() - tic)
         return proj
 
     def _apply_correction(self, proj, coszen):
@@ -357,11 +363,44 @@ class SunZenithCorrectorBase(CompositeBase):
 
 
 class SunZenithCorrector(SunZenithCorrectorBase):
-    """Standard sun zenith correction, 1/cos(sunz)."""
+    """Standard sun zenith correction using ``1 / cos(sunz)``.
+
+    In addition to adjusting the provided reflectances by the cosine of the
+    solar zenith angle, this modifier forces all reflectances beyond a
+    solar zenith angle of ``max_sza`` to 0. It also gradually reduces the
+    amount of correction done between ``correction_limit`` and ``max_sza``. If
+    ``max_sza`` is ``None`` then a constant correction is applied to zenith
+    angles beyond ``correction_limit``.
+
+    To set ``max_sza`` to ``None`` in a YAML configuration file use:
+
+    .. code-block:: yaml
+
+      sunz_corrected:
+        compositor: !!python/name:satpy.composites.SunZenithCorrector
+        max_sza: !!null
+        optional_prerequisites:
+        - solar_zenith_angle
+
+    """
+
+    def __init__(self, correction_limit=88., **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            correction_limit (float): Maximum solar zenith angle to apply the
+                correction in degrees. Pixels beyond this limit have a
+                constant correction applied. Default 88.
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 95.0.
+
+        """
+        self.correction_limit = correction_limit
+        super(SunZenithCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
         LOG.debug("Apply the standard sun-zenith correction [1/cos(sunz)]")
-        return sunzen_corr_cos(proj, coszen)
+        return sunzen_corr_cos(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
 
 
 class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
@@ -369,11 +408,43 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
     (2006): https://doi.org/10.1175/JAS3682.1
 
+    In addition to adjusting the provided reflectances by the cosine of the
+    solar zenith angle, this modifier forces all reflectances beyond a
+    solar zenith angle of `max_sza` to 0 to reduce noise in the final data.
+    It also gradually reduces the amount of correction done between
+    ``correction_limit`` and ``max_sza``. If ``max_sza`` is ``None`` then a
+    constant correction is applied to zenith angles beyond
+    ``correction_limit``.
+
+    To set ``max_sza`` to ``None`` in a YAML configuration file use:
+
+    .. code-block:: yaml
+
+      effective_solar_pathlength_corrected:
+        compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+        max_sza: !!null
+        optional_prerequisites:
+        - solar_zenith_angle
+
     """
+
+    def __init__(self, correction_limit=88., **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            correction_limit (float): Maximum solar zenith angle to apply the
+                correction in degrees. Pixels beyond this limit have a
+                constant correction applied. Default 88.
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 95.0.
+
+        """
+        self.correction_limit = correction_limit
+        super(EffectiveSolarPathLengthCorrector, self).__init__(**kwargs)
 
     def _apply_correction(self, proj, coszen):
         LOG.debug("Apply the effective solar atmospheric path length correction method by Li and Shibata")
-        return atmospheric_path_length_correction(proj, coszen)
+        return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
 
 
 class PSPRayleighReflectance(CompositeBase):
@@ -606,8 +677,8 @@ class DifferenceCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" %
-                             (len(projectables), ))
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.check_areas(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
 
@@ -718,23 +789,28 @@ class ColormapCompositor(GenericCompositor):
     def build_colormap(palette, dtype, info):
         """Create the colormap from the `raw_palette` and the valid_range."""
         from trollimage.colormap import Colormap
+        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
+            meanings = palette.attrs['palette_meanings']
+            iterator = zip(meanings, sqpalette)
+        else:
+            iterator = enumerate(sqpalette[:-1])
 
-        palette = np.asanyarray(palette).squeeze()
         if dtype == np.dtype('uint8'):
             tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
+                    for (val, tup) in iterator]
             colormap = Colormap(*tups)
 
         elif 'valid_range' in info:
             tups = [(val, tuple(tup))
-                    for (val, tup) in enumerate(palette[:-1])]
+                    for (val, tup) in iterator]
             colormap = Colormap(*tups)
 
             sf = info.get('scale_factor', np.array(1))
             colormap.set_range(
                 *info['valid_range'] * sf + info.get('add_offset', 0))
 
-        return colormap
+        return colormap, sqpalette
 
 
 class ColorizeCompositor(ColormapCompositor):
@@ -749,8 +825,7 @@ class ColorizeCompositor(ColormapCompositor):
         # writer.
 
         data, palette = projectables
-        palette = np.asanyarray(palette).squeeze()
-        colormap = self.build_colormap(palette / 255.0, data.dtype, data.attrs)
+        colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
         r, g, b = colormap.colorize(np.asanyarray(data))
         r[data.mask] = palette[-1][0]
@@ -776,8 +851,7 @@ class PaletteCompositor(ColormapCompositor):
         # writer.
 
         data, palette = projectables
-        palette = np.asanyarray(palette).squeeze() / 255.0
-        colormap = self.build_colormap(palette, data.dtype, data.attrs)
+        colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
         channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
         channels = palette[channels]
@@ -826,7 +900,7 @@ class DayNightCompositor(GenericCompositor):
         lim_low = np.cos(np.deg2rad(self.lim_low))
         lim_high = np.cos(np.deg2rad(self.lim_high))
         try:
-            coszen = xu.cos(xu.deg2rad(projectables[2]))
+            coszen = np.cos(np.deg2rad(projectables[2]))
         except IndexError:
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
@@ -1008,6 +1082,7 @@ class Dust(GenericCompositor):
 class RealisticColors(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
+        projectables = self.check_areas(projectables)
         vis06 = projectables[0]
         vis08 = projectables[1]
         hrv = projectables[2]
@@ -1071,14 +1146,32 @@ class CloudCompositor(GenericCompositor):
 
         # gamma adjustment
         alpha **= gamma
-
-        res = super(CloudCompositor, self).__call__((data, alpha),
-                                                    **kwargs)
-
+        res = super(CloudCompositor, self).__call__((data, alpha), **kwargs)
         return res
 
 
 class RatioSharpenedRGB(GenericCompositor):
+    """Sharpen RGB bands with ratio of a high resolution band to a lower resolution version.
+
+    Any pixels where the ratio is computed to be negative or infinity, it is
+    reset to 1. Additionally, the ratio is limited to 1.5 on the high end to
+    avoid high changes due to small discrepancies in instrument detector
+    footprint. Note that the input data to this compositor must already be
+    resampled so all data arrays are the same shape.
+
+    Example:
+
+        R_lo -  1000m resolution - shape=(2000, 2000)
+        G - 1000m resolution - shape=(2000, 2000)
+        B - 1000m resolution - shape=(2000, 2000)
+        R_hi -  500m resolution - shape=(4000, 4000)
+
+        ratio = R_hi / R_lo
+        new_R = R_hi
+        new_G = G * ratio
+        new_B = B * ratio
+
+    """
 
     def __init__(self, *args, **kwargs):
         self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
@@ -1088,7 +1181,17 @@ class RatioSharpenedRGB(GenericCompositor):
                              "'{}'".format(self.high_resolution_band))
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
+    def _get_band(self, high_res, low_res, color, ratio):
+        """Figure out what data should represent this color."""
+        if self.high_resolution_band == color:
+            ret = high_res
+        else:
+            ret = low_res * ratio
+            ret.attrs = low_res.attrs.copy()
+        return ret
+
     def __call__(self, datasets, optional_datasets=None, **info):
+        """Sharpen low resolution datasets by multiplying by the ratio of ``high_res / low_res``."""
         if len(datasets) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(datasets), ))
         if not all(x.shape == datasets[0].shape for x in datasets[1:]) or \
@@ -1103,48 +1206,33 @@ class RatioSharpenedRGB(GenericCompositor):
             high_res = datasets[-1]
             p1, p2, p3 = datasets[:3]
             if 'rows_per_scan' in high_res.attrs:
-                new_attrs.setdefault('rows_per_scan',
-                                     high_res.attrs['rows_per_scan'])
+                new_attrs.setdefault('rows_per_scan', high_res.attrs['rows_per_scan'])
             new_attrs.setdefault('resolution', high_res.attrs['resolution'])
-            if self.high_resolution_band == "red":
-                LOG.debug("Sharpening image with high resolution red band")
-                ratio = high_res / p1
+            colors = ['red', 'green', 'blue']
+
+            if self.high_resolution_band in colors:
+                LOG.debug("Sharpening image with high resolution {} band".format(self.high_resolution_band))
+                low_res = datasets[:3][colors.index(self.high_resolution_band)]
+                ratio = high_res / low_res
                 # make ratio a no-op (multiply by 1) where the ratio is NaN or
                 # infinity or it is negative.
-                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
-                r = high_res
-                g = p2 * ratio
-                b = p3 * ratio
-                g.attrs = p2.attrs.copy()
-                b.attrs = p3.attrs.copy()
-            elif self.high_resolution_band == "green":
-                LOG.debug("Sharpening image with high resolution green band")
-                ratio = high_res / p2
-                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
-                r = p1 * ratio
-                g = high_res
-                b = p3 * ratio
-                r.attrs = p1.attrs.copy()
-                b.attrs = p3.attrs.copy()
-            elif self.high_resolution_band == "blue":
-                LOG.debug("Sharpening image with high resolution blue band")
-                ratio = high_res / p3
-                ratio = ratio.where(xu.isfinite(ratio) | (ratio >= 0), 1.)
-                r = p1 * ratio
-                g = p2 * ratio
-                b = high_res
-                r.attrs = p1.attrs.copy()
-                g.attrs = p2.attrs.copy()
+                ratio = ratio.where(np.isfinite(ratio) & (ratio >= 0), 1.)
+                # we don't need ridiculously high ratios, they just make bright pixels
+                ratio = ratio.clip(0, 1.5)
             else:
-                # no sharpening
-                r = p1
-                g = p2
-                b = p3
+                LOG.debug("No sharpening band specified for ratio sharpening")
+                high_res = None
+                ratio = 1.
+
+            r = self._get_band(high_res, p1, 'red', ratio)
+            g = self._get_band(high_res, p2, 'green', ratio)
+            b = self._get_band(high_res, p3, 'blue', ratio)
         else:
             datasets = self.check_areas(datasets)
             r, g, b = datasets[:3]
+
         # combine the masks
-        mask = ~(da.isnull(r.data) | da.isnull(g.data) | da.isnull(b.data))
+        mask = ~(r.isnull() | g.isnull() | b.isnull())
         r = r.where(mask)
         g = g.where(mask)
         b = b.where(mask)
@@ -1162,7 +1250,6 @@ class RatioSharpenedRGB(GenericCompositor):
 
 
 class SelfSharpenedRGB(RatioSharpenedRGB):
-
     """Sharpen RGB with ratio of a band with a strided-version of itself.
 
     Example:
@@ -1173,7 +1260,8 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
         ratio = R / four_element_average(R)
         new_R = R
-        new_G = G
+        new_G = G * ratio
+        new_B = B * ratio
 
 
     """
@@ -1183,8 +1271,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         """Average every 4 elements (2x2) in a 2D array"""
         def _mean4(data, offset=(0, 0), block_id=None):
             rows, cols = data.shape
-            rows2, cols2 = data.shape
-            pad = []
             # we assume that the chunks except the first ones are aligned
             if block_id[0] == 0:
                 row_offset = offset[0] % 2
@@ -1218,42 +1304,24 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
 
     def __call__(self, datasets, optional_datasets=None, **attrs):
-        high_res = datasets[["red", "green", "blue"].index(
-            self.high_resolution_band)]
-        high_mean = self.four_element_average_dask(high_res)
-
-        if self.high_resolution_band == 'red':
-            red = high_mean
-            green = datasets[1]
-            blue = datasets[2]
-        elif self.high_resolution_band == 'green':
-            red = datasets[0]
-            green = high_mean
-            blue = datasets[2]
-        elif self.high_resolution_band == 'blue':
-            red = datasets[0]
-            green = datasets[1]
-            blue = high_mean
-        else:
-            raise ValueError("SelfSharpenedRGB requires at least one high "
-                             "resolution band, not "
+        colors = ['red', 'green', 'blue']
+        if self.high_resolution_band not in colors:
+            raise ValueError("SelfSharpenedRGB requires at least one high resolution band, not "
                              "'{}'".format(self.high_resolution_band))
 
-        return super(SelfSharpenedRGB, self).__call__(
-            (red, green, blue), optional_datasets=(high_res,), **attrs)
+        high_res = datasets[colors.index(self.high_resolution_band)]
+        high_mean = self.four_element_average_dask(high_res)
+        red = high_mean if self.high_resolution_band == 'red' else datasets[0]
+        green = high_mean if self.high_resolution_band == 'green' else datasets[1]
+        blue = high_mean if self.high_resolution_band == 'blue' else datasets[2]
+        return super(SelfSharpenedRGB, self).__call__((red, green, blue), optional_datasets=(high_res,), **attrs)
 
 
 class LuminanceSharpeningCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         from trollimage.image import rgb2ycbcr, ycbcr2rgb
-
-        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
-        if (attrs.get('area') is None and
-                projectables[0].attrs.get('area') is not None and
-                projectables[1].attrs.get('area') is not None):
-            raise IncompatibleAreas
-
+        projectables = self.check_areas(projectables)
         luminance = projectables[0].copy()
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
@@ -1279,38 +1347,19 @@ class LuminanceSharpeningCompositor(GenericCompositor):
         b__ = da.reshape(b__, (1, y_size, x_size))
 
         rgb_img.data = da.vstack((r__, g__, b__))
-
-        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
-
-        return res
+        return super(LuminanceSharpeningCompositor, self).__call__(rgb_img, *args, **kwargs)
 
 
 class SandwichCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
-
-        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
-        if (attrs.get('area') is None and
-                projectables[0].attrs.get('area') is not None and
-                projectables[1].attrs.get('area') is not None):
-            raise IncompatibleAreas
-
-        luminance = projectables[0].copy()
+        projectables = self.check_areas(projectables)
+        luminance = projectables[0]
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
-        luminance = da.where(luminance > 1., 1., luminance)
+        luminance = luminance.clip(max=1.)
 
         # Get the enhanced version of the RGB composite to be sharpened
         rgb_img = enhance2dataset(projectables[1])
-
-        data = []
-        for band in rgb_img['bands'].data:
-            data.append(luminance * rgb_img.sel(bands=band))
-
-        data = da.vstack(data)
-        rgb_img.data = da.reshape(data,
-                                  (3, luminance.shape[0], luminance.shape[1]))
-
-        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
-
-        return res
+        rgb_img *= luminance
+        return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
