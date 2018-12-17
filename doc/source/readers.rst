@@ -35,7 +35,7 @@ is created requesting datasets by `name` or `wavelength` is all that is
 needed::
 
     >>> from satpy import Scene
-    >>> scn = Scene(reader="hrit_msg", filenames=filenames)
+    >>> scn = Scene(reader="seviri_l1b_hrit", filenames=filenames)
     >>> scn.load([0.6, 0.8, 10.8])
     >>> scn.load(['IR_120', 'IR_134'])
 
@@ -122,11 +122,11 @@ xRIT-based readers
 
 .. automodule:: satpy.readers.hrit_base
 
-.. automodule:: satpy.readers.hrit_msg
+.. automodule:: satpy.readers.seviri_l1b_hrit
 
 .. automodule:: satpy.readers.hrit_jma
 
-.. automodule:: satpy.readers.hrit_goes
+.. automodule:: satpy.readers.goes_imager_hrit
 
-.. automodule:: satpy.readers.hrit_electrol
+.. automodule:: satpy.readers.electrol_hrit
 
