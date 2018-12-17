@@ -182,7 +182,8 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
                 level_coast=1, level_borders=1, fill_value=None):
     """Add coastline and political borders to image.
 
-    Uses ``color`` (tuple of integers between 0 and 255).
+    Uses ``color`` for feature colors where ``color`` is a 3-element tuple
+    of integers between 0 and 255 representing (R, G, B).
 
     .. warning::
 
