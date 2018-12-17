@@ -1347,31 +1347,19 @@ class LuminanceSharpeningCompositor(GenericCompositor):
         b__ = da.reshape(b__, (1, y_size, x_size))
 
         rgb_img.data = da.vstack((r__, g__, b__))
-
-        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
-
-        return res
+        return super(LuminanceSharpeningCompositor, self).__call__(rgb_img, *args, **kwargs)
 
 
 class SandwichCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         projectables = self.check_areas(projectables)
-        luminance = projectables[0].copy()
+        luminance = projectables[0]
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
-        luminance = da.where(luminance > 1., 1., luminance)
+        luminance = luminance.clip(max=1.)
 
         # Get the enhanced version of the RGB composite to be sharpened
         rgb_img = enhance2dataset(projectables[1])
-
-        # FIXME: Can't we do `luminance * rgb_img`?
-        data = []
-        for band in rgb_img['bands'].data:
-            data.append(luminance * rgb_img.sel(bands=band))
-
-        data = da.vstack(data)
-        rgb_img.data = da.reshape(data, (3, luminance.shape[0], luminance.shape[1]))
-        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
-
-        return res
+        rgb_img *= luminance
+        return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)

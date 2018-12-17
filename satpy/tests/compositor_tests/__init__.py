@@ -444,9 +444,9 @@ class TestSandwichCompositor(unittest.TestCase):
         """Test luminance sharpening compositor."""
         from satpy.composites import SandwichCompositor
 
-        rgb_arr = np.random.random((3, 2, 2))
+        rgb_arr = da.from_array(np.random.random((3, 2, 2)), chunks=2)
         rgb = xr.DataArray(rgb_arr, dims=['bands', 'y', 'x'])
-        lum_arr = 100 * np.random.random((2, 2))
+        lum_arr = da.from_array(100 * np.random.random((2, 2)), chunks=2)
         lum = xr.DataArray(lum_arr, dims=['y', 'x'])
 
         # Make enhance2dataset return unmodified dataset
