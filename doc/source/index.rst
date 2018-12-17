@@ -58,11 +58,11 @@ installation.
       - Nominal
     * - MSG (Meteosat 8 to 11) SEVIRI data in native format
       - `seviri_l1b_native`
-      - | HRV full disk data cannot be remapped.
+      - HRV full disk data cannot be remapped.
     * - MSG (Meteosat 8 to 11) SEVIRI data in netCDF format
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata
-      - | in the files. EUMETSAT has been notified.
+        | in the files. EUMETSAT has been notified.
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
