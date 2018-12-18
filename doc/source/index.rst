@@ -112,10 +112,10 @@ installation.
       - `modis_l1b`
       - Nominal
     * - NWCSAF GEO 2016 products in netCDF4 format (limited to SEVIRI)
-      - `nwcgeo`
+      - `nwcsaf-geo`
       - In development
     * - NWCSAF PPS 2014, 2018 products in netCDF4 format
-      - `nwcpps`
+      - `nwcsaf-pps_nc`
       - | Not yet support for remapped netCDF products.
         | Only the standard swath based output is supported.
         | CPP products not supported yet

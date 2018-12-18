@@ -1,6 +1,6 @@
 reader:
   description: NetCDF4 reader for the NWCSAF/PPS 2014 format
-  name: nwcpps
+  name: nwcsaf-pps_nc
   sensors: ['avhrr-3', 'viirs', 'modis']
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
