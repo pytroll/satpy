@@ -4,7 +4,7 @@
 import unittest
 import numpy as np
 import xarray as xr
-from .test_enhancements import TestEnhancementStretch
+import dask.array as da
 
 
 class TestVIIRSEnhancement(unittest.TestCase):
@@ -51,8 +51,22 @@ class TestVIIRSEnhancement(unittest.TestCase):
         from satpy.enhancements.viirs import water_detection
         expected = [[[1, 7, 8, 8, 8, 9, 10, 11, 14, 8],
                      [20, 23, 26, 10, 12, 15, 18, 21, 24, 27]]]
-        TestEnhancementStretch._test_enhancement(self, water_detection, self.da,
-                                                 expected, palettes=self.palette)
+        self._test_enhancement(water_detection, self.da, expected,
+                               palettes=self.palette)
+
+    def _test_enhancement(self, func, data, expected, **kwargs):
+        from trollimage.xrimage import XRImage
+
+        pre_attrs = data.attrs
+        img = XRImage(data)
+        func(img, **kwargs)
+
+        self.assertIsInstance(img.data.data, da.Array)
+        self.assertListEqual(sorted(pre_attrs.keys()),
+                             sorted(img.data.attrs.keys()),
+                             "DataArray attributes were not preserved")
+
+        np.testing.assert_allclose(img.data.values, expected, atol=1.e-6, rtol=0)
 
     def tearDown(self):
         """Clean up"""
