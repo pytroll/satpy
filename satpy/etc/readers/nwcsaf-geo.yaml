@@ -1,6 +1,6 @@
 reader:
   description: NetCDF4 reader for the NWCSAF MSG Seviri 2016 format
-  name: nwcgeo
+  name: nwcsaf-geo
   sensors: [seviri]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
