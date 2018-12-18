@@ -50,7 +50,7 @@ class TestNcNWCSAF(unittest.TestCase):
     @mock.patch('satpy.readers.nc_nwcsaf.unzip_file')
     @mock.patch('satpy.readers.nc_nwcsaf.xr')
     def setUp(self, xr_, unzip):
-        from satpy.readers.nc_nwcsaf import NcNWCSAF
+        from satpy.readers.nwcsaf_nc import NcNWCSAF
         xr_.return_value = mock.Mock(attrs={})
         unzip.return_value = ''
         self.scn = NcNWCSAF('filename', {}, {})
