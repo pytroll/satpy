@@ -124,10 +124,10 @@ satpy.readers.geocat module
     :undoc-members:
     :show-inheritance:
 
-satpy.readers.ghrsst\_osisaf module
------------------------------------
+satpy.readers.ghrsst\_l3c\_sst module
+-------------------------------------
 
-.. automodule:: satpy.readers.ghrsst_osisaf
+.. automodule:: satpy.readers.ghrsst_l3c_sst
     :members:
     :undoc-members:
     :show-inheritance:
@@ -236,22 +236,6 @@ satpy.readers.msi\_safe module
     :undoc-members:
     :show-inheritance:
 
-satpy.readers.nc\_nwcsaf module
--------------------------------
-
-.. automodule:: satpy.readers.nc_nwcsaf
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-satpy.readers.nc\_slstr module
-------------------------------
-
-.. automodule:: satpy.readers.nc_slstr
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 satpy.readers.netcdf\_utils module
 ----------------------------------
 
@@ -264,6 +248,14 @@ satpy.readers.nucaps module
 ---------------------------
 
 .. automodule:: satpy.readers.nucaps
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy.readers.nwcsaf\_nc module
+-------------------------------
+
+.. automodule:: satpy.readers.nwcsaf_nc
     :members:
     :undoc-members:
     :show-inheritance:
@@ -344,6 +336,14 @@ satpy.readers.seviri\_l1b\_nc module
 ------------------------------------
 
 .. automodule:: satpy.readers.seviri_l1b_nc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+satpy.readers.slstr\_l1b module
+-------------------------------
+
+.. automodule:: satpy.readers.slstr_l1b
     :members:
     :undoc-members:
     :show-inheritance:
