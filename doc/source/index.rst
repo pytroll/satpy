@@ -132,7 +132,7 @@ installation.
       - `olci_l2`
       - Nominal
     * - Sentinel-3 A and B SLSTR data in netCDF4 format
-      - `nc_slstr`
+      - `slstr_l1b`
       - In development
     * - OSISAF SST data in GHRSST (netcdf) format
       - `ghrsst_l3c_sst`
