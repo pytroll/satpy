@@ -54,6 +54,7 @@ OLD_READER_NAMES = {
     'hrit_electrol': 'electrol_hrit',
     'hrit_jma': 'ahi_hrit',
     'fci_fdhsi': 'fci_l1c_fdhsi',
+    'ghrsst_osisaf': 'ghrsst_l3c_sst',
     'hrit_goes': 'goes-imager_hrit',
     'hrit_msg': 'seviri_l1b_hrit',
     'native_msg': 'seviri_l1b_native',

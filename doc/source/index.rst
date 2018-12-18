@@ -135,7 +135,7 @@ installation.
       - `nc_slstr`
       - In development
     * - OSISAF SST data in GHRSST (netcdf) format
-      - `ghrsst_osisaf`
+      - `ghrsst_l3c_sst`
       - In development
     * - NUCAPS EDR Retrieval in NetCDF4 format
       - `nucaps`
