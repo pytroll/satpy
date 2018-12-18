@@ -64,6 +64,7 @@ OLD_READER_NAMES = {
     'nc_olci_l1b': 'olci_l1b',
     'nc_olci_l2': 'olci_l2',
     'nc_seviri_l1b': 'seviri_l1b_nc',
+    'nc_slstr': 'slstr_l1b',
     'safe_msi': 'msi_safe',
     'safe_sar_c': 'sar-c_safe',
     'scmi_abi_l1b': 'abi_l1b_scmi',
