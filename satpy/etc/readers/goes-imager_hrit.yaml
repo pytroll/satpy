@@ -1,0 +1,128 @@
+reader:
+  description: GOES HRIT Reader
+  name: goes-imager_hrit
+  sensors: [goes_imager]
+  default_channels: [00_7, 03_9, 06_6, 10_7]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+# eg.
+# L-000-MSG3__-GOES13______-06_6_075W-000005___-201703261200-__
+# L-000-MSG3__-GOES13______-06_6_075W-PRO______-201703261200-__
+
+file_types:
+    HRIT_00_7:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-00_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
+        requires: [HRIT_PRO_00]
+
+    HRIT_00_7_C:
+          file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
+          file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-00_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+          requires: [HRIT_PRO_00]
+
+    HRIT_03_9:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-03_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
+        requires: [HRIT_PRO_03]
+
+    HRIT_03_9_C:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-03_9_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_03]
+
+    HRIT_06_6:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-06_6_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
+        requires: [HRIT_PRO_06]
+
+    HRIT_06_6_C:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-06_6_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_06]
+
+    HRIT_10_7:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-10_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-__']
+        requires: [HRIT_PRO_10]
+
+    HRIT_10_7_C:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-10_7_{sublon:4s}-{segment:_<9s}-{start_time:%Y%m%d%H%M}-C_']
+        requires: [HRIT_PRO_10]
+
+    HRIT_PRO_00:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESPrologueFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-00_7_{sublon:4s}-PRO______-{start_time:%Y%m%d%H%M}-__']
+
+    HRIT_PRO_03:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESPrologueFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-03_9_{sublon:4s}-PRO______-{start_time:%Y%m%d%H%M}-__']
+
+    HRIT_PRO_06:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESPrologueFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-06_6_{sublon:4s}-PRO______-{start_time:%Y%m%d%H%M}-__']
+
+    HRIT_PRO_10:
+        file_reader: !!python/name:satpy.readers.goes_imager_hrit.HRITGOESPrologueFileHandler
+        file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:_<6s}______-10_7_{sublon:4s}-PRO______-{start_time:%Y%m%d%H%M}-__']
+
+datasets:
+  '00_7':
+    name: '00_7'
+    resolution: 3000
+    wavelength: [0.55, 0.7, 0.75]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # radiance:
+      #   standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #   units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: [HRIT_00_7, HRIT_00_7_C]
+
+  '03_9':
+    name: '03_9'
+    resolution: 3000
+    wavelength: [3.8, 3.9, 4.0]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    #   radiance:
+    #     standard_name: toa_outgoing_radiance_per_unit_wavelength
+    #     units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: [HRIT_03_9, HRIT_03_9_C]
+
+  '06_6':
+    name: '06_6'
+    resolution: 3000
+    wavelength: [6.5, 6.6, 7.0]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    #   radiance:
+    #     standard_name: toa_outgoing_radiance_per_unit_wavelength
+    #     units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: [HRIT_06_6, HRIT_06_6_C]
+
+  '10_7':
+    name: '10_7'
+    resolution: 3000
+    wavelength: [10.2, 10.7, 11.2]
+    calibration:
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    #   radiance:
+    #     standard_name: toa_outgoing_radiance_per_unit_wavelength
+    #     units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: [HRIT_10_7, HRIT_10_7_C]
