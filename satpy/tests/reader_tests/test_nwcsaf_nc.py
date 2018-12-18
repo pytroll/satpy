@@ -47,8 +47,8 @@ PROJ = {'gdal_projection': '+proj=geos +a=6378137.000 +b=6356752.300 +lon_0=0.00
 
 class TestNcNWCSAF(unittest.TestCase):
 
-    @mock.patch('satpy.readers.nc_nwcsaf.unzip_file')
-    @mock.patch('satpy.readers.nc_nwcsaf.xr')
+    @mock.patch('satpy.readers.nwcsaf_nc.unzip_file')
+    @mock.patch('satpy.readers.nwcsaf_nc.xr')
     def setUp(self, xr_, unzip):
         from satpy.readers.nwcsaf_nc import NcNWCSAF
         xr_.return_value = mock.Mock(attrs={})
