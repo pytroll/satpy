@@ -321,9 +321,9 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # touch the file so it exists on disk
         open(fn, 'w')
         try:
-            ri = find_files_and_readers(reader='nwcpps')
-            self.assertListEqual(list(ri.keys()), ['nwcpps'])
-            self.assertListEqual(ri['nwcpps'], [fn])
+            ri = find_files_and_readers(reader='nwcsaf-pps_nc')
+            self.assertListEqual(list(ri.keys()), ['nwcsaf-pps_nc'])
+            self.assertListEqual(ri['nwcsaf-pps_nc'], [fn])
         finally:
             os.remove(fn)
 
