@@ -559,7 +559,7 @@ class TestOverlays(unittest.TestCase):
         import xarray as xr
         import dask.array as da
 
-        proj_dict = {'proj': 'lcc', 'datum':'WGS84', 'ellps': 'WGS84',
+        proj_dict = {'proj': 'lcc', 'datum': 'WGS84', 'ellps': 'WGS84',
                      'lon_0': -95., 'lat_0': 25, 'lat_1': 25,
                      'units': 'm', 'no_defs': True}
         self.area_def = AreaDefinition(
