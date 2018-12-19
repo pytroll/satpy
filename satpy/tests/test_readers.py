@@ -222,9 +222,7 @@ class TestReaderLoader(unittest.TestCase):
     def test_filenames_only(self):
         """Test with filenames specified"""
         from satpy.readers import load_readers
-        ri = load_readers(filenames=[
-            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
-        ])
+        ri = load_readers(filenames=['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'])
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_filenames_and_reader(self):
@@ -273,6 +271,85 @@ class TestReaderLoader(unittest.TestCase):
         }
         ri = load_readers(reader='viirs_sdr', filenames=filenames)
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
+    @mock.patch('satpy.readers.hrit_base.HRITFileHandler._get_hd')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_header')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.start_time')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.end_time')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler.read_prologue')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue')
+    def test_missing_requirements(self, *mocks):
+        """Test warnings and exceptions in case of missing requirements."""
+        from satpy.readers import load_readers
+
+        # Filenames from a single scan
+        epi_pro_miss = ['H-000-MSG4__-MSG4________-IR_108___-000006___-201809050900-__']
+        epi_miss = epi_pro_miss + ['H-000-MSG4__-MSG4________-_________-PRO______-201809050900-__']
+        pro_miss = epi_pro_miss + ['H-000-MSG4__-MSG4________-_________-EPI______-201809050900-__']
+        for filenames in [epi_miss, pro_miss, epi_pro_miss]:
+            with mock.patch('warnings.warn') as warn_mock:
+                self.assertRaises(ValueError, load_readers, reader='hrit_msg', filenames=filenames)
+                warn_mock.assert_called()
+
+        # Filenames from multiple scans
+        at_least_one_complete = [
+            # 09:00 scan is ok
+            'H-000-MSG4__-MSG4________-IR_108___-000006___-201809050900-__',
+            'H-000-MSG4__-MSG4________-_________-PRO______-201809050900-__',
+            'H-000-MSG4__-MSG4________-_________-EPI______-201809050900-__',
+            # 10:00 scan is incomplete
+            'H-000-MSG4__-MSG4________-IR_108___-000006___-201809051000-__',
+        ]
+        try:
+            with mock.patch('warnings.warn') as warn_mock:
+                load_readers(filenames=at_least_one_complete, reader='hrit_msg')
+                warn_mock.assert_called()
+        except ValueError:
+            self.fail('If at least one set of filenames is complete, no '
+                      'exception should be raised')
+
+    def test_all_filtered(self):
+        """Test behaviour if no file matches the filter parameters."""
+        from satpy.readers import load_readers
+        import datetime
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+        }
+        filter_params = {'start_time': datetime.datetime(1970, 1, 1),
+                         'end_time': datetime.datetime(1970, 1, 2),
+                         'area': None}
+        self.assertRaises(ValueError, load_readers,
+                          filenames=filenames, reader_kwargs={'filter_parameters': filter_params})
+
+    def test_all_filtered_multiple(self):
+        """Test behaviour if no file matches the filter parameters."""
+        from satpy.readers import load_readers
+        import datetime
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+            'abi_l1b': ['OR_ABI-L1b-RadF-M3C01_G16_s20120561730408_e20120561741175_c20172631741218.nc'],
+        }
+        filter_params = {'start_time': datetime.datetime(1970, 1, 1),
+                         'end_time': datetime.datetime(1970, 1, 2)}
+        self.assertRaises(ValueError, load_readers,
+                          filenames=filenames, reader_kwargs={'filter_parameters': filter_params})
+
+    def test_almost_all_filtered(self):
+        """Test behaviour if only one reader has datasets."""
+        from satpy.readers import load_readers
+        import datetime
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+            'abi_l1b': ['OR_ABI-L1b-RadF-M3C01_G16_s20172631730408_e20172631741175_c20172631741218.nc'],
+        }
+        filter_params = {'start_time': datetime.datetime(2012, 2, 25),
+                         'end_time': datetime.datetime(2012, 2, 26)}
+        # viirs has data that matches the request, abi doesn't
+        readers = load_readers(filenames=filenames, reader_kwargs={'filter_parameters': filter_params})
+        self.assertIn('viirs_sdr', readers)
+        # abi_l1b reader was created, but no datasets available
+        self.assertIn('abi_l1b', readers)
+        self.assertEqual(len(list(readers['abi_l1b'].available_dataset_ids)), 0)
 
 
 class TestFindFilesAndReaders(unittest.TestCase):
