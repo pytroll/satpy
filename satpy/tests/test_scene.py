@@ -46,7 +46,7 @@ class TestScene(unittest.TestCase):
         import satpy.scene
         with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
             cri.return_value = {}
-            scene = satpy.scene.Scene(filenames=['bla'], reader='blo')
+            satpy.scene.Scene(filenames=['bla'], reader='blo')
             cri.assert_called_once_with(filenames=['bla'], reader='blo',
                                         reader_kwargs=None)
 
@@ -110,7 +110,7 @@ class TestScene(unittest.TestCase):
         with mock.patch('satpy.scene.Scene._compute_metadata_from_readers') as md:
             md.return_value = {'sensor': {'sensor'}}
             with mock.patch('satpy.scene.load_readers') as findermock:
-                scene = satpy.scene.Scene(filenames=filenames)
+                satpy.scene.Scene(filenames=filenames)
                 findermock.assert_called_once_with(
                     filenames=filenames,
                     reader=reader_name,
@@ -159,10 +159,9 @@ class TestScene(unittest.TestCase):
         from satpy.scene import Scene
         reader = "foo"
         filenames = ["1", "2", "3"]
-        sensors = set()
         with mock.patch('satpy.scene.load_readers') as findermock:
             findermock.return_value = {}
-            scene = Scene(reader=reader, filenames=filenames)
+            Scene(reader=reader, filenames=filenames)
             findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
                                                reader=reader,
                                                filenames=filenames,
