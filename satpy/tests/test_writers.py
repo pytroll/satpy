@@ -577,12 +577,31 @@ class TestOverlays(unittest.TestCase):
                          dims=('y', 'x'),
                          attrs={'name': 'test_ds', 'area': self.area_def})
         )
+
+        self.decorate = {
+            'decorate': [
+                {'logo': {'logo_path': '', 'height': 143, 'bg': 'white', 'bg_opacity': 255}},
+                {'text': {
+                    'txt': 'TEST',
+                    'align': {'top_bottom': 'bottom', 'left_right': 'right'},
+                    'font': '',
+                    'font_size': 22,
+                    'height': 30,
+                    'bg': 'black',
+                    'bg_opacity': 255,
+                    'line': 'white'}}
+            ]
+        }
+
         self.contour_writer = mock.patch('pycoast.ContourWriterAGG')
+        self.dec_writer = mock.patch('pydecorate.DecoratorAGG')
         self.cw = self.contour_writer.start()
+        self.dw = self.dec_writer.start()
 
     def tearDown(self):
         """Turn off pycoast/pydecorate mocking."""
         self.contour_writer.stop()
+        self.dec_writer.stop()
 
     def test_add_overlay_basic_rgb(self):
         """Test basic add_overlay usage with RGB data."""
@@ -594,6 +613,18 @@ class TestOverlays(unittest.TestCase):
         """Test basic add_overlay usage with L data."""
         from satpy.writers import add_overlay
         new_img = add_overlay(self.orig_l_img, self.area_def, '')
+        self.assertEqual('RGBA', new_img.mode)
+
+    def test_add_decorate_basic_rgb(self):
+        """Test basic add_decorate usage with RGB data."""
+        from satpy.writers import add_decorate
+        new_img = add_decorate(self.orig_rgb_img, **self.decorate)
+        self.assertEqual('RGBA', new_img.mode)
+
+    def test_add_decorate_basic_l(self):
+        """Test basic add_decorate usage with L data."""
+        from satpy.writers import add_decorate
+        new_img = add_decorate(self.orig_l_img, **self.decorate)
         self.assertEqual('RGBA', new_img.mode)
 
 
