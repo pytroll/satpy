@@ -272,7 +272,7 @@ sensor_name: visir/test_sensor2
 
     def test_writer_custom_enhance(self):
         """Test using custom enhancements with writer."""
-        from satpy.writers import ImageWriter, Enhancer
+        from satpy.writers import Enhancer
         from xarray import DataArray
         ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
                        attrs=dict(name='test1', sensor='test_sensor', mode='L'),
