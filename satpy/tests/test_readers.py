@@ -321,9 +321,9 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # touch the file so it exists on disk
         open(fn, 'w')
         try:
-            ri = find_files_and_readers(reader='nc_nwcsaf_pps')
-            self.assertListEqual(list(ri.keys()), ['nc_nwcsaf_pps'])
-            self.assertListEqual(ri['nc_nwcsaf_pps'], [fn])
+            ri = find_files_and_readers(reader='nwcsaf-pps_nc')
+            self.assertListEqual(list(ri.keys()), ['nwcsaf-pps_nc'])
+            self.assertListEqual(ri['nwcsaf-pps_nc'], [fn])
         finally:
             os.remove(fn)
 
@@ -452,6 +452,18 @@ class TestFindFilesAndReaders(unittest.TestCase):
             load.side_effect = yaml.YAMLError("Import problems")
             self.assertRaises(yaml.YAMLError, find_files_and_readers,
                               reader='viirs_sdr')
+
+    def test_old_reader_name_mapping(self):
+        """Test that requesting old reader names raises a warning."""
+        import warnings
+        from satpy.readers import configs_for_reader
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            configs = list(configs_for_reader('hrit_jma'))[0]
+        self.assertIn('ahi_hrit', configs[0])
+        self.assertNotIn('hrit_jma', configs[0])
+        self.assertEqual(len(w), 1)
+        self.assertTrue(issubclass(w[0].category, DeprecationWarning))
 
 
 class TestYAMLFiles(unittest.TestCase):

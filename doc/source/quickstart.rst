@@ -20,7 +20,7 @@ Scene must be told what files to read and what
     >>> from satpy import Scene
     >>> from glob import glob
     >>> filenames = glob("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT/*201504201000*")
-    >>> global_scene = Scene(reader="hrit_msg", filenames=filenames)
+    >>> global_scene = Scene(reader="seviri_l1b_hrit", filenames=filenames)
 
 To load data from the files use the :meth:`Scene.load <satpy.scene.Scene.load>`
 method. Printing the Scene object will list each of the

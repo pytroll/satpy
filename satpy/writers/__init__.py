@@ -397,10 +397,13 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
                       "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
 
     if enhance is False:
+        # no enhancement
         enhancer = None
-    elif enhance is None:
+    elif enhance is None or enhance is True:
+        # default enhancement
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
     else:
+        # custom enhancer
         enhancer = enhance
 
     # Create an image for enhancement
@@ -525,7 +528,7 @@ class Writer(Plugin):
             """
         # Load the config
         Plugin.__init__(self, **kwargs)
-        self.info = self.config['writer']
+        self.info = self.config.get('writer', {})
 
         if 'file_pattern' in self.info:
             warnings.warn("Writer YAML config is using 'file_pattern' which "
@@ -730,17 +733,20 @@ class ImageWriter(Writer):
             enhancement_config = self.info.get("enhancement_config", None)
 
         if enhance is False:
-            self.enhancer = None
-        elif enhance is None:
+            # No enhancement
+            self.enhancer = False
+        elif enhance is None or enhance is True:
+            # default enhancement
             self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
         else:
-            self.enhancer = None
+            # custom enhancer
+            self.enhancer = enhance
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(kwargs)
-        for kw in ['enhancement_config']:
+        for kw in ['enhancement_config', 'enhance']:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
         return init_kwargs, kwargs
