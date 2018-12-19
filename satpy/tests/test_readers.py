@@ -273,11 +273,11 @@ class TestReaderLoader(unittest.TestCase):
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     @mock.patch('satpy.readers.hrit_base.HRITFileHandler._get_hd')
-    @mock.patch('satpy.readers.hrit_msg.HRITMSGFileHandler._get_header')
-    @mock.patch('satpy.readers.hrit_msg.HRITMSGFileHandler.start_time')
-    @mock.patch('satpy.readers.hrit_msg.HRITMSGFileHandler.end_time')
-    @mock.patch('satpy.readers.hrit_msg.HRITMSGPrologueFileHandler.read_prologue')
-    @mock.patch('satpy.readers.hrit_msg.HRITMSGEpilogueFileHandler.read_epilogue')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_header')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.start_time')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.end_time')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler.read_prologue')
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue')
     def test_missing_requirements(self, *mocks):
         """Test warnings and exceptions in case of missing requirements."""
         from satpy.readers import load_readers
