@@ -191,6 +191,18 @@ sensor_name: visir/test_sensor2
             with open(fn, 'w') as f:
                 f.write(content)
 
+        # create fake test image writer
+        from satpy.writers import ImageWriter
+
+        class CustomImageWriter(ImageWriter):
+            def __init__(self, **kwargs):
+                super(CustomImageWriter, self).__init__(name='test', config_files=[], **kwargs)
+                self.img = None
+
+            def save_image(self, img, **kwargs):
+                self.img = img
+        cls.CustomImageWriter = CustomImageWriter
+
     @classmethod
     def tearDownClass(cls):
         """Remove fake user configurations."""
@@ -246,6 +258,30 @@ sensor_name: visir/test_sensor2
                        dims=['y', 'x'])
         img = get_enhanced_image(ds, enhance=False)
         np.testing.assert_allclose(img.data.data.compute().squeeze(), ds.data)
+
+    def test_writer_no_enhance(self):
+        """Test turning off enhancements with writer."""
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs=dict(name='test1', sensor='test_sensor', mode='L'),
+                       dims=['y', 'x'])
+        writer = self.CustomImageWriter(enhance=False)
+        writer.save_datasets((ds,), compute=False)
+        img = writer.img
+        np.testing.assert_allclose(img.data.data.compute().squeeze(), ds.data)
+
+    def test_writer_custom_enhance(self):
+        """Test using custom enhancements with writer."""
+        from satpy.writers import ImageWriter, Enhancer
+        from xarray import DataArray
+        ds = DataArray(np.arange(1, 11.).reshape((2, 5)),
+                       attrs=dict(name='test1', sensor='test_sensor', mode='L'),
+                       dims=['y', 'x'])
+        enhance = Enhancer()
+        writer = self.CustomImageWriter(enhance=enhance)
+        writer.save_datasets((ds,), compute=False)
+        img = writer.img
+        np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 1.)
 
     def test_enhance_with_sensor_entry(self):
         """Test enhancing an image with a configuration section."""
