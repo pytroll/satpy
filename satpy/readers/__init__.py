@@ -25,6 +25,7 @@
 import logging
 import numbers
 import os
+import warnings
 
 import six
 import yaml
@@ -40,6 +41,34 @@ except ImportError:
     from six.moves import configparser  # noqa
 
 LOG = logging.getLogger(__name__)
+
+
+# Old Name -> New Name
+OLD_READER_NAMES = {
+    'avhrr_aapp_l1b': 'avhrr_l1b_aapp',
+    'avhrr_eps_l1b': 'avhrr_l1b_eps',
+    'avhrr_hrpt_l1b': 'avhrr_l1b_hrpt',
+    'gac_lac_l1': 'avhrr_l1b_gaclac',
+    'hdf4_caliopv3': 'caliop_l2_cloud',
+    'hdfeos_l1b': 'modis_l1b',
+    'hrit_electrol': 'electrol_hrit',
+    'hrit_jma': 'ahi_hrit',
+    'fci_fdhsi': 'fci_l1c_fdhsi',
+    'ghrsst_osisaf': 'ghrsst_l3c_sst',
+    'hrit_goes': 'goes-imager_hrit',
+    'hrit_msg': 'seviri_l1b_hrit',
+    'native_msg': 'seviri_l1b_native',
+    'nc_goes': 'goes-imager_nc',
+    'nc_nwcsaf_msg': 'nwcsaf-geo',
+    'nc_nwcsaf_pps': 'nwcsaf-pps_nc',
+    'nc_olci_l1b': 'olci_l1b',
+    'nc_olci_l2': 'olci_l2',
+    'nc_seviri_l1b': 'seviri_l1b_nc',
+    'nc_slstr': 'slstr_l1b',
+    'safe_msi': 'msi_safe',
+    'safe_sar_c': 'sar-c_safe',
+    'scmi_abi_l1b': 'abi_l1b_scmi',
+}
 
 
 class TooManyResults(KeyError):
@@ -423,6 +452,24 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
     if reader is not None:
         if not isinstance(reader, (list, tuple)):
             reader = [reader]
+        # check for old reader names
+        new_readers = []
+        for reader_name in reader:
+            if reader_name.endswith('.yaml') or reader_name not in OLD_READER_NAMES:
+                new_readers.append(reader_name)
+                continue
+
+            new_name = OLD_READER_NAMES[reader_name]
+            # SatPy 0.11 only displays a warning
+            warnings.warn("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name),
+                          DeprecationWarning)
+            # SatPy 0.12 will raise an exception
+            # raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
+            # SatPy 0.13 or 1.0, remove exception and mapping
+
+            new_readers.append(new_name)
+
+        reader = new_readers
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
