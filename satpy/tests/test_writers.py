@@ -549,6 +549,85 @@ class TestBaseWriter(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(self.base_dir, exp_fn)))
 
 
+class TestOverlays(unittest.TestCase):
+    """Tests for add_overlay and add_decorate functions."""
+
+    def setUp(self):
+        """Create test data and mock pycoast/pydecorate."""
+        from trollimage.xrimage import XRImage
+        from pyresample.geometry import AreaDefinition
+        import xarray as xr
+        import dask.array as da
+
+        proj_dict = {'proj': 'lcc', 'datum': 'WGS84', 'ellps': 'WGS84',
+                     'lon_0': -95., 'lat_0': 25, 'lat_1': 25,
+                     'units': 'm', 'no_defs': True}
+        self.area_def = AreaDefinition(
+            'test', 'test', 'test', proj_dict,
+            200, 400, (-1000., -1500., 1000., 1500.),
+        )
+        self.orig_rgb_img = XRImage(
+            xr.DataArray(da.arange(75., chunks=10).reshape(3, 5, 5) / 75.,
+                         dims=('bands', 'y', 'x'),
+                         coords={'bands': ['R', 'G', 'B']},
+                         attrs={'name': 'test_ds', 'area': self.area_def})
+        )
+        self.orig_l_img = XRImage(
+            xr.DataArray(da.arange(25., chunks=10).reshape(5, 5) / 75.,
+                         dims=('y', 'x'),
+                         attrs={'name': 'test_ds', 'area': self.area_def})
+        )
+
+        self.decorate = {
+            'decorate': [
+                {'logo': {'logo_path': '', 'height': 143, 'bg': 'white', 'bg_opacity': 255}},
+                {'text': {
+                    'txt': 'TEST',
+                    'align': {'top_bottom': 'bottom', 'left_right': 'right'},
+                    'font': '',
+                    'font_size': 22,
+                    'height': 30,
+                    'bg': 'black',
+                    'bg_opacity': 255,
+                    'line': 'white'}}
+            ]
+        }
+
+        self.contour_writer = mock.patch('pycoast.ContourWriterAGG')
+        self.dec_writer = mock.patch('pydecorate.DecoratorAGG')
+        self.cw = self.contour_writer.start()
+        self.dw = self.dec_writer.start()
+
+    def tearDown(self):
+        """Turn off pycoast/pydecorate mocking."""
+        self.contour_writer.stop()
+        self.dec_writer.stop()
+
+    def test_add_overlay_basic_rgb(self):
+        """Test basic add_overlay usage with RGB data."""
+        from satpy.writers import add_overlay
+        new_img = add_overlay(self.orig_rgb_img, self.area_def, '')
+        self.assertEqual('RGBA', new_img.mode)
+
+    def test_add_overlay_basic_l(self):
+        """Test basic add_overlay usage with L data."""
+        from satpy.writers import add_overlay
+        new_img = add_overlay(self.orig_l_img, self.area_def, '')
+        self.assertEqual('RGBA', new_img.mode)
+
+    def test_add_decorate_basic_rgb(self):
+        """Test basic add_decorate usage with RGB data."""
+        from satpy.writers import add_decorate
+        new_img = add_decorate(self.orig_rgb_img, **self.decorate)
+        self.assertEqual('RGBA', new_img.mode)
+
+    def test_add_decorate_basic_l(self):
+        """Test basic add_decorate usage with L data."""
+        from satpy.writers import add_decorate
+        new_img = add_decorate(self.orig_l_img, **self.decorate)
+        self.assertEqual('RGBA', new_img.mode)
+
+
 def suite():
     """The test suite for test_writers."""
     loader = unittest.TestLoader()
@@ -559,5 +638,6 @@ def suite():
     my_suite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
     my_suite.addTest(loader.loadTestsFromTestCase(TestComputeWriterResults))
     my_suite.addTest(loader.loadTestsFromTestCase(TestBaseWriter))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestOverlays))
 
     return my_suite
