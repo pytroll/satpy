@@ -22,11 +22,11 @@
 """SAFE SAR-C format."""
 
 import logging
-import os
 import xml.etree.ElementTree as ET
 
 import numpy as np
-from osgeo import gdal
+import rasterio
+from rasterio.windows import Window
 import dask.array as da
 from xarray import DataArray
 import xarray.ufuncs as xu
@@ -174,7 +174,7 @@ class SAFEXML(BaseFileHandler):
         """Get the calibration array."""
         data_items = self.root.findall(".//calibrationVector")
         data, low_res_coords = self.read_xml_array(data_items, name)
-        return self.interpolate_xml_array(data ** 2, low_res_coords, shape)
+        return self.interpolate_xml_array(data, low_res_coords, shape)
 
     def get_calibration_constant(self):
         """Load the calibration constant."""
@@ -257,19 +257,12 @@ class SAFEGRD(BaseFileHandler):
 
         self.lats = None
         self.lons = None
+        self.alts = None
 
         self.calibration = calfh
         self.noise = noisefh
 
-        self.get_gdal_filehandle()
-
-    def get_gdal_filehandle(self):
-        """Try to create the filehandle using gdal."""
-        if os.path.exists(self.filename):
-            self.filehandle = gdal.Open(self.filename)
-            logger.debug("Loading dataset {}".format(self.filename))
-        else:
-            raise IOError("Path {} does not exist.".format(self.filename))
+        self.filehandle = rasterio.open(self.filename, 'r')
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -282,37 +275,39 @@ class SAFEGRD(BaseFileHandler):
             logger.debug('Constructing coordinate arrays.')
 
             if self.lons is None or self.lats is None:
-                self.lons, self.lats = self.get_lonlats()
+                self.lons, self.lats, self.alts = self.get_lonlatalts()
 
             if key.name == 'latitude':
                 data = self.lats
             else:
                 data = self.lons
-            data.attrs = info
+            data.attrs.update(info)
 
         else:
+            calibration = key.calibration or 'gamma'
             data = self.read_band()
             logger.debug('Reading noise data.')
 
-            noise = self.noise.get_noise_correction(data.shape)
+            noise = self.noise.get_noise_correction(data.shape).fillna(0)
 
             logger.debug('Reading calibration data.')
 
-            cal = self.calibration.get_calibration('gamma', data.shape)
+            cal = self.calibration.get_calibration(calibration, data.shape)
             cal_constant = self.calibration.get_calibration_constant()
 
             logger.debug('Calibrating.')
-
+            data = data.where(data > 0)
             data = data.astype(np.float64)
-            data = (data * data + cal_constant - noise) / cal
+            dn = data * data
+            data = ((dn - noise).clip(min=0) + cal_constant) / (cal * cal) # + 0.002
 
-            data = xu.sqrt(data.clip(min=0))
+            data = np.sqrt(data.clip(min=0))
 
-            data.attrs = info
+            data.attrs.update(info)
 
             del noise, cal
 
-            data.attrs['units'] = 'sigma'
+            data.attrs['units'] = calibration
 
         return data
 
@@ -320,27 +315,27 @@ class SAFEGRD(BaseFileHandler):
         """Read the band in blocks."""
         band = self.filehandle
 
-        shape = band.RasterYSize, band.RasterXSize
+        shape = band.shape
         vchunks = range(0, shape[0], blocksize)
         hchunks = range(0, shape[1], blocksize)
 
         token = tokenize(blocksize, band)
         name = 'read_band-' + token
 
-        dskx = {(name, i, j): (band.GetRasterBand(1).ReadAsArray,
-                               hcs, vcs,
-                               min(blocksize,  shape[1] - hcs),
-                               min(blocksize,  shape[0] - vcs))
+        dskx = {(name, i, j): (band.read, 1, None,
+                               Window(hcs, vcs,
+                                      min(blocksize,  shape[1] - hcs),
+                                      min(blocksize,  shape[0] - vcs)))
                 for i, vcs in enumerate(vchunks)
                 for j, hcs in enumerate(hchunks)
                 }
 
         res = da.Array(dskx, name, shape=list(shape),
                        chunks=(blocksize, blocksize),
-                       dtype=np.uint16)
+                       dtype=band.dtypes[0])
         return DataArray(res, dims=('y', 'x'))
 
-    def get_lonlats(self):
+    def get_lonlatalts(self):
         """Obtain GCPs and construct latitude and longitude arrays.
 
         Args:
@@ -351,17 +346,20 @@ class SAFEGRD(BaseFileHandler):
         """
         band = self.filehandle
 
-        shape = band.RasterYSize, band.RasterXSize
-
-        (xpoints, ypoints), (gcp_lons, gcp_lats) = self.get_gcps()
+        (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), gcps = self.get_gcps()
 
         # FIXME: do interpolation on cartesion coordinates if the area is
         # problematic.
 
-        longitudes = interpolate_xarray(xpoints, ypoints, gcp_lons, shape)
-        latitudes = interpolate_xarray(xpoints, ypoints, gcp_lats, shape)
+        longitudes = interpolate_xarray(xpoints, ypoints, gcp_lons, band.shape)
+        latitudes = interpolate_xarray(xpoints, ypoints, gcp_lats, band.shape)
+        altitudes = interpolate_xarray(xpoints, ypoints, gcp_alts, band.shape)
 
-        return longitudes, latitudes
+        longitudes.attrs['gcps'] = gcps
+        latitudes.attrs['gcps'] = gcps
+        altitudes.attrs['gcps'] = gcps
+
+        return longitudes, latitudes, altitudes
 
     def get_gcps(self):
         """Read GCP from the GDAL band.
@@ -375,18 +373,18 @@ class SAFEGRD(BaseFileHandler):
            gcp_coords (tuple): longitude and latitude 1d arrays
 
         """
-        gcps = self.filehandle.GetGCPs()
+        gcps = self.filehandle.gcps
 
-        gcp_array = np.array(
-            [(p.GCPLine, p.GCPPixel, p.GCPY, p.GCPX) for p in gcps])
+        gcp_array = np.array([(p.row, p.col, p.x, p.y, p.z) for p in gcps[0]])
 
         ypoints = np.unique(gcp_array[:, 0])
         xpoints = np.unique(gcp_array[:, 1])
 
-        gcp_lats = gcp_array[:, 2].reshape(ypoints.shape[0], xpoints.shape[0])
-        gcp_lons = gcp_array[:, 3].reshape(ypoints.shape[0], xpoints.shape[0])
+        gcp_lons = gcp_array[:, 2].reshape(ypoints.shape[0], xpoints.shape[0])
+        gcp_lats = gcp_array[:, 3].reshape(ypoints.shape[0], xpoints.shape[0])
+        gcp_alts = gcp_array[:, 4].reshape(ypoints.shape[0], xpoints.shape[0])
 
-        return (xpoints, ypoints), (gcp_lons, gcp_lats)
+        return (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), gcps
 
     @property
     def start_time(self):
