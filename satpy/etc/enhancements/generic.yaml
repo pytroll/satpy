@@ -234,6 +234,33 @@ enhancements:
       kwargs:
         gamma: [2, 3, 2]
 
+  sar-ice-legacy:
+    standard_name: sar-ice-legacy
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: linear
+        cutoffs: [0.2, 0.02]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1, 1.2, 1]
+
+  sar-land:
+    standard_name: sar-land
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0.01, 1. , 0.15 ]
+        max_stretch: [0.765, 50., 1.4]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1.5, 2.25, 1.5]
+
   sar-rgb:
     standard_name: sar-rgb
     operations:
