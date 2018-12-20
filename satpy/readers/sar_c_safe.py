@@ -95,6 +95,36 @@ class SAFEXML(BaseFileHandler):
         return np.asarray(data), (x, y)
 
     @staticmethod
+    def read_azimuth_array(elts):
+        """Read the azimuth noise vectors."""
+        y = []
+        x = []
+        data = []
+        for elt in elts:
+            first_pixel = int(elt.find('firstRangeSample').text)
+            last_pixel = int(elt.find('lastRangeSample').text)
+            lines = elt.find('line').text.split()
+            lut = elt.find('noiseAzimuthLut').text.split()
+            pixels = [first_pixel, last_pixel]
+            swath = elt.find('swath').text
+            corr = 1
+            if swath == 'EW1':
+                corr = 1.5
+            if swath == 'EW4':
+                corr = 1.2
+            if swath == 'EW5':
+                corr = 1.5
+
+            for pixel in pixels:
+                y += [int(val) for val in lines]
+                x += [pixel] * len(lines)
+                data += [float(val) * corr for val in lut]
+
+        return np.asarray(data), (x, y)
+
+
+
+    @staticmethod
     def interpolate_xml_array(data, low_res_coords, shape):
         """Interpolate arbitrary size dataset to a full sized grid."""
         xpoints, ypoints = low_res_coords
@@ -131,7 +161,14 @@ class SAFEXML(BaseFileHandler):
         if not data_items:
             data_items = self.root.findall(".//noiseRangeVector")
             data, low_res_coords = self.read_xml_array(data_items, 'noiseRangeLut')
-        return self.interpolate_xml_array(data, low_res_coords, shape)
+            range_noise = self.interpolate_xml_array(data, low_res_coords, shape)
+            data_items = self.root.findall(".//noiseAzimuthVector")
+            data, low_res_coords = self.read_azimuth_array(data_items)
+            azimuth_noise = self.interpolate_xml_array(data, low_res_coords, shape)
+            noise = range_noise * azimuth_noise
+        else:
+            noise = self.interpolate_xml_array(data, low_res_coords, shape)
+        return noise
 
     def get_calibration(self, name, shape):
         """Get the calibration array."""
