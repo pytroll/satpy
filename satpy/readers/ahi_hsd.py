@@ -460,7 +460,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         tic = datetime.now()
 
         if calibration == 'counts':
-            return
+            return data
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             data = self.convert_to_radiance(data)
