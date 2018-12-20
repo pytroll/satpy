@@ -31,16 +31,16 @@ from satpy.dataset import combine_metadata
 LOG = logging.getLogger(__name__)
 
 
-def overlay(top, bottom):
+def overlay(top, bottom, maxval=None):
     """Blending two layers.
 
     from: https://docs.gimp.org/en/gimp-concepts-layer-modes.html
     """
-    maxval = xu.maximum(top.max(), bottom.max())
+    if maxval is None:
+        maxval = xu.maximum(top.max(), bottom.max())
 
     res = ((2 * top / maxval - 1) * bottom + 2 * top) * bottom / maxval
-
-    return res
+    return res.clip(min=0)
 
 
 class SARIce(GenericCompositor):
@@ -49,7 +49,13 @@ class SARIce(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR Ice composite."""
         (mhh, mhv) = projectables
-        green = overlay(mhh, mhv)
+        ch1attrs = mhh.attrs
+        ch2attrs = mhv.attrs
+        mhh = xu.sqrt(mhh ** 2 + 0.002) - 0.04
+        mhv = xu.sqrt(mhv ** 2 + 0.002) - 0.04
+        mhh.attrs = ch1attrs
+        mhv.attrs = ch2attrs
+        green = overlay(mhh, mhv, 30) * 1000
         green.attrs = combine_metadata(mhh, mhv)
 
         return super(SARIce, self).__call__((mhv, green, mhh), *args, **kwargs)
