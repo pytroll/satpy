@@ -429,7 +429,10 @@ class AHIHSDFileHandler(BaseFileHandler):
             res = da.from_array(np.memmap(self.filename, offset=fp_.tell(),
                                           dtype='<u2',  shape=(nlines, ncols), mode='r'),
                                 chunks=CHUNK_SIZE)
-        res = da.where(res >= 65534, np.float32(np.nan), res)
+
+        invalid = da.logical_or(res == header['block5']["count_value_outside_scan_pixels"][0],
+                                res == header['block5']["count_value_error_pixels"][0])
+        res = da.where(invalid, np.float32(np.nan), res)
         self._header = header
 
         logger.debug("Reading time " + str(datetime.now() - tic))
@@ -450,8 +453,6 @@ class AHIHSDFileHandler(BaseFileHandler):
                         satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
                                                  self.proj_info['earth_equatorial_radius']) * 1000)
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
-        res = res.where(header['block5']["count_value_outside_scan_pixels"][0] != res)
-        res = res.where(header['block5']["count_value_error_pixels"][0] != res)
         res = res.where(self.geo_mask())
         return res
 
