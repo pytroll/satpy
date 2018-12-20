@@ -299,7 +299,7 @@ class SAFEGRD(BaseFileHandler):
             data = data.where(data > 0)
             data = data.astype(np.float64)
             dn = data * data
-            data = ((dn - noise).clip(min=0) + cal_constant) / (cal * cal) # + 0.002
+            data = ((dn - noise).clip(min=0) + cal_constant) / (cal * cal)
 
             data = np.sqrt(data.clip(min=0))
 
