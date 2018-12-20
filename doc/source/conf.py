@@ -247,4 +247,5 @@ intersphinx_mapping = {
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
     'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
+    'pydecorate': ('https://pydecorate.readthedocs.io/en/stable', None),
 }
