@@ -36,3 +36,21 @@ composites:
     - name: measurement
       polarization: hv
     standard_name: sar-quick
+
+  sar-ice-legacy:
+    compositor: !!python/name:satpy.composites.sar.SARIceLegacy
+    prerequisites:
+    - name: measurement
+      polarization: hh
+    - name: measurement
+      polarization: hv
+    standard_name: sar-ice-legacy
+
+  sar-land:
+    compositor: !!python/name:satpy.composites.sar.SARIce
+    prerequisites:
+    - name: measurement
+      polarization: hh
+    - name: measurement
+      polarization: hv
+    standard_name: sar-land
