@@ -159,7 +159,7 @@ installation.
       - `scmi_abi_l1b`
       - Beta
     * - OSI SAF ASCAT Wind products
-      - `ascat_metop`
+      - `ascat_l2_winds`
       - Nominal
     * - OSI SAF ScatSat-1 Wind vectors
       - `scatsat1_l2b`
