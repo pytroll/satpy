@@ -29,13 +29,14 @@ import rasterio
 from rasterio.windows import Window
 import dask.array as da
 from xarray import DataArray
-import xarray.ufuncs as xu
 from dask.base import tokenize
+from threading import Lock
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
+read_lock = Lock()
 
 
 def dictify(r, root=True):
@@ -322,13 +323,26 @@ class SAFEGRD(BaseFileHandler):
         token = tokenize(blocksize, band)
         name = 'read_band-' + token
 
-        dskx = {(name, i, j): (band.read, 1, None,
+        def do_read(the_band, the_window, the_lock):
+            with the_lock:
+                return the_band.read(1, None, window=the_window)
+
+        dskx = {(name, i, j): (do_read, band,
                                Window(hcs, vcs,
                                       min(blocksize,  shape[1] - hcs),
-                                      min(blocksize,  shape[0] - vcs)))
+                                      min(blocksize,  shape[0] - vcs)),
+                               read_lock)
                 for i, vcs in enumerate(vchunks)
                 for j, hcs in enumerate(hchunks)
                 }
+
+        # dskx = {(name, i, j): (band.read, 1, None,
+        #                        Window(hcs, vcs,
+        #                               min(blocksize,  shape[1] - hcs),
+        #                               min(blocksize,  shape[0] - vcs)))
+        #         for i, vcs in enumerate(vchunks)
+        #         for j, hcs in enumerate(hchunks)
+        #         }
 
         res = da.Array(dskx, name, shape=list(shape),
                        chunks=(blocksize, blocksize),
