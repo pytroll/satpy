@@ -1,8 +1,8 @@
 reader:
   description: Generic Eumetsat / KNMI Ascat Metop Wind field Reader
-  name: ascat_metop
+  name: ascat_l2_winds
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
-  sensors: [scatterometer]
+  sensors: [ascat]
   default_datasets:
 
 datasets:
@@ -11,43 +11,49 @@ datasets:
     file_type: ascat_wind
     standard_name: longitude
     units: degree
+    resolution: 5000
 
   latitude:
     name: latitude
     file_type: ascat_wind
     standard_name: latitude
     units: degree
+    resolution: 5000
 
   wind_speed:
     name: wind_speed
-    sensor: Scatterometer
+    sensor: ascat
     coordinates: [longitude, latitude]
     file_type: ascat_wind
     standard_name: wind_speed
+    resolution: 5000
 
   wind_direction:
     name: wind_direction
-    sensor: Scatterometer
+    sensor: ascat
     coordinates: [longitude, latitude]
     file_type: ascat_wind
     standard_name: wind_direction
+    resolution: 5000
 
   ice_prob:
     name: ice_prob
-    sensor: Scatterometer
+    sensor: ascat
     coordinates: [longitude, latitude]
     file_type: ascat_wind
     standard_name: ice_prob
+    resolution: 5000
 
   ice_age:
     name: ice_age
-    sensor: Scatterometer
+    sensor: ascat
     coordinates: [longitude, latitude]
     file_type: ascat_wind
     standard_name: ice_age
-
+    resolution: 5000
 
 file_types:
   ascat_wind:
-    file_reader: !!python/name:satpy.readers.ascat_metop.ASCATMETOPFileHandler ''
-    file_patterns: ['ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_{cell_spacing}_{version}_{product_content}.{product_level}.nc']
+    file_reader: !!python/name:satpy.readers.ascat_l2_winds.ASCATMETOPFileHandler ''
+    file_patterns: ['ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_{cell_spacing}_{version}_{product_content}.{product_level}.nc',
+    'ascat_{start_time:%Y%m%d_%H%M%S}_{platform_id}_{orbit}_{service}_{processing_type}_{cell_spacing}_{version}_{product_content}.{product_level}.nc.gz']

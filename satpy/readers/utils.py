@@ -27,7 +27,6 @@ import logging
 
 from contextlib import closing
 import tempfile
-import bz2
 import os
 import numpy as np
 from pyresample.geometry import AreaDefinition
@@ -171,14 +170,13 @@ def get_sub_area(area, xslice, yslice):
 
 
 def unzip_file(filename):
-    """Unzip the file if file is bzipped = ending with 'bz2'"""
+    """Unzip the file if file is bzipped = ending with 'bz2' or zipped ending with 'gz'"""
 
-    if filename.endswith('bz2'):
-        bz2file = bz2.BZ2File(filename)
+    def extract(fs):
         fdn, tmpfilepath = tempfile.mkstemp()
         with closing(os.fdopen(fdn, 'wb')) as ofpt:
             try:
-                ofpt.write(bz2file.read())
+                ofpt.write(fs.read())
             except IOError:
                 import traceback
                 traceback.print_exc()
@@ -188,7 +186,17 @@ def unzip_file(filename):
 
         return tmpfilepath
 
-    return None
+    tmpfilepath = None
+    if filename.endswith('gz'):
+        import gzip
+        with gzip.open(filename, 'rb') as fs:
+            tmpfilepath = extract(fs)
+    elif filename.endswith('bz2'):
+        import bz2
+        with bz2.BZ2File(filename) as fs:
+            tmpfilepath = extract(fs)
+
+    return tmpfilepath
 
 
 def bbox(img):
