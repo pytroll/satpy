@@ -21,7 +21,7 @@ class TestSLSTRReader(unittest.TestCase):
     @mock.patch('xarray.open_dataset')
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
-        from satpy.readers.nc_slstr import NCSLSTR1B, NCSLSTRGeo, NCSLSTRAngles, NCSLSTRFlag
+        from satpy.readers.slstr_l1b import NCSLSTR1B, NCSLSTRGeo, NCSLSTRAngles, NCSLSTRFlag
         from satpy import DatasetID
 
         ds_id = DatasetID(name='foo')

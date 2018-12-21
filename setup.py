@@ -31,7 +31,7 @@ import versioneer
 
 from setuptools import find_packages, setup
 
-requires = ['numpy >=1.12', 'pillow', 'pyresample >=1.10.3', 'trollsift',
+requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.10.3', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
             'dask[array] >=0.17.1']
 
@@ -45,7 +45,7 @@ if sys.version < '3.0':
 
 extras_require = {
     # Readers:
-    'hdfeos_l1b': ['python-hdf4', 'python-geotiepoints >= 1.1.7'],
+    'modis_l1b': ['python-hdf4', 'python-geotiepoints >= 1.1.7'],
     'geocat': ['python-hdf4'],
     'acspo': ['netCDF4 >= 1.1.8'],
     'clavrx': ['netCDF4 >= 1.1.8'],
