@@ -36,7 +36,6 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
-read_lock = Lock()
 
 
 def dictify(r, root=True):
@@ -122,8 +121,6 @@ class SAFEXML(BaseFileHandler):
                 data += [float(val) * corr for val in lut]
 
         return np.asarray(data), (x, y)
-
-
 
     @staticmethod
     def interpolate_xml_array(data, low_res_coords, shape):
@@ -262,6 +259,7 @@ class SAFEGRD(BaseFileHandler):
 
         self.calibration = calfh
         self.noise = noisefh
+        self.read_lock = Lock()
 
         self.filehandle = rasterio.open(self.filename, 'r', sharing=False)
 
@@ -331,7 +329,7 @@ class SAFEGRD(BaseFileHandler):
                                Window(hcs, vcs,
                                       min(blocksize,  shape[1] - hcs),
                                       min(blocksize,  shape[0] - vcs)),
-                               read_lock)
+                               self.read_lock)
                 for i, vcs in enumerate(vchunks)
                 for j, hcs in enumerate(hchunks)
                 }
