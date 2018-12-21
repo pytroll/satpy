@@ -262,7 +262,7 @@ class SAFEGRD(BaseFileHandler):
         self.calibration = calfh
         self.noise = noisefh
 
-        self.filehandle = rasterio.open(self.filename, 'r')
+        self.filehandle = rasterio.open(self.filename, 'r', sharing=False)
 
     def get_dataset(self, key, info):
         """Load a dataset."""

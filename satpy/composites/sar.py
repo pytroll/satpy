@@ -60,6 +60,7 @@ class SARIce(GenericCompositor):
 
         return super(SARIce, self).__call__((mhv, green, mhh), *args, **kwargs)
 
+
 class SARIceLegacy(GenericCompositor):
     """The SAR Ice composite, legacy version with dynamic stretching."""
 
@@ -71,6 +72,7 @@ class SARIceLegacy(GenericCompositor):
         green.attrs = combine_metadata(mhh, mhv)
 
         return super(SARIceLegacy, self).__call__((mhv, green, mhh), *args, **kwargs)
+
 
 class SARRGB(GenericCompositor):
     """The SAR RGB composite."""
