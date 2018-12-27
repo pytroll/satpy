@@ -1,3 +1,14 @@
+## Version 0.11.1 (2018/12/27)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 560](https://github.com/pytroll/satpy/pull/560) - Fix available_composite_ids including inline comp dependencies
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.11.0 (2018/12/21)
 
 ### Issues Closed
