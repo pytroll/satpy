@@ -320,7 +320,22 @@ composites:
     prerequisites:
     - name: C06
     - name: C03
+      modifiers: [sunz_corrected]
     - name: C02
+      modifiers: [sunz_corrected]
+    standard_name: natural_fire
+
+  natural_fire_2:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C07
+        - name: C14
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
     standard_name: natural_fire
 ## Simple Fire & Smoke RGB by traditional bands (for WIS users)
   simple_fire_and_smoke:
@@ -415,18 +430,19 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C03
+      modifiers: [sunz_corrected]
     - name: C07
       modifiers: [nir_reflectance]
     - name: C14
     standard_name: day_microphysics
-
+# Variations to the Day Microphysics RGB product using the 2.3 micron channel
   day_microphysics_abi:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C03
     - name: C06
-    - name: C14
-    standard_name: day_microphysics
+    - name: C13
+    standard_name: day_microphysics_ahi
 
 ## EUMETSAT
   snow:
