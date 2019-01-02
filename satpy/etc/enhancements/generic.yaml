@@ -853,4 +853,4 @@ enhancements:
     - name: gamma
       method: *gammafun
       kwargs:
-gamma: [1, 2.5, 1]
+        gamma: [1, 2.5, 1]
