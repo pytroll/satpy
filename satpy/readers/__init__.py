@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2017.
+# Copyright (c) 2015-2018.
 
 # Author(s):
 
@@ -25,6 +25,7 @@
 import logging
 import numbers
 import os
+import warnings
 
 import six
 import yaml
@@ -40,6 +41,38 @@ except ImportError:
     from six.moves import configparser  # noqa
 
 LOG = logging.getLogger(__name__)
+
+
+# Old Name -> New Name
+OLD_READER_NAMES = {
+    'avhrr_aapp_l1b': 'avhrr_l1b_aapp',
+    'avhrr_eps_l1b': 'avhrr_l1b_eps',
+    'avhrr_hrpt_l1b': 'avhrr_l1b_hrpt',
+    'gac_lac_l1': 'avhrr_l1b_gaclac',
+    'hdf4_caliopv3': 'caliop_l2_cloud',
+    'hdfeos_l1b': 'modis_l1b',
+    'hrit_electrol': 'electrol_hrit',
+    'hrit_jma': 'ahi_hrit',
+    'fci_fdhsi': 'fci_l1c_fdhsi',
+    'ghrsst_osisaf': 'ghrsst_l3c_sst',
+    'hrit_goes': 'goes-imager_hrit',
+    'hrit_msg': 'seviri_l1b_hrit',
+    'native_msg': 'seviri_l1b_native',
+    'nc_goes': 'goes-imager_nc',
+    'nc_nwcsaf_msg': 'nwcsaf-geo',
+    'nc_nwcsaf_pps': 'nwcsaf-pps_nc',
+    'nc_olci_l1b': 'olci_l1b',
+    'nc_olci_l2': 'olci_l2',
+    'nc_seviri_l1b': 'seviri_l1b_nc',
+    'nc_slstr': 'slstr_l1b',
+    'safe_msi': 'msi_safe',
+    'safe_sar_c': 'sar-c_safe',
+    'scmi_abi_l1b': 'abi_l1b_scmi',
+}
+
+
+class TooManyResults(KeyError):
+    pass
 
 
 def _wl_dist(wl_a, wl_b):
@@ -200,6 +233,9 @@ def get_key(key, key_container, num_results=1, best=True,
     elif isinstance(key, (str, six.text_type)):
         # ID should act as a query (see wl comment above)
         key = DatasetID(name=key, modifiers=None)
+    elif not isinstance(key, DatasetID):
+        raise ValueError("Expected 'DatasetID', str, or number dict key, "
+                         "not {}".format(str(type(key))))
 
     res = filter_keys_by_dataset_id(key, key_container)
 
@@ -235,7 +271,7 @@ def get_key(key, key_container, num_results=1, best=True,
     if num_results == 1 and not res:
         raise KeyError("No dataset matching '{}' found".format(str(key)))
     elif num_results == 1 and len(res) != 1:
-        raise KeyError("No unique dataset matching {}".format(str(key)))
+        raise TooManyResults("No unique dataset matching {}".format(str(key)))
     elif num_results == 1:
         return res[0]
     elif num_results == 0:
@@ -295,6 +331,14 @@ class DatasetDict(dict):
         except KeyError:
             key = self.get_key(item)
             return super(DatasetDict, self).__getitem__(key)
+
+    def get(self, key, default=None):
+        """Get value with optional default."""
+        try:
+            key = self.get_key(key)
+        except KeyError:
+            return default
+        return super(DatasetDict, self).get(key, default)
 
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata.
@@ -408,6 +452,24 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
     if reader is not None:
         if not isinstance(reader, (list, tuple)):
             reader = [reader]
+        # check for old reader names
+        new_readers = []
+        for reader_name in reader:
+            if reader_name.endswith('.yaml') or reader_name not in OLD_READER_NAMES:
+                new_readers.append(reader_name)
+                continue
+
+            new_name = OLD_READER_NAMES[reader_name]
+            # SatPy 0.11 only displays a warning
+            warnings.warn("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name),
+                          DeprecationWarning)
+            # SatPy 0.12 will raise an exception
+            # raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
+            # SatPy 0.13 or 1.0, remove exception and mapping
+
+            new_readers.append(new_name)
+
+        reader = new_readers
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
     else:
@@ -421,8 +483,9 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
             os.path.join("readers", config_basename), *search_paths)
 
         if not reader_configs:
-            LOG.warning("No reader configs found for '%s'", reader)
-            continue
+            # either the reader they asked for does not exist
+            # or satpy is improperly configured and can't find its own readers
+            raise ValueError("No reader(s) named: {}".format(reader))
 
         yield reader_configs
 
@@ -465,6 +528,13 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     The returned dictionary can be passed directly to the `Scene` object
     through the `filenames` keyword argument.
 
+    The behaviour of time-based filtering depends on whether or not the filename
+    contains information about the end time of the data or not:
+
+      - if the end time is not present in the filename, the start time of the filename
+        is used and has to fall between (inclusive) the requested start and end times
+      - otherwise, the timespan of the filename has to overlap the requested timespan
+
     Args:
         start_time (datetime): Limit used files by starting time.
         end_time (datetime): Limit used files by ending time.
@@ -499,6 +569,9 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         except (KeyError, IOError, yaml.YAMLError) as err:
             LOG.info('Cannot use %s', str(reader_configs))
             LOG.debug(str(err))
+            if reader and (isinstance(reader, str) or len(reader) == 1):
+                # if it is a single reader then give a more usable error
+                raise
             continue
 
         if not reader_instance.supports_sensor(sensor):
@@ -553,6 +626,11 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         # filenames is a dictionary of reader_name -> filenames
         reader = list(filenames.keys())
         remaining_filenames = set(f for fl in filenames.values() for f in fl)
+    elif reader and isinstance(filenames, dict):
+        # filenames is a dictionary of reader_name -> filenames
+        # but they only want one of the readers
+        filenames = filenames[reader]
+        remaining_filenames = set(filenames or [])
     else:
         remaining_filenames = set(filenames or [])
 
@@ -579,9 +657,11 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             break
 
     if remaining_filenames:
-        LOG.warning(
-            "Don't know how to open the following files: {}".format(str(
-                remaining_filenames)))
+        LOG.warning("Don't know how to open the following files: {}".format(str(remaining_filenames)))
     if not reader_instances:
         raise ValueError("No supported files found")
+    elif not any(list(r.available_dataset_ids) for r in reader_instances.values()):
+        raise ValueError("No dataset could be loaded. Either missing "
+                         "requirements (such as Epilog, Prolog) or none of the "
+                         "provided files match the filter parameters.")
     return reader_instances

@@ -1,3 +1,6 @@
+# References:
+#  - Himawari-8/9 Himawari Standard Data User's Guide
+
 reader:
   description: Generic HSD AHI Reader
   name: ahi_hsd
@@ -18,6 +21,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b01
 
   B02:
@@ -32,6 +38,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b02
 
   B03:
@@ -46,6 +55,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b03
 
   B04:
@@ -60,6 +72,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b04
 
   B05:
@@ -74,6 +89,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b05
 
   B06:
@@ -88,6 +106,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b06
 
   B07:
@@ -102,6 +123,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b07
 
   B08:
@@ -116,6 +140,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b08
 
   B09:
@@ -130,6 +157,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b09
 
   B10:
@@ -144,6 +174,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b10
 
   B11:
@@ -158,6 +191,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b11
 
   B12:
@@ -172,6 +208,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b12
 
   B13:
@@ -186,6 +225,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b13
 
   B14:
@@ -200,6 +242,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b14
 
   B15:
@@ -214,6 +259,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b15
 
   B16:
@@ -228,6 +276,9 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
     file_type: hsd_b16
 
 

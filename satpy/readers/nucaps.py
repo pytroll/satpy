@@ -21,13 +21,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Interface to NUCAPS Retrieval NetCDF files
 """
-from datetime import datetime, timedelta
+from datetime import datetime
 import xarray as xr
 import numpy as np
 import logging
 from collections import defaultdict
 
-from satpy.dataset import Dataset
 from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
@@ -55,6 +54,12 @@ ALL_PRESSURE_LEVELS = [
 class NUCAPSFileHandler(NetCDF4FileHandler):
     """NUCAPS File Reader
     """
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('xarray_kwargs', {}).setdefault(
+            'decode_times', False)
+        super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
+
     def __contains__(self, item):
         return item in self.file_content
 
@@ -94,14 +99,16 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             return res
 
     @property
-    def sensor_name(self):
+    def sensor_names(self):
         """Return standard sensor or instrument name for the file's data.
         """
         res = self['/attr/instrument_name']
         if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
+            res = str(res.astype(str))
+        res = [x.strip() for x in res.split(',')]
+        if len(res) == 1:
+            return res[0]
+        return res
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified.
@@ -134,7 +141,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             "shape": shape,
             "units": ds_info.get("units", file_units),
             "platform_name": self.platform_name,
-            "sensor": self.sensor_name,
+            "sensor": self.sensor_names,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
@@ -142,7 +149,10 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             sname_path = var_path + '/attr/standard_name'
             info['standard_name'] = self.get(sname_path)
         if dataset_id.name != 'Quality_Flag':
-            info.setdefault('ancillary_variables', ['Quality_Flag'])
+            anc_vars = info.get('ancillary_variables', [])
+            if 'Quality_Flag' not in anc_vars:
+                anc_vars.append('Quality_Flag')
+                info['ancillary_variables'] = anc_vars
         return info
 
     def get_dataset(self, dataset_id, ds_info):
@@ -224,7 +234,7 @@ class NUCAPSReader(FileYAMLReader):
                     self.ids[new_ds_id] = new_info
                     self.pressure_dataset_names[ds_id.name].append(new_info['name'])
 
-    def load(self, dataset_keys, pressure_levels=None):
+    def load(self, dataset_keys, previous_datasets=None, pressure_levels=None):
         """Load data from one or more set of files.
 
         :param pressure_levels: mask out certain pressure levels:
@@ -262,7 +272,8 @@ class NUCAPSReader(FileYAMLReader):
                 dataset_keys.add(plevels_ds_id)
                 remove_plevels = True
 
-        datasets_loaded = super(NUCAPSReader, self).load(dataset_keys)
+        datasets_loaded = super(NUCAPSReader, self).load(
+            dataset_keys, previous_datasets=previous_datasets)
 
         if pressure_levels is not None:
             if remove_plevels:
@@ -320,10 +331,14 @@ class NUCAPSReader(FileYAMLReader):
             LOG.debug("Filtering data based on quality flags")
             for ds_id in sorted(dataset_keys):
                 ds = datasets_loaded[ds_id]
-                if not any(x for x in ds.attrs['ancillary_variables'] if x.name == 'Quality_Flag'):
+                quality_flag = [
+                    x for x in ds.attrs.get('ancillary_variables', [])
+                    if x.attrs.get('name') == 'Quality_Flag']
+                if not quality_flag:
                     continue
-                quality_flag = datasets_loaded['Quality_Flag']
-                if quality_flag.dims[0] not in datasets_loaded[ds_id].dims:
+
+                quality_flag = quality_flag[0]
+                if quality_flag.dims[0] not in ds.dims:
                     continue
                 LOG.debug("Masking %s where quality flag doesn't equal 1", ds_id)
                 datasets_loaded[ds_id] = ds.where(quality_flag == 0)

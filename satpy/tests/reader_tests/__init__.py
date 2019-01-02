@@ -26,13 +26,19 @@ import sys
 
 from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_viirs_sdr, test_viirs_l1b,
-                                      test_native_msg, test_msg_base,
+                                      test_seviri_l1b_native, test_seviri_base,
                                       test_hdf5_utils, test_netcdf_utils,
                                       test_hdf4_utils, test_utils,
                                       test_acspo, test_amsr2_l1b,
                                       test_omps_edr, test_nucaps, test_geocat,
-                                      test_seviri_calibration, test_clavrx,
-                                      test_grib, test_hrit_goes)
+                                      test_seviri_l1b_calibration, test_clavrx,
+                                      test_grib, test_goes_imager_hrit, test_ahi_hsd,
+                                      test_iasi_l2, test_generic_image,
+                                      test_scmi, test_ahi_hrit, test_goes_imager_nc,
+                                      test_nc_slstr, test_olci_nc,
+                                      test_viirs_edr_flood, test_nwcsaf_nc,
+                                      test_seviri_l1b_hrit)
+
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -47,8 +53,8 @@ def suite():
     mysuite.addTests(test_viirs_sdr.suite())
     mysuite.addTests(test_viirs_l1b.suite())
     mysuite.addTests(test_hrit_base.suite())
-    mysuite.addTests(test_native_msg.suite())
-    mysuite.addTests(test_msg_base.suite())
+    mysuite.addTests(test_seviri_l1b_native.suite())
+    mysuite.addTests(test_seviri_base.suite())
     mysuite.addTests(test_hdf4_utils.suite())
     mysuite.addTests(test_hdf5_utils.suite())
     mysuite.addTests(test_netcdf_utils.suite())
@@ -58,9 +64,20 @@ def suite():
     mysuite.addTests(test_omps_edr.suite())
     mysuite.addTests(test_nucaps.suite())
     mysuite.addTests(test_geocat.suite())
-    mysuite.addTests(test_seviri_calibration.suite())
+    mysuite.addTests(test_olci_nc.suite())
+    mysuite.addTests(test_seviri_l1b_calibration.suite())
     mysuite.addTests(test_clavrx.suite())
     mysuite.addTests(test_grib.suite())
-    mysuite.addTests(test_hrit_goes.suite())
+    mysuite.addTests(test_goes_imager_hrit.suite())
+    mysuite.addTests(test_ahi_hsd.suite())
+    mysuite.addTests(test_iasi_l2.suite())
+    mysuite.addTests(test_generic_image.suite())
+    mysuite.addTests(test_scmi.suite())
+    mysuite.addTests(test_viirs_edr_flood.suite())
+    mysuite.addTests(test_ahi_hrit.suite())
+    mysuite.addTests(test_goes_imager_nc.suite())
+    mysuite.addTests(test_nc_slstr.suite())
+    mysuite.addTests(test_nwcsaf_nc.suite())
+    mysuite.addTests(test_seviri_l1b_hrit.suite())
 
     return mysuite

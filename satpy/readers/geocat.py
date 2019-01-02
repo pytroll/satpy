@@ -40,7 +40,6 @@ from pyresample import geometry
 from pyresample.utils import proj4_str_to_dict
 
 from satpy.dataset import DatasetID
-from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 LOG = logging.getLogger(__name__)

@@ -76,7 +76,7 @@ def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    context.scene.save_datasets(writer="simple_image", file_pattern="{name}.png")
+    context.scene.save_datasets(writer="simple_image", filename="{name}.png")
 
 
 @then("a bunch of files should be saved on disk")  # noqa: F811

@@ -5,6 +5,9 @@
 
 import os
 import sys
+import numpy as np
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -14,9 +17,6 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-
-import numpy as np
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -34,10 +34,10 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content"""
         file_content = {
-            '/attr/PlatformShortName': np.array('GCOM-W1'),
-            '/attr/SensorShortName': np.array('AMSR2'),
-            '/attr/StartOrbitNumber': np.array('22210'),
-            '/attr/StopOrbitNumber': np.array('22210'),
+            '/attr/PlatformShortName': 'GCOM-W1',
+            '/attr/SensorShortName': 'AMSR2',
+            '/attr/StartOrbitNumber': '22210',
+            '/attr/StopOrbitNumber': '22210',
         }
         for bt_chan in [
             '(10.7GHz,H)',

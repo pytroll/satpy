@@ -42,6 +42,11 @@ LOG = logging.getLogger(__name__)
 class VIIRSFog(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
+
+        import warnings
+        warnings.warn("VIIRSFog compositor is deprecated, use DifferenceCompositor "
+                      "instead.", DeprecationWarning)
+
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
@@ -155,7 +160,7 @@ class ReflectanceCorrector(CompositeBase):
         lons, lats = vis.attrs['area'].get_lonlats_dask(
             chunks=vis.data.chunks)
         suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
-        suna = xu.rad2deg(suna)
+        suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
         sata, satel = get_observer_look(
             vis.attrs['satellite_longitude'],
@@ -603,16 +608,22 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
                                  log_offset=0.00001,
                                  out=None
                                  ):
-    """
-    equalize the provided data (in the mask_to_equalize) using adaptive histogram equalization
-    tiles of width/height (2 * local_radius_px + 1) will be calculated and results for each pixel will be bilinerarly interpolated from the nearest 4 tiles
-    when pixels fall near the edge of the image (there is no adjacent tile) the resultant interpolated sum from the available tiles will be multipled to
-    account for the weight of any missing tiles (pixel total interpolated value = pixel available interpolated value / (1 - missing interpolation weight))
+    """Equalize the provided data (in the mask_to_equalize) using adaptive histogram equalization.
 
-    if do_zerotoone_normalization is True the data will be scaled so that all data in the mask_to_equalize falls between 0 and 1; otherwise the data
-    in mask_to_equalize will all fall between 0 and number_of_bins
+    tiles of width/height (2 * local_radius_px + 1) will be calculated and results for each pixel will be bilinerarly
+    interpolated from the nearest 4 tiles when pixels fall near the edge of the image (there is no adjacent tile) the
+    resultant interpolated sum from the available tiles will be multipled to account for the weight of any missing
+    tiles::
 
-    returns the equalized data
+        pixel total interpolated value = pixel available interpolated value / (1 - missing interpolation weight)
+
+    if ``do_zerotoone_normalization`` is True the data will be scaled so that all data in the mask_to_equalize falls
+    between 0 and 1; otherwise the data in mask_to_equalize will all fall between 0 and number_of_bins
+
+    Returns:
+
+        The equalized data
+
     """
 
     out = out if out is not None else np.zeros_like(data)
@@ -799,12 +810,10 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
                 # it in our data array
                 out[min_row:max_row, min_col:max_col][
                     temp_mask_to_equalize] = temp_sum
-                """
                 # TEMP, test without using weights
-                data[min_row:max_row, min_col:max_col][temp_mask_to_equalize] = np.interp(temp_data_to_equalize,
-                                                                                             all_bin_information          [num_row_tile  ][num_col_tile][:-1],
-                                                                                             all_cumulative_dist_functions[num_row_tile  ][num_col_tile])
-                """
+                # data[min_row:max_row, min_col:max_col][temp_mask_to_equalize] = \
+                #     np.interp(temp_data_to_equalize, all_bin_information[num_row_tile][num_col_tile][:-1],
+                #               all_cumulative_dist_functions[num_row_tile][num_col_tile])
 
     # if we were asked to, normalize our data to be between zero and one,
     # rather than zero and number_of_bins
@@ -814,14 +823,12 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
     return out
 
 
-def _histogram_equalization_helper(valid_data,
-                                   number_of_bins,
-                                   clip_limit=None,
-                                   slope_limit=None):
-    """
-    calculate the simplest possible histogram equalization, using only valid data
+def _histogram_equalization_helper(valid_data, number_of_bins, clip_limit=None, slope_limit=None):
+    """Calculate the simplest possible histogram equalization, using only valid data.
 
-    returns the cumulative distribution function and bin information
+    Returns:
+        cumulative distribution function and bin information
+
     """
 
     # bucket all the selected data using np's histogram function
@@ -829,15 +836,13 @@ def _histogram_equalization_helper(valid_data,
 
     # if we have a clip limit and we should do our clipping before building
     # the cumulative distribution function, clip off our histogram
-    if (clip_limit is not None):
-
+    if clip_limit is not None:
         # clip our histogram and remember how much we removed
         pixels_to_clip_at = int(clip_limit *
                                 (valid_data.size / float(number_of_bins)))
         mask_to_clip = temp_histogram > clip_limit
-        num_bins_clipped = sum(mask_to_clip)
-        num_pixels_clipped = sum(temp_histogram[mask_to_clip]) - (
-            num_bins_clipped * pixels_to_clip_at)
+        # num_bins_clipped = sum(mask_to_clip)
+        # num_pixels_clipped = sum(temp_histogram[mask_to_clip]) - (num_bins_clipped * pixels_to_clip_at)
         temp_histogram[mask_to_clip] = pixels_to_clip_at
 
     # calculate the cumulative distribution function
@@ -845,8 +850,7 @@ def _histogram_equalization_helper(valid_data,
 
     # if we have a clip limit and we should do our clipping after building the
     # cumulative distribution function, clip off our cdf
-    if (slope_limit is not None):
-
+    if slope_limit is not None:
         # clip our cdf and remember how much we removed
         pixel_height_limit = int(slope_limit *
                                  (valid_data.size / float(number_of_bins)))
@@ -869,12 +873,9 @@ def _histogram_equalization_helper(valid_data,
             num_clipped_pixels = num_clipped_pixels + cumulative_excess_height
 
     # now normalize the overall distribution function
-    cumulative_dist_function = (
-        number_of_bins -
-        1) * cumulative_dist_function / cumulative_dist_function[-1]
+    cumulative_dist_function = (number_of_bins - 1) * cumulative_dist_function / cumulative_dist_function[-1]
 
-    # return what someone else will need in order to apply the equalization
-    # later
+    # return what someone else will need in order to apply the equalization later
     return cumulative_dist_function, temp_bins
 
 
@@ -1013,10 +1014,13 @@ def _linear_normalization_from_0to1(
 
 
 class NCCZinke(CompositeBase):
-    """Equalized DNB composite using the Zinke algorithm.
+    """Equalized DNB composite using the Zinke algorithm [#ncc1]_.
 
-    http://www.tandfonline.com/doi/full/10.1080/01431161.2017.1338838
-    DOI: 10.1080/01431161.2017.1338838
+    References:
+
+        .. [#ncc1] Stephan Zinke (2017),
+               A simplified high and near-constant contrast approach for the display of VIIRS day/night band imagery
+               :doi:`10.1080/01431161.2017.1338838`
 
     """
 
@@ -1119,7 +1123,7 @@ class SnowAge(GenericCompositor):
         Bernard Bellec at Bernard.Bellec@meteo.fr
         or
         Pascale Roquet at Pascale.Roquet@meteo.fr
-        
+
         """
         if len(projectables) != 5:
             raise ValueError("Expected 5 datasets, got %d" %

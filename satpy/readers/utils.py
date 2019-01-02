@@ -48,7 +48,7 @@ def np2str(value):
 
     """
     if hasattr(value, 'dtype') and \
-            issubclass(value.dtype.type, np.string_) and value.size == 1:
+            issubclass(value.dtype.type, (np.string_, np.object_)) and value.size == 1:
         value = np.asscalar(value)
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
@@ -77,6 +77,29 @@ def get_geostationary_angle_extent(geos_area):
     xmax = np.arccos(np.sqrt(aeq))
     ymax = np.arccos(np.sqrt(ap_))
     return xmax, ymax
+
+
+def get_geostationary_mask(area):
+    """Compute a mask of the earth's shape as seen by a geostationary satellite
+
+    Args:
+        area (pyresample.geometry.AreaDefinition) : Corresponding area
+                                                    definition
+
+    Returns:
+        Boolean mask, True inside the earth's shape, False outside.
+    """
+    # Compute projection coordinates at the earth's limb
+    h = area.proj_dict['h']
+    xmax, ymax = get_geostationary_angle_extent(area)
+    xmax *= h
+    ymax *= h
+
+    # Compute projection coordinates at the centre of each pixel
+    x, y = area.get_proj_coords_dask()
+
+    # Compute mask of the earth's elliptical shape
+    return ((x / xmax) ** 2 + (y / ymax) ** 2) <= 1
 
 
 def _lonlat_from_geos_angle(x, y, geos_area):
@@ -189,3 +212,19 @@ def unzip_file(filename):
         return tmpfilepath
 
     return None
+
+
+def bbox(img):
+    """Find the bounding box around nonzero elements in the given array
+
+    Copied from https://stackoverflow.com/a/31402351/5703449 .
+
+    Returns:
+        rowmin, rowmax, colmin, colmax
+    """
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax
