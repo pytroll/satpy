@@ -21,15 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the NinJoTIFF writer.
 """
-import os
 import sys
-
-import numpy as np
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -40,12 +32,11 @@ else:
 class TestNinjoTIFFWriter(unittest.TestCase):
     def test_init(self):
         from satpy.writers.ninjotiff import NinjoTIFFWriter
-        w = NinjoTIFFWriter()
+        NinjoTIFFWriter()
 
 
 def suite():
-    """The test suite for this writer's tests.
-    """
+    """The test suite for this writer's tests."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestNinjoTIFFWriter))

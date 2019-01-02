@@ -14,72 +14,72 @@ Subpackages
 Submodules
 ----------
 
-satpy\.config module
---------------------
+satpy.config module
+-------------------
 
 .. automodule:: satpy.config
     :members:
     :undoc-members:
     :show-inheritance:
 
-satpy\.dataset module
----------------------
+satpy.dataset module
+--------------------
 
 .. automodule:: satpy.dataset
     :members:
     :undoc-members:
     :show-inheritance:
 
-satpy\.multiscene module
-------------------------
+satpy.multiscene module
+-----------------------
 
 .. automodule:: satpy.multiscene
     :members:
     :undoc-members:
     :show-inheritance:
 
-satpy\.node module
-------------------
+satpy.node module
+-----------------
 
 .. automodule:: satpy.node
     :members:
     :undoc-members:
     :show-inheritance:
 
-satpy\.plugin\_base module
---------------------------
+satpy.plugin\_base module
+-------------------------
 
 .. automodule:: satpy.plugin_base
     :members:
     :undoc-members:
     :show-inheritance:
 
-satpy\.resample module
-----------------------
+satpy.resample module
+---------------------
 
 .. automodule:: satpy.resample
     :members:
     :undoc-members:
     :show-inheritance:
 
-satpy\.scene module
--------------------
+satpy.scene module
+------------------
 
 .. automodule:: satpy.scene
     :members:
     :undoc-members:
     :show-inheritance:
 
-satpy\.utils module
--------------------
+satpy.utils module
+------------------
 
 .. automodule:: satpy.utils
     :members:
     :undoc-members:
     :show-inheritance:
 
-satpy\.version module
----------------------
+satpy.version module
+--------------------
 
 .. automodule:: satpy.version
     :members:

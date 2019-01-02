@@ -23,7 +23,6 @@
 """test file handler baseclass.
 """
 
-import sys
 import unittest
 
 try:

@@ -24,11 +24,13 @@
 
 import h5py
 import numpy as np
+import xarray as xr
+import dask.array as da
 import datetime as dt
 import logging
 
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 # Scan timing values taken from
 # http://oiswww.eumetsat.org/WEBOPS/eps-pg/IASI-L1/IASIL1-PG-4ProdOverview.htm
@@ -55,7 +57,13 @@ DSET_NAMES = {'ozone_mixing_ratio': 'O',
               'temperature': 'T',
               'temperature_quality': 'QT',
               'water_mixing_ratio': 'W',
-              'water_mixing_ratio_quality': 'QW'}
+              'water_mixing_ratio_quality': 'QW',
+              'water_total_column': 'WC',
+              'ozone_total_column': 'OC',
+              'surface_skin_temperature': 'Ts',
+              'surface_skin_temperature_quality': 'QTs',
+              'emissivity': 'E',
+              'emissivity_quality': 'QE'}
 
 GEO_NAMES = {'latitude': 'Latitude',
              'longitude': 'Longitude',
@@ -78,10 +86,10 @@ class IASIL2HDF5(BaseFileHandler):
         super(IASIL2HDF5, self).__init__(filename, filename_info,
                                          filetype_info)
 
-        self.filename = filename
         self.finfo = filename_info
         self.lons = None
         self.lats = None
+        self.sensor = 'iasi'
 
         self.mda = {}
         short_name = filename_info['platform_id']
@@ -105,62 +113,68 @@ class IASIL2HDF5(BaseFileHandler):
         with h5py.File(self.filename, 'r') as fid:
             LOGGER.debug('Reading %s.', key.name)
             if key.name in DSET_NAMES:
-                m_data = read_dataset(fid, key, info)
+                m_data = read_dataset(fid, key)
             else:
-                m_data = read_geo(fid, key, info)
-        m_data.info.update(info)
+                m_data = read_geo(fid, key)
+        m_data.attrs.update(info)
+        m_data.attrs['sensor'] = self.sensor
 
         return m_data
 
 
-def read_dataset(fid, key, info):
+def read_dataset(fid, key):
     """Read dataset"""
     dsid = DSET_NAMES[key.name]
-    data = fid["/PWLR/" + dsid].value
-    try:
-        unit = fid["/PWLR/" + dsid].attrs['units']
-        long_name = fid["/PWLR/" + dsid].attrs['long_name']
-    except KeyError:
-        unit = ''
-        long_name = ''
+    dset = fid["/PWLR/" + dsid]
+    if dset.ndim == 3:
+        dims = ['y', 'x', 'level']
+    else:
+        dims = ['y', 'x']
+    data = xr.DataArray(da.from_array(dset.value, chunks=CHUNK_SIZE),
+                        name=key.name, dims=dims).astype(np.float32)
+    data = xr.where(data > 1e30, np.nan, data)
 
-    data = np.ma.masked_where(data > 1e30, data)
+    dset_attrs = dict(dset.attrs)
+    data.attrs.update(dset_attrs)
 
-    return Dataset(data, copy=False, long_name=long_name,
-                   **info)
+    return data
 
 
-def read_geo(fid, key, info):
+def read_geo(fid, key):
     """Read geolocation and related datasets."""
     dsid = GEO_NAMES[key.name]
+    add_epoch = False
     if "time" in key.name:
         days = fid["/L1C/" + dsid["day"]].value
         msecs = fid["/L1C/" + dsid["msec"]].value
-        unit = ""
         data = _form_datetimes(days, msecs)
+        add_epoch = True
+        dtype = np.float64
     else:
         data = fid["/L1C/" + dsid].value
-        unit = fid["/L1C/" + dsid].attrs['units']
+        dtype = np.float32
+    data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
+                        name=key.name, dims=['y', 'x']).astype(dtype)
 
-    data = Dataset(data, copy=False, **info)
+    if add_epoch:
+        data.attrs['sensing_time_epoch'] = EPOCH
 
     return data
 
 
 def _form_datetimes(days, msecs):
-    """Form datetimes from days and milliseconds relative to EPOCH for
-    each of IASI scans."""
+    """Calculate seconds since EPOCH from days and milliseconds for each of IASI scan."""
 
     all_datetimes = []
     for i in range(days.size):
         day = int(days[i])
         msec = msecs[i]
         scanline_datetimes = []
-        for j in range(VALUES_PER_SCAN_LINE / 4):
+        for j in range(int(VALUES_PER_SCAN_LINE / 4)):
             usec = 1000 * (j * VIEW_TIME_ADJUSTMENT + msec)
+            delta = (dt.timedelta(days=day, microseconds=usec))
             for k in range(4):
-                delta = (dt.timedelta(days=day, microseconds=usec))
-                scanline_datetimes.append(EPOCH + delta)
-        all_datetimes.append(np.array(scanline_datetimes))
+                scanline_datetimes.append(delta.total_seconds())
+        all_datetimes.append(scanline_datetimes)
 
-    return np.array(all_datetimes)
+    return np.array(all_datetimes, dtype=np.float64)

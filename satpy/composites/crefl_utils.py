@@ -26,12 +26,8 @@ Original code written by Ralph Kuehn with modifications by David Hoese and Marti
 Ralph's code was originally based on the C crefl code distributed for VIIRS and MODIS.
 """
 import logging
-import os
-import sys
 
 import numpy as np
-# from memory_profiler import profile
-import xarray.ufuncs as xu
 import xarray as xr
 import dask.array as da
 
@@ -62,8 +58,8 @@ def csalbr(tau):
     # Previously 3 functions csalbr fintexp1, fintexp3
     a = [-.57721566, 0.99999193, -0.24991055, 0.05519968, -0.00976004,
          0.00107857]
-    #xx = a[0] + a[1] * tau + a[2] * tau**2 + a[3] * tau**3 + a[4] * tau**4 + a[5] * tau**5
-    #xx = np.polyval(a[::-1], tau)
+    # xx = a[0] + a[1] * tau + a[2] * tau**2 + a[3] * tau**3 + a[4] * tau**4 + a[5] * tau**5
+    # xx = np.polyval(a[::-1], tau)
 
     # xx = a[0]
     # xftau = 1.0
@@ -75,6 +71,7 @@ def csalbr(tau):
 
     return (3.0 * tau - fintexp3 *
             (4.0 + 2.0 * tau) + 2.0 * np.exp(-tau)) / (4.0 + 3.0 * tau)
+
 
 # From crefl.1.7.1
 if bUseV171:
@@ -414,7 +411,7 @@ def run_crefl(refl, coeffs,
     # Get digital elevation map data for our granule, set ocean fill value to 0
     if avg_elevation is None:
         LOG.debug("No average elevation information provided in CREFL")
-        #height = np.zeros(lon.shape, dtype=np.float)
+        # height = np.zeros(lon.shape, dtype=np.float)
         height = 0.
     else:
         LOG.debug("Using average elevation information provided to CREFL")
