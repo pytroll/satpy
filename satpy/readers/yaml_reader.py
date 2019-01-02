@@ -598,6 +598,10 @@ class FileYAMLReader(AbstractYAMLReader):
         # Update the metadata
         proj.attrs['start_time'] = file_handlers[0].start_time
         proj.attrs['end_time'] = file_handlers[-1].end_time
+        # TODO: REMOVE THIS WHEN DONE TESTING
+        proj.attrs['satellite_longitude'] = file_handlers[0].satellite_longitude
+        proj.attrs['satellite_latitude'] = file_handlers[0].satellite_latitude
+        proj.attrs['satellite_altitude'] = file_handlers[0].satellite_altitude
 
         return proj
 
