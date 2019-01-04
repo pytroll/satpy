@@ -20,7 +20,7 @@ modifiers:
     - name: solar_zenith_angle
 
 composites:
-  true_color:
+  true_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: R1
@@ -31,8 +31,8 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: true_color
 
-  rayleigh_corrected:
-    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: R1
       modifiers: [sunz_corrected, rayleigh_corrected]
@@ -41,4 +41,3 @@ composites:
     - name: R4
       modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
-    high_resolution_band: red
