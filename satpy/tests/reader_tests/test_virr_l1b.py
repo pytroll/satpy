@@ -46,10 +46,10 @@ class TestVIRRL1BReader(unittest.TestCase):
     def test_get_dataset(self):
         from satpy import DatasetID
         ds = self.reader.get_dataset(DatasetID(name='latitude', wavelength=None, resolution=1000, polarization=None,
-                                          calibration=None, level=None, modifiers=()),
-                                {'name': 'latitude', 'resolution': 1000, 'file_type': ['virr_l1b', 'virr_geoxx'],
-                                 'file_key': 'Latitude', 'standard_name': 'latitude', 'wavelength': None,
-                                 'polarization': None, 'calibration': None, 'level': None, 'modifiers': ()})
+                                               calibration=None, level=None, modifiers=()),
+                                     {'name': 'latitude', 'resolution': 1000, 'file_type': ['virr_l1b', 'virr_geoxx'],
+                                      'file_key': 'Latitude', 'standard_name': 'latitude', 'wavelength': None,
+                                      'polarization': None, 'calibration': None, 'level': None, 'modifiers': ()})
         print(ds)
         self.assertEqual(ds.shape, (2047, 2048))
         self.assertEqual(ds.attrs['standard_name'], 'latitude')

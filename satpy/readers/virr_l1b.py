@@ -13,9 +13,9 @@ class VIRR_L1B(HDF5FileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(VIRR_L1B, self).__init__(filename, filename_info, filetype_info)
         logging.info('day/night flag for {0}: {1}'.format(filename, self['/attr/Day Or Night Flag']))
-        for key, val in self.file_content.items():
-            print(key + ':', val)
-        print()
+        # for key, val in self.file_content.items():
+        #     print(key + ':', val)
+        # print()
         self.geolocation_extension = filetype_info['geolocation_extension']
         self.platform_id = filename_info['platform_id']
         self.l1b_extension = 'Data/'
@@ -66,7 +66,7 @@ class VIRR_L1B(HDF5FileHandler):
             data.attrs.update({'units': '%'})
         else:
             data.attrs.update({'units': 1})
-        print(data)
+        # print(data)
         return data
 
     @property
