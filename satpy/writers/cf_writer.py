@@ -22,7 +22,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Writer for netCDF4/CF."""
 
-import logging
+import logging, warnings
 from datetime import datetime
 
 import xarray as xr
@@ -91,7 +91,7 @@ def create_grid_mapping(area):
         grid_mapping['name'] = area.proj_dict['proj']
     except KeyError:
         #raise NotImplementedError
-        logger.warning('This projection is not yet implemented or it is not supported' 
+        warnings.warn('This projection is not yet implemented or it is not supported' 
                        'by the CF convention. Using the proj4 string instead,' 
                        'the result will be a not CF compliant file.')
         grid_mapping = {}
@@ -134,7 +134,7 @@ def area2gridmapping(dataarray):
     area = dataarray.attrs['area']
     attrs = create_grid_mapping(area)
     name = None
-    if attrs != None and 'name' in attrs.keys() and attrs['name'] != "proj4":
+    if attrs is not None and 'name' in attrs.keys() and attrs['name'] != "proj4":
         dataarray.attrs['grid_mapping'] = attrs['name']
         name = attrs['name']
     else:
@@ -142,7 +142,6 @@ def area2gridmapping(dataarray):
         # standard CF representation or this  has not been implemented yet.
         dataarray.attrs['grid_proj4'] = area.proj4_string
         name = "proj4"
-    print(name)
     return [dataarray, xr.DataArray(0, attrs=attrs, name=name)]
 
 
@@ -251,7 +250,7 @@ class CFWriter(Writer):
                                                     end_times)
             dataset['time'].attrs['bounds'] = "time_bnds"
         except KeyError:
-            logger.warning('No time dimension in datasets, skipping time bounds creation.')
+            warnings.warn('No time dimension in datasets, skipping time bounds creation.')
 
         header_attrs = kwargs.pop('header_attrs', None)
 
