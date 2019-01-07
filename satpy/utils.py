@@ -288,4 +288,3 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
     corr = corr.where(cos_zen.notnull(), 0)
 
     return data * corr
-

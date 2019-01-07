@@ -37,7 +37,6 @@ from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition, BaseDefinition
-from pyresample.utils import proj4_str_to_dict
 
 import xarray as xr
 from xarray import DataArray
@@ -1054,7 +1053,7 @@ class Scene(MetadataObject):
         """
         try:
             import geoviews as gv
-            from cartopy import crs
+            from cartopy import crs  # noqa
         except ImportError:
             import warnings
             warnings.warn("This method needs the geoviews package installed.")
