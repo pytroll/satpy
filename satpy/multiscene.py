@@ -31,6 +31,7 @@ import xarray as xr
 import pandas as pd
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
+from satpy.dataset import combine_metadata
 from itertools import chain
 
 try:
@@ -108,7 +109,9 @@ def timeseries(datasets):
         tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
         expanded_ds.append(tmp)
 
-    return xr.concat(expanded_ds, dim="time")
+    res = xr.concat(expanded_ds, dim="time")
+    res.attrs = combine_metadata(*[x.attrs for x in expanded_ds])
+    return res
 
 
 class _SceneGenerator(object):
