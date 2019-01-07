@@ -161,7 +161,7 @@ datasets:
 
   solar_zenith_angle:
     name: solar_zenith_angle
-    file_type: [virr_l1b, virr_geoxx]
+    file_type: [virr_geoxx, virr_l1b]
     file_key: SolarZenith
     standard_name: solar_zenith_angle
     coordinates: [longitude, latitude]
