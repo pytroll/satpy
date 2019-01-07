@@ -1071,7 +1071,7 @@ class Scene(MetadataObject):
             dscrs = ds.area.to_cartopy_crs()
             gvds = gv.Dataset(ds, crs=dscrs)
         else:
-            LOG.error("No area found in dataset")
+            raise ValueError("No area found in dataset")
 
         if "latitude" in ds.coords.keys():
             gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
