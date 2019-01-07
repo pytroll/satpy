@@ -12,7 +12,7 @@ class VIRR_L1B(HDF5FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(VIRR_L1B, self).__init__(filename, filename_info, filetype_info)
-        logging.info('day/night flag for {0}: {1}'.format(filename, self['/attr/Day Or Night Flag']))
+        logging.debug('day/night flag for {0}: {1}'.format(filename, self['/attr/Day Or Night Flag']))
         self.geolocation_prefix = filetype_info['geolocation_prefix']
         self.platform_id = filename_info['platform_id']
         self.l1b_prefix = 'Data/'
@@ -27,7 +27,7 @@ class VIRR_L1B(HDF5FileHandler):
             file_key = file_key.replace('Data/', '')
         data = self.get(file_key)
         if data is None:
-            raise ValueError('File key "{0}" could not be found in file {1}'.format(file_key, self.filename))
+            logging.error('File key "{0}" could not be found in file {1}'.format(file_key, self.filename))
         band_index = ds_info.get('band_index')
         if band_index is not None:
             data = data[band_index]
