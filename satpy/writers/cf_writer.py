@@ -33,7 +33,7 @@ from satpy.writers import Writer
 
 logger = logging.getLogger(__name__)
 
-EPOCH = u"seconds since 1970-01-01 00:00:00 +00:00"
+EPOCH = u"seconds since 1970-01-01 00:00:00"
 
 
 def omerc2cf(area):
