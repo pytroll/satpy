@@ -111,10 +111,10 @@ class TestVIRRL1BReader(unittest.TestCase):
             attributes = ds.attrs
             if 'R' in dataset.name:
                 self._band_helper(attributes, '%', 'reflectance', 'toa_bidirectional_reflectance', 'virr_l1b', 7, 1000,
-                                 1)
+                                  1)
             elif 'E' in dataset.name:
                 self._band_helper(attributes, 'milliWstts/m^2/cm^(-1)/steradian', 'brightness_temperature',
-                                 'toa_brightness_temperature', 'virr_l1b', 3, 1000, 1)
+                                  'toa_brightness_temperature', 'virr_l1b', 3, 1000, 1)
             elif dataset.name in ['longitude', 'latitude']:
                 self.assertEqual('degrees', attributes['units'])
                 self.assertTrue(attributes['standard_name'] in ['longitude', 'latitude'])
