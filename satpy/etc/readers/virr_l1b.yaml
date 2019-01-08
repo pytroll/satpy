@@ -9,12 +9,12 @@ file_types:
     virr_l1b:
         file_reader: !!python/name:satpy.readers.virr_l1b.VIRR_L1B
         file_patterns:
-        - 'tf{start_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_L1B.HDF'
+        - 'tf{creation_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_L1B.HDF'
         geolocation_prefix: ''
     virr_geoxx:
         file_reader: !!python/name:satpy.readers.virr_l1b.VIRR_L1B
         file_patterns:
-        - 'tf{start_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_GEOXX.HDF'
+        - 'tf{creation_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_GEOXX.HDF'
         geolocation_prefix: 'Geolocation/'
 
 datasets:

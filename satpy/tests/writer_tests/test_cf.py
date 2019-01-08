@@ -77,7 +77,7 @@ class TestCFWriter(unittest.TestCase):
         test_array = np.array([[1, 2], [3, 4]])
         scn['test-array'] = xr.DataArray(test_array,
                                          dims=['x', 'y'],
-                                         coords={'time': datetime(2018, 5, 30, 10, 5)},
+                                         coords={'time': np.datetime64('2018-05-30T10:05:00')},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         try:
@@ -100,7 +100,7 @@ class TestCFWriter(unittest.TestCase):
         test_array = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         scn['test-array'] = xr.DataArray(test_array,
                                          dims=['x', 'y', 'time'],
-                                         coords={'time': [datetime(2018, 5, 30, 10, 5)]},
+                                         coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         try:
