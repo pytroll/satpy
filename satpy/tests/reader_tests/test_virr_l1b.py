@@ -22,7 +22,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     def make_test_data(self, dims):
         return xr.DataArray(da.from_array(np.ones([dim for dim in dims], dtype=np.float32) * 10, [dim for dim in dims]))
 
-    def _make_file(self, platform_id, geolocation_prefix, l1b_prefix, ECWN):
+    def _make_file(self, platform_id, geolocation_prefix, l1b_prefix, ECWN, Emissive_units):
         dim_0 = 19
         dim_1 = 20
         test_file = {
@@ -35,7 +35,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             l1b_prefix + 'EV_Emissive': self.make_test_data([3, dim_0, dim_1]),
             l1b_prefix + 'EV_Emissive/attr/valid_range': [0, 50000],
             l1b_prefix + 'Emissive_Radiance_Scales': self.make_test_data([dim_0, dim_1]),
-            l1b_prefix + 'EV_Emissive/attr/units': 'milliWstts/m^2/cm^(-1)/steradian',
+            l1b_prefix + 'EV_Emissive/attr/units': Emissive_units,
             l1b_prefix + 'Emissive_Radiance_Offsets': self.make_test_data([dim_0, dim_1]),
             '/attr/' + ECWN: [2610.31, 917.6268, 836.2546],
             # Reflectance data.
@@ -48,6 +48,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                           geolocation_prefix + 'SensorAzimuth']:
             test_file[attribute] = self.make_test_data([dim_0, dim_1])
             test_file[attribute + '/attr/Intercept'] = 0.
+            test_file[attribute + '/attr/units'] = 'degrees'
             if 'Solar' in attribute or 'Sensor' in attribute:
                 test_file[attribute + '/attr/Slope'] = .01
                 if 'Azimuth' in attribute:
@@ -60,14 +61,14 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     test_file[attribute + '/attr/valid_range'] = [-180., 180.]
                 else:
                     test_file[attribute + '/attr/valid_range'] = [-90., 90.]
-            test_file[attribute + '/attr/units'] = 'degrees'
         return test_file
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         if filename_info['platform_id'] == 'FY3B':
-            return self._make_file('FY3B', '', '', 'Emmisive_Centroid_Wave_Number')
-        return self._make_file(filename_info['platform_id'], 'Geolocation/', 'Data/', 'Emissive_Centroid_Wave_Number')
+            return self._make_file('FY3B', '', '', 'Emmisive_Centroid_Wave_Number', 'milliWstts/m^2/cm^(-1)/steradian')
+        return self._make_file(filename_info['platform_id'], 'Geolocation/', 'Data/',
+                               'Emissive_Centroid_Wave_Number', 'none')
 
 
 class TestVIRRL1BReader(unittest.TestCase):
@@ -88,8 +89,8 @@ class TestVIRRL1BReader(unittest.TestCase):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def _band_helper(self, attributes, units, calibration, standard_name, file_type, band_index_size, resolution,
-                     level):
+    def _band_helper(self, attributes, units, calibration, standard_name,
+                     file_type, band_index_size, resolution, level):
         self.assertEqual(units, attributes['units'])
         self.assertEqual(calibration, attributes['calibration'])
         self.assertEqual(standard_name, attributes['standard_name'])
@@ -99,7 +100,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         self.assertEqual(level, attributes['level'])
         self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
 
-    def _FY3_helper(self, platform_name, reader):
+    def _FY3_helper(self, platform_name, reader, Emissive_units):
         import datetime
         band_values = {'R1': 22.0, 'R2': 22.0, 'R3': 22.0, 'R4': 22.0, 'R5': 22.0, 'R6': 22.0, 'R7': 22.0,
                        'E1': 496.542155, 'E2': 297.444511, 'E3': 288.956557, 'solar_zenith_angle': .1,
@@ -109,11 +110,17 @@ class TestVIRRL1BReader(unittest.TestCase):
         for dataset in datasets:
             ds = datasets[dataset.name]
             attributes = ds.attrs
+            self.assertEqual('VIRR', attributes['sensor'])
+            self.assertEqual(platform_name, attributes['platform_name'])
+            self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes['start_time'])
+            self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes['end_time'])
+            self.assertEqual((19, 20), datasets[dataset.name].shape)
+            self.assertEqual(('y', 'x'), datasets[dataset.name].dims)
             if 'R' in dataset.name:
                 self._band_helper(attributes, '%', 'reflectance', 'toa_bidirectional_reflectance', 'virr_l1b', 7, 1000,
                                   1)
             elif 'E' in dataset.name:
-                self._band_helper(attributes, 'milliWstts/m^2/cm^(-1)/steradian', 'brightness_temperature',
+                self._band_helper(attributes, Emissive_units, 'brightness_temperature',
                                   'toa_brightness_temperature', 'virr_l1b', 3, 1000, 1)
             elif dataset.name in ['longitude', 'latitude']:
                 self.assertEqual('degrees', attributes['units'])
@@ -129,34 +136,27 @@ class TestVIRRL1BReader(unittest.TestCase):
                 self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
             self.assertEqual(band_values[dataset.name],
                              round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6))
-            self.assertEqual('VIRR', attributes['sensor'])
-            self.assertEqual(platform_name, attributes['platform_name'])
-            self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes['start_time'])
-            self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes['end_time'])
-            self.assertEqual((19, 20), datasets[dataset.name].shape)
-            self.assertEqual(('y', 'x'), datasets[dataset.name].dims)
 
     def test_FY3B_file(self):
         from satpy.readers import load_reader
         FY3B_reader = load_reader(self.reader_configs)
         FY3B_file = FY3B_reader.select_files_from_pathnames(['tf2018359214943.FY3B-L_VIRRX_L1B.HDF'])
-        self.assertTrue(len(FY3B_file), 1)
+        self.assertTrue(1, len(FY3B_file))
         FY3B_reader.create_filehandlers(FY3B_file)
         # Make sure we have some files
         self.assertTrue(FY3B_reader.file_handlers)
-        self._FY3_helper('FY3B', FY3B_reader)
+        self._FY3_helper('FY3B', FY3B_reader, 'milliWstts/m^2/cm^(-1)/steradian')
 
     def test_FY3C_file(self):
         from satpy.readers import load_reader
         FY3C_reader = load_reader(self.reader_configs)
-
         FY3C_files = FY3C_reader.select_files_from_pathnames(['tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF',
                                                               'tf2018359143912.FY3C-L_VIRRX_L1B.HDF'])
-        self.assertTrue(len(FY3C_files), 2)
+        self.assertTrue(2, len(FY3C_files))
         FY3C_reader.create_filehandlers(FY3C_files)
         # Make sure we have some files
         self.assertTrue(FY3C_reader.file_handlers)
-        self._FY3_helper('FY3C', FY3C_reader)
+        self._FY3_helper('FY3C', FY3C_reader, '1')
 
 
 def suite():
