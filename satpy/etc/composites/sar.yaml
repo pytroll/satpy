@@ -6,8 +6,10 @@ composites:
     prerequisites:
     - name: measurement
       polarization: hh
+      calibration: gamma
     - name: measurement
       polarization: hv
+      calibraion: gamma
     standard_name: sar-ice
 
   sar-ice-iw:
@@ -15,8 +17,10 @@ composites:
     prerequisites:
     - name: measurement
       polarization: vv
+      calibration: gamma
     - name: measurement
       polarization: vh
+      calibration: gamma
     standard_name: sar-ice
 
   sar-rgb:
