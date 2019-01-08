@@ -24,8 +24,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
-        dim_0 = 2047
-        dim_1 = 2048
+        dim_0 = 19
+        dim_1 = 24
         if filename_info['platform_id'] == 'FY3B':
             return {
                 # Satellite data.
@@ -58,7 +58,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                 '/attr/Emmisive_Centroid_Wave_Number': [2610.31, 917.6268, 836.2546],
                 # Reflectance data.
                 'EV_RefSB': self.make_test_data([7, dim_0, dim_1]), 'EV_RefSB/attr/valid_range': [0, 32767],
-                '/attr/RefSB_Cal_Coefficients': np.ones([dim for dim in [dim_0, dim_1]], dtype=np.float32) * 2,
+                '/attr/RefSB_Cal_Coefficients': np.ones(14, dtype=np.float32) * 2,
                 'EV_RefSB/attr/units': 'none'
             }
         return {
@@ -96,7 +96,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             '/attr/Emissive_Centroid_Wave_Number': [2610.31, 917.6268, 836.2546],
             # Reflectance data.
             'Data/EV_RefSB': self.make_test_data([7, dim_0, dim_1]), 'Data/EV_RefSB/attr/valid_range': [0, 32767],
-            '/attr/RefSB_Cal_Coefficients': np.ones([dim for dim in [dim_0, dim_1]], dtype=np.float32) * 2,
+            '/attr/RefSB_Cal_Coefficients': np.ones(14, dtype=np.float32) * 2,
             'Data/EV_RefSB/attr/units': 'none'
         }
 
@@ -110,7 +110,6 @@ class TestVIRRL1BReader(unittest.TestCase):
         from satpy.readers import load_reader
         from satpy.readers.virr_l1b import VIRR_L1B
         from satpy.config import config_search_paths
-
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
         self.p = mock.patch.object(VIRR_L1B, '__bases__', (FakeHDF5FileHandler2,))
@@ -178,7 +177,7 @@ class TestVIRRL1BReader(unittest.TestCase):
             self.assertEqual('FY3B', attributes['platform_name'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes['start_time'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes['end_time'])
-            self.assertEqual((2047, 2048), datasets[dataset.name].shape)
+            self.assertEqual((19, 24), datasets[dataset.name].shape)
             self.assertEqual(('y', 'x'), datasets[dataset.name].dims)
 
     def test_FY3C_file(self):
@@ -208,7 +207,7 @@ class TestVIRRL1BReader(unittest.TestCase):
             self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes['start_time'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes['end_time'])
-            self.assertEqual((2047, 2048), datasets[dataset.name].shape)
+            self.assertEqual((19, 24), datasets[dataset.name].shape)
             self.assertEqual(('y', 'x'), datasets[dataset.name].dims)
 
 
