@@ -59,7 +59,7 @@ class VIRR_L1B(HDF5FileHandler):
         elif data.attrs.get('calibration') == 'reflectance':
             data.attrs.update({'units': '%'})
         else:
-            data.attrs.update({'units': 1})
+            data.attrs.update({'units': '1'})
         return data
 
     @property
