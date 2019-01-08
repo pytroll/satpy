@@ -284,6 +284,11 @@ class SAFEGRD(BaseFileHandler):
 
         else:
             calibration = key.calibration or 'gamma'
+            if calibration == 'sigma_nought':
+                calibration = 'sigmaNought'
+            elif calibration == 'beta_nought':
+                calibration = 'betaNought'
+
             data = self.read_band()
             logger.debug('Reading noise data.')
 
