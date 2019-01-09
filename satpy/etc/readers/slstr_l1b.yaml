@@ -712,41 +712,270 @@ datasets:
     file_type: esa_l1b_otir
 
 
-  solar_zenith_angle:
-    name: solar_zenith_angle
+  solar_zenith_angle_an:
+    name: solar_zenith_angle_an
     sensor: slstr
-    resolution: 1000
-    coordinates: [longitude, latitude]
+    resolution: 500
+    view: nadir
+    stripe: a
+    coordinates: [longitude_an, latitude_an]
     standard_name: solar_zenith_angle
     file_type: esa_angles
     file_key: solar_zenith_tn
 
-  solar_azimuth_angle:
-    name: solar_azimuth_angle
+  solar_zenith_angle_bn:
+    name: solar_zenith_angle_bn
+    sensor: slstr
+    resolution: 500
+    view: nadir
+    stripe: b
+    coordinates: [longitude_bn, latitude_bn]
+    standard_name: solar_zenith_angle
+    file_type: esa_angles
+    file_key: solar_zenith_tn
+
+  solar_zenith_angle_in:
+    name: solar_zenith_angle_in
     sensor: slstr
     resolution: 1000
-    coordinates: [longitude, latitude]
+    view: nadir
+    stripe: i
+    coordinates: [longitude_in, latitude_in]
+    standard_name: solar_zenith_angle
+    file_type: esa_angles
+    file_key: solar_zenith_tn
+
+  solar_azimuth_angle_an:
+    name: solar_azimuth_angle_an
+    sensor: slstr
+    resolution: 500
+    view: nadir
+    stripe: a
+    coordinates: [longitude_an, latitude_an]
     standard_name: solar_azimuth_angle
     file_type: esa_angles
     file_key: solar_azimuth_tn
 
-  satellite_zenith_angle:
-    name: satellite_zenith_angle
+  solar_azimuth_angle_bn:
+    name: solar_azimuth_angle_bn
+    sensor: slstr
+    resolution: 500
+    view: nadir
+    stripe: b
+    coordinates: [longitude_bn, latitude_bn]
+    standard_name: solar_azimuth_angle
+    file_type: esa_angles
+    file_key: solar_azimuth_tn
+
+  solar_azimuth_angle_in:
+    name: solar_azimuth_angle_in
     sensor: slstr
     resolution: 1000
-    coordinates: [longitude, latitude]
+    view: nadir
+    stripe: i
+    coordinates: [longitude_in, latitude_in]
+    standard_name: solar_azimuth_angle
+    file_type: esa_angles
+    file_key: solar_azimuth_tn
+
+  satellite_zenith_angle_an:
+    name: satellite_zenith_angle_an
+    sensor: slstr
+    resolution: 500
+    view: nadir
+    stripe: a
+    coordinates: [longitude_an, latitude_an]
     standard_name: satellite_zenith_angle
     file_type: esa_angles
     file_key: sat_zenith_tn
 
-  satellite_azimuth_angle:
-    name: satellite_azimuth_angle
+  satellite_zenith_angle_bn:
+    name: satellite_zenith_angle_bn
+    sensor: slstr
+    resolution: 500
+    view: nadir
+    stripe: b
+    coordinates: [longitude_bn, latitude_bn]
+    standard_name: satellite_zenith_angle
+    file_type: esa_angles
+    file_key: sat_zenith_tn
+
+  satellite_zenith_angle_in:
+    name: satellite_zenith_angle_in
     sensor: slstr
     resolution: 1000
-    coordinates: [longitude, latitude]
+    view: nadir
+    stripe: i
+    coordinates: [longitude_in, latitude_in]
+    standard_name: satellite_zenith_angle
+    file_type: esa_angles
+    file_key: sat_zenith_tn
+
+  satellite_azimuth_angle_an:
+    name: satellite_azimuth_angle_an
+    sensor: slstr
+    resolution: 500
+    view: nadir
+    stripe: a
+    coordinates: [longitude_an, latitude_an]
     standard_name: satellite_azimuth_angle
     file_type: esa_angles
     file_key: sat_azimuth_tn
+
+  satellite_azimuth_angle_bn:
+    name: satellite_azimuth_angle_bn
+    sensor: slstr
+    resolution: 500
+    view: nadir
+    stripe: b
+    coordinates: [longitude_bn, latitude_bn]
+    standard_name: satellite_azimuth_angle
+    file_type: esa_angles
+    file_key: sat_azimuth_tn
+
+  satellite_azimuth_angle_in:
+    name: satellite_azimuth_angle
+    sensor: slstr
+    resolution: 1000
+    view: nadir
+    stripe: i
+    coordinates: [longitude_in, latitude_in]
+    standard_name: satellite_azimuth_angle
+    file_type: esa_angles
+    file_key: sat_azimuth_tn
+
+  solar_zenith_angle_ao:
+    name: solar_zenith_angle_ao
+    sensor: slstr
+    resolution: 500
+    view: oblique
+    stripe: a
+    coordinates: [longitude_ao, latitude_ao]
+    standard_name: solar_zenith_angle
+    file_type: esa_angles
+    file_key: solar_zenith_to
+
+  solar_zenith_angle_bo:
+    name: solar_zenith_angle_bo
+    sensor: slstr
+    resolution: 500
+    view: oblique
+    stripe: b
+    coordinates: [longitude_bo, latitude_bo]
+    standard_name: solar_zenith_angle
+    file_type: esa_angles
+    file_key: solar_zenith_to
+
+  solar_zenith_angle_io:
+    name: solar_zenith_angle_io
+    sensor: slstr
+    resolution: 1000
+    view: oblique
+    stripe: i
+    coordinates: [longitude_io, latitude_io]
+    standard_name: solar_zenith_angle
+    file_type: esa_angles
+    file_key: solar_zenith_to
+
+  solar_azimuth_angle_ao:
+    name: solar_azimuth_angle_ao
+    sensor: slstr
+    resolution: 500
+    view: oblique
+    stripe: a
+    coordinates: [longitude_ao, latitude_ao]
+    standard_name: solar_azimuth_angle
+    file_type: esa_angles
+    file_key: solar_azimuth_to
+
+  solar_azimuth_angle_bo:
+    name: solar_azimuth_angle_bo
+    sensor: slstr
+    resolution: 500
+    view: oblique
+    stripe: b
+    coordinates: [longitude_bo, latitude_bo]
+    standard_name: solar_azimuth_angle
+    file_type: esa_angles
+    file_key: solar_azimuth_to
+
+  solar_azimuth_angle_io:
+    name: solar_azimuth_angle_io
+    sensor: slstr
+    resolution: 1000
+    view: oblique
+    stripe: i
+    coordinates: [longitude_io, latitude_io]
+    standard_name: solar_azimuth_angle
+    file_type: esa_angles
+    file_key: solar_azimuth_to
+
+  satellite_zenith_angle_ao:
+    name: satellite_zenith_angle_ao
+    sensor: slstr
+    resolution: 500
+    view: oblique
+    stripe: a
+    coordinates: [longitude_ao, latitude_ao]
+    standard_name: satellite_zenith_angle
+    file_type: esa_angles
+    file_key: sat_zenith_to
+
+  satellite_zenith_angle_bo:
+    name: satellite_zenith_angle_bo
+    sensor: slstr
+    resolution: 500
+    view: oblique
+    stripe: b
+    coordinates: [longitude_bo, latitude_bo]
+    standard_name: satellite_zenith_angle
+    file_type: esa_angles
+    file_key: sat_zenith_to
+
+  satellite_zenith_angle_io:
+    name: satellite_zenith_angle_io
+    sensor: slstr
+    resolution: 1000
+    view: oblique
+    stripe: i
+    coordinates: [longitude_io, latitude_io]
+    standard_name: satellite_zenith_angle
+    file_type: esa_angles
+    file_key: sat_zenith_to
+
+  satellite_azimuth_angle_ao:
+    name: satellite_azimuth_angle_ao
+    sensor: slstr
+    resolution: 500
+    view: oblique
+    stripe: a
+    coordinates: [longitude_ao, latitude_ao]
+    standard_name: satellite_azimuth_angle
+    file_type: esa_angles
+    file_key: sat_azimuth_to
+
+  satellite_azimuth_angle_bo:
+    name: satellite_azimuth_angle_bo
+    sensor: slstr
+    resolution: 500
+    view: oblique
+    stripe: b
+    coordinates: [longitude_bo, latitude_bo]
+    standard_name: satellite_azimuth_angle
+    file_type: esa_angles
+    file_key: sat_azimuth_to
+
+  satellite_azimuth_angle_io:
+    name: satellite_azimuth_angle_io
+    sensor: slstr
+    resolution: 1000
+    view: oblique
+    stripe: i
+    coordinates: [longitude_io, latitude_io]
+    standard_name: satellite_azimuth_angle
+    file_type: esa_angles
+    file_key: sat_azimuth_to
+
 
 # CloudFlags are all bitfields. They are available in nadir (default) and oblique view for
 # each of the a,b,c,i stripes.

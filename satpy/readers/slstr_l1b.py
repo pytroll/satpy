@@ -185,13 +185,6 @@ class NCSLSTRAngles(BaseFileHandler):
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
 
-        cart_file = os.path.join(
-            os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view))
-        self.cart = xr.open_dataset(cart_file,
-                                    decode_cf=True,
-                                    mask_and_scale=True,
-                                    chunks={'columns': CHUNK_SIZE,
-                                            'rows': CHUNK_SIZE})
         cartx_file = os.path.join(
             os.path.dirname(self.filename), 'cartesian_tx.nc')
         self.cartx = xr.open_dataset(cartx_file,
@@ -207,6 +200,14 @@ class NCSLSTRAngles(BaseFileHandler):
 
         # Check if file_key is specified in the yaml
         file_key = info.get('file_key', key.name)
+        stripe = info['stripe']
+        cart_file = os.path.join(
+            os.path.dirname(self.filename), 'cartesian_{}{}.nc'.format(stripe, self.view))
+        cart = xr.open_dataset(cart_file,
+                               decode_cf=True,
+                               mask_and_scale=True,
+                               chunks={'columns': CHUNK_SIZE,
+                                       'rows': CHUNK_SIZE})
 
         variable = self.nc[file_key]
 
@@ -220,8 +221,8 @@ class NCSLSTRAngles(BaseFileHandler):
             # possible
             tie_x = self.cartx['x_tx'].data[0, :][::-1]
             tie_y = self.cartx['y_tx'].data[:, 0]
-            full_x = self.cart['x_i' + self.view].data
-            full_y = self.cart['y_i' + self.view].data
+            full_x = cart['x_' + stripe + self.view].data
+            full_y = cart['y_' + stripe + self.view].data
 
             variable = variable.fillna(0)
 
