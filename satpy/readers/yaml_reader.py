@@ -29,6 +29,7 @@ import os
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import deque, OrderedDict
 from fnmatch import fnmatch
+import warnings
 
 import six
 import xarray as xr
@@ -322,22 +323,26 @@ class FileYAMLReader(AbstractYAMLReader):
         return True
 
     def find_required_filehandlers(self, requirements, filename_info):
-        """Find the necessary fhs for the current filehandler.
+        """Find the necessary file handlers for the given requirements.
 
         We assume here requirements are available.
+
+        Raises:
+            KeyError, if no handler for the given requirements is available.
+            RuntimeError, if there is a handler for the given requirements,
+            but it doesn't match the filename info.
         """
         req_fh = []
+        filename_info = set(filename_info.items())
         if requirements:
             for requirement in requirements:
                 for fhd in self.file_handlers[requirement]:
-                    # FIXME: Isn't this super wasteful? filename_info.items()
-                    # every iteration?
-                    if (all(item in filename_info.items()
-                            for item in fhd.filename_info.items())):
+                    if set(fhd.filename_info.items()).issubset(filename_info):
                         req_fh.append(fhd)
                         break
                 else:
-                    raise RuntimeError('No matching file in ' + requirement)
+                    raise RuntimeError("No matching requirement file of type "
+                                       "{}".format(requirement))
                     # break everything and continue to next
                     # filetype!
         return req_fh
@@ -386,11 +391,13 @@ class FileYAMLReader(AbstractYAMLReader):
             try:
                 req_fh = self.find_required_filehandlers(requirements,
                                                          filename_info)
-            except RuntimeError:
-                logger.warning("Can't find requirements for %s", filename)
+            except KeyError as req:
+                msg = "No handler for reading requirement {} for {}".format(
+                    req, filename)
+                warnings.warn(msg)
                 continue
-            except KeyError:
-                logger.warning("Missing requirements for %s", filename)
+            except RuntimeError as err:
+                warnings.warn(str(err) + ' for {}'.format(filename))
                 continue
 
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
@@ -739,8 +746,11 @@ class FileYAMLReader(AbstractYAMLReader):
 
         if area is not None:
             ds.attrs['area'] = area
-            if (('x' not in ds.coords) or('y' not in ds.coords)) and \
-                    hasattr(area, 'get_proj_vectors_dask'):
+            calc_coords = (('x' not in ds.coords) or('y' not in ds.coords)) and hasattr(area, 'get_proj_vectors_dask')
+            if calc_coords and hasattr(area, 'get_proj_vectors'):
+                ds['x'], ds['y'] = area.get_proj_vectors()
+            elif calc_coords:
+                # older pyresample with dask-only method
                 ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNK_SIZE)
         return ds
 

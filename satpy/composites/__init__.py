@@ -148,7 +148,7 @@ class CompositorLoader(object):
                     # Handle in-line composites
                     if 'compositor' in item:
                         # Create an unique temporary name for the composite
-                        sub_comp_name = composite_name + '_dep_{}'.format(dep_num)
+                        sub_comp_name = '_' + composite_name + '_dep_{}'.format(dep_num)
                         dep_num += 1
                         # Minimal composite config
                         sub_conf = {composite_type: {sub_comp_name: item}}

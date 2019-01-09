@@ -1,4 +1,70 @@
-###############################################################################
+## Version 0.11.1 (2018/12/27)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 560](https://github.com/pytroll/satpy/pull/560) - Fix available_composite_ids including inline comp dependencies
+
+In this release 1 pull request was closed.
+
+
+## Version 0.11.0 (2018/12/21)
+
+### Issues Closed
+
+* [Issue 555](https://github.com/pytroll/satpy/issues/555) - GOES-16 geolocation seems off when saving as TIFF
+* [Issue 552](https://github.com/pytroll/satpy/issues/552) - GOES Composites failling ([PR 553](https://github.com/pytroll/satpy/pull/553))
+* [Issue 534](https://github.com/pytroll/satpy/issues/534) - Support GOES-15 in netcdf format from Eumetcast (`nc_goes` reader) ([PR 530](https://github.com/pytroll/satpy/pull/530))
+* [Issue 527](https://github.com/pytroll/satpy/issues/527) - [SEP] Reader naming conventions ([PR 546](https://github.com/pytroll/satpy/pull/546))
+* [Issue 518](https://github.com/pytroll/satpy/issues/518) - Make bilinear interpolation dask/xarray friendly ([PR 519](https://github.com/pytroll/satpy/pull/519))
+* [Issue 467](https://github.com/pytroll/satpy/issues/467) - Flake8-ify all of satpy ([PR 515](https://github.com/pytroll/satpy/pull/515))
+* [Issue 459](https://github.com/pytroll/satpy/issues/459) - How to colorize images
+* [Issue 449](https://github.com/pytroll/satpy/issues/449) - Adding coastlines to single channel not working ([PR 551](https://github.com/pytroll/satpy/pull/551))
+* [Issue 337](https://github.com/pytroll/satpy/issues/337) - Plot true color by using VIIRS SDR
+* [Issue 333](https://github.com/pytroll/satpy/issues/333) - `available_readers` to detail unavailable items
+* [Issue 263](https://github.com/pytroll/satpy/issues/263) - How to get the available dataset names from the reader
+* [Issue 147](https://github.com/pytroll/satpy/issues/147) - SEVIRI HRIT reading: More userfriendly warning when no EPI/PRO files are present ([PR 452](https://github.com/pytroll/satpy/pull/452))
+
+In this release 12 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 556](https://github.com/pytroll/satpy/pull/556) - Fix turning off enhancements in writers for float data
+* [PR 553](https://github.com/pytroll/satpy/pull/553) - Fix DifferenceCompositor and other compositors when areas are incompatible ([552](https://github.com/pytroll/satpy/issues/552), [552](https://github.com/pytroll/satpy/issues/552))
+* [PR 550](https://github.com/pytroll/satpy/pull/550) - Fix AHI HRIT file patterns so area's ID is correct
+* [PR 548](https://github.com/pytroll/satpy/pull/548) - Fix ratio sharpening compositors when the ratio is negative
+* [PR 547](https://github.com/pytroll/satpy/pull/547) - Fix EWA resampling for new versions of pyresample
+* [PR 542](https://github.com/pytroll/satpy/pull/542) - Fix palette application for pps 2018 products
+* [PR 508](https://github.com/pytroll/satpy/pull/508) - Fix the cf_writer to accept single-valued time coordinate variable
+
+#### Features added
+
+* [PR 558](https://github.com/pytroll/satpy/pull/558) - Make counts available in ahi_hsd
+* [PR 551](https://github.com/pytroll/satpy/pull/551) - Fix image overlays for single band data (requires trollimage 1.6+) ([449](https://github.com/pytroll/satpy/issues/449))
+* [PR 549](https://github.com/pytroll/satpy/pull/549) - Fix nwcpps ct palette from v2018 to be backwards compatible
+* [PR 546](https://github.com/pytroll/satpy/pull/546) - Rename readers to meet new reader naming scheme ([527](https://github.com/pytroll/satpy/issues/527))
+* [PR 545](https://github.com/pytroll/satpy/pull/545) - Add configurable parameters to solar zenith correctors
+* [PR 530](https://github.com/pytroll/satpy/pull/530) - Add reader for Goes15 netcdf Eumetsat format ([534](https://github.com/pytroll/satpy/issues/534))
+* [PR 519](https://github.com/pytroll/satpy/pull/519) - Add xarray/dask bilinear resampling ([518](https://github.com/pytroll/satpy/issues/518))
+* [PR 507](https://github.com/pytroll/satpy/pull/507) - Change default enhancement for reflectance data to gamma 1.5
+* [PR 452](https://github.com/pytroll/satpy/pull/452) - Improve handling of missing file requirements in readers ([147](https://github.com/pytroll/satpy/issues/147))
+
+#### Documentation changes
+
+* [PR 533](https://github.com/pytroll/satpy/pull/533) - Fix copy/paste error in readers table for viirs_l1b
+* [PR 515](https://github.com/pytroll/satpy/pull/515) - Fix all flake8 errors in satpy package code ([467](https://github.com/pytroll/satpy/issues/467))
+
+#### Backwards incompatible changes
+
+* [PR 546](https://github.com/pytroll/satpy/pull/546) - Rename readers to meet new reader naming scheme ([527](https://github.com/pytroll/satpy/issues/527))
+* [PR 507](https://github.com/pytroll/satpy/pull/507) - Change default enhancement for reflectance data to gamma 1.5
+
+In this release 20 pull requests were closed.
+
+
 ## Version 0.10.0 (2018/11/23)
 
 ### Issues Closed

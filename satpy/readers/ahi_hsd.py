@@ -429,7 +429,10 @@ class AHIHSDFileHandler(BaseFileHandler):
             res = da.from_array(np.memmap(self.filename, offset=fp_.tell(),
                                           dtype='<u2',  shape=(nlines, ncols), mode='r'),
                                 chunks=CHUNK_SIZE)
-        res = da.where(res == 65535, np.float32(np.nan), res)
+
+        invalid = da.logical_or(res == header['block5']["count_value_outside_scan_pixels"][0],
+                                res == header['block5']["count_value_error_pixels"][0])
+        res = da.where(invalid, np.float32(np.nan), res)
         self._header = header
 
         logger.debug("Reading time " + str(datetime.now() - tic))
@@ -450,8 +453,6 @@ class AHIHSDFileHandler(BaseFileHandler):
                         satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
                                                  self.proj_info['earth_equatorial_radius']) * 1000)
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
-        res = res.where(header['block5']["count_value_outside_scan_pixels"][0] != res)
-        res = res.where(header['block5']["count_value_error_pixels"][0] != res)
         res = res.where(self.geo_mask())
         return res
 
@@ -460,7 +461,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         tic = datetime.now()
 
         if calibration == 'counts':
-            return
+            return data
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             data = self.convert_to_radiance(data)
@@ -478,7 +479,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         gain = self._header["block5"]["gain_count2rad_conversion"][0]
         offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
-        return data * gain + offset
+        return (data * gain + offset).clip(0)
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""
@@ -487,6 +488,8 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def _ir_calibrate(self, data):
         """IR calibration."""
+        # No radiance -> no temperature
+        data = da.where(data == 0, np.float32(np.nan), data)
 
         cwl = self._header['block5']["central_wave_length"][0] * 1e-6
         c__ = self._header['calibration']["speed_of_light"][0]

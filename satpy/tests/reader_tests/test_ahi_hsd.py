@@ -28,6 +28,7 @@ except ImportError:
     import mock
 
 import numpy as np
+import dask.array as da
 from datetime import datetime
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
 
@@ -167,6 +168,48 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         self.assertEqual(self.fh.start_time, datetime(2018, 10, 22, 3, 0, 20, 596896))
         self.assertEqual(self.fh.end_time, datetime(2018, 10, 22, 3, 0, 53, 947296))
         self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
+
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.__init__',
+                return_value=None)
+    def test_calibrate(self, *mocks):
+        """Test calibration"""
+        fh = AHIHSDFileHandler()
+        fh._header = {
+            'block5': {'gain_count2rad_conversion': [-0.0037],
+                       'offset_count2rad_conversion': [15.20],
+                       'central_wave_length': [10.4073], },
+            'calibration': {'coeff_rad2albedo_conversion': [0.0019255],
+                            'speed_of_light': [299792458.0],
+                            'planck_constant': [6.62606957e-34],
+                            'boltzmann_constant': [1.3806488e-23],
+                            'c0_rad2tb_conversion': [-0.116127314574],
+                            'c1_rad2tb_conversion': [1.00099153832],
+                            'c2_rad2tb_conversion': [-1.76961091571e-06]},
+        }
+
+        # Counts
+        self.assertEqual(fh.calibrate(data=123, calibration='counts'),
+                         123)
+
+        # Radiance
+        counts = da.array(np.array([[0., 1000.],
+                                    [2000., 5000.]]))
+        rad_exp = np.array([[15.2, 11.5],
+                            [7.8, 0]])
+        rad = fh.calibrate(data=counts, calibration='radiance')
+        self.assertTrue(np.allclose(rad, rad_exp))
+
+        # Brightness Temperature
+        bt_exp = np.array([[330.978979, 310.524688],
+                           [285.845017, np.nan]])
+        bt = fh.calibrate(data=counts, calibration='brightness_temperature')
+        np.testing.assert_allclose(bt, bt_exp)
+
+        # Reflectance
+        refl_exp = np.array([[2.92676, 2.214325],
+                             [1.50189, 0.]])
+        refl = fh.calibrate(data=counts, calibration='reflectance')
+        self.assertTrue(np.allclose(refl, refl_exp))
 
 
 def suite():
