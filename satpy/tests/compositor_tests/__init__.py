@@ -654,7 +654,6 @@ class TestGenericCompositor(unittest.TestCase):
 
     def test_call(self):
         """Test calling generic compositor"""
-        from satpy.composites import IncompatibleAreas
         # Multiple datasets with extra attributes
         all_valid = self.all_valid
         all_valid.attrs['sensor'] = 'foo'
