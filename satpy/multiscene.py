@@ -122,7 +122,10 @@ class _SceneGenerator(object):
         self._dataset_idx[ds_id] = idx = 0
         while True:
             if idx >= len(self._scene_cache):
-                scn = next(self._self_iter)
+                try:
+                    scn = next(self._self_iter)
+                except StopIteration:
+                    return
             else:
                 scn = self._scene_cache[idx]
             yield scn.get(ds_id)
