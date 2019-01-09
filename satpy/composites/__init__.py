@@ -726,8 +726,17 @@ class GenericCompositor(CompositeBase):
         for prj in projectables:
             if valid is None:
                 valid = prj.notnull()
+                try:
+                    valid = valid.drop('bands')
+                except ValueError:
+                    pass
             else:
-                valid &= prj.notnull()
+                new_valid = prj.notnull()
+                try:
+                    new_valid = new_valid.drop('bands')
+                except ValueError:
+                    pass
+                valid &= new_valid
         for prj in projectables:
             masked_prjs.append(prj.where(valid))
         return masked_prjs
