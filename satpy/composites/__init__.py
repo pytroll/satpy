@@ -718,6 +718,20 @@ class GenericCompositor(CompositeBase):
             sensor = list(sensor)[0]
         return sensor
 
+    def _mask_datasets(self, projectables):
+        """Mask all the channels by their combined invalid areas."""
+        projectables = self.check_areas(projectables)
+        valid = None
+        masked_prjs = []
+        for prj in projectables:
+            if valid is None:
+                valid = prj.notnull()
+            else:
+                valid &= prj.notnull()
+        for prj in projectables:
+            masked_prjs.append(prj.where(valid))
+        return masked_prjs
+
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
         num = len(projectables)
@@ -726,6 +740,8 @@ class GenericCompositor(CompositeBase):
             # num may not be in `self.modes` so only check if we need to
             mode = self.modes[num]
         if len(projectables) > 1:
+            # FIXME: should this be optional step?
+            projectables = self._mask_datasets(projectables)
             data = self._concat_datasets(projectables, mode)
         else:
             data = projectables[0]
