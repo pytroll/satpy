@@ -692,8 +692,6 @@ class GenericCompositor(CompositeBase):
     modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
     def _concat_datasets(self, projectables, mode):
-        projectables = self.check_areas(projectables)
-
         try:
             data = xr.concat(projectables, 'bands', coords='minimal')
             data['bands'] = list(mode)
@@ -720,7 +718,6 @@ class GenericCompositor(CompositeBase):
 
     def _mask_datasets(self, projectables):
         """Mask all the channels by their combined invalid areas."""
-        projectables = self.check_areas(projectables)
         valid = None
         masked_prjs = []
         for prj in projectables:
@@ -749,6 +746,7 @@ class GenericCompositor(CompositeBase):
             # num may not be in `self.modes` so only check if we need to
             mode = self.modes[num]
         if len(projectables) > 1:
+            projectables = self.check_areas(projectables)
             # FIXME: should this be optional step?
             projectables = self._mask_datasets(projectables)
             data = self._concat_datasets(projectables, mode)
