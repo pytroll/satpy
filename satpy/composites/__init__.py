@@ -691,7 +691,7 @@ class GenericCompositor(CompositeBase):
 
     modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
-    def __init__(self, common_channel_mask=True, **kwargs):
+    def __init__(self, name, common_channel_mask=True, **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -699,7 +699,7 @@ class GenericCompositor(CompositeBase):
                 a mask that combines all the invalid areas of the given data.
         """
         self.common_channel_mask = common_channel_mask
-        super(GenericCompositor, self).__init__(**kwargs)
+        super(GenericCompositor, self).__init__(name, **kwargs)
 
     def _concat_datasets(self, projectables, mode):
         try:
