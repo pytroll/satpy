@@ -566,6 +566,7 @@ class TestGenericCompositor(unittest.TestCase):
         """Create test data."""
         from satpy.composites import GenericCompositor
         self.comp = GenericCompositor(name='test')
+        self.comp2 = GenericCompositor(name='test2', common_channel_mask=False)
 
         all_valid = np.ones((1, 2, 2))
         self.all_valid = xr.DataArray(all_valid, dims=['bands', 'y', 'x'])
@@ -645,6 +646,14 @@ class TestGenericCompositor(unittest.TestCase):
         self.assertEqual(res.attrs['mode'], 'L')
         check_areas.assert_not_called()
         mask_datasets.assert_not_called()
+        # This compositor has been initialized without common masking, so the
+        # masking shouldn't have been called
+        projectables = [self.all_valid, self.first_invalid, self.second_invalid]
+        check_areas.return_value = projectables
+        res = self.comp2(projectables)
+        check_areas.assert_called_once()
+        mask_datasets.assert_not_called()
+        check_areas.reset_mock()
         # When areas are incompatible, masking shouldn't happen
         check_areas.side_effect = IncompatibleAreas()
         self.assertRaises(IncompatibleAreas,
