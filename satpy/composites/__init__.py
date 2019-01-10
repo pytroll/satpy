@@ -691,6 +691,16 @@ class GenericCompositor(CompositeBase):
 
     modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
+    def __init__(self, common_channel_mask=True, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            common_channel_mask (bool): If True, mask all the channels with
+                a mask that combines all the invalid areas of the given data.
+        """
+        self.common_channel_mask = common_channel_mask
+        super(GenericCompositor, self).__init__(**kwargs)
+
     def _concat_datasets(self, projectables, mode):
         try:
             data = xr.concat(projectables, 'bands', coords='minimal')
@@ -747,8 +757,8 @@ class GenericCompositor(CompositeBase):
             mode = self.modes[num]
         if len(projectables) > 1:
             projectables = self.check_areas(projectables)
-            # FIXME: should this be optional step?
-            projectables = self._mask_datasets(projectables)
+            if self.common_channel_mask:
+                projectables = self._mask_datasets(projectables)
             data = self._concat_datasets(projectables, mode)
         else:
             data = projectables[0]
