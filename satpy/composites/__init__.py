@@ -757,7 +757,13 @@ class GenericCompositor(CompositeBase):
             mode = self.modes[num]
         if len(projectables) > 1:
             projectables = self.check_areas(projectables)
-            if self.common_channel_mask:
+            # Skip masking if user wants it, or a specific alpha
+            # channel is given (2 or 4 datasets altogether).  Note
+            # that 'mode' can be given to force the alpha channel in
+            # the end image, but that doesn't mean a separate alpha
+            # channel data is given, so check the number of
+            # projectables given instead.
+            if self.common_channel_mask and num % 2 == 1:
                 projectables = self._mask_datasets(projectables)
             data = self._concat_datasets(projectables, mode)
         else:
