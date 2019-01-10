@@ -654,6 +654,13 @@ class TestGenericCompositor(unittest.TestCase):
         check_areas.assert_called_once()
         mask_datasets.assert_not_called()
         check_areas.reset_mock()
+        # Dataset for alpha given, so shouldn't be masked
+        projectables = [self.all_valid, self.all_valid]
+        check_areas.return_value = projectables
+        res = self.comp(projectables)
+        check_areas.assert_called_once()
+        mask_datasets.assert_not_called()
+        check_areas.reset_mock()
         # When areas are incompatible, masking shouldn't happen
         check_areas.side_effect = IncompatibleAreas()
         self.assertRaises(IncompatibleAreas,
