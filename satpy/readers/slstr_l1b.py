@@ -43,6 +43,8 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 
 
 class NCSLSTRBase(BaseFileHandler):
+    """Base class for netcdf4 SLSTR file handlers."""
+
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRBase, self).__init__(filename, filename_info,
                                           filetype_info)
