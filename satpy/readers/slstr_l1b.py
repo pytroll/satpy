@@ -196,6 +196,8 @@ class NCSLSTRAngles(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset
         """
+        if not info['view'].startswith(self.view):
+            return
         logger.debug('Reading %s.', key.name)
 
         # Check if file_key is specified in the yaml
