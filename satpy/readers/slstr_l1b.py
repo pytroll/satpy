@@ -41,18 +41,31 @@ logger = logging.getLogger(__name__)
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
 
-
-class NCSLSTRGeo(BaseFileHandler):
-
+class NCSLSTRBase(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
-        super(NCSLSTRGeo, self).__init__(filename, filename_info,
-                                         filetype_info)
+        super(NCSLSTRBase, self).__init__(filename, filename_info,
+                                          filetype_info)
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
+
+    @property
+    def start_time(self):
+        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+    @property
+    def end_time(self):
+        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+
+class NCSLSTRGeo(NCSLSTRBase):
+
+    def __init__(self, filename, filename_info, filetype_info):
+        super(NCSLSTRGeo, self).__init__(filename, filename_info,
+                                         filetype_info)
 
         self.cache = {}
 
@@ -72,30 +85,16 @@ class NCSLSTRGeo(BaseFileHandler):
         variable.attrs = info
         return variable
 
-    @property
-    def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
-    @property
-    def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-
-
-class NCSLSTR1B(BaseFileHandler):
+class NCSLSTR1B(NCSLSTRBase):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTR1B, self).__init__(filename, filename_info,
                                         filetype_info)
 
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
-        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
         self.channel = filename_info['dataset_name']
-        self.stripe = self.filename[-5]
-        self.view = self.filename[-4]
+        self.stripe = filename_info['stripe']
+        self.view = filename_info['view']
         cal_file = os.path.join(os.path.dirname(self.filename), 'viscal.nc')
         self.cal = xr.open_dataset(cal_file,
                                    decode_cf=True,
@@ -118,7 +117,10 @@ class NCSLSTR1B(BaseFileHandler):
 
         if self.channel not in key.name:
             return
-
+        if not info['view'].startswith(self.view):
+            return
+        if info['stripe'] != self.stripe:
+            return
         logger.debug('Reading %s.', key.name)
         if key.calibration == 'brightness_temperature':
             variable = self.nc['{}_BT_{}{}'.format(self.channel, self.stripe, self.view)]
@@ -155,27 +157,13 @@ class NCSLSTR1B(BaseFileHandler):
         radiances.attrs = info
         return radiances
 
-    @property
-    def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
-    @property
-    def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-
-
-class NCSLSTRAngles(BaseFileHandler):
+class NCSLSTRAngles(NCSLSTRBase):
 
     def __init__(self, filename, filename_info, filetype_info):
 
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
                                             filetype_info)
-
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
 
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
@@ -256,26 +244,13 @@ class NCSLSTRAngles(BaseFileHandler):
 
         return variable
 
-    @property
-    def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
-    @property
-    def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-
-
-class NCSLSTRFlag(BaseFileHandler):
+class NCSLSTRFlag(NCSLSTRBase):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSLSTRFlag, self).__init__(filename, filename_info,
                                           filetype_info)
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=True,
-                                  chunks={'columns': CHUNK_SIZE,
-                                          'rows': CHUNK_SIZE})
-        self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
+
         self.stripe = self.filename[-5]
         self.view = self.filename[-4]
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
@@ -295,11 +270,3 @@ class NCSLSTRFlag(BaseFileHandler):
 
         variable.attrs = info
         return variable
-
-    @property
-    def start_time(self):
-        return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
-
-    @property
-    def end_time(self):
-        return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
