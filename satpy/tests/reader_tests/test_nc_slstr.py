@@ -25,7 +25,7 @@ class TestSLSTRReader(unittest.TestCase):
         from satpy import DatasetID
 
         ds_id = DatasetID(name='foo')
-        filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo', 'start_time': 0, 'end_time': 0}
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo', 'start_time': 0, 'end_time': 0, 'stripe': 'a', 'view': 'n'}
 
         test = NCSLSTR1B('somedir/S1_radiance_an.nc', filename_info, 'c')
         assert(test.view == 'n')
@@ -34,6 +34,13 @@ class TestSLSTRReader(unittest.TestCase):
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
+        test = NCSLSTRFlag('somedir/S1_radiance_an.nc', filename_info, 'c')
+        assert(test.view == 'n')
+        assert(test.stripe == 'a')
+        mocked_dataset.assert_called()
+        mocked_dataset.reset_mock()
+
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo', 'start_time': 0, 'end_time': 0, 'stripe': 'c', 'view': 'o'}
         test = NCSLSTR1B('somedir/S1_radiance_co.nc', filename_info, 'c')
         assert(test.view == 'o')
         assert(test.stripe == 'c')
@@ -48,15 +55,28 @@ class TestSLSTRReader(unittest.TestCase):
 
         test = NCSLSTRAngles('somedir/S1_radiance_an.nc', filename_info, 'c')
         # TODO: Make this test work
-        # test.get_dataset(ds_id, filename_info)
+        # DatasetID(name='solar_zenith_angle_ao')
+        # test.get_dataset(ds_id, {'stripe': 'a', 'view': 'o'})
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
-        test = NCSLSTRFlag('somedir/S1_radiance_an.nc', filename_info, 'c')
-        assert(test.view == 'n')
-        assert(test.stripe == 'a')
-        mocked_dataset.assert_called()
-        mocked_dataset.reset_mock()
+    @mock.patch('xarray.open_dataset')
+    def test_angle_datasets(self, mocked_dataset):
+        from satpy import Scene
+        import xarray as xr
+        import numpy as np
+
+        dummy_dataarr = xr.DataArray(np.random.rand(1000, 1000), dims=('rows', 'columns'))
+        dummy_dataset = xr.Dataset({'solar_zenith_tn': dummy_dataarr})
+        dummy_dataset.attrs = {'start_time': '2018-10-08T09:35:37.0Z',
+                               'stop_time': '2018-10-08T09:38:37.0Z',
+                               'ac_subsampling_factor': 1}
+        mocked_dataset.return_value = dummy_dataset
+
+        scn = Scene(filenames=['/data/S3A_SL_1_RBT____20181008T093537_20181008T093837_20181008T114117_0179_036_307_2160_MAR_O_NR_003.SEN3/geometry_tn.nc'], reader='nc_slstr')
+
+        scn.load(['solar_zenith_angle_an'])
+        self.assertEqual(list(scn.keys())[0].name, 'solar_zenith_angle_an')
 
 
 def suite():
@@ -65,3 +85,6 @@ def suite():
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestSLSTRReader))
     return mysuite
+
+if __name__ == '__main__':
+    unittest.main()
