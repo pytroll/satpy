@@ -163,6 +163,8 @@ class MultiScene(object):
         files. See this function for more details on possible keyword
         arguments.
 
+        .. versionadded:: 0.12
+
         """
         from satpy.readers import group_files
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
