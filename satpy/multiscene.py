@@ -166,7 +166,8 @@ class MultiScene(object):
         """
         from satpy.readers import group_files
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
-        return cls(file_groups)
+        scenes = [Scene(filenames=fg) for fg in file_groups]
+        return cls(scenes)
 
     def __iter__(self):
         """Iterate over the provided Scenes once."""
