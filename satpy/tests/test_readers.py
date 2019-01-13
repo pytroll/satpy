@@ -527,8 +527,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # touch the file so it exists on disk
         with mock.patch('yaml.load') as load:
             load.side_effect = yaml.YAMLError("Import problems")
-            self.assertRaises(yaml.YAMLError, find_files_and_readers,
-                              reader='viirs_sdr')
+            self.assertRaises(yaml.YAMLError, find_files_and_readers, reader='viirs_sdr')
 
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
@@ -582,15 +581,98 @@ class TestYAMLFiles(unittest.TestCase):
             self.assertIn('name', reader_info)
 
 
+class TestGroupFiles(unittest.TestCase):
+    """Test the 'group_files' utility function."""
+
+    def setUp(self):
+        """Set up test filenames to use."""
+        input_files = [
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171502203_e20171171504576_c20171171505018.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171507203_e20171171509576_c20171171510018.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171512203_e20171171514576_c20171171515017.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171517203_e20171171519577_c20171171520019.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171522203_e20171171524576_c20171171525020.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171527203_e20171171529576_c20171171530017.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171502203_e20171171504576_c20171171505008.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171507203_e20171171509576_c20171171510012.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171512203_e20171171514576_c20171171515007.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171517203_e20171171519576_c20171171520010.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171522203_e20171171524576_c20171171525008.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171527203_e20171171529576_c20171171530008.nc",
+        ]
+        self.g16_files = input_files
+        self.g17_files = [x.replace('G16', 'G17') for x in input_files]
+
+    def test_no_reader(self):
+        """Test that reader must be provided."""
+        from satpy.readers import group_files
+        self.assertRaises(ValueError, group_files, [])
+
+    def test_bad_reader(self):
+        """Test that reader not existing causes an error."""
+        from satpy.readers import group_files
+        import yaml
+        # touch the file so it exists on disk
+        with mock.patch('yaml.load') as load:
+            load.side_effect = yaml.YAMLError("Import problems")
+            self.assertRaises(yaml.YAMLError, group_files, [], reader='abi_l1b')
+
+    def test_default_behavior(self):
+        """Test the default behavior with the 'abi_l1b' reader."""
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files, reader='abi_l1b')
+        self.assertTrue(len(groups), 6)
+        self.assertTrue(len(groups[0]['abi_l1b']), 2)
+
+    def test_non_datetime_group_key(self):
+        """Test what happens when the start_time isn't used for grouping."""
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files, reader='abi_l1b', group_keys=('platform_shortname',))
+        self.assertTrue(len(groups), 1)
+        self.assertTrue(len(groups[0]['abi_l1b']), 6)
+
+    def test_large_time_threshold(self):
+        """Test what happens when the time threshold holds multiple files."""
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files, reader='abi_l1b', time_threshold=60*8)
+        self.assertTrue(len(groups), 3)
+        self.assertTrue(len(groups[0]['abi_l1b']), 2)
+
+    def test_two_instruments_files(self):
+        """Test the default behavior when two instruments files are provided.
+
+        This is undesired from a user point of view since we don't want G16
+        and G17 files in the same Scene.
+
+        """
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files + self.g17_files, reader='abi_l1b')
+        self.assertTrue(len(groups), 6)
+        self.assertTrue(len(groups[0]['abi_l1b']), 4)
+
+    def test_two_instruments_files_split(self):
+        """Test the default behavior when two instruments files are provided and split.
+
+        Tell the sorting to include the platform identifier as another field
+        to use for grouping.
+
+        """
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files + self.g17_files, reader='abi_l1b',
+                             group_keys=('start_time', 'platform_shortname'))
+        self.assertTrue(len(groups), 12)
+        self.assertTrue(len(groups[0]['abi_l1b']), 2)
+
+
 def suite():
-    """The test suite for test_scene.
-    """
+    """The test suite for test_readers."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
     mysuite.addTest(loader.loadTestsFromTestCase(TestReaderLoader))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFindFilesAndReaders))
     mysuite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestGroupFiles))
 
     return mysuite
 
