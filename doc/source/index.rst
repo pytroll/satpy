@@ -33,6 +33,7 @@ installation.
 
     overview
     install
+    data_download
     examples
     quickstart
     readers
