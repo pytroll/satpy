@@ -417,6 +417,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     dictionaries returned by this function to the Scene classes'
     ``filenames``, a series `Scene` objects can be easily created.
 
+    .. versionadded:: 0.12
+
     Args:
         files_to_sort (iterable): File paths to sort in to group
         reader (str): Reader whose file patterns should be used to sort files.
