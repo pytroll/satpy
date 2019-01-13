@@ -155,6 +155,19 @@ class MultiScene(object):
         """
         self._scenes = scenes or []
 
+    @classmethod
+    def from_files(cls, files_to_sort, reader=None, **kwargs):
+        """Create multiple Scene objects from multiple files.
+
+        This uses the :func:`satpy.readers.group_files` function to group
+        files. See this function for more details on possible keyword
+        arguments.
+
+        """
+        from satpy.readers import group_files
+        file_groups = group_files(files_to_sort, reader=reader, **kwargs)
+        return cls(file_groups)
+
     def __iter__(self):
         """Iterate over the provided Scenes once."""
         return self.scenes
