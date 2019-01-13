@@ -448,7 +448,11 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     # FUTURE: Find the best reader for each filename using `find_files_and_readers`
     if reader is None:
         raise ValueError("'reader' keyword argument is required.")
+    elif not isinstance(reader, (list, tuple)):
+        reader = [reader]
+
     # FUTURE: Handle multiple readers
+    reader = reader[0]
     reader_configs = list(configs_for_reader(reader, ppp_config_dir))[0]
     reader_kwargs = reader_kwargs or {}
     try:
@@ -456,10 +460,10 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     except (KeyError, IOError, yaml.YAMLError) as err:
         LOG.info('Cannot use %s', str(reader_configs))
         LOG.debug(str(err))
-        if reader and (isinstance(reader, str) or len(reader) == 1):
-            # if it is a single reader then give a more usable error
-            raise
-        return
+        # if reader and (isinstance(reader, str) or len(reader) == 1):
+        #     # if it is a single reader then give a more usable error
+        #     raise
+        raise
 
     file_keys = []
     for filetype, filetype_info in reader_instance.sorted_filetype_items():
@@ -485,7 +489,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             file_groups[gk] = [f]
             prev_key = gk
         else:
-            file_groups[gk].append(f)
+            file_groups[prev_key].append(f)
     sorted_group_keys = sorted(file_groups)
     # passable to Scene as 'filenames'
     return [{reader: file_groups[group_key]} for group_key in sorted_group_keys]
@@ -513,10 +517,7 @@ def read_reader_config(config_files, loader=yaml.Loader):
 def load_reader(reader_configs, **reader_kwargs):
     """Import and setup the reader from *reader_info*."""
     reader_info = read_reader_config(reader_configs)
-    reader_instance = reader_info['reader'](
-        config_files=reader_configs,
-        **reader_kwargs
-    )
+    reader_instance = reader_info['reader'](config_files=reader_configs, **reader_kwargs)
     return reader_instance
 
 
