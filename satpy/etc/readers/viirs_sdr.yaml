@@ -460,7 +460,7 @@ datasets:
     standard_name: lunar_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
-    file_type: gdnbo
+    file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/LunarZenithAngle'
   DNB_SENZ:
