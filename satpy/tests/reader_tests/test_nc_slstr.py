@@ -76,8 +76,9 @@ class TestSLSTRReader(unittest.TestCase):
                                'ac_subsampling_factor': 1}
         mocked_dataset.return_value = dummy_dataset
 
-        scn = Scene(filenames=[os.path.join('data', 'S3A_SL_1_RBT____20181008T093537_20181008T093837_20181008T114117_'
-                                            '0179_036_307_2160_MAR_O_NR_003.SEN3', 'geometry_tn.nc')],
+        scn = Scene(filenames=[os.path.abspath(os.path.join('data', 'S3A_SL_1_RBT____20181008T093537_20181008T093837_'
+                                                            '20181008T114117_0179_036_307_2160_MAR_O_NR_003.SEN3',
+                                                            'geometry_tn.nc'))],
                     reader='nc_slstr')
 
         scn.load(['solar_zenith_angle_an'])
