@@ -66,3 +66,8 @@ NASA VIIRS Atmosphere SIPS
 
 * `Resource Description <https://sips.ssec.wisc.edu/>`__
 * Associated Readers: ``viirs_l1b``
+
+EUMETSAT Data Center
+--------------------
+
+* `Data Ordering <https://eoportal.eumetsat.int>`__
