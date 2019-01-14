@@ -315,8 +315,35 @@ class SAFEGRD(BaseFileHandler):
 
         return data
 
+    def read_band_blocks(self, blocksize=CHUNK_SIZE):
+        """Read the band in native blocks."""
+        # For sentinel 1 data, the block are 1 line, and dask seems to choke on that.
+        band = self.filehandle
+
+        shape = band.shape
+        token = tokenize(blocksize, band)
+        name = 'read_band-' + token
+        dskx = dict()
+        if len(band.block_shapes) != 1:
+            raise NotImplementedError('Bands with multiple shapes not supported.')
+        else:
+            chunks = band.block_shapes[0]
+            import ipdb; ipdb.set_trace()
+
+        def do_read(the_band, the_window, the_lock):
+            with the_lock:
+                return the_band.read(1, None, window=the_window)
+
+        for ji, window in band.block_windows(1):
+            dskx[(name, ) + ji] = (do_read, band, window, self.read_lock)
+
+        res = da.Array(dskx, name, shape=list(shape),
+                       chunks=chunks,
+                       dtype=band.dtypes[0])
+        return DataArray(res, dims=('y', 'x'))
+
     def read_band(self, blocksize=CHUNK_SIZE):
-        """Read the band in blocks."""
+        """Read the band in chunks."""
         band = self.filehandle
 
         shape = band.shape
@@ -338,14 +365,6 @@ class SAFEGRD(BaseFileHandler):
                 for i, vcs in enumerate(vchunks)
                 for j, hcs in enumerate(hchunks)
                 }
-
-        # dskx = {(name, i, j): (band.read, 1, None,
-        #                        Window(hcs, vcs,
-        #                               min(blocksize,  shape[1] - hcs),
-        #                               min(blocksize,  shape[0] - vcs)))
-        #         for i, vcs in enumerate(vchunks)
-        #         for j, hcs in enumerate(hchunks)
-        #         }
 
         res = da.Array(dskx, name, shape=list(shape),
                        chunks=(blocksize, blocksize),
