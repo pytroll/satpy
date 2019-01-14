@@ -292,10 +292,13 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group])
         start_scan = 0
         data_chunks = []
-        for scans in self[scans_path].values:
-            data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + scans * scan_size)))
-            start_scan += scan_size * 48
-        data = xr.concat(data_chunks, 'y')
+        if self[var_path].size != 1:
+            for scans in self[scans_path].values:
+                data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + scans * scan_size)))
+                start_scan += scan_size * 48
+            data = xr.concat(data_chunks, 'y')
+        else:
+            data = self[var_path]
         is_floating = np.issubdtype(data.dtype, np.floating)
 
         if is_floating:
