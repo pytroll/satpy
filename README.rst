@@ -55,8 +55,8 @@ PyTroll Contributor Weeks (PCW), conference meet-ups, or any other time when
 the project is being represented.
 
 Any violations of this code of conduct will be handled by the core maintainers
-of the project including David Hoese, Martin Raspaud, Adam Dybbroe, and Panu
-Lahtinen. If you wish to report one of the maintainers for a violation and are
+of the project including David Hoese, Martin Raspaud, and Adam Dybbroe.
+If you wish to report one of the maintainers for a violation and are
 not comfortable with them seeing it, please contact one or more of the other
 maintainers to report the violation. Responses to violations will be
 determined by the maintainers and may include one or more of the following:
