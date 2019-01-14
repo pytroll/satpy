@@ -44,7 +44,7 @@ Code of Conduct
 ---------------
 
 SatPy follows the same code of conduct as the PyTroll project. For reference
-it is copied to this repository in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+it is copied to this repository in CODE_OF_CONDUCT.md_.
 
 As stated in the PyTroll home page, this code of conduct applies to the
 project space (GitHub) as well as the public space online and offline when
@@ -66,4 +66,6 @@ determined by the maintainers and may include one or more of the following:
 - Temporary or permanent ban from in-person events
 - Temporary or permanent ban from online communication (Slack, mailing list, etc)
 
-For details see the official [code of conduct document](CODE_OF_CONDUCT.md).
+For details see the official CODE_OF_CONDUCT.md_.
+
+.. _CODE_OF_CONDUCT.md: ./CODE_OF_CONDUCT.md
