@@ -176,7 +176,8 @@ class GeoTIFFWriter(ImageWriter):
         return delayed
 
     def save_image(self, img, filename=None, dtype=None, fill_value=None,
-                   floating_point=None, compute=True, **kwargs):
+                   floating_point=None, compute=True, keep_palette=False,
+                   cmap=None, **kwargs):
         """Save the image to the given *filename* in geotiff_ format.
         `floating_point` allows the saving of
         'L' mode images in floating point format if set to True.
@@ -218,7 +219,9 @@ class GeoTIFFWriter(ImageWriter):
             import rasterio  # noqa
             # we can use the faster rasterio-based save
             return img.save(filename, fformat='tif', fill_value=fill_value,
-                            dtype=dtype, compute=compute, **gdal_options)
+                            dtype=dtype, compute=compute,
+                            keep_palette=keep_palette, cmap=cmap,
+                            **gdal_options)
         except ImportError:
             LOG.warning("Using legacy/slower geotiff save method, install "
                         "'rasterio' for faster saving.")
