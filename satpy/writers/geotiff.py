@@ -34,7 +34,6 @@ from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
 
-
 # Map numpy data types to GDAL data types
 NP2GDAL = {
     np.float32: gdal.GDT_Float32,
@@ -83,7 +82,7 @@ class GeoTIFFWriter(ImageWriter):
                     "profile",
                     "bigtiff",
                     "pixeltype",
-                    "copy_src_overviews", )
+                    "copy_src_overviews",)
 
     def __init__(self, dtype=None, tags=None, **kwargs):
         super(GeoTIFFWriter, self).__init__(default_config_filename="writers/geotiff.yaml", **kwargs)
