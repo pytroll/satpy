@@ -1029,27 +1029,25 @@ class Scene(MetadataObject):
     def to_geoviews(self, gvtype=None, datasets=None, kdims=None, vdims=None, dynamic=False):
         """Convert satpy Scene to geoviews.
 
-        Parameters
-        ----------
-        gvtype : gv plot type, optional, default gv.Image
-            One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
-            See Geoviews documentation for details.
-        datasets : list of string
-        kdims : list of str, optional
-            Key dimensions. See geoviews documentation for more information.
-        vdims : list of str, optional
-            Value dimensions. See geoviews documentation for more information.
-            If not given defaults to first data variable
-        dynamic : boolean, optional, default False
+        Args:
+            gvtype (gv plot type):
+                One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
+                Default to :class:`geoviews.Image`.
+                See Geoviews documentation for details.
+            datasets (list): Limit included products to these datasets
+            kdims (list of str):
+                Key dimensions. See geoviews documentation for more information.
+            vdims : list of str, optional
+                Value dimensions. See geoviews documentation for more information.
+                If not given defaults to first data variable
+            dynamic : boolean, optional, default False
 
-        Returns
-        -------
-        geoviews object
+        Returns: geoviews object
 
-        Todo
-        ----
-        - better handling of projection information in datasets which are
-          to be passed to geoviews
+        Todo:
+            * better handling of projection information in datasets which are
+              to be passed to geoviews
+
         """
         try:
             import geoviews as gv
@@ -1119,14 +1117,12 @@ class Scene(MetadataObject):
     def to_xarray_dataset(self, datasets=None):
         """Merge all xr.DataArrays of a scene to a xr.DataSet.
 
-        Parameters
-        ----------
-        datasets : list of string, optional
-            List of datasets to include in the xr.Dataset
+        Parameters:
+            datasets (list):
+                List of products to include in the :class:`xarray.Dataset`
 
-        Returns
-        -------
-        xr.DataSet
+        Returns: :class:`xarray.Dataset`
+
         """
         dslist = [(i, j) for i, j in self.datasets.items() if i.name not in ["latitude", "longitude"]]
 
