@@ -36,7 +36,7 @@ from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
-from pyresample.geometry import AreaDefinition, BaseDefinition
+from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 
 import xarray as xr
 from xarray import DataArray
@@ -524,7 +524,13 @@ class Scene(MetadataObject):
         new_scn = self.copy()
         new_scn.wishlist = self.wishlist
         for area, dataset_ids in self.iter_by_area():
-            new_area = area[key] if area is not None else None
+            if area is not None:
+                # assume dimensions for area are y and x
+                one_ds = self[dataset_ids[0]]
+                area_key = tuple(sl for dim, sl in zip(one_ds.dims, key) if dim in ['y', 'x'])
+                new_area = area[area_key]
+            else:
+                new_area = None
             new_scn._slice_datasets(dataset_ids, key, new_area)
         return new_scn
 
@@ -1065,11 +1071,11 @@ class Scene(MetadataObject):
             # by default select first data variable as display variable
             vdims = ds.data_vars[ds.data_vars.keys()[0]].name
 
-        if hasattr(ds, "area"):
+        if hasattr(ds, "area") and hasattr(ds.area, 'to_cartopy_crs'):
             dscrs = ds.area.to_cartopy_crs()
             gvds = gv.Dataset(ds, crs=dscrs)
         else:
-            raise ValueError("No area found in dataset")
+            gvds = gv.Dataset(ds)
 
         if "latitude" in ds.coords.keys():
             gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
@@ -1124,23 +1130,29 @@ class Scene(MetadataObject):
         Returns: :class:`xarray.Dataset`
 
         """
-        dslist = [(i, j) for i, j in self.datasets.items() if i.name not in ["latitude", "longitude"]]
-
         if datasets is not None:
-            dslist = [(i, j) for i, j in dslist if i.name in datasets]
-
-        ds_dict = {i.name: it.rename(i.name) for (i, it) in dslist}
-        mdata = combine_metadata(*tuple(i.attrs for i in self.datasets.values()))
-
-        if "latitude" in [k.name for k in self.datasets.keys()]:
-            ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], self["latitude"]),
-                                             "longitude": (["y", "x"], self["longitude"],)})
-            # ds.longitude.values[ds.longitude.values>180] -= 360
+            datasets = [self[ds] for ds in datasets]
         else:
+            datasets = [self.datasets.get(ds) for ds in self.wishlist]
+            datasets = [ds for ds in datasets if ds is not None]
+
+        ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in datasets if i.attrs.get('area') is not None}
+        mdata = combine_metadata(*tuple(i.attrs for i in datasets))
+        if mdata.get('area') is None or not isinstance(mdata['area'], SwathDefinition):
+            # either don't know what the area is or we have an AreaDefinition
             ds = xr.merge(ds_dict.values())
+        else:
+            # we have a swath definition and should use lon/lat values
+            lons, lats = mdata['area'].get_lonlats()
+            if not isinstance(lons, DataArray):
+                lons = DataArray(lons, dims=('y', 'x'))
+                lats = DataArray(lats, dims=('y', 'x'))
+            # ds_dict['longitude'] = lons
+            # ds_dict['latitude'] = lats
+            ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], lats),
+                                             "longitude": (["y", "x"], lons)})
 
         ds.attrs = mdata
-
         return ds
 
     @classmethod
