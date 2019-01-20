@@ -30,15 +30,16 @@ Installation
 
 SatPy can be installed from PyPI with pip:
 
-```bash
-pip install satpy
-```
+.. code-block:: bash
+
+    pip install satpy
+
 
 It is also available from `conda-forge` for conda installations:
 
-```bash
-conda install -c conda-forge satpy
-```
+.. code-block:: bash
+
+    conda install -c conda-forge satpy
 
 Code of Conduct
 ---------------
