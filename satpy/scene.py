@@ -341,10 +341,9 @@ class Scene(MetadataObject):
             reader_name=reader_name, composites=composites)))
 
     def available_composite_ids(self, available_datasets=None):
-        """Get names of compositors that can be generated from the available
-        datasets.
+        """Get names of compositors that can be generated from the available datasets.
 
-        :return: generator of available compositor's names
+        Returns: generator of available compositor's names
         """
         if available_datasets is None:
             available_datasets = self.available_dataset_ids(composites=False)
@@ -364,13 +363,14 @@ class Scene(MetadataObject):
         return sorted(available_comps & set(all_comps))
 
     def available_composite_names(self, available_datasets=None):
+        """All configured composites known to this Scene."""
         return sorted(set(x.name for x in self.available_composite_ids(
             available_datasets=available_datasets)))
 
     def all_composite_ids(self, sensor_names=None):
         """Get all composite IDs that are configured.
 
-        :return: generator of configured composite names
+        Returns: generator of configured composite names
         """
         if sensor_names is None:
             sensor_names = self.attrs['sensor']
@@ -378,8 +378,9 @@ class Scene(MetadataObject):
         # Note if we get compositors from the dep tree then it will include
         # modified composites which we don't want
         for sensor_name in sensor_names:
-            compositors.extend(
-                self.cpl.compositors.get(sensor_name, {}).keys())
+            sensor_comps = self.cpl.compositors.get(sensor_name, {}).keys()
+            # ignore inline compositor dependencies starting with '_'
+            compositors.extend(c for c in sensor_comps if not c.name.startswith('_'))
         return sorted(set(compositors))
 
     def all_composite_names(self, sensor_names=None):

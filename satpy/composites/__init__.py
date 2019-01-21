@@ -148,7 +148,7 @@ class CompositorLoader(object):
                     # Handle in-line composites
                     if 'compositor' in item:
                         # Create an unique temporary name for the composite
-                        sub_comp_name = composite_name + '_dep_{}'.format(dep_num)
+                        sub_comp_name = '_' + composite_name + '_dep_{}'.format(dep_num)
                         dep_num += 1
                         # Minimal composite config
                         sub_conf = {composite_type: {sub_comp_name: item}}
@@ -677,8 +677,8 @@ class DifferenceCompositor(CompositeBase):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" %
-                             (len(projectables), ))
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.check_areas(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
 
@@ -1082,6 +1082,7 @@ class Dust(GenericCompositor):
 class RealisticColors(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
+        projectables = self.check_areas(projectables)
         vis06 = projectables[0]
         vis08 = projectables[1]
         hrv = projectables[2]
@@ -1145,10 +1146,7 @@ class CloudCompositor(GenericCompositor):
 
         # gamma adjustment
         alpha **= gamma
-
-        res = super(CloudCompositor, self).__call__((data, alpha),
-                                                    **kwargs)
-
+        res = super(CloudCompositor, self).__call__((data, alpha), **kwargs)
         return res
 
 
@@ -1323,13 +1321,7 @@ class LuminanceSharpeningCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         from trollimage.image import rgb2ycbcr, ycbcr2rgb
-
-        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
-        if (attrs.get('area') is None and
-                projectables[0].attrs.get('area') is not None and
-                projectables[1].attrs.get('area') is not None):
-            raise IncompatibleAreas
-
+        projectables = self.check_areas(projectables)
         luminance = projectables[0].copy()
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
@@ -1355,38 +1347,19 @@ class LuminanceSharpeningCompositor(GenericCompositor):
         b__ = da.reshape(b__, (1, y_size, x_size))
 
         rgb_img.data = da.vstack((r__, g__, b__))
-
-        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
-
-        return res
+        return super(LuminanceSharpeningCompositor, self).__call__(rgb_img, *args, **kwargs)
 
 
 class SandwichCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
-
-        attrs = combine_metadata(projectables[0].attrs, projectables[1].attrs)
-        if (attrs.get('area') is None and
-                projectables[0].attrs.get('area') is not None and
-                projectables[1].attrs.get('area') is not None):
-            raise IncompatibleAreas
-
-        luminance = projectables[0].copy()
+        projectables = self.check_areas(projectables)
+        luminance = projectables[0]
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
-        luminance = da.where(luminance > 1., 1., luminance)
+        luminance = luminance.clip(max=1.)
 
         # Get the enhanced version of the RGB composite to be sharpened
         rgb_img = enhance2dataset(projectables[1])
-
-        data = []
-        for band in rgb_img['bands'].data:
-            data.append(luminance * rgb_img.sel(bands=band))
-
-        data = da.vstack(data)
-        rgb_img.data = da.reshape(data,
-                                  (3, luminance.shape[0], luminance.shape[1]))
-
-        res = GenericCompositor.__call__(self, rgb_img, *args, **kwargs)
-
-        return res
+        rgb_img *= luminance
+        return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
