@@ -107,13 +107,32 @@ class _SceneGenerator(object):
         self._scene_cache = []
         self._dataset_idx = {}
         # this class itself is not an iterator, make one
-        self._self_iter = iter(self)
+        self._self_iter = self._create_cached_iter()
 
-    def __iter__(self):
+    @property
+    def first(self):
+        """First element in the generator."""
+        return next(iter(self))
+
+    def _create_cached_iter(self):
         """Iterate over the provided scenes, caching them for later."""
         for scn in self._scene_gen:
             self._scene_cache.append(scn)
             yield scn
+
+    def __iter__(self):
+        """Iterate over the provided scenes, caching them for later."""
+        idx = 0
+        while True:
+            if idx >= len(self._scene_cache):
+                try:
+                    scn = next(self._self_iter)
+                except StopIteration:
+                    return
+            else:
+                scn = self._scene_cache[idx]
+            yield scn
+            idx += 1
 
     def __getitem__(self, ds_id):
         """Get a specific dataset from the scenes."""
@@ -154,6 +173,19 @@ class MultiScene(object):
 
         """
         self._scenes = scenes or []
+        scenes = iter(self._scenes)
+        self._scene_gen = _SceneGenerator(iter(scenes))
+        # if we were originally given a generator-like object then we want to
+        # coordinate the loading between _SceneGenerator and _scenes
+        # otherwise it doesn't really matter and other operations may prefer
+        # a list
+        if not isinstance(scenes, (list, tuple)):
+            self._scenes = iter(self._scene_gen)
+
+    @property
+    def first_scene(self):
+        """First Scene of this MultiScene object."""
+        return self._scene_gen.first
 
     @classmethod
     def from_files(cls, files_to_sort, reader=None, **kwargs):
@@ -173,7 +205,8 @@ class MultiScene(object):
 
     def __iter__(self):
         """Iterate over the provided Scenes once."""
-        return self.scenes
+        for scn in self._scenes:
+            yield scn
 
     @property
     def scenes(self):
@@ -225,27 +258,35 @@ class MultiScene(object):
     def all_same_area(self):
         return self._all_same_area(self.loaded_dataset_ids)
 
-    def _gen_load(self, gen, *args, **kwargs):
-        """Perform a load in a generator so it is delayed."""
+    @staticmethod
+    def _call_scene_func(gen, func_name, create_new_scene, *args, **kwargs):
+        """Abstract method for running a Scene method on each Scene."""
         for scn in gen:
-            scn.load(*args, **kwargs)
-            yield scn
+            new_scn = getattr(scn, func_name)(*args, **kwargs)
+            if create_new_scene:
+                yield new_scn
+            else:
+                yield scn
+
+    def _generate_scene_func(self, gen, func_name, create_new_scene, *args, **kwargs):
+        """Abstract method for running a Scene method on each Scene.
+
+        Additionally, modifies current MultiScene or creates a new one if needed.
+        """
+        new_gen = self._call_scene_func(gen, func_name, create_new_scene, *args, **kwargs)
+        new_gen = new_gen if self.is_generator else list(new_gen)
+        if create_new_scene:
+            return self.__class__(new_gen)
+        self._scene_gen = _SceneGenerator(new_gen)
+        self._scenes = iter(self._scene_gen)
 
     def load(self, *args, **kwargs):
         """Load the required datasets from the multiple scenes."""
-        scene_gen = self._gen_load(self._scenes, *args, **kwargs)
-        self._scenes = scene_gen if self.is_generator else list(scene_gen)
-
-    def _gen_resample(self, gen, destination=None, **kwargs):
-        for scn in gen:
-            new_scn = scn.resample(destination, **kwargs)
-            yield new_scn
+        self._generate_scene_func(self._scenes, 'load', False, *args, **kwargs)
 
     def resample(self, destination=None, **kwargs):
         """Resample the multiscene."""
-        new_scenes = self._gen_resample(self._scenes, destination=destination, **kwargs)
-        new_scenes = new_scenes if self.is_generator else list(new_scenes)
-        return self.__class__(new_scenes)
+        return self._generate_scene_func(self._scenes, 'resample', True, destination=destination, **kwargs)
 
     def blend(self, blend_function=stack):
         """Blend the datasets into one scene.
@@ -335,8 +376,9 @@ class MultiScene(object):
         if imageio is None:
             raise ImportError("Missing required 'imageio' library")
 
-        scenes = iter(self._scenes)
-        first_scene = next(scenes)
+        scene_gen = self._scene_gen
+        first_scene = self.first_scene
+        scenes = iter(self._scene_gen)
         info_scenes = [first_scene]
         if 'end_time' in filename:
             # if we need the last scene to generate the filename
@@ -344,12 +386,9 @@ class MultiScene(object):
             log.debug("Generating scenes to compute end_time for filename")
             scenes = list(scenes)
             info_scenes.append(scenes[-1])
-        scene_gen = _SceneGenerator(chain([first_scene], scenes))
 
-        if not self.is_generator:
-            available_ds = self.loaded_dataset_ids
-        else:
-            available_ds = list(first_scene.keys())
+        available_ds = [first_scene.datasets.get(ds) for ds in first_scene.wishlist]
+        available_ds = [ds for ds in available_ds if ds is not None]
         dataset_ids = datasets or available_ds
 
         writers = []
