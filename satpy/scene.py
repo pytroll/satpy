@@ -943,7 +943,7 @@ class Scene(MetadataObject):
                     assert ('y', source_area.y_size) in dataset.sizes.items()
                     dataset.attrs['area'] = source_area
                 else:
-                    LOG.info("Data reduction disabled by the user")
+                    LOG.debug("Data reduction disabled by the user")
             except NotImplementedError:
                 LOG.info("Not reducing data before resampling.")
             if source_area not in resamplers:
