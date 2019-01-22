@@ -933,13 +933,16 @@ class Scene(MetadataObject):
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
             try:
-                slice_x, slice_y = source_area.get_area_slices(
-                    destination_area)
-                source_area = source_area[slice_y, slice_x]
-                dataset = dataset.isel(x=slice_x, y=slice_y)
-                assert ('x', source_area.x_size) in dataset.sizes.items()
-                assert ('y', source_area.y_size) in dataset.sizes.items()
-                dataset.attrs['area'] = source_area
+                if resample_kwargs.get('reduce_data', True):
+                    slice_x, slice_y = source_area.get_area_slices(
+                        destination_area)
+                    source_area = source_area[slice_y, slice_x]
+                    dataset = dataset.isel(x=slice_x, y=slice_y)
+                    assert ('x', source_area.x_size) in dataset.sizes.items()
+                    assert ('y', source_area.y_size) in dataset.sizes.items()
+                    dataset.attrs['area'] = source_area
+                else:
+                    LOG.info("Data reduction disabled by the user")
             except NotImplementedError:
                 LOG.info("Not reducing data before resampling.")
             if source_area not in resamplers:
