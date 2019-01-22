@@ -189,7 +189,8 @@ def _merge_colormaps(kwargs):
     else:
         for itm in palette:
             cmap = create_colormap(itm)
-            cmap.set_range(itm["min_value"], itm["max_value"])
+            if 'min_value' in itm:
+                cmap.set_range(itm["min_value"], itm["max_value"])
             if full_cmap is None:
                 full_cmap = cmap
             else:
@@ -204,11 +205,16 @@ def create_colormap(palette):
     fname = palette.get('filename', None)
     if fname:
         data = np.load(fname)
+        cols = data.shape[1]
+        ctabmode = palette.get('ctab_mode', 'VRGB')
         cmap = []
-        num = 1.0 * data.shape[0]
-        for i in range(int(num)):
-            cmap.append((i / num, (data[i, 0] / 255., data[i, 1] / 255.,
-                                   data[i, 2] / 255.)))
+        if cols == 3 or (cols == 4 and ctabmode == 'RGBA'):
+            for i,ls in enumerate(data):
+                cmap.append((i/float(data.shape[0]),tuple([v/255.0 for v in ls])))
+        if cols == 5 or (cols == 4 and ctabmode == 'VRGB'):
+            for i, ls in enumerate(data):
+                cmap.append((ls[0],tuple([v/255.0 for v in ls[1:]])))        
+               
         return Colormap(*cmap)
 
     colors = palette.get('colors', None)
