@@ -900,7 +900,8 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    def _resampled_scene(self, new_scn, destination_area, **resample_kwargs):
+    def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
+                         **resample_kwargs):
         """Resample `datasets` to the `destination` area."""
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
@@ -933,7 +934,7 @@ class Scene(MetadataObject):
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
             try:
-                if resample_kwargs.get('reduce_data', True):
+                if reduce_data:
                     slice_x, slice_y = source_area.get_area_slices(
                         destination_area)
                     source_area = source_area[slice_y, slice_x]
