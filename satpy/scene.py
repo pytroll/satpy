@@ -900,6 +900,17 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
+    def _reduce_data(self, source_area, destination_area, dataset):
+        """Reduce data by slicing it."""
+        slice_x, slice_y = source_area.get_area_slices(destination_area)
+        source_area = source_area[slice_y, slice_x]
+        dataset = dataset.isel(x=slice_x, y=slice_y)
+        assert ('x', source_area.x_size) in dataset.sizes.items()
+        assert ('y', source_area.y_size) in dataset.sizes.items()
+        dataset.attrs['area'] = source_area
+
+        return dataset
+
     def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
                          **resample_kwargs):
         """Resample `datasets` to the `destination` area."""
@@ -935,13 +946,8 @@ class Scene(MetadataObject):
             source_area = dataset.attrs['area']
             try:
                 if reduce_data:
-                    slice_x, slice_y = source_area.get_area_slices(
-                        destination_area)
-                    source_area = source_area[slice_y, slice_x]
-                    dataset = dataset.isel(x=slice_x, y=slice_y)
-                    assert ('x', source_area.x_size) in dataset.sizes.items()
-                    assert ('y', source_area.y_size) in dataset.sizes.items()
-                    dataset.attrs['area'] = source_area
+                    dataset = self._reduce_data(source_area, destination_area,
+                                                dataset)
                 else:
                     LOG.debug("Data reduction disabled by the user")
             except NotImplementedError:
