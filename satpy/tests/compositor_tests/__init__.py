@@ -387,6 +387,28 @@ class TestDayNightCompositor(unittest.TestCase):
         expected = np.array([[0., 0.33164983], [0.66835017, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
 
+    def test_zero_missing_data(self):
+        """Test that missing values are zeroed."""
+        from satpy.composites import zero_missing_data
+        res = zero_missing_data(self.data_b, self.data_a)
+        res = res.compute()
+        self.assertFalse(np.any(np.isnan(res)))
+        # Add coordinates (and indexes)
+        data_a = self.data_a.copy()
+        data_a.coords['x'] = [0, 1]
+        data_a.coords['y'] = [0, 1]
+        data_b = self.data_b.copy()
+        data_b.coords['x'] = [0, 1]
+        data_b.coords['y'] = [0, 1]
+        res = zero_missing_data(data_a, data_b)
+        self.assertTrue('x' not in res.indexes)
+        self.assertTrue('y' not in res.indexes)
+        self.assertFalse(np.any(np.isnan(res)))
+        res = zero_missing_data(data_b, data_a)
+        self.assertTrue('x' not in res.indexes)
+        self.assertTrue('y' not in res.indexes)
+        self.assertFalse(np.any(np.isnan(res)))
+
 
 class TestFillingCompositor(unittest.TestCase):
 
