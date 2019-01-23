@@ -213,7 +213,7 @@ def create_colormap(palette):
                 cmap.append((i/float(data.shape[0]),tuple([v/255.0 for v in ls])))
         if cols == 5 or (cols == 4 and ctabmode == 'VRGB'):
             for i, ls in enumerate(data):
-                cmap.append((ls[0],tuple([v/255.0 for v in ls[1:]])))        
+                cmap.append((ls[0],tuple([v/255.0 for v in ls[1:]])))
                
         return Colormap(*cmap)
 
