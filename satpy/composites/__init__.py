@@ -988,6 +988,16 @@ def add_bands(data, bands):
 
 def zero_missing_data(data1, data2):
     """Replace NaN values with zeros in data1 if the data is valid in data2."""
+    def _drop_xy_idxs(data):
+        # Remove x and y indexes
+        try:
+            return data.drop(['x', 'y'])
+        except ValueError:
+            return data
+
+    data1 = _drop_xy_idxs(data1)
+    data2 = _drop_xy_idxs(data2)
+
     nans = xu.logical_and(xu.isnan(data1), xu.logical_not(xu.isnan(data2)))
     return data1.where(~nans, 0)
 
