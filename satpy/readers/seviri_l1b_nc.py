@@ -49,11 +49,11 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     @property
     def start_time(self):
-        return (_time_format(self.deltaSt))
+        return self.deltaSt
 
     @property
     def end_time(self):
-        return (_time_format(self.deltaEnd))
+        return self.deltaEnd
 
     def _read_file(self):
         if self.nc is None:
