@@ -515,7 +515,7 @@ def available_readers(as_dict=False):
 
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
-                           reader=None, sensor=None, ppp_config_dir=get_environ_config_dir(),
+                           reader=None, sensor=None, ppp_config_dir=None,
                            filter_parameters=None, reader_kwargs=None):
     """Find on-disk files matching the provided parameters.
 
@@ -553,6 +553,8 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     Returns: Dictionary mapping reader name string to list of filenames
 
     """
+    if ppp_config_dir is None:
+        ppp_config_dir = get_environ_config_dir()
     reader_files = {}
     reader_kwargs = reader_kwargs or {}
     filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
@@ -595,7 +597,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
 
 
 def load_readers(filenames=None, reader=None, reader_kwargs=None,
-                 ppp_config_dir=get_environ_config_dir()):
+                 ppp_config_dir=None):
     """Create specified readers and assign files to them.
 
     Args:
@@ -612,6 +614,8 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     """
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
+    if ppp_config_dir is None:
+        ppp_config_dir = get_environ_config_dir()
 
     if not filenames and not reader:
         # used for an empty Scene

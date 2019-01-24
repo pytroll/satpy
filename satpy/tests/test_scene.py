@@ -280,9 +280,9 @@ class TestScene(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=200,
-            y_size=400,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            200,
+            400,
+            (-1000., -1500., 1000., 1500.),
         )
         swath_def = SwathDefinition(lons=np.zeros((5, 10)),
                                     lats=np.zeros((5, 10)))
@@ -344,18 +344,18 @@ class TestScene(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=x_size,
-            y_size=y_size,
-            area_extent=area_extent,
+            x_size,
+            y_size,
+            area_extent,
         )
         area_def2 = AreaDefinition(
             'test2',
             'test2',
             'test2',
             proj_dict,
-            x_size=x_size // 2,
-            y_size=y_size // 2,
-            area_extent=area_extent,
+            x_size // 2,
+            y_size // 2,
+            area_extent,
         )
         scene1["1"] = DataArray(np.zeros((y_size, x_size)))
         scene1["2"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'))
@@ -370,13 +370,10 @@ class TestScene(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=x_size,
-            y_size=y_size,
-            area_extent=(
-                area_extent[0] + 10000.,
-                area_extent[1] + 500000.,
-                area_extent[2] - 10000.,
-                area_extent[3] - 500000.)
+            x_size,
+            y_size,
+            (area_extent[0] + 10000., area_extent[1] + 500000.,
+             area_extent[2] - 10000., area_extent[3] - 500000.)
         )
         new_scn1 = scene1.crop(crop_area)
         self.assertIn('1', new_scn1)
@@ -388,8 +385,7 @@ class TestScene(unittest.TestCase):
         self.assertTupleEqual(new_scn1['4'].shape, (1690, 1854))
 
         # by lon/lat bbox
-        new_scn1 = scene1.crop(
-            ll_bbox=(-20., -5., 0, 0))
+        new_scn1 = scene1.crop(ll_bbox=(-20., -5., 0, 0))
         self.assertIn('1', new_scn1)
         self.assertIn('2', new_scn1)
         self.assertIn('3', new_scn1)
@@ -399,8 +395,7 @@ class TestScene(unittest.TestCase):
         self.assertTupleEqual(new_scn1['4'].shape, (92, 357))
 
         # by x/y bbox
-        new_scn1 = scene1.crop(
-            xy_bbox=(-200000., -100000., 0, 0))
+        new_scn1 = scene1.crop(xy_bbox=(-200000., -100000., 0, 0))
         self.assertIn('1', new_scn1)
         self.assertIn('2', new_scn1)
         self.assertIn('3', new_scn1)
@@ -457,18 +452,18 @@ class TestScene(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         area_def2 = AreaDefinition(
             'test',
             'test',
             'test',
             proj_dict,
-            x_size=200,
-            y_size=400,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            200,
+            400,
+            (-1000., -1500., 1000., 1500.),
         )
         ds1.attrs['area'] = area_def1
         ds2.attrs['area'] = area_def2
@@ -1517,9 +1512,9 @@ class TestSceneResampling(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=200,
-            y_size=400,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            200,
+            400,
+            (-1000., -1500., 1000., 1500.),
         )
 
         scene = satpy.scene.Scene(filenames=['bla'],
@@ -1578,9 +1573,9 @@ class TestSceneResampling(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=200,
-            y_size=400,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            200,
+            400,
+            (-1000., -1500., 1000., 1500.),
         )
         cri.return_value = {'fake_reader': create_fake_reader(
             'fake_reader', 'fake_sensor')}
