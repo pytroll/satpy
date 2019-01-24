@@ -60,7 +60,9 @@ class IncompatibleTimes(Exception):
 class CompositorLoader(object):
     """Read composites using the configuration files on disk."""
 
-    def __init__(self, ppp_config_dir=CONFIG_PATH):
+    def __init__(self, ppp_config_dir=None):
+        if ppp_config_dir is None:
+            ppp_config_dir = CONFIG_PATH
         self.modifiers = {}
         self.compositors = {}
         self.ppp_config_dir = ppp_config_dir
