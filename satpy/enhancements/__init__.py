@@ -207,16 +207,13 @@ def create_colormap(palette):
         data = np.load(fname)
         ctabmode = palette.get('ctab_mode', 'VRGB')
         num = 1.0 * data.shape[0]
-        
+
         def _check_if_values(columns, mode):
             if columns == 3:
                 return False
             if columns == 5:
                 return True
-            if columns == 4 and mode == 'VRGB':
-                return True
-            else:
-                return False
+            return(columns == 4 and mode == 'VRGB')
 
         HasValues = _check_if_values(data.shape[1], ctabmode)
         cmap = []
@@ -227,8 +224,8 @@ def create_colormap(palette):
             else:
                 value = i/num
                 colors = [v/255.0 for v in ls]
-            cmap.append((value, tuple (colors)))
-                                     
+            cmap.append((value, tuple(colors)))
+                      
         return Colormap(*cmap)
 
     colors = palette.get('colors', None)
