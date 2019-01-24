@@ -225,7 +225,7 @@ def create_colormap(palette):
                 value = i/num
                 colors = [v/255.0 for v in ls]
             cmap.append((value, tuple(colors)))
-                      
+
         return Colormap(*cmap)
 
     colors = palette.get('colors', None)
