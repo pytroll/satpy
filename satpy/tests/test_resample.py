@@ -166,9 +166,9 @@ class TestEWAResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         input_data = xr.DataArray(
             da.zeros((10, 10), chunks=5, dtype=np.float32),
@@ -217,9 +217,9 @@ class TestEWAResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         input_data = xr.DataArray(
             da.zeros((3, 10, 10), chunks=5, dtype=np.float32),
@@ -289,9 +289,9 @@ class TestNativeResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         # source geo def doesn't actually matter
         resampler = NativeResampler(None, target)
@@ -320,9 +320,9 @@ class TestNativeResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         # source geo def doesn't actually matter
         resampler = NativeResampler(None, target)
@@ -348,9 +348,9 @@ class TestNativeResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         # source geo def doesn't actually matter
         resampler = NativeResampler(None, target)
@@ -375,9 +375,9 @@ class TestNativeResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         # source geo def doesn't actually matter
         resampler = NativeResampler(None, target)
