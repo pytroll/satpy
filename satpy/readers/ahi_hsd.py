@@ -49,7 +49,7 @@ import xarray as xr
 from pyresample import geometry
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import get_geostationary_angle_extent, np2str
+from satpy.readers.utils import get_geostationary_mask, np2str
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -317,36 +317,6 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def geo_mask(self):
-        """Masking the space pixels from geometry info."""
-        cfac = np.uint32(self.proj_info['CFAC'])
-        lfac = np.uint32(self.proj_info['LFAC'])
-        coff = np.float32(self.proj_info['COFF'])
-        loff = np.float32(self.proj_info['LOFF'])
-        nlines = int(self.data_info['number_of_lines'])
-        ncols = int(self.data_info['number_of_columns'])
-
-        # count starts at 1
-        local_coff = 1
-        local_loff = (self.total_segments - self.segment_number) * nlines + 1
-
-        xmax, ymax = get_geostationary_angle_extent(self.area)
-
-        pixel_cmax = np.rad2deg(xmax) * cfac * 1.0 / 2**16
-        pixel_lmax = np.rad2deg(ymax) * lfac * 1.0 / 2**16
-
-        def ellipse(line, col):
-            return ((line / pixel_lmax) ** 2) + ((col / pixel_cmax) ** 2) <= 1
-
-        cols_idx = da.arange(-(coff - local_coff),
-                             ncols - (coff - local_coff),
-                             dtype=np.float, chunks=CHUNK_SIZE)
-        lines_idx = da.arange(nlines - (loff - local_loff),
-                              -(loff - local_loff),
-                              -1,
-                              dtype=np.float, chunks=CHUNK_SIZE)
-        return ellipse(lines_idx[:, None], cols_idx[None, :])
-
     def read_band(self, key, info):
         """Read the data."""
         tic = datetime.now()
@@ -453,7 +423,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                         satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
                                                  self.proj_info['earth_equatorial_radius']) * 1000)
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
-        res = res.where(self.geo_mask())
+        res = res.where(get_geostationary_mask(self.area))
         return res
 
     def calibrate(self, data, calibration):
