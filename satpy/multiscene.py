@@ -30,6 +30,7 @@ import dask.array as da
 import xarray as xr
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
+from itertools import chain
 
 try:
     # new API
