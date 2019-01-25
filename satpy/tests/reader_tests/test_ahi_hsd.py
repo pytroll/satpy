@@ -30,7 +30,9 @@ except ImportError:
 import numpy as np
 import dask.array as da
 from datetime import datetime
+from pyresample.geometry import AreaDefinition
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
+from satpy.readers.utils import get_geostationary_mask
 
 
 class TestAHIHSDNavigation(unittest.TestCase):
@@ -211,6 +213,31 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         refl = fh.calibrate(data=counts, calibration='reflectance')
         self.assertTrue(np.allclose(refl, refl_exp))
 
+
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
+    def test_read_band(self, calibrate, *mocks):
+        # Test masking of space pixels
+        nrows = 25
+        ncols = 100
+        self.fh.area = AreaDefinition(name='test', area_id='test', proj_id='test',
+                                      proj_dict={'a': '6378137.0', 'b': '6356752.3',
+                                                 'h': '35785863.0', 'lon_0': '140.7',
+                                                 'proj': 'geos', 'units': 'm'},
+                                      x_size=ncols, y_size=nrows,
+                                      area_extent=[-5499999.901174725, -4399999.92093978,
+                                                   5499999.901174725, -3299999.9407048346])
+        calibrate.return_value = np.ones((nrows, ncols))
+        m = mock.mock_open()
+        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
+            im = self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+            # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
+            # is False
+            mask = im.to_masked_array().mask
+            ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
+            self.assertTrue(np.all(mask == ref_mask))
 
 def suite():
     """The test suite for test_scene."""
