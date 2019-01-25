@@ -84,6 +84,7 @@ hurt readability. SatPy follows
 for all code API documentation. When in doubt use the existing code as a
 guide for how coding should be done.
 
+.. _dev_help:
 
 How do I get help?
 ==================
