@@ -409,7 +409,7 @@ class DatasetDict(dict):
 
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
-                group_keys=('start_time',), ppp_config_dir=None, reader_kwargs=None):
+                group_keys=None, ppp_config_dir=None, reader_kwargs=None):
     """Group series of files by file pattern information.
 
     By default this will group files by their filename ``start_time``
@@ -434,7 +434,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             means it is recommended that datetime values should only come from
             the first key in ``group_keys``. Otherwise, there is a good chance
             that files will not be grouped properly (datetimes being barely
-            unequal). Defaults to ``('start_time',)``.
+            unequal). Defaults to a reader's ``group_keys`` configuration (set
+            in YAML), otherwise ``('start_time',)``.
         ppp_config_dir (str): Root usser configuration directory for SatPy.
             This will be deprecated in the future, but is here for consistency
             with other SatPy features.
@@ -467,6 +468,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
         #     raise
         raise
 
+    if group_keys is None:
+        group_keys = reader_instance.info.get('group_keys', ('start_time',))
     file_keys = []
     for filetype, filetype_info in reader_instance.sorted_filetype_items():
         for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
@@ -480,14 +483,20 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
         # use first element of key as time identifier (if datetime type)
         if prev_key is None:
             is_new_group = True
+            prev_key = gk
         elif isinstance(gk[0], datetime):
             # datetimes within threshold difference are "the same time"
             is_new_group = (gk[0] - prev_key[0]) > threshold
         else:
             is_new_group = gk[0] != prev_key[0]
 
+        # compare keys for those that are found for both the key and
+        # this is a generator and is not computed until the if statement below
+        # when we know that `prev_key` is not None
+        vals_not_equal = (this_val != prev_val for this_val, prev_val in zip(gk[1:], prev_key[1:])
+                          if this_val is not None and prev_val is not None)
         # if this is a new group based on the first element
-        if is_new_group or gk[1:] != prev_key[1:]:
+        if is_new_group or any(vals_not_equal):
             file_groups[gk] = [f]
             prev_key = gk
         else:
