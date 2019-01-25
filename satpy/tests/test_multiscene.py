@@ -60,9 +60,9 @@ def _create_test_area(proj_str=None, shape=DEFAULT_SHAPE, extents=None):
         'test',
         'test',
         proj_dict,
-        x_size=shape[1],
-        y_size=shape[0],
-        area_extent=extents
+        shape[1],
+        shape[0],
+        extents
     )
 
 

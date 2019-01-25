@@ -26,6 +26,7 @@
 import logging
 import numpy as np
 import dask
+import dask.sharedict
 import dask.array as da
 import xarray as xr
 from satpy.scene import Scene

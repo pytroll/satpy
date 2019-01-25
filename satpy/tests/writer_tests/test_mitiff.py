@@ -57,11 +57,11 @@ class TestMITIFFWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 \
-            +lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
 
         ds1 = xr.DataArray(
@@ -87,11 +87,11 @@ class TestMITIFFWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=geos +datum=WGS84 +ellps=WGS84 \
-            +lon_0=0. h=36000. +units=km'),
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            proj4_str_to_dict('+proj=geos +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. h=36000. +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
 
         ds1 = xr.DataArray(
@@ -118,11 +118,11 @@ class TestMITIFFWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 \
-            +lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
 
         d = [
