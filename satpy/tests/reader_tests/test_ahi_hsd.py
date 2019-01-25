@@ -213,7 +213,6 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         refl = fh.calibrate(data=counts, calibration='reflectance')
         self.assertTrue(np.allclose(refl, refl_exp))
 
-
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
