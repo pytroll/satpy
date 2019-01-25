@@ -399,7 +399,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         ncols = int(header["block2"]['number_of_columns'][0])
         return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
                                        dtype='<u2', shape=(nlines, ncols), mode='r'),
-                            chunks=CHUNK_SIZE)
+                             chunks=CHUNK_SIZE)
 
     def _mask_invalid(self, data, header):
         """Mask invalid data"""
