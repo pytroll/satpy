@@ -584,17 +584,16 @@ class TestGenericCompositor(unittest.TestCase):
         # Single channel
         res = self.comp([self.all_valid])
         np.testing.assert_allclose(res.data, 1., atol=1e-9)
-        # Two channels, one value invalid
-        res = self.comp._mask_datasets([self.all_valid, self.first_invalid])
+        # Three channels, one value invalid
+        res = self.comp([self.all_valid, self.all_valid, self.first_invalid])
         correct = np.reshape(np.array([np.nan, 1., 1., 1.]), (2, 2))
-        for prj in res:
-            np.testing.assert_almost_equal(prj.data[0, :, :], correct)
+        for i in range(3):
+            np.testing.assert_almost_equal(res.data[i, :, :], correct)
         # Three channels, two values invalid
-        res = self.comp._mask_datasets([self.all_valid, self.first_invalid,
-                                        self.second_invalid])
+        res = self.comp([self.all_valid, self.first_invalid, self.second_invalid])
         correct = np.reshape(np.array([np.nan, np.nan, 1., 1.]), (2, 2))
-        for prj in res:
-            np.testing.assert_almost_equal(prj.data[0, :, :], correct)
+        for i in range(3):
+            np.testing.assert_almost_equal(res.data[i, :, :], correct)
 
     def test_concat_datasets(self):
         """Test concatenation of datasets."""
@@ -632,10 +631,8 @@ class TestGenericCompositor(unittest.TestCase):
     @mock.patch('satpy.composites.GenericCompositor._get_sensors')
     @mock.patch('satpy.composites.combine_metadata')
     @mock.patch('satpy.composites.check_times')
-    @mock.patch('satpy.composites.GenericCompositor._mask_datasets')
     @mock.patch('satpy.composites.GenericCompositor.check_areas')
-    def test_call_with_mock(self, check_areas, mask_datasets, check_times,
-                            combine_metadata, get_sensors):
+    def test_call_with_mock(self, check_areas, check_times, combine_metadata, get_sensors):
         """Test calling generic compositor"""
         from satpy.composites import IncompatibleAreas
         combine_metadata.return_value = dict()
@@ -645,28 +642,24 @@ class TestGenericCompositor(unittest.TestCase):
         self.assertEqual(res.shape[0], 1)
         self.assertEqual(res.attrs['mode'], 'L')
         check_areas.assert_not_called()
-        mask_datasets.assert_not_called()
         # This compositor has been initialized without common masking, so the
         # masking shouldn't have been called
         projectables = [self.all_valid, self.first_invalid, self.second_invalid]
         check_areas.return_value = projectables
         res = self.comp2(projectables)
         check_areas.assert_called_once()
-        mask_datasets.assert_not_called()
         check_areas.reset_mock()
         # Dataset for alpha given, so shouldn't be masked
         projectables = [self.all_valid, self.all_valid]
         check_areas.return_value = projectables
         res = self.comp(projectables)
         check_areas.assert_called_once()
-        mask_datasets.assert_not_called()
         check_areas.reset_mock()
         # When areas are incompatible, masking shouldn't happen
         check_areas.side_effect = IncompatibleAreas()
         self.assertRaises(IncompatibleAreas,
                           self.comp, [self.all_valid, self.wrong_shape])
         check_areas.assert_called_once()
-        mask_datasets.assert_not_called()
 
     def test_call(self):
         """Test calling generic compositor"""

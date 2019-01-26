@@ -728,28 +728,6 @@ class GenericCompositor(CompositeBase):
             sensor = list(sensor)[0]
         return sensor
 
-    def _mask_datasets(self, projectables):
-        """Mask all the channels by their combined invalid areas."""
-        valid = None
-        masked_prjs = []
-        for prj in projectables:
-            if valid is None:
-                valid = prj.notnull()
-                try:
-                    valid = valid.drop('bands')
-                except ValueError:
-                    pass
-            else:
-                new_valid = prj.notnull()
-                try:
-                    new_valid = new_valid.drop('bands')
-                except ValueError:
-                    pass
-                valid &= new_valid
-        for prj in projectables:
-            masked_prjs.append(prj.where(valid))
-        return masked_prjs
-
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
         num = len(projectables)
@@ -759,15 +737,10 @@ class GenericCompositor(CompositeBase):
             mode = self.modes[num]
         if len(projectables) > 1:
             projectables = self.check_areas(projectables)
-            # Skip masking if user wants it, or a specific alpha
-            # channel is given (2 or 4 datasets altogether).  Note
-            # that 'mode' can be given to force the alpha channel in
-            # the end image, but that doesn't mean a separate alpha
-            # channel data is given, so check the number of
-            # projectables given instead.
-            if self.common_channel_mask and num % 2 == 1:
-                projectables = self._mask_datasets(projectables)
             data = self._concat_datasets(projectables, mode)
+            # Skip masking if user wants it or a specific alpha channel is given.
+            if self.common_channel_mask and mode[-1] != 'A':
+                data = data.where(data.notnull().all(dim='bands'))
         else:
             data = projectables[0]
 
@@ -1220,6 +1193,7 @@ class RatioSharpenedRGB(GenericCompositor):
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
                              "'{}'".format(self.high_resolution_band))
+        kwargs.setdefault('common_channel_mask', False)
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
     def _get_band(self, high_res, low_res, color, ratio):
