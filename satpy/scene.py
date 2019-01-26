@@ -968,7 +968,8 @@ class Scene(MetadataObject):
                 replace_anc(res, pres)
 
     def resample(self, destination=None, datasets=None, generate=True,
-                 unload=True, resampler=None, **resample_kwargs):
+                 unload=True, resampler=None, reduce_data=True,
+                 **resample_kwargs):
         """Resample datasets and return a new scene.
 
         Args:
@@ -987,6 +988,8 @@ class Scene(MetadataObject):
                 ('nearest'). Other possible values include 'native', 'ewa',
                 etc. See the :mod:`~satpy.resample` documentation for more
                 information.
+            reduce_data (bool): Reduce data by matching the input and output
+                areas and slicing the data arrays (default: True)
             resample_kwargs: Remaining keyword arguments to pass to individual
                 resampler classes. See the individual resampler class
                 documentation :mod:`here <satpy.resample>` for available
@@ -1002,7 +1005,7 @@ class Scene(MetadataObject):
         # we may have some datasets we asked for but don't exist yet
         new_scn.wishlist = self.wishlist.copy()
         self._resampled_scene(new_scn, destination, resampler=resampler,
-                              **resample_kwargs)
+                              reduce_data=reduce_data, **resample_kwargs)
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
