@@ -34,7 +34,6 @@ import unittest
 
 
 class TestCheckArea(unittest.TestCase):
-
     """Test the utility method 'check_areas'."""
 
     def _get_test_ds(self, shape=(50, 100), dims=('y', 'x')):
@@ -252,6 +251,15 @@ class TestSunZenithCorrector(unittest.TestCase):
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
         res = comp((self.ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        self.assertIn('y', res.coords)
+        self.assertIn('x', res.coords)
+        ds1 = self.ds1.copy()
+        del ds1.coords['y']
+        del ds1.coords['x']
+        res = comp((ds1,), test_attr='test')
+        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        self.assertNotIn('y', res.coords)
+        self.assertNotIn('x', res.coords)
 
     def test_basic_lims_not_provided(self):
         """Test custom limits when SZA isn't provided."""
