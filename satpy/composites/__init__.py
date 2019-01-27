@@ -338,19 +338,24 @@ class SunZenithCorrectorBase(CompositeBase):
         key = (vis.attrs["start_time"], area_name)
         tic = time.time()
         LOG.debug("Applying sun zen correction")
-        if len(projectables) == 1:
-            coszen = self.coszen.get(key)
-            if coszen is None:
-                from pyorbital.astronomy import cos_zen
-                LOG.debug("Computing sun zenith angles.")
-                lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
+        coszen = self.coszen.get(key)
+        if coszen is None and len(projectables) == 1:
+            # we were not given SZA, generate SZA then calculate cos(SZA)
+            from pyorbital.astronomy import cos_zen
+            LOG.debug("Computing sun zenith angles.")
+            lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
 
-                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
-                                      dims=['y', 'x'], coords=[vis['y'], vis['x']])
-                if self.max_sza is not None:
-                    coszen = coszen.where(coszen >= self.max_sza_cos)
-                self.coszen[key] = coszen
-        else:
+            coords = {}
+            if 'y' in vis.coords and 'x' in vis.coords:
+                coords['y'] = vis['y']
+                coords['x'] = vis['x']
+            coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
+                                  dims=['y', 'x'], coords=coords)
+            if self.max_sza is not None:
+                coszen = coszen.where(coszen >= self.max_sza_cos)
+            self.coszen[key] = coszen
+        elif coszen is None:
+            # we were given the SZA, calculate the cos(SZA)
             coszen = np.cos(np.deg2rad(projectables[1]))
             self.coszen[key] = coszen
 
