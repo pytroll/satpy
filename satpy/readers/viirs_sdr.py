@@ -253,10 +253,6 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             fill_min = int(ds_info.pop("fill_min_int", 65528))
             data = data.where(data < fill_min)
 
-        # Mask values less than or equal to zero.  These seem to
-        # happen on the night-side of the reflective channels
-        data = data.where(data > 0)
-
         factors = self.get(factor_var_path)
         if factors is None:
             LOG.debug("No scaling factors found for %s", dataset_id)
