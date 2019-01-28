@@ -25,7 +25,6 @@
 import logging
 import numbers
 import os
-import warnings
 
 import six
 import yaml

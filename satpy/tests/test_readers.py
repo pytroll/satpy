@@ -287,9 +287,7 @@ class TestReaderLoader(unittest.TestCase):
         epi_miss = epi_pro_miss + ['H-000-MSG4__-MSG4________-_________-PRO______-201809050900-__']
         pro_miss = epi_pro_miss + ['H-000-MSG4__-MSG4________-_________-EPI______-201809050900-__']
         for filenames in [epi_miss, pro_miss, epi_pro_miss]:
-            with mock.patch('warnings.warn') as warn_mock:
-                self.assertRaises(ValueError, load_readers, reader='hrit_msg', filenames=filenames)
-                warn_mock.assert_called()
+            self.assertRaises(ValueError, load_readers, reader='seviri_l1b_hrit', filenames=filenames)
 
         # Filenames from multiple scans
         at_least_one_complete = [
@@ -301,9 +299,7 @@ class TestReaderLoader(unittest.TestCase):
             'H-000-MSG4__-MSG4________-IR_108___-000006___-201809051000-__',
         ]
         try:
-            with mock.patch('warnings.warn') as warn_mock:
-                load_readers(filenames=at_least_one_complete, reader='hrit_msg')
-                warn_mock.assert_called()
+            load_readers(filenames=at_least_one_complete, reader='seviri_l1b_hrit')
         except ValueError:
             self.fail('If at least one set of filenames is complete, no '
                       'exception should be raised')
