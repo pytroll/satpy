@@ -526,11 +526,6 @@ class TestFindFilesAndReaders(unittest.TestCase):
             self.assertRaises(yaml.YAMLError, find_files_and_readers,
                               reader='viirs_sdr')
 
-    def test_old_reader_name_mapping(self):
-        """Test that requesting old reader names raises a warning."""
-        from satpy.readers import configs_for_reader
-        self.assertRaises(ValueError, list, configs_for_reader('hrit_jma'))
-
 
 class TestYAMLFiles(unittest.TestCase):
     """Test and analyze the reader configuration files."""
