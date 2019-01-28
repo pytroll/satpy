@@ -532,15 +532,8 @@ class TestFindFilesAndReaders(unittest.TestCase):
 
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
-        import warnings
         from satpy.readers import configs_for_reader
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            configs = list(configs_for_reader('hrit_jma'))[0]
-        self.assertIn('ahi_hrit', configs[0])
-        self.assertNotIn('hrit_jma', configs[0])
-        self.assertEqual(len(w), 1)
-        self.assertTrue(issubclass(w[0].category, DeprecationWarning))
+        self.assertRaises(ValueError, list, configs_for_reader('hrit_jma'))
 
 
 class TestYAMLFiles(unittest.TestCase):
