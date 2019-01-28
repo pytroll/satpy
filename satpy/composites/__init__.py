@@ -698,9 +698,17 @@ class GenericCompositor(CompositeBase):
 
     modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
-    def _concat_datasets(self, projectables, mode):
-        projectables = self.check_areas(projectables)
+    def __init__(self, name, common_channel_mask=True, **kwargs):
+        """Collect custom configuration values.
 
+        Args:
+            common_channel_mask (bool): If True, mask all the channels with
+                a mask that combines all the invalid areas of the given data.
+        """
+        self.common_channel_mask = common_channel_mask
+        super(GenericCompositor, self).__init__(name, **kwargs)
+
+    def _concat_datasets(self, projectables, mode):
         try:
             data = xr.concat(projectables, 'bands', coords='minimal')
             data['bands'] = list(mode)
@@ -733,7 +741,11 @@ class GenericCompositor(CompositeBase):
             # num may not be in `self.modes` so only check if we need to
             mode = self.modes[num]
         if len(projectables) > 1:
+            projectables = self.check_areas(projectables)
             data = self._concat_datasets(projectables, mode)
+            # Skip masking if user wants it or a specific alpha channel is given.
+            if self.common_channel_mask and mode[-1] != 'A':
+                data = data.where(data.notnull().all(dim='bands'))
         else:
             data = projectables[0]
 
@@ -1186,6 +1198,7 @@ class RatioSharpenedRGB(GenericCompositor):
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
                              "'{}'".format(self.high_resolution_band))
+        kwargs.setdefault('common_channel_mask', False)
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
     def _get_band(self, high_res, low_res, color, ratio):
