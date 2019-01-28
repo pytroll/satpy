@@ -465,8 +465,6 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
             raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
             # SatPy 0.15 or 1.0, remove exception and mapping
 
-            new_readers.append(new_name)
-
         reader = new_readers
         # given a config filename or reader name
         config_files = [r if r.endswith('.yaml') else r + '.yaml' for r in reader]
