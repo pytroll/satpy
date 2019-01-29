@@ -60,7 +60,9 @@ class IncompatibleTimes(Exception):
 class CompositorLoader(object):
     """Read composites using the configuration files on disk."""
 
-    def __init__(self, ppp_config_dir=CONFIG_PATH):
+    def __init__(self, ppp_config_dir=None):
+        if ppp_config_dir is None:
+            ppp_config_dir = CONFIG_PATH
         self.modifiers = {}
         self.compositors = {}
         self.ppp_config_dir = ppp_config_dir
@@ -336,19 +338,24 @@ class SunZenithCorrectorBase(CompositeBase):
         key = (vis.attrs["start_time"], area_name)
         tic = time.time()
         LOG.debug("Applying sun zen correction")
-        if len(projectables) == 1:
-            coszen = self.coszen.get(key)
-            if coszen is None:
-                from pyorbital.astronomy import cos_zen
-                LOG.debug("Computing sun zenith angles.")
-                lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
+        coszen = self.coszen.get(key)
+        if coszen is None and len(projectables) == 1:
+            # we were not given SZA, generate SZA then calculate cos(SZA)
+            from pyorbital.astronomy import cos_zen
+            LOG.debug("Computing sun zenith angles.")
+            lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
 
-                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
-                                      dims=['y', 'x'], coords=[vis['y'], vis['x']])
-                if self.max_sza is not None:
-                    coszen = coszen.where(coszen >= self.max_sza_cos)
-                self.coszen[key] = coszen
-        else:
+            coords = {}
+            if 'y' in vis.coords and 'x' in vis.coords:
+                coords['y'] = vis['y']
+                coords['x'] = vis['x']
+            coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
+                                  dims=['y', 'x'], coords=coords)
+            if self.max_sza is not None:
+                coszen = coszen.where(coszen >= self.max_sza_cos)
+            self.coszen[key] = coszen
+        elif coszen is None:
+            # we were given the SZA, calculate the cos(SZA)
             coszen = np.cos(np.deg2rad(projectables[1]))
             self.coszen[key] = coszen
 
@@ -691,9 +698,17 @@ class GenericCompositor(CompositeBase):
 
     modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
-    def _concat_datasets(self, projectables, mode):
-        projectables = self.check_areas(projectables)
+    def __init__(self, name, common_channel_mask=True, **kwargs):
+        """Collect custom configuration values.
 
+        Args:
+            common_channel_mask (bool): If True, mask all the channels with
+                a mask that combines all the invalid areas of the given data.
+        """
+        self.common_channel_mask = common_channel_mask
+        super(GenericCompositor, self).__init__(name, **kwargs)
+
+    def _concat_datasets(self, projectables, mode):
         try:
             data = xr.concat(projectables, 'bands', coords='minimal')
             data['bands'] = list(mode)
@@ -726,7 +741,11 @@ class GenericCompositor(CompositeBase):
             # num may not be in `self.modes` so only check if we need to
             mode = self.modes[num]
         if len(projectables) > 1:
+            projectables = self.check_areas(projectables)
             data = self._concat_datasets(projectables, mode)
+            # Skip masking if user wants it or a specific alpha channel is given.
+            if self.common_channel_mask and mode[-1] != 'A':
+                data = data.where(data.notnull().all(dim='bands'))
         else:
             data = projectables[0]
 
@@ -1179,6 +1198,7 @@ class RatioSharpenedRGB(GenericCompositor):
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
                              "'{}'".format(self.high_resolution_band))
+        kwargs.setdefault('common_channel_mask', False)
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
     def _get_band(self, high_res, low_res, color, ratio):

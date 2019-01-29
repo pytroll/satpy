@@ -35,6 +35,13 @@ from satpy.dataset import combine_metadata
 from itertools import chain
 
 try:
+    # new API
+    from dask.highlevelgraph import HighLevelGraph
+except ImportError:
+    # old API
+    import dask.sharedict as HighLevelGraph
+
+try:
     from itertools import zip_longest
 except ImportError:
     # python 2.7
@@ -79,7 +86,7 @@ def cascaded_compute(callback, arrays, batch_size=None, optimize=True):
             # optimize Dask graph over all objects
             dsk = da.Array.__dask_optimize__(
                 # combine all Dask Array graphs
-                dask.sharedict.merge(*[e.__dask_graph__() for e in batch_arrs]),
+                HighLevelGraph.merge(*[e.__dask_graph__() for e in batch_arrs]),
                 # get Dask Array keys in result
                 list(dask.core.flatten([e.__dask_keys__() for e in batch_arrs]))
             )

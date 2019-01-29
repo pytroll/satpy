@@ -74,7 +74,7 @@ class Scene(MetadataObject):
     """
 
     def __init__(self, filenames=None, reader=None, filter_parameters=None, reader_kwargs=None,
-                 ppp_config_dir=get_environ_config_dir(),
+                 ppp_config_dir=None,
                  base_dir=None,
                  sensor=None,
                  start_time=None,
@@ -109,6 +109,8 @@ class Scene(MetadataObject):
 
         """
         super(Scene, self).__init__()
+        if ppp_config_dir is None:
+            ppp_config_dir = get_environ_config_dir()
         # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere in pytroll
         LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
         os.environ["PPP_CONFIG_DIR"] = self.ppp_config_dir = ppp_config_dir
