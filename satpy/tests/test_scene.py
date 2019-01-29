@@ -1711,6 +1711,46 @@ class TestSceneSaving(unittest.TestCase):
             os.path.join(self.base_dir, 'test_20180101_000000.tif')))
 
 
+class TestSceneConversions(unittest.TestCase):
+    """Test Scene conversion to geoviews, xarray, etc."""
+
+    def test_geoviews_basic_with_area(self):
+        """Test converting a Scene to geoviews with an AreaDefinition."""
+        from satpy import Scene
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        scn = Scene()
+        area = AreaDefinition('test', 'test', 'test',
+                              {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+                              2, 2, [-200, -200, 200, 200])
+        scn['ds1'] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
+                                  attrs={'start_time': datetime(2018, 1, 1),
+                                         'area': area})
+        gv_obj = scn.to_geoviews()
+        # we assume that if we got something back, geoviews can use it
+        self.assertIsNotNone(gv_obj)
+
+    def test_geoviews_basic_with_swath(self):
+        """Test converting a Scene to geoviews with a SwathDefinition."""
+        from satpy import Scene
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import SwathDefinition
+        scn = Scene()
+        lons = xr.DataArray(da.zeros((2, 2)))
+        lats = xr.DataArray(da.zeros((2, 2)))
+        area = SwathDefinition(lons, lats)
+        scn['ds1'] = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
+                                  attrs={'start_time': datetime(2018, 1, 1),
+                                         'area': area})
+        gv_obj = scn.to_geoviews()
+        # we assume that if we got something back, geoviews can use it
+        self.assertIsNotNone(gv_obj)
+
+
 def suite():
     """The test suite for test_scene."""
     loader = unittest.TestLoader()
@@ -1719,6 +1759,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestSceneLoading))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSceneResampling))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSceneSaving))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneConversions))
 
     return mysuite
 
