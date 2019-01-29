@@ -77,10 +77,27 @@ The MultiScene can take "frames" of data and join them together in a single
 animation movie file. Saving animations required the `imageio` python library
 and for most available formats the ``ffmpeg`` command line tool suite should
 also be installed. The below example saves a series of GOES-EAST ABI channel
-1 and channel 2 frames to MP4 movie files. Note that currently there is no
-easy way to map files from multiple time steps/orbits in to individual Scene
-objects. The `glob` function and for loops are used to group files into Scene
-objects that, if used individually, could load the data we want.
+1 and channel 2 frames to MP4 movie files. We can use the
+:meth:`MultiScene.from_files <satpy.multiscene.MultiScene.from_files>` class
+method to create a `MultiScene` from a series of files. This uses the
+:func:`~satpy.readers.group_files` utility function to group files by start
+time.
+
+    >>> from satpy import Scene, MultiScene
+    >>> from glob import glob
+    >>> mscn = MultiScene.from_files(glob('/data/abi/day_1/*C0[12]*.nc'), reader='abi_l1b')
+    >>> mscn.load(['C01', 'C02'])
+    >>> mscn.save_animation('{name}_{start_time:%Y%m%d_%H%M%S}.mp4', fps=2)
+
+.. versionadded:: 0.12
+
+    The ``from_files`` and ``group_files`` functions were added in SatPy 0.12.
+    See below for an alternative solution.
+
+For older versions of SatPy we can manually create the `Scene` objects used.
+The :func:`~glob.glob` function and for loops are used to group files into
+Scene objects that, if used individually, could load the data we want. The
+code below is equivalent to the ``from_files`` code above:
 
     >>> from satpy import Scene, MultiScene
     >>> from glob import glob
