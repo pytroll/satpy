@@ -177,11 +177,38 @@ class GeoTIFFWriter(ImageWriter):
 
     def save_image(self, img, filename=None, dtype=None, fill_value=None,
                    floating_point=None, compute=True, **kwargs):
-        """Save the image to the given *filename* in geotiff_ format.
-        `floating_point` allows the saving of
-        'L' mode images in floating point format if set to True.
+        """Save the image to the given ``filename`` in geotiff_ format.
+
+        Note for faster output and reduced memory usage the ``rasterio``
+        library must be installed. This writer currently falls back to
+        using ``gdal`` directly, but that will be deprecated in the future.
+
+        Args:
+            img (xarray.DataArray): Data to save to geotiff.
+            filename (str): Filename to save the image to. Defaults to
+                ``filename`` passed during writer creation. Unlike the
+                creation ``filename`` keyword argument, this filename does not
+                get formatted with data attributes.
+            dtype (numpy.dtype): Numpy data type to save the image as.
+                Defaults to 8-bit unsigned integer (``np.uint8``). If the
+                ``dtype`` argument is provided during writer creation then
+                that will be used as the default.
+            fill_value (int or float): Value to use where data values are
+                NaN/null. If this is specified in the writer configuration
+                file that value will be used as the default.
+            floating_point (bool): Deprecated. Use ``dtype=np.float64``
+                instead.
+            compute (bool): Compute dask arrays and save the image
+                immediately. If ``False`` then the return value can be passed
+                to :func:`~satpy.writers.compute_writer_results` to do the
+                computation. This is useful when multiple images may share
+                input calculations where dask can benefit from not repeating
+                them multiple times. Defaults to ``True`` in the writer by
+                itself, but is typically passed as ``False`` by callers where
+                calculations can be combined.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
+
         """
         filename = filename or self.get_filename(**img.data.attrs)
 
@@ -190,6 +217,9 @@ class GeoTIFFWriter(ImageWriter):
         for k in kwargs.keys():
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
+        if fill_value is None:
+            # fall back to fill_value from configuration file
+            fill_value = self.info.get('fill_value')
 
         if floating_point is not None:
             import warnings
@@ -222,6 +252,10 @@ class GeoTIFFWriter(ImageWriter):
         except ImportError:
             LOG.warning("Using legacy/slower geotiff save method, install "
                         "'rasterio' for faster saving.")
+            warnings.warn("Using legacy/slower geotiff save method with 'gdal'."
+                          "This will be deprecated in the future. Install "
+                          "'rasterio' for faster saving and future "
+                          "compatibility.", PendingDeprecationWarning)
             # force to numpy dtype object
             dtype = np.dtype(dtype)
             gformat = NP2GDAL[dtype.type]
