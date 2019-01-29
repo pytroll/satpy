@@ -1699,10 +1699,6 @@ class TestSceneSaving(unittest.TestCase):
 class TestSceneConversions(unittest.TestCase):
     """Test Scene conversion to geoviews, xarray, etc."""
 
-    def setUp(self):
-        """Prepare test data."""
-        pass
-
     def test_geoviews_basic_with_area(self):
         """Test converting a Scene to geoviews with an AreaDefinition."""
         from satpy import Scene

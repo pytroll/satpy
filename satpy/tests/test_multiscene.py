@@ -190,12 +190,47 @@ class TestMultiSceneSave(unittest.TestCase):
                          'test_save_mp4_ds3_20180102_00_20180102_12.mp4')
 
 
+class TestBlendFuncs(unittest.TestCase):
+    """Test individual functions used for blending."""
+
+    def setUp(self):
+        """Set up test data."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        area = AreaDefinition('test', 'test', 'test',
+                              {'proj': 'geos', 'lon_0': -95.5, 'h': 35786023.0},
+                              2, 2, [-200, -200, 200, 200])
+        ds1 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
+                           attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+        self.ds1 = ds1
+        ds2 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
+                           attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
+        self.ds2 = ds2
+
+    def test_stack(self):
+        """Test the 'stack' function."""
+        from satpy.multiscene import stack
+        res = stack([self.ds1, self.ds2])
+        self.assertTupleEqual(self.ds1.shape, res.shape)
+
+    def test_timeseries(self):
+        """Test the 'timeseries' function."""
+        from satpy.multiscene import timeseries
+        import xarray as xr
+        res = timeseries([self.ds1, self.ds2])
+        self.assertIsInstance(res, xr.DataArray)
+        self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
+
+
 def suite():
     """The test suite for test_multiscene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestMultiScene))
     mysuite.addTest(loader.loadTestsFromTestCase(TestMultiSceneSave))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBlendFuncs))
 
     return mysuite
 
