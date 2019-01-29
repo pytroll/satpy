@@ -134,6 +134,23 @@ class TestMultiScene(unittest.TestCase):
         self.assertSetEqual(mscn.shared_dataset_ids, {ds1_id, ds2_id})
         self.assertFalse(mscn.all_same_area)
 
+    def test_from_files(self):
+        """Test creating a multiscene from multiple files."""
+        from satpy import MultiScene
+        input_files = [
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171502203_e20171171504576_c20171171505018.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171507203_e20171171509576_c20171171510018.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171512203_e20171171514576_c20171171515017.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171517203_e20171171519577_c20171171520019.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171522203_e20171171524576_c20171171525020.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171527203_e20171171529576_c20171171530017.nc",
+        ]
+        with mock.patch('satpy.multiscene.Scene') as scn_mock:
+            mscn = MultiScene.from_files(input_files, reader='abi_l1b')
+            self.assertTrue(len(mscn.scenes), 6)
+            calls = [mock.call(filenames={'abi_l1b': [in_file]}) for in_file in input_files]
+            scn_mock.assert_has_calls(calls)
+
 
 class TestMultiSceneSave(unittest.TestCase):
     """Test saving a MultiScene to various formats."""
