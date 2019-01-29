@@ -37,7 +37,7 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.10.3', 'trollsift',
 
 # pyhdf (conda) == python-hdf4 (pip)
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio']
+                 'rasterio', 'geoviews']
 
 if sys.version < '3.0':
     test_requires.append('mock')
@@ -70,6 +70,8 @@ extras_require = {
     'animations': ['imageio'],
     # Documentation:
     'doc': ['sphinx'],
+    # Other
+    'geoviews': ['geoviews'],
 }
 all_extras = []
 for extra_deps in extras_require.values():

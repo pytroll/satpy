@@ -1071,7 +1071,7 @@ class Scene(MetadataObject):
 
         if vdims is None:
             # by default select first data variable as display variable
-            vdims = ds.data_vars[ds.data_vars.keys()[0]].name
+            vdims = ds.data_vars[list(ds.data_vars.keys())[0]].name
 
         if hasattr(ds, "area") and hasattr(ds.area, 'to_cartopy_crs'):
             dscrs = ds.area.to_cartopy_crs()
@@ -1085,6 +1085,41 @@ class Scene(MetadataObject):
             gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)
 
         return gview
+
+    def to_xarray_dataset(self, datasets=None):
+        """Merge all xr.DataArrays of a scene to a xr.DataSet.
+
+        Parameters:
+            datasets (list):
+                List of products to include in the :class:`xarray.Dataset`
+
+        Returns: :class:`xarray.Dataset`
+
+        """
+        if datasets is not None:
+            datasets = [self[ds] for ds in datasets]
+        else:
+            datasets = [self.datasets.get(ds) for ds in self.wishlist]
+            datasets = [ds for ds in datasets if ds is not None]
+
+        ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in datasets if i.attrs.get('area') is not None}
+        mdata = combine_metadata(*tuple(i.attrs for i in datasets))
+        if mdata.get('area') is None or not isinstance(mdata['area'], SwathDefinition):
+            # either don't know what the area is or we have an AreaDefinition
+            ds = xr.merge(ds_dict.values())
+        else:
+            # we have a swath definition and should use lon/lat values
+            lons, lats = mdata['area'].get_lonlats()
+            if not isinstance(lons, DataArray):
+                lons = DataArray(lons, dims=('y', 'x'))
+                lats = DataArray(lats, dims=('y', 'x'))
+            # ds_dict['longitude'] = lons
+            # ds_dict['latitude'] = lats
+            ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], lats),
+                                             "longitude": (["y", "x"], lons)})
+
+        ds.attrs = mdata
+        return ds
 
     def images(self):
         """Generate images for all the datasets from the scene."""
@@ -1121,41 +1156,6 @@ class Scene(MetadataObject):
                                "dimensions (eg. through resampling).")
         writer, save_kwargs = load_writer(writer, ppp_config_dir=self.ppp_config_dir, **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
-
-    def to_xarray_dataset(self, datasets=None):
-        """Merge all xr.DataArrays of a scene to a xr.DataSet.
-
-        Parameters:
-            datasets (list):
-                List of products to include in the :class:`xarray.Dataset`
-
-        Returns: :class:`xarray.Dataset`
-
-        """
-        if datasets is not None:
-            datasets = [self[ds] for ds in datasets]
-        else:
-            datasets = [self.datasets.get(ds) for ds in self.wishlist]
-            datasets = [ds for ds in datasets if ds is not None]
-
-        ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in datasets if i.attrs.get('area') is not None}
-        mdata = combine_metadata(*tuple(i.attrs for i in datasets))
-        if mdata.get('area') is None or not isinstance(mdata['area'], SwathDefinition):
-            # either don't know what the area is or we have an AreaDefinition
-            ds = xr.merge(ds_dict.values())
-        else:
-            # we have a swath definition and should use lon/lat values
-            lons, lats = mdata['area'].get_lonlats()
-            if not isinstance(lons, DataArray):
-                lons = DataArray(lons, dims=('y', 'x'))
-                lats = DataArray(lats, dims=('y', 'x'))
-            # ds_dict['longitude'] = lons
-            # ds_dict['latitude'] = lats
-            ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], lats),
-                                             "longitude": (["y", "x"], lons)})
-
-        ds.attrs = mdata
-        return ds
 
     @classmethod
     def get_writer_by_ext(cls, extension):
