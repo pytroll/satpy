@@ -123,11 +123,11 @@ class SAFEXML(BaseFileHandler):
         return np.asarray(data), (x, y)
 
     @staticmethod
-    def interpolate_xml_array(data, low_res_coords, shape):
+    def interpolate_xml_array(data, low_res_coords, shape, chunks):
         """Interpolate arbitrary size dataset to a full sized grid."""
         xpoints, ypoints = low_res_coords
 
-        return interpolate_xarray_linear(xpoints, ypoints, data, shape)
+        return interpolate_xarray_linear(xpoints, ypoints, data, shape, chunks=chunks)
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -152,27 +152,27 @@ class SAFEXML(BaseFileHandler):
 
         data = self.interpolate_xml_array(data, low_res_coords, data.shape)
 
-    def get_noise_correction(self, shape):
+    def get_noise_correction(self, shape, chunks=None):
         """Get the noise correction array."""
         data_items = self.root.findall(".//noiseVector")
         data, low_res_coords = self.read_xml_array(data_items, 'noiseLut')
         if not data_items:
             data_items = self.root.findall(".//noiseRangeVector")
             data, low_res_coords = self.read_xml_array(data_items, 'noiseRangeLut')
-            range_noise = self.interpolate_xml_array(data, low_res_coords, shape)
+            range_noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
             data_items = self.root.findall(".//noiseAzimuthVector")
             data, low_res_coords = self.read_azimuth_array(data_items)
-            azimuth_noise = self.interpolate_xml_array(data, low_res_coords, shape)
+            azimuth_noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
             noise = range_noise * azimuth_noise
         else:
-            noise = self.interpolate_xml_array(data, low_res_coords, shape)
+            noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
         return noise
 
-    def get_calibration(self, name, shape):
+    def get_calibration(self, name, shape, chunks=None):
         """Get the calibration array."""
         data_items = self.root.findall(".//calibrationVector")
         data, low_res_coords = self.read_xml_array(data_items, name)
-        return self.interpolate_xml_array(data, low_res_coords, shape)
+        return self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
 
     def get_calibration_constant(self):
         """Load the calibration constant."""
@@ -220,10 +220,16 @@ def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
     return DataArray(res, dims=('y', 'x'))
 
 
-def interpolate_xarray_linear(xpoints, ypoints, values, shape):
+def interpolate_xarray_linear(xpoints, ypoints, values, shape, chunks=CHUNK_SIZE):
     """Interpolate linearly, generating a dask array."""
     from scipy.interpolate.interpnd import (LinearNDInterpolator,
                                             _ndim_coords_from_arrays)
+
+    if isinstance(chunks, (list, tuple)):
+        vchunks, hchunks = chunks
+    else:
+        vchunks, hchunks = chunks, chunks
+
     points = _ndim_coords_from_arrays(np.vstack((np.asarray(ypoints),
                                                  np.asarray(xpoints))).T)
 
@@ -232,8 +238,8 @@ def interpolate_xarray_linear(xpoints, ypoints, values, shape):
     def intp(grid_x, grid_y, interpolator):
         return interpolator((grid_y, grid_x))
 
-    grid_x, grid_y = da.meshgrid(da.arange(shape[1], chunks=CHUNK_SIZE),
-                                 da.arange(shape[0], chunks=CHUNK_SIZE))
+    grid_x, grid_y = da.meshgrid(da.arange(shape[1], chunks=hchunks),
+                                 da.arange(shape[0], chunks=vchunks))
     # workaround for non-thread-safe first call of the interpolator:
     interpolator((0, 0))
     res = da.map_blocks(intp, grid_x, grid_y, interpolator=interpolator)
@@ -290,23 +296,23 @@ class SAFEGRD(BaseFileHandler):
                 calibration = 'betaNought'
 
             data = self.read_band()
+            # chunks = data.chunks  # This seems to be slower for some reason
+            chunks = CHUNK_SIZE
             logger.debug('Reading noise data.')
-
-            noise = self.noise.get_noise_correction(data.shape).fillna(0)
+            noise = self.noise.get_noise_correction(data.shape, chunks=chunks).fillna(0)
 
             logger.debug('Reading calibration data.')
 
-            cal = self.calibration.get_calibration(calibration, data.shape)
+            cal = self.calibration.get_calibration(calibration, data.shape, chunks=chunks)
             cal_constant = self.calibration.get_calibration_constant()
 
             logger.debug('Calibrating.')
             data = data.where(data > 0)
             data = data.astype(np.float64)
             dn = data * data
-            data = ((dn - noise).clip(min=0) + cal_constant) / (cal * cal)
+            data = ((dn - noise).clip(min=0) + cal_constant)
 
-            data = np.sqrt(data.clip(min=0))
-
+            data = (np.sqrt(data) / cal).clip(min=0)
             data.attrs.update(info)
 
             del noise, cal
@@ -328,7 +334,6 @@ class SAFEGRD(BaseFileHandler):
             raise NotImplementedError('Bands with multiple shapes not supported.')
         else:
             chunks = band.block_shapes[0]
-            import ipdb; ipdb.set_trace()
 
         def do_read(the_band, the_window, the_lock):
             with the_lock:
@@ -347,10 +352,22 @@ class SAFEGRD(BaseFileHandler):
         band = self.filehandle
 
         shape = band.shape
-        vchunks = range(0, shape[0], blocksize)
-        hchunks = range(0, shape[1], blocksize)
+        if len(band.block_shapes) == 1:
+            total_size = blocksize * blocksize * 1.0
+            lines, cols = band.block_shapes[0]
+            if cols > lines:
+                hblocks = cols
+                vblocks = int(total_size / cols / lines)
+            else:
+                hblocks = int(total_size / cols / lines)
+                vblocks = lines
+        else:
+            hblocks = blocksize
+            vblocks = blocksize
+        vchunks = range(0, shape[0], vblocks)
+        hchunks = range(0, shape[1], hblocks)
 
-        token = tokenize(blocksize, band)
+        token = tokenize(hblocks, vblocks, band)
         name = 'read_band-' + token
 
         def do_read(the_band, the_window, the_lock):
@@ -359,15 +376,15 @@ class SAFEGRD(BaseFileHandler):
 
         dskx = {(name, i, j): (do_read, band,
                                Window(hcs, vcs,
-                                      min(blocksize,  shape[1] - hcs),
-                                      min(blocksize,  shape[0] - vcs)),
+                                      min(hblocks,  shape[1] - hcs),
+                                      min(vblocks,  shape[0] - vcs)),
                                self.read_lock)
                 for i, vcs in enumerate(vchunks)
                 for j, hcs in enumerate(hchunks)
                 }
 
         res = da.Array(dskx, name, shape=list(shape),
-                       chunks=(blocksize, blocksize),
+                       chunks=(vblocks, hblocks),
                        dtype=band.dtypes[0])
         return DataArray(res, dims=('y', 'x'))
 
