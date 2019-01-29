@@ -1483,10 +1483,11 @@ class TestSceneResampling(unittest.TestCase):
         """Return copy of dataset pretending it was resampled."""
         return dataset.copy()
 
+    @mock.patch('satpy.scene.Scene._reduce_data')
     @mock.patch('satpy.scene.resample_dataset')
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
-    def test_resample_scene_copy(self, cri, cl, rs):
+    def test_resample_scene_copy(self, cri, cl, rs, reduce_data):
         """Test that the Scene is properly copied during resampled.
 
         The Scene that is created as a copy of the original Scene should not
@@ -1549,6 +1550,20 @@ class TestSceneResampling(unittest.TestCase):
             tuple(loaded_ids[0]), tuple(DatasetID(name='comp19')))
         self.assertTupleEqual(
             tuple(loaded_ids[1]), tuple(DatasetID(name='new_ds')))
+
+        # Test that data reduction can be disabled
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        scene.load(['comp19'])
+        scene['comp19'].attrs['area'] = area_def
+        new_scene = scene.resample(area_def, reduce_data=False)
+        self.assertFalse(reduce_data.called)
+        new_scene = scene.resample(area_def)
+        self.assertTrue(reduce_data.called_once)
+        new_scene = scene.resample(area_def, reduce_data=True)
+        self.assertEqual(reduce_data.call_count, 2)
 
     @mock.patch('satpy.scene.resample_dataset')
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')

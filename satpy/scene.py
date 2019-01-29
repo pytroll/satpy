@@ -900,7 +900,19 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    def _resampled_scene(self, new_scn, destination_area, **resample_kwargs):
+    def _reduce_data(self, source_area, destination_area, dataset):
+        """Reduce data by slicing it."""
+        slice_x, slice_y = source_area.get_area_slices(destination_area)
+        source_area = source_area[slice_y, slice_x]
+        dataset = dataset.isel(x=slice_x, y=slice_y)
+        assert ('x', source_area.x_size) in dataset.sizes.items()
+        assert ('y', source_area.y_size) in dataset.sizes.items()
+        dataset.attrs['area'] = source_area
+
+        return dataset
+
+    def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
+                         **resample_kwargs):
         """Resample `datasets` to the `destination` area."""
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
@@ -933,13 +945,11 @@ class Scene(MetadataObject):
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
             try:
-                slice_x, slice_y = source_area.get_area_slices(
-                    destination_area)
-                source_area = source_area[slice_y, slice_x]
-                dataset = dataset.isel(x=slice_x, y=slice_y)
-                assert ('x', source_area.x_size) in dataset.sizes.items()
-                assert ('y', source_area.y_size) in dataset.sizes.items()
-                dataset.attrs['area'] = source_area
+                if reduce_data:
+                    dataset = self._reduce_data(source_area, destination_area,
+                                                dataset)
+                else:
+                    LOG.debug("Data reduction disabled by the user")
             except NotImplementedError:
                 LOG.info("Not reducing data before resampling.")
             if source_area not in resamplers:
@@ -958,7 +968,8 @@ class Scene(MetadataObject):
                 replace_anc(res, pres)
 
     def resample(self, destination=None, datasets=None, generate=True,
-                 unload=True, resampler=None, **resample_kwargs):
+                 unload=True, resampler=None, reduce_data=True,
+                 **resample_kwargs):
         """Resample datasets and return a new scene.
 
         Args:
@@ -977,6 +988,8 @@ class Scene(MetadataObject):
                 ('nearest'). Other possible values include 'native', 'ewa',
                 etc. See the :mod:`~satpy.resample` documentation for more
                 information.
+            reduce_data (bool): Reduce data by matching the input and output
+                areas and slicing the data arrays (default: True)
             resample_kwargs: Remaining keyword arguments to pass to individual
                 resampler classes. See the individual resampler class
                 documentation :mod:`here <satpy.resample>` for available
@@ -992,7 +1005,7 @@ class Scene(MetadataObject):
         # we may have some datasets we asked for but don't exist yet
         new_scn.wishlist = self.wishlist.copy()
         self._resampled_scene(new_scn, destination, resampler=resampler,
-                              **resample_kwargs)
+                              reduce_data=reduce_data, **resample_kwargs)
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
