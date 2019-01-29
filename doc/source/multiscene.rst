@@ -13,12 +13,18 @@ examples will walk through some basic use cases of the MultiScene.
     These features are still early in development and may change overtime as
     more user feedback is received and more features added.
 
-Stacking scenes
----------------
+Blending Scenes in MultiScene
+-----------------------------
+Scenes contained in a MultiScene can be combined in different ways.
 
-The MultiScene makes it easy to take multiple Scenes and stack them on top of
-each other. The code below takes two separate orbits from a VIIRS sensor and
-stacks them on top of each other.
+Stacking scenes
+***************
+
+The code below uses the :meth:`~satpy.multiscene.MultiScene.blend` method of
+the ``MultiScene`` object to stack two separate orbits from a VIIRS sensor. By
+default the ``blend`` method will use the :func:`~satpy.multiscene.stack`
+function which uses the first dataset as the base of the image and then
+iteratively overlays the remaining datasets on top.
 
     >>> from satpy import Scene, MultiScene
     >>> from glob import glob
@@ -33,6 +39,36 @@ stacks them on top of each other.
     >>> new_mscn = mscn.resample(my_area)
     >>> blended_scene = new_mscn.blend()
     >>> blended_scene.save_datasets()
+
+Timeseries
+**********
+
+Using the :meth:`~satpy.multiscene.MultiScene.blend` method with the
+:func:`~satpy.multiscene.timeseries` function will combine
+multiple scenes from different time slots by time. A single `Scene` with each
+dataset/channel extended by the time dimension will be returned. If used
+together with the :meth:`~satpy.scene.Scene.to_geoviews` method, creation of
+interactive timeseries Bokeh plots is possible.
+
+    >>> from satpy import Scene, MultiScene
+    >>> from satpy.multiscene import timeseries
+    >>> from glob import glob
+    >>> from pyresample.geometry import AreaDefinition
+    >>> my_area = AreaDefinition(...)
+    >>> scenes = [
+    ...    Scene(reader='viirs_sdr', filenames=glob('/data/viirs/day_1/*t180*.h5')),
+    ...    Scene(reader='viirs_sdr', filenames=glob('/data/viirs/day_2/*t180*.h5'))
+    ... ]
+    >>> mscn = MultiScene(scenes)
+    >>> mscn.load(['I04'])
+    >>> new_mscn = mscn.resample(my_area)
+    >>> blended_scene = new_mscn.blend(blend_function=timeseries)
+    >>> blended_scene['I04']
+    <xarray.DataArray (time: 2, y: 1536, x: 6400)>
+    dask.array<shape=(2, 1536, 6400), dtype=float64, chunksize=(1, 1536, 4096)>
+    Coordinates:
+      * time     (time) datetime64[ns] 2012-02-25T18:01:24.570942 2012-02-25T18:02:49.975797
+    Dimensions without coordinates: y, x
 
 Saving frames of an animation
 -----------------------------

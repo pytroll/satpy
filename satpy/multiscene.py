@@ -28,8 +28,10 @@ import numpy as np
 import dask
 import dask.array as da
 import xarray as xr
+import pandas as pd
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
+from satpy.dataset import combine_metadata
 from itertools import chain
 
 try:
@@ -104,6 +106,19 @@ def stack(datasets):
     for dataset in datasets[1:]:
         base = base.where(dataset.isnull(), dataset)
     return base
+
+
+def timeseries(datasets):
+    """Expands dataset with and concats by time dimension"""
+    expanded_ds = []
+    for ds in datasets:
+        tmp = ds.expand_dims("time")
+        tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
+        expanded_ds.append(tmp)
+
+    res = xr.concat(expanded_ds, dim="time")
+    res.attrs = combine_metadata(*[x.attrs for x in expanded_ds])
+    return res
 
 
 class _SceneGenerator(object):
