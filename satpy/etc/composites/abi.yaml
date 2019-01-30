@@ -191,23 +191,21 @@ composites:
 
 ## Cloud Phase Distinction or Day Cloud Phase (name from NASA SPORT) or Cloud Type RGB(name from EUMETSAT)
   cloud_phase_distinction_raw:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C13
     - name: C02
     - name: C05
-    high_resolution_band: green
     standard_name: cloud_phase_distinction
 
   cloud_phase_distinction:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C13
     - name: C02
       modifiers: [sunz_corrected, rayleigh_corrected]
     - name: C05
       modifiers: [sunz_corrected]
-    high_resolution_band: green
     standard_name: cloud_phase_distinction
 
 ## Water Vapors RGB or Simple Water Vapor (name from NASA SPORT)
@@ -380,12 +378,11 @@ composites:
     standard_name: smoke_haze
 ## RGB composite for fire hotspots
   fire_hotspots:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C07
     - name: C06
     - name: C05
-    high_resolution_band: blue
     standard_name: fire_hotspots
 
 ## Day Convection version 1 by traditional bands (for WIS* users)
@@ -488,4 +485,34 @@ composites:
     - name: C02
     - name: C06
     - name: C14
-standard_name: fire_detection
+    standard_name: fire_detection
+
+  natural_color_enh_raw:
+    compositor: !!python/name:satpy.composites.NaturaColorEnh
+    prerequisites:
+    - name: C05
+    - name: C03
+    - name: C02
+    standard_name: natural_color_enh
+
+  natural_color_enh:
+    compositor: !!python/name:satpy.composites.NaturaColorEnh
+    prerequisites:
+    - name: C05
+      modifiers: [sunz_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
+    standard_name: natural_color_enh
+
+  natural_color_enh_var:
+    compositor: !!python/name:satpy.composites.NaturaColorEnh
+    prerequisites:
+    - name: C05
+      modifiers: [sunz_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
+    standard_name: natural_color_enh_var

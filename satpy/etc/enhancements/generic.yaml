@@ -854,3 +854,26 @@ enhancements:
       method: *gammafun
       kwargs:
         gamma: [1, 2.5, 1]
+
+  natural_color_enh:
+    standard_name: natural_color_enh
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [    0,  0,  0,]
+        max_stretch: [589.0, 95, 95,]
+
+  natural_color_enh_var:
+    standard_name: natural_color_enh_var
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [    0,  0,  0,]
+        max_stretch: [589.0, 120, 120,]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: 1.8}

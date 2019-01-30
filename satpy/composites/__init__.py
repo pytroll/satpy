@@ -1363,3 +1363,17 @@ class SandwichCompositor(GenericCompositor):
         rgb_img = enhance2dataset(projectables[1])
         rgb_img *= luminance
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
+
+
+class NaturaColorEnh(GenericCompositor):    
+
+    def __call__(self, projectables, *args, **kwargs):
+        _ch1 = projectables[0]
+        ch2 = projectables[1]
+        ch3 = projectables[2]
+        ch1 = (ch3 * 2.2) + (ch2 * 2.5) + (_ch1 * 1.3)
+        ch1.attrs = _ch1.attrs
+
+        res = super(NaturaColorEnh, self).__call__((ch1, ch2, ch3),
+                                                    *args, **kwargs)
+        return res
