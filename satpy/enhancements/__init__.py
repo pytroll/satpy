@@ -205,20 +205,19 @@ def create_colormap(palette):
     fname = palette.get('filename', None)
     if fname:
         data = np.load(fname)
-        ctabmode = palette.get('ctab_mode', 'VRGB')
+        mode = palette.get('colormap_mode', 'VRGB')
+        cols = data.shape[1]
         num = 1.0 * data.shape[0]
 
-        def _check_if_values(columns, mode):
-            if columns == 3:
-                return False
-            if columns == 5:
-                return True
-            return(columns == 4 and mode == 'VRGB')
+        # Hardwire mode for r,g,b and v,r,g,b,a
+        if cols == 3:
+            mode = 'RGB'
+        if cols == 5:
+            mode = 'VRGBA'
 
-        HasValues = _check_if_values(data.shape[1], ctabmode)
         cmap = []
         for i, ls in enumerate(data):
-            if HasValues:
+            if mode[0] == 'V':
                 value = ls[0]
                 colors = [v/255.0 for v in ls[1:]]
             else:
