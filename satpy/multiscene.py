@@ -31,7 +31,7 @@ import xarray as xr
 import pandas as pd
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
-from satpy.dataset import combine_metadata
+from satpy.dataset import combine_metadata, DatasetID
 from itertools import chain
 
 try:
@@ -158,20 +158,8 @@ class _SceneGenerator(object):
 
     def __getitem__(self, ds_id):
         """Get a specific dataset from the scenes."""
-        if ds_id in self._dataset_idx:
-            raise RuntimeError("Cannot get SceneGenerator item multiple times")
-        self._dataset_idx[ds_id] = idx = 0
-        while True:
-            if idx >= len(self._scene_cache):
-                try:
-                    scn = next(self._self_iter)
-                except StopIteration:
-                    return
-            else:
-                scn = self._scene_cache[idx]
+        for scn in self:
             yield scn.get(ds_id)
-            idx += 1
-            self._dataset_idx[ds_id] = idx
 
 
 class MultiScene(object):
@@ -410,7 +398,7 @@ class MultiScene(object):
             info_scenes.append(scenes[-1])
 
         available_ds = [first_scene.datasets.get(ds) for ds in first_scene.wishlist]
-        available_ds = [ds for ds in available_ds if ds is not None]
+        available_ds = [DatasetID.from_dict(ds.attrs) for ds in available_ds if ds is not None]
         dataset_ids = datasets or available_ds
 
         writers = []
