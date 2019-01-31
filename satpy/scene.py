@@ -924,7 +924,6 @@ class Scene(MetadataObject):
         """Resample `datasets` to the `destination` area."""
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
-        max_area = None
         if isinstance(destination_area, (str, six.text_type)):
             destination_area = get_area_def(destination_area)
         if hasattr(destination_area, 'freeze'):
@@ -954,8 +953,8 @@ class Scene(MetadataObject):
             source_area = dataset.attrs['area']
             try:
                 if reduce_data:
-                    dataset = self._reduce_data(source_area, destination_area,
-                                                dataset)
+                    dataset = self._reduce_data(source_area, destination_area, dataset)
+                    source_area = dataset.attrs['area']
                 else:
                     LOG.debug("Data reduction disabled by the user")
             except NotImplementedError:
