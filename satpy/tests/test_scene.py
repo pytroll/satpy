@@ -1508,15 +1508,7 @@ class TestSceneResampling(unittest.TestCase):
         proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
                                       '+lon_0=-95. +lat_0=25 +lat_1=25 '
                                       '+units=m +no_defs')
-        area_def = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            proj_dict,
-            200,
-            400,
-            (-1000., -1500., 1000., 1500.),
-        )
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 200, 400, (-1000., -1500., 1000., 1500.))
 
         scene = satpy.scene.Scene(filenames=['bla'],
                                   base_dir='bli',
@@ -1539,31 +1531,58 @@ class TestSceneResampling(unittest.TestCase):
 
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
-        self.assertTupleEqual(
-            tuple(loaded_ids[0]), tuple(DatasetID(name='comp19')))
-        self.assertTupleEqual(
-            tuple(loaded_ids[1]), tuple(DatasetID(name='ds1')))
+        self.assertTupleEqual(tuple(loaded_ids[0]), tuple(DatasetID(name='comp19')))
+        self.assertTupleEqual(tuple(loaded_ids[1]), tuple(DatasetID(name='ds1')))
 
         loaded_ids = list(new_scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
-        self.assertTupleEqual(
-            tuple(loaded_ids[0]), tuple(DatasetID(name='comp19')))
-        self.assertTupleEqual(
-            tuple(loaded_ids[1]), tuple(DatasetID(name='new_ds')))
+        self.assertTupleEqual(tuple(loaded_ids[0]), tuple(DatasetID(name='comp19')))
+        self.assertTupleEqual(tuple(loaded_ids[1]), tuple(DatasetID(name='new_ds')))
 
         # Test that data reduction can be disabled
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
-                                  reader='fake_reader')
+        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
 
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
-        new_scene = scene.resample(area_def, reduce_data=False)
+        scene.resample(area_def, reduce_data=False)
         self.assertFalse(reduce_data.called)
-        new_scene = scene.resample(area_def)
+        scene.resample(area_def)
         self.assertTrue(reduce_data.called_once)
-        new_scene = scene.resample(area_def, reduce_data=True)
+        scene.resample(area_def, reduce_data=True)
         self.assertEqual(reduce_data.call_count, 2)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_resample_reduce_data(self, cri, cl):
+        """Test that the Scene reducing data does not affect final output."""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+
+        scene.load(['comp19'])
+        scene['comp19'].attrs['area'] = area_def
+        dst_area = AreaDefinition('dst', 'dst', 'dst',
+                                  proj_dict,
+                                  2, 2,
+                                  (-1000., -1500., 0., 0.),
+                                  )
+        new_scene1 = scene.resample(dst_area, reduce_data=False)
+        new_scene2 = scene.resample(dst_area)
+        new_scene3 = scene.resample(dst_area, reduce_data=True)
+        self.assertTupleEqual(new_scene1['comp19'].shape, (2, 2, 3))
+        self.assertTupleEqual(new_scene2['comp19'].shape, (2, 2, 3))
+        self.assertTupleEqual(new_scene3['comp19'].shape, (2, 2, 3))
 
     @mock.patch('satpy.scene.resample_dataset')
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
