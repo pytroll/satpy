@@ -356,7 +356,7 @@ class MultiScene(object):
             yield data.data
 
     def save_animation(self, filename, datasets=None, fps=10, fill_value=None,
-                       batch_size=None, ignore_missing=False, **kwargs):
+                       batch_size=None, ignore_missing=False, client=None, scatter=False, **kwargs):
         """Helper method for saving to movie or GIF formats.
 
         Supported formats are dependent on the `imageio` library and are
@@ -379,6 +379,11 @@ class MultiScene(object):
                               issues. Defaults to all of the arrays at once.
             ignore_missing (bool): Don't include a black frame when a dataset
                                    is missing from a child scene.
+            client (dask.distributed.Client): Dask distributed client to use
+                for computation.
+            scatter (bool): Use ``client.scatter`` instead of
+                ``client.submit``. See :meth:`dask.distributed.Client.scatter`
+                for details.
             kwargs: Additional keyword arguments to pass to
                    `imageio.get_writer`.
 
@@ -401,8 +406,13 @@ class MultiScene(object):
         available_ds = [DatasetID.from_dict(ds.attrs) for ds in available_ds if ds is not None]
         dataset_ids = datasets or available_ds
 
-        writers = []
-        delayeds = []
+        if not dataset_ids:
+            raise RuntimeError("No datasets found for saving (resampling may be needed to generate composites)")
+
+        # writers = []
+        writers = {}
+        # delayeds = []
+        frames = {}
         for dataset_id in dataset_ids:
             if not self.is_generator and not self._all_same_area([dataset_id]):
                 raise ValueError("Sub-scene datasets must all be on the same "
@@ -414,15 +424,66 @@ class MultiScene(object):
             data_to_write = self._get_animation_frames(all_datasets, shape, this_fill, ignore_missing)
 
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
-            delayed = cascaded_compute(writer.append_data, data_to_write,
-                                       batch_size=batch_size)
+            frames[dataset_id] = data_to_write
+            # delayeds.append(data_to_write)
+            # delayed = cascaded_compute(writer.append_data, data_to_write, batch_size=batch_size)
             # Save delayeds and writers to compute and close later
-            delayeds.append(delayed)
-            writers.append(writer)
-        # compute all the datasets at once to combine any computations that can be shared
-        iter_delayeds = [iter(x) for x in delayeds]
-        for delayed_batch in zip_longest(*iter_delayeds):
-            delayed_batch = [x for x in delayed_batch if x is not None]
-            dask.compute(delayed_batch)
-        for writer in writers:
+            # delayeds.append(delayed)
+            writers[dataset_id] = writer
+
+        from dask.distributed import as_completed
+        _client = client
+        if _client is None:
+            from dask.distributed import get_client, Client
+            try:
+                # get existing client
+                _client = client = get_client()
+            except ValueError:
+                # create new client
+                _client = Client()
+
+        # get an ordered list of frames
+        frame_keys, frames_to_write = list(zip(*frames.items()))
+        frames_to_write = zip(*frames_to_write)
+
+        def _process_frames(frame_delayeds):
+            # res = dask.compute(frame_delayeds)
+            # ds_dict = dict(zip(frame_keys, frame_delayeds))
+            # key -> future
+            future_list = _client.compute(frame_delayeds)
+            future_dict = dict(zip(frame_keys, future_list))
+            return future_dict
+            # if scatter:
+            #     future_dict = _client.scatter(ds_dict)
+            # else:
+            #     future_dict = _client.submit(ds_dict)
+
+        prev_futures = _process_frames(next(frames_to_write))
+        for frame_delayeds in chain(frames_to_write, [None]):
+            if frame_delayeds is not None:
+                # start computing the next frame
+                curr_futures = _process_frames(frame_delayeds)
+
+            # write the current frame
+            # future -> key
+            future_dict = prev_futures
+            rev_future_dict = {v: k for k, v in future_dict.items()}
+            result_iter = as_completed(future_dict.values(), with_results=True)
+            for future, result in result_iter:
+                frame_key = rev_future_dict[future]
+                w = writers[frame_key]
+                w.append_data(result)
+
+            if frame_delayeds is not None:
+                # prepare for the next iteration
+                prev_futures = curr_futures
+
+        for writer in writers.values():
             writer.close()
+        if client is None:
+            log.debug("Closing dask client...")
+            _client.close()
+
+
+def no_op(x):
+    return x
