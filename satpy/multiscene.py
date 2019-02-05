@@ -446,37 +446,42 @@ class MultiScene(object):
         frame_keys, frames_to_write = list(zip(*frames.items()))
         frames_to_write = zip(*frames_to_write)
 
-        def _process_frames(frame_delayeds):
-            # res = dask.compute(frame_delayeds)
-            # ds_dict = dict(zip(frame_keys, frame_delayeds))
-            # key -> future
-            future_list = _client.compute(frame_delayeds)
-            future_dict = dict(zip(frame_keys, future_list))
-            return future_dict
-            # if scatter:
-            #     future_dict = _client.scatter(ds_dict)
-            # else:
-            #     future_dict = _client.submit(ds_dict)
+        from queue import Queue
+        input_q = Queue(batch_size or 1)
+        from threading import Thread
 
-        prev_futures = _process_frames(next(frames_to_write))
-        for frame_delayeds in chain(frames_to_write, [None]):
-            if frame_delayeds is not None:
-                # start computing the next frame
-                curr_futures = _process_frames(frame_delayeds)
+        def load_data(frame_gen, q):
+            for frame_arrays in frame_gen:
+                future_list = _client.compute(frame_arrays)
+                future_dict = dict(zip(frame_keys, future_list))
+                q.put(future_dict)
+            q.put(None)
+
+        load_thread = Thread(target=load_data, args=(frames_to_write, input_q,))
+        load_thread.start()
+
+        while True:
+            future_dict = input_q.get()
+            if future_dict is None:
+                break
 
             # write the current frame
             # future -> key
-            future_dict = prev_futures
             rev_future_dict = {v: k for k, v in future_dict.items()}
             result_iter = as_completed(future_dict.values(), with_results=True)
             for future, result in result_iter:
                 frame_key = rev_future_dict[future]
                 w = writers[frame_key]
                 w.append_data(result)
+            input_q.task_done()
 
-            if frame_delayeds is not None:
-                # prepare for the next iteration
-                prev_futures = curr_futures
+        log.debug("Waiting for child thread...")
+        load_thread.join(10)
+        if load_thread.is_alive():
+            import warnings
+            warnings.warn("Background thread still alive after failing to die gracefully")
+        else:
+            log.debug("Child thread died successfully")
 
         for writer in writers.values():
             writer.close()
