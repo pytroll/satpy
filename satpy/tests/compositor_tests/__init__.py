@@ -686,6 +686,43 @@ class TestGenericCompositor(unittest.TestCase):
         self.assertIsNone(res.attrs['wavelength'])
         self.assertEqual(res.attrs['mode'], 'LA')
 
+class TestNaturalEnhCompositor(unittest.TestCase):
+    """Test NaturalEnh compositor."""
+
+    def setUp(self):
+        self.ch1 = xr.DataArray([1.0])
+        self.ch2 = xr.DataArray([2.0])
+        self.ch3 = xr.DataArray([3.0])
+        self.ch16_w = 2.0
+        self.ch08_w = 3.0
+        self.ch06_w = 4.0
+
+    @mock.patch('satpy.composites.NaturalEnh.__repr__')
+    @mock.patch('satpy.composites.GenericCompositor')
+    @mock.patch('satpy.composites.NaturalEnh.check_areas')
+    def test_natural_enh(self, check_areas, generic, repr_):
+        from satpy.composites import NaturalEnh
+        repr_.return_value = ''
+        projectables = [self.ch1, self.ch2, self.ch3]
+        def temp_func(*args):
+            return args[1]
+        generic.side_effect = temp_func
+        check_areas.return_value = projectables
+        comp = NaturalEnh(ch16_w=self.ch16_w, ch08_w=self.ch08_w,
+                          ch06_w=self.ch06_w)
+        self.assertEqual(comp.ch16_w, self.ch16_w)
+        self.assertEqual(comp.ch08_w, self.ch08_w)
+        self.assertEqual(comp.ch06_w, self.ch06_w)
+        res = comp(projectables)
+        check_areas.assert_called_once_with(projectables)
+        generic.assert_called_once()
+        correct = (self.ch16_w * projectables[0] +
+                   self.ch08_w * projectables[1] +
+                   self.ch06_w * projectables[2])
+        self.assertEqual(res[0], correct)
+        self.assertEqual(res[1], projectables[1])
+        self.assertEqual(res[2], projectables[2])
+
 
 def suite():
     """Test suite for all reader tests."""
