@@ -55,51 +55,6 @@ except ImportError:
 log = logging.getLogger(__name__)
 
 
-def cascaded_compute(callback, arrays, batch_size=None, optimize=True):
-    """Dask helper function for iterating over computed dask arrays.
-
-    Args:
-        callback (callable): Called with a single numpy array computed from
-                             the provided dask arrays.
-        arrays (list, tuple): Dask arrays to pass to callback.
-        batch_size (int): Group computation in to this many arrays at a time.
-        optimize (bool): Whether to try to optimize the dask graphs of the
-                         provided arrays.
-
-    Returns: `dask.Delayed` object to be computed
-
-    """
-    def _callback_wrapper(arr, previous_call, cb=callback):
-        del previous_call  # used only for task ordering
-        return cb(arr)
-
-    array_batches = []
-    if not batch_size:
-        array_batches.append(arrays)
-    else:
-        arr_gens = iter(arrays)
-        array_batches = (arrs for arrs in zip_longest(*([arr_gens] * batch_size)))
-
-    for batch_arrs in array_batches:
-        batch_arrs = [x for x in batch_arrs if x is not None]
-        if optimize:
-            # optimize Dask graph over all objects
-            dsk = da.Array.__dask_optimize__(
-                # combine all Dask Array graphs
-                HighLevelGraph.merge(*[e.__dask_graph__() for e in batch_arrs]),
-                # get Dask Array keys in result
-                list(dask.core.flatten([e.__dask_keys__() for e in batch_arrs]))
-            )
-            # rebuild Dask Arrays
-            batch_arrs = [da.Array(dsk, e.name, e.chunks, e.dtype) for e in batch_arrs]
-
-        current_write = None
-        for dask_arr in batch_arrs:
-            current_write = dask.delayed(_callback_wrapper)(
-                dask_arr, current_write)
-        yield current_write
-
-
 def stack(datasets):
     """First dataset at the bottom."""
     base = datasets[0].copy()
@@ -473,9 +428,7 @@ class MultiScene(object):
         if not dataset_ids:
             raise RuntimeError("No datasets found for saving (resampling may be needed to generate composites)")
 
-        # writers = []
         writers = {}
-        # delayeds = []
         frames = {}
         for dataset_id in dataset_ids:
             if not self.is_generator and not self._all_same_area([dataset_id]):
@@ -489,10 +442,6 @@ class MultiScene(object):
 
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
             frames[dataset_id] = data_to_write
-            # delayeds.append(data_to_write)
-            # delayed = cascaded_compute(writer.append_data, data_to_write, batch_size=batch_size)
-            # Save delayeds and writers to compute and close later
-            # delayeds.append(delayed)
             writers[dataset_id] = writer
 
         client = client or None  # convert False/None to None
@@ -524,7 +473,3 @@ class MultiScene(object):
         if close_client:
             log.debug("Closing dask client...")
             client.close()
-
-
-def no_op(x):
-    return x
