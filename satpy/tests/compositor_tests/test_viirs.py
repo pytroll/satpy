@@ -97,7 +97,7 @@ class TestVIIRSComposites(unittest.TestCase):
                          'equalized_radiance')
         data = res.compute()
         unique_values = np.unique(data)
-        np.testing.assert_allclose(unique_values, [0.5994, 0.7992, 0.999], rtol=1e-4)
+        np.testing.assert_allclose(unique_values, [0.5994, 0.7992, 0.999], rtol=1e-3)
 
     def test_adaptive_dnb(self):
         """Test the 'adaptive_dnb' compositor."""
