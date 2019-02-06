@@ -457,7 +457,7 @@ class MultiScene(object):
             except ValueError:
                 # create new client
                 from dask.distributed import Client
-                client = Client()
+                client = Client(diagnostics_port=None)
                 close_client = True
 
         # get an ordered list of frames
