@@ -453,24 +453,24 @@ class MultiScene(object):
         def load_data(frame_gen, q):
             for frame_arrays in frame_gen:
                 future_list = _client.compute(frame_arrays)
-                future_dict = dict(zip(frame_keys, future_list))
-                q.put(future_dict)
+                for frame_key, arr_future in zip(frame_keys, future_list):
+                    q.put({frame_key: arr_future})
             q.put(None)
 
         load_thread = Thread(target=load_data, args=(frames_to_write, input_q,))
+        remote_q = _client.gather(input_q)
         load_thread.start()
 
         while True:
-            future_dict = input_q.get()
+            future_dict = remote_q.get()
             if future_dict is None:
                 break
 
             # write the current frame
-            # future -> key
-            rev_future_dict = {v: k for k, v in future_dict.items()}
-            result_iter = as_completed(future_dict.values(), with_results=True)
-            for future, result in result_iter:
-                frame_key = rev_future_dict[future]
+            # this should only be one element in the dictionary, but this is
+            # also the easiest way to get access to the data
+            for frame_key, result in future_dict.items():
+                # frame_key = rev_future_dict[future]
                 w = writers[frame_key]
                 w.append_data(result)
             input_q.task_done()
