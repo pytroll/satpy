@@ -312,7 +312,12 @@ class MultiScene(object):
 
     def _distribute_frame_compute(self, writers, frame_keys, frames_to_write, client, batch_size=1):
         """Use ``dask.distributed`` to compute multiple frames at a time."""
-        from queue import Queue
+        try:
+            # python 3
+            from queue import Queue
+        except ImportError:
+            # python 2
+            from Queue import Queue
         from threading import Thread
 
         def load_data(frame_gen, q):
