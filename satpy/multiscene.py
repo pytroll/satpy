@@ -285,10 +285,8 @@ class MultiScene(object):
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
         def load_data(scene_gen, q):
-            from satpy.writers import compute_writer_results
             for scene in scene_gen:
-                delayed_save = [scene.save_datasets(compute=False, **kwargs)]
-                future = client.submit(compute_writer_results, delayed_save)
+                future = client.submit(scene.save_datasets, **kwargs)
                 q.put(future)
             q.put(None)
 
