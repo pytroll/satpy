@@ -287,22 +287,25 @@ class MultiScene(object):
         def load_data(q):
             idx = 0
             while True:
-                future = q.get()
-                if future is None:
+                future_list = q.get()
+                if future_list is None:
                     break
 
                 # save_datasets shouldn't be returning anything
-                future.result()
-                log.info("Finished saving %d scenes", idx)
+                for future in future_list:
+                    future.result()
+                    log.info("Finished saving %d scenes", idx)
+                    idx += 1
                 q.task_done()
-                idx += 1
 
         input_q = Queue(batch_size if batch_size is not None else 1)
         load_thread = Thread(target=load_data, args=(input_q,))
         load_thread.start()
 
         for scene in scenes_iter:
-            future = client.submit(scene.save_datasets, **kwargs)
+            # TODO Make this work for (source, target) datasets
+            delayed = scene.save_datasets(compute=False, **kwargs)
+            future = client.compute(delayed)
             input_q.put(future)
         input_q.put(None)
 
