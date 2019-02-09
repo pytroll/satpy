@@ -94,6 +94,12 @@ time.
     The ``from_files`` and ``group_files`` functions were added in SatPy 0.12.
     See below for an alternative solution.
 
+This will compute one video frame (image) at a time and write it to the MPEG-4
+video file. For users with more powerful systems it is possible to use
+the ``batch_size`` keyword argument and if the
+dask ``distributed`` library is installed, multiple frames can be computed
+in parallel.
+
 For older versions of SatPy we can manually create the `Scene` objects used.
 The :func:`~glob.glob` function and for loops are used to group files into
 Scene objects that, if used individually, could load the data we want. The
