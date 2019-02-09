@@ -241,10 +241,13 @@ class TestMultiSceneSave(unittest.TestCase):
             self.base_dir,
             'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
         writer_mock = mock.MagicMock()
+        client_mock = mock.MagicMock()
+        client_mock.compute.side_effect = lambda x: tuple(v.compute() for v in x)
+        client_mock.gather.side_effect = lambda x: x
         with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
             get_writer.return_value = writer_mock
             # force order of datasets by specifying them
-            mscn.save_animation(fn, datasets=['ds1', 'ds2', 'ds3'])
+            mscn.save_animation(fn, client=client_mock, datasets=['ds1', 'ds2', 'ds3'])
 
         # 2 saves for the first scene + 1 black frame
         # 3 for the second scene
@@ -253,22 +256,6 @@ class TestMultiSceneSave(unittest.TestCase):
         self.assertEqual(filenames[0], 'test_save_mp4_ds1_20180101_00_20180102_12.mp4')
         self.assertEqual(filenames[1], 'test_save_mp4_ds2_20180101_00_20180102_12.mp4')
         self.assertEqual(filenames[2], 'test_save_mp4_ds3_20180102_00_20180102_12.mp4')
-
-        # make sure that not specifying datasets still saves all of them
-        fn = os.path.join(
-            self.base_dir,
-            'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
-        writer_mock = mock.MagicMock()
-        with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
-            get_writer.return_value = writer_mock
-            # force order of datasets by specifying them
-            mscn.save_animation(fn)
-        # the 'ds3' dataset isn't known to the first scene so it doesn't get saved
-        # 2 for first scene, 2 for second scene
-        self.assertEqual(writer_mock.append_data.call_count, 2 + 2)
-        self.assertIn('test_save_mp4_ds1_20180101_00_20180102_12.mp4', filenames)
-        self.assertIn('test_save_mp4_ds2_20180101_00_20180102_12.mp4', filenames)
-        self.assertIn('test_save_mp4_ds3_20180102_00_20180102_12.mp4', filenames)
 
 
 class TestBlendFuncs(unittest.TestCase):
