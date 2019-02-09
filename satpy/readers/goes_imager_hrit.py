@@ -432,7 +432,7 @@ class HRITGOESFileHandler(HRITFileHandler):
         idx = self.mda['calibration_parameters']['indices']
         val = self.mda['calibration_parameters']['values']
         data.data = da.where(data.data == 0, np.nan, data.data)
-        ddata = data.data.map_blocks(lambda block: np.interp(block, idx, val), dtype=val.dtype)
+        ddata = data.data.map_blocks(np.interp, idx, val, dtype=val.dtype)
         res = xr.DataArray(ddata,
                            dims=data.dims, attrs=data.attrs,
                            coords=data.coords)
