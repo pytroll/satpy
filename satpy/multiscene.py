@@ -284,30 +284,30 @@ class MultiScene(object):
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""
-        def load_data(scene_gen, q):
-            for scene in scene_gen:
-                future = client.submit(scene.save_datasets, **kwargs)
-                q.put(future)
-            q.put(None)
+        def load_data(q):
+            idx = 0
+            while True:
+                future = q.get()
+                if future is None:
+                    break
+
+                # save_datasets shouldn't be returning anything
+                future.result()
+                log.info("Finished saving %d scenes", idx)
+                q.task_done()
+                idx += 1
 
         input_q = Queue(batch_size if batch_size is not None else 1)
-        load_thread = Thread(target=load_data, args=(scenes_iter, input_q,))
+        load_thread = Thread(target=load_data, args=(input_q,))
         load_thread.start()
 
-        idx = 0
-        while True:
-            future = input_q.get()
-            if future is None:
-                break
+        for scene in scenes_iter:
+            future = client.submit(scene.save_datasets, **kwargs)
+            input_q.put(future)
+        input_q.put(None)
 
-            # save_datasets shouldn't be returning anything
-            future.result()
-            log.info("Finished saving %d scenes", idx)
-            input_q.task_done()
-            idx += 1
-
-        log.debug("Waiting for child thread...")
-        load_thread.join(10)
+        log.debug("Waiting for child thread to get saved results...")
+        load_thread.join()
         if load_thread.is_alive():
             import warnings
             warnings.warn("Background thread still alive after failing to die gracefully")
