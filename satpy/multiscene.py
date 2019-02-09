@@ -33,6 +33,14 @@ from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 from satpy.dataset import combine_metadata, DatasetID
 from itertools import chain
+from threading import Thread
+
+try:
+    # python 3
+    from queue import Queue
+except ImportError:
+    # python 2
+    from Queue import Queue
 
 try:
     # new API
@@ -249,6 +257,10 @@ class MultiScene(object):
         """Load the required datasets from the multiple scenes."""
         self._generate_scene_func(self._scenes, 'load', False, *args, **kwargs)
 
+    def crop(self, *args, **kwargs):
+        """Crop the multiscene and return a new cropped multiscene."""
+        return self._generate_scene_func(self._scenes, 'crop', True, *args, **kwargs)
+
     def resample(self, destination=None, **kwargs):
         """Resample the multiscene."""
         return self._generate_scene_func(self._scenes, 'resample', True, destination=destination, **kwargs)
@@ -269,6 +281,87 @@ class MultiScene(object):
             new_scn[ds_id] = blend_function(datasets)
 
         return new_scn
+
+    def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
+        """Distribute save_datasets across a cluster."""
+        def load_data(scene_gen, q):
+            from satpy.writers import compute_writer_results
+            for scene in scene_gen:
+                delayed_save = [scene.save_datasets(compute=False, **kwargs)]
+                future = client.submit(compute_writer_results, delayed_save)
+                q.put(future)
+            q.put(None)
+
+        input_q = Queue(batch_size if batch_size is not None else 1)
+        load_thread = Thread(target=load_data, args=(scenes_iter, input_q,))
+        load_thread.start()
+
+        idx = 0
+        while True:
+            future = input_q.get()
+            if future is None:
+                break
+
+            # save_datasets shouldn't be returning anything
+            future.result()
+            log.info("Finished saving %d scenes", idx)
+            input_q.task_done()
+            idx += 1
+
+        log.debug("Waiting for child thread...")
+        load_thread.join(10)
+        if load_thread.is_alive():
+            import warnings
+            warnings.warn("Background thread still alive after failing to die gracefully")
+        else:
+            log.debug("Child thread died successfully")
+
+    def _simple_save_datasets(self, scenes_iter, **kwargs):
+        """Helper to simple run save_datasets on each Scene."""
+        for scn in scenes_iter:
+            scn.save_datasets(**kwargs)
+
+    def save_datasets(self, client=True, batch_size=1, **kwargs):
+        """Run save_datasets on each Scene.
+
+        Note that some writers may not be multi-process friendly and may
+        produce unexpected results or fail by raising an exception. In
+        these cases ``client`` should be set to ``False``.
+        This is currently a known issue for basic 'geotiff' writer work loads.
+
+        Args:
+            batch_size (int): Number of scenes to compute at the same time.
+                This only has effect if the `dask.distributed` package is
+                installed. This will default to 1. Setting this to 0 or less
+                will attempt to process all scenes at once. This option should
+                be used with care to avoid memory issues when trying to
+                improve performance.
+            client (bool or dask.distributed.Client): Dask distributed client
+                to use for computation. If this is ``True`` (default) then
+                any existing clients will be used or a new one created.
+                If this is ``False`` or ``None`` then a client will not be
+                created and ``dask.distributed`` will not be used. If this
+                is a dask ``Client`` object then it will be used for
+                distributed computation.
+            kwargs: Additional keyword arguments to pass to
+                    :meth:`~satpy.scene.Scene.save_datasets`.
+                    Note ``compute`` can not be provided.
+
+        """
+        if 'compute' in kwargs:
+            raise ValueError("The 'compute' keyword argument can not be provided.")
+
+        client, close_client = self._get_client(client=client)
+
+        scenes = iter(self._scenes)
+        if client is not None:
+            self._distribute_save_datasets(scenes, client, batch_size=batch_size, **kwargs)
+        else:
+            self._simple_save_datasets(scenes, **kwargs)
+
+        if close_client:
+            log.debug("Closing dask client...")
+            client.close()
 
     def _get_animation_info(self, all_datasets, filename, fill_value=None):
         """Determine filename and shape of animation to be created."""
@@ -310,16 +403,27 @@ class MultiScene(object):
                     data = data.transpose('y', 'x', 'bands')
             yield data.data
 
+    def _get_client(self, client=True):
+        """Determine what dask distributed client to use."""
+        client = client or None  # convert False/None to None
+        close_client = False
+        if client is True:
+            try:
+                # get existing client
+                from dask.distributed import get_client
+                client = get_client()
+            except ImportError:
+                log.debug("'dask.distributed' library was not found, will "
+                          "use simple frame processing.")
+            except ValueError:
+                # create new client
+                from dask.distributed import Client
+                client = Client()
+                close_client = True
+        return client, close_client
+
     def _distribute_frame_compute(self, writers, frame_keys, frames_to_write, client, batch_size=1):
         """Use ``dask.distributed`` to compute multiple frames at a time."""
-        try:
-            # python 3
-            from queue import Queue
-        except ImportError:
-            # python 2
-            from Queue import Queue
-        from threading import Thread
-
         def load_data(frame_gen, q):
             for frame_arrays in frame_gen:
                 future_list = client.compute(frame_arrays)
@@ -391,7 +495,7 @@ class MultiScene(object):
             fps (int): Frames per second for produced animation
             fill_value (int): Value to use instead creating an alpha band.
             batch_size (int): Number of frames to compute at the same time.
-                This only has affect if the `dask.distributed` package is
+                This only has effect if the `dask.distributed` package is
                 installed. This will default to 1. Setting this to 0 or less
                 will attempt to process all frames at once. This option should
                 be used with care to avoid memory issues when trying to
@@ -449,22 +553,7 @@ class MultiScene(object):
             frames[dataset_id] = data_to_write
             writers[dataset_id] = writer
 
-        client = client or None  # convert False/None to None
-        close_client = False
-        if client is True:
-            try:
-                # get existing client
-                from dask.distributed import get_client
-                client = get_client()
-            except ImportError:
-                log.debug("'dask.distributed' library was not found, will "
-                          "use simple frame processing.")
-            except ValueError:
-                # create new client
-                from dask.distributed import Client
-                client = Client()
-                close_client = True
-
+        client, close_client = self._get_client(client=client)
         # get an ordered list of frames
         frame_keys, frames_to_write = list(zip(*frames.items()))
         frames_to_write = zip(*frames_to_write)
