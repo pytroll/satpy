@@ -705,13 +705,6 @@ class NativeResampler(BaseResampler):
     @staticmethod
     def aggregate(d, y_size, x_size):
         """Average every 4 elements (2x2) in a 2D array"""
-        def _mean(data):
-            rows, cols = data.shape
-            new_shape = (int(rows / y_size), int(y_size),
-                         int(cols / x_size), int(x_size))
-            data_mean = np.nanmean(data.reshape(new_shape), axis=(1, 3))
-            return data_mean
-
         if d.ndim != 2:
             # we can't guarantee what blocks we are getting and how
             # it should be reshaped to do the averaging.
