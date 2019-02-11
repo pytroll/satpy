@@ -177,7 +177,10 @@ def get_area_def(area_name):
     The file is defined to use is to be placed in the $PPP_CONFIG_DIR
     directory, and its name is defined in satpy's configuration file.
     """
-    from pyresample.utils import parse_area_file
+    try:
+        from pyresample import parse_area_file
+    except ImportError:
+        from pyresample.utils import parse_area_file
     return parse_area_file(get_area_file(), area_name)[0]
 
 
