@@ -1291,8 +1291,7 @@ def _mean4(data, offset=(0, 0), block_id=None):
     new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
     data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
     data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
-    data_mean = data_mean[row_offset:row_offset + rows,
-                col_offset:col_offset + cols]
+    data_mean = data_mean[row_offset:row_offset + rows, col_offset:col_offset + cols]
     return data_mean
 
 
