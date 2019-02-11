@@ -303,8 +303,13 @@ class MultiScene(object):
         load_thread.start()
 
         for scene in scenes_iter:
-            # TODO Make this work for (source, target) datasets
             delayed = scene.save_datasets(compute=False, **kwargs)
+            if isinstance(delayed, (list, tuple)) and len(delayed) == 2:
+                # TODO Make this work for (source, target) datasets
+                # given a target, source combination
+                raise NotImplementedError("Distributed save_datasets does not support writers "
+                                          "that return (source, target) combinations at this time. Use "
+                                          "the non-distributed save_datasets instead.")
             future = client.compute(delayed)
             input_q.put(future)
         input_q.put(None)
@@ -339,7 +344,7 @@ class MultiScene(object):
                 improve performance.
             client (bool or dask.distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
-                any existing clients will be used or a new one created.
+                any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be
                 created and ``dask.distributed`` will not be used. If this
                 is a dask ``Client`` object then it will be used for
@@ -352,17 +357,13 @@ class MultiScene(object):
         if 'compute' in kwargs:
             raise ValueError("The 'compute' keyword argument can not be provided.")
 
-        client, close_client = self._get_client(client=client)
+        client = self._get_client(client=client)
 
         scenes = iter(self._scenes)
         if client is not None:
             self._distribute_save_datasets(scenes, client, batch_size=batch_size, **kwargs)
         else:
             self._simple_save_datasets(scenes, **kwargs)
-
-        if close_client:
-            log.debug("Closing dask client...")
-            client.close()
 
     def _get_animation_info(self, all_datasets, filename, fill_value=None):
         """Determine filename and shape of animation to be created."""
@@ -407,7 +408,6 @@ class MultiScene(object):
     def _get_client(self, client=True):
         """Determine what dask distributed client to use."""
         client = client or None  # convert False/None to None
-        close_client = False
         if client is True:
             try:
                 # get existing client
@@ -415,13 +415,11 @@ class MultiScene(object):
                 client = get_client()
             except ImportError:
                 log.debug("'dask.distributed' library was not found, will "
-                          "use simple frame processing.")
+                          "use simple serial processing.")
             except ValueError:
-                # create new client
-                from dask.distributed import Client
-                client = Client()
-                close_client = True
-        return client, close_client
+                log.warning("No dask distributed client was provided or found, "
+                            "but distributed features were requested. Will use simple serial processing.")
+        return client
 
     def _distribute_frame_compute(self, writers, frame_keys, frames_to_write, client, batch_size=1):
         """Use ``dask.distributed`` to compute multiple frames at a time."""
@@ -508,7 +506,7 @@ class MultiScene(object):
                                    is missing from a child scene.
             client (bool or dask.distributed.Client): Dask distributed client
                 to use for computation. If this is ``True`` (default) then
-                any existing clients will be used or a new one created.
+                any existing clients will be used.
                 If this is ``False`` or ``None`` then a client will not be
                 created and ``dask.distributed`` will not be used. If this
                 is a dask ``Client`` object then it will be used for
@@ -554,7 +552,7 @@ class MultiScene(object):
             frames[dataset_id] = data_to_write
             writers[dataset_id] = writer
 
-        client, close_client = self._get_client(client=client)
+        client = self._get_client(client=client)
         # get an ordered list of frames
         frame_keys, frames_to_write = list(zip(*frames.items()))
         frames_to_write = zip(*frames_to_write)
@@ -565,6 +563,3 @@ class MultiScene(object):
 
         for writer in writers.values():
             writer.close()
-        if close_client:
-            log.debug("Closing dask client...")
-            client.close()
