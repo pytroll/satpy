@@ -74,7 +74,7 @@ Saving frames of an animation
 -----------------------------
 
 The MultiScene can take "frames" of data and join them together in a single
-animation movie file. Saving animations required the `imageio` python library
+animation movie file. Saving animations requires the `imageio` python library
 and for most available formats the ``ffmpeg`` command line tool suite should
 also be installed. The below example saves a series of GOES-EAST ABI channel
 1 and channel 2 frames to MP4 movie files. We can use the
@@ -96,9 +96,12 @@ time.
 
 This will compute one video frame (image) at a time and write it to the MPEG-4
 video file. For users with more powerful systems it is possible to use
-the ``batch_size`` keyword argument and if the
-dask ``distributed`` library is installed, multiple frames can be computed
-in parallel.
+the ``client`` and ``batch_size`` keyword arguments to compute multiple frames
+in parallel using the dask ``distributed`` library (if installed).
+See the :doc:`dask distributed <dask:setup/single-distributed>` documentation
+for information on creating a ``Client`` object. If working on a cluster
+you may want to use :doc:`dask jobqueue <jobqueue:index>` to take advantage
+of multiple nodes at a time.
 
 For older versions of SatPy we can manually create the `Scene` objects used.
 The :func:`~glob.glob` function and for loops are used to group files into
