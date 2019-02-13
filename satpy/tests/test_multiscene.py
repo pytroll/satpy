@@ -257,6 +257,114 @@ class TestMultiSceneSave(unittest.TestCase):
         self.assertEqual(filenames[1], 'test_save_mp4_ds2_20180101_00_20180102_12.mp4')
         self.assertEqual(filenames[2], 'test_save_mp4_ds3_20180102_00_20180102_12.mp4')
 
+    @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
+    def test_save_datasets_simple(self):
+        """Save a series of fake scenes to an PNG images."""
+        from satpy import MultiScene
+        area = _create_test_area()
+        scenes = _create_test_scenes(area=area)
+
+        # Add a dataset to only one of the Scenes
+        scenes[1]['ds3'] = _create_test_dataset('ds3')
+        # Add a start and end time
+        for ds_id in ['ds1', 'ds2', 'ds3']:
+            scenes[1][ds_id].attrs['start_time'] = datetime(2018, 1, 2)
+            scenes[1][ds_id].attrs['end_time'] = datetime(2018, 1, 2, 12)
+            if ds_id == 'ds3':
+                continue
+            scenes[0][ds_id].attrs['start_time'] = datetime(2018, 1, 1)
+            scenes[0][ds_id].attrs['end_time'] = datetime(2018, 1, 1, 12)
+
+        mscn = MultiScene(scenes)
+        client_mock = mock.MagicMock()
+        client_mock.compute.side_effect = lambda x: tuple(v for v in x)
+        client_mock.gather.side_effect = lambda x: x
+        with mock.patch('satpy.multiscene.Scene.save_datasets') as save_datasets:
+            save_datasets.return_value = [True]  # some arbitrary return value
+            # force order of datasets by specifying them
+            mscn.save_datasets(base_dir=self.base_dir, client=False, datasets=['ds1', 'ds2', 'ds3'],
+                               writer='simple_image')
+
+        # 2 for each scene
+        self.assertEqual(save_datasets.call_count, 2)
+
+    @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
+    def test_save_datasets_distributed(self):
+        """Save a series of fake scenes to an PNG images using dask distributed."""
+        from satpy import MultiScene
+        area = _create_test_area()
+        scenes = _create_test_scenes(area=area)
+
+        # Add a dataset to only one of the Scenes
+        scenes[1]['ds3'] = _create_test_dataset('ds3')
+        # Add a start and end time
+        for ds_id in ['ds1', 'ds2', 'ds3']:
+            scenes[1][ds_id].attrs['start_time'] = datetime(2018, 1, 2)
+            scenes[1][ds_id].attrs['end_time'] = datetime(2018, 1, 2, 12)
+            if ds_id == 'ds3':
+                continue
+            scenes[0][ds_id].attrs['start_time'] = datetime(2018, 1, 1)
+            scenes[0][ds_id].attrs['end_time'] = datetime(2018, 1, 1, 12)
+
+        mscn = MultiScene(scenes)
+        client_mock = mock.MagicMock()
+        client_mock.compute.side_effect = lambda x: tuple(v for v in x)
+        client_mock.gather.side_effect = lambda x: x
+        future_mock = mock.MagicMock()
+        with mock.patch('satpy.multiscene.Scene.save_datasets') as save_datasets:
+            save_datasets.return_value = [future_mock]  # some arbitrary return value
+            # force order of datasets by specifying them
+            mscn.save_datasets(base_dir=self.base_dir, client=client_mock, datasets=['ds1', 'ds2', 'ds3'],
+                               writer='simple_image')
+
+        # 2 for each scene
+        self.assertEqual(save_datasets.call_count, 2)
+
+    def test_crop(self):
+        """Test the crop method."""
+        from satpy import Scene, MultiScene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        import numpy as np
+        scene1 = Scene()
+        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
+                       5570248.477339745)
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        x_size = 3712
+        y_size = 3712
+        area_def = AreaDefinition(
+            'test', 'test', 'test',
+            proj_dict,
+            x_size,
+            y_size,
+            area_extent,
+        )
+        area_def2 = AreaDefinition(
+            'test2', 'test2', 'test2', proj_dict,
+            x_size // 2,
+            y_size // 2,
+            area_extent,
+            )
+        scene1["1"] = DataArray(np.zeros((y_size, x_size)))
+        scene1["2"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'))
+        scene1["3"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def})
+        scene1["4"] = DataArray(np.zeros((y_size // 2, x_size // 2)), dims=('y', 'x'),
+                                attrs={'area': area_def2})
+        mscn = MultiScene([scene1])
+
+        # by lon/lat bbox
+        new_mscn = mscn.crop(ll_bbox=(-20., -5., 0, 0))
+        new_scn1 = list(new_mscn.scenes)[0]
+        self.assertIn('1', new_scn1)
+        self.assertIn('2', new_scn1)
+        self.assertIn('3', new_scn1)
+        self.assertTupleEqual(new_scn1['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(new_scn1['3'].shape, (184, 714))
+        self.assertTupleEqual(new_scn1['4'].shape, (92, 357))
+
 
 class TestBlendFuncs(unittest.TestCase):
     """Test individual functions used for blending."""
