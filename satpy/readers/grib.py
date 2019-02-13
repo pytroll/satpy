@@ -36,6 +36,7 @@ from datetime import datetime
 
 from satpy import DatasetID, CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+import cfgrib
 import pygrib
 
 LOG = logging.getLogger(__name__)
@@ -54,7 +55,20 @@ class GRIBFileHandler(BaseFileHandler):
         self._msg_datasets = {}
         self._start_time = None
         self._end_time = None
+
+        # need the first and last messages to get the start and end time
         try:
+            #FIXME type of level
+            grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
+            #FIXME starting and ending time
+            start_time = self._convert_datetime(grib_file.valid_time.values)
+            end_time = self._convert_datetime(grib_file.valid_time.values)
+            self._start_time = start_time
+            self._end_time = end_time
+
+            self._analyze_messages(grib_file)
+            self._idx = None
+
             with pygrib.open(self.filename) as grib_file:
                 first_msg = grib_file.message(1)
                 last_msg = grib_file.message(grib_file.messages)
@@ -67,19 +81,30 @@ class GRIBFileHandler(BaseFileHandler):
                 if 'keys' not in filetype_info:
                     self._analyze_messages(grib_file)
                     self._idx = None
-                else:
+                else: #FIXME probably dont need this??
                     self._create_dataset_ids(filetype_info['keys'])
                     self._idx = pygrib.index(self.filename,
                                              *filetype_info['keys'].keys())
         except (RuntimeError, KeyError):
             raise IOError("Unknown GRIB file format: {}".format(self.filename))
 
+    # store everything in an array
     def _analyze_messages(self, grib_file):
+        # grib file is the xarray dataset
+
+        
+        # go over all of the messages in the dataarray -> can't really iterate over things in the dataarray
+        # each of the data variables in the grib file hold the actual messages (with the shortName and the level)
+        # level == typeOfLevel??
+        
+
+
         grib_file.seek(0)
         for idx, msg in enumerate(grib_file):
             msg_id = DatasetID(name=msg['shortName'],
                                level=msg['level'])
             ds_info = {
+                # FIXME probably dont need the first one, but the others can stay
                 'message': idx + 1,
                 'name': msg['shortName'],
                 'level': msg['level'],
@@ -99,6 +124,10 @@ class GRIBFileHandler(BaseFileHandler):
             ds_info.update(msg_info)
             ds_info['file_type'] = self.filetype_info['file_type']
             self._msg_datasets[msg_id] = ds_info
+
+    @staticmethod
+    def _convert_datetime(msg):
+        return datetime.utcfromtimestamp(msg.astype('O')/1e9)
 
     @staticmethod
     def _convert_datetime(msg, date_key, time_key, format="%Y%m%d%H%M"):
@@ -127,6 +156,7 @@ class GRIBFileHandler(BaseFileHandler):
         """Automatically determine datasets provided by this file"""
         return self._msg_datasets.items()
 
+    # returns from the message location in the file
     def _get_message(self, ds_info):
         with pygrib.open(self.filename) as grib_file:
             if 'message' in ds_info:
@@ -138,6 +168,7 @@ class GRIBFileHandler(BaseFileHandler):
             return msg
 
     def _area_def_from_msg(self, msg):
+        # TODO find the projparams in the data array
         proj_params = msg.projparams.copy()
         # correct for longitudes over 180
         for lon_param in ['lon_0', 'lon_1', 'lon_2']:
