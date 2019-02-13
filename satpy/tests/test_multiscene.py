@@ -25,7 +25,6 @@ import os
 import sys
 import tempfile
 import shutil
-from glob import glob
 from datetime import datetime
 
 if sys.version_info < (2, 7):
