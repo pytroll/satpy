@@ -355,18 +355,6 @@ class TestMultiSceneSave(unittest.TestCase):
                                 attrs={'area': area_def2})
         mscn = MultiScene([scene1])
 
-        # by area
-        crop_area = AreaDefinition(
-            'test',
-            'test',
-            'test',
-            proj_dict,
-            x_size,
-            y_size,
-            (area_extent[0] + 10000., area_extent[1] + 500000.,
-             area_extent[2] - 10000., area_extent[3] - 500000.)
-        )
-
         # by lon/lat bbox
         new_mscn = mscn.crop(ll_bbox=(-20., -5., 0, 0))
         new_scn1 = list(new_mscn.scenes)[0]

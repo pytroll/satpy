@@ -25,14 +25,12 @@
 
 import logging
 import numpy as np
-import dask
 import dask.array as da
 import xarray as xr
 import pandas as pd
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
 from satpy.dataset import combine_metadata, DatasetID
-from itertools import chain
 from threading import Thread
 
 try:
@@ -41,13 +39,6 @@ try:
 except ImportError:
     # python 2
     from Queue import Queue
-
-try:
-    # new API
-    from dask.highlevelgraph import HighLevelGraph
-except ImportError:
-    # old API
-    import dask.sharedict as HighLevelGraph
 
 try:
     from itertools import zip_longest
