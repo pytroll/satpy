@@ -316,11 +316,7 @@ class MultiScene(object):
 
         log.debug("Waiting for child thread to get saved results...")
         load_thread.join()
-        if load_thread.is_alive():
-            import warnings
-            warnings.warn("Background thread still alive after failing to die gracefully")
-        else:
-            log.debug("Child thread died successfully")
+        log.debug("Child thread died successfully")
 
     def _simple_save_datasets(self, scenes_iter, **kwargs):
         """Helper to simple run save_datasets on each Scene."""
