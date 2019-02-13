@@ -124,3 +124,22 @@ code below is equivalent to the ``from_files`` code above:
 
     GIF images, although supported, are not recommended due to the large file
     sizes that can be produced from only a few frames.
+
+Saving multiple scenes
+----------------------
+
+The ``MultiScene`` object includes a
+:meth:`~satpy.multiscene.MultiScene.save_datasets` method for saving the
+data from multiple Scenes to disk. By default this will operate on one Scene
+at a time, but similar to the ``save_animation`` method above this method can
+accept a dask distributed ``Client`` object via the ``client`` keyword
+argument to compute scenes in parallel (see documentation above). Note however
+that some writers, like the ``geotiff`` writer, do not support multi-process
+operations at this time and will fail when used with dask distributed. To save
+multiple Scenes use:
+
+    >>> from satpy import Scene, MultiScene
+    >>> from glob import glob
+    >>> mscn = MultiScene.from_files(glob('/data/abi/day_1/*C0[12]*.nc'), reader='abi_l1b')
+    >>> mscn.load(['C01', 'C02'])
+    >>> mscn.save_datasets(base_dir='/path/for/output')
