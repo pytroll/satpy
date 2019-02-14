@@ -27,26 +27,23 @@ import logging
 
 import dask
 import numpy as np
-from osgeo import gdal, osr
 
 from satpy.utils import ensure_dir
 from satpy.writers import ImageWriter
 
+try:
+    import rasterio
+    gdal = osr = None
+except ImportError as r_exc:
+    try:
+        # fallback to legacy gdal writer
+        from osgeo import gdal, osr
+        rasterio = None
+    except ImportError:
+        # raise the original rasterio exception
+        raise r_exc
+
 LOG = logging.getLogger(__name__)
-
-
-# Map numpy data types to GDAL data types
-NP2GDAL = {
-    np.float32: gdal.GDT_Float32,
-    np.float64: gdal.GDT_Float64,
-    np.uint8: gdal.GDT_Byte,
-    np.uint16: gdal.GDT_UInt16,
-    np.uint32: gdal.GDT_UInt32,
-    np.int16: gdal.GDT_Int16,
-    np.int32: gdal.GDT_Int32,
-    np.complex64: gdal.GDT_CFloat32,
-    np.complex128: gdal.GDT_CFloat64,
-}
 
 
 class GeoTIFFWriter(ImageWriter):
@@ -256,6 +253,20 @@ class GeoTIFFWriter(ImageWriter):
                           "This will be deprecated in the future. Install "
                           "'rasterio' for faster saving and future "
                           "compatibility.", PendingDeprecationWarning)
+
+            # Map numpy data types to GDAL data types
+            NP2GDAL = {
+                np.float32: gdal.GDT_Float32,
+                np.float64: gdal.GDT_Float64,
+                np.uint8: gdal.GDT_Byte,
+                np.uint16: gdal.GDT_UInt16,
+                np.uint32: gdal.GDT_UInt32,
+                np.int16: gdal.GDT_Int16,
+                np.int32: gdal.GDT_Int32,
+                np.complex64: gdal.GDT_CFloat32,
+                np.complex128: gdal.GDT_CFloat64,
+            }
+
             # force to numpy dtype object
             dtype = np.dtype(dtype)
             gformat = NP2GDAL[dtype.type]
