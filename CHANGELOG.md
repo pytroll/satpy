@@ -1,3 +1,35 @@
+## Version 0.12.0 (2019/02/15)
+
+### Issues Closed
+
+* [Issue 601](https://github.com/pytroll/satpy/issues/601) - MultiScene 'save_animation' fails if "datasets=" isn't provided ([PR 602](https://github.com/pytroll/satpy/pull/602))
+* [Issue 310](https://github.com/pytroll/satpy/issues/310) - Create MultiScene from list of files ([PR 576](https://github.com/pytroll/satpy/pull/576))
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 616](https://github.com/pytroll/satpy/pull/616) - Fix geotiff writer being unimportable if gdal isn't installed
+* [PR 615](https://github.com/pytroll/satpy/pull/615) - Fix confusing error in abi_l1b reader when file fails to open
+* [PR 607](https://github.com/pytroll/satpy/pull/607) - Fix VIIRS 'histogram_dnb' compositor not returning new data
+* [PR 605](https://github.com/pytroll/satpy/pull/605) - Fix enhancements using dask delayed on internal functions
+* [PR 602](https://github.com/pytroll/satpy/pull/602) - Fix MultiScene save_animation not using dataset IDs correctly ([601](https://github.com/pytroll/satpy/issues/601), [601](https://github.com/pytroll/satpy/issues/601))
+* [PR 600](https://github.com/pytroll/satpy/pull/600) - Fix resample reduce_data bug introduced in #582
+
+#### Features added
+
+* [PR 614](https://github.com/pytroll/satpy/pull/614) - Support for reduced resolution OLCI data
+* [PR 613](https://github.com/pytroll/satpy/pull/613) - Add 'crop' and 'save_datasets' to MultiScene
+* [PR 609](https://github.com/pytroll/satpy/pull/609) - Add ability to use dask distributed when generating animation videos
+* [PR 582](https://github.com/pytroll/satpy/pull/582) - Add 'reduce_data' keyword argument to disable cropping before resampling
+* [PR 576](https://github.com/pytroll/satpy/pull/576) - Add group_files and from_files utility functions for creating Scenes from multiple files ([310](https://github.com/pytroll/satpy/issues/310))
+* [PR 567](https://github.com/pytroll/satpy/pull/567) - Add utility functions for generating GeoViews plots ([541](https://github.com/pytroll/satpy/issues/541))
+
+In this release 12 pull requests were closed.
+
+
 ## Version 0.11.2 (2019/01/28)
 
 ### Issues Closed
