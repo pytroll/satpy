@@ -32,8 +32,9 @@ workers by doing the following at the **top** of your python code:
     # all other SatPy imports and code
 
 This will limit dask to using 8 workers. Typically numbers between 4 and 8
-are good starting points. This can be done by setting environment variable
-before starting the script, so code modification isn't necessary:
+are good starting points. Number of workers can also be set from an
+environment variable before running the python script, so code modification
+isn't necessary:
 
 .. code-block:: bash
 
@@ -57,10 +58,10 @@ value will change to be easier to set in python.
 Why multiple CPUs are used even with one worker?
 ------------------------------------------------
 
-Many of the underlying Python libraries use maths libraries like BLAS and
+Many of the underlying Python libraries use math libraries like BLAS and
 LAPACK written in C or FORTRAN, and they are often compiled to be
-multithreaded. It is worth trying to force the number of threads they use
-by setting an environtment variable:
+multithreaded. If necessary, it is possible to force the number of threads
+they use by setting an environment variable:
 
 .. code-block:: bash
 
@@ -72,7 +73,7 @@ What is the difference between number of workers and number of threads?
 The above questions handle two different stages of parallellization: Dask
 workers and math library threading.
 
-The number of Dask workers affect in how many separate tasks are started,
+The number of Dask workers affect how many separate tasks are started,
 effectively telling how many chunks of the data are processed at the same
 time. The more workers are in use, the higher also the memory usage will be.
 
@@ -85,8 +86,8 @@ The optimal setup is often a mix of these two settings, for example
 
     DASK_NUM_WORKERS=2 OMP_NUM_THREADS=4 python myscript.py
 
-would create two workers, and each of them would processes their chunk of data
-using 4 CPUs when calling the underlying math libraries.
+would create two workers, and each of them would process their chunk of data
+using 4 threads when calling the underlying math libraries.
 
 How do I avoid memory errors?
 -----------------------------
