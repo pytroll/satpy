@@ -114,12 +114,6 @@ datasets:
     resolution: 3000
     file_type: nc_nwcsaf_cma
 
-  cma_status_flag:
-    name: cma_status_flag
-    sensor: seviri
-    resolution: 3000
-    file_type: nc_nwcsaf_cma
-
 # ---- CT products ------------
 
   ct:
@@ -572,18 +566,6 @@ datasets:
 
   ishai_diffki_pal:
     name: ishai_diffki_pal
-    sensor: seviri
-    resolution: 3000
-    file_type: nc_nwcsaf_ishai
-
-  ishai_diffshw:
-    name: ishai_diffshw
-    sensor: seviri
-    resolution: 3000
-    file_type: nc_nwcsaf_ishai
-
-  ishai_diffshw_pal:
-    name: ishai_diffshw_pal
     sensor: seviri
     resolution: 3000
     file_type: nc_nwcsaf_ishai
