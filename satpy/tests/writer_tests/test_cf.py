@@ -118,22 +118,22 @@ class TestCFWriter(unittest.TestCase):
         import xarray as xr
         import tempfile
         scn = Scene()
-        start_timeA = datetime(2018, 5, 30, 10, 0) #expected to be used
+        start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
         end_timeA = datetime(2018, 5, 30, 10, 20)
         start_timeB = datetime(2018, 5, 30, 10, 3)
-        end_timeB = datetime(2018, 5, 30, 10, 15) #expected to be used
+        end_timeB = datetime(2018, 5, 30, 10, 15)  # expected to be used
         test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn['test-arrayA'] = xr.DataArray(test_arrayA,
-                                         dims=['x', 'y', 'time'],
-                                         coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
-                                         attrs=dict(start_time=start_timeA,
-                                                    end_time=end_timeA))
+                                          dims=['x', 'y', 'time'],
+                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
+                                          attrs=dict(start_time=start_timeA,
+                                                     end_time=end_timeA))
         scn['test-arrayB'] = xr.DataArray(test_arrayB,
-                                         dims=['x', 'y', 'time'],
-                                         coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
-                                         attrs=dict(start_time=start_timeB,
-                                                    end_time=end_timeB))
+                                          dims=['x', 'y', 'time'],
+                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
+                                          attrs=dict(start_time=start_timeB,
+                                                     end_time=end_timeB))
         try:
             handle, filename = tempfile.mkstemp()
             os.close(handle)
@@ -154,10 +154,10 @@ class TestCFWriter(unittest.TestCase):
         test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
         test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
         scn['test-arrayA'] = xr.DataArray(test_arrayA,
-                                         dims=['x', 'y', 'time'],
-                                         coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
-                                         attrs=dict(start_time=start_timeA,
-                                                    end_time=end_timeA))
+                                          dims=['x', 'y', 'time'],
+                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
+                                          attrs=dict(start_time=start_timeA,
+                                                     end_time=end_timeA))
         scn['test-arrayB'] = xr.DataArray(test_arrayB,
                                           dims=['x', 'y', 'time'],
                                           coords={'time': [np.datetime64('2018-05-30T10:05:00')]})
@@ -167,7 +167,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
-                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.]))) 
+                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
         finally:
             os.remove(filename)
 
