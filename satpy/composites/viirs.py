@@ -1039,7 +1039,7 @@ class NCCZinke(CompositeBase):
         dnb_data = dnb_data.copy() / unit_factor
 
         # convert to decimal instead of %
-        moon_illum_fraction = da.mean(datasets[3]) * 0.01
+        moon_illum_fraction = da.mean(datasets[3].data) * 0.01
 
         phi = da.rad2deg(da.arccos(2. * moon_illum_fraction - 1))
 

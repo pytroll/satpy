@@ -240,7 +240,6 @@ class TestVIIRSComposites(unittest.TestCase):
                          'ncc_radiance')
         data = res.compute()
         unique = np.unique(data)
-        print(repr(unique))
         np.testing.assert_allclose(
             unique, [3.48479712e-04, 6.96955799e-04, 1.04543189e-03, 4.75394738e-03,
                      9.50784532e-03, 1.42617433e-02, 1.50001560e+03, 3.00001560e+03,
