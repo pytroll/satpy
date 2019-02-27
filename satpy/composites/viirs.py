@@ -30,7 +30,6 @@ import numpy as np
 import dask
 import dask.array as da
 import xarray as xr
-import xarray.ufuncs as xu
 
 from satpy.composites import CompositeBase, GenericCompositor
 from satpy.config import get_environ_ancpath
@@ -481,7 +480,7 @@ class ERFDNB(CompositeBase):
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
             inner_sqrt = inner_sqrt.where(inner_sqrt > 0, 0)
-            output_dataset.data = xu.sqrt(inner_sqrt).data
+            output_dataset.data = np.sqrt(inner_sqrt).data
 
         info = dnb_data.attrs.copy()
         info.update(self.attrs)
