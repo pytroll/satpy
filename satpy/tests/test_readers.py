@@ -383,12 +383,13 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from satpy.readers import find_files_and_readers
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
-        open(fn, 'w')
+        test_file = open(fn, 'w')
         try:
             ri = find_files_and_readers(reader='viirs_sdr')
             self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
             self.assertListEqual(ri['viirs_sdr'], [fn])
         finally:
+            test_file.close()
             os.remove(fn)
 
     def test_reader_other_name(self):
@@ -396,12 +397,13 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from satpy.readers import find_files_and_readers
         fn = 'S_NWC_CPP_npp_32505_20180204T1114116Z_20180204T1128227Z.nc'
         # touch the file so it exists on disk
-        open(fn, 'w')
+        test_file = open(fn, 'w')
         try:
             ri = find_files_and_readers(reader='nwcsaf-pps_nc')
             self.assertListEqual(list(ri.keys()), ['nwcsaf-pps_nc'])
             self.assertListEqual(ri['nwcsaf-pps_nc'], [fn])
         finally:
+            test_file.close()
             os.remove(fn)
 
     def test_reader_name_matched_start_end_time(self):
@@ -410,7 +412,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from datetime import datetime
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
-        open(fn, 'w')
+        test_file = open(fn, 'w')
         try:
             ri = find_files_and_readers(reader='viirs_sdr',
                                         start_time=datetime(2012, 2, 25, 18, 0, 0),
@@ -419,6 +421,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
             self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
             self.assertListEqual(ri['viirs_sdr'], [fn])
         finally:
+            test_file.close()
             os.remove(fn)
 
     def test_reader_name_matched_start_time(self):
@@ -430,12 +433,13 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from datetime import datetime
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
-        open(fn, 'w')
+        test_file = open(fn, 'w')
         try:
             ri = find_files_and_readers(reader='viirs_sdr', start_time=datetime(2012, 2, 25, 18, 1, 30))
             self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
             self.assertListEqual(ri['viirs_sdr'], [fn])
         finally:
+            test_file.close()
             os.remove(fn)
 
     def test_reader_name_matched_end_time(self):
@@ -448,12 +452,13 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from datetime import datetime
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
-        open(fn, 'w')
+        test_file = open(fn, 'w')
         try:
             ri = find_files_and_readers(reader='viirs_sdr', end_time=datetime(2012, 2, 25, 18, 1, 30))
             self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
             self.assertListEqual(ri['viirs_sdr'], [fn])
         finally:
+            test_file.close()
             os.remove(fn)
 
     def test_reader_name_unmatched_start_end_time(self):
@@ -462,7 +467,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from datetime import datetime
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
-        open(fn, 'w')
+        test_file = open(fn, 'w')
         try:
             self.assertRaises(ValueError, find_files_and_readers,
                               reader='viirs_sdr',
@@ -470,6 +475,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
                               end_time=datetime(2012, 2, 26, 19, 0, 0),
                               )
         finally:
+            test_file.close()
             os.remove(fn)
 
     def test_no_parameters(self):
@@ -477,12 +483,13 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from satpy.readers import find_files_and_readers
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
-        open(fn, 'w')
+        test_file = open(fn, 'w')
         try:
             ri = find_files_and_readers()
             self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
             self.assertListEqual(ri['viirs_sdr'], [fn])
         finally:
+            test_file.close()
             os.remove(fn)
 
     def test_bad_sensor(self):
@@ -490,11 +497,11 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from satpy.readers import find_files_and_readers
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
-        open(fn, 'w')
+        test_file = open(fn, 'w')
         try:
-            self.assertRaises(ValueError, find_files_and_readers,
-                              sensor='i_dont_exist')
+            self.assertRaises(ValueError, find_files_and_readers, sensor='i_dont_exist')
         finally:
+            test_file.close()
             os.remove(fn)
 
     def test_sensor(self):
@@ -502,7 +509,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from satpy.readers import find_files_and_readers
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
-        open(fn, 'w')
+        test_file = open(fn, 'w')
         try:
             # we can't easily know how many readers satpy has that support
             # 'viirs' so we just pass it and hope that this works
@@ -510,6 +517,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
             self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
             self.assertListEqual(ri['viirs_sdr'], [fn])
         finally:
+            test_file.close()
             os.remove(fn)
 
     def test_sensor_no_files(self):
@@ -517,8 +525,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
         from satpy.readers import find_files_and_readers
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
-        self.assertRaises(ValueError, find_files_and_readers,
-                          sensor='viirs')
+        self.assertRaises(ValueError, find_files_and_readers, sensor='viirs')
 
     def test_reader_load_failed(self):
         """Test that an exception is raised when a reader can't be loaded."""
@@ -527,8 +534,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # touch the file so it exists on disk
         with mock.patch('yaml.load') as load:
             load.side_effect = yaml.YAMLError("Import problems")
-            self.assertRaises(yaml.YAMLError, find_files_and_readers,
-                              reader='viirs_sdr')
+            self.assertRaises(yaml.YAMLError, find_files_and_readers, reader='viirs_sdr')
 
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
@@ -582,15 +588,105 @@ class TestYAMLFiles(unittest.TestCase):
             self.assertIn('name', reader_info)
 
 
+class TestGroupFiles(unittest.TestCase):
+    """Test the 'group_files' utility function."""
+
+    def setUp(self):
+        """Set up test filenames to use."""
+        input_files = [
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171502203_e20171171504576_c20171171505018.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171507203_e20171171509576_c20171171510018.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171512203_e20171171514576_c20171171515017.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171517203_e20171171519577_c20171171520019.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171522203_e20171171524576_c20171171525020.nc",
+            "OR_ABI-L1b-RadC-M3C01_G16_s20171171527203_e20171171529576_c20171171530017.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171502203_e20171171504576_c20171171505008.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171507203_e20171171509576_c20171171510012.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171512203_e20171171514576_c20171171515007.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171517203_e20171171519576_c20171171520010.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171522203_e20171171524576_c20171171525008.nc",
+            "OR_ABI-L1b-RadC-M3C02_G16_s20171171527203_e20171171529576_c20171171530008.nc",
+        ]
+        self.g16_files = input_files
+        self.g17_files = [x.replace('G16', 'G17') for x in input_files]
+
+    def test_no_reader(self):
+        """Test that reader must be provided."""
+        from satpy.readers import group_files
+        self.assertRaises(ValueError, group_files, [])
+
+    def test_bad_reader(self):
+        """Test that reader not existing causes an error."""
+        from satpy.readers import group_files
+        import yaml
+        # touch the file so it exists on disk
+        with mock.patch('yaml.load') as load:
+            load.side_effect = yaml.YAMLError("Import problems")
+            self.assertRaises(yaml.YAMLError, group_files, [], reader='abi_l1b')
+
+    def test_default_behavior(self):
+        """Test the default behavior with the 'abi_l1b' reader."""
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files, reader='abi_l1b')
+        self.assertEqual(6, len(groups))
+        self.assertEqual(2, len(groups[0]['abi_l1b']))
+
+    def test_non_datetime_group_key(self):
+        """Test what happens when the start_time isn't used for grouping."""
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files, reader='abi_l1b', group_keys=('platform_shortname',))
+        self.assertEqual(1, len(groups))
+        self.assertEqual(12, len(groups[0]['abi_l1b']))
+
+    def test_large_time_threshold(self):
+        """Test what happens when the time threshold holds multiple files."""
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files, reader='abi_l1b', time_threshold=60*8)
+        self.assertEqual(3, len(groups))
+        self.assertEqual(4, len(groups[0]['abi_l1b']))
+
+    def test_two_instruments_files(self):
+        """Test the behavior when two instruments files are provided.
+
+        This is undesired from a user point of view since we don't want G16
+        and G17 files in the same Scene. Readers (like abi_l1b) are or can be
+        configured to have specific group keys for handling these situations.
+        Due to that this test forces the fallback group keys of
+        ('start_time',).
+
+        """
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files + self.g17_files, reader='abi_l1b', group_keys=('start_time',))
+        self.assertEqual(6, len(groups))
+        self.assertEqual(4, len(groups[0]['abi_l1b']))
+
+    def test_two_instruments_files_split(self):
+        """Test the default behavior when two instruments files are provided and split.
+
+        Tell the sorting to include the platform identifier as another field
+        to use for grouping.
+
+        """
+        from satpy.readers import group_files
+        groups = group_files(self.g16_files + self.g17_files, reader='abi_l1b',
+                             group_keys=('start_time', 'platform_shortname'))
+        self.assertEqual(12, len(groups))
+        self.assertEqual(2, len(groups[0]['abi_l1b']))
+        # default for abi_l1b should also behave like this
+        groups = group_files(self.g16_files + self.g17_files, reader='abi_l1b')
+        self.assertEqual(12, len(groups))
+        self.assertEqual(2, len(groups[0]['abi_l1b']))
+
+
 def suite():
-    """The test suite for test_scene.
-    """
+    """The test suite for test_readers."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
     mysuite.addTest(loader.loadTestsFromTestCase(TestReaderLoader))
     mysuite.addTest(loader.loadTestsFromTestCase(TestFindFilesAndReaders))
     mysuite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestGroupFiles))
 
     return mysuite
 

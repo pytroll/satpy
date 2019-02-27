@@ -16,6 +16,7 @@
 
 import os
 import sys
+from datetime import datetime
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -75,7 +76,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'SatPy'
-copyright = u'2009-2016, The PyTroll Team'
+copyright = u'2009-{}, The PyTroll Team'.format(datetime.utcnow().strftime("%Y"))
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -244,8 +245,10 @@ intersphinx_mapping = {
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
     'xarray': ('https://xarray.pydata.org/en/stable', None),
     'dask': ('https://docs.dask.org/en/latest', None),
+    'jobqueue': ('https://jobqueue.dask.org/en/latest', None),
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
     'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
     'pydecorate': ('https://pydecorate.readthedocs.io/en/stable', None),
+    'geoviews': ('http://geo.holoviews.org', None),
 }

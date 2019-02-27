@@ -40,7 +40,9 @@ BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 
-def get_environ_config_dir(default=PACKAGE_CONFIG_PATH):
+def get_environ_config_dir(default=None):
+    if default is None:
+        default = PACKAGE_CONFIG_PATH
     return os.environ.get('PPP_CONFIG_DIR', default)
 
 
