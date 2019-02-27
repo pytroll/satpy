@@ -220,6 +220,10 @@ def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
     return DataArray(res, dims=('y', 'x'))
 
 
+def intp(grid_x, grid_y, interpolator):
+    return interpolator((grid_y, grid_x))
+
+
 def interpolate_xarray_linear(xpoints, ypoints, values, shape, chunks=CHUNK_SIZE):
     """Interpolate linearly, generating a dask array."""
     from scipy.interpolate.interpnd import (LinearNDInterpolator,
@@ -235,11 +239,9 @@ def interpolate_xarray_linear(xpoints, ypoints, values, shape, chunks=CHUNK_SIZE
 
     interpolator = LinearNDInterpolator(points, values)
 
-    def intp(grid_x, grid_y, interpolator):
-        return interpolator((grid_y, grid_x))
-
     grid_x, grid_y = da.meshgrid(da.arange(shape[1], chunks=hchunks),
                                  da.arange(shape[0], chunks=vchunks))
+
     # workaround for non-thread-safe first call of the interpolator:
     interpolator((0, 0))
     res = da.map_blocks(intp, grid_x, grid_y, interpolator=interpolator)
