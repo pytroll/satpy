@@ -399,7 +399,7 @@ class SAFEGRD(BaseFileHandler):
         """
         band = self.filehandle
 
-        (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), gcps = self.get_gcps()
+        (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (gcps, crs) = self.get_gcps()
 
         # FIXME: do interpolation on cartesion coordinates if the area is
         # problematic.
@@ -409,8 +409,11 @@ class SAFEGRD(BaseFileHandler):
         altitudes = interpolate_xarray(xpoints, ypoints, gcp_alts, band.shape)
 
         longitudes.attrs['gcps'] = gcps
+        longitudes.attrs['crs'] = crs
         latitudes.attrs['gcps'] = gcps
+        latitudes.attrs['crs'] = crs
         altitudes.attrs['gcps'] = gcps
+        altitudes.attrs['crs'] = crs
 
         return longitudes, latitudes, altitudes
 
