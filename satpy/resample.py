@@ -200,6 +200,7 @@ class BaseResampler(object):
 
         self.source_geo_def = source_geo_def
         self.target_geo_def = target_geo_def
+        self.resampler = None
 
     def get_hash(self, source_geo_def=None, target_geo_def=None, **kwargs):
         """Get hash for the current resample with the given *kwargs*."""
@@ -275,6 +276,18 @@ class BaseResampler(object):
 
         return os.path.join(cache_dir, prefix + hash_str + '.npz')
 
+    def _apply_cached_indexes(self, cached_indexes, persist=False):
+        """Reassign various resampler index attributes."""
+        for elt in cached_indexes.keys():
+            val = cached_indexes[elt]
+            if isinstance(val, tuple):
+                val = cached_indexes[elt][0]
+            elif isinstance(val, np.ndarray):
+                val = da.from_array(val, chunks=CHUNK_SIZE)
+            elif persist and isinstance(val, da.Array):
+                cached_indexes[elt] = val = val.persist()
+            setattr(self.resampler, elt, val)
+
 
 class KDTreeResampler(BaseResampler):
     """Resample using a KDTree-based nearest neighbor algorithm.
@@ -344,20 +357,6 @@ class KDTreeResampler(BaseResampler):
             LOG.debug("Computing kd-tree parameters")
             self.resampler.get_neighbour_info(mask=mask)
             self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
-
-    def _apply_cached_indexes(self, cached_indexes, persist=False):
-        """Reassign various resampler index attributes."""
-        # cacheable_dict = {}
-        for elt in ['valid_input_index', 'valid_output_index',
-                    'index_array', 'distance_array']:
-            val = cached_indexes[elt]
-            if isinstance(val, tuple):
-                val = cached_indexes[elt][0]
-            elif isinstance(val, np.ndarray):
-                val = da.from_array(val, chunks=CHUNK_SIZE)
-            elif persist and isinstance(val, da.Array):
-                cached_indexes[elt] = val = val.persist()
-            setattr(self.resampler, elt, val)
 
     def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Read index arrays from either the in-memory or disk cache."""
@@ -632,20 +631,6 @@ class BilinearResampler(BaseResampler):
                 self.resampler.get_bil_info()
                 self.save_bil_info(cache_dir, mask=mask, **kwargs)
 
-    def _apply_cached_indexes(self, cached_indexes, persist=False):
-        """Reassign various resampler index attributes."""
-        # cacheable_dict = {}
-        for elt in ['bilinear_s', 'bilinear_t', 'valid_input_index',
-                    'index_array']:
-            val = cached_indexes[elt]
-            if isinstance(val, tuple):
-                val = cached_indexes[elt][0]
-            elif isinstance(val, np.ndarray):
-                val = da.from_array(val, chunks=CHUNK_SIZE)
-            elif persist and isinstance(val, da.Array):
-                cached_indexes[elt] = val = val.persist()
-            setattr(self.resampler, elt, val)
-
     def load_bil_info(self, cache_dir, mask=None, **kwargs):
         """Read index arrays from either the in-memory or disk cache."""
         mask_name = getattr(mask, 'name', None)
@@ -672,7 +657,7 @@ class BilinearResampler(BaseResampler):
                                                    mask=mask,
                                                    prefix='resample_lut_bil-',
                                                    **kwargs)
-            LOG.info('Saving kd_tree neighbour info to %s', filename)
+            LOG.info('Saving bilinear neighbour info to %s', filename)
             cache = {'bilinear_s': self.resampler.bilinear_s,
                      'bilinear_t': self.resampler.bilinear_t,
                      'valid_input_index': self.resampler.valid_input_index,
