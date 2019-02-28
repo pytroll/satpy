@@ -1,0 +1,159 @@
+sensor_name: visir/ahi
+
+modifiers:
+  rayleigh_corrected:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: marine_clean_aerosol
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+composites:
+  green:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    # what happens if something requests more modifiers on top of this?
+    - wavelength: 0.51
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - wavelength: 0.85
+      modifiers: [sunz_corrected]
+    standard_name: toa_bidirection_reflectance
+
+  overview:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - 0.65
+    - 0.85
+    - 10.4
+    standard_name: overview
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - wavelength: 1.63
+      modifiers: [sunz_corrected] #, rayleigh_corrected]
+    - wavelength: 0.85
+      modifiers: [sunz_corrected] #, rayleigh_corrected]
+    - wavelength: 0.635
+      modifiers: [sunz_corrected] #, rayleigh_corrected]
+    high_resolution_band: blue
+    standard_name: natural_color
+
+  true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - wavelength: 0.65
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: green
+    - wavelength: 0.46
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    high_resolution_band: red
+    standard_name: true_color
+
+#  true_color_reducedsize_land:
+#    compositor: !!python/name:satpy.composites.GenericCompositor
+#    prerequisites:
+#    - wavelength: 0.65
+#      modifiers: [reducer4, effective_solar_pathlength_corrected,
+#                  rayleigh_corrected_reducedsize_land]
+#    - wavelength: 0.51
+#      modifiers: [reducer2, vegetation_corrected_reduced, effective_solar_pathlength_corrected,
+#                  rayleigh_corrected_reducedsize_land]
+#    - wavelength: 0.46
+#      modifiers: [reducer2, effective_solar_pathlength_corrected,
+#                  rayleigh_corrected_reducedsize_land]
+#    standard_name: true_color
+#
+#  true_color_reducedsize_marine_tropical:
+#    compositor: !!python/name:satpy.composites.GenericCompositor
+#    prerequisites:
+#    - wavelength: 0.65
+#      modifiers: [reducer4, effective_solar_pathlength_corrected,
+#                  rayleigh_corrected_reducedsize_marine_tropical]
+#    - wavelength: 0.51
+#      modifiers: [reducer2, vegetation_corrected_reduced, effective_solar_pathlength_corrected,
+#                  rayleigh_corrected_reducedsize_marine_tropical]
+#    - wavelength: 0.46
+#      modifiers: [reducer2, effective_solar_pathlength_corrected,
+#                  rayleigh_corrected_reducedsize_marine_tropical]
+#    standard_name: true_color
+
+  day_microphysics_eum:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 0.86
+    - wavelength: 3.9
+      modifiers: [nir_reflectance]
+    - wavelength: 10.4
+    standard_name: day_microphysics
+
+  day_microphysics_ahi:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 0.86
+    - wavelength: 2.3
+    - wavelength: 10.4
+    standard_name: day_microphysics
+
+  cloud_phase_distinction:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 10.4
+    - wavelength: 0.64
+    - wavelength: 1.6
+    standard_name: cloud_phase_distinction
+
+  water_vapors1:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 10.4
+    - wavelength: 6.2
+    - wavelength: 7.3
+    standard_name: water_vapors1
+
+  mid_vapor:
+    compositor: !!python/name:satpy.composites.DifferenceCompositor
+    prerequisites:
+    - wavelength: 7.3
+    - wavelength: 6.2
+    standard_name: mid_vapor
+
+  water_vapors2:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: mid_vapor
+    - wavelength: 7.3
+    - wavelength: 6.2
+    standard_name: water_vapors2
+
+  convection:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - 6.7
+        - 7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - 3.75
+        - 10.4
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - 1.63
+        - 0.635
+    standard_name: convection
+
+  ir_cloud_day:
+    standard_name: ir_cloud_day
+    compositor: !!python/name:satpy.composites.CloudCompositor
+    prerequisites:
+      - name: B14

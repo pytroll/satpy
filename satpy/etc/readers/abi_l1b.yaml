@@ -1,0 +1,278 @@
+# References:
+#  - GOES-R Series Data Book, Chapter 3
+#
+# Note: Channels < 3 microns have different units than channels > 3 microns
+
+reader:
+  # PUG: https://www.goes-r.gov/users/docs/PUG-L1b-vol3.pdf
+  description: NC Reader for ABI data
+  name: abi_l1b
+  sensors: [abi]
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', 'scene_abbr']
+
+file_types:
+    # NOTE: observation_type == product acronym in PUG document
+    c01:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}',
+                        '{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-{chid:6d}_0.nc{nc_version}']
+    c02:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C02_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}',
+                        '{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C02_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-{chid:6d}_0.nc{nc_version}']
+    c03:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C03_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}',
+                        '{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C03_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-{chid:6d}_0.nc{nc_version}']
+    c04:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C04_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c05:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C05_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}',
+                        '{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C05_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-{chid:6d}_0.nc{nc_version}']
+    c06:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C06_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c07:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C07_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c08:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C08_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c09:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C09_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c10:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C10_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c11:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C11_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c12:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C12_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c13:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C13_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c14:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C14_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c15:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C15_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+    c16:
+        file_reader: !!python/name:satpy.readers.abi_l1b.NC_ABI_L1B
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L1b-{observation_type:3s}{scene_abbr:s}-{scan_mode:2s}C16_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc{nc_version}']
+
+datasets:
+  C01:
+    name: C01
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 1000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c01
+
+  C02:
+    name: C02
+    wavelength: [0.590, 0.640, 0.690]
+    resolution: 500
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c02
+
+  C03:
+    name: C03
+    wavelength: [0.8455, 0.865, 0.8845]
+    resolution: 1000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c03
+
+  C04:
+    name: C04
+    wavelength: [1.3705, 1.378, 1.3855]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c04
+
+  C05:
+    name: C05
+    wavelength: [1.580, 1.610, 1.640]
+    resolution: 1000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c05
+
+  C06:
+    name: C06
+    wavelength: [2.225, 2.250, 2.275]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c06
+
+  C07:
+    name: C07
+    wavelength: [3.80, 3.90, 4.00]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c07
+
+  C08:
+    name: C08
+    wavelength: [5.770, 6.185, 6.600]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c08
+
+  C09:
+    name: C09
+    wavelength: [6.75, 6.95, 7.15]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c09
+
+  C10:
+    name: C10
+    wavelength: [7.24, 7.34, 7.44]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c10
+
+  C11:
+    name: C11
+    wavelength: [8.30, 8.50, 8.70]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c11
+
+  C12:
+    name: C12
+    wavelength: [9.42, 9.61, 9.80]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c12
+
+  C13:
+    name: C13
+    wavelength: [10.10, 10.35, 10.60]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c13
+
+  C14:
+    name: C14
+    wavelength: [10.80, 11.20, 11.60]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c14
+
+  C15:
+    name: C15
+    wavelength: [11.80, 12.30, 12.80]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c15
+
+  C16:
+    name: C16
+    wavelength: [13.00, 13.30, 13.60]
+    resolution: 2000
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: mW m-2 sr-1 (cm-1)-1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c16

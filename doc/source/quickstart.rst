@@ -1,198 +1,259 @@
-============
- Quickstart
-============
+==========
+Quickstart
+==========
 
-Loading data
-============
-
-.. versionchanged:: 2.0.0-alpha.1
-   New syntax
+Loading and accessing data
+==========================
 
 .. testsetup:: *
     >>> import sys
     >>> reload(sys)
     >>> sys.setdefaultencoding('utf8')
 
-To work with weather satellite data, one has to create an instance of the :class:`Scene` class. In order for satpy to
-get access to the data, either the current wording directory has to be set to the directory containing the data
-files, or the `base_dir` keyword argument has to be provided on scene creation::
+To work with weather satellite data you must create a
+:class:`~satpy.scene.Scene` object. SatPy does not currently provide an
+interface to download satellite data, it assumes that the data is on a
+local hard disk already. In order for SatPy to get access to the data the
+Scene must be told what files to read and what
+:ref:`SatPy Reader <reader_table>` should read them:
 
-    >>> import os
-    >>> os.chdir("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT")
     >>> from satpy import Scene
-    >>> from datetime import datetime
-    >>> time_slot = datetime(2015, 4, 20, 10, 0)
-    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0))
+    >>> from glob import glob
+    >>> filenames = glob("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT/*201504201000*")
+    >>> global_scene = Scene(reader="seviri_l1b_hrit", filenames=filenames)
 
-or::
-
-    >>> from satpy.scene import Scene
-    >>> from datetime import datetime
-    >>> time_slot = datetime(2015, 4, 20, 10, 0)
-    >>> global_scene = Scene(platform_name="Meteosat-10", sensor="seviri", start_time=datetime(2015, 4, 20, 10, 0), base_dir="/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT") # doctest: +SKIP
-    >>>
-
-For some platforms, it might be necessary to also specify an `end_time`::
-
-    >>> Scene(platform_name="SNPP", sensor="viirs", start_time=datetime(2015, 3, 11, 11, 20), end_time=datetime(2015, 3, 11, 11, 26)) # doctest: +SKIP
-
-Loading weather satellite data with satpy is as simple as calling the  :meth:`Scene.load` method::
+To load data from the files use the :meth:`Scene.load <satpy.scene.Scene.load>`
+method. Printing the Scene object will list each of the
+:class:`xarray.DataArray` objects currently loaded:
 
     >>> global_scene.load([0.6, 0.8, 10.8])
-    >>> print global_scene
+    >>> print(global_scene)
+    <xarray.DataArray 'reshape-d66223a8e05819b890c4535bc7e74356' (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+      * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
+      * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
+    Attributes:
+        satellite_longitude:  0.0
+        sensor:               seviri
+        satellite_altitude:   35785831.0
+        platform_name:        Meteosat-11
+        standard_name:        brightness_temperature
+        units:                K
+        wavelength:           (9.8, 10.8, 11.8)
+        satellite_latitude:   0.0
+        start_time:           2018-02-28 15:00:10.814000
+        end_time:             2018-02-28 15:12:43.956000
+        area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
+        name:                 IR_108
+        resolution:           3000.40316582
+        calibration:          brightness_temperature
+        polarization:         None
+        level:                None
+        modifiers:            ()
+        ancillary_variables:  []
+    <xarray.DataArray 'reshape-1982d32298aca15acb42c481fd74a629' (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+      * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
+      * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
+    Attributes:
+        satellite_longitude:  0.0
+        sensor:               seviri
+        satellite_altitude:   35785831.0
+        platform_name:        Meteosat-11
+        standard_name:        toa_bidirectional_reflectance
+        units:                %
+        wavelength:           (0.74, 0.81, 0.88)
+        satellite_latitude:   0.0
+        start_time:           2018-02-28 15:00:10.814000
+        end_time:             2018-02-28 15:12:43.956000
+        area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
+        name:                 VIS008
+        resolution:           3000.40316582
+        calibration:          reflectance
+        polarization:         None
+        level:                None
+        modifiers:            ()
+        ancillary_variables:  []
+    <xarray.DataArray 'reshape-e86d03c30ce754995ff9da484c0dc338' (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+      * x        (x) float64 5.567e+06 5.564e+06 5.561e+06 5.558e+06 5.555e+06 ...
+      * y        (y) float64 -5.567e+06 -5.564e+06 -5.561e+06 -5.558e+06 ...
+    Attributes:
+        satellite_longitude:  0.0
+        sensor:               seviri
+        satellite_altitude:   35785831.0
+        platform_name:        Meteosat-11
+        standard_name:        toa_bidirectional_reflectance
+        units:                %
+        wavelength:           (0.56, 0.635, 0.71)
+        satellite_latitude:   0.0
+        start_time:           2018-02-28 15:00:10.814000
+        end_time:             2018-02-28 15:12:43.956000
+        area:                 Area ID: some_area_name\nDescription: On-the-fly ar...
+        name:                 VIS006
+        resolution:           3000.40316582
+        calibration:          reflectance
+        polarization:         None
+        level:                None
+        modifiers:            ()
+        ancillary_variables:  []
 
-    seviri/IR_108:
-            area: On-the-fly area
-            start_time: 2015-04-20 10:00:00
-            units: K
-            wavelength_range: (9.8, 10.8, 11.8) μm
-            shape: (3712, 3712)
-    seviri/VIS006:
-            area: On-the-fly area
-            start_time: 2015-04-20 10:00:00
-            units: %
-            wavelength_range: (0.56, 0.635, 0.71) μm
-            shape: (3712, 3712)
-    seviri/VIS008:
-            area: On-the-fly area
-            start_time: 2015-04-20 10:00:00
-            units: %
-            wavelength_range: (0.74, 0.81, 0.88) μm
-            shape: (3712, 3712)
-
-As you can see, this loads the visible and IR channels provided as argument to the :meth:`load` method as a
-list of wavelengths in micrometers. Another way to load the channels is to provide the names instead::
+SatPy allows loading file data by wavelengths in micrometers (shown above) or by channel name::
 
     >>> global_scene.load(["VIS006", "VIS008", "IR_108"])
-    >>> print global_scene
 
-To have a look at the available bands you should be able to load with your `Scene` object, you can call the
-:meth:`available_datasets` method::
+To have a look at the available channels for loading from your :class:`~satpy.scene.Scene` object use the
+:meth:`~satpy.scene.Scene.available_dataset_names` method:
 
-    >>> global_scene.available_datasets()
-
-    [u'HRV',
-     u'IR_108',
-     u'IR_120',
-     u'VIS006',
-     u'WV_062',
-     u'IR_039',
-     u'IR_134',
-     u'IR_097',
-     u'IR_087',
-     u'VIS008',
-     u'IR_016',
-     u'WV_073']
+    >>> global_scene.available_dataset_names()
+    ['HRV',
+     'IR_108',
+     'IR_120',
+     'VIS006',
+     'WV_062',
+     'IR_039',
+     'IR_134',
+     'IR_097',
+     'IR_087',
+     'VIS008',
+     'IR_016',
+     'WV_073']
 
 
-To access the loaded data::
+To access the loaded data use the wavelength or name:
 
-    >>> print global_scene[0.6]
+    >>> print(global_scene[0.6])
 
-or::
+Visualizing data                                                                                    
+================                                                                                    
 
-    >>> print global_scene["VIS006"]
+To visualize loaded data in a pop-up window:                                                        
+                                                                                                    
+    >>> global_scene.show(0.6)                                                                      
+                                                                                                    
+Alternatively if working in a Jupyter notebook the scene can be converted to
+a `geoviews <http://geo.holoviews.org/index.html>`_ object using the
+:meth:`~satpy.scene.Scene.to_geoviews` method. The geoviews package is not a
+requirement of the base satpy install so in order to use this feature the user
+needs to install the geoviews package himself.
+                                                                                                    
+    >>> import holoviews as hv                                                                      
+    >>> import geoviews as gv                                                                       
+    >>> import geoviews.feature as gf                                                               
+    >>> gv.extension("bokeh", "matplotlib")                                                         
+    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]      
+    >>> %opts Image QuadMesh (cmap='RdBu_r')                                                        
+    >>> gview = global_scene.to_geoviews(vdims=[0.6])
+    >>> gview[::5,::5] * gf.coastline * gf.borders                                                  
+                                                                                                     
+Creating new datasets                                                                               
+=====================                                                                               
 
-To visualize it::
-
-    >>> global_scene.show(0.6)
-
-To combine them::
+Calculations based on loaded datasets/channels can easily be assigned to a new dataset:
 
     >>> global_scene["ndvi"] = (global_scene[0.8] - global_scene[0.6]) / (global_scene[0.8] + global_scene[0.6])
     >>> global_scene.show("ndvi")
 
+For more information on loading datasets by resolution, calibration, or other
+advanced loading methods see the :doc:`readers` documentation.
 
 Generating composites
 =====================
 
-The easiest way to generate composites is to `load` them::
+SatPy comes with many composite recipes built-in and makes them loadable like any other dataset:
 
     >>> global_scene.load(['overview'])
-    >>> global_scene.show('overview')
 
-To get a list of all available composites for the current scene::
+To get a list of all available composites for the current scene:
 
-    >>> global_scene.available_composites()
+    >>> global_scene.available_composite_names()
+    ['overview_sun',
+     'airmass',
+     'natural',
+     'night_fog',
+     'overview',
+     'green_snow',
+     'dust',
+     'fog',
+     'natural_sun',
+     'cloudtop',
+     'convection',
+     'ash']
 
-    [u'overview_sun',
-     u'airmass',
-     u'natural',
-     u'night_fog',
-     u'overview',
-     u'green_snow',
-     u'dust',
-     u'fog',
-     u'natural_sun',
-     u'cloudtop',
-     u'convection',
-     u'ash']
+Loading composites will load all necessary dependencies to make that composite and unload them after the composite
+has been generated.
 
-To save a composite to disk::
+.. note::
 
-    >>> global_scene.save_dataset('overview', 'my_nice_overview.png')
-
-One can also specify which writer to use for filenames with non-standard extensions ::
-
-    >>> global_scene.save_dataset('overview', 'my_nice_overview.stupidextension', writer='geotiff')
-
+    Some composite require datasets to be at the same resolution or shape. When this is the case the Scene object must
+    be resampled before the composite can be generated (see below).
 
 Resampling
 ==========
 
 .. todo::
+
    Explain where and how to define new areas
 
-Until now, we have used the channels directly as provided by the satellite,
-that is in satellite projection. Generating composites thus produces views in
-satellite projection, *i.e.* as viewed by the satellite.
-
-Most often however, we will want to resample the data onto a specific area so
-that only the area of interest is depicted in the RGB composites.
-
-Here is how we do that::
+In certain cases it may be necessary to resample datasets whether they come
+from a file or are generated composites. Resampling is useful for mapping data
+to a uniform grid, limiting input data to an area of interest, changing from
+one projection to another, or for preparing datasets to be combined in a
+composite (see above). For more details on resampling, different resampling
+algorithms, and creating your own area of interest see the
+:doc:`resample` documentation. To resample a SatPy Scene:
 
     >>> local_scene = global_scene.resample("eurol")
-    >>>
 
-Now we have resampled channel data and composites onto the "eurol" area in the `local_scene` variable
-and we can operate as before to display and save RGB composites::
+This creates a copy of the original ``global_scene`` with all loaded datasets
+resampled to the built-in "eurol" area. Any composites that were requested,
+but could not be generated are automatically generated after resampling. The
+new ``local_scene`` can now be used like the original ``global_scene`` for
+working with datasets, saving them to disk or showing them on screen:
 
     >>> local_scene.show('overview')
     >>> local_scene.save_dataset('overview', './local_overview.tif')
 
-The image is automatically saved here in GeoTiff_ format.
+Saving to disk
+==============
 
-.. _GeoTiff: http://trac.osgeo.org/geotiff/
+To save all loaded datasets to disk as geotiff images:
 
+    >>> global_scene.save_datasets()
 
+To save all loaded datasets to disk as PNG images:
 
-Making custom composites
-========================
+    >>> global_scene.save_datasets(writer='simple_image')
 
-Building custom composites makes use of the :class:`RGBCompositor` class. For example,
-building an overview composite can be done manually with::
+Or to save an individual dataset:
 
-    >>> from satpy.composites import RGBCompositor
-    >>> compositor = RGBCompositor("myoverview", "bla", "")
-    >>> composite = compositor([local_scene[0.6],
-    ...                         local_scene[0.8],
-    ...                         local_scene[10.8]])
-    >>> from satpy.writers import to_image
-    >>> img = to_image(composite)
-    >>> img.invert([False, False, True])
-    >>> img.stretch("linear")
-    >>> img.gamma(1.7)
-    >>> img.show()
+    >>> global_scene.save_dataset('VIS006', 'my_nice_image.png')
 
+Datasets are automatically scaled or "enhanced" to be compatible with the
+output format and to provide the best looking image. For more information
+on saving datasets and customizing enhancements see the documentation on
+:doc:`writers`.
 
-One important thing to notice is that there is an internal difference between a composite and an image. A composite
-is defined as a special dataset which may have several bands (like R, G, B bands). However, the data isn't stretched,
-or clipped or gamma filtered until an image is generated.
+Troubleshooting
+===============
 
+When something goes wrong, a first step to take is check that the latest Version
+of satpy and its dependencies are installed. Satpy drags in a few packages as
+dependencies per default, but each reader and writer has it's own dependencies
+which can be unfortunately easy to miss when just doing a regular `pip install`.
+To check the missing dependencies for the readers and writers, a utility
+function called `check_satpy` can be used:
 
-.. todo::
-   How to save custom-made composites
+  >>> from satpy.config import check_satpy
+  >>> check_satpy()
 
-.. todo::
-   How to read cloud products from NWCSAF software.
+Due to the way SatPy works, producing as many datasets as possible, there are
+times that behavior can be unexpected but with no exceptions raised. To help
+troubleshoot these situations log messages can be turned on. To do this run
+the following code before running any other SatPy code:
+
+    >>> from satpy.utils import debug_on
+    >>> debug_on()

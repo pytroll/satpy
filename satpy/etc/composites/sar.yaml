@@ -1,0 +1,38 @@
+sensor_name: sar
+
+composites:
+  sar-ice:
+    compositor: !!python/name:satpy.composites.sar.SARIce
+    prerequisites:
+    - name: measurement
+      polarization: hh
+    - name: measurement
+      polarization: hv
+    standard_name: sar-ice
+
+  sar-ice-iw:
+    compositor: !!python/name:satpy.composites.sar.SARIce
+    prerequisites:
+    - name: measurement
+      polarization: vv
+    - name: measurement
+      polarization: vh
+    standard_name: sar-ice
+
+  sar-rgb:
+    compositor: !!python/name:satpy.composites.sar.SARIce
+    prerequisites:
+    - name: measurement
+      polarization: hh
+    - name: measurement
+      polarization: hv
+    standard_name: sar-rgb
+
+  sar-quick:
+    compositor: !!python/name:satpy.composites.sar.SARQuickLook
+    prerequisites:
+    - name: measurement
+      polarization: hh
+    - name: measurement
+      polarization: hv
+    standard_name: sar-quick

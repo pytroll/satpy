@@ -1,35 +1,37 @@
-from behave import *
-from mock import patch
+from behave import given, when, then, use_step_matcher
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
 
 use_step_matcher("re")
 
 
-@given("a dataset is available")
+@given("a dataset is available")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    from satpy.scene import Scene
-    from datetime import datetime
-    from satpy.projectable import Projectable
-    scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
-                start_time=datetime(2015, 3, 11, 11, 20),
-                end_time=datetime(2015, 3, 11, 11, 26))
-    scn["MyDataset"] = Projectable([[1, 2], [3, 4]])
+    from satpy import Scene
+    from xarray import DataArray
+    scn = Scene()
+    scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=['y', 'x'])
     context.scene = scn
 
 
-@when("the show command is called")
+@when("the show command is called")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    with patch('trollimage.image.Image.show') as mock_show:
+    with patch('trollimage.xrimage.XRImage.show') as mock_show:
         context.scene.show("MyDataset")
         mock_show.assert_called_once_with()
 
 
-@then("an image should pop up")
+@then("an image should pop up")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
@@ -37,7 +39,7 @@ def step_impl(context):
     pass
 
 
-@when("the save_dataset command is called")
+@when("the save_dataset command is called")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
@@ -46,7 +48,7 @@ def step_impl(context):
     context.scene.save_dataset("MyDataset", context.filename)
 
 
-@then("a file should be saved on disk")
+@then("a file should be saved on disk")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
@@ -56,33 +58,28 @@ def step_impl(context):
     os.remove(context.filename)
 
 
-@given("a bunch of datasets are available")
+@given("a bunch of datasets are available")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    from satpy.scene import Scene
-    from datetime import datetime
-    from satpy.projectable import Projectable
-    scn = Scene(platform_name="Suomi-NPP", sensor="viirs",
-                start_time=datetime(2015, 3, 11, 11, 20),
-                end_time=datetime(2015, 3, 11, 11, 26))
-    scn["MyDataset"] = Projectable([[1, 2], [3, 4]])
-    scn["MyDataset2"] = Projectable([[5, 6], [7, 8]])
+    from satpy import Scene
+    from xarray import DataArray
+    scn = Scene()
+    scn["MyDataset"] = DataArray([[1, 2], [3, 4]], dims=['y', 'x'])
+    scn["MyDataset2"] = DataArray([[5, 6], [7, 8]], dims=['y', 'x'])
     context.scene = scn
 
 
-
-@when("the save_datasets command is called")
+@when("the save_datasets command is called")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context
     """
-    context.scene.save_datasets(writer="simple_image", file_pattern="{name}.png")
+    context.scene.save_datasets(writer="simple_image", filename="{name}.png")
 
 
-
-@then("a bunch of files should be saved on disk")
+@then("a bunch of files should be saved on disk")  # noqa: F811
 def step_impl(context):
     """
     :type context: behave.runner.Context

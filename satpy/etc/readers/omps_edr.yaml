@@ -1,0 +1,169 @@
+reader:
+  description: Generic OMPS EDR reader
+  name: omps_edr
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [omps]
+
+file_types:
+  # HDF5 files from NASA GES DISC HTTP
+  # https://search.earthdata.nasa.gov/search/granules
+  # https://snpp-omps.gesdisc.eosdis.nasa.gov/data//SNPP_OMPS_Level2/OMPS_NPP_NMSO2_L2.2/
+  # https://disc.sci.gsfc.nasa.gov/
+  omps_tc_so2_edr_ges_disc:
+    file_reader: !!python/name:satpy.readers.omps_edr.EDRFileHandler
+    file_patterns: ['{instrument_shortname}-{platform_shortname}_NMSO2-L2_{start_time:%Ym%m%dt%H%M%S}_o{orbit:05d}_{end_time:%Ym%m%dt%H%M%S}.h5']
+  # HDF5-EOS files from NASA DRL
+  # ftp://is.sci.gsfc.nasa.gov/gsfcdata/npp/omps/level2/
+  omps_tc_so2_edr:
+    file_reader: !!python/name:satpy.readers.omps_edr.EDREOSFileHandler
+    file_patterns: ['{instrument_shortname}-{platform_shortname}-TC_EDR_SO2NRT-{start_time:%Ym%m%dt%H%M%S}-o{orbit:05d}-{end_time:%Ym%m%dt%H%M%S}.he5']
+  # HDF5 files from NASA DRL
+  # ftp://is.sci.gsfc.nasa.gov/gsfcdata/npp/omps/level2/
+  omps_tc_to3_edr:
+    file_reader: !!python/name:satpy.readers.omps_edr.EDRFileHandler
+    file_patterns: ['{instrument_shortname}-{platform_shortname}-TC_EDR_TO3-{version}-{start_time:%Ym%m%dt%H%M%S}-o{orbit:05d}-{end_time:%Ym%m%dt%H%M%S}.h5']
+
+# ftp://omisips1.omisips.eosdis.nasa.gov/OMPS/LANCE/NMSO2-L2-NRT-NRT/
+# ftp://omisips1.omisips.eosdis.nasa.gov/OMPS/LANCE/NMSO2-L2-NRT-NRT/OMPS-NPP_NMSO2-L2-NRT_2017m0804t030731_o29890_2017m0804t021637.he5
+
+datasets:
+  reflectivity_331:
+    name: reflectivity_331
+    resolution: 50000
+    coordinates: [longitude_to3, latitude_to3]
+    file_type: omps_tc_to3_edr
+    file_key: SCIENCE_DATA/Reflectivity331
+  uvaerosol_index:
+    name: uvaerosol_index
+    resolution: 50000
+    coordinates: [longitude_to3, latitude_to3]
+    file_type: omps_tc_to3_edr
+    file_key: SCIENCE_DATA/UVAerosolIndex
+  so2_trm:
+    name: so2_trm
+    resolution: 50000
+    coordinates: [longitude_so2, latitude_so2]
+    file_type: omps_tc_so2_edr
+    file_key: HDFEOS/SWATHS/OMPS Column Amount SO2/Data Fields/ColumnAmountSO2_TRM
+  longitude_to3:
+    name: longitude_to3
+    resolution: 50000
+    file_type: omps_tc_to3_edr
+    file_key: GEOLOCATION_DATA/Longitude
+    units: degrees
+    standard_name: longitude
+  latitude_to3:
+    name: latitude_to3
+    resolution: 50000
+    file_type: omps_tc_to3_edr
+    file_key: GEOLOCATION_DATA/Latitude
+    units: degrees
+    standard_name: latitude
+  longitude_so2:
+    name: longitude_so2
+    resolution: 50000
+    file_type: omps_tc_so2_edr
+    file_key: HDFEOS/SWATHS/OMPS Column Amount SO2/Geolocation Fields/Longitude
+    units: degrees
+    standard_name: longitude
+  latitude_so2:
+    name: latitude_so2
+    resolution: 50000
+    file_type: omps_tc_so2_edr
+    file_key: HDFEOS/SWATHS/OMPS Column Amount SO2/Geolocation Fields/Latitude
+    units: degrees
+    standard_name: latitude
+#[file_key:so2_trm_eos]
+#variable_name=HDFEOS/SWATHS/{file_group}/Data Fields/ColumnAmountSO2_TRM
+#units_attr=Units
+#missing_attr=MissingValue
+#factor=ScaleFactor
+#offset=Offset
+  aerosol_index:
+    name: aerosol_index
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/AerosolIndex
+  cldfra:
+    name: cldfra
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/CloudFraction
+  cldpres:
+    name: cldpres
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/CloudPressure
+  cldrefl:
+    name: cldrefl
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/CloudRefletivity
+  tco3_dvcf:
+    name: tco3_dvcf
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/ColumnAmountO3isf
+  tco3_toms:
+    name: tco3_toms
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/ColumnAmountO3pair
+  tcso2_abv:
+    name: tcso2_abv
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/ColumnAmountSO2_ABV
+  tcso2_pbl:
+    name: tcso2_pbl
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/ColumnAmountSO2_PBL
+  tcso2_stl:
+    name: tcso2_stl
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/ColumnAmountSO2_STL
+  tcso2_trl:
+    name: tcso2_trl
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/ColumnAmountSO2_TRL
+  tcso2_trm:
+    name: tcso2_trm
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/ColumnAmountSO2_TRM
+  tcso2_tru:
+    name: tcso2_tru
+    resolution: 50000
+    coordinates: [longitude_so2_gd, latitude_so2_gd]
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: ScienceData/ColumnAmountSO2_TRU
+  longitude_so2_gd:
+    name: longitude_so2_gd
+    resolution: 50000
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: GeolocationData/Longitude
+    units: degrees
+    standard_name: longitude
+  latitude_so2_gd:
+    name: latitude_so2_gd
+    resolution: 50000
+    file_type: omps_tc_so2_edr_ges_disc
+    file_key: GeolocationData/Latitude
+    units: degrees
+    standard_name: latitude
+
+

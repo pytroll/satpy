@@ -1,0 +1,32 @@
+reader:
+  description: CLAVR-X Reader
+  name: clavrx
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [viirs, modis, avhrr, ahi]
+
+file_types:
+  level2:
+    file_reader: !!python/name:satpy.readers.clavrx.CLAVRXFileHandler
+#    clavrx_npp_d20170520_t2055235_e2056477_b28822.level2.hdf'
+#    clavrx_H08_20180719_1300.level2.hdf
+    file_patterns:
+     - 'clavrx_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}.level2.hdf'
+     - 'clavrx_{platform_shortname}.{start_time:%y%j.%H%M}.{resolution:s}.level2.hdf'
+     - 'clavrx_hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit}.level2.hdf'
+     - 'clavrx_{platform_shortname}_{start_time:%Y%m%d_%H%M}.level2.hdf'
+
+#datasets:
+#  longitude:
+#    name: longitude
+#    resolution: 0
+#    file_type: level2
+#  latitude:
+#    name: latitude
+#    resolution: 0
+#    file_type: level2
+#  # resolution come from file
+#  cld_temp_acha:
+#    name: Solar_Zenith
+#    resolution: 0
+#    coordinates: [longitude, latitude]
+#    file_type: level2

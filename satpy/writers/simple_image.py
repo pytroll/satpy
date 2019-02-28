@@ -32,11 +32,37 @@ class PillowWriter(ImageWriter):
     def __init__(self, **kwargs):
         ImageWriter.__init__(
             self,
-            default_config_filename="writers/simple_image.cfg",
+            default_config_filename="writers/simple_image.yaml",
             **kwargs)
 
-    def save_image(self, img, filename=None, **kwargs):
-        filename = filename or self.get_filename(**img.info)
+    def save_image(self, img, filename=None, compute=True, **kwargs):
+        """Save Image object to a given ``filename``.
+
+        Args:
+            img (trollimage.xrimage.XRImage): Image object to save to disk.
+            filename (str): Optionally specify the filename to save this
+                            dataset to. It may include string formatting
+                            patterns that will be filled in by dataset
+                            attributes.
+            compute (bool): If `True` (default), compute and save the dataset.
+                            If `False` return either a `dask.delayed.Delayed`
+                            object or tuple of (source, target). See the
+                            return values below for more information.
+            **kwargs: Keyword arguments to pass to the images `save` method.
+
+        Returns:
+            Value returned depends on `compute`. If `compute` is `True` then
+            the return value is the result of computing a
+            `dask.delayed.Delayed` object or running `dask.array.store`. If
+            `compute` is `False` then the returned value is either a
+            `dask.delayed.Delayed` object that can be computed using
+            `delayed.compute()` or a tuple of (source, target) that should be
+            passed to `dask.array.store`. If target is provided the the caller
+            is responsible for calling `target.close()` if the target has
+            this method.
+
+        """
+        filename = filename or self.get_filename(**img.data.attrs)
 
         LOG.debug("Saving to image: %s", filename)
-        img.save(filename)
+        return img.save(filename, compute=compute, **kwargs)

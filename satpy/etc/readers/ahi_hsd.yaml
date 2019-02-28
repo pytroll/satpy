@@ -1,0 +1,334 @@
+# References:
+#  - Himawari-8/9 Himawari Standard Data User's Guide
+
+reader:
+  description: Generic HSD AHI Reader
+  name: ahi_hsd
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [ahi]
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', 'area']
+
+datasets:
+  B01:
+    name: B01
+    sensor: ahi
+    wavelength: [0.45,0.47,0.49]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b01
+
+  B02:
+    name: B02
+    sensor: ahi
+    wavelength: [0.49,0.51,0.53]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b02
+
+  B03:
+    name: B03
+    sensor: ahi
+    wavelength: [0.62,0.64,0.66]
+    resolution: 500
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b03
+
+  B04:
+    name: B04
+    sensor: ahi
+    wavelength: [0.83, 0.85, 0.87]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b04
+
+  B05:
+    name: B05
+    sensor: ahi
+    wavelength: [1.5, 1.6, 1.7]
+    resolution: 2000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b05
+
+  B06:
+    name: B06
+    sensor: ahi
+    wavelength: [2.2, 2.3, 2.4]
+    resolution: 2000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b06
+
+  B07:
+    name: B07
+    sensor: ahi
+    wavelength: [3.7, 3.9, 4.1]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b07
+
+  B08:
+    name: B08
+    sensor: ahi
+    wavelength: [6.0, 6.2, 6.4]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b08
+
+  B09:
+    name: B09
+    sensor: ahi
+    wavelength: [6.7, 6.9, 7.1]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b09
+
+  B10:
+    name: B10
+    sensor: ahi
+    wavelength: [7.1, 7.3, 7.5]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b10
+
+  B11:
+    name: B11
+    sensor: ahi
+    wavelength: [8.4, 8.6, 8.8]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b11
+
+  B12:
+    name: B12
+    sensor: ahi
+    wavelength: [9.4, 9.6, 9.8]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b12
+
+  B13:
+    name: B13
+    sensor: ahi
+    wavelength: [10.2, 10.4, 10.6]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b13
+
+  B14:
+    name: B14
+    sensor: ahi
+    wavelength: [11.0, 11.2, 11.4]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b14
+
+  B15:
+    name: B15
+    sensor: ahi
+    wavelength: [12.2, 12.4, 12.6]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b15
+
+  B16:
+    name: B16
+    sensor: ahi
+    wavelength: [13.1, 13.3, 13.5]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: hsd_b16
+
+
+file_types:
+  hsd_b01:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R10_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b02:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R10_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b03:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R05_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b04:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R10_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b05:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b06:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b07:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b08:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b09:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b10:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b11:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b12:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b13:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b14:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b15:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']
+  hsd_b16:
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT']

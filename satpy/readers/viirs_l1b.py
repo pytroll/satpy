@@ -26,12 +26,9 @@
 
 """
 import logging
-from datetime import datetime, timedelta
-
+from datetime import datetime
 import numpy as np
-
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
-from satpy.projectable import Projectable
 
 LOG = logging.getLogger(__name__)
 
@@ -58,13 +55,18 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     @property
     def platform_name(self):
-        # FIXME: If an attribute is added to the file, for now hardcode
-        # res = self['platform_short_name']
-        res = "NPP"
-        if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
+        try:
+            res = self.get('/attr/platform',
+                           self.filename_info['platform_shortname'])
+        except KeyError:
+            res = 'Suomi-NPP'
+
+        return {
+            'Suomi-NPP': 'NPP',
+            'JPSS-1': 'J01',
+            'NP': 'NPP',
+            'J1': 'J01',
+        }.get(res, res)
 
     @property
     def sensor_name(self):
@@ -97,7 +99,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id.name))
-        return self[var_path + "/shape"]
+        return self.get(var_path + '/shape', 1)
 
     @property
     def start_time(self):
@@ -107,112 +109,131 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
     def end_time(self):
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
-    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
-        lon_key = nav_info["longitude_key"]
-        valid_min = self[lon_key + '/attr/valid_min']
-        valid_max = self[lon_key + '/attr/valid_max']
-        lon_out.data[:] = self[lon_key][:]
-        lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max)
-
-        lat_key = nav_info["latitude_key"]
-        valid_min = self[lat_key + '/attr/valid_min']
-        valid_max = self[lat_key + '/attr/valid_max']
-        lat_out.data[:] = self[lat_key][:]
-        lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max)
-
-        return {}
-
-    def get_dataset(self, dataset_id, ds_info, out=None):
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
-        dtype = ds_info.get('dtype', np.float32)
-        if var_path + '/shape' not in self:
-            # loading a scalar value
-            shape = 1
-        else:
-            shape = self[var_path + '/shape']
+    def _get_dataset_file_units(self, dataset_id, ds_info, var_path):
         file_units = ds_info.get('file_units')
         if file_units is None:
-            try:
-                file_units = self[var_path + '/attr/units']
-                # they were almost completely CF compliant...
-                if file_units == "none":
-                    file_units = "1"
-            except KeyError:
-                # no file units specified
-                file_units = None
+            file_units = self.get(var_path + '/attr/units')
+            # they were almost completely CF compliant...
+            if file_units == "none":
+                file_units = "1"
 
-        if out is None:
-            out = np.ma.empty(shape, dtype=dtype)
-            out.mask = np.zeros(shape, dtype=np.bool)
-
-        if dataset_id.calibration == 'radiance' and file_units is None:
+        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             rad_units_path = var_path + '/attr/radiance_units'
-            if ds_info['units'] == 'W m-2 um-1 sr-1' and rad_units_path in self:
-                # we are getting a reflectance band but we want the radiance values
-                # special scaling parameters
-                scale_factor = self[var_path + '/attr/radiance_scale_factor']
-                scale_offset = self[var_path + '/attr/radiance_add_offset']
+            if rad_units_path in self:
                 if file_units is None:
                     file_units = self[var_path + '/attr/radiance_units']
                 if file_units == 'Watts/meter^2/steradian/micrometer':
                     file_units = 'W m-2 um-1 sr-1'
+        elif ds_info.get('units') == '%' and file_units is None:
+            # v1.1 and above of level 1 processing removed 'units' attribute
+            # for all reflectance channels
+            file_units = "1"
+
+        return file_units
+
+    def _get_dataset_valid_range(self, dataset_id, ds_info, var_path):
+        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+            rad_units_path = var_path + '/attr/radiance_units'
+            if rad_units_path in self:
+                # we are getting a reflectance band but we want the radiance values
+                # special scaling parameters
+                scale_factor = self[var_path + '/attr/radiance_scale_factor']
+                scale_offset = self[var_path + '/attr/radiance_add_offset']
             else:
                 # we are getting a btemp band but we want the radiance values
                 # these are stored directly in the primary variable
                 scale_factor = self[var_path + '/attr/scale_factor']
                 scale_offset = self[var_path + '/attr/add_offset']
-            out.data[:] = np.require(self[var_path][:], dtype=dtype)
             valid_min = self[var_path + '/attr/valid_min']
             valid_max = self[var_path + '/attr/valid_max']
         elif ds_info.get('units') == '%':
             # normal reflectance
-            out.data[:] = np.require(self[var_path][:], dtype=dtype)
             valid_min = self[var_path + '/attr/valid_min']
             valid_max = self[var_path + '/attr/valid_max']
             scale_factor = self[var_path + '/attr/scale_factor']
-            scale_offset= self[var_path + '/attr/add_offset']
+            scale_offset = self[var_path + '/attr/add_offset']
         elif ds_info.get('units') == 'K':
             # normal brightness temperature
             # use a special LUT to get the actual values
             lut_var_path = ds_info.get('lut', var_path + '_brightness_temperature_lut')
             # we get the BT values from a look up table using the scaled radiance integers
-            out.data[:] = np.require(self[lut_var_path][:][self[var_path][:].ravel()], dtype=dtype).reshape(shape)
             valid_min = self[lut_var_path + '/attr/valid_min']
             valid_max = self[lut_var_path + '/attr/valid_max']
             scale_factor = scale_offset = None
-        elif shape == 1:
-            out.data[:] = self[var_path]
-            scale_factor = None
-            scale_offset = None
-            valid_min = None
-            valid_max = None
         else:
-            out.data[:] = np.require(self[var_path][:], dtype=dtype)
-            valid_min = self[var_path + '/attr/valid_min']
-            valid_max = self[var_path + '/attr/valid_max']
-            try:
-                scale_factor = self[var_path + '/attr/scale_factor']
-                scale_offset = self[var_path + '/attr/add_offset']
-            except KeyError:
-                scale_factor = scale_offset = None
+            valid_min = self.get(var_path + '/attr/valid_min')
+            valid_max = self.get(var_path + '/attr/valid_max')
+            scale_factor = self.get(var_path + '/attr/scale_factor')
+            scale_offset = self.get(var_path + '/attr/add_offset')
 
-        if valid_min is not None and valid_max is not None:
-            out.mask[:] |= (out.data < valid_min) | (out.data > valid_max)
+        return valid_min, valid_max, scale_factor, scale_offset
 
-        factors = (scale_factor, scale_offset)
-        factors = self.adjust_scaling_factors(factors, file_units, ds_info.get("units"))
-        if factors[0] != 1 or factors[1] != 0:
-            out.data[:] *= factors[0]
-            out.data[:] += factors[1]
+    def get_metadata(self, dataset_id, ds_info):
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
+        shape = self.get_shape(dataset_id, ds_info)
+        file_units = self._get_dataset_file_units(dataset_id, ds_info, var_path)
 
-        ds_info.update({
-            "name": dataset_id.name,
-            "id": dataset_id,
+        # Get extra metadata
+        if '/dimension/number_of_scans' in self:
+            rows_per_scan = int(shape[0] / self['/dimension/number_of_scans'])
+            ds_info.setdefault('rows_per_scan', rows_per_scan)
+
+        i = getattr(self[var_path], 'attrs', {})
+        i.update(ds_info)
+        i.update(dataset_id.to_dict())
+        i.update({
+            "shape": shape,
             "units": ds_info.get("units", file_units),
-            "platform": self.platform_name,
+            "file_units": file_units,
+            "platform_name": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        cls = ds_info.pop("container", Projectable)
-        return cls(out, **ds_info)
+        i.update(dataset_id.to_dict())
+        return i
+
+    def get_dataset(self, dataset_id, ds_info):
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
+        metadata = self.get_metadata(dataset_id, ds_info)
+        shape = metadata['shape']
+
+        valid_min, valid_max, scale_factor, scale_offset = self._get_dataset_valid_range(dataset_id, ds_info, var_path)
+        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+            data = self[var_path]
+        elif ds_info.get('units') == '%':
+            data = self[var_path]
+        elif ds_info.get('units') == 'K':
+            # normal brightness temperature
+            # use a special LUT to get the actual values
+            lut_var_path = ds_info.get('lut', var_path + '_brightness_temperature_lut')
+            data = self[var_path]
+            # we get the BT values from a look up table using the scaled radiance integers
+            index_arr = data.data.astype(np.int)
+            coords = data.coords
+            data.data = self[lut_var_path].data[index_arr.ravel()].reshape(data.shape)
+            data = data.assign_coords(**coords)
+        elif shape == 1:
+            data = self[var_path]
+        else:
+            data = self[var_path]
+        data.attrs.update(metadata)
+
+        if valid_min is not None and valid_max is not None:
+            data = data.where((data >= valid_min) & (data <= valid_max))
+        if data.attrs.get('units') in ['%', 'K', '1', 'W m-2 um-1 sr-1'] and \
+                'flag_meanings' in data.attrs:
+            # flag meanings don't mean anything anymore for these variables
+            # these aren't category products
+            data.attrs.pop('flag_meanings', None)
+            data.attrs.pop('flag_values', None)
+
+        factors = (scale_factor, scale_offset)
+        factors = self.adjust_scaling_factors(factors, metadata['file_units'], ds_info.get("units"))
+        if factors[0] != 1 or factors[1] != 0:
+            data *= factors[0]
+            data += factors[1]
+        # rename dimensions to correspond to satpy's 'y' and 'x' standard
+        if 'number_of_lines' in data.dims:
+            data = data.rename({'number_of_lines': 'y', 'number_of_pixels': 'x'})
+        return data

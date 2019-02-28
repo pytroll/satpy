@@ -1,0 +1,67 @@
+reader:
+  description: Generic MTG LI L2 product reader
+  name: li_l2
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [li]
+  default_datasets:
+
+datasets:
+# There is only one dataset per file. The following list provide only the optional
+# contained products, which are dependend on the file name.
+  af:
+    name: af
+    sensor: li
+    resolution: 2000
+    file_type: li_af
+
+  afa:
+    name: afa
+    sensor: li
+    resolution: 2000
+    file_type: li_afa
+
+  afr:
+    name: afr
+    sensor: li
+    resolution: 2000
+    file_type: li_afr
+
+  lgr:
+    name: lgr
+    sensor: li
+    file_type: li_lgr
+
+  lef:
+    name: lef
+    sensor: li
+    file_type: li_lef
+
+  lfl:
+    name: lfl
+    sensor: li
+    file_type: li_lfl
+
+# Source: LI L2 Product User Guide [LIL2PUG] Draft version -- 2016
+file_types:
+  li_l2:
+    file_reader: !!python/name:satpy.readers.li_l2.LIFileHandler ''
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_evel}-{type}-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day}.nc']
+  li_af:
+    file_reader: !!python/name:satpy.readers.li_l2.LIFileHandler ''
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_evel}-AF-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day}.nc']
+  li_afa:
+    file_reader: !!python/name:satpy.readers.li_l2.LIFileHandler ''
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_evel}-AFA-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day}.nc']
+  li_afr:
+    file_reader: !!python/name:satpy.readers.li_l2.LIFileHandler ''
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_evel}-AFR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day}.nc']
+  li_lgr:
+    file_reader: !!python/name:satpy.readers.li_l2.LIFileHandler ''
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_evel}-LGR-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day}.nc']
+  li_lef:
+    file_reader: !!python/name:satpy.readers.li_l2.LIFileHandler ''
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_evel}-LEF-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day}.nc']
+  li_lfl:
+    file_reader: !!python/name:satpy.readers.li_l2.LIFileHandler ''
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_evel}-LFL-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day}.nc']
+

@@ -1,0 +1,19 @@
+sensor_name: visir/msu-gs
+
+composites:
+  overview:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - 00_9
+    - 00_9
+    - 10.8
+    standard_name: overview
+  overview_sun:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: 00_9
+      modifiers: [sunz_corrected]
+    - name: 00_9
+      modifiers: [sunz_corrected]
+    - 10.8
+    standard_name: overview

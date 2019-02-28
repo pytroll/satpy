@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2011 SMHI
+# Copyright (c) 2011-2017 PyTroll
 
 # Author(s):
 
@@ -23,62 +23,48 @@
 """
 
 import logging
-import os
+import yaml
 
-from satpy.config import config_search_paths, get_environ_config_dir
-
-try:
-    import configparser
-except:
-    from six.moves import configparser
+from satpy.config import config_search_paths, get_environ_config_dir, recursive_dict_update
 
 LOG = logging.getLogger(__name__)
 
 
 class Plugin(object):
-    """The base plugin class. It is not to be used as is, it has to be
-    inherited by other classes.
-    """
+    """Base plugin class for all dynamically loaded and configured objects."""
 
-    def __init__(self,
-                 ppp_config_dir=None,
-                 default_config_filename=None,
-                 config_files=None,
-                 **kwargs):
+    def __init__(self, ppp_config_dir=None, default_config_filename=None, config_files=None, **kwargs):
+        """Load configuration files related to this plugin.
+
+        This initializes a `self.config` dictionary that can be used to customize the subclass.
+
+        Args:
+            ppp_config_dir (str): Base "etc" directory for all configuration
+                files.
+            default_config_filename (str): Configuration filename to use if
+                no other files have been specified with `config_files`.
+            config_files (list or str): Configuration files to load instead
+                of those automatically found in `ppp_config_dir` and other
+                default configuration locations.
+            kwargs (dict): Unused keyword arguments.
+
+        """
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
 
         self.default_config_filename = default_config_filename
         self.config_files = config_files
         if self.config_files is None and self.default_config_filename is not None:
             # Specify a default
-            self.config_files = config_search_paths(
-                self.default_config_filename, self.ppp_config_dir)
+            self.config_files = config_search_paths(self.default_config_filename, self.ppp_config_dir)
         if not isinstance(self.config_files, (list, tuple)):
             self.config_files = [self.config_files]
 
+        self.config = {}
         if self.config_files:
-            conf = configparser.RawConfigParser()
-            conf.read(self.config_files)
-            self.load_config(conf)
+            for config_file in self.config_files:
+                self.load_yaml_config(config_file)
 
-    # FIXME: why is this a static method, and not a function ?
-    @staticmethod
-    def _runtime_import(object_path):
-        """Import at runtime
-        """
-        obj_module, obj_element = object_path.rsplit(".", 1)
-        loader = __import__(obj_module, globals(), locals(), [obj_element])
-        return getattr(loader, obj_element)
-
-    def get_section_type(self, section_name):
-        return section_name.split(":")[0]
-
-    def load_config(self, conf):
-        # XXX: Need to load specific object section first if we want to do name-based section filtering
-        # Assumes only one section with "reader:" prefix
-        for section_name in conf.sections():
-            section_type = self.get_section_type(section_name)
-            load_func = "load_section_%s" % (section_type, )
-            if hasattr(self, load_func):
-                getattr(self, load_func)(section_name,
-                                         dict(conf.items(section_name)))
+    def load_yaml_config(self, conf):
+        """Load a YAML configuration file and recursively update the overall configuration."""
+        with open(conf) as fd:
+            self.config = recursive_dict_update(self.config, yaml.load(fd))

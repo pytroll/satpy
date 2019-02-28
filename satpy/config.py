@@ -25,22 +25,24 @@
 
 """SatPy Configuration directory and file handling
 """
-import os
 import glob
 import logging
-from collections import Mapping
+import os
+from collections import Mapping, OrderedDict
 
 from six.moves import configparser
+import yaml
 
 LOG = logging.getLogger(__name__)
 
-BASE_PATH = os.path.sep.join(os.path.dirname(
-    os.path.realpath(__file__)).split(os.path.sep)[:-1])
+BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 # FIXME: Use package_resources?
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 
-def get_environ_config_dir(default=PACKAGE_CONFIG_PATH):
+def get_environ_config_dir(default=None):
+    if default is None:
+        default = PACKAGE_CONFIG_PATH
     return os.environ.get('PPP_CONFIG_DIR', default)
 
 
@@ -53,8 +55,7 @@ CONFIG_PATH = get_environ_config_dir()
 
 
 def runtime_import(object_path):
-    """Import at runtime
-    """
+    """Import at runtime."""
     obj_module, obj_element = object_path.rsplit(".", 1)
     loader = __import__(obj_module, globals(), locals(), [str(obj_element)])
     return getattr(loader, obj_element)
@@ -68,18 +69,20 @@ def config_search_paths(filename, *search_dirs, **kwargs):
     paths = [filename, os.path.basename(filename)]
     paths += [os.path.join(search_dir, filename) for search_dir in search_dirs]
     # FUTURE: Remove CONFIG_PATH because it should be included as a search_dir
-    paths += [os.path.join(CONFIG_PATH, filename), os.path.join(PACKAGE_CONFIG_PATH, filename)]
+    paths += [os.path.join(CONFIG_PATH, filename),
+              os.path.join(PACKAGE_CONFIG_PATH, filename)]
+    paths = [os.path.abspath(path) for path in paths]
 
     if kwargs.get("check_exists", True):
         paths = [x for x in paths if os.path.isfile(x)]
 
+    paths = list(OrderedDict.fromkeys(paths))
     # flip the order of the list so builtins are loaded first
     return paths[::-1]
 
 
 def get_config(filename, *search_dirs, **kwargs):
-    """Blends the different configs, from package defaults to .
-    """
+    """Blends the different configs, from package defaults to ."""
     config = kwargs.get("config_reader_class", configparser.ConfigParser)()
 
     paths = config_search_paths(filename, *search_dirs)
@@ -106,17 +109,16 @@ def glob_config(pattern, *search_dirs):
 
 
 def get_config_path(filename, *search_dirs):
-    """Get the appropriate path for a filename, in that order: filename, ., PPP_CONFIG_DIR, package's etc dir.
-    """
+    """Get the appropriate path for a filename, in that order: filename, ., PPP_CONFIG_DIR, package's etc dir."""
     paths = config_search_paths(filename, *search_dirs)
 
-    for path in paths:
+    for path in paths[::-1]:
         if os.path.exists(path):
             return path
 
 
 def recursive_dict_update(d, u):
-    """Recursive dictionary update using
+    """Recursive dictionary update.
 
     Copied from:
 
@@ -130,3 +132,50 @@ def recursive_dict_update(d, u):
         else:
             d[k] = u[k]
     return d
+
+
+def check_yaml_configs(configs, key, hdr_len):
+    """Get a diagnostic for the yaml *configs*.
+
+    *key* is the section to look for to get a name for the config at hand.
+    *hdr_len* is the number of lines that can be safely read from the config to
+    get a name.
+    """
+    diagnostic = {}
+    for i in configs:
+        for fname in i:
+            with open(fname) as stream:
+                try:
+                    res = yaml.load(stream)
+                    try:
+                        diagnostic[res[key]['name']] = 'ok'
+                    except Exception:
+                        continue
+                except yaml.YAMLError as err:
+                    stream.seek(0)
+                    lines = ''.join(stream.readline() for line in range(hdr_len))
+                    res = yaml.load(lines)
+                    if err.context == 'while constructing a Python object':
+                        problem = err.problem
+                    else:
+                        problem = 'error'
+                    try:
+                        diagnostic[res[key]['name']] = problem
+                    except Exception:
+                        continue
+    return diagnostic
+
+
+def check_satpy():
+    """Check the satpy readers and writers for correct installation."""
+    from satpy.readers import configs_for_reader
+    from satpy.writers import configs_for_writer
+    print('Readers')
+    print('=======')
+    for reader, res in sorted(check_yaml_configs(configs_for_reader(), 'reader', 5).items()):
+        print(reader + ': ' + res)
+    print()
+    print('Writers')
+    print('=======')
+    for writer, res in sorted(check_yaml_configs(configs_for_writer(), 'writer', 3).items()):
+        print(writer + ': ' + res)

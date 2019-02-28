@@ -1,0 +1,8 @@
+---
+writer:
+  name: mitiff
+  description: Generic MITIFF Writer
+  writer: !!python/name:satpy.writers.mitiff.MITIFFWriter
+  filename: '{name:s}_{start_time:%Y%m%d_%H%M%S}.mitiff'
+  compress: DEFLATE
+  zlevel: 6
