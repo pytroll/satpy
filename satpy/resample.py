@@ -339,7 +339,6 @@ class KDTreeResampler(BaseResampler):
 
         try:
             self.load_neighbour_info(cache_dir, mask=mask, **kwargs)
-            LOG.debug("Read pre-computed kd-tree parameters")
         except IOError:
             LOG.debug("Computing kd-tree parameters")
             self.resampler.get_neighbour_info(mask=mask)
@@ -366,6 +365,7 @@ class KDTreeResampler(BaseResampler):
                                                mask=mask_name, **kwargs)
         if kwargs.get('mask') in self._index_caches:
             self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
+            LOG.debug("Pre-computed kd-tree parameters were re-used from memory")
         elif cache_dir:
             cache = np.load(filename, mmap_mode='r')
             # copy the dict so we can modify it's keys
@@ -373,6 +373,7 @@ class KDTreeResampler(BaseResampler):
             cache.close()
             self._apply_cached_indexes(new_cache)  # modifies cache dict in-place
             self._index_caches[mask_name] = new_cache
+            LOG.debug("Pre-computed kd-tree parameters were read from disk")
         else:
             raise IOError
 
