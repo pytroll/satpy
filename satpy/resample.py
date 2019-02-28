@@ -367,7 +367,7 @@ class KDTreeResampler(BaseResampler):
             self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
         elif cache_dir:
             cache = np.load(filename, mmap_mode='r')
-            # copy the dict so we can modify it's keys
+            # copy the dict so we can modify its keys
             new_cache = dict(cache.items())
             cache.close()
             self._apply_cached_indexes(new_cache)  # modifies cache dict in-place
@@ -601,6 +601,7 @@ class BilinearResampler(BaseResampler):
     def __init__(self, source_geo_def, target_geo_def):
         super(BilinearResampler, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
+        self._index_caches = {}
 
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
                    reduce_data=True, nprocs=1,
@@ -624,33 +625,50 @@ class BilinearResampler(BaseResampler):
 
             self.resampler = XArrayResamplerBilinear(**kwargs)
             try:
-                self.load_bil_info(cache_dir, **kwargs)
-                LOG.debug("Loaded bilinear parameters")
+                self.load_bil_info(cache_dir, mask=mask, **kwargs)
             except IOError:
                 LOG.debug("Computing bilinear parameters")
                 self.resampler.get_bil_info()
-                self.save_bil_info(cache_dir, **kwargs)
+                self.save_bil_info(cache_dir, mask=mask, **kwargs)
 
-    def load_bil_info(self, cache_dir, **kwargs):
+    def _apply_cached_indexes(self, cached_indexes, persist=False):
+        """Reassign various resampler index attributes."""
+        # cacheable_dict = {}
+        for elt in ['bilinear_s', 'bilinear_t', 'valid_input_index',
+                    'index_array']:
+            val = cached_indexes[elt]
+            if isinstance(val, tuple):
+                val = cached_indexes[elt][0]
+            elif isinstance(val, np.ndarray):
+                val = da.from_array(val, chunks=CHUNK_SIZE)
+            elif persist and isinstance(val, da.Array):
+                cached_indexes[elt] = val = val.persist()
+            setattr(self.resampler, elt, val)
 
-        if cache_dir:
-            filename = self._create_cache_filename(cache_dir,
-                                                   prefix='resample_lut_bil_',
-                                                   **kwargs)
-            cache = np.load(filename)
-            for elt in ['bilinear_s', 'bilinear_t', 'valid_input_index',
-                        'index_array']:
-                if isinstance(cache[elt], tuple):
-                    setattr(self.resampler, elt, cache[elt][0])
-                else:
-                    setattr(self.resampler, elt, cache[elt])
+    def load_bil_info(self, cache_dir, mask=None, **kwargs):
+        """Read index arrays from either the in-memory or disk cache."""
+        mask_name = getattr(mask, 'name', None)
+        filename = self._create_cache_filename(cache_dir,
+                                               mask=mask_name,
+                                               prefix='resample_lut_bil_',
+                                               **kwargs)
+        if kwargs.get('mask') in self._index_caches:
+            self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
+        elif cache_dir:
+            cache = np.load(filename, mmap_mode='r')
+            # copy the dict so we can modify its keys
+            new_cache = dict(cache.items())
             cache.close()
+            self._apply_cached_indexes(new_cache)  # modifies cache dict in-place
+            self._index_caches[mask_name] = new_cache
+            LOG.debug("Loaded bilinear parameters from file.")
         else:
             raise IOError
 
-    def save_bil_info(self, cache_dir, **kwargs):
+    def save_bil_info(self, cache_dir, mask=None, **kwargs):
         if cache_dir:
             filename = self._create_cache_filename(cache_dir,
+                                                   mask=mask,
                                                    prefix='resample_lut_bil_',
                                                    **kwargs)
             LOG.info('Saving kd_tree neighbour info to %s', filename)
