@@ -267,12 +267,13 @@ class BaseResampler(object):
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
-    def _create_cache_filename(self, cache_dir=None, **kwargs):
+    def _create_cache_filename(self, cache_dir=None, prefix='resample_lut-',
+                               **kwargs):
         """Create filename for the cached resampling parameters"""
         cache_dir = cache_dir or '.'
         hash_str = self.get_hash(**kwargs)
 
-        return os.path.join(cache_dir, 'resample_lut-' + hash_str + '.npz')
+        return os.path.join(cache_dir, prefix + hash_str + '.npz')
 
 
 class KDTreeResampler(BaseResampler):
@@ -650,7 +651,7 @@ class BilinearResampler(BaseResampler):
         mask_name = getattr(mask, 'name', None)
         filename = self._create_cache_filename(cache_dir,
                                                mask=mask_name,
-                                               prefix='resample_lut_bil_',
+                                               prefix='resample_lut_bil-',
                                                **kwargs)
         if kwargs.get('mask') in self._index_caches:
             self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
@@ -669,7 +670,7 @@ class BilinearResampler(BaseResampler):
         if cache_dir:
             filename = self._create_cache_filename(cache_dir,
                                                    mask=mask,
-                                                   prefix='resample_lut_bil_',
+                                                   prefix='resample_lut_bil-',
                                                    **kwargs)
             LOG.info('Saving kd_tree neighbour info to %s', filename)
             cache = {'bilinear_s': self.resampler.bilinear_s,
