@@ -3,58 +3,48 @@
 """Reader for AMSR2 L1B files in HDF5 format.
 """
 
-import numpy as np
-
-from satpy.projectable import Projectable
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 
 class AMSR2L1BFileHandler(HDF5FileHandler):
+    def get_metadata(self, ds_id, ds_info):
+        var_path = ds_info['file_key']
+        info = getattr(self[var_path], 'attrs', {})
+        info.update(ds_info)
+        info.update({
+            "shape": self.get_shape(ds_id, ds_info),
+            "units": self[var_path + "/attr/UNIT"],
+            "platform_name": self["/attr/PlatformShortName"],
+            "sensor": self["/attr/SensorShortName"],
+            "start_orbit": int(self["/attr/StartOrbitNumber"]),
+            "end_orbit": int(self["/attr/StopOrbitNumber"]),
+        })
+        info.update(ds_id.to_dict())
+        return info
 
-    @property
-    def start_time(self):
-        return self.filename_info["start_time"]
+    def get_shape(self, ds_id, ds_info):
+        """Get output shape of specified dataset."""
+        var_path = ds_info['file_key']
+        shape = self[var_path + '/shape']
+        if ((ds_info.get('standard_name') == "longitude" or ds_info.get('standard_name') == "latitude") and
+                ds_id.resolution == 10000):
+            return shape[0], int(shape[1] / 2)
+        return shape
 
-    @property
-    def end_time(self):
-        return self.filename_info["start_time"]
-
-    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
-        lon_key = nav_info["longitude_key"]
-        lat_key = nav_info["latitude_key"]
-
-        # FIXME: Lower frequency channels need CoRegistration parameters applied
-        if self[lon_key].shape[1] > lon_out.shape[1]:
-            lon_out.data[:] = self[lon_key][:, ::2]
-            lat_out.data[:] = self[lat_key][:, ::2]
-        else:
-            lon_out.data[:] = self[lon_key]
-            lat_out.data[:] = self[lat_key]
-
-        fill_value = nav_info.get("fill_value", -9999.)
-        lon_out.mask[:] = lon_out == fill_value
-        lat_out.mask[:] = lat_out == fill_value
-
-        return {}
-
-    def get_metadata(self, m_key):
-        raise NotImplementedError()
-
-    def get_dataset(self, ds_key, ds_info, out=None):
-        var_path = ds_info["file_key"]
-        fill_value = ds_info.get("fill_value", 65535)
+    def get_dataset(self, ds_id, ds_info):
+        """Get output data and metadata of specified dataset."""
+        var_path = ds_info['file_key']
+        fill_value = ds_info.get('fill_value', 65535)
+        metadata = self.get_metadata(ds_id, ds_info)
 
         data = self[var_path]
-        dtype = ds_info.get("dtype", np.float32)
-        mask = data == fill_value
-        data = data.astype(dtype) * self[var_path + "/attr/SCALE FACTOR"]
-        ds_info.update({
-            "name": ds_key.name,
-            "id": ds_key,
-            "units": self[var_path + "/attr/UNIT"],
-            "platform": self["/attr/PlatformShortName"].item(),
-            "sensor": self["/attr/SensorShortName"].item(),
-            "start_orbit": int(self["/attr/StartOrbitNumber"].item()),
-            "end_orbit": int(self["/attr/StopOrbitNumber"].item()),
-        })
-        return Projectable(data, mask=mask, **ds_info)
+        if ((ds_info.get('standard_name') == "longitude" or
+             ds_info.get('standard_name') == "latitude") and
+                ds_id.resolution == 10000):
+            # FIXME: Lower frequency channels need CoRegistration parameters applied
+            data = data[:, ::2] * self[var_path + "/attr/SCALE FACTOR"]
+        else:
+            data = data * self[var_path + "/attr/SCALE FACTOR"]
+        data = data.where(data != fill_value)
+        data.attrs.update(metadata)
+        return data

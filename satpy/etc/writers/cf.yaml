@@ -1,0 +1,7 @@
+writer:
+  name: cf
+  description: Generic netCDF4/CF Writer
+  writer: !!python/name:satpy.writers.cf_writer.CFWriter
+  filename: '{name}_{start_time:%Y%m%d_%H%M%S}.nc'
+  compress: DEFLATE
+  zlevel: 6

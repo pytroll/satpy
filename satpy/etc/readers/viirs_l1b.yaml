@@ -1,0 +1,474 @@
+reader:
+  description: Generic NASA VIIRS L1B Reader
+  name: viirs_l1b
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [viirs]
+  default_datasets:
+
+navigations:
+  vgeoi:
+      description: VIIRS L1B I-band Navigation
+      file_type: vgeoi
+      latitude_key: geolocation_data/latitude
+      longitude_key: geolocation_data/longitude
+      nadir_resolution: [371]
+      rows_per_scan: 32
+  vgeom:
+      description: VIIRS L1B M-band Navigation
+      file_type: vgeom
+      latitude_key: geolocation_data/latitude
+      longitude_key: geolocation_data/longitude
+      nadir_resolution: [742]
+      rows_per_scan: 16
+  vgeod:
+      description: VIIRS L1B DNB Navigation
+      file_type: vgeod
+      latitude_key: geolocation_data/latitude
+      longitude_key: geolocation_data/longitude
+      nadir_resolution: [742]
+      rows_per_scan: 16
+
+file_types:
+  vgeoi:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
+    file_patterns:
+    - 'VGEOI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
+    - 'V{platform_shortname:2s}03IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+  vgeom:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
+    file_patterns:
+    - 'VGEOM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
+    - 'V{platform_shortname:2s}03MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+  vgeod:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
+    file_patterns:
+    - 'VGEOD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
+    - 'V{platform_shortname:2s}03DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+  vl1bi:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
+    file_patterns:
+    - 'VL1BI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
+    - 'V{platform_shortname:2s}02IMG.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+  vl1bm:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
+    file_patterns:
+    - 'VL1BM_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
+    - 'V{platform_shortname:2s}02MOD.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+  vl1bd:
+    file_reader: !!python/name:satpy.readers.viirs_l1b.VIIRSL1BFileHandler
+    file_patterns:
+    - 'VL1BD_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
+    - 'V{platform_shortname:2s}02DNB.A{start_time:%Y%j.%H%M}.{collection_number:3d}.{creation_time:%Y%j%H%M%S}{creator}.nc'
+
+datasets:
+  i_lon:
+    name: i_lon
+    resolution: 371
+    file_type: vgeoi
+    file_key: geolocation_data/longitude
+    units: degrees
+    standard_name: longitude
+  i_lat:
+    name: i_lat
+    resolution: 371
+    file_type: vgeoi
+    file_key: geolocation_data/latitude
+    units: degrees
+    standard_name: latitude
+  m_lon:
+    name: m_lon
+    resolution: 742
+    file_type: vgeom
+    file_key: geolocation_data/longitude
+    units: degrees
+    standard_name: longitude
+  m_lat:
+    name: m_lat
+    resolution: 742
+    file_type: vgeom
+    file_key: geolocation_data/latitude
+    units: degrees
+    standard_name: latitude
+  dnb_lon:
+    name: dnb_lon
+    resolution: 743
+    file_type: vgeod
+    file_key: geolocation_data/longitude
+    units: degrees
+    standard_name: longitude
+  dnb_lat:
+    name: dnb_lat
+    resolution: 743
+    file_type: vgeod
+    file_key: geolocation_data/latitude
+    units: degrees
+    standard_name: latitude
+  I01:
+    name: I01
+    wavelength: [0.600, 0.640, 0.680]
+    resolution: 371
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [i_lon, i_lat]
+    file_type: vl1bi
+  I02:
+    name: I02
+    wavelength: [0.845, 0.865, 0.884]
+    resolution: 371
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [i_lon, i_lat]
+    file_type: vl1bi
+  I03:
+    name: I03
+    wavelength: [1.580, 1.610, 1.640]
+    resolution: 371
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [i_lon, i_lat]
+    file_type: vl1bi
+  I04:
+    name: I04
+    wavelength: [3.580, 3.740, 3.900]
+    resolution: 371
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [i_lon, i_lat]
+    file_type: vl1bi
+  I05:
+    name: I05
+    wavelength: [10.500, 11.450, 12.300]
+    resolution: 371
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [i_lon, i_lat]
+    file_type: vl1bi
+  I_SOLZ:
+    name: i_solar_zenith_angle
+    standard_name: solar_zenith_angle
+    resolution: 371
+    units: degrees
+    coordinates: [i_lon, i_lat]
+    file_type: vgeoi
+    file_key: geolocation_data/solar_zenith
+  I_SOLA:
+    name: i_solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 371
+    units: degrees
+    coordinates: [i_lon, i_lat]
+    file_type: vgeoi
+    file_key: geolocation_data/solar_azimuth
+  I_SENZ:
+    name: i_satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    resolution: 371
+    units: degrees
+    coordinates: [i_lon, i_lat]
+    file_type: vgeoi
+    file_key: geolocation_data/sensor_zenith
+  I_SENA:
+    name: i_satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    resolution: 371
+    units: degrees
+    coordinates: [i_lon, i_lat]
+    file_type: vgeoi
+    file_key: geolocation_data/sensor_azimuth
+  M01:
+    name: M01
+    wavelength: [0.402, 0.412, 0.422]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M02:
+    name: M02
+    wavelength: [0.436, 0.445, 0.454]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M03:
+    name: M03
+    wavelength: [0.478, 0.488, 0.498]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M04:
+    name: M04
+    wavelength: [0.545, 0.555, 0.565]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M05:
+    name: M05
+    wavelength: [0.662, 0.672, 0.682]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M06:
+    name: M06
+    wavelength: [0.739, 0.746, 0.754]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M07:
+    name: M07
+    wavelength: [0.846, 0.865, 0.885]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M08:
+    name: M08
+    wavelength: [1.230, 1.240, 1.250]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M09:
+    name: M09
+    wavelength: [1.371, 1.378, 1.386]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M10:
+    name: M10
+    wavelength: [1.580, 1.610, 1.640]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M11:
+    name: M11
+    wavelength: [2.225, 2.250, 2.275]
+    resolution: 742
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M12:
+    name: M12
+    wavelength: [3.610, 3.700, 3.790]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M13:
+    name: M13
+    wavelength: [3.973, 4.050, 4.128]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M14:
+    name: M14
+    wavelength: [8.400, 8.550, 8.700]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M15:
+    name: M15
+    wavelength: [10.263, 10.763, 11.263]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M16:
+    name: M16
+    wavelength: [11.538, 12.013, 12.489]
+    resolution: 742
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    coordinates: [m_lon, m_lat]
+    file_type: vl1bm
+  M_SOLZ:
+    name: solar_zenith_angle
+    standard_name: solar_zenith_angle
+    resolution: 742
+    units: degrees
+    coordinates: [m_lon, m_lat]
+    file_type: vgeom
+    file_key: geolocation_data/solar_zenith
+  M_SOLA:
+    name: solar_azimuth_angle
+    standard_name: solar_azimuth_angle
+    resolution: 742
+    units: degrees
+    coordinates: [m_lon, m_lat]
+    file_type: vgeom
+    file_key: geolocation_data/solar_azimuth
+  M_SENZ:
+    name: satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    resolution: 742
+    units: degrees
+    coordinates: [m_lon, m_lat]
+    file_type: vgeom
+    file_key: geolocation_data/sensor_zenith
+  M_SENA:
+    name: satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    resolution: 742
+    units: degrees
+    coordinates: [m_lon, m_lat]
+    file_type: vgeom
+    file_key: geolocation_data/sensor_azimuth
+  DNB:
+    name: DNB
+    wavelength: [0.500, 0.700, 0.900]
+    resolution: 743
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 sr-1
+        file_units: W cm-2 sr-1
+    coordinates: [dnb_lon, dnb_lat]
+    file_type: vl1bd
+    file_key: observation_data/DNB_observations
+  DNB_SZA:
+    name: dnb_solar_zenith_angle
+    standard_name: solar_zenith_angle
+    resolution: 743
+    coordinates: [dnb_lon, dnb_lat]
+    file_type: vgeod
+    file_key: geolocation_data/solar_zenith
+  DNB_LZA:
+    name: dnb_lunar_zenith_angle
+    standard_name: lunar_zenith_angle
+    resolution: 743
+    coordinates: [dnb_lon, dnb_lat]
+    file_type: vgeod
+    file_key: geolocation_data/lunar_zenith
+  dnb_moon_illumination_fraction:
+    name: dnb_moon_illumination_fraction
+    resolution: 743
+    file_type: vgeod
+    file_key: geolocation_data/moon_illumination_fraction
+    coordinates: [dnb_lon, dnb_lat]

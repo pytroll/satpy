@@ -1,0 +1,149 @@
+sensor_name: visir/abi
+
+modifiers:
+  rayleigh_corrected_crefl:
+    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    dem_filename: CMGDEM.hdf
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+    - name: satellite_zenith_angle
+    - name: solar_azimuth_angle
+    - name: solar_zenith_angle
+
+  rayleigh_corrected_500m:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: midlatitude summer
+    aerosol_type: marine_tropical_aerosol
+    prerequisites:
+    - name: C02
+      modifiers: [effective_solar_pathlength_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+composites:
+  green_crefl:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    - name: C01
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: C03
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    standard_name: toa_bidirection_reflectance
+
+  green_raw:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    - name: C01
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    standard_name: toa_bidirection_reflectance
+
+  green:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    - name: C01
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    standard_name: toa_bidirection_reflectance
+
+  true_color_crefl:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    - name: green_crefl
+    - name: C01
+      modifiers: [sunz_corrected, rayleigh_corrected_crefl]
+    standard_name: true_color
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C02
+      modifiers: [sunz_corrected]
+    - name: green_raw
+    - name: C01
+      modifiers: [sunz_corrected]
+    standard_name: true_color
+
+  true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: green
+    - name: C01
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C05
+      modifiers: [sunz_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
+    high_resolution_band: blue
+    standard_name: natural_color
+
+  natural_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C05
+    - name: C03
+    - name: C02
+    standard_name: natural_color
+
+  overview:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C02
+      modifiers: [sunz_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    - C14
+    standard_name: overview
+
+  overview_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - C02
+    - C03
+    - C14
+    standard_name: overview
+
+  airmass:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: C08
+      - name: C10
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C12
+        - name: C13
+    - name: C08
+    standard_name: airmass

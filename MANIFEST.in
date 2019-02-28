@@ -1,12 +1,7 @@
 include doc/Makefile
 include doc/source/*
 include doc/examples/*.py
-include etc/*
-include etc/readers/*
-include etc/writers/*
-include etc/enhancements/*
-include etc/composites/*
 include LICENSE.txt
 include README.rst
-include MANIFEST.in
-
+include versioneer.py
+include satpy/version.py

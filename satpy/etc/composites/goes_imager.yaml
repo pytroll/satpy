@@ -1,0 +1,11 @@
+# XXX arb
+sensor_name: visir/goes_imager
+
+composites:
+  overview:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - '00_7'
+      - '00_7'
+      - '10_7'
+    standard_name: overview

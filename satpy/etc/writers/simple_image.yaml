@@ -1,0 +1,5 @@
+writer:
+  name: simple_image
+  description: Generic Image Writer
+  writer: !!python/name:satpy.writers.simple_image.PillowWriter
+  filename: '{name}_{start_time:%Y%m%d_%H%M%S}.png'

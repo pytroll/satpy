@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2013, 2014, 2015.
+# Copyright (c) 2011-2017.
 
 # Author(s):
 
@@ -32,15 +32,17 @@ Format documentation:
 http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolIII_RevC.pdf
 
 """
+import logging
 import os.path
 from datetime import datetime, timedelta
+from glob import glob
+
 import numpy as np
-import logging
+import dask.array as da
+import xarray as xr
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from satpy.readers.yaml_reader import FileYAMLReader
-from satpy.projectable import Projectable
-import six
 
 NO_DATE = datetime(1958, 1, 1)
 EPSILON_TIME = timedelta(days=2)
@@ -83,11 +85,14 @@ def _get_invalid_info(granule_data):
 
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
+
     """VIIRS HDF5 File Reader
     """
+
     def __getitem__(self, item):
         if '*' in item:
-            # this is an aggregated field that can't easily be loaded, need to join things together
+            # this is an aggregated field that can't easily be loaded, need to
+            # join things together
             idx = 0
             base_item = item
             item = base_item.replace('*', str(idx))
@@ -149,19 +154,27 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     @property
     def platform_name(self):
         default = '/attr/Platform_Short_Name'
-        platform_path = self.filetype_info.get('platform_name', default).format(**self.filetype_info)
-        return self[platform_path]
+        platform_path = self.filetype_info.get(
+            'platform_name', default).format(**self.filetype_info)
+        platform_dict = {'NPP': 'Suomi-NPP',
+                         'JPSS-1': 'NOAA-20',
+                         'J01': 'NOAA-20',
+                         'JPSS-2': 'NOAA-21',
+                         'J02': 'NOAA-21'}
+        return platform_dict.get(self[platform_path], self[platform_path])
 
     @property
     def sensor_name(self):
         default = 'Data_Products/{file_group}/attr/Instrument_Short_Name'
-        sensor_path = self.filetype_info.get('sensor_name', default).format(**self.filetype_info)
-        return self[sensor_path]
+        sensor_path = self.filetype_info.get(
+            'sensor_name', default).format(**self.filetype_info)
+        return self[sensor_path].lower()
 
     def get_file_units(self, dataset_id, ds_info):
         file_units = ds_info.get("file_units")
 
-        # Guess the file units if we need to (normally we would get this from the file)
+        # Guess the file units if we need to (normally we would get this from
+        # the file)
         if file_units is None:
             if dataset_id.calibration == 'radiance':
                 if "dnb" in dataset_id.name.lower():
@@ -178,45 +191,35 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         return file_units
 
-    def get_shape(self, item):
-        return self[item + "/shape"]
-
-    def scale_swath_data(self, data, mask, scaling_factors):
+    def scale_swath_data(self, data, scaling_factors):
         """Scale swath data using scaling factors and offsets.
 
         Multi-granule (a.k.a. aggregated) files will have more than the usual two values.
         """
-        num_grans = len(scaling_factors)//2
-        gran_size = data.shape[0]//num_grans
-        for i in range(num_grans):
-            start_idx = i * gran_size
-            end_idx = start_idx + gran_size
-            m = scaling_factors[i*2]
-            b = scaling_factors[i*2 + 1]
-            # in rare cases the scaling factors are actually fill values
-            if m <= -999 or b <= -999:
-                mask[start_idx:end_idx] = 1
-            else:
-                data[start_idx:end_idx] *= m
-                data[start_idx:end_idx] += b
+        num_grans = len(scaling_factors) // 2
+        gran_size = data.shape[0] // num_grans
+        factors = scaling_factors.where(scaling_factors > -999)
+        factors = factors.data.reshape((-1, 2))
+        factors = xr.DataArray(da.repeat(factors, gran_size, axis=0),
+                               dims=(data.dims[0], 'factors'))
+        data = data * factors[:, 0] + factors[:, 1]
+        return data
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
         if file_units == output_units:
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
         if factors is None:
-            factors = [1, 0]
-        factors = np.array(factors)
+            factors = xr.DataArray(da.from_array([1, 0], chunks=1))
+        factors = factors.where(factors != -999.)
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 10000.0, -999)
-            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 10000.0, -999)
+            factors = factors * 10000.
             return factors
         elif file_units == "1" and output_units == "%":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors[::2] = np.where(factors[::2] != -999, factors[::2] * 100.0, -999)
-            factors[1::2] = np.where(factors[1::2] != -999, factors[1::2] * 100.0, -999)
+            factors = factors * 100.
             return factors
         else:
             return factors
@@ -235,52 +238,22 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         var_path = self._generate_file_key(ds_id, ds_info)
         return self[var_path + "/shape"]
 
-    def get_lonlats(self, navid, nav_info, lon_out, lat_out):
-        lon_default = 'All_Data/{file_group}_All/Longitude'
-        lon_key = nav_info.get("longitude_key", lon_default).format(**self.filetype_info)
-        valid_min = -180.
-        valid_max = 180.
-        lon_out.data[:] = self[lon_key][:]
-        lon_out.mask[:] = (lon_out < valid_min) | (lon_out > valid_max)
-
-        lat_default = 'All_Data/{file_group}_All/Latitude'
-        lat_key = nav_info.get("latitude_key", lat_default).format(**self.filetype_info)
-        valid_min = -90.
-        valid_max = 90.
-        lat_out.data[:] = self[lat_key][:]
-        lat_out.mask[:] = (lat_out < valid_min) | (lat_out > valid_max)
-
-        return {}
-
-    def get_dataset(self, dataset_id, ds_info, out=None):
+    def get_dataset(self, dataset_id, ds_info):
         var_path = self._generate_file_key(dataset_id, ds_info)
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
         data = self[var_path]
-        dtype = ds_info.get("dtype", np.float32)
         is_floating = np.issubdtype(data.dtype, np.floating)
-        if out is not None:
-            # This assumes that we are promoting the dtypes (ex. float file data -> int array)
-            # and that it happens automatically when assigning to the existing out array
-            out.data[:] = data
-        else:
-            shape = self.get_shape(dataset_id, ds_info)
-            out = np.ma.empty(shape, dtype=dtype)
-            out.mask = np.zeros(shape, dtype=np.bool)
 
         if is_floating:
             # If the data is a float then we mask everything <= -999.0
             fill_max = float(ds_info.pop("fill_max_float", -999.0))
-            out.mask[:] |= out.data <= fill_max
+            data = data.where(data > fill_max)
         else:
             # If the data is an integer then we mask everything >= fill_min_int
             fill_min = int(ds_info.pop("fill_min_int", 65528))
-            out.mask[:] |= out.data >= fill_min
+            data = data.where(data < fill_min)
 
-        factors = None
-        try:
-            factors = self[factor_var_path]
-        except KeyError:
-            pass
+        factors = self.get(factor_var_path)
         if factors is None:
             LOG.debug("No scaling factors found for %s", dataset_id)
 
@@ -289,46 +262,109 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         factors = self.adjust_scaling_factors(factors, file_units, output_units)
 
         if factors is not None:
-            self.scale_swath_data(out.data, out.mask, factors)
+            data = self.scale_swath_data(data, factors)
 
-        ds_info.update({
-            "name": dataset_id.name,
-            "id": dataset_id,
+        i = getattr(data, 'attrs', {})
+        i.update(ds_info)
+        i.update({
             "units": ds_info.get("units", file_units),
-            "platform": self.platform_name,
+            "platform_name": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
         })
-        cls = ds_info.pop("container", Projectable)
-        return cls(out, **ds_info)
+        i.update(dataset_id.to_dict())
+        data.attrs.update(i)
+        return data
+
+    def get_bounding_box(self):
+        """Get the bounding box of this file."""
+        path = 'Data_Products/{file_group}/{file_group}_Gran_0/attr/'
+        prefix = path.format(**self.filetype_info)
+
+        lats = self.file_content[prefix + 'G-Ring_Latitude']
+        lons = self.file_content[prefix + 'G-Ring_Longitude']
+
+        return lons.ravel(), lats.ravel()
 
 
 class VIIRSSDRReader(FileYAMLReader):
-    def load_navigation(self, nav_name, extra_mask=None, dep_file_type=None):
-        """Load the `nav_name` navigation.
+    """Custom file reader for finding VIIRS SDR geolocation at runtime."""
 
-        For VIIRS, if we haven't loaded the geolocation file read the `dep_file_type` header
-        to figure out where it is.
+    def __init__(self, config_files, use_tc=True, **kwargs):
+        """Initialize file reader and adjust geolocation preferences.
+
+        Args:
+            config_files (iterable): yaml config files passed to base class
+            use_tc (boolean): If `True` (default) use the terrain corrected
+                              file types specified in the config files. If
+                              `False`, switch all terrain corrected file types
+                              to non-TC file types. If `None`
+
         """
-        nav_info = self.navigations[nav_name]
-        file_type = nav_info["file_type"]
+        super(VIIRSSDRReader, self).__init__(config_files, **kwargs)
+        for ds_info in self.ids.values():
+            ft = ds_info.get('file_type')
+            if ft == 'gmtco':
+                nontc = 'gmodo'
+            elif ft == 'gitco':
+                nontc = 'gimgo'
+            else:
+                continue
 
-        if file_type not in self.file_readers:
-            LOG.debug("Geolocation files were not provided, will search band file header...")
-            if dep_file_type is None:
-                raise RuntimeError("Could not find geolocation files because the main dataset was not provided")
-            dataset_file_reader = self.file_readers[dep_file_type]
-            base_dirs = [os.path.dirname(fn) for fn in dataset_file_reader.filenames]
-            geo_filenames = dataset_file_reader.geofilenames
-            geo_filepaths = [os.path.join(bd, gf) for bd, gf in zip(base_dirs, geo_filenames)]
+            if use_tc is None:
+                # we want both TC and non-TC
+                ds_info['file_type'] = [ds_info['file_type'], nontc]
+            elif not use_tc:
+                # we want only non-TC
+                ds_info['file_type'] = nontc
 
-            file_types = self.identify_file_types(geo_filepaths)
-            if file_type not in file_types:
-                raise RuntimeError(
-                    "The geolocation files from the header (ex. {}) ".format(geo_filepaths[0]) +
-                    "do not match the configured geolocation ({})".format(file_type))
-            self.file_readers[file_type] = MultiFileReader(file_type, file_types[file_type], self.file_keys)
+    def _load_from_geo_ref(self, dsid):
+        """Load filenames from the N_GEO_Ref attribute of a dataset's file"""
+        file_handlers = self._get_file_handlers(dsid)
+        if not file_handlers:
+            return None
 
-        return super(VIIRSINISDRReader, self).load_navigation(nav_name, extra_mask=extra_mask)
+        fns = []
+        for fh in file_handlers:
+            base_dir = os.path.dirname(fh.filename)
+            try:
+                # get the filename and remove the creation time
+                # which is often wrong
+                fn = fh['/attr/N_GEO_Ref'][:46] + '*.h5'
+                fns.extend(glob(os.path.join(base_dir, fn)))
 
+                # usually is non-terrain corrected file, add the terrain
+                # corrected file too
+                if fn[:5] == 'GIMGO':
+                    fn = 'GITCO' + fn[5:]
+                elif fn[:5] == 'GMODO':
+                    fn = 'GMTCO' + fn[5:]
+                else:
+                    continue
+                fns.extend(glob(os.path.join(base_dir, fn)))
+            except KeyError:
+                LOG.debug("Could not load geo-reference information from {}".format(fh.filename))
+
+        return fns
+
+    def _get_coordinates_for_dataset_key(self, dsid):
+        """Get the coordinate dataset keys for `dsid`.
+
+        Wraps the base class method in order to load geolocation files
+        from the geo reference attribute in the datasets file.
+        """
+        coords = super(VIIRSSDRReader, self)._get_coordinates_for_dataset_key(dsid)
+        for c_id in coords:
+            c_file_type = self.ids[c_id]['file_type']
+            if self._preferred_filetype(c_file_type):
+                # coordinate has its file type loaded already
+                continue
+
+            # check the dataset file for the geolocation filename
+            geo_filenames = self._load_from_geo_ref(dsid)
+            if not geo_filenames:
+                continue
+
+            self.create_filehandlers(geo_filenames)
+        return coords

@@ -1,0 +1,236 @@
+reader:
+  description: CSPP Geo and GEOCAT file reader
+  name: geocat
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [abi, ahi, goes_imager]
+
+file_types:
+  level2:
+    file_reader: !!python/name:satpy.readers.geocat.GEOCATFileHandler
+    file_patterns:
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{start_time:%Y%j.%H%M%S}.hdf'
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{start_time:%Y%j.%H%M%S}.nc'
+     # Himawari 8 files:
+     - 'geocatL2.{platform_shortname}.{start_time:%Y%j.%H%M%S}.{sector_id}.{res_id}.hdf'
+     - 'geocatL2.{platform_shortname}.{start_time:%Y%j.%H%M%S}.{sector_id}.{res_id}.nc'
+     # GOES-16 ABI files:
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{sector_id}.{start_time:%Y%j.%H%M%S}.hdf'
+     - 'geocatL{processing_level:1d}.{platform_shortname}.{sector_id}.{start_time:%Y%j.%H%M%S}.nc'
+  ahi_level1:
+    file_reader: !!python/name:satpy.readers.geocat.GEOCATFileHandler
+    file_patterns:
+     # we could use the H8 pattern above, but then the datasets listed below
+     # would always be "available"
+     - 'geocatL1.HIMAWARI-8.{start_time:%Y%j.%H%M%S}.{sector_id}.{res_id}.hdf'
+     - 'geocatL1.HIMAWARI-8.{start_time:%Y%j.%H%M%S}.{sector_id}.{res_id}.nc'
+
+datasets:
+  # AHI Level 1 Datasets (need to define here so wavelengths can be used)
+  B01:
+    name: B01
+    sensor: ahi
+    wavelength: [0.45,0.47,0.49]
+    calibration:
+      reflectance:
+        file_key: himawari_8_ahi_channel_1_reflectance
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B02:
+    name: B02
+    sensor: ahi
+    wavelength: [0.49,0.51,0.53]
+    calibration:
+      reflectance:
+        file_key: himawari_8_ahi_channel_2_reflectance
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B03:
+    name: B03
+    sensor: ahi
+    wavelength: [0.62,0.64,0.66]
+    calibration:
+      reflectance:
+        file_key: himawari_8_ahi_channel_3_reflectance
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B04:
+    name: B04
+    sensor: ahi
+    wavelength: [0.83, 0.85, 0.87]
+    calibration:
+      reflectance:
+        file_key: himawari_8_ahi_channel_4_reflectance
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B05:
+    name: B05
+    sensor: ahi
+    wavelength: [1.5, 1.6, 1.7]
+    calibration:
+      reflectance:
+        file_key: himawari_8_ahi_channel_5_reflectance
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B06:
+    name: B06
+    sensor: ahi
+    wavelength: [2.2, 2.3, 2.4]
+    calibration:
+      reflectance:
+        file_key: himawari_8_ahi_channel_6_reflectance
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B07:
+    name: B07
+    sensor: ahi
+    wavelength: [3.7, 3.9, 4.1]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_7_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B08:
+    name: B08
+    sensor: ahi
+    wavelength: [6.0, 6.2, 6.4]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_8_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B09:
+    name: B09
+    sensor: ahi
+    wavelength: [6.7, 6.9, 7.1]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_9_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B10:
+    name: B10
+    sensor: ahi
+    wavelength: [7.1, 7.3, 7.5]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_10_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B11:
+    name: B11
+    sensor: ahi
+    wavelength: [8.4, 8.6, 8.8]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_11_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B12:
+    name: B12
+    sensor: ahi
+    wavelength: [9.4, 9.6, 9.8]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_12_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B13:
+    name: B13
+    sensor: ahi
+    wavelength: [10.2, 10.4, 10.6]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_13_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B14:
+    name: B14
+    sensor: ahi
+    wavelength: [11.0, 11.2, 11.4]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_14_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B15:
+    name: B15
+    sensor: ahi
+    wavelength: [12.2, 12.4, 12.6]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_15_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1
+  B16:
+    name: B16
+    sensor: ahi
+    wavelength: [13.1, 13.3, 13.5]
+    calibration:
+      brightness_temperature:
+        file_key: himawari_8_ahi_channel_16_brightness_temperature
+        standard_name: toa_brightness_temperature
+        units: "K"
+#      radiance:
+#        standard_name: toa_outgoing_radiance_per_unit_wavelength
+#        units: W m-2 um-1 sr-1
+    file_type: ahi_level1

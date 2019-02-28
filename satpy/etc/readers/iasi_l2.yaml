@@ -1,0 +1,158 @@
+reader:
+  description: Reader for IASI L2 files
+  name: iasi_l2
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [iasi]
+  default_datasets:
+
+datasets:
+  longitude:
+    name: longitude
+    file_type: iasi_l2_hdf5
+    standard_name: longitude
+    units: "degrees"
+    resolution: 12000
+  latitude:
+    name: latitude
+    file_type: iasi_l2_hdf5
+    standard_name: latitude
+    units: "degrees"
+    resolution: 12000
+
+  ozone_mixing_ratio:
+    name: ozone_mixing_ratio
+    file_type: iasi_l2_hdf5
+    units: "kg/kg"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  ozone_mixing_ratio_quality:
+    name: ozone_mixing_ratio_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  ozone_total_column:
+    name: ozone_total_column
+    file_type: iasi_l2_hdf5
+    units: "kg/m^2"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  pressure:
+    name: pressure
+    file_type: iasi_l2_hdf5
+    units: "hPa"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  pressure_quality:
+    name: pressure_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  temperature:
+    name: temperature
+    file_type: iasi_l2_hdf5
+    units: "K"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  temperature_quality:
+    name: temperature_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  water_mixing_ratio:
+    name: water_mixing_ratio
+    file_type: iasi_l2_hdf5
+    units: "kg/kg"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  water_total_column:
+    name: water_total_column
+    file_type: iasi_l2_hdf5
+    units: "mm"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_skin_temperature:
+    name: surface_skin_temperature
+    file_type: iasi_l2_hdf5
+    units: "K"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_skin_temperature_quality:
+    name: surface_skin_temperature_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  emissivity:
+    name: emissivity
+    file_type: iasi_l2_hdf5
+    units: "1"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  emissivity_quality:
+    name: emissivity_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  water_mixing_ratio_quality:
+    name: water_mixing_ratio_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    file_type: iasi_l2_hdf5
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    file_type: iasi_l2_hdf5
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  sensing_time:
+    name: sensing_time
+    file_type: iasi_l2_hdf5
+    units: "ut_time"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    file_type: iasi_l2_hdf5
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    file_type: iasi_l2_hdf5
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+file_types:
+  iasi_l2_hdf5:
+    file_reader: !!python/name:satpy.readers.iasi_l2.IASIL2HDF5
+    file_patterns: ["W_XX-EUMETSAT-{reception_location},{instrument},{long_platform_id}+{processing_location}_C_EUMS_{processing_time:%Y%m%d%H%M%S}_IASI_PW3_02_{platform_id}_{start_time:%Y%m%d%H%M%S}Z_{end_time:%Y%m%d%H%M%S}Z.hdf"]

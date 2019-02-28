@@ -1,0 +1,7 @@
+writer:
+  name: geotiff
+  description: Generic GeoTIFF Writer
+  writer: !!python/name:satpy.writers.geotiff.GeoTIFFWriter
+  filename: '{name}_{start_time:%Y%m%d_%H%M%S}.tif'
+  compress: DEFLATE
+  zlevel: 6

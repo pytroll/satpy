@@ -1,0 +1,7 @@
+writer:
+  name: ninjotiff
+  description: NinjoTIFF Writer
+  writer: !!python/name:satpy.writers.ninjotiff.NinjoTIFFWriter
+  filename: '{name}_{start_time:%Y%m%d_%H%M%S}.tif'
+  compress: DEFLATE
+  zlevel: 6

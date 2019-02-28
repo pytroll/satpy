@@ -1,0 +1,19 @@
+sensor_name: visir/slstr
+
+composites:
+  overview:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - S2_an
+    - S3_an
+    - S8_in
+    standard_name: overview
+
+  day_microphysics:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - S3_an
+    - name: S7_in
+      modifiers: [nir_reflectance]
+    - S8_in
+    standard_name: day_microphysics

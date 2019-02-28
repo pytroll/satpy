@@ -1,0 +1,155 @@
+reader:
+  description: NUCAPS Retrieval Reader
+  name: nucaps
+  reader: !!python/name:satpy.readers.nucaps.NUCAPSReader
+  sensors: [cris, atms]
+
+file_types:
+  nucaps:
+    file_reader: !!python/name:satpy.readers.nucaps.NUCAPSFileHandler
+    file_patterns: ['NUCAPS-EDR_{nucaps_version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+
+datasets:
+  longitude:
+    name: longitude
+    file_type: nucaps
+    file_key: Longitude
+    units: degrees
+    standard_name: longitude
+  latitude:
+    name: latitude
+    file_type: nucaps
+    file_key: Latitude
+    units: degrees
+    standard_name: latitude
+  Solar_Zenith:
+    name: Solar_Zenith
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+  Topography:
+    name: Topography
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+  Land_Fraction:
+    name: Land_Fraction
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+  Surface_Pressure:
+    name: Surface_Pressure
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+  Skin_Temperature:
+    name: Skin_Temperature
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+  Quality_Flag:
+    name: Quality_Flag
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+# Can't include cloud products until we figure out how to handle cloud layers dimension
+#  Cloud_Top_Pressure:
+#    name: Cloud_Top_Pressure
+#    coordinates: [longitude, latitude]
+#    file_type: nucaps
+#    pressure_based: True
+#  Cloud_Top_Fraction:
+#    name: Cloud_Top_Fraction
+#    coordinates: [longitude, latitude]
+#    file_type: nucaps
+#    pressure_based: True
+  Temperature:
+    name: Temperature
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  H2O:
+    name: H2O
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  H2O_MR:
+    name: H2O_MR
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  O3:
+    name: O3
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  O3_MR:
+    name: O3_MR
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  Liquid_H2O:
+    name: Liquid_H2O
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  Liquid_H2O_MR:
+    name: Liquid_H2O_MR
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  CO:
+    name: CO
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  CO_MR:
+    name: CO_MR
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  CH4:
+    name: CH4
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  CH4_MR:
+    name: CH4_MR
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  CO2:
+    name: CO2
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  HNO3:
+    name: HNO3
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  HNO3_MR:
+    name: HNO3_MR
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  N2O:
+    name: N2O
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  N2O_MR:
+    name: N2O_MR
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  SO2:
+    name: SO2
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  SO2_MR:
+    name: SO2_MR
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
+  Pressure_Levels:
+    name: Pressure_Levels
+    standard_name: air_pressure
+    file_type: nucaps
+    file_key: Pressure
+    index: 0

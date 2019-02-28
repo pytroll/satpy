@@ -1,0 +1,356 @@
+sensor_name: visir
+
+modifiers:
+  sunz_corrected:
+    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    optional_prerequisites:
+    - solar_zenith_angle
+
+  effective_solar_pathlength_corrected:
+    compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+    optional_prerequisites:
+      - solar_zenith_angle
+
+  co2_corrected:
+    compositor: !!python/name:satpy.composites.CO2Corrector
+    prerequisites:
+    - 10.8
+    - 13.4
+
+  nir_reflectance:
+    compositor: !!python/name:satpy.composites.NIRReflectance
+    prerequisites:
+    - 11
+    optional_prerequisites:
+    - solar_zenith_angle
+    - 13.4
+
+  nir_emissive:
+    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    prerequisites:
+    - 11
+    optional_prerequisites:
+    - solar_zenith_angle
+    - 13.4
+
+  atm_correction:
+    compositor: !!python/name:satpy.composites.PSPAtmosphericalCorrection
+    optional_prerequisites:
+    - satellite_zenith_angle
+
+  rayleigh_corrected:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - wavelength: 0.67
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_marine_tropical:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: tropical
+    aerosol_type: marine_tropical_aerosol
+    prerequisites:
+    - wavelength: 0.67
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_desert:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: tropical
+    aerosol_type: desert_aerosol
+    prerequisites:
+    - wavelength: 0.67
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+  rayleigh_corrected_land:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: continental_average_aerosol
+    prerequisites:
+    - wavelength: 0.67
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - satellite_azimuth_angle
+    - satellite_zenith_angle
+    - solar_azimuth_angle
+    - solar_zenith_angle
+
+composites:
+
+  airmass:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.2
+      - wavelength: 7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 9.7
+        - wavelength: 10.8
+    - wavelength: 6.2
+    standard_name: airmass
+
+  ash:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 8.7
+    - 10.8
+    standard_name: ash
+
+  cloudtop:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - 3.9
+    - 10.8
+    - 12.0
+    standard_name: cloudtop
+
+  convection:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - 6.2
+        - 7.3
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - 3.9
+        - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - 1.6
+        - 0.6
+    standard_name: convection
+    
+  snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 0.8
+      modifiers: [sunz_corrected]
+    - wavelength: 1.63
+      modifiers: [sunz_corrected]
+    - wavelength: 3.9
+      modifiers: [nir_reflectance]
+    standard_name: snow
+    
+  day_microphysics:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 0.85
+      modifiers: [sunz_corrected]
+    - wavelength: 3.9
+      modifiers: [nir_reflectance]
+    - 10.8
+    standard_name: day_microphysics
+    
+  dust:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 8.7
+    - 10.8
+    standard_name: dust
+
+  fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 8.7
+    - 10.8
+    standard_name: fog
+
+  green_snow:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - 1.63
+    - 0.635
+    - 10.8
+    standard_name: green_snow
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - 1.63
+    - 0.85
+    - 0.635
+    standard_name: natural_color
+
+  natural_color_sun:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 1.63
+      modifiers: [sunz_corrected]
+    - wavelength: 0.85
+      modifiers: [sunz_corrected]
+    - wavelength: 0.635
+      modifiers: [sunz_corrected]
+    standard_name: natural_color
+
+  night_fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 3.9
+    - 10.8
+    standard_name: night_fog
+
+  overview:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - 0.6
+    - 0.8
+    - 10.8
+    standard_name: overview
+
+  overview_sun:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 0.6
+      modifiers: [sunz_corrected]
+    - wavelength: 0.8
+      modifiers: [sunz_corrected]
+    - 10.8
+    standard_name: overview
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - 0.65
+    - 0.5
+    - 0.45
+    standard_name: true_color
+
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural_color
+      - night_fog
+      - solar_zenith_angle
+
+  cloudmask:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cma
+    - cma_pal
+    standard_name: cloudmask
+
+  cloudmask_extended:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cma_extended
+    - cma_extended_pal
+    standard_name: cloudmask
+
+  cloudtype:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ct
+    - ct_pal
+    standard_name: cloudtype
+
+  cloud_top_height:
+    compositor: !!python/name:satpy.composites.cloud_products.CloudTopHeightCompositor
+    prerequisites:
+    - ctth_alti
+    - ctth_alti_pal
+    - ctth_status_flag
+    standard_name: cloud_top_height
+
+  cloud_top_pressure:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ctth_pres
+    - ctth_pres_pal
+    standard_name: cloud_top_pressure
+
+  cloud_top_temperature:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - ctth_tempe
+    - ctth_tempe_pal
+    standard_name: cloud_top_temperature
+
+  cloud_top_phase:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_phase
+    - cpp_phase_pal
+    standard_name: cloud_top_phase
+
+  cloud_drop_effective_radius:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_reff
+    - cpp_reff_pal
+    standard_name: cloud_drop_effective_radius
+
+  night_microphysics:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 3.9
+    - 10.8
+    standard_name: night_microphysics
+
+  ir108_3d:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: ir108_3d
+    prerequisites:
+      - wavelength: 10.8
+
+  ir_cloud_day:
+    standard_name: ir_cloud_day
+    compositor: !!python/name:satpy.composites.CloudCompositor
+    prerequisites:
+      - 10.8
+    transition_min: 258.15
+    transition_max: 298.15
+    transition_gamma: 3.0
