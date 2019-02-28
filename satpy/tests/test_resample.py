@@ -460,7 +460,7 @@ class TestBilinearResampler(unittest.TestCase):
             # we already have things cached in-memory, no need to save again
             self.assertEqual(len(savez.mock_calls), 1)
             # we already have things cached in-memory, don't need to load
-            # self.assertEqual(len(load.mock_calls), 1)
+            self.assertEqual(len(load.mock_calls), 1)
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
 
             # test loading saved resampler
@@ -469,7 +469,7 @@ class TestBilinearResampler(unittest.TestCase):
             self.assertEqual(len(load.mock_calls), 2)
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
             # we should have cached things in-memory now
-            # self.assertEqual(len(resampler._index_caches), 1)
+            self.assertEqual(len(resampler._index_caches), 1)
         finally:
             shutil.rmtree(the_dir)
 
