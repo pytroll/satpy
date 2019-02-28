@@ -365,7 +365,6 @@ class KDTreeResampler(BaseResampler):
                                                mask=mask_name, **kwargs)
         if kwargs.get('mask') in self._index_caches:
             self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
-            LOG.debug("Pre-computed kd-tree parameters were re-used from memory")
         elif cache_dir:
             cache = np.load(filename, mmap_mode='r')
             # copy the dict so we can modify it's keys
