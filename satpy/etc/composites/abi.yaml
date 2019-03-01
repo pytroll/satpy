@@ -538,3 +538,24 @@ composites:
   #   - name: C02
   #     modifiers: [sunz_corrected]
   #   standard_name: natural_color_enh_var2
+
+  natural_color_enh2:
+    compositor: !!python/name:satpy.composites.NaturaColorEnh2
+    prerequisites:
+    - name: C05
+    - name: C03
+    - name: C02
+    - name: C14
+    standard_name: natural_color_enh2
+
+  # natural_color_enh2:
+  #   compositor: !!python/name:satpy.composites.NaturaColorEnh2
+  #   prerequisites:
+  #   - name: C05
+  #     modifiers: [sunz_corrected]
+  #   - name: C03
+  #     modifiers: [sunz_corrected]
+  #   - name: C02
+  #     modifiers: [sunz_corrected]
+  #   - name: C14
+  #   standard_name: natural_color_enh2
