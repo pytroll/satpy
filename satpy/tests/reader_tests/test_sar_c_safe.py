@@ -36,9 +36,8 @@ except ImportError:
 
 class TestSAFEGRD(unittest.TestCase):
     """Test various nc_slstr file handlers."""
-    @mock.patch('satpy.readers.sar_c_safe.SAFEGRD.get_gdal_filehandle')
     @mock.patch('rasterio.open')
-    def test_instantiate(self, mocked_dataset, ggf):
+    def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
         from satpy.readers.sar_c_safe import SAFEGRD
 
@@ -54,7 +53,7 @@ class TestSAFEGRD(unittest.TestCase):
         assert(test._polarization == 'vv')
         assert(test.calibration == calfh)
         assert(test.noise == noisefh)
-        ggf.assert_called()
+        mocked_dataset.assert_called()
 
 
 def suite():
