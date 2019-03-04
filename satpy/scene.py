@@ -920,7 +920,10 @@ class Scene(MetadataObject):
 
     def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
                          **resample_kwargs):
-        """Resample `datasets` to the `destination` area."""
+        """Resample `datasets` to the `destination` area.
+
+        If data reduction is enabled, some local caching is perfomed in order to
+        avoid recomputation of area intersections."""
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
         if isinstance(destination_area, (str, six.text_type)):
@@ -953,7 +956,7 @@ class Scene(MetadataObject):
             source_area = dataset.attrs['area']
             try:
                 if reduce_data:
-                    key = (source_area, destination_area)
+                    key = source_area
                     try:
                         slices, source_area = reductions[key]
                     except KeyError:
