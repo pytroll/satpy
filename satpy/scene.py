@@ -918,12 +918,6 @@ class Scene(MetadataObject):
 
         return dataset
 
-    def _reduce_data(self, source_area, destination_area, dataset):
-        """Reduce data by slicing it."""
-        slice_x, slice_y = source_area.get_area_slices(destination_area)
-        source_area = source_area[slice_y, slice_x]
-        return self._slice_data(self, source_area, (slice_x, slice_y), dataset)
-
     def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
                          **resample_kwargs):
         """Resample `datasets` to the `destination` area."""
