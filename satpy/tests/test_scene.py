@@ -1509,7 +1509,8 @@ class TestSceneResampling(unittest.TestCase):
                                       '+lon_0=-95. +lat_0=25 +lat_1=25 '
                                       '+units=m +no_defs')
         area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
-
+        area_def.get_area_slices = mock.MagicMock()
+        get_area_slices = area_def.get_area_slices
         scene = satpy.scene.Scene(filenames=['bla'],
                                   base_dir='bli',
                                   reader='fake_reader')
@@ -1541,15 +1542,18 @@ class TestSceneResampling(unittest.TestCase):
 
         # Test that data reduction can be disabled
         scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
-
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
+        get_area_slices.return_value = (slice(0, 5, None), slice(0, 5, None))
         scene.resample(area_def, reduce_data=False)
         self.assertFalse(slice_data.called)
+        self.assertFalse(get_area_slices.called)
         scene.resample(area_def)
         self.assertTrue(slice_data.called_once)
+        self.assertTrue(get_area_slices.called_once)
         scene.resample(area_def, reduce_data=True)
         self.assertEqual(slice_data.call_count, 2)
+        self.assertTrue(get_area_slices.called_once)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
