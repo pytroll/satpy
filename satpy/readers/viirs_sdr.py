@@ -83,6 +83,7 @@ def _get_invalid_info(granule_data):
                " soub:" + str((granule_data == -999.2).sum()))
     return msg
 
+
 DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
                 'SVDNB': 'VIIRS-DNB-SDR',
                 'GITCO': 'VIIRS-IMG-GEO-TC',
@@ -111,6 +112,7 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
                 'SVM15': 'VIIRS-M15-SDR',
                 'SVM16': 'VIIRS-M16-SDR',
                 }
+
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
 
@@ -275,6 +277,49 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         var_path = self._generate_file_key(ds_id, ds_info)
         return self[var_path + "/shape"]
 
+    @staticmethod
+    def expand_single_values(var, scans):
+        """Expand single valued variable to full scan lengths."""
+        if scans.size == 1:
+            return var
+        else:
+            expanded = np.repeat(var, scans)
+            expanded.attrs = var.attrs
+            expanded.rename({expanded.dims[0]: 'y'})
+            return expanded
+
+    def concatenate_dataset(self, dataset_group, var_path):
+        if 'I' in dataset_group:
+            scan_size = 32
+        else:
+            scan_size = 16
+        scans_path = 'All_Data/{dataset_group}_All/NumberOfScans'
+        scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        start_scan = 0
+        data_chunks = []
+        scans = self[scans_path]
+        variable = self[var_path]
+        # check if these are single per-granule value
+        if variable.size != scans.size:
+            for gscans in scans.values:
+                data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + gscans * scan_size)))
+                start_scan += scan_size * 48
+            return xr.concat(data_chunks, 'y')
+        else:
+            return self.expand_single_values(variable, scans)
+
+    def mask_fill_values(self, data, ds_info):
+        is_floating = np.issubdtype(data.dtype, np.floating)
+
+        if is_floating:
+            # If the data is a float then we mask everything <= -999.0
+            fill_max = float(ds_info.pop("fill_max_float", -999.0))
+            return data.where(data > fill_max)
+        else:
+            # If the data is an integer then we mask everything >= fill_min_int
+            fill_min = int(ds_info.pop("fill_min_int", 65528))
+            return data.where(data < fill_min)
+
     def get_dataset(self, dataset_id, ds_info):
         dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
         if not dataset_group:
@@ -284,32 +329,9 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             ds_info['dataset_group'] = dataset_group
         var_path = self._generate_file_key(dataset_id, ds_info)
         factor_var_path = ds_info.get("factors_key", var_path + "Factors")
-        if 'I' in dataset_group:
-            scan_size = 32
-        else:
-            scan_size = 16
-        scans_path = 'All_Data/{dataset_group}_All/NumberOfScans'
-        scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group])
-        start_scan = 0
-        data_chunks = []
-        if self[var_path].size != 1:
-            for scans in self[scans_path].values:
-                data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + scans * scan_size)))
-                start_scan += scan_size * 48
-            data = xr.concat(data_chunks, 'y')
-        else:
-            data = self[var_path]
-        is_floating = np.issubdtype(data.dtype, np.floating)
 
-        if is_floating:
-            # If the data is a float then we mask everything <= -999.0
-            fill_max = float(ds_info.pop("fill_max_float", -999.0))
-            data = data.where(data > fill_max)
-        else:
-            # If the data is an integer then we mask everything >= fill_min_int
-            fill_min = int(ds_info.pop("fill_min_int", 65528))
-            data = data.where(data < fill_min)
-
+        data = self.concatenate_dataset(dataset_group, var_path)
+        data = self.mask_fill_values(data, ds_info)
         factors = self.get(factor_var_path)
         if factors is None:
             LOG.debug("No scaling factors found for %s", dataset_id)
