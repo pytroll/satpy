@@ -603,7 +603,6 @@ class BilinearResampler(BaseResampler):
         self.resampler = None
 
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
-                   reduce_data=True, nprocs=1,
                    cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use.
 
@@ -619,8 +618,7 @@ class BilinearResampler(BaseResampler):
                           target_geo_def=self.target_geo_def,
                           radius_of_influence=radius_of_influence,
                           neighbours=32,
-                          epsilon=epsilon,
-                          reduce_data=reduce_data)
+                          epsilon=epsilon)
 
             self.resampler = XArrayResamplerBilinear(**kwargs)
             try:
@@ -670,8 +668,7 @@ class BilinearResampler(BaseResampler):
         target_shape = self.target_geo_def.shape
 
         res = self.resampler.get_sample_from_bil_info(data,
-                                                      fill_value=fill_value,
-                                                      output_shape=target_shape)
+                                                      fill_value=fill_value)
 
         return res
 
