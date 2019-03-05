@@ -33,9 +33,7 @@ http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolII
 
 """
 import logging
-import os.path
 from datetime import datetime, timedelta
-from glob import glob
 
 import numpy as np
 import dask.array as da
@@ -376,74 +374,45 @@ class VIIRSSDRReader(FileYAMLReader):
         Args:
             config_files (iterable): yaml config files passed to base class
             use_tc (boolean): If `True` (default) use the terrain corrected
-                              file types specified in the config files. If
-                              `False`, switch all terrain corrected file types
-                              to non-TC file types. If `None`
+                              files if they are available. If `False`, switch
+                              to non-TC files.
 
         """
         super(VIIRSSDRReader, self).__init__(config_files, **kwargs)
-        for ds_info in self.ids.values():
-            ft = ds_info.get('file_type')
-            if ft == 'gmtco':
-                nontc = 'gmodo'
-            elif ft == 'gitco':
-                nontc = 'gimgo'
-            else:
-                continue
+        self.use_tc = use_tc
 
-            if use_tc is None:
-                # we want both TC and non-TC
-                ds_info['file_type'] = [ds_info['file_type'], nontc]
-            elif not use_tc:
-                # we want only non-TC
-                ds_info['file_type'] = nontc
+    def filter_filenames_by_info(self, filename_items):
+        """Filter out file using metadata from the filenames.
 
-    def _load_from_geo_ref(self, dsid):
-        """Load filenames from the N_GEO_Ref attribute of a dataset's file"""
-        file_handlers = self._get_file_handlers(dsid)
-        if not file_handlers:
-            return None
-
-        fns = []
-        for fh in file_handlers:
-            base_dir = os.path.dirname(fh.filename)
-            try:
-                # get the filename and remove the creation time
-                # which is often wrong
-                fn = fh['/attr/N_GEO_Ref'][:46] + '*.h5'
-                fns.extend(glob(os.path.join(base_dir, fn)))
-
-                # usually is non-terrain corrected file, add the terrain
-                # corrected file too
-                if fn[:5] == 'GIMGO':
-                    fn = 'GITCO' + fn[5:]
-                elif fn[:5] == 'GMODO':
-                    fn = 'GMTCO' + fn[5:]
-                else:
-                    continue
-                fns.extend(glob(os.path.join(base_dir, fn)))
-            except KeyError:
-                LOG.debug("Could not load geo-reference information from {}".format(fh.filename))
-
-        return fns
-
-    def _get_coordinates_for_dataset_key(self, dsid):
-        """Get the coordinate dataset keys for `dsid`.
-
-        Wraps the base class method in order to load geolocation files
-        from the geo reference attribute in the datasets file.
+        This sorts out the different lon and lat datasets depending on TC is
+        desired or not.
         """
-        coords = super(VIIRSSDRReader, self)._get_coordinates_for_dataset_key(dsid)
-        for c_id in coords:
-            c_file_type = self.ids[c_id]['file_type']
-            if self._preferred_filetype(c_file_type):
-                # coordinate has its file type loaded already
-                continue
-
-            # check the dataset file for the geolocation filename
-            geo_filenames = self._load_from_geo_ref(dsid)
-            if not geo_filenames:
-                continue
-
-            self.create_filehandlers(geo_filenames)
-        return coords
+        filename_items = list(filename_items)
+        geo_keep = []
+        geo_del = []
+        for filename, filename_info in filename_items:
+            filename_info['datasets'] = datasets = filename_info['datasets'].split('-')
+            if ('GITCO' in datasets) or ('GMTCO' in datasets):
+                if self.use_tc is False:
+                    geo_del.append(filename)
+                else:
+                    geo_keep.append(filename)
+            elif ('GIMGO' in datasets) or ('GMODO' in datasets):
+                if self.use_tc is False:
+                    geo_keep.append(filename)
+                else:
+                    geo_del.append(filename)
+        if geo_keep:
+            fdict = dict(filename_items)
+            for to_del in geo_del:
+                for dataset in ['GITCO', 'GMTCO', 'GIMGO', 'GMODO']:
+                    try:
+                        fdict[to_del]['datasets'].remove(dataset)
+                    except ValueError:
+                        pass
+                if not fdict[to_del]['datasets']:
+                    del fdict[to_del]
+            filename_items = fdict.items()
+        for filename, filename_info in filename_items:
+            filename_info['datasets'] = '-'.join(filename_info['datasets'])
+        return super(VIIRSSDRReader, self).filter_filenames_by_info(filename_items)
