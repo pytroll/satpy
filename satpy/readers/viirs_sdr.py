@@ -274,10 +274,6 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             var_path = var_path + '_TC'
         return var_path
 
-    def get_shape(self, ds_id, ds_info):
-        var_path = self._generate_file_key(ds_id, ds_info)
-        return self[var_path + "/shape"]
-
     @staticmethod
     def expand_single_values(var, scans):
         """Expand single valued variable to full scan lengths."""
