@@ -4,10 +4,12 @@ modifiers:
   sunz_corrected:
     compositor: !!python/name:satpy.composites.SunZenithCorrector
     optional_prerequisites:
-    - satellite_zenith_angle
+    - solar_zenith_angle
 
   effective_solar_pathlength_corrected:
     compositor: !!python/name:satpy.composites.EffectiveSolarPathLengthCorrector
+    optional_prerequisites:
+      - solar_zenith_angle
 
   co2_corrected:
     compositor: !!python/name:satpy.composites.CO2Corrector

@@ -81,9 +81,10 @@ class TestVIIRSComposites(unittest.TestCase):
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
+        # data changes by row, sza changes by col for testing
         sza = np.zeros((rows, cols)) + 70.0
-        sza[3, :] += 20.0
-        sza[4:, :] += 45.0
+        sza[:, 3] += 20.0
+        sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
@@ -96,7 +97,7 @@ class TestVIIRSComposites(unittest.TestCase):
                          'equalized_radiance')
         data = res.compute()
         unique_values = np.unique(data)
-        np.testing.assert_allclose(unique_values, [0.25, 0.5, 0.75])
+        np.testing.assert_allclose(unique_values, [0.5994, 0.7992, 0.999], rtol=1e-3)
 
     def test_adaptive_dnb(self):
         """Test the 'adaptive_dnb' compositor."""
@@ -125,8 +126,8 @@ class TestVIIRSComposites(unittest.TestCase):
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
         sza = np.zeros((rows, cols)) + 70.0
-        sza[3, :] += 20.0
-        sza[4:, :] += 45.0
+        sza[:, 3] += 20.0
+        sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
@@ -167,8 +168,8 @@ class TestVIIRSComposites(unittest.TestCase):
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
         sza = np.zeros((rows, cols)) + 70.0
-        sza[3, :] += 20.0
-        sza[4:, :] += 45.0
+        sza[:, 3] += 20.0
+        sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
@@ -188,8 +189,8 @@ class TestVIIRSComposites(unittest.TestCase):
                          'equalized_radiance')
         data = res.compute()
         unique = np.unique(data)
-        np.testing.assert_allclose(
-            unique, [0.00000000e+00, 1.64116082e-01, 2.49270516e+02])
+        np.testing.assert_allclose(unique, [0.00000000e+00, 1.00446703e-01, 1.64116082e-01, 2.09233451e-01,
+                                            1.43916324e+02, 2.03528498e+02, 2.49270516e+02])
 
     def test_hncc_dnb(self):
         """Test the 'hncc_dnb' compositor."""
@@ -218,8 +219,8 @@ class TestVIIRSComposites(unittest.TestCase):
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
         sza = np.zeros((rows, cols)) + 70.0
-        sza[3, :] += 20.0
-        sza[4:, :] += 45.0
+        sza[:, 3] += 20.0
+        sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
@@ -240,7 +241,9 @@ class TestVIIRSComposites(unittest.TestCase):
         data = res.compute()
         unique = np.unique(data)
         np.testing.assert_allclose(
-            unique, [3.484797e-04, 9.507845e-03, 4.500016e+03])
+            unique, [3.48479712e-04, 6.96955799e-04, 1.04543189e-03, 4.75394738e-03,
+                     9.50784532e-03, 1.42617433e-02, 1.50001560e+03, 3.00001560e+03,
+                     4.50001560e+03])
 
     def test_reflectance_corrector_abi(self):
         import xarray as xr

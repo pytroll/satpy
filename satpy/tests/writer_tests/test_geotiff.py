@@ -29,6 +29,11 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
 
 class TestGeoTIFFWriter(unittest.TestCase):
     """Test the GeoTIFF Writer class."""
@@ -104,6 +109,17 @@ class TestGeoTIFFWriter(unittest.TestCase):
                           enhancement_config=False,
                           dtype=np.float32)
         w.save_datasets(datasets)
+
+    def test_fill_value_from_config(self):
+        """Test fill_value coming from the writer config."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir)
+        w.info['fill_value'] = 128
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, compute=False)
+            self.assertEqual(save_method.call_args[1]['fill_value'], 128)
 
 
 def suite():
