@@ -117,9 +117,10 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     """VIIRS HDF5 File Reader
     """
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, use_tc=True):
         super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.datasets = filename_info['datasets'].split('-')
+        self.use_tc = use_tc
 
     def __getitem__(self, item):
         if '*' in item:
@@ -269,6 +270,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             'brightness_temperature': 'BrightnessTemperature',
         }.get(ds_id.calibration)
         var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
+        if ds_id.name in ['dnb_longitude', 'dnb_latitude'] and self.use_tc is not False:
+            var_path = var_path + '_TC'
         return var_path
 
     def get_shape(self, ds_id, ds_info):
