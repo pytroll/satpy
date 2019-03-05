@@ -131,5 +131,5 @@ file_types:
     avhrr_eps:
         file_reader: !!python/name:satpy.readers.eps_l1b.EPSAVHRRFile ''
         file_patterns: [
-                       'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_N_O_{creation_time:%Y%m%d%H%M%SZ}',
-                       'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_N_O_{creation_time:%Y%m%d%H%M%SZ}.nat']
+                       'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}',
+                       'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}.nat']
