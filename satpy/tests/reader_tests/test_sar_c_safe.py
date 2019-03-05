@@ -57,7 +57,7 @@ class TestSAFEGRD(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_nc_slstr."""
+    """The test suite for test_sar_c_safe."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestSAFEGRD))
