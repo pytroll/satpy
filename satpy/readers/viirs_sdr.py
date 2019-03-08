@@ -34,6 +34,8 @@ http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolII
 """
 import logging
 from datetime import datetime, timedelta
+from glob import glob
+import os.path
 
 import numpy as np
 import dask.array as da
@@ -415,3 +417,89 @@ class VIIRSSDRReader(FileYAMLReader):
         for filename, filename_info in filename_items:
             filename_info['datasets'] = '-'.join(filename_info['datasets'])
         return super(VIIRSSDRReader, self).filter_filenames_by_info(filename_items)
+
+    def _load_from_geo_ref(self, dsid):
+        """Load filenames from the N_GEO_Ref attribute of a dataset's file."""
+        file_handlers = self._get_file_handlers(dsid)
+        if not file_handlers:
+            return None
+
+        fns = []
+        for fh in file_handlers:
+            base_dir = os.path.dirname(fh.filename)
+            try:
+                # get the filename and remove the creation time
+                # which is often wrong
+                fn = fh['/attr/N_GEO_Ref'][:46] + '*.h5'
+                fns.extend(glob(os.path.join(base_dir, fn)))
+
+                # usually is non-terrain corrected file, add the terrain
+                # corrected file too
+                if fn[:5] == 'GIMGO':
+                    fn = 'GITCO' + fn[5:]
+                elif fn[:5] == 'GMODO':
+                    fn = 'GMTCO' + fn[5:]
+                else:
+                    continue
+                fns.extend(glob(os.path.join(base_dir, fn)))
+            except KeyError:
+                LOG.debug("Could not load geo-reference information from {}".format(fh.filename))
+
+        return fns
+
+    def _get_coordinates_for_dataset_key(self, dsid):
+        """Get the coordinate dataset keys for `dsid`.
+
+        Wraps the base class method in order to load geolocation files
+        from the geo reference attribute in the datasets file.
+        """
+        coords = super(VIIRSSDRReader, self)._get_coordinates_for_dataset_key(dsid)
+
+        for c_id in coords:
+            c_info = self.ids[c_id]  # c_info['dataset_groups'] should be a list of 2 elements
+            if len(c_info['dataset_groups']) == 1:  # filtering already done
+                continue
+            fhs = self._get_file_handlers(c_id)
+            if c_id.name.startswith('m'):
+                if self.use_tc is False:
+                    req_geo = 'GMODO'
+                    rem_geo = 'GMTCO'
+                else:
+                    req_geo = 'GMTCO'
+                    rem_geo = 'GMODO'
+            elif c_id.name.startswith('i'):
+                if self.use_tc is False:
+                    req_geo = 'GIMGO'
+                    rem_geo = 'GITCO'
+                else:
+                    req_geo = 'GITCO'
+                    rem_geo = 'GIMGO'
+            else:  # DNB
+                continue
+            available_geo = None
+            for fh in fhs:
+                if req_geo in fh.datasets:
+                    c_info['dataset_groups'].remove(rem_geo)
+                    break
+                elif rem_geo in fh.datasets:
+                    available_geo = rem_geo
+            else:
+                # check the dataset file for the geolocation filename
+                geo_filenames = self._load_from_geo_ref(dsid)
+                if not geo_filenames:
+                    if available_geo:
+                        c_info['dataset_groups'].remove(rem_geo)
+                    continue
+                new_fhs = self.create_filehandlers(geo_filenames)
+                for fh in new_fhs.values():
+                    if req_geo in fh.datasets:
+                        c_info['dataset_groups'].remove(rem_geo)
+                        break
+                    elif rem_geo in fh.datasets:
+                        available_geo = rem_geo
+                else:
+                    if available_geo:
+                        c_info['dataset_groups'].remove(rem_geo)
+                    continue
+
+        return coords
