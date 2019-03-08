@@ -28,6 +28,35 @@ DEFAULT_LAT_DATA = np.repeat([DEFAULT_LAT_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 DEFAULT_LON_DATA = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
+DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
+                'SVDNB': 'VIIRS-DNB-SDR',
+                'GITCO': 'VIIRS-IMG-GEO-TC',
+                'GIMGO': 'VIIRS-IMG-GEO',
+                'SVI01': 'VIIRS-I1-SDR',
+                'SVI02': 'VIIRS-I2-SDR',
+                'SVI03': 'VIIRS-I3-SDR',
+                'SVI04': 'VIIRS-I4-SDR',
+                'SVI05': 'VIIRS-I5-SDR',
+                'GMTCO': 'VIIRS-MOD-GEO-TC',
+                'GMODO': 'VIIRS-MOD-GEO',
+                'SVM01': 'VIIRS-M1-SDR',
+                'SVM02': 'VIIRS-M2-SDR',
+                'SVM03': 'VIIRS-M3-SDR',
+                'SVM04': 'VIIRS-M4-SDR',
+                'SVM05': 'VIIRS-M5-SDR',
+                'SVM06': 'VIIRS-M6-SDR',
+                'SVM07': 'VIIRS-M7-SDR',
+                'SVM08': 'VIIRS-M8-SDR',
+                'SVM09': 'VIIRS-M9-SDR',
+                'SVM10': 'VIIRS-M10-SDR',
+                'SVM11': 'VIIRS-M11-SDR',
+                'SVM12': 'VIIRS-M12-SDR',
+                'SVM13': 'VIIRS-M13-SDR',
+                'SVM14': 'VIIRS-M14-SDR',
+                'SVM15': 'VIIRS-M15-SDR',
+                'SVM16': 'VIIRS-M16-SDR',
+                }
+
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler"""
@@ -37,82 +66,87 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         end_time = filename_info['end_time'].replace(year=start_time.year,
                                                      month=start_time.month,
                                                      day=start_time.day)
-
-        prefix1 = 'Data_Products/{file_group}'.format(**filetype_info)
-        prefix2 = '{prefix}/{file_group}_Aggr'.format(prefix=prefix1, **filetype_info)
-        prefix3 = 'All_Data/{file_group}_All'.format(**filetype_info)
-        begin_date = start_time.strftime('%Y%m%d')
-        begin_time = start_time.strftime('%H%M%S.%fZ')
-        ending_date = end_time.strftime('%Y%m%d')
-        ending_time = end_time.strftime('%H%M%S.%fZ')
-        if filename[:3] == 'SVI':
-            geo_prefix = 'GIMGO'
-        elif filename[:3] == 'SVM':
-            geo_prefix = 'GMODO'
-        else:
-            geo_prefix = None
-        file_content = {
-            "{prefix2}/attr/AggregateBeginningDate": begin_date,
-            "{prefix2}/attr/AggregateBeginningTime": begin_time,
-            "{prefix2}/attr/AggregateEndingDate": ending_date,
-            "{prefix2}/attr/AggregateEndingTime": ending_time,
-            "{prefix2}/attr/G-Ring_Longitude": np.array([0.0, 0.1, 0.2, 0.3]),
-            "{prefix2}/attr/G-Ring_Latitude": np.array([0.0, 0.1, 0.2, 0.3]),
-            "{prefix2}/attr/AggregateBeginningOrbitNumber": "{0:d}".format(filename_info['orbit']),
-            "{prefix2}/attr/AggregateEndingOrbitNumber": "{0:d}".format(filename_info['orbit']),
-            "{prefix1}/attr/Instrument_Short_Name": "VIIRS",
-            "/attr/Platform_Short_Name": "NPP",
-        }
-        if geo_prefix:
-            file_content['/attr/N_GEO_Ref'] = geo_prefix + filename[5:]
-        for k, v in list(file_content.items()):
-            file_content[k.format(prefix1=prefix1, prefix2=prefix2)] = v
-
-        if filename[:3] in ['SVM', 'SVI', 'SVD']:
-            if filename[2:5] in ['M{:02d}'.format(x) for x in range(12)] + ['I01', 'I02', 'I03']:
-                keys = ['Radiance', 'Reflectance']
-            elif filename[2:5] in ['M{:02d}'.format(x) for x in range(12, 17)] + ['I04', 'I05']:
-                keys = ['Radiance', 'BrightnessTemperature']
+        final_content = {}
+        for dataset in filename_info['datasets'].split('-'):
+            dataset_group = DATASET_KEYS[dataset]
+            prefix1 = 'Data_Products/{dataset_group}'.format(dataset_group=dataset_group)
+            prefix2 = '{prefix}/{dataset_group}_Aggr'.format(prefix=prefix1, dataset_group=dataset_group)
+            prefix3 = 'All_Data/{dataset_group}_All'.format(dataset_group=dataset_group)
+            begin_date = start_time.strftime('%Y%m%d')
+            begin_time = start_time.strftime('%H%M%S.%fZ')
+            ending_date = end_time.strftime('%Y%m%d')
+            ending_time = end_time.strftime('%H%M%S.%fZ')
+            if filename[:3] == 'SVI':
+                geo_prefix = 'GIMGO'
+            elif filename[:3] == 'SVM':
+                geo_prefix = 'GMODO'
             else:
-                # DNB
-                keys = ['Radiance']
+                geo_prefix = None
+            file_content = {
+                "{prefix3}/NumberOfScans": np.array([48]),
+                "{prefix2}/attr/AggregateBeginningDate": begin_date,
+                "{prefix2}/attr/AggregateBeginningTime": begin_time,
+                "{prefix2}/attr/AggregateEndingDate": ending_date,
+                "{prefix2}/attr/AggregateEndingTime": ending_time,
+                "{prefix2}/attr/G-Ring_Longitude": np.array([0.0, 0.1, 0.2, 0.3]),
+                "{prefix2}/attr/G-Ring_Latitude": np.array([0.0, 0.1, 0.2, 0.3]),
+                "{prefix2}/attr/AggregateBeginningOrbitNumber": "{0:d}".format(filename_info['orbit']),
+                "{prefix2}/attr/AggregateEndingOrbitNumber": "{0:d}".format(filename_info['orbit']),
+                "{prefix1}/attr/Instrument_Short_Name": "VIIRS",
+                "/attr/Platform_Short_Name": "NPP",
+            }
+            if geo_prefix:
+                file_content['/attr/N_GEO_Ref'] = geo_prefix + filename[5:]
+            for k, v in list(file_content.items()):
+                file_content[k.format(prefix1=prefix1, prefix2=prefix2, prefix3=prefix3)] = v
 
-            for k in keys:
-                k = prefix3 + "/" + k
-                file_content[k] = DEFAULT_FILE_DATA.copy()
-                file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-                file_content[k + "Factors"] = DEFAULT_FILE_FACTORS.copy()
-        elif filename[0] == 'G':
-            if filename[:5] in ['GMODO', 'GIMGO']:
-                lon_data = np.linspace(15, 55, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
-                lat_data = np.linspace(55, 75, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
-            else:
-                lon_data = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
-                lat_data = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
+            if filename[:3] in ['SVM', 'SVI', 'SVD']:
+                if filename[2:5] in ['M{:02d}'.format(x) for x in range(12)] + ['I01', 'I02', 'I03']:
+                    keys = ['Radiance', 'Reflectance']
+                elif filename[2:5] in ['M{:02d}'.format(x) for x in range(12, 17)] + ['I04', 'I05']:
+                    keys = ['Radiance', 'BrightnessTemperature']
+                else:
+                    # DNB
+                    keys = ['Radiance']
 
-            for k in ["Latitude"]:
-                k = prefix3 + "/" + k
-                file_content[k] = lat_data
-                file_content[k] = np.repeat([file_content[k]], DEFAULT_FILE_SHAPE[0], axis=0)
-                file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-            for k in ["Longitude"]:
-                k = prefix3 + "/" + k
-                file_content[k] = lon_data
-                file_content[k] = np.repeat([file_content[k]], DEFAULT_FILE_SHAPE[0], axis=0)
-                file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
+                for k in keys:
+                    k = prefix3 + "/" + k
+                    file_content[k] = DEFAULT_FILE_DATA.copy()
+                    file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
+                    file_content[k + "Factors"] = DEFAULT_FILE_FACTORS.copy()
+            elif filename[0] == 'G':
+                if filename[:5] in ['GMODO', 'GIMGO']:
+                    lon_data = np.linspace(15, 55, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
+                    lat_data = np.linspace(55, 75, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
+                else:
+                    lon_data = np.linspace(5, 45, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
+                    lat_data = np.linspace(45, 65, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
+
+                for k in ["Latitude"]:
+                    k = prefix3 + "/" + k
+                    file_content[k] = lat_data
+                    file_content[k] = np.repeat([file_content[k]], DEFAULT_FILE_SHAPE[0], axis=0)
+                    file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
+                for k in ["Longitude"]:
+                    k = prefix3 + "/" + k
+                    file_content[k] = lon_data
+                    file_content[k] = np.repeat([file_content[k]], DEFAULT_FILE_SHAPE[0], axis=0)
+                    file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
+
+        final_content.update(file_content)
 
         # convert to xarrays
         from xarray import DataArray
         import dask.array as da
-        for key, val in file_content.items():
+        for key, val in final_content.items():
             if isinstance(val, np.ndarray):
                 val = da.from_array(val, chunks=val.shape)
                 if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('y', 'x'))
+                    final_content[key] = DataArray(val, dims=('y', 'x'))
                 else:
-                    file_content[key] = DataArray(val)
+                    final_content[key] = DataArray(val)
 
-        return file_content
+        return final_content
 
 
 class TestVIIRSSDRReader(unittest.TestCase):
