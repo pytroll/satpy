@@ -24,7 +24,7 @@
 
 import logging
 
-import xarray.ufuncs as xu
+import numpy as np
 from satpy.composites import GenericCompositor
 from satpy.dataset import combine_metadata
 
@@ -37,7 +37,7 @@ def overlay(top, bottom, maxval=None):
     from: https://docs.gimp.org/en/gimp-concepts-layer-modes.html
     """
     if maxval is None:
-        maxval = xu.maximum(top.max(), bottom.max())
+        maxval = np.maximum(top.max(), bottom.max())
 
     res = ((2 * top / maxval - 1) * bottom + 2 * top) * bottom / maxval
     return res.clip(min=0)
@@ -51,8 +51,8 @@ class SARIce(GenericCompositor):
         (mhh, mhv) = projectables
         ch1attrs = mhh.attrs
         ch2attrs = mhv.attrs
-        mhh = xu.sqrt(mhh ** 2 + 0.002) - 0.04
-        mhv = xu.sqrt(mhv ** 2 + 0.002) - 0.04
+        mhh = np.sqrt(mhh ** 2 + 0.002) - 0.04
+        mhv = np.sqrt(mhv ** 2 + 0.002) - 0.04
         mhh.attrs = ch1attrs
         mhv.attrs = ch2attrs
         green = overlay(mhh, mhv, 30) * 1000
