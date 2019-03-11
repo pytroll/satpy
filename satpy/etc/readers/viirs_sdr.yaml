@@ -491,3 +491,8 @@ file_types:
   generic_file:
     file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
     file_patterns: ['{datasets}_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    # Example filenames
+    # GMODO-SVM01-SVM02-SVM03-SVM04-SVM05-SVM06-SVM07-SVM08-SVM09-SVM10-SVM11-SVM12-SVM13-SVM14-SVM15-SVM16_j01_d20190304_t1103049_e1108449_b06684_c20190304213641984108_nobc_ops.h5
+    # GMTCO_j01_d20190304_t1103049_e1108449_b06684_c20190304150845549693_nobc_ops.h5
+    # GDNBO-SVDNB_j01_d20190304_t1057236_e1103036_b06684_c20190304213641088765_nobc_ops.h5
+    # SVM15_npp_d20150311_t1126366_e1128008_b17451_c20150311113344455225_cspp_dev.h5
