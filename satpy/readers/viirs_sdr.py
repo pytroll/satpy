@@ -119,10 +119,10 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     """VIIRS HDF5 File Reader
     """
 
-    def __init__(self, filename, filename_info, filetype_info, use_tc=True):
-        super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info)
+    def __init__(self, filename, filename_info, filetype_info, use_tc=None):
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
+        super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info)
 
     def __getitem__(self, item):
         if '*' in item:
@@ -272,8 +272,11 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             'brightness_temperature': 'BrightnessTemperature',
         }.get(ds_id.calibration)
         var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
-        if ds_id.name in ['dnb_longitude', 'dnb_latitude'] and self.use_tc is not False:
-            var_path = var_path + '_TC'
+        if ds_id.name in ['dnb_longitude', 'dnb_latitude']:
+            if self.use_tc is True:
+                return var_path + '_TC'
+            elif self.use_tc is None and var_path + '_TC' in self.file_content:
+                return var_path + '_TC'
         return var_path
 
     @staticmethod
@@ -369,14 +372,14 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 class VIIRSSDRReader(FileYAMLReader):
     """Custom file reader for finding VIIRS SDR geolocation at runtime."""
 
-    def __init__(self, config_files, use_tc=True, **kwargs):
+    def __init__(self, config_files, use_tc=None, **kwargs):
         """Initialize file reader and adjust geolocation preferences.
 
         Args:
             config_files (iterable): yaml config files passed to base class
             use_tc (boolean): If `True` (default) use the terrain corrected
-                              files if they are available. If `False`, switch
-                              to non-TC files.
+                              files. If `False`, switch to non-TC files. If
+                              `None`, use TC if available, non-TC otherwise.
 
         """
         super(VIIRSSDRReader, self).__init__(config_files, **kwargs)
@@ -399,10 +402,10 @@ class VIIRSSDRReader(FileYAMLReader):
                 else:
                     geo_keep.append(filename)
             elif ('GIMGO' in datasets) or ('GMODO' in datasets):
-                if self.use_tc is False:
-                    geo_keep.append(filename)
-                else:
+                if self.use_tc is True:
                     geo_del.append(filename)
+                else:
+                    geo_keep.append(filename)
         if geo_keep:
             fdict = dict(filename_items)
             for to_del in geo_del:
@@ -488,10 +491,10 @@ class VIIRSSDRReader(FileYAMLReader):
                 geo_filenames = self._load_from_geo_ref(dsid)
                 if not geo_filenames:
                     if available_geo:
-                        c_info['dataset_groups'].remove(rem_geo)
+                        c_info['dataset_groups'] = [available_geo]
                     continue
                 new_fhs = self.create_filehandlers(geo_filenames)
-                for fh in new_fhs.values():
+                for fh in sum(new_fhs.values(), []):  # concatenate all values
                     if req_geo in fh.datasets:
                         c_info['dataset_groups'].remove(rem_geo)
                         break
@@ -500,6 +503,8 @@ class VIIRSSDRReader(FileYAMLReader):
                 else:
                     if available_geo:
                         c_info['dataset_groups'].remove(rem_geo)
+                    else:
+                        c_info['dataset_groups'].remove(req_geo)
                     continue
 
         return coords
