@@ -47,14 +47,16 @@ datasets:
     wavelength: [5.400, 5.405, 5.410]
     resolution: 80
     polarization: [hh, hv, vv, vh]
-    # navigation: esa_geo
-    # calibration:
-    #   radiance:
-    #     standard_name: toa_outgoing_radiance_per_unit_wavelength
-    #     units: W m-2 um-1 sr-1
-    #   reflectance:
-    #     standard_name: toa_bidirectional_reflectance
-    #     units: "%"
+    calibration:
+      gamma:
+        standard_name: backscatter
+        units: 1
+      sigma_nought:
+        standard_name: backscatter
+        units: 1
+      beta_nought:
+        standard_name: backscatter
+        units: 1
     coordinates: [longitude, latitude]
     file_type: safe_measurement
 

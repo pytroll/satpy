@@ -66,91 +66,123 @@ be obtained by calibrating all possible counts with both the minimum and the
 maximum calibration coefficients and computing the difference. The maximum
 differences are:
 
+======= ===== ====
 GOES-8
-======
-00_7 0.0   %  # Counts are normalized
-03_9 0.187 K
-06_8 0.0   K  # only one detector
-10_7 0.106 K
-12_0 0.036 K
+------------------
+Channel Diff  Unit
+======= ===== ====
+00_7    0.0   %  # Counts are normalized
+03_9    0.187 K
+06_8    0.0   K  # only one detector
+10_7    0.106 K
+12_0    0.036 K
+======= ===== ====
 
+======= ===== ====
 GOES-9
-========
-00_7 0.0   %  # Counts are normalized
-03_9 0.0   K  # coefs identical
-06_8 0.0   K  # only one detector
-10_7 0.021 K
-12_0 0.006 K
+------------------
+Channel Diff  Unit
+======= ===== ====
+00_7    0.0   %  # Counts are normalized
+03_9    0.0   K  # coefs identical
+06_8    0.0   K  # only one detector
+10_7    0.021 K
+12_0    0.006 K
+======= ===== ====
 
+======= ===== ====
 GOES-10
-========
-00_7 1.05  %
-03_9 0.0   K  # coefs identical
-06_8 0.0   K  # only one detector
-10_7 0.013 K
-12_0 0.004 K
+------------------
+Channel Diff  Unit
+======= ===== ====
+00_7    1.05  %
+03_9    0.0   K  # coefs identical
+06_8    0.0   K  # only one detector
+10_7    0.013 K
+12_0    0.004 K
+======= ===== ====
 
+======= ===== ====
 GOES-11
-========
-00_7 1.25  %
-03_9 0.0   K  # coefs identical
-06_8 0.0   K  # only one detector
-10_7 0.0   K  # coefs identical
-12_0 0.065 K
+------------------
+Channel Diff  Unit
+======= ===== ====
+00_7    1.25  %
+03_9    0.0   K  # coefs identical
+06_8    0.0   K  # only one detector
+10_7    0.0   K  # coefs identical
+12_0    0.065 K
+======= ===== ====
 
+======= ===== ====
 GOES-12
-========
-00_7 0.8   %
-03_9 0.0   K  # coefs identical
-06_5 0.044 K
-10_7 0.0   K  # coefs identical
-13_3 0.0   K  # only one detector
+------------------
+Channel Diff  Unit
+======= ===== ====
+00_7    0.8   %
+03_9    0.0   K  # coefs identical
+06_5    0.044 K
+10_7    0.0   K  # coefs identical
+13_3    0.0   K  # only one detector
+======= ===== ====
 
+======= ===== ====
 GOES-13
-========
-00_7 1.31  %
-03_9 0.0   K  # coefs identical
-06_5 0.085 K
-10_7 0.008 K
-13_3 0.0   K  # only one detector
+------------------
+Channel Diff  Unit
+======= ===== ====
+00_7    1.31  %
+03_9    0.0   K  # coefs identical
+06_5    0.085 K
+10_7    0.008 K
+13_3    0.0   K  # only one detector
+======= ===== ====
 
+======= ===== ====
 GOES-14
-========
-00_7 0.66  %
-03_9 0.0   K  # coefs identical
-06_5 0.043 K
-10_7 0.006 K
-13_3 0.003 K
+------------------
+Channel Diff  Unit
+======= ===== ====
+00_7    0.66  %
+03_9    0.0   K  # coefs identical
+06_5    0.043 K
+10_7    0.006 K
+13_3    0.003 K
+======= ===== ====
 
+======= ===== ====
 GOES-15
-========
-00_7 0.86  %
-03_9 0.0   K  # coefs identical
-06_5 0.02  K
-10_7 0.009 K
-13_3 0.008 K
-
+------------------
+Channel Diff  Unit
+======= ===== ====
+00_7    0.86  %
+03_9    0.0   K  # coefs identical
+06_5    0.02  K
+10_7    0.009 K
+13_3    0.008 K
+======= ===== ====
 
 References:
 
-[GVAR] https://goes.gsfc.nasa.gov/text/GVARRDL98.pdf
-[BOOK-N] https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf
-[BOOK-I] https://goes.gsfc.nasa.gov/text/databook/databook.pdf
-[IR] https://www.ospo.noaa.gov/Operations/GOES/calibration/gvar-conversion.html
-[VIS] https://www.ospo.noaa.gov/Operations/GOES/calibration/goes-vis-ch-calibration.html
-[FAQ] https://www.ncdc.noaa.gov/sites/default/files/attachments/Satellite-Frequently-Asked-Questions_2.pdf
-[SCHED-W] http://www.ospo.noaa.gov/Operations/GOES/west/imager-routine.html
-[SCHED-E] http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
+- [GVAR] https://goes.gsfc.nasa.gov/text/GVARRDL98.pdf
+- [BOOK-N] https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf
+- [BOOK-I] https://goes.gsfc.nasa.gov/text/databook/databook.pdf
+- [IR] https://www.ospo.noaa.gov/Operations/GOES/calibration/gvar-conversion.html
+- [VIS] https://www.ospo.noaa.gov/Operations/GOES/calibration/goes-vis-ch-calibration.html
+- [FAQ] https://www.ncdc.noaa.gov/sites/default/files/attachments/Satellite-Frequently-Asked-Questions_2.pdf
+- [SCHED-W] http://www.ospo.noaa.gov/Operations/GOES/west/imager-routine.html
+- [SCHED-E] http://www.ospo.noaa.gov/Operations/GOES/east/imager-routine.html
 
 Eumetsat formated netCDF data:
 
 The main differences are:
-1: The geolocation is in a separate file, used for all bands
-2: VIS data is calibrated to Albedo (or reflectance)
-3: IR data is calibrated to radiance.
-4: VIS data is downsampled to IR resolution (4km)
-5: File name differs also slightly
-6: Data is received via EumetCast
+
+1. The geolocation is in a separate file, used for all bands
+2. VIS data is calibrated to Albedo (or reflectance)
+3. IR data is calibrated to radiance.
+4. VIS data is downsampled to IR resolution (4km)
+5. File name differs also slightly
+6. Data is received via EumetCast
 
 """
 
