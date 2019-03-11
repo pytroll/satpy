@@ -515,6 +515,7 @@ class VIIRSSDRReader(FileYAMLReader):
         return req_geo, rem_geo
 
     def get_right_geo_fhs(self, dsid, fhs):
+        """Find the right geographical file handlers for given dataset ID *dsid*."""
         ds_info = self.ids[dsid]
         req_geo, rem_geo = self._get_req_rem_geo(ds_info)
         desired, other = split_desired_other(fhs, req_geo, rem_geo)
