@@ -231,16 +231,15 @@ composites:
 
 ## Day Cloud Phase RGB(name from EUMETSAT)
   cloud_phase_raw:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C05
     - name: C06
     - name: C02
-    high_resolution_band: blue
     standard_name: natural
 
   cloud_phase:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C05
       modifiers: [sunz_corrected]
@@ -248,11 +247,10 @@ composites:
       modifiers: [sunz_corrected]
     - name: C02
       modifiers: [sunz_corrected, rayleigh_corrected]
-    high_resolution_band: blue
     standard_name: natural
 ##
   ir_overview:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C05
       modifiers: [co2_corrected]
@@ -318,18 +316,17 @@ composites:
     standard_name: fog
 ## CIRA’s Natural Fire Color RGB (False color RGB)
   natural_fire:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C06
     - name: C03
       modifiers: [sunz_corrected]
     - name: C02
       modifiers: [sunz_corrected]
-    high_resolution_band: blue
     standard_name: natural_fire
 
   natural_fire_2:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
@@ -339,38 +336,34 @@ composites:
       modifiers: [sunz_corrected]
     - name: C02
       modifiers: [sunz_corrected]
-    high_resolution_band: blue
     standard_name: natural_fire
 ## Simple Fire & Smoke RGB by traditional bands (for WIS users)
   simple_fire_and_smoke:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C07
     - name: C02
     - name: C13
-    high_resolution_band: green
     standard_name: simple_fire_and_smoke
 ## Temperature RGBs (Aki version)
   fire_temperature_aki:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C07
     - name: C06
     - name: C05
-    high_resolution_band: blue
     standard_name: fire_temperature_aki
 ## Temperature RGBs (Jochen version)
   fire_temperature_joche:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C07
     - name: C06
     - name: C05
-    high_resolution_band: blue
     standard_name: fire_temperature_joche
 ## RGB composite for smoke haze
   smoke_haze:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C02
     - name: C03
@@ -387,7 +380,7 @@ composites:
 
 ## Day Convection version 1 by traditional bands (for WIS* users)
   day_conv_v1:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
@@ -395,12 +388,11 @@ composites:
         - name: C08
     - name: C02
     - name: C13
-    high_resolution_band: green
     standard_name: day_conv_v1
 
 ## Day Convection version 2 by traditional bands (for WIS* users)
   day_conv_v2:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
@@ -408,11 +400,10 @@ composites:
         - name: C08
     - name: C02
     - name: C13
-    high_resolution_band: green
     standard_name: day_conv_v2
 ## Day Convection version 3 by traditional bands (for WIS* users) - (mid latitude, summer)
   day_conv_v3_midlat:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C02
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -423,7 +414,7 @@ composites:
     standard_name: day_conv_v3_midlat
 ## Day Convection version 3 by traditional bands (for WIS* users) - (Tropical area)
   day_conv_v3_tropcl:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C02
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -436,7 +427,7 @@ composites:
 
 ## adapted from ahi.yalm
   day_microphysics_eum:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C03
       modifiers: [sunz_corrected]
@@ -446,7 +437,7 @@ composites:
     standard_name: day_microphysics
 # Variations to the Day Microphysics RGB product using the 2.3 micron channel
   day_microphysics_abi:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C03
     - name: C06
@@ -455,7 +446,7 @@ composites:
 
 ## EUMETSAT
   snow:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C03
       modifiers: [sunz_corrected]
@@ -480,7 +471,7 @@ composites:
     standard_name: volcanic_gas
 
   fire_detection:
-    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: C02
     - name: C06
