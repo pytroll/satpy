@@ -360,13 +360,48 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     def get_bounding_box(self):
         """Get the bounding box of this file."""
-        path = 'Data_Products/{file_group}/{file_group}_Gran_0/attr/'
-        prefix = path.format(**self.filetype_info)
+        from pyproj import Geod
+        geod = Geod(ellps='WGS84')
+        dataset_group = DATASET_KEYS[self.datasets[0]]
+        idx = 0
+        lons_ring = None
+        lats_ring = None
+        while True:
+            path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{idx}/attr/'
+            prefix = path.format(dataset_group=dataset_group, idx=idx)
+            try:
+                lats = self.file_content[prefix + 'G-Ring_Latitude']
+                lons = self.file_content[prefix + 'G-Ring_Longitude']
+                if lons_ring is None:
+                    lons_ring = lons
+                    lats_ring = lats
+                else:
+                    prev_lon = lons_ring[0]
+                    prev_lat = lats_ring[0]
+                    dists = list(geod.inv(lon, lat, prev_lon, prev_lat)[2] for lon, lat in zip(lons, lats))
+                    first_idx = np.argmin(dists)
+                    if first_idx == 2 and len(lons) == 8:
+                        lons_ring = np.hstack((lons[:3], lons_ring[:-2], lons[4:]))
+                        lats_ring = np.hstack((lats[:3], lats_ring[:-2], lats[4:]))
+                    else:
+                        raise NotImplementedError("Don't know how to handle G-Rings of length %d" % len(lons))
 
-        lats = self.file_content[prefix + 'G-Ring_Latitude']
-        lons = self.file_content[prefix + 'G-Ring_Longitude']
+            except KeyError:
+                break
+            idx += 1
 
-        return lons.ravel(), lats.ravel()
+        return lons_ring, lats_ring
+
+
+def split_desired_other(fhs, req_geo, rem_geo):
+    desired = []
+    other = []
+    for fh in fhs:
+        if req_geo in fh.datasets:
+            desired.append(fh)
+        elif rem_geo in fh.datasets:
+            other.append(fh)
+    return desired, other
 
 
 class VIIRSSDRReader(FileYAMLReader):
@@ -450,6 +485,52 @@ class VIIRSSDRReader(FileYAMLReader):
 
         return fns
 
+    def _get_req_rem_geo(self, ds_info):
+        if ds_info['dataset_groups'][0].startswith('GM'):
+            if self.use_tc is False:
+                req_geo = 'GMODO'
+                rem_geo = 'GMTCO'
+            else:
+                req_geo = 'GMTCO'
+                rem_geo = 'GMODO'
+        elif ds_info['dataset_groups'][0].startswith('GI'):
+            if self.use_tc is False:
+                req_geo = 'GIMGO'
+                rem_geo = 'GITCO'
+            else:
+                req_geo = 'GITCO'
+                rem_geo = 'GIMGO'
+        else:
+            raise ValueError('Unknown dataset group %s' % ds_info['dataset_groups'][0])
+        return req_geo, rem_geo
+
+    def get_right_geo_fhs(self, dsid, fhs):
+        ds_info = self.ids[dsid]
+        req_geo, rem_geo = self._get_req_rem_geo(ds_info)
+        desired, other = split_desired_other(fhs, req_geo, rem_geo)
+        if desired:
+            try:
+                ds_info['dataset_groups'].remove(rem_geo)
+            except ValueError:
+                pass
+            return desired
+        else:
+            return other
+
+    def _get_file_handlers(self, dsid):
+        """Get the file handler to load this dataset."""
+        ds_info = self.ids[dsid]
+
+        fhs = [fh for fh in self.file_handlers['generic_file']
+               if set(fh.datasets) & set(ds_info['dataset_groups'])]
+        if not fhs:
+            LOG.warning("Required file type '%s' not found or loaded for "
+                        "'%s'", ds_info['file_type'], dsid.name)
+        else:
+            if len(set(ds_info['dataset_groups']) & set(['GITCO', 'GIMGO', 'GMTCO', 'GMODO'])) > 1:
+                fhs = self.get_right_geo_fhs(dsid, fhs)
+            return fhs
+
     def _get_coordinates_for_dataset_key(self, dsid):
         """Get the coordinate dataset keys for `dsid`.
 
@@ -457,54 +538,27 @@ class VIIRSSDRReader(FileYAMLReader):
         from the geo reference attribute in the datasets file.
         """
         coords = super(VIIRSSDRReader, self)._get_coordinates_for_dataset_key(dsid)
-
         for c_id in coords:
             c_info = self.ids[c_id]  # c_info['dataset_groups'] should be a list of 2 elements
+            self._get_file_handlers(c_id)
             if len(c_info['dataset_groups']) == 1:  # filtering already done
                 continue
-            fhs = self._get_file_handlers(c_id)
-            if c_id.name.startswith('m'):
-                if self.use_tc is False:
-                    req_geo = 'GMODO'
-                    rem_geo = 'GMTCO'
-                else:
-                    req_geo = 'GMTCO'
-                    rem_geo = 'GMODO'
-            elif c_id.name.startswith('i'):
-                if self.use_tc is False:
-                    req_geo = 'GIMGO'
-                    rem_geo = 'GITCO'
-                else:
-                    req_geo = 'GITCO'
-                    rem_geo = 'GIMGO'
-            else:  # DNB
+            try:
+                req_geo, rem_geo = self._get_req_rem_geo(c_info)
+            except ValueError:  # DNB
                 continue
-            available_geo = None
-            for fh in fhs:
-                if req_geo in fh.datasets:
-                    c_info['dataset_groups'].remove(rem_geo)
-                    break
-                elif rem_geo in fh.datasets:
-                    available_geo = rem_geo
+
+            # check the dataset file for the geolocation filename
+            geo_filenames = self._load_from_geo_ref(dsid)
+            if not geo_filenames:
+                c_info['dataset_groups'] = [rem_geo]
             else:
-                # check the dataset file for the geolocation filename
-                geo_filenames = self._load_from_geo_ref(dsid)
-                if not geo_filenames:
-                    if available_geo:
-                        c_info['dataset_groups'] = [available_geo]
-                    continue
-                new_fhs = self.create_filehandlers(geo_filenames)
-                for fh in sum(new_fhs.values(), []):  # concatenate all values
-                    if req_geo in fh.datasets:
-                        c_info['dataset_groups'].remove(rem_geo)
-                        break
-                    elif rem_geo in fh.datasets:
-                        available_geo = rem_geo
+                # concatenate all values
+                new_fhs = sum(self.create_filehandlers(geo_filenames).values(), [])
+                desired, other = split_desired_other(new_fhs, req_geo, rem_geo)
+                if desired:
+                    c_info['dataset_groups'].remove(rem_geo)
                 else:
-                    if available_geo:
-                        c_info['dataset_groups'].remove(rem_geo)
-                    else:
-                        c_info['dataset_groups'].remove(req_geo)
-                    continue
+                    c_info['dataset_groups'].remove(req_geo)
 
         return coords
