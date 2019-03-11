@@ -1483,12 +1483,12 @@ class TestSceneResampling(unittest.TestCase):
         """Return copy of dataset pretending it was resampled."""
         return dataset.copy()
 
-    @mock.patch('satpy.scene.Scene._reduce_data')
+    @mock.patch('satpy.scene.Scene._slice_data')
     @mock.patch('satpy.scene.resample_dataset')
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
-    def test_resample_scene_copy(self, cri, cl, rs, reduce_data):
-        """Test that the Scene is properly copied during resampled.
+    def test_resample_scene_copy(self, cri, cl, rs, slice_data):
+        """Test that the Scene is properly copied during resampling.
 
         The Scene that is created as a copy of the original Scene should not
         be able to affect the original Scene object.
@@ -1508,8 +1508,9 @@ class TestSceneResampling(unittest.TestCase):
         proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
                                       '+lon_0=-95. +lat_0=25 +lat_1=25 '
                                       '+units=m +no_defs')
-        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 200, 400, (-1000., -1500., 1000., 1500.))
-
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        area_def.get_area_slices = mock.MagicMock()
+        get_area_slices = area_def.get_area_slices
         scene = satpy.scene.Scene(filenames=['bla'],
                                   base_dir='bli',
                                   reader='fake_reader')
@@ -1541,15 +1542,18 @@ class TestSceneResampling(unittest.TestCase):
 
         # Test that data reduction can be disabled
         scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
-
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
+        get_area_slices.return_value = (slice(0, 5, None), slice(0, 5, None))
         scene.resample(area_def, reduce_data=False)
-        self.assertFalse(reduce_data.called)
+        self.assertFalse(slice_data.called)
+        self.assertFalse(get_area_slices.called)
         scene.resample(area_def)
-        self.assertTrue(reduce_data.called_once)
+        self.assertTrue(slice_data.called_once)
+        self.assertTrue(get_area_slices.called_once)
         scene.resample(area_def, reduce_data=True)
-        self.assertEqual(reduce_data.call_count, 2)
+        self.assertEqual(slice_data.call_count, 2)
+        self.assertTrue(get_area_slices.called_once)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
