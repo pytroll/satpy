@@ -27,9 +27,17 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Interface to VIIRS SDR format
+**********************************
+
+This reader implements the support of VIIRS SDR files as produced by CSPP. It is
+comprised of two parts:
+
+ - A subclass of the YAMLFileReader class to allow handling all the files
+ - A filehandler class to implement the actual reading
 
 Format documentation:
-http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolIII_RevC.pdf
+
+ - http://npp.gsfc.nasa.gov/science/sciencedocuments/082012/474-00001-03_CDFCBVolIII_RevC.pdf
 
 """
 import logging
@@ -394,6 +402,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
 
 def split_desired_other(fhs, req_geo, rem_geo):
+    """Split the provided filehandlers *fhs* into desired filehandlers and others."""
     desired = []
     other = []
     for fh in fhs:
@@ -486,6 +495,7 @@ class VIIRSSDRReader(FileYAMLReader):
         return fns
 
     def _get_req_rem_geo(self, ds_info):
+        """Find out which geolocation files are needed."""
         if ds_info['dataset_groups'][0].startswith('GM'):
             if self.use_tc is False:
                 req_geo = 'GMODO'
