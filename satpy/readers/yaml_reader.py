@@ -493,7 +493,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         self.info.setdefault('filenames', []).extend(filenames)
         filename_set = set(filenames)
-
+        created_fhs = {}
         # load files that we know about by creating the file handlers
         for filetype, filetype_info in self.sorted_filetype_items():
             filehandlers = self.new_filehandlers_for_filetype(filetype_info,
@@ -501,8 +501,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
             filename_set -= set([fhd.filename for fhd in filehandlers])
             if filehandlers:
+                created_fhs[filetype] = filehandlers
                 self.file_handlers[filetype] = sorted(
-                    filehandlers,
+                    self.file_handlers.get(filetype, []) + filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
         # update existing dataset IDs with information from the file handler
@@ -510,6 +511,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         # load any additional dataset IDs determined dynamically from the file
         self.add_ds_ids_from_files()
+        return created_fhs
 
     def update_ds_ids_from_file_handlers(self):
         """Update DatasetIDs with information from loaded files.

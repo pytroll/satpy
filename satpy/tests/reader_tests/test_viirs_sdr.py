@@ -60,6 +60,12 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler"""
+
+    def __init__(self, filename, filename_info, filetype_info, use_tc=None):
+        super(FakeHDF5FileHandler2, self).__init__(filename, filename_info, filetype_info)
+        self.datasets = filename_info['datasets'].split('-')
+        self.use_tc = use_tc
+
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content"""
         start_time = filename_info['start_time']
@@ -67,7 +73,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                                      month=start_time.month,
                                                      day=start_time.day)
         final_content = {}
-        for dataset in filename_info['datasets'].split('-'):
+        for dataset in self.datasets:
             dataset_group = DATASET_KEYS[dataset]
             prefix1 = 'Data_Products/{dataset_group}'.format(dataset_group=dataset_group)
             prefix2 = '{prefix}/{dataset_group}_Aggr'.format(prefix=prefix1, dataset_group=dataset_group)
@@ -385,7 +391,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(d.attrs['area'].lats.min(), 55)
 
     def test_load_all_m_reflectances_use_nontc2(self):
-        """Load all M band reflectances but use non-TC geolocation (use_tc=None)"""
+        """Load all M band reflectances but use non-TC geolocation because TC isn't available"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs, use_tc=None)
         loadables = r.select_files_from_pathnames([
