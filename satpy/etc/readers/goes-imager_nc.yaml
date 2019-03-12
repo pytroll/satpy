@@ -1,0 +1,285 @@
+# References:
+# GOES 8-12:  https://goes.gsfc.nasa.gov/text/databook/databook.pdf, page 20 ff
+# GOES 13-15: https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf, chapter 3.
+
+reader:
+  description: GOES netCDF Reader
+  name: goes-imager_nc
+  sensors: [goes_imager]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+
+file_types:
+    nc_goes_00_7:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
+        file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_01.nc']
+    eum_nc_goes_00_7:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
+        file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_1.nc']
+        requires: [eum_nc_goes_geo]
+
+    nc_goes_03_9:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
+        file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_02.nc']
+    eum_nc_goes_03_9:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
+        file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_2.nc']
+        requires: [eum_nc_goes_geo]
+    nc_goes_06_5:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
+        file_patterns: ['goes12.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes13.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes14.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes15.{start_time:%Y.%j.%H%M%S}.BAND_03.nc']
+    eum_nc_goes_06_5:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
+        file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_3.nc']
+        requires: [eum_nc_goes_geo]
+    nc_goes_06_8:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
+        file_patterns: ['goes08.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes09.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes10.{start_time:%Y.%j.%H%M%S}.BAND_03.nc',
+                        'goes11.{start_time:%Y.%j.%H%M%S}.BAND_03.nc']
+    nc_goes_10_7:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
+        file_patterns: ['{platform}.{start_time:%Y.%j.%H%M%S}.BAND_04.nc']
+    eum_nc_goes_10_7:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
+        file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_4.nc']
+        requires: [eum_nc_goes_geo]
+    nc_goes_12_0:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
+        file_patterns: ['goes08.{start_time:%Y.%j.%H%M%S}.BAND_05.nc',
+                        'goes09.{start_time:%Y.%j.%H%M%S}.BAND_05.nc',
+                        'goes10.{start_time:%Y.%j.%H%M%S}.BAND_05.nc',
+                        'goes11.{start_time:%Y.%j.%H%M%S}.BAND_05.nc']
+    eum_nc_goes_12_0:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
+        file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_5.nc']
+        requires: [eum_nc_goes_geo]
+    nc_goes_13_3:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESNCFileHandler
+        file_patterns: ['goes12.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
+                        'goes13.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
+                        'goes14.{start_time:%Y.%j.%H%M%S}.BAND_06.nc',
+                        'goes15.{start_time:%Y.%j.%H%M%S}.BAND_06.nc']
+    eum_nc_goes_13_3:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMNCFileHandler
+        file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_6.nc']
+        requires: [eum_nc_goes_geo]
+    eum_nc_goes_geo:
+        file_reader: !!python/name:satpy.readers.goes_imager_nc.GOESEUMGEONCFileHandler
+        file_patterns: ['goes15.{start_time:%Y.%j.%H%M%S}_geo.nc']
+
+datasets:
+  '00_7':
+    name: '00_7'
+    wavelength: [0.52, 0.65, 0.71]
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        comment: Angle of incident radiation and annual variation of the earth-sun distance is not taken into account. A value of 100% corresponds to the radiance of a perfectly reflecting diffuse surface illuminated at normal incidence when the sun is at its annual-average distance from the Earth.
+        units: "%"
+    coordinates:
+        - longitude_00_7
+        - latitude_00_7
+    file_type: [nc_goes_00_7, eum_nc_goes_00_7]
+
+  '03_9':
+    name: '03_9'
+    wavelength: [3.73, 3.9, 4.07]
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: mW m-2 cm-1 sr-1
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    coordinates:
+        - longitude_03_9
+        - latitude_03_9
+    file_type: [nc_goes_03_9, eum_nc_goes_03_9]
+
+  '06_5':
+    name: '06_5'
+    wavelength: [5.8, 6.5, 7.3]
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: mW m-2 cm-1 sr-1
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    coordinates:
+        - longitude_06_5
+        - latitude_06_5
+    file_type: [nc_goes_06_5, eum_nc_goes_06_5]
+
+  '06_8':
+    name: '06_8'
+    wavelength: [6.5, 6.75, 7.0]
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: mW m-2 cm-1 sr-1
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    coordinates:
+        - longitude_06_8
+        - latitude_06_8
+    file_type: nc_goes_06_8
+
+  '10_7':
+    name: '10_7'
+    wavelength: [10.2, 10.7, 11.2]
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: mW m-2 cm-1 sr-1
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    coordinates:
+        - longitude_10_7
+        - latitude_10_7
+    file_type: [nc_goes_10_7, eum_nc_goes_10_7]
+
+  '12_0':
+    name: '12_0'
+    wavelength: [11.5, 12.0, 12.5]
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: mW m-2 cm-1 sr-1
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    coordinates:
+        - longitude_12_0
+        - latitude_12_0
+    file_type: nc_goes_12_0
+
+  '13_3':
+    name: '13_3'
+    wavelength: [13.0, 13.35, 13.7]
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: mW m-2 cm-1 sr-1
+      brightness_temperature:
+        standard_name: brightness_temperature
+        units: K
+    coordinates:
+        - longitude_13_3
+        - latitude_13_3
+    file_type: [nc_goes_13_3, eum_nc_goes_13_3]
+
+  longitude_00_7:
+      name: longitude_00_7
+      file_type: [nc_goes_00_7, eum_nc_goes_geo]
+      standard_name: longitude
+      units: degrees_east
+
+  latitude_00_7:
+    name: latitude_00_7
+    file_type: [nc_goes_00_7, eum_nc_goes_geo]
+    standard_name: latitude
+    units: degrees_north
+
+  longitude_03_9:
+      name: longitude_03_9
+      file_type: [nc_goes_03_9, eum_nc_goes_geo]
+      standard_name: longitude
+      units: degrees_east
+
+  latitude_03_9:
+    name: latitude_03_9
+    file_type: [nc_goes_03_9, eum_nc_goes_geo]
+    standard_name: latitude
+    units: degrees_north
+
+  longitude_06_5:
+      name: longitude_06_5
+      file_type: [nc_goes_06_5, eum_nc_goes_geo]
+      standard_name: longitude
+      units: degrees_east
+
+  latitude_06_5:
+    name: latitude_06_5
+    file_type: [nc_goes_06_5, eum_nc_goes_geo]
+    standard_name: latitude
+    units: degrees_north
+
+  longitude_06_8:
+      name: longitude_06_8
+      file_type: nc_goes_06_8
+      standard_name: longitude
+      units: degrees_east
+
+  latitude_06_8:
+    name: latitude_06_8
+    file_type: nc_goes_06_8
+    standard_name: latitude
+    units: degrees_north
+
+  longitude_10_7:
+      name: longitude_10_7
+      file_type: [nc_goes_10_7, eum_nc_goes_geo]
+      standard_name: longitude
+      units: degrees_east
+
+  latitude_10_7:
+    name: latitude_10_7
+    file_type: [nc_goes_10_7, eum_nc_goes_geo]
+    standard_name: latitude
+    units: degrees_north
+
+  longitude_12_0:
+      name: longitude_12_0
+      file_type: nc_goes_12_0
+      standard_name: longitude
+      units: degrees_east
+
+  latitude_12_0:
+    name: latitude_12_0
+    file_type: nc_goes_12_0
+    standard_name: latitude
+    units: degrees_north
+
+  longitude_13_3:
+      name: longitude_13_3
+      file_type: [nc_goes_13_3, eum_nc_goes_geo]
+      standard_name: longitude
+      units: degrees_east
+
+  latitude_13_3:
+    name: latitude_13_3
+    file_type: [nc_goes_13_3, eum_nc_goes_geo]
+    standard_name: latitude
+    units: degrees_north

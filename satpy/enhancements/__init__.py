@@ -146,6 +146,11 @@ def cira_stretch(img, **kwargs):
     return apply_enhancement(img.data, func)
 
 
+def _lookup_delayed(luts, band_data):
+    # can't use luts.__getitem__ for some reason
+    return luts[band_data]
+
+
 def lookup(img, **kwargs):
     """Assign values to channels based on a table."""
     luts = np.array(kwargs['luts'], dtype=np.float32) / 255.0
@@ -155,10 +160,7 @@ def lookup(img, **kwargs):
         lut = luts[:, index] if len(luts.shape) == 2 else luts
         band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
 
-        def _delayed(luts, band_data):
-            # can't use luts.__getitem__ for some reason
-            return luts[band_data]
-        new_delay = dask.delayed(_delayed)(lut, band_data)
+        new_delay = dask.delayed(_lookup_delayed)(lut, band_data)
         new_data = da.from_delayed(new_delay, shape=band_data.shape,
                                    dtype=luts.dtype)
         return new_data
@@ -231,9 +233,15 @@ def create_colormap(palette):
     return None
 
 
+def _three_d_effect_delayed(band_data, kernel, mode):
+    from scipy.signal import convolve2d
+    band_data = band_data.reshape(band_data.shape[1:])
+    new_data = convolve2d(band_data, kernel, mode=mode)
+    return new_data.reshape((1, band_data.shape[0], band_data.shape[1]))
+
+
 def three_d_effect(img, **kwargs):
     """Create 3D effect using convolution"""
-    from scipy.signal import convolve2d
     w = kwargs.get('weight', 1)
     LOG.debug("Applying 3D effect with weight %.2f", w)
     kernel = np.array([[-w, 0, w],
@@ -244,22 +252,14 @@ def three_d_effect(img, **kwargs):
     def func(band_data, kernel=kernel, mode=mode, index=None):
         del index
 
-        def _delayed(band_data, kernel, mode):
-            band_data = band_data.reshape(band_data.shape[1:])
-            new_data = convolve2d(band_data, kernel, mode=mode)
-            return new_data.reshape((1, band_data.shape[0],
-                                     band_data.shape[1]))
-
-        delay = dask.delayed(_delayed)(band_data, kernel, mode)
-        new_data = da.from_delayed(delay, shape=band_data.shape,
-                                   dtype=band_data.dtype)
+        delay = dask.delayed(_three_d_effect_delayed)(band_data, kernel, mode)
+        new_data = da.from_delayed(delay, shape=band_data.shape, dtype=band_data.dtype)
         return new_data
 
     return apply_enhancement(img.data, func, separate=True, pass_dask=True)
 
 
-def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None,
-                    **kwargs):
+def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs):
     """Scale data linearly in two separate regions.
 
     This enhancement scales the input data linearly by splitting the data
