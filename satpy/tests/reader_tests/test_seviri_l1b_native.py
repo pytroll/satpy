@@ -145,10 +145,10 @@ TEST_CALIBRATION_MODE = {
     'GSICSOffsetCount': [-51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0, -51.0]
 }
 
-
-
 # This should preferably be put in a helper-module
 # Fixme!
+
+
 def assertNumpyArraysEqual(self, other):
 
     if self.shape != other.shape:
@@ -354,6 +354,7 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
     def tearDown(self):
         pass
 
+
 class TestNativeMSGCalibrationMode(unittest.TestCase):
     """Test NativeMSGFileHandler.get_area_extent
     The expected results have been verified by manually
@@ -517,7 +518,7 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
 
     def tearDown(self):
         pass
-        
+
 
 def suite():
     """The test suite for test_scene.
