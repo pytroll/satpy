@@ -84,11 +84,14 @@ class HDFEOSFileReader(BaseFileHandler):
         mda = {}
         current_dict = mda
         path = []
+        prev_line = None
         for line in lines:
             if not line:
                 continue
             if line == 'END':
                 break
+            if prev_line:
+                line = prev_line + line
             key, val = line.split('=')
             key = key.strip()
             val = val.strip()
@@ -96,6 +99,10 @@ class HDFEOSFileReader(BaseFileHandler):
                 val = eval(val)
             except NameError:
                 pass
+            except SyntaxError:
+                prev_line = line
+                continue
+            prev_line = None
             if key in ['GROUP', 'OBJECT']:
                 new_dict = {}
                 path.append(val)
