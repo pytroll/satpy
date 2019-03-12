@@ -177,7 +177,10 @@ def get_area_def(area_name):
     The file is defined to use is to be placed in the $PPP_CONFIG_DIR
     directory, and its name is defined in satpy's configuration file.
     """
-    from pyresample.utils import parse_area_file
+    try:
+        from pyresample import parse_area_file
+    except ImportError:
+        from pyresample.utils import parse_area_file
     return parse_area_file(get_area_file(), area_name)[0]
 
 
@@ -673,6 +676,14 @@ class BilinearResampler(BaseResampler):
         return res
 
 
+def _mean(data, y_size, x_size):
+    rows, cols = data.shape
+    new_shape = (int(rows / y_size), int(y_size),
+                 int(cols / x_size), int(x_size))
+    data_mean = np.nanmean(data.reshape(new_shape), axis=(1, 3))
+    return data_mean
+
+
 class NativeResampler(BaseResampler):
     """Expand or reduce input datasets to be the same shape.
 
@@ -697,13 +708,6 @@ class NativeResampler(BaseResampler):
     @staticmethod
     def aggregate(d, y_size, x_size):
         """Average every 4 elements (2x2) in a 2D array"""
-        def _mean(data):
-            rows, cols = data.shape
-            new_shape = (int(rows / y_size), int(y_size),
-                         int(cols / x_size), int(x_size))
-            data_mean = np.nanmean(data.reshape(new_shape), axis=(1, 3))
-            return data_mean
-
         if d.ndim != 2:
             # we can't guarantee what blocks we are getting and how
             # it should be reshaped to do the averaging.
@@ -720,7 +724,7 @@ class NativeResampler(BaseResampler):
 
         new_chunks = (tuple(int(x / y_size) for x in d.chunks[0]),
                       tuple(int(x / x_size) for x in d.chunks[1]))
-        return da.core.map_blocks(_mean, d, dtype=d.dtype, chunks=new_chunks)
+        return da.core.map_blocks(_mean, d, y_size, x_size, dtype=d.dtype, chunks=new_chunks)
 
     @classmethod
     def expand_reduce(cls, d_arr, repeats):
@@ -790,8 +794,11 @@ class NativeResampler(BaseResampler):
         # Update coords if we can
         if ('y' in data.coords or 'x' in data.coords) and isinstance(target_geo_def, AreaDefinition):
             coord_chunks = (d_arr.chunks[y_axis], d_arr.chunks[x_axis])
-            x_coord, y_coord = target_geo_def.get_proj_vectors_dask(
-                chunks=coord_chunks)
+            if hasattr(target_geo_def, 'get_proj_vectors'):
+                x_coord, y_coord = target_geo_def.get_proj_vectors()
+            else:
+                # older version of pyresample
+                x_coord, y_coord = target_geo_def.get_proj_vectors_dask(chunks=coord_chunks)
             if 'y' in data.coords:
                 coords['y'] = y_coord
             if 'x' in data.coords:

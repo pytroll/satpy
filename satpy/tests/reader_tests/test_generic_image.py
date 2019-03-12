@@ -55,12 +55,12 @@ class TestGenericImage(unittest.TestCase):
 
         # Create datasets for L, LA, RGB and RGBA mode images
         r__ = da.random.randint(0, 256, size=(self.y_size, self.x_size),
-                                chunks=(50, 50))
+                                chunks=(50, 50)).astype(np.uint8)
         g__ = da.random.randint(0, 256, size=(self.y_size, self.x_size),
-                                chunks=(50, 50))
+                                chunks=(50, 50)).astype(np.uint8)
         b__ = da.random.randint(0, 256, size=(self.y_size, self.x_size),
-                                chunks=(50, 50))
-        a__ = 255 * np.ones((self.y_size, self.x_size))
+                                chunks=(50, 50)).astype(np.uint8)
+        a__ = 255 * np.ones((self.y_size, self.x_size), dtype=np.uint8)
         a__[:10, :10] = 0
         a__ = da.from_array(a__, chunks=(50, 50))
 
@@ -98,17 +98,10 @@ class TestGenericImage(unittest.TestCase):
         scn['rgba'].attrs['area'] = self.area_def
 
         # Save the images.  Two images in PNG and two in GeoTIFF
-        scn.save_dataset('l', os.path.join(self.base_dir, 'test_l.png'),
-                         writer='simple_image')
-        scn.save_dataset('la', os.path.join(self.base_dir,
-                                            '20180101_0000_test_la.png'),
-                         writer='simple_image')
-        scn.save_dataset('rgb', os.path.join(self.base_dir,
-                                             '20180101_0000_test_rgb.tif'),
-                         writer='geotiff')
-        scn.save_dataset('rgba', os.path.join(self.base_dir,
-                                              'test_rgba.tif'),
-                         writer='geotiff')
+        scn.save_dataset('l', os.path.join(self.base_dir, 'test_l.png'), writer='simple_image')
+        scn.save_dataset('la', os.path.join(self.base_dir, '20180101_0000_test_la.png'), writer='simple_image')
+        scn.save_dataset('rgb', os.path.join(self.base_dir, '20180101_0000_test_rgb.tif'), writer='geotiff')
+        scn.save_dataset('rgba', os.path.join(self.base_dir, 'test_rgba.tif'), writer='geotiff')
 
         self.scn = scn
 
@@ -206,9 +199,9 @@ class TestGenericImage(unittest.TestCase):
         self.assertTrue('transform' in dataset.attrs)
         self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
 
-        # Test masking
+        # Test masking of floats
         data = self.scn['rgba']
-        self.assertRaises(ValueError, mask_image_data, data)
+        self.assertRaises(ValueError, mask_image_data, data / 255.)
         data = data.astype(np.uint32)
         self.assertTrue(data.bands.size == 4)
         data = mask_image_data(data)

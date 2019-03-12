@@ -84,6 +84,7 @@ hurt readability. SatPy follows
 for all code API documentation. When in doubt use the existing code as a
 guide for how coding should be done.
 
+.. _dev_help:
 
 How do I get help?
 ==================
@@ -105,3 +106,32 @@ After talking to the SatPy developers any additional work like code or
 documentation changes can be provided as a GitHub
 `Pull Request <https://help.github.com/articles/creating-a-pull-request/>`_.
 
+Code of Conduct
+===============
+
+SatPy follows the same code of conduct as the PyTroll project. For reference
+it is copied to this repository in
+`CODE_OF_CONDUCT.md <https://github.com/pytroll/satpy/blob/master/CODE_OF_CONDUCT.md>`_.
+
+As stated in the PyTroll home page, this code of conduct applies to the
+project space (GitHub) as well as the public space online and offline when
+an individual is representing the project or the community. Online examples
+of this include the PyTroll Slack team, mailing list, and the PyTroll twitter
+account. This code of conduct also applies to in-person situations like
+PyTroll Contributor Weeks (PCW), conference meet-ups, or any other time when
+the project is being represented.
+
+Any violations of this code of conduct will be handled by the core maintainers
+of the project including David Hoese, Martin Raspaud, and Adam Dybbroe.
+If you wish to report one of the maintainers for a violation and are
+not comfortable with them seeing it, please contact one or more of the other
+maintainers to report the violation. Responses to violations will be
+determined by the maintainers and may include one or more of the following:
+
+- Verbal warning
+- Ask for public apology
+- Temporary or permanent ban from in-person events
+- Temporary or permanent ban from online communication (Slack, mailing list, etc)
+
+For details see the official
+`code of conduct document <https://github.com/pytroll/satpy/blob/master/CODE_OF_CONDUCT.md>`_.
