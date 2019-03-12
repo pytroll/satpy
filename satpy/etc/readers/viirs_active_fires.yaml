@@ -35,6 +35,12 @@ datasets:
         name: power
         file_type: [fires_netcdf, fires_text]
         file_key: "Fire Pixels/FP_power"
+        coordinates: [longitude, latitude]
+    T13:
+        name: T13
+        file_type: [fires_netcdf, fires_text]
+        file_key: "Fire Pixels/FP_power"
+        coordinates: [longitude, latitude]
     fire_mask:
         name: fire_mask
         file_type: [fires_netcdf]
