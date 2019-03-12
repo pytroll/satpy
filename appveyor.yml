@@ -8,11 +8,6 @@ environment:
     CONDA_CHANNELS: "conda-forge"
 
   matrix:
-    - PYTHON: "C:\\Python27_64"
-      PYTHON_VERSION: "2.7"
-      PYTHON_ARCH: "64"
-      NUMPY_VERSION: "stable"
-
     - PYTHON: "C:\\Python36_64"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
