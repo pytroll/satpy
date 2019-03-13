@@ -38,7 +38,7 @@ class FakeFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
     def get_test_content(self, filename, filename_info, filename_type):
         """Mimic reader input file content"""
         file_content = {}
-        file_content['/attr/satellite_name'] = filename_info['platform_shortname']
+        file_content['/attr/satellite_name'] = "AFEDR_npp"
         file_content['/attr/instrument_name'] = 'VIIRS'
 
         file_content['Fire Pixels/FP_latitude'] = DEFAULT_LATLON_FILE_DATA
@@ -101,10 +101,20 @@ class TestVIIRSACTIVEFIRES(unittest.TestCase):
             'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['FireData'])
+        datasets = r.load(['detection_confidence'])
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], 'none')
+            self.assertEqual(v.attrs['units'], '%')
+
+        datasets = r.load(['T13'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'K')
+
+        datasets = r.load(['power'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'MW')
 
 
 def suite():
