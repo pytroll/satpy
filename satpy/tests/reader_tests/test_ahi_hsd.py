@@ -221,13 +221,11 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         # Test masking of space pixels
         nrows = 25
         ncols = 100
-        self.fh.area = AreaDefinition(name='test', area_id='test', proj_id='test',
-                                      proj_dict={'a': '6378137.0', 'b': '6356752.3',
-                                                 'h': '35785863.0', 'lon_0': '140.7',
-                                                 'proj': 'geos', 'units': 'm'},
-                                      x_size=ncols, y_size=nrows,
-                                      area_extent=[-5499999.901174725, -4399999.92093978,
-                                                   5499999.901174725, -3299999.9407048346])
+        self.fh.area = AreaDefinition('test', 'test', 'test',
+                                      {'a': '6378137.0', 'b': '6356752.3', 'h': '35785863.0', 'lon_0': '140.7',
+                                       'proj': 'geos', 'units': 'm'},
+                                      ncols, nrows,
+                                      [-5499999.901174725, -4399999.92093978, 5499999.901174725, -3299999.9407048346])
         calibrate.return_value = np.ones((nrows, ncols))
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
