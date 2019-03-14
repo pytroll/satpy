@@ -27,7 +27,8 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 
-from satpy.readers.seviri_l1b_hrit import HRITMSGFileHandler
+from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFileHandler,
+                                           HRITMSGEpilogueFileHandler)
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
 from satpy.dataset import DatasetID
 
@@ -220,12 +221,52 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                           filetype_info=None, prologue=pro, epilogue=epi, calib_mode='invalid')
 
 
+class TestHRITMSGPrologueFileHandler(unittest.TestCase):
+    """Test the HRIT prologue file handler."""
+
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler.read_prologue')
+    @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', autospec=True)
+    def test_calibrate(self, init, *mocks):
+        """Test whether the prologue file handler accepts extra calibration keywords"""
+        def init_patched(self, *args, **kwargs):
+            self.mda = {}
+        init.side_effect = init_patched
+
+        HRITMSGPrologueFileHandler(filename=None,
+                                   filename_info={'service': ''},
+                                   filetype_info=None,
+                                   ext_calib_coefs={},
+                                   calib_mode='nominal')
+
+
+class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
+    """Test the HRIT epilogue file handler."""
+
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue')
+    @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', autospec=True)
+    def test_calibrate(self, init, *mocks):
+        """Test whether the epilogue file handler accepts extra calibration keywords"""
+
+        def init_patched(self, *args, **kwargs):
+            self.mda = {}
+
+        init.side_effect = init_patched
+
+        HRITMSGEpilogueFileHandler(filename=None,
+                                   filename_info={'service': ''},
+                                   filetype_info=None,
+                                   ext_calib_coefs={},
+                                   calib_mode='nominal')
+
+
 def suite():
     """The test suite for test_scene.
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITMSGFileHandler))
+    tests = [TestHRITMSGFileHandler, TestHRITMSGPrologueFileHandler, TestHRITMSGEpilogueFileHandler]
+    for test in tests:
+        mysuite.addTest(loader.loadTestsFromTestCase(test))
     return mysuite
 
 
