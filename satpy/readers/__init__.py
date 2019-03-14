@@ -25,11 +25,15 @@
 import logging
 import numbers
 import os
-import warnings
 from datetime import datetime, timedelta
 
 import six
 import yaml
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
@@ -506,14 +510,14 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     return [{reader: file_groups[group_key]} for group_key in sorted_group_keys]
 
 
-def read_reader_config(config_files, loader=yaml.Loader):
+def read_reader_config(config_files, loader=UnsafeLoader):
     """Read the reader `config_files` and return the info extracted."""
 
     conf = {}
     LOG.debug('Reading %s', str(config_files))
     for config_file in config_files:
         with open(config_file) as fd:
-            conf.update(yaml.load(fd.read(), loader))
+            conf.update(yaml.load(fd.read(), Loader=loader))
 
     try:
         reader_info = conf['reader']

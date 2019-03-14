@@ -27,12 +27,17 @@ For now, this includes enhancement configuration utilities.
 
 import logging
 import os
-
-import numpy as np
-import yaml
-import dask.array as da
-import xarray as xr
 import warnings
+
+import dask.array as da
+import numpy as np
+import xarray as xr
+import yaml
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from satpy.config import (config_search_paths, glob_config,
                           get_environ_config_dir, recursive_dict_update)
@@ -47,14 +52,14 @@ from trollimage.xrimage import XRImage
 LOG = logging.getLogger(__name__)
 
 
-def read_writer_config(config_files, loader=yaml.Loader):
+def read_writer_config(config_files, loader=UnsafeLoader):
     """Read the writer `config_files` and return the info extracted."""
 
     conf = {}
     LOG.debug('Reading %s', str(config_files))
     for config_file in config_files:
         with open(config_file) as fd:
-            conf.update(yaml.load(fd.read(), loader))
+            conf.update(yaml.load(fd.read(), Loader=loader))
 
     try:
         writer_info = conf['writer']
@@ -882,7 +887,7 @@ class EnhancementDecisionTree(DecisionTree):
         for config_file in decision_dict:
             if os.path.isfile(config_file):
                 with open(config_file) as fd:
-                    enhancement_config = yaml.load(fd)
+                    enhancement_config = yaml.load(fd, Loader=UnsafeLoader)
                     if enhancement_config is None:
                         # empty file
                         continue
@@ -896,7 +901,7 @@ class EnhancementDecisionTree(DecisionTree):
                 conf = recursive_dict_update(conf, config_file)
             else:
                 LOG.debug("Loading enhancement config string")
-                d = yaml.load(config_file)
+                d = yaml.load(config_file, Loader=UnsafeLoader)
                 if not isinstance(d, dict):
                     raise ValueError(
                         "YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
