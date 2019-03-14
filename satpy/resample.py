@@ -38,7 +38,7 @@ Resampling algorithms
     "nearest", "Nearest Neighbor", :class:`~satpy.resample.KDTreeResampler`
     "ewa", "Elliptical Weighted Averaging", :class:`~satpy.resample.EWAResampler`
     "native", "Native", :class:`~satpy.resample.NativeResampler`
-    "bilinear", "Bilinear", :class`~satpy.resample.BilinearResampler`
+    "bilinear", "Bilinear", :class:`~satpy.resample.BilinearResampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
