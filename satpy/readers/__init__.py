@@ -556,13 +556,9 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
 
             new_name = OLD_READER_NAMES[reader_name]
             # SatPy 0.11 only displays a warning
-            warnings.warn("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name),
-                          DeprecationWarning)
-            # SatPy 0.12 will raise an exception
-            # raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
-            # SatPy 0.13 or 1.0, remove exception and mapping
-
-            new_readers.append(new_name)
+            # SatPy 0.13 will raise an exception
+            raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
+            # SatPy 0.15 or 1.0, remove exception and mapping
 
         reader = new_readers
         # given a config filename or reader name
@@ -749,7 +745,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         if readers_files:
             loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables)
+            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs)
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:
