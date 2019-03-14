@@ -26,15 +26,20 @@ import glob
 import itertools
 import logging
 import os
+import warnings
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import deque, OrderedDict
 from fnmatch import fnmatch
-import warnings
+from weakref import WeakValueDictionary
 
 import six
 import xarray as xr
 import yaml
-from weakref import WeakValueDictionary
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
@@ -89,7 +94,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.config_files = config_files
         for config_file in config_files:
             with open(config_file) as fd:
-                self.config = recursive_dict_update(self.config, yaml.load(fd))
+                self.config = recursive_dict_update(self.config, yaml.load(fd, Loader=UnsafeLoader))
 
         self.info = self.config['reader']
         self.name = self.info['name']
