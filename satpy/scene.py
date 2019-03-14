@@ -944,7 +944,9 @@ class Scene(MetadataObject):
             if parent_dataset is not None:
                 pres = new_datasets[DatasetID.from_dict(parent_dataset.attrs)]
             if ds_id in new_datasets:
-                replace_anc(dataset, pres)
+                replace_anc(new_datasets[ds_id], pres)
+                if ds_id in new_scn.datasets:
+                    new_scn.datasets[ds_id] = new_datasets[ds_id]
                 continue
             if dataset.attrs.get('area') is None:
                 if parent_dataset is None:
@@ -978,9 +980,9 @@ class Scene(MetadataObject):
             res = resample_dataset(dataset, destination_area,
                                    **kwargs)
             new_datasets[ds_id] = res
-            if parent_dataset is None:
+            if ds_id in new_scn.datasets:
                 new_scn.datasets[ds_id] = res
-            else:
+            if parent_dataset is not None:
                 replace_anc(res, pres)
 
     def resample(self, destination=None, datasets=None, generate=True,
