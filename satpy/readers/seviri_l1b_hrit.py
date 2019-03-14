@@ -179,35 +179,45 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         - Nominal for all channels (default)
         - GSICS for IR channels and nominal for VIS channels
 
-    Furthermore, it is possible to specify external calibration coefficients. In order to change the
-    default behaviour, use the reader_kwargs upon Scene creation:
+    In order to change the default behaviour, use the ``reader_kwargs`` upon Scene creation::
 
-    >>> import satpy
-    >>> import glob
-    >>>
-    >>> filenames = glob.glob('H-000-MSG3*')
-    >>>
-    >>> # a) Choose GSICS calibration coefficients for IR channels and nominal coefficients for
-    >>> #    VIS channels
-    >>> scene1 = satpy.Scene(filenames,
-    ...                      reader='seviri_l1b_hrit',
-    ...                      reader_kwargs={'calib_mode': 'GSICS'})
-    >>> scene1.load(['VIS006', 'IR_108'])
-    >>>
-    >>> # B) Specify external calibration coefficients for VIS channels and GSICS coefficients
-    >>> #    for IR channels
-    >>> coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
-    ...          'VIS008': {'gain': 0.0297, 'offset': -1.51},
-    ...          'IR_016': {'gain': 0.0228, 'offset': -1.16}}
-    >>> scene2 = satpy.Scene(filenames,
-    ...                      reader='seviri_l1b_hrit',
-    ...                      reader_kwargs={'calib_mode': 'GSICS',
-    ...                                     'ext_calib_coefs': coefs})
-    >>> scene2.load(['VIS006', 'IR_108'])
+        import satpy
+        import glob
 
-    External coefficients must be specified in [mW m-2 sr-1 (cm-1)-1]. If external calibration
-    coefficients are specified for only a subset of channels, the remaining channels will be
-    calibrated using the chosen file-internal coefficients (nominal or GSICS).
+        filenames = glob.glob('H-000-MSG3*')
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'calib_mode': 'GSICS'})
+        scene.load(['VIS006', 'IR_108'])
+
+    Furthermore, it is possible to specify external calibration coefficients for the conversion from
+    counts to radiances. They must be specified in [mW m-2 sr-1 (cm-1)-1]. External coefficients
+    take precedence over internal coefficients. If external calibration coefficients are specified
+    for only a subset of channels, the remaining channels will be calibrated using the chosen
+    file-internal coefficients (nominal or GSICS).
+
+    In the following example we use external calibration coefficients for the ``VIS006`` &
+    ``IR_108`` channels, and nominal coefficients for the remaining channels::
+
+        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'ext_calib_coefs': coefs})
+        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+    In the next example we use we use external calibration coefficients for the ``VIS006`` &
+    ``IR_108`` channels, nominal coefficients for the remaining VIS channels and GSICS coefficients
+    for the remaining IR channels::
+
+        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'calib_mode': 'GSICS',
+                                           'ext_calib_coefs': coefs})
+        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
     """
     def __init__(self, filename, filename_info, filetype_info,
                  prologue, epilogue, calib_mode='nominal', ext_calib_coefs=None):
