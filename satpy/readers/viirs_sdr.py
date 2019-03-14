@@ -29,8 +29,8 @@
 """Interface to VIIRS SDR format
 **********************************
 
-This reader implements the support of VIIRS SDR files as produced by CSPP. It is
-comprised of two parts:
+This reader implements the support of VIIRS SDR files as produced by CSPP and CLASS.
+It is comprised of two parts:
 
  - A subclass of the YAMLFileReader class to allow handling all the files
  - A filehandler class to implement the actual reading
@@ -421,9 +421,9 @@ class VIIRSSDRReader(FileYAMLReader):
 
         Args:
             config_files (iterable): yaml config files passed to base class
-            use_tc (boolean): If `True` (default) use the terrain corrected
+            use_tc (boolean): If `True` use the terrain corrected
                               files. If `False`, switch to non-TC files. If
-                              `None`, use TC if available, non-TC otherwise.
+                              `None` (default), use TC if available, non-TC otherwise.
 
         """
         super(VIIRSSDRReader, self).__init__(config_files, **kwargs)
