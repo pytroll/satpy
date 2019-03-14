@@ -110,7 +110,8 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
     """SEVIRI HRIT prologue reader.
     """
 
-    def __init__(self, filename, filename_info, filetype_info, calib_kwargs=None):
+    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
+                 ext_calib_coefs=None):
         """Initialize the reader."""
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -145,7 +146,8 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
     """SEVIRI HRIT epilogue reader.
     """
 
-    def __init__(self, filename, filename_info, filetype_info, calib_kwargs=None):
+    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
+                 ext_calib_coefs=None):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
