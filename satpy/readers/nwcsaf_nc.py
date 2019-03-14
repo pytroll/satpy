@@ -163,8 +163,6 @@ class NcNWCSAF(BaseFileHandler):
         except AttributeError:
             pass
 
-        # if 'standard_name' in variable.attrs and str(variable.attrs['standard_name']).startswith('palette'):
-
         if 'palette_meanings' in variable.attrs:
             variable.attrs['palette_meanings'] = [int(val)
                                                   for val in variable.attrs['palette_meanings'].split()]
