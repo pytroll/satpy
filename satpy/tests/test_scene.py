@@ -1557,6 +1557,38 @@ class TestSceneResampling(unittest.TestCase):
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_resample_ancillary(self, cri, cl):
+        """Test that the Scene reducing data does not affect final output."""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+
+        scene.load(['comp19', 'comp20'])
+        scene['comp19'].attrs['area'] = area_def
+        scene['comp19'].attrs['ancillary_variables'] = [scene['comp20']]
+        scene['comp20'].attrs['area'] = area_def
+
+        dst_area = AreaDefinition('dst', 'dst', 'dst',
+                                  proj_dict,
+                                  2, 2,
+                                  (-1000., -1500., 0., 0.),
+                                  )
+        new_scene = scene.resample(dst_area)
+        self.assertIs(new_scene['comp20'], new_scene['comp19'].attrs['ancillary_variables'][0])
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_resample_reduce_data(self, cri, cl):
         """Test that the Scene reducing data does not affect final output."""
         import satpy.scene
