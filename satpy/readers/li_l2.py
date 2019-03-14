@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
+# Copyright (c) 2016, 2019
 
 # Author(s):
 
 #
 #   Thomas Leppelt <thomas.leppelt@gmail.com>
 #   Sauli Joro <sauli.joro@icloud.com>
+#   Gerrit Holl <gerrit.holl@dwd.de>
 
 # This file is part of satpy.
 
@@ -29,7 +30,8 @@ The data description is described in the
 "LI L2 Product User Guide [LIL2PUG] Draft version" documentation.
 
 """
-import h5netcdf
+import xarray as xr
+import h5py
 import logging
 import numpy as np
 from datetime import datetime
@@ -47,7 +49,7 @@ class LIFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(LIFileHandler, self).__init__(filename, filename_info, filetype_info)
-        self.nc = h5netcdf.File(self.filename, 'r')
+        self.nc = h5py.File(self.filename, 'r')
         # Get grid dimensions from file
         refdim = self.nc['grid_position'][:]
         # Get number of lines and columns
@@ -112,14 +114,13 @@ class LIFileHandler(BaseFileHandler):
                         Works only for test dataset")
         # Slice the gridded lighting data
         slicegrid = rotgrid[yslice, xslice]
-        # Mask invalid values
-        ds = np.ma.masked_where(np.isnan(slicegrid), slicegrid)
+        # Convert to xarray
+        ds = xr.DataArray(slicegrid, dims=["y", "x"])
         # Create dataset object
-        out.data[:] = np.ma.getdata(ds)
-        out.mask[:] = np.ma.getmask(ds)
-        out.info.update(key.to_dict())
+        # GH 20190314: Converting from ma to da I don't know what to do with this
+        #out.info.update(key.to_dict())
 
-        return(out)
+        return ds
 
     def get_area_def(self, key, info=None):
         """Create AreaDefinition for specified product.
