@@ -363,7 +363,7 @@ needs to implement a few methods:
    - the filename info (dict) that we get by parsing the filename using the pattern defined in the yaml file
    - the filetype info that we get from the filetype definition in the yaml file
 
-  This method can also recieve other file handler instances as parameter
+  This method can also receive other file handler instances as parameter
   if the filetype at hand has requirements. (See the explanation in the
   YAML file filetype section above)
 
@@ -399,7 +399,7 @@ On top of that, two attributes need to be defined: ``start_time`` and
 
         def get_dataset(self, dataset_id, dataset_info):
             if dataset_id.calibration != 'radiance':
-                # TODO: implement calibration to relfectance or brightness temperature
+                # TODO: implement calibration to reflectance or brightness temperature
                 return
             if self.nc is None:
                 self.nc = xr.open_dataset(self.filename,
