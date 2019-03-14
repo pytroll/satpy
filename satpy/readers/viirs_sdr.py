@@ -127,7 +127,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     """VIIRS HDF5 File Reader
     """
 
-    def __init__(self, filename, filename_info, filetype_info, use_tc=None):
+    def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
         super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info)
