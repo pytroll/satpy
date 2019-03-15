@@ -624,16 +624,18 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=['value', 'band'])
         palette.attrs['palette_meanings'] = [2, 3, 4]
-        status = np.array([1, 0, 1])
-        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8), dims=['y', 'x'])
+        status = xr.DataArray(np.array([[1, 0, 1], [1, 0, 65535]]), dims=['y', 'x'],
+                              attrs={'_FillValue': 65535})
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8),
+                            dims=['y', 'x'])
         res = cmap_comp([data, palette, status])
-        exp = np.array([[[0., 0.498039, 0.],
-                         [0., 0.498039, 0.]],
-                        [[0., 0.498039, 0.],
-                         [0., 0.498039, 0.]],
-                        [[0., 0.498039, 0.],
-                         [0., 0.498039, 0.]]])
-        self.assertTrue(np.allclose(res, exp))
+        exp = np.array([[[0., 0.49803922, 0.],
+                         [0., 0.49803922, np.nan]],
+                        [[0., 0.49803922, 0.],
+                         [0., 0.49803922, np.nan]],
+                        [[0., 0.49803922, 0.],
+                         [0., 0.49803922, np.nan]]])
+        np.testing.assert_allclose(res, exp)
 
 
 class TestGenericCompositor(unittest.TestCase):
