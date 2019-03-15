@@ -263,7 +263,11 @@ class BaseResampler(object):
                 geo_dims = ('y', 'x')
             flat_dims = [dim for dim in data.dims if dim not in geo_dims]
             # xarray <= 0.10.1 computes dask arrays during isnull
-            kwargs['mask'] = data.isnull().all(dim=flat_dims)
+            if np.issubdtype(data.dtype, np.integer):
+                kwargs['mask'] = data == data.attrs.get('_FillValue', np.iinfo(data.dtype.type).max)
+            else:
+                kwargs['mask'] = data.isnull()
+            kwargs['mask'] = kwargs['mask'].all(dim=flat_dims)
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
