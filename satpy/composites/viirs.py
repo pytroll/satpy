@@ -633,9 +633,9 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
     total_cols = data.shape[1]
     tile_size = int((local_radius_px * 2.0) + 1.0)
     row_tiles = int(total_rows / tile_size) if (
-        total_rows % tile_size is 0) else int(total_rows / tile_size) + 1
+        (total_rows % tile_size) == 0) else int(total_rows / tile_size) + 1
     col_tiles = int(total_cols / tile_size) if (
-        total_cols % tile_size is 0) else int(total_cols / tile_size) + 1
+        (total_cols % tile_size) == 0) else int(total_cols / tile_size) + 1
 
     # an array of our distribution functions for equalization
     all_cumulative_dist_functions = [[]]
@@ -1003,7 +1003,7 @@ def _linear_normalization_from_0to1(
     """
 
     LOG.debug(message)
-    if theoretical_min is not 0:
+    if theoretical_min != 0:
         data[mask] = data[mask] - theoretical_min
         theoretical_max = theoretical_max - theoretical_min
     data[mask] = data[mask] / theoretical_max

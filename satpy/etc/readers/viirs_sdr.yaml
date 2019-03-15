@@ -103,8 +103,8 @@ datasets:
     name: I04
     wavelength: [3.580, 3.740, 3.900]
     file_type: generic_file
-    resolution: 371
     dataset_groups: [SVI04]
+    resolution: 371
     coordinates: [i_longitude, i_latitude]
     calibration:
       brightness_temperature:
@@ -469,7 +469,7 @@ datasets:
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
     units: degrees
-    file_type: gdnbo
+    file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
   DNB_SENA:
@@ -478,7 +478,7 @@ datasets:
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
     units: degrees
-    file_type: gdnbo
+    file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
   dnb_moon_illumination_fraction:
