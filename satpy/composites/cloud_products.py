@@ -71,7 +71,7 @@ class CloudTopHeightCompositor(ColormapCompositor):
                                 dims=data.dims, coords=data.coords,
                                 attrs=data.attrs).where(mask_nan)
             # Set cloud-free pixels as black
-            chans.append(chan.where(mask_cloud_free, 0))
+            chans.append(chan.where(mask_cloud_free, 0).where(status != status.attrs['_FillValue']))
 
         res = super(CloudTopHeightCompositor, self).__call__(chans, **data.attrs)
         res.attrs['_FillValue'] = np.nan
