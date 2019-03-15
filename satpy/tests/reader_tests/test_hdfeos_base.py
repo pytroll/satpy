@@ -623,8 +623,8 @@ nrt_mda_dict = {
 class TestReadMDA(unittest.TestCase):
 
     def test_read_mda(self):
-        from satpy.readers.modis_l1b import HDFEOSFileReader
-        res = HDFEOSFileReader.read_mda(nrt_mda)
+        from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
+        res = HDFEOSBaseFileReader.read_mda(nrt_mda)
         self.assertDictEqual(res, nrt_mda_dict)
 
 
