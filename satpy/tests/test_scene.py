@@ -404,6 +404,50 @@ class TestScene(unittest.TestCase):
         self.assertTupleEqual(new_scn1['3'].shape, (36, 70))
         self.assertTupleEqual(new_scn1['4'].shape, (18, 35))
 
+    def test_crop_rgb(self):
+        """Test the crop method on multi-dimensional data."""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        import numpy as np
+        scene1 = Scene()
+        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
+                       5570248.477339745)
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        x_size = 3712
+        y_size = 3712
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size,
+            y_size,
+            area_extent,
+        )
+        area_def2 = AreaDefinition(
+            'test2',
+            'test2',
+            'test2',
+            proj_dict,
+            x_size // 2,
+            y_size // 2,
+            area_extent,
+            )
+        scene1["1"] = DataArray(np.zeros((3, y_size, x_size)), dims=('bands', 'y', 'x'), attrs={'area': area_def})
+        scene1["2"] = DataArray(np.zeros((y_size // 2, 3, x_size // 2)), dims=('y', 'bands', 'x'),
+                                attrs={'area': area_def2})
+
+        # by lon/lat bbox
+        new_scn1 = scene1.crop(ll_bbox=(-20., -5., 0, 0))
+        self.assertIn('1', new_scn1)
+        self.assertIn('2', new_scn1)
+        self.assertIn('bands', new_scn1['1'].dims)
+        self.assertIn('bands', new_scn1['2'].dims)
+        self.assertTupleEqual(new_scn1['1'].shape, (3, 184, 714))
+        self.assertTupleEqual(new_scn1['2'].shape, (92, 3, 357))
+
     def test_contains(self):
         from satpy import Scene
         from xarray import DataArray
