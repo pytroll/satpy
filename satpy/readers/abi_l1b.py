@@ -136,6 +136,10 @@ class NC_ABI_L1B(BaseFileHandler):
         # copy global attributes to metadata
         for key in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
             res.attrs[key] = self.nc.attrs.get(key)
+        # only include these if they are present
+        for key in ('fusion_args',):
+            if key in self.nc.attrs:
+                res.attrs[key] = self.nc.attrs[key]
 
         return res
 
