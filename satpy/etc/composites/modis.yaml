@@ -64,7 +64,6 @@ composites:
     - name: '2'
       modifiers: [sunz_corrected]
     - name: '31'
-      modifiers: [sunz_corrected]
     standard_name: overview
 
   airmass:
