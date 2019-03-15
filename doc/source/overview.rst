@@ -17,7 +17,7 @@ Scene
 =====
 
 SatPy provides most of its functionality through the
-:class:`~satpy.scene.Scene` class. The acts as a container for the datasets
+:class:`~satpy.scene.Scene` class. This acts as a container for the datasets
 being operated on and provides methods for acting on those datasets. It
 attempts to reduce the amount of low-level knowledge needed by the user while
 still providing a pythonic interface to the functionality underneath.
@@ -64,7 +64,7 @@ Reading
 =======
 
 One of the biggest advantages of using SatPy is the large number of input
-file formats that it can read. It encapsulates this functionality in to
+file formats that it can read. It encapsulates this functionality into
 individual :doc:`readers`. SatPy Readers handle all of the complexity of
 reading whatever format they represent. Meteorological Satellite file formats
 can be extremely complex and formats are rarely reused across satellites
