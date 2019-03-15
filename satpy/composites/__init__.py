@@ -30,12 +30,17 @@ import time
 import warnings
 from weakref import WeakValueDictionary
 
+import dask.array as da
 import numpy as np
 import six
 import xarray as xr
 import xarray.ufuncs as xu
-import dask.array as da
 import yaml
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
@@ -183,7 +188,7 @@ class CompositorLoader(object):
         conf = {}
         for composite_config in composite_configs:
             with open(composite_config) as conf_file:
-                conf = recursive_dict_update(conf, yaml.load(conf_file))
+                conf = recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
         try:
             sensor_name = conf['sensor_name']
         except KeyError:

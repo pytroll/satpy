@@ -66,7 +66,7 @@ class TestEnhancementStretch(unittest.TestCase):
         from satpy.enhancements import cira_stretch
 
         expected = np.array([[
-            [np.nan, np.nan, np.nan, 0.79630132, 0.95947296],
+            [np.nan, -7.04045974, -7.04045974, 0.79630132, 0.95947296],
             [1.05181359, 1.11651012, 1.16635571, 1.20691137, 1.24110186]]])
         self._test_enhancement(cira_stretch, self.ch1, expected)
 
