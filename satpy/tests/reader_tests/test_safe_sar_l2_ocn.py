@@ -46,20 +46,25 @@ class TestSAFENC(unittest.TestCase):
     def setUp(self, xr_):
         from satpy.readers.safe_sar_l2_ocn import SAFENC
 
-        self.channels = ['owiWindSpeed', 'owiLon', 'owiLat', 'owiHs', 'owiNrcs', 'foo']
+        self.channels = ['owiWindSpeed', 'owiLon', 'owiLat', 'owiHs', 'owiNrcs', 'foo',
+                         'owiPolarisationName', 'owiCalConstObsi']
         # Mock file access to return a fake dataset.
         self.dummy3d = np.zeros((2, 2, 1))
         self.dummy2d = np.zeros((2, 2))
+        self.dummy1d = np.zeros((2))
         self.band = 1
         self.nc = xr.Dataset(
-            {'owiWindSpeed': xr.DataArray(self.dummy2d, dims=('owiAzSize', 'owiRaSize')),
+            {'owiWindSpeed': xr.DataArray(self.dummy2d, dims=('owiAzSize', 'owiRaSize'), attrs={'_FillValue': np.nan}),
              'owiLon': xr.DataArray(data=self.dummy2d, dims=('owiAzSize', 'owiRaSize')),
              'owiLat': xr.DataArray(data=self.dummy2d, dims=('owiAzSize', 'owiRaSize')),
              'owiHs': xr.DataArray(data=self.dummy3d, dims=('owiAzSize', 'owiRaSize', 'oswPartition')),
              'owiNrcs': xr.DataArray(data=self.dummy3d, dims=('owiAzSize', 'owiRaSize', 'oswPolarization')),
-             'foo': xr.DataArray(self.dummy2d, dims=('owiAzSize', 'owiRaSize'))
+             'foo': xr.DataArray(self.dummy2d, dims=('owiAzSize', 'owiRaSize')),
+             'owiPolarisationName': xr.DataArray(self.dummy1d, dims=('owiPolarisation')),
+             'owiCalConstObsi': xr.DataArray(self.dummy1d, dims=('owiIncSize'))
              },
-            attrs={'_FillValue': np.nan})
+            attrs={'_FillValue': np.nan,
+                   'missionName': 'S1A'})
         xr_.open_dataset.return_value = self.nc
 
         # Instantiate reader using the mocked open_dataset() method. Also, make
