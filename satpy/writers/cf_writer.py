@@ -212,13 +212,13 @@ class CFWriter(Writer):
             ds_collection.update(get_extra_ds(ds))
 
         datas = {}
+        start_times = []
+        end_times = []
         for ds in ds_collection.values():
             try:
                 new_datasets = area2cf(ds)
             except KeyError:
                 new_datasets = [ds.copy(deep=True)]
-            start_times = []
-            end_times = []
             for new_ds in new_datasets:
                 start_times.append(new_ds.attrs.pop("start_time", None))
                 end_times.append(new_ds.attrs.pop("end_time", None))

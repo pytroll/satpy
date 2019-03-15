@@ -47,7 +47,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      image_data_function)
 
 from satpy.readers.seviri_base import SEVIRICalibrationHandler
-from satpy.readers.seviri_base import (CHANNEL_NAMES, CALIB, SATNUM)
+from satpy.readers.seviri_base import (CHANNEL_NAMES, VIS_CHANNELS, CALIB, SATNUM)
 
 from satpy.readers.seviri_l1b_native_hdr import (hrit_prologue, hrit_epilogue,
                                                  impf_configuration)
@@ -110,7 +110,8 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
     """SEVIRI HRIT prologue reader.
     """
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
+                 ext_calib_coefs=None):
         """Initialize the reader."""
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -145,7 +146,8 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
     """SEVIRI HRIT epilogue reader.
     """
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
+                 ext_calib_coefs=None):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -172,10 +174,55 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     """SEVIRI HRIT format reader
-    """
 
+    It is possible to choose between two file-internal calibration coefficients for the conversion
+    from counts to radiances:
+
+        - Nominal for all channels (default)
+        - GSICS for IR channels and nominal for VIS channels
+
+    In order to change the default behaviour, use the ``reader_kwargs`` upon Scene creation::
+
+        import satpy
+        import glob
+
+        filenames = glob.glob('H-000-MSG3*')
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'calib_mode': 'GSICS'})
+        scene.load(['VIS006', 'IR_108'])
+
+    Furthermore, it is possible to specify external calibration coefficients for the conversion from
+    counts to radiances. They must be specified in [mW m-2 sr-1 (cm-1)-1]. External coefficients
+    take precedence over internal coefficients. If external calibration coefficients are specified
+    for only a subset of channels, the remaining channels will be calibrated using the chosen
+    file-internal coefficients (nominal or GSICS).
+
+    In the following example we use external calibration coefficients for the ``VIS006`` &
+    ``IR_108`` channels, and nominal coefficients for the remaining channels::
+
+        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'ext_calib_coefs': coefs})
+        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+    In the next example we use we use external calibration coefficients for the ``VIS006`` &
+    ``IR_108`` channels, nominal coefficients for the remaining VIS channels and GSICS coefficients
+    for the remaining IR channels::
+
+        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'calib_mode': 'GSICS',
+                                           'ext_calib_coefs': coefs})
+        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+    """
     def __init__(self, filename, filename_info, filetype_info,
-                 prologue, epilogue):
+                 prologue, epilogue, calib_mode='nominal', ext_calib_coefs=None):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -186,6 +233,12 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.prologue = prologue.prologue
         self.epilogue = epilogue.epilogue
         self._filename_info = filename_info
+        self.ext_calib_coefs = ext_calib_coefs if ext_calib_coefs is not None else {}
+        calib_mode_choices = ('NOMINAL', 'GSICS')
+        if calib_mode.upper() not in calib_mode_choices:
+            raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
+                calib_mode, calib_mode_choices))
+        self.calib_mode = calib_mode.upper()
 
         self._get_header()
 
@@ -361,11 +414,24 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         if calibration == 'counts':
             res = data
         elif calibration in ['radiance', 'reflectance', 'brightness_temperature']:
+            # Choose calibration coefficients
+            # a) Internal: Nominal or GSICS?
+            band_idx = self.mda['spectral_channel_id'] - 1
+            if self.calib_mode != 'GSICS' or self.channel_name in VIS_CHANNELS:
+                # you cant apply GSICS values to the VIS channels
+                coefs = self.prologue["RadiometricProcessing"]["Level15ImageCalibration"]
+                int_gain = coefs['CalSlope'][band_idx]
+                int_offset = coefs['CalOffset'][band_idx]
+            else:
+                coefs = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
+                int_gain = coefs['GSICSCalCoeff'][band_idx]
+                int_offset = coefs['GSICSOffsetCount'][band_idx]
 
-            coeffs = self.prologue["RadiometricProcessing"]
-            coeffs = coeffs["Level15ImageCalibration"]
-            gain = coeffs['CalSlope'][self.mda['spectral_channel_id'] - 1]
-            offset = coeffs['CalOffset'][self.mda['spectral_channel_id'] - 1]
+            # b) Internal or external? External takes precedence.
+            gain = self.ext_calib_coefs.get(self.channel_name, {}).get('gain', int_gain)
+            offset = self.ext_calib_coefs.get(self.channel_name, {}).get('offset', int_offset)
+
+            # Convert to radiance
             data = data.where(data > 0)
             res = self._convert_to_radiance(data.astype(np.float32), gain, offset)
             line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2
