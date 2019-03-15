@@ -30,8 +30,13 @@ import logging
 import os
 from collections import Mapping, OrderedDict
 
-from six.moves import configparser
 import yaml
+from six.moves import configparser
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 LOG = logging.getLogger(__name__)
 
@@ -40,7 +45,9 @@ BASE_PATH = os.path.dirname(os.path.realpath(__file__))
 PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 
-def get_environ_config_dir(default=PACKAGE_CONFIG_PATH):
+def get_environ_config_dir(default=None):
+    if default is None:
+        default = PACKAGE_CONFIG_PATH
     return os.environ.get('PPP_CONFIG_DIR', default)
 
 
@@ -144,7 +151,7 @@ def check_yaml_configs(configs, key, hdr_len):
         for fname in i:
             with open(fname) as stream:
                 try:
-                    res = yaml.load(stream)
+                    res = yaml.load(stream, Loader=UnsafeLoader)
                     try:
                         diagnostic[res[key]['name']] = 'ok'
                     except Exception:
@@ -152,7 +159,7 @@ def check_yaml_configs(configs, key, hdr_len):
                 except yaml.YAMLError as err:
                     stream.seek(0)
                     lines = ''.join(stream.readline() for line in range(hdr_len))
-                    res = yaml.load(lines)
+                    res = yaml.load(lines, Loader=UnsafeLoader)
                     if err.context == 'while constructing a Python object':
                         problem = err.problem
                     else:
