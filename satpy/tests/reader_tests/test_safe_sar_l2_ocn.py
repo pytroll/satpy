@@ -21,11 +21,10 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.safe_sar_l2_ocn module.
 """
-import os
 import sys
 import numpy as np
 import xarray as xr
-from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+
 from satpy import DatasetID
 
 if sys.version_info < (2, 7):
@@ -38,6 +37,7 @@ try:
 except ImportError:
     import mock
 
+
 class TestSAFENC(unittest.TestCase):
     """Test various SAFE SAR L2 OCN file handlers."""
     @mock.patch('satpy.readers.safe_sar_l2_ocn.xr')
@@ -46,15 +46,19 @@ class TestSAFENC(unittest.TestCase):
     def setUp(self, xr_):
         from satpy.readers.safe_sar_l2_ocn import SAFENC
 
-        self.channels = ['owiWindSpeed']
+        self.channels = ['owiWindSpeed', 'owiLon', 'owiLat', 'owiHs', 'owiNrcs', 'foo']
         # Mock file access to return a fake dataset.
-        self.dummy3d = np.zeros((1, 2, 2))
+        self.dummy3d = np.zeros((2, 2, 1))
         self.dummy2d = np.zeros((2, 2))
         self.band = 1
         self.nc = xr.Dataset(
             {'owiWindSpeed': xr.DataArray(self.dummy2d, dims=('owiAzSize', 'owiRaSize')),
-             'owilon': xr.DataArray(data=self.dummy2d,  dims=('owiAzSize', 'owiRaSize')),
-             'owilat': xr.DataArray(data=self.dummy2d, dims=('owiAzSize', 'owiRaSize'))},
+             'owiLon': xr.DataArray(data=self.dummy2d, dims=('owiAzSize', 'owiRaSize')),
+             'owiLat': xr.DataArray(data=self.dummy2d, dims=('owiAzSize', 'owiRaSize')),
+             'owiHs': xr.DataArray(data=self.dummy3d, dims=('owiAzSize', 'owiRaSize', 'oswPartition')),
+             'owiNrcs': xr.DataArray(data=self.dummy3d, dims=('owiAzSize', 'owiRaSize', 'oswPolarization')),
+             'foo': xr.DataArray(self.dummy2d, dims=('owiAzSize', 'owiRaSize'))
+             },
             attrs={'_FillValue': np.nan})
         xr_.open_dataset.return_value = self.nc
 
@@ -68,7 +72,6 @@ class TestSAFENC(unittest.TestCase):
                                             'polarization': 'vv'},
                              filetype_info={})
 
-
     def test_init(self):
         """Tests reader initialization"""
         self.assertEqual(self.reader.start_time, 0)
@@ -80,6 +83,10 @@ class TestSAFENC(unittest.TestCase):
         for ch in self.channels:
             dt = self.reader.get_dataset(
                 key=DatasetID(name=ch), info={})
+            # ... this only compares the valid (unmasked) elements
+            self.assertTrue(np.all(self.nc[ch] == dt.to_masked_array()),
+                            msg='get_dataset() returns invalid data for '
+                            'dataset {}'.format(ch))
 
 #    @mock.patch('xarray.open_dataset')
 #    def test_init(self, mocked_dataset):
