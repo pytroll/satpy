@@ -35,100 +35,24 @@ w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
 
 import logging
-from datetime import datetime
 
 import numpy as np
-from pyhdf.error import HDF4Error
-from pyhdf.SD import SD
 
 import xarray.ufuncs as xu
 import xarray as xr
 from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
 from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
 from satpy.readers.hdf4_utils import from_sds
 
 logger = logging.getLogger(__name__)
 
 
-class HDFEOSFileReader(BaseFileHandler):
-    """Base file handler for EOS level 1 data."""
-
-    def __init__(self, filename, filename_info, filetype_info):
-        super(HDFEOSFileReader, self).__init__(filename, filename_info, filetype_info)
-        try:
-            self.sd = SD(self.filename)
-        except HDF4Error as err:
-            raise ValueError("Could not load data from " + self.filename
-                             + ": " + str(err))
-        self.metadata = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
-        self.metadata.update(self.read_mda(
-            self.sd.attributes()['StructMetadata.0']))
-        self.metadata.update(self.read_mda(
-            self.sd.attributes()['ArchiveMetadata.0']))
-
-    @property
-    def start_time(self):
-        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' '
-                + self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
-        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
-
-    @property
-    def end_time(self):
-        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' '
-                + self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
-        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
-
-    @staticmethod
-    def read_mda(attribute):
-        """Read HDFEOS metadata and return a dict with all the key/value pairs."""
-        lines = attribute.split('\n')
-        mda = {}
-        current_dict = mda
-        path = []
-        prev_line = None
-        for line in lines:
-            if not line:
-                continue
-            if line == 'END':
-                break
-            if prev_line:
-                line = prev_line + line
-            key, val = line.split('=')
-            key = key.strip()
-            val = val.strip()
-            try:
-                val = eval(val)
-            except NameError:
-                pass
-            except SyntaxError:
-                prev_line = line
-                continue
-            prev_line = None
-            if key in ['GROUP', 'OBJECT']:
-                new_dict = {}
-                path.append(val)
-                current_dict[val] = new_dict
-                current_dict = new_dict
-            elif key in ['END_GROUP', 'END_OBJECT']:
-                if val != path[-1]:
-                    raise SyntaxError
-                path = path[:-1]
-                current_dict = mda
-                for item in path:
-                    current_dict = current_dict[item]
-            elif key in ['CLASS', 'NUM_VAL']:
-                pass
-            else:
-                current_dict[key] = val
-        return mda
-
-
-class HDFEOSGeoReader(HDFEOSFileReader):
+class HDFEOSGeoReader(HDFEOSBaseFileReader):
     """Handler for the geographical files."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
 
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
