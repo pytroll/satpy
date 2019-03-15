@@ -607,7 +607,7 @@ class Scene(MetadataObject):
                 x_slice = slice(min_x_slice.start * x_factor,
                                 min_x_slice.stop * x_factor)
                 new_area = src_area[y_slice, x_slice]
-                slice_key = (y_slice, x_slice)
+                slice_key = {'y': y_slice, 'x': x_slice}
                 new_scn._slice_datasets(dataset_ids, slice_key, new_area)
             else:
                 new_target_areas[src_area] = self._slice_area_from_bbox(
