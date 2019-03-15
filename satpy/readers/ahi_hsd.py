@@ -49,7 +49,7 @@ import xarray as xr
 from pyresample import geometry
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import get_geostationary_angle_extent, np2str
+from satpy.readers.utils import get_geostationary_mask, np2str
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -317,123 +317,115 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.area = area
         return area
 
-    def geo_mask(self):
-        """Masking the space pixels from geometry info."""
-        cfac = np.uint32(self.proj_info['CFAC'])
-        lfac = np.uint32(self.proj_info['LFAC'])
-        coff = np.float32(self.proj_info['COFF'])
-        loff = np.float32(self.proj_info['LOFF'])
-        nlines = int(self.data_info['number_of_lines'])
-        ncols = int(self.data_info['number_of_columns'])
+    def _read_header(self, fp_):
+        """Read header"""
+        header = {}
 
-        # count starts at 1
-        local_coff = 1
-        local_loff = (self.total_segments - self.segment_number) * nlines + 1
+        header['block1'] = np.fromfile(
+            fp_, dtype=_BASIC_INFO_TYPE, count=1)
+        header["block2"] = np.fromfile(fp_, dtype=_DATA_INFO_TYPE, count=1)
+        header["block3"] = np.fromfile(fp_, dtype=_PROJ_INFO_TYPE, count=1)
+        header["block4"] = np.fromfile(fp_, dtype=_NAV_INFO_TYPE, count=1)
+        header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
+        logger.debug("Band number = " +
+                     str(header["block5"]['band_number'][0]))
+        logger.debug('Time_interval: %s - %s',
+                     str(self.start_time), str(self.end_time))
+        band_number = header["block5"]['band_number'][0]
+        if band_number < 7:
+            cal = np.fromfile(fp_, dtype=_VISCAL_INFO_TYPE, count=1)
+        else:
+            cal = np.fromfile(fp_, dtype=_IRCAL_INFO_TYPE, count=1)
 
-        xmax, ymax = get_geostationary_angle_extent(self.area)
+        header['calibration'] = cal
 
-        pixel_cmax = np.rad2deg(xmax) * cfac * 1.0 / 2**16
-        pixel_lmax = np.rad2deg(ymax) * lfac * 1.0 / 2**16
+        header["block6"] = np.fromfile(
+            fp_, dtype=_INTER_CALIBRATION_INFO_TYPE, count=1)
+        header["block7"] = np.fromfile(
+            fp_, dtype=_SEGMENT_INFO_TYPE, count=1)
+        header["block8"] = np.fromfile(
+            fp_, dtype=_NAVIGATION_CORRECTION_INFO_TYPE, count=1)
+        # 8 The navigation corrections:
+        ncorrs = header["block8"]['numof_correction_info_data'][0]
+        dtype = np.dtype([
+            ("line_number_after_rotation", "<u2"),
+            ("shift_amount_for_column_direction", "f4"),
+            ("shift_amount_for_line_direction", "f4"),
+        ])
+        corrections = []
+        for i in range(ncorrs):
+            corrections.append(np.fromfile(fp_, dtype=dtype, count=1))
+        fp_.seek(40, 1)
+        header['navigation_corrections'] = corrections
+        header["block9"] = np.fromfile(fp_,
+                                       dtype=_OBS_TIME_INFO_TYPE,
+                                       count=1)
+        numobstimes = header["block9"]['number_of_observation_times'][0]
 
-        def ellipse(line, col):
-            return ((line / pixel_lmax) ** 2) + ((col / pixel_cmax) ** 2) <= 1
+        dtype = np.dtype([
+            ("line_number", "<u2"),
+            ("observation_time", "f8"),
+        ])
+        lines_and_times = []
+        for i in range(numobstimes):
+            lines_and_times.append(np.fromfile(fp_,
+                                               dtype=dtype,
+                                               count=1))
+        header['observation_time_information'] = lines_and_times
+        fp_.seek(40, 1)
 
-        cols_idx = da.arange(-(coff - local_coff),
-                             ncols - (coff - local_coff),
-                             dtype=np.float, chunks=CHUNK_SIZE)
-        lines_idx = da.arange(nlines - (loff - local_loff),
-                              -(loff - local_loff),
-                              -1,
-                              dtype=np.float, chunks=CHUNK_SIZE)
-        return ellipse(lines_idx[:, None], cols_idx[None, :])
+        header["block10"] = np.fromfile(fp_,
+                                        dtype=_ERROR_INFO_TYPE,
+                                        count=1)
+        dtype = np.dtype([
+            ("line_number", "<u2"),
+            ("numof_error_pixels_per_line", "<u2"),
+        ])
+        num_err_info_data = header["block10"][
+            'number_of_error_info_data'][0]
+        err_info_data = []
+        for i in range(num_err_info_data):
+            err_info_data.append(np.fromfile(fp_, dtype=dtype, count=1))
+        header['error_information_data'] = err_info_data
+        fp_.seek(40, 1)
+
+        np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
+
+        return header
+
+    def _read_data(self, fp_, header):
+        """Read data block"""
+        nlines = int(header["block2"]['number_of_lines'][0])
+        ncols = int(header["block2"]['number_of_columns'][0])
+        return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
+                                       dtype='<u2', shape=(nlines, ncols), mode='r'),
+                             chunks=CHUNK_SIZE)
+
+    def _mask_invalid(self, data, header):
+        """Mask invalid data"""
+        invalid = da.logical_or(data == header['block5']["count_value_outside_scan_pixels"][0],
+                                data == header['block5']["count_value_error_pixels"][0])
+        return da.where(invalid, np.float32(np.nan), data)
+
+    def _mask_space(self, data):
+        """Mask space pixels"""
+        return data.where(get_geostationary_mask(self.area))
 
     def read_band(self, key, info):
         """Read the data."""
+        # Read data
         tic = datetime.now()
-        header = {}
         with open(self.filename, "rb") as fp_:
-
-            header['block1'] = np.fromfile(
-                fp_, dtype=_BASIC_INFO_TYPE, count=1)
-            header["block2"] = np.fromfile(fp_, dtype=_DATA_INFO_TYPE, count=1)
-            header["block3"] = np.fromfile(fp_, dtype=_PROJ_INFO_TYPE, count=1)
-            header["block4"] = np.fromfile(fp_, dtype=_NAV_INFO_TYPE, count=1)
-            header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
-            logger.debug("Band number = " +
-                         str(header["block5"]['band_number'][0]))
-            logger.debug('Time_interval: %s - %s',
-                         str(self.start_time), str(self.end_time))
-            band_number = header["block5"]['band_number'][0]
-            if band_number < 7:
-                cal = np.fromfile(fp_, dtype=_VISCAL_INFO_TYPE, count=1)
-            else:
-                cal = np.fromfile(fp_, dtype=_IRCAL_INFO_TYPE, count=1)
-
-            header['calibration'] = cal
-
-            header["block6"] = np.fromfile(
-                fp_, dtype=_INTER_CALIBRATION_INFO_TYPE, count=1)
-            header["block7"] = np.fromfile(
-                fp_, dtype=_SEGMENT_INFO_TYPE, count=1)
-            header["block8"] = np.fromfile(
-                fp_, dtype=_NAVIGATION_CORRECTION_INFO_TYPE, count=1)
-            # 8 The navigation corrections:
-            ncorrs = header["block8"]['numof_correction_info_data'][0]
-            dtype = np.dtype([
-                ("line_number_after_rotation", "<u2"),
-                ("shift_amount_for_column_direction", "f4"),
-                ("shift_amount_for_line_direction", "f4"),
-            ])
-            corrections = []
-            for i in range(ncorrs):
-                corrections.append(np.fromfile(fp_, dtype=dtype, count=1))
-            fp_.seek(40, 1)
-            header['navigation_corrections'] = corrections
-            header["block9"] = np.fromfile(fp_,
-                                           dtype=_OBS_TIME_INFO_TYPE,
-                                           count=1)
-            numobstimes = header["block9"]['number_of_observation_times'][0]
-
-            dtype = np.dtype([
-                ("line_number", "<u2"),
-                ("observation_time", "f8"),
-            ])
-            lines_and_times = []
-            for i in range(numobstimes):
-                lines_and_times.append(np.fromfile(fp_,
-                                                   dtype=dtype,
-                                                   count=1))
-            header['observation_time_information'] = lines_and_times
-            fp_.seek(40, 1)
-
-            header["block10"] = np.fromfile(fp_,
-                                            dtype=_ERROR_INFO_TYPE,
-                                            count=1)
-            dtype = np.dtype([
-                ("line_number", "<u2"),
-                ("numof_error_pixels_per_line", "<u2"),
-            ])
-            num_err_info_data = header["block10"][
-                'number_of_error_info_data'][0]
-            err_info_data = []
-            for i in range(num_err_info_data):
-                err_info_data.append(np.fromfile(fp_, dtype=dtype, count=1))
-            header['error_information_data'] = err_info_data
-            fp_.seek(40, 1)
-
-            np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
-
-            nlines = int(header["block2"]['number_of_lines'][0])
-            ncols = int(header["block2"]['number_of_columns'][0])
-
-            res = da.from_array(np.memmap(self.filename, offset=fp_.tell(),
-                                          dtype='<u2',  shape=(nlines, ncols), mode='r'),
-                                chunks=CHUNK_SIZE)
-        res = da.where(res == 65535, np.float32(np.nan), res)
+            header = self._read_header(fp_)
+            res = self._read_data(fp_, header)
+        res = self._mask_invalid(data=res, header=header)
         self._header = header
-
         logger.debug("Reading time " + str(datetime.now() - tic))
+
+        # Calibrate
         res = self.calibrate(res, key.calibration)
+
+        # Update metadata
         new_info = dict(units=info['units'],
                         standard_name=info['standard_name'],
                         wavelength=info['wavelength'],
@@ -450,9 +442,10 @@ class AHIHSDFileHandler(BaseFileHandler):
                         satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
                                                  self.proj_info['earth_equatorial_radius']) * 1000)
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
-        res = res.where(header['block5']["count_value_outside_scan_pixels"][0] != res)
-        res = res.where(header['block5']["count_value_error_pixels"][0] != res)
-        res = res.where(self.geo_mask())
+
+        # Mask space pixels
+        res = self._mask_space(res)
+
         return res
 
     def calibrate(self, data, calibration):
@@ -460,7 +453,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         tic = datetime.now()
 
         if calibration == 'counts':
-            return
+            return data
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
             data = self.convert_to_radiance(data)
@@ -478,7 +471,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         gain = self._header["block5"]["gain_count2rad_conversion"][0]
         offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
-        return data * gain + offset
+        return (data * gain + offset).clip(0)
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""
@@ -487,6 +480,8 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def _ir_calibrate(self, data):
         """IR calibration."""
+        # No radiance -> no temperature
+        data = da.where(data == 0, np.float32(np.nan), data)
 
         cwl = self._header['block5']["central_wave_length"][0] * 1e-6
         c__ = self._header['calibration']["speed_of_light"][0]

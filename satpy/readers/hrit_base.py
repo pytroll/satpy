@@ -48,7 +48,7 @@ import dask.array as da
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.eum_base import time_cds_short
-from satpy.readers.msg_base import dec10216
+from satpy.readers.seviri_base import dec10216
 
 logger = logging.getLogger('hrit_base')
 
