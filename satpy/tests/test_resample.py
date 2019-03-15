@@ -47,13 +47,18 @@ class TestHLResample(unittest.TestCase):
                                       xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=['y', 'x']))
         dest_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)) + .0001, dims=['y', 'x']),
                                     xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)) + .0001, dims=['y', 'x']))
-        expected = np.array([[1, 2], [3, 255]])
-        data = xr.DataArray(da.from_array(expected, chunks=5), dims=['y', 'x'])
+        expected_gap = np.array([[1, 2], [3, 255]])
+        data = xr.DataArray(da.from_array(expected_gap, chunks=5), dims=['y', 'x'])
         data.attrs['_FillValue'] = 255
         data.attrs['area'] = source_area
         res = resample_dataset(data, dest_area)
         self.assertEqual(res.dtype, data.dtype)
-        self.assertTrue(np.all(res.values == expected))
+        self.assertTrue(np.all(res.values == expected_gap))
+
+        expected_filled = np.array([[1, 2], [3, 3]])
+        res = resample_dataset(data, dest_area, radius_of_influence=1000000)
+        self.assertEqual(res.dtype, data.dtype)
+        self.assertTrue(np.all(res.values == expected_filled))
 
 
 class TestKDTreeResampler(unittest.TestCase):
