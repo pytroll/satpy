@@ -236,6 +236,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
             self.assertTrue(np.all(mask == ref_mask))
 
+
 def suite():
     """The test suite for test_scene."""
     loader = unittest.TestLoader()
