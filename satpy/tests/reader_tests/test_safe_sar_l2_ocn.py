@@ -26,6 +26,7 @@ import sys
 import numpy as np
 import xarray as xr
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy import DatasetID
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -45,6 +46,7 @@ class TestSAFENC(unittest.TestCase):
     def setUp(self, xr_):
         from satpy.readers.safe_sar_l2_ocn import SAFENC
 
+        self.channels = ['owiWindSpeed']
         # Mock file access to return a fake dataset.
         self.dummy3d = np.zeros((1, 2, 2))
         self.dummy2d = np.zeros((2, 2))
@@ -73,6 +75,11 @@ class TestSAFENC(unittest.TestCase):
         self.assertEqual(self.reader.end_time, 0)
         self.assertEqual(self.reader.fstart_time, 0)
         self.assertEqual(self.reader.fend_time, 0)
+
+    def test_get_dataset(self):
+        for ch in self.channels:
+            dt = self.reader.get_dataset(
+                key=DatasetID(name=ch), info={})
 
 #    @mock.patch('xarray.open_dataset')
 #    def test_init(self, mocked_dataset):
