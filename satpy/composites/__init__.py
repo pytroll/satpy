@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2018 PyTroll developers
+# Copyright (c) 2015-2019 PyTroll developers
 
 # Author(s):
 
@@ -1012,6 +1012,46 @@ def zero_missing_data(data1, data2):
     """Replace NaN values with zeros in data1 if the data is valid in data2."""
     nans = xu.logical_and(xu.isnan(data1), xu.logical_not(xu.isnan(data2)))
     return data1.where(~nans, 0)
+
+
+class PrecipCloudsRGB(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make an RGB image out of the three probability categories of the NWCSAF precip product"""
+
+        projectables = self.check_areas(projectables)
+        light = projectables[0]
+        moderate = projectables[1]
+        intense = projectables[2]
+        status_flag = projectables[3]
+
+        if np.bitwise_and(status_flag, 4).any():
+            # AMSU is used
+            maxs1 = 70
+            maxs2 = 70
+            maxs3 = 100
+        else:
+            # avhrr only
+            maxs1 = 30
+            maxs2 = 50
+            maxs3 = 40
+
+        scalef3 = 1.0 / maxs3 - 1 / 255.0
+        scalef2 = 1.0 / maxs2 - 1 / 255.0
+        scalef1 = 1.0 / maxs1 - 1 / 255.0
+
+        p1data = (light*scalef1).where(light != 0)
+        p1data.attrs = light.attrs
+        data = moderate*scalef2
+        p2data = data.where(moderate != 0)
+        p2data.attrs = moderate.attrs
+        data = intense*scalef3
+        p3data = data.where(intense != 0)
+        p3data.attrs = intense.attrs
+
+        res = super(PrecipCloudsRGB, self).__call__((p3data, p2data, p1data),
+                                                    *args, **kwargs)
+        return res
 
 
 class Airmass(GenericCompositor):
