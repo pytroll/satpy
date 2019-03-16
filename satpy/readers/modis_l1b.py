@@ -40,119 +40,14 @@ import numpy as np
 
 import xarray.ufuncs as xu
 import xarray as xr
-from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
 from satpy import CHUNK_SIZE
-from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
+from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
 from satpy.readers.hdf4_utils import from_sds
 
 logger = logging.getLogger(__name__)
 
 
-class HDFEOSGeoReader(HDFEOSBaseFileReader):
-    """Handler for the geographical files."""
-
-    def __init__(self, filename, filename_info, filetype_info):
-        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
-
-        ds = self.metadata['INVENTORYMETADATA'][
-            'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
-        if ds.endswith('D03'):
-            self.georesolution = 1000
-        else:
-            self.georesolution = 5000
-        self.cache = {}
-
-    def get_dataset(self, key, info):
-        """Get the dataset designated by *key*."""
-        if key.name == 'solar_zenith_angle':
-            data = self.load('SolarZenith')
-        elif key.name == 'solar_azimuth_angle':
-            data = self.load('SolarAzimuth')
-        elif key.name == 'satellite_zenith_angle':
-            data = self.load('SensorZenith')
-        elif key.name == 'satellite_azimuth_angle':
-            data = self.load('SensorAzimuth')
-        elif key.name == 'longitude':
-            data = self.load('Longitude')
-        elif key.name == 'latitude':
-            data = self.load('Latitude')
-        else:
-            return
-        if key.resolution != self.georesolution:
-            # let's see if we have something in the cache
-            try:
-                data = self.cache[key.resolution][key.name]
-                data.attrs.update(info)
-                data.attrs['standard_name'] = data.attrs['name']
-                return data
-            except KeyError:
-                self.cache.setdefault(key.resolution, {})
-
-            # too bad, now we need to interpolate
-            satz = self.load('SensorZenith')
-            if key.name in ['longitude', 'latitude']:
-                data_a = self.load('Longitude')
-                data_b = self.load('Latitude')
-            elif key.name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
-                data_a = self.load('SensorAzimuth')
-                data_b = self.load('SensorZenith') - 90
-            elif key.name in ['solar_azimuth_angle', 'solar_zenith_angle']:
-                data_a = self.load('SolarAzimuth')
-                data_b = self.load('SolarZenith') - 90
-
-            data_a, data_b = self._interpolate(data_a, data_b, satz,
-                                               self.georesolution, key.resolution)
-
-            if key.name in ['longitude', 'latitude']:
-                self.cache[key.resolution]['longitude'] = data_a
-                self.cache[key.resolution]['latitude'] = data_b
-            elif key.name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
-                self.cache[key.resolution]['satellite_azimuth_angle'] = data_a
-                self.cache[key.resolution]['satellite_zenith_angle'] = data_b + 90
-            elif key.name in ['solar_azimuth_angle', 'solar_zenith_angle']:
-                self.cache[key.resolution]['solar_azimuth_angle'] = data_a
-                self.cache[key.resolution]['solar_zenith_angle'] = data_b + 90
-
-            data = self.cache[key.resolution][key.name]
-
-        data.attrs.update(info)
-        data.attrs['standard_name'] = data.attrs['name']
-        return data
-
-    def load(self, file_key):
-        """Load the data."""
-        var = self.sd.select(file_key)
-        data = xr.DataArray(from_sds(var, chunks=CHUNK_SIZE),
-                            dims=['y', 'x']).astype(np.float32)
-        data = data.where(data != var._FillValue)
-        try:
-            data = data * np.float32(var.scale_factor)
-        except AttributeError:
-            pass
-        return data
-
-    @staticmethod
-    def _interpolate(clons, clats, csatz, coarse_resolution, resolution):
-        if resolution == coarse_resolution:
-            return clons, clats
-
-        funs = {(5000, 1000): modis_5km_to_1km,
-                (1000, 500): modis_1km_to_500m,
-                (1000, 250): modis_1km_to_250m}
-
-        try:
-            fun = funs[(coarse_resolution, resolution)]
-        except KeyError:
-            raise NotImplementedError('Interpolation from {}m to {}m not implemented'.format(
-                                      coarse_resolution, resolution))
-
-        logger.debug("Interpolating from " + str(coarse_resolution)
-                     + " to " + str(resolution))
-
-        return fun(clons, clats, csatz)
-
-
-class HDFEOSBandReader(HDFEOSFileReader):
+class HDFEOSBandReader(HDFEOSBaseFileReader):
     """Handler for the regular band channels."""
 
     res = {"1": 1000,
@@ -160,7 +55,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
            "H": 500}
 
     def __init__(self, filename, filename_info, filetype_info):
-        HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
 
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
@@ -288,9 +183,7 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
         HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info)
 
     def get_dataset(self, key, info):
-        if key.name in ['longitude', 'latitude',
-                        'satellite_azimuth_angle', 'satellite_zenith_angle',
-                        'solar_azimuth_angle', 'solar_zenith_angle']:
+        if key.name in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, key, info)
         return HDFEOSBandReader.get_dataset(self, key, info)
 
