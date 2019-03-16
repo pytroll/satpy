@@ -619,6 +619,54 @@ nrt_mda_dict = {
     }
 }
 
+metadata_modisl1b = """
+GROUP=SwathStructure
+    GROUP=SWATH_1
+        SwathName="MODIS_SWATH_Type_L1B"
+            GROUP=DimensionMap
+            OBJECT=DimensionMap_1
+                GeoDimension="2*nscans"
+                DataDimension="10*nscans"
+                Offset=2
+                Increment=5
+            END_OBJECT=DimensionMap_1
+            OBJECT=DimensionMap_2
+                GeoDimension="1KM_geo_dim"
+                DataDimension="Max_EV_frames"
+                Offset=2
+                Increment=5
+            END_OBJECT=DimensionMap_2
+        END_GROUP=DimensionMap
+    END_GROUP=SWATH_1
+END_GROUP=SwathStructure
+END
+"""  # noqa: E501
+
+metadata_modisl2 = """
+GROUP=SwathStructure
+    GROUP=SWATH_1
+        SwathName="mod35"
+        GROUP=DimensionMap
+            OBJECT=DimensionMap_1
+                GeoDimension="Cell_Across_Swath_5km"
+                DataDimension="Cell_Across_Swath_1km"
+                Offset=2
+                Increment=5
+            END_OBJECT=DimensionMap_1
+            OBJECT=DimensionMap_2
+                GeoDimension="Cell_Along_Swath_5km"
+                DataDimension="Cell_Along_Swath_1km"
+                Offset=2
+                Increment=5
+            END_OBJECT=DimensionMap_2
+        END_GROUP=DimensionMap
+        GROUP=IndexDimensionMap
+        END_GROUP=IndexDimensionMap
+    END_GROUP=SWATH_1
+END_GROUP=SwathStructure
+END
+"""  # noqa: E501
+
 
 class TestReadMDA(unittest.TestCase):
 
@@ -626,6 +674,17 @@ class TestReadMDA(unittest.TestCase):
         from satpy.readers.hdfeos_base import HDFEOSBaseFileReader
         res = HDFEOSBaseFileReader.read_mda(nrt_mda)
         self.assertDictEqual(res, nrt_mda_dict)
+
+    def test_read_mda_geo_resolution(self):
+        from satpy.readers.hdfeos_base import HDFEOSGeoReader
+        resolution_l1b = HDFEOSGeoReader.read_geo_resolution(
+            HDFEOSGeoReader.read_mda(metadata_modisl1b)
+            )
+        self.assertEqual(resolution_l1b, 1000)
+        resolution_l2 = HDFEOSGeoReader.read_geo_resolution(
+            HDFEOSGeoReader.read_mda(metadata_modisl2)
+        )
+        self.assertEqual(resolution_l2, 5000)
 
 
 def suite():
