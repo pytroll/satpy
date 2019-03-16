@@ -21,19 +21,19 @@ DEFAULT_FILE_SHAPE = (1, 100)
 
 DEFAULT_LATLON_FILE_DTYPE = np.float32
 DEFAULT_LATLON_FILE_DATA = np.arange(start=43, stop=45, step=0.02,
-                                    dtype=DEFAULT_LATLON_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+                                     dtype=DEFAULT_LATLON_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 DEFAULT_DETECTION_FILE_DTYPE = np.ubyte
 DEFAULT_DETECTION_FILE_DATA = np.arange(start=60, stop=100, step=0.4,
-                                       dtype=DEFAULT_DETECTION_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+                                        dtype=DEFAULT_DETECTION_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 DEFAULT_M13_FILE_DTYPE = np.float32
 DEFAULT_M13_FILE_DATA = np.arange(start=300, stop=340, step=0.4,
-                                 dtype=DEFAULT_M13_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+                                  dtype=DEFAULT_M13_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 DEFAULT_POWER_FILE_DTYPE = np.float32
 DEFAULT_POWER_FILE_DATA = np.arange(start=1, stop=25, step=0.24,
-                                   dtype=DEFAULT_POWER_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+                                    dtype=DEFAULT_POWER_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 
 class FakeFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
@@ -67,6 +67,7 @@ class FakeFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
 
         return file_content
 
+
 class FakeFiresTextFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Get fake file content from 'get_test_content'"""
@@ -79,9 +80,10 @@ class FakeFiresTextFileHandler(BaseFileHandler):
         25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
 
         return dd.from_pandas(pd.read_csv(fake_file, skiprows=15, header=None,
-                                         names=["latitude", "longitude",
-                                         "T13", "Along-scan", "Along-track", "detection_confidence",
-                                         "power"]), chunksize=1)
+                                          names=["latitude", "longitude",
+                                                 "T13", "Along-scan", "Along-track",
+                                                 "detection_confidence",
+                                                 "power"]), chunksize=1)
 
 
 class TestVIIRSACTIVEFIRES_CDF4(unittest.TestCase):
