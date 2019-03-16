@@ -22,7 +22,7 @@ GOES-16/17 satellites. It is the primary format used for providing ABI data
 to the AWIPS visualization clients used by the US National Weather Service
 forecasters. The python code for this reader may be reused by other readers
 as NetCDF schemes/metadata change for different products. The initial reader
-using this code is the "scmi_abi" reader (see `scmi_abi_l1b.yaml` for more
+using this code is the "scmi_abi" reader (see `abi_l1b_scmi.yaml` for more
 information).
 
 There are two forms of these files that this reader supports:
@@ -35,8 +35,8 @@ There are two forms of these files that this reader supports:
     SatPy as part of Polar2Grid's adoption of SatPy for the majority of its
     features. This format is what is produced by SatPy's `scmi` writer.
     This format can be identified by a single variable named "data" and a
-    global attribute named "awips_id" that is set to a string starting with
-    "AWIPS_".
+    global attribute named ``"awips_id"`` that is set to a string starting with
+    ``"AWIPS_"``.
 
 """
 
@@ -64,7 +64,7 @@ class SCMIFileHandler(BaseFileHandler):
         super(SCMIFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
         # xarray's default netcdf4 engine
-        self.nc = xr.open_dataset(filename,
+        self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks={'x': LOAD_CHUNK_SIZE, 'y': LOAD_CHUNK_SIZE})

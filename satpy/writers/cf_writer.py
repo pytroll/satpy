@@ -26,13 +26,14 @@ import logging
 from datetime import datetime
 
 import xarray as xr
+import numpy as np
 
 from pyresample.geometry import AreaDefinition, SwathDefinition
 from satpy.writers import Writer
 
 logger = logging.getLogger(__name__)
 
-EPOCH = u"seconds since 1970-01-01 00:00:00 +00:00"
+EPOCH = u"seconds since 1970-01-01 00:00:00"
 
 
 def omerc2cf(area):
@@ -133,6 +134,7 @@ def area2gridmapping(dataarray):
 
 def area2cf(dataarray, strict=False):
     res = []
+    dataarray = dataarray.copy(deep=True)
     if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
         res = area2lonlat(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
@@ -148,7 +150,10 @@ def make_time_bounds(dataarray, start_times, end_times):
                      if start_time is not None)
     end_time = min(end_time for end_time in end_times
                    if end_time is not None)
-    dtnp64 = dataarray['time'].data[0]
+    try:
+        dtnp64 = dataarray['time'].data[0]
+    except IndexError:
+        dtnp64 = dataarray['time'].data
     time_bnds = [(np.datetime64(start_time) - dtnp64),
                  (np.datetime64(end_time) - dtnp64)]
     return xr.DataArray(np.array(time_bnds) / np.timedelta64(1, 's'),
@@ -181,6 +186,8 @@ class CFWriter(Writer):
             new_data['time'].encoding['units'] = epoch
             new_data['time'].attrs['standard_name'] = 'time'
             new_data['time'].attrs.pop('bounds', None)
+            if 'time' not in new_data.dims:
+                new_data = new_data.expand_dims('time')
 
         if 'x' in new_data.coords:
             new_data['x'].attrs['standard_name'] = 'projection_x_coordinate'
@@ -191,6 +198,8 @@ class CFWriter(Writer):
             new_data['y'].attrs['units'] = 'm'
 
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
+        if 'prerequisites' in new_data.attrs:
+            new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
         return new_data
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
@@ -203,13 +212,13 @@ class CFWriter(Writer):
             ds_collection.update(get_extra_ds(ds))
 
         datas = {}
+        start_times = []
+        end_times = []
         for ds in ds_collection.values():
             try:
                 new_datasets = area2cf(ds)
             except KeyError:
-                new_datasets = [ds]
-            start_times = []
-            end_times = []
+                new_datasets = [ds.copy(deep=True)]
             for new_ds in new_datasets:
                 start_times.append(new_ds.attrs.pop("start_time", None))
                 end_times.append(new_ds.attrs.pop("end_time", None))
@@ -223,7 +232,6 @@ class CFWriter(Writer):
         logger.info('Saving datasets to NetCDF4/CF.')
         # XXX: Should we combine the info of all datasets?
         filename = filename or self.get_filename(**datasets[0].attrs)
-
         datas, start_times, end_times = self._collect_datasets(datasets, kwargs)
 
         dataset = xr.Dataset(datas)
@@ -244,7 +252,7 @@ class CFWriter(Writer):
                                     str(datetime.utcnow()))
         dataset.attrs['conventions'] = 'CF-1.7'
         engine = kwargs.pop("engine", 'h5netcdf')
-        kwargs.pop('config_files')
-        kwargs.pop('compute')
-        kwargs.pop('overlay', None)
-        dataset.to_netcdf(filename, engine=engine, **kwargs)
+        for key in list(kwargs.keys()):
+            if key not in ['mode', 'format', 'group', 'encoding', 'unlimited_dims', 'compute']:
+                kwargs.pop(key, None)
+        return dataset.to_netcdf(filename, engine=engine, **kwargs)

@@ -23,7 +23,7 @@
 """
 
 import logging
-from satpy.composites import GenericCompositor, IncompatibleAreas
+from satpy.composites import GenericCompositor
 
 LOG = logging.getLogger(__name__)
 
