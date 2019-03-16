@@ -23,10 +23,12 @@
 
 import sys
 from datetime import datetime
+import os
+from tempfile import gettempdir, NamedTemporaryFile
 
 import numpy as np
 
-from satpy.readers.hrit_base import HRITFileHandler
+from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile, decompress
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -37,6 +39,55 @@ try:
     from unittest import mock
 except ImportError:
     import mock
+
+
+class TestHRITDecompress(unittest.TestCase):
+    """Test the on-the-fly decompression."""
+
+    def test_xrit_cmd(self):
+        old_env = os.environ.get('XRIT_DECOMPRESS_PATH', None)
+
+        os.environ['XRIT_DECOMPRESS_PATH'] = '/path/to/my/bin'
+        self.assertRaises(IOError, get_xritdecompress_cmd)
+
+        os.environ['XRIT_DECOMPRESS_PATH'] = gettempdir()
+        self.assertRaises(IOError, get_xritdecompress_cmd)
+
+        with NamedTemporaryFile() as fd:
+            os.environ['XRIT_DECOMPRESS_PATH'] = fd.name
+            fname = fd.name
+            res = get_xritdecompress_cmd()
+
+        if old_env is not None:
+            os.environ['XRIT_DECOMPRESS_PATH'] = old_env
+        else:
+            os.environ.pop('XRIT_DECOMPRESS_PATH')
+
+        self.assertEqual(fname, res)
+
+    def test_xrit_outfile(self):
+        stdout = [b"Decompressed file: bla.__\n"]
+        outfile = get_xritdecompress_outfile(stdout)
+        self.assertEqual(outfile, b'bla.__')
+
+    @mock.patch('satpy.readers.hrit_base.Popen')
+    def test_decompress(self, popen):
+
+        popen.return_value.returncode = 0
+        popen.return_value.communicate.return_value = [b"Decompressed file: bla.__\n"]
+
+        old_env = os.environ.get('XRIT_DECOMPRESS_PATH', None)
+
+        with NamedTemporaryFile() as fd:
+            os.environ['XRIT_DECOMPRESS_PATH'] = fd.name
+            res = decompress('bla.C_')
+
+        if old_env is not None:
+            os.environ['XRIT_DECOMPRESS_PATH'] = old_env
+        else:
+            os.environ.pop('XRIT_DECOMPRESS_PATH')
+
+        self.assertEqual(res, os.path.join('.', 'bla.__'))
 
 
 class TestHRITFileHandler(unittest.TestCase):
@@ -120,6 +171,8 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHRITFileHandler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITDecompress))
+
     return mysuite
 
 

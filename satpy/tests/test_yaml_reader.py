@@ -109,9 +109,6 @@ class DummyReader(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(DummyReader, self).__init__(
             filename, filename_info, filetype_info)
-        self.filename = filename
-        self.filename_info = filename_info
-        self.filetype_info = filetype_info
         self._start_time = datetime(2000, 1, 1, 12, 1)
         self._end_time = datetime(2000, 1, 1, 12, 2)
         self.metadata = {}
@@ -492,6 +489,78 @@ class TestFileFileYAMLReader(unittest.TestCase):
         self.assertIs(proj, xarray.concat.return_value)
 
 
+class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
+    """Test units from FileYAMLReader with multiple file types."""
+
+    @patch('satpy.readers.yaml_reader.recursive_dict_update')
+    @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
+    def setUp(self, _, rec_up):  # pylint: disable=arguments-differ
+        """Setup a reader instance with a fake config."""
+        # Example: GOES netCDF data
+        #   a) From NOAA CLASS: ftype1, including coordinates
+        #   b) From EUMETSAT: ftype2, coordinates in extra file (ftype3)
+        #
+        # For test completeness add one channel (ch3) which is only available
+        # in ftype1.
+        patterns1 = ['a.nc']
+        patterns2 = ['b.nc']
+        patterns3 = ['geo.nc']
+        res_dict = {'reader': {'name': 'fake',
+                               'sensors': ['canon']},
+                    'file_types': {'ftype1': {'name': 'ft1',
+                                              'file_patterns': patterns1},
+                                   'ftype2': {'name': 'ft2',
+                                              'file_patterns': patterns2},
+                                   'ftype3': {'name': 'ft3',
+                                              'file_patterns': patterns3}},
+                    'datasets': {'ch1': {'name': 'ch01',
+                                         'wavelength': [0.5, 0.6, 0.7],
+                                         'calibration': 'reflectance',
+                                         'file_type': ['ftype1', 'ftype2'],
+                                         'coordinates': ['lons', 'lats']},
+                                 'ch2': {'name': 'ch02',
+                                         'wavelength': [0.7, 0.75, 0.8],
+                                         'calibration': 'counts',
+                                         'file_type': ['ftype1', 'ftype2'],
+                                         'coordinates': ['lons', 'lats']},
+                                 'ch3': {'name': 'ch03',
+                                         'wavelength': [0.8, 0.85, 0.9],
+                                         'calibration': 'counts',
+                                         'file_type': 'ftype1',
+                                         'coordinates': ['lons', 'lats']},
+                                 'lons': {'name': 'lons',
+                                          'file_type': ['ftype1', 'ftype3']},
+                                 'lats': {'name': 'lats',
+                                          'file_type': ['ftype1', 'ftype3']}}}
+
+        rec_up.return_value = res_dict
+        self.config = res_dict
+        self.reader = yr.FileYAMLReader([__file__])
+
+    def test_update_ds_ids_from_file_handlers(self):
+        """Test updating existing dataset IDs with information from the file"""
+        orig_ids = self.reader.ids
+        for ftype, resol in zip(('ftype1', 'ftype2'), (1, 2)):
+            with patch.dict(self.reader.ids, orig_ids, clear=True):
+                # Add a file handler with resolution property
+                self.reader.file_handlers = {
+                    ftype: [MagicMock(filetype_info={'file_type': ftype},
+                                      resolution=resol)]}
+
+                # Update existing dataset IDs with resolution property from
+                # the file handler
+                self.reader.update_ds_ids_from_file_handlers()
+
+                # Make sure the resolution property has been transferred
+                # correctly from the file handler to the dataset ID
+                for ds_id, ds_info in self.reader.ids.items():
+                    file_types = ds_info['file_type']
+                    if not isinstance(file_types, list):
+                        file_types = [file_types]
+                    expected = resol if ftype in file_types else None
+                    self.assertEqual(ds_id.resolution, expected)
+
+
 def suite():
     """The test suite for test_scene."""
     loader = unittest.TestLoader()
@@ -500,6 +569,8 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReader))
     mysuite.addTest(loader.loadTestsFromTestCase(
         TestFileFileYAMLReaderMultiplePatterns))
+    mysuite.addTest(loader.loadTestsFromTestCase(
+        TestFileFileYAMLReaderMultipleFileTypes))
 
     return mysuite
 

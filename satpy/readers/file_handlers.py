@@ -29,13 +29,10 @@ from pyresample.geometry import SwathDefinition
 from satpy.dataset import combine_metadata
 
 
-# what about file pattern and config ?
-
-
 class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
 
     def __init__(self, filename, filename_info, filetype_info):
-        self.filename = filename
+        self.filename = str(filename)
         self.navigation_reader = None
         self.filename_info = filename_info
         self.filetype_info = filetype_info
@@ -47,8 +44,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
     def __repr__(self):
         return str(self)
 
-    def get_dataset(self, dataset_id, ds_info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, dataset_id, ds_info):
         raise NotImplementedError
 
     def get_area_def(self, dsid):

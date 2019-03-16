@@ -63,14 +63,14 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         """Get numpy array shape for the specified dataset.
-        
+
         Args:
             ds_id (DatasetID): ID of dataset that will be loaded
             ds_info (dict): Dictionary of dataset information from config file
-            
+
         Returns:
             tuple: (rows, cols)
-            
+
         """
         var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
         if var_path + '/shape' not in self:

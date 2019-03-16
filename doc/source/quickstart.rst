@@ -2,8 +2,8 @@
 Quickstart
 ==========
 
-Loading data
-============
+Loading and accessing data
+==========================
 
 .. testsetup:: *
     >>> import sys
@@ -20,7 +20,7 @@ Scene must be told what files to read and what
     >>> from satpy import Scene
     >>> from glob import glob
     >>> filenames = glob("/home/a001673/data/satellite/Meteosat-10/seviri/lvl1.5/2015/04/20/HRIT/*201504201000*")
-    >>> global_scene = Scene(reader="hrit_msg", filenames=filenames)
+    >>> global_scene = Scene(reader="seviri_l1b_hrit", filenames=filenames)
 
 To load data from the files use the :meth:`Scene.load <satpy.scene.Scene.load>`
 method. Printing the Scene object will list each of the
@@ -106,7 +106,7 @@ SatPy allows loading file data by wavelengths in micrometers (shown above) or by
     >>> global_scene.load(["VIS006", "VIS008", "IR_108"])
 
 To have a look at the available channels for loading from your :class:`~satpy.scene.Scene` object use the
-:meth:`available_datasets <satpy.scene.Scene.available_dataset_names>` method:
+:meth:`~satpy.scene.Scene.available_dataset_names` method:
 
     >>> global_scene.available_dataset_names()
     ['HRV',
@@ -127,11 +127,32 @@ To access the loaded data use the wavelength or name:
 
     >>> print(global_scene[0.6])
 
-To visualize loaded data in a pop-up window:
+Visualizing data                                                                                    
+================                                                                                    
 
-    >>> global_scene.show(0.6)
+To visualize loaded data in a pop-up window:                                                        
+                                                                                                    
+    >>> global_scene.show(0.6)                                                                      
+                                                                                                    
+Alternatively if working in a Jupyter notebook the scene can be converted to
+a `geoviews <http://geo.holoviews.org/index.html>`_ object using the
+:meth:`~satpy.scene.Scene.to_geoviews` method. The geoviews package is not a
+requirement of the base satpy install so in order to use this feature the user
+needs to install the geoviews package himself.
+                                                                                                    
+    >>> import holoviews as hv                                                                      
+    >>> import geoviews as gv                                                                       
+    >>> import geoviews.feature as gf                                                               
+    >>> gv.extension("bokeh", "matplotlib")                                                         
+    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]      
+    >>> %opts Image QuadMesh (cmap='RdBu_r')                                                        
+    >>> gview = global_scene.to_geoviews(vdims=[0.6])
+    >>> gview[::5,::5] * gf.coastline * gf.borders                                                  
+                                                                                                     
+Creating new datasets                                                                               
+=====================                                                                               
 
-To make combine datasets and make a new dataset:
+Calculations based on loaded datasets/channels can easily be assigned to a new dataset:
 
     >>> global_scene["ndvi"] = (global_scene[0.8] - global_scene[0.6]) / (global_scene[0.8] + global_scene[0.6])
     >>> global_scene.show("ndvi")
@@ -218,6 +239,16 @@ on saving datasets and customizing enhancements see the documentation on
 
 Troubleshooting
 ===============
+
+When something goes wrong, a first step to take is check that the latest Version
+of satpy and its dependencies are installed. Satpy drags in a few packages as
+dependencies per default, but each reader and writer has it's own dependencies
+which can be unfortunately easy to miss when just doing a regular `pip install`.
+To check the missing dependencies for the readers and writers, a utility
+function called `check_satpy` can be used:
+
+  >>> from satpy.config import check_satpy
+  >>> check_satpy()
 
 Due to the way SatPy works, producing as many datasets as possible, there are
 times that behavior can be unexpected but with no exceptions raised. To help

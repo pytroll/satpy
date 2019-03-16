@@ -13,6 +13,7 @@ at the pages listed below.
 
     CONTRIBUTING
     xarray_migration
+    custom_reader
 
 Coding guidelines
 =================
