@@ -43,8 +43,8 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
 
         self.file_content = dd.read_csv(filename, skiprows=15, header=None,
                                         names=["latitude", "longitude",
-                                        "T13", "Along-scan", "Along-track", "detection_confidence",
-                                        "power"])
+                                               "T13", "Along-scan", "Along-track", "detection_confidence",
+                                               "power"])
 
     def get_dataset(self, dsid, dsinfo):
         ds = self[dsid.name].to_dask_array(lengths=True)
