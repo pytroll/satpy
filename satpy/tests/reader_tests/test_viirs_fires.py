@@ -2,6 +2,8 @@ import sys
 import os
 import numpy as np
 import io
+import dask.dataframe as dd
+import pandas as pd
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
 if sys.version_info < (2, 7):
@@ -67,12 +69,19 @@ class FakeFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         return file_content
 
 class FakeFiresTextFileHandler(BaseFileHandler):
-    def get_test_content(self, filename, filename_info, filename_type):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Get fake file content from 'get_test_content'"""
+        super().__init__(filename, filename_info, filetype_info)
+        self.file_content = self.get_test_content()
+
+    def get_test_content(self):
         fake_file = io.StringIO('''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
         24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
         25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
 
-        return fake_file
+        return dd.from_pandas(pd.read_csv(fake_file, skiprows=15, header=None, names=["latitude", "longitude",
+                                                                           "T13", "Along-scan", "Along-track", "detection_confidence",
+                                                                           "power"]), chunksize=1)
 
 
 

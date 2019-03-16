@@ -41,12 +41,12 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
             print("Invalid File: " + filename)
             return
 
-        self.data = dd.read_csv(filename, skiprows=15, header=None, names=["latitude", "longitude",
-                                                                           "M13 brightness", "Along-scan", "Along-track", "detection_confidence",
+        self.file_content = dd.read_csv(filename, skiprows=15, header=None, names=["latitude", "longitude",
+                                                                           "T13", "Along-scan", "Along-track", "detection_confidence",
                                                                            "power"])
 
     def get_dataset(self, dsid, dsinfo):
-        ds = self.data[dsid.name].to_dask_array(lengths=True)
+        ds = self[dsid.name].to_dask_array(lengths=True)
         data_array = xr.DataArray(ds, dims=("y",), attrs={"platform_name": "unknown", "sensor": "viirs"})
         data_array.attrs.update(dsinfo)
 
@@ -59,3 +59,9 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
     @property
     def end_time(self):
         return self.filename_info.get('end_time', self.start_time)
+
+    def __getitem__(self, key):
+        return self.file_content[key]
+
+    def __contains__(self, item):
+        return item in self.file_content
