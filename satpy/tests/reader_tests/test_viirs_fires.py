@@ -1,7 +1,9 @@
 import sys
 import os
 import numpy as np
+import io
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.readers.file_handlers import BaseFileHandler
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -64,8 +66,17 @@ class FakeFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
 
         return file_content
 
+class FakeFiresTextFileHandler(BaseFileHandler):
+    def get_test_content(self, filename, filename_info, filename_type):
+        fake_file = io.StringIO('''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
+        24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
+        25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
 
-class TestVIIRSACTIVEFIRES(unittest.TestCase):
+        return fake_file
+
+
+
+class TestVIIRSACTIVEFIRES_CDF4(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_active_fires.yaml'
 
@@ -79,7 +90,7 @@ class TestVIIRSACTIVEFIRES(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF4 file handler"""
+        """Stop wrapping the CDF4 file handler"""
         self.p.stop()
 
     def test_init(self):
@@ -116,12 +127,64 @@ class TestVIIRSACTIVEFIRES(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
 
+class TestVIIRSACTIVEFIRES_TEXT(unittest.TestCase):
+    """Test VIIRS Fires Reader"""
+    yaml_file = 'viirs_active_fires.yaml'
+
+    def setUp(self):
+        """Wrap file handler with own fake file handler"""
+        from satpy.config import config_search_paths
+        from satpy.readers.viirs_active_fires import VIIRSActiveFiresTextFileHandler
+        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeFiresTextFileHandler,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+
+    def tearDown(self):
+        """Stop wrapping the text file handler"""
+        self.p.stop()
+
+    def test_init(self):
+        """Test basic init with no extra parameters"""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+        ])
+        self.assertTrue(len(loadables), 1)
+        r.create_filehandlers(loadables)
+        self.assertTrue(r.file_handlers)
+
+    def test_load_dataset(self):
+        """Test loading all datasets"""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['detection_confidence'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], '%')
+
+        datasets = r.load(['T13'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'K')
+
+        datasets = r.load(['power'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'MW')
+
 
 def suite():
     """The test suite for testing viirs active fires
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSACTIVEFIRES))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSACTIVEFIRES_CDF4))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSACTIVEFIRES_TEXT))
 
     return mysuite
