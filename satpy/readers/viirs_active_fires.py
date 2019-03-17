@@ -1,5 +1,6 @@
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
+import os
 import dask.dataframe as dd
 import xarray as xr
 
@@ -35,6 +36,9 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
 class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(VIIRSActiveFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
+
+        if not os.path.isfile(filename):
+            return
 
         self.file_content = dd.read_csv(filename, skiprows=15, header=None,
                                         names=["latitude", "longitude",
