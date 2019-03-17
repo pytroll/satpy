@@ -71,7 +71,7 @@ class FakeFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
 class FakeFiresTextFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Get fake file content from 'get_test_content'"""
-        super().__init__(filename, filename_info, filetype_info)
+        super(FakeFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content()
 
     def get_test_content(self):
