@@ -86,7 +86,7 @@ class FakeFiresTextFileHandler(BaseFileHandler):
                                                  "power"]), chunksize=1)
 
 
-class TestVIIRSACTIVEFIRES_CDF4(unittest.TestCase):
+class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_active_fires.yaml'
 
@@ -138,7 +138,7 @@ class TestVIIRSACTIVEFIRES_CDF4(unittest.TestCase):
             self.assertEqual(v.attrs['units'], 'MW')
 
 
-class TestVIIRSACTIVEFIRES_TEXT(unittest.TestCase):
+class TestVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_active_fires.yaml'
 
@@ -195,7 +195,7 @@ def suite():
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSACTIVEFIRES_CDF4))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSACTIVEFIRES_TEXT))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSActiveFiresNetCDF4))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSActiveFiresText))
 
     return mysuite
