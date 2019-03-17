@@ -37,10 +37,6 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(VIIRSActiveFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        if not os.path.isfile(filename):
-            print("Invalid File: " + filename)
-            return
-
         self.file_content = dd.read_csv(filename, skiprows=15, header=None,
                                         names=["latitude", "longitude",
                                                "T13", "Along-scan", "Along-track", "detection_confidence",
