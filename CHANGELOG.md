@@ -1,3 +1,52 @@
+## Version 0.13.0 (2019/03/18)
+
+### Issues Closed
+
+* [Issue 641](https://github.com/pytroll/satpy/issues/641) - After pip upgrade to satpy 0.12 and pyproj 2.0.1 got pyproj.exceptions.CRSError
+* [Issue 626](https://github.com/pytroll/satpy/issues/626) - Issue loading MODIS Aqua data ([PR 648](https://github.com/pytroll/satpy/pull/648))
+* [Issue 620](https://github.com/pytroll/satpy/issues/620) - Add FAQ about controlling number of threads for pykdtree and blas ([PR 621](https://github.com/pytroll/satpy/pull/621))
+* [Issue 521](https://github.com/pytroll/satpy/issues/521) - Interactively set the Calibration Mode when creating the Scene Object ([PR 543](https://github.com/pytroll/satpy/pull/543))
+
+In this release 4 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 664](https://github.com/pytroll/satpy/pull/664) - Fix Scene.crop with RGBs and multidimensional data
+* [PR 662](https://github.com/pytroll/satpy/pull/662) - Fix masked resampling when dataset dtype is integer
+* [PR 661](https://github.com/pytroll/satpy/pull/661) - Fix CTTH composite not to mark invalid data as cloud-free
+* [PR 660](https://github.com/pytroll/satpy/pull/660) - Fix seviri_l1b_hrit prologue/epilogue readers
+* [PR 655](https://github.com/pytroll/satpy/pull/655) - Fix yaml load to be compatible with pyyaml 5.1
+* [PR 652](https://github.com/pytroll/satpy/pull/652) - Fix resampling of ancillary variables when also first class datasets
+* [PR 648](https://github.com/pytroll/satpy/pull/648) - Add wrapped line support for metadata in modis_l1b reader ([626](https://github.com/pytroll/satpy/issues/626))
+* [PR 644](https://github.com/pytroll/satpy/pull/644) - Fix the modis overview not to sun normalize the IR channel
+* [PR 633](https://github.com/pytroll/satpy/pull/633) - Fix VIIRS HNCC composite passing xarray objects to dask
+* [PR 632](https://github.com/pytroll/satpy/pull/632) - Fixing start and end times when missing in the CF writer
+
+#### Features added
+
+* [PR 647](https://github.com/pytroll/satpy/pull/647) - Switch python-hdf4 dependencies to pyhdf
+* [PR 643](https://github.com/pytroll/satpy/pull/643) - In cira_strech clip values less or equal to 0 to avoid nans and -inf.
+* [PR 642](https://github.com/pytroll/satpy/pull/642) - Bugfix pps2018 cpp products
+* [PR 638](https://github.com/pytroll/satpy/pull/638) - Add processing-mode and disposition-mode to the avhrr-l1b-eps file name
+* [PR 636](https://github.com/pytroll/satpy/pull/636) - Facilitate selection of calibration coefficients in seviri_l1b_hrit
+* [PR 635](https://github.com/pytroll/satpy/pull/635) - Add local caching of slicing for data reduction
+* [PR 627](https://github.com/pytroll/satpy/pull/627) - Add DNB satellite angles (DNB_SENZ, DNB_SENA) to VIIRS SDR reader
+* [PR 557](https://github.com/pytroll/satpy/pull/557) - Improve the SAR-C reading and Ice composite
+* [PR 543](https://github.com/pytroll/satpy/pull/543) - Calibration mode can now be passed via a keyword argument ([521](https://github.com/pytroll/satpy/issues/521))
+* [PR 538](https://github.com/pytroll/satpy/pull/538) - Support CLASS packed viirs files in viirs_sdr reader
+
+#### Documentation changes
+
+* [PR 659](https://github.com/pytroll/satpy/pull/659) - DOC: Refer to PyTroll coding guidelines
+* [PR 653](https://github.com/pytroll/satpy/pull/653) - DOC: Fix small typos in documentation
+* [PR 651](https://github.com/pytroll/satpy/pull/651) - Rename changelog for releases before 0.9.0
+* [PR 621](https://github.com/pytroll/satpy/pull/621) - Add FAQ items on number of workers and threads ([620](https://github.com/pytroll/satpy/issues/620))
+
+In this release 24 pull requests were closed.
+
+
 ## Version 0.12.0 (2019/02/15)
 
 ### Issues Closed
