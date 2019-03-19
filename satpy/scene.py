@@ -607,7 +607,7 @@ class Scene(MetadataObject):
                 x_slice = slice(min_x_slice.start * x_factor,
                                 min_x_slice.stop * x_factor)
                 new_area = src_area[y_slice, x_slice]
-                slice_key = (y_slice, x_slice)
+                slice_key = {'y': y_slice, 'x': x_slice}
                 new_scn._slice_datasets(dataset_ids, slice_key, new_area)
             else:
                 new_target_areas[src_area] = self._slice_area_from_bbox(
@@ -908,10 +908,9 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    def _reduce_data(self, source_area, destination_area, dataset):
-        """Reduce data by slicing it."""
-        slice_x, slice_y = source_area.get_area_slices(destination_area)
-        source_area = source_area[slice_y, slice_x]
+    def _slice_data(self, source_area, slices, dataset):
+        """Slice the data to reduce it."""
+        slice_x, slice_y = slices
         dataset = dataset.isel(x=slice_x, y=slice_y)
         assert ('x', source_area.x_size) in dataset.sizes.items()
         assert ('y', source_area.y_size) in dataset.sizes.items()
@@ -921,7 +920,10 @@ class Scene(MetadataObject):
 
     def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
                          **resample_kwargs):
-        """Resample `datasets` to the `destination` area."""
+        """Resample `datasets` to the `destination` area.
+
+        If data reduction is enabled, some local caching is perfomed in order to
+        avoid recomputation of area intersections."""
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
         if isinstance(destination_area, (str, six.text_type)):
@@ -935,13 +937,16 @@ class Scene(MetadataObject):
                                  "DynamicAreaDefinition.")
 
         resamplers = {}
+        reductions = {}
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
             if parent_dataset is not None:
                 pres = new_datasets[DatasetID.from_dict(parent_dataset.attrs)]
             if ds_id in new_datasets:
-                replace_anc(dataset, pres)
+                replace_anc(new_datasets[ds_id], pres)
+                if ds_id in new_scn.datasets:
+                    new_scn.datasets[ds_id] = new_datasets[ds_id]
                 continue
             if dataset.attrs.get('area') is None:
                 if parent_dataset is None:
@@ -953,8 +958,14 @@ class Scene(MetadataObject):
             source_area = dataset.attrs['area']
             try:
                 if reduce_data:
-                    dataset = self._reduce_data(source_area, destination_area, dataset)
-                    source_area = dataset.attrs['area']
+                    key = source_area
+                    try:
+                        slices, source_area = reductions[key]
+                    except KeyError:
+                        slice_x, slice_y = source_area.get_area_slices(destination_area)
+                        source_area = source_area[slice_y, slice_x]
+                        reductions[key] = (slice_x, slice_y), source_area
+                    dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
                 else:
                     LOG.debug("Data reduction disabled by the user")
             except NotImplementedError:
@@ -969,9 +980,9 @@ class Scene(MetadataObject):
             res = resample_dataset(dataset, destination_area,
                                    **kwargs)
             new_datasets[ds_id] = res
-            if parent_dataset is None:
+            if ds_id in new_scn.datasets:
                 new_scn.datasets[ds_id] = res
-            else:
+            if parent_dataset is not None:
                 replace_anc(res, pres)
 
     def resample(self, destination=None, datasets=None, generate=True,

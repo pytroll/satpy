@@ -154,7 +154,7 @@ class GeoTIFFWriter(ImageWriter):
 
             # Create raster GeoTransform based on upper left corner and pixel
             # resolution ... if not overwritten by argument geotransform.
-            if "area" is None:
+            if area is None:
                 LOG.warning("No 'area' metadata found in image")
             else:
                 self._gdal_write_geo(dst_ds, area)

@@ -102,6 +102,7 @@ To save metadata, we use the :attr:`~xarray.DataArray.attrs` dictionary.
     my_dataarray.attrs['platform_name'] = 'Sentinel-3A'
 
 Some metadata that should always be present in our dataarrays:
+
 - ``area`` the area of the dataset. This should be handled in the reader.
 - ``start_time``, ``end_time``
 - ``sensor``

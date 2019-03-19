@@ -49,6 +49,8 @@ CHANNEL_NAMES = {1: "VIS006",
                  11: "IR_134",
                  12: "HRV"}
 
+VIS_CHANNELS = ['HRV', 'VIS006', 'VIS008', 'IR_016']
+
 # Polynomial coefficients for spectral-effective BT fits
 BTFIT = {}
 # [A, B, C]

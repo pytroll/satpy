@@ -41,12 +41,6 @@ except ImportError:
     from Queue import Queue
 
 try:
-    from itertools import zip_longest
-except ImportError:
-    # python 2.7
-    from itertools import izip_longest as zip_longest
-
-try:
     import imageio
 except ImportError:
     imageio = None

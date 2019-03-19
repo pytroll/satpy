@@ -38,7 +38,7 @@ Resampling algorithms
     "nearest", "Nearest Neighbor", :class:`~satpy.resample.KDTreeResampler`
     "ewa", "Elliptical Weighted Averaging", :class:`~satpy.resample.EWAResampler`
     "native", "Native", :class:`~satpy.resample.NativeResampler`
-    "bilinear", "Bilinear", :class`~satpy.resample.BilinearResampler`
+    "bilinear", "Bilinear", :class:`~satpy.resample.BilinearResampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
@@ -263,7 +263,11 @@ class BaseResampler(object):
                 geo_dims = ('y', 'x')
             flat_dims = [dim for dim in data.dims if dim not in geo_dims]
             # xarray <= 0.10.1 computes dask arrays during isnull
-            kwargs['mask'] = data.isnull().all(dim=flat_dims)
+            if np.issubdtype(data.dtype, np.integer):
+                kwargs['mask'] = data == data.attrs.get('_FillValue', np.iinfo(data.dtype.type).max)
+            else:
+                kwargs['mask'] = data.isnull()
+            kwargs['mask'] = kwargs['mask'].all(dim=flat_dims)
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 

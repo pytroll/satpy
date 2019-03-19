@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2017, 2018 Pytroll
+# Copyright (c) 2017, 2018, 2019 Pytroll
 
 # Author(s):
 
@@ -170,6 +170,10 @@ class NcNWCSAF(BaseFileHandler):
                 variable.attrs['palette_meanings'] = [0] + variable.attrs['palette_meanings']
                 variable = xr.DataArray(da.vstack((np.array(variable.attrs['fill_value_color']), variable.data)),
                                         coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
+
+            val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
+            variable.attrs['palette_meanings'] = val
+            variable = variable[idx]
 
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])

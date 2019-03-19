@@ -404,6 +404,50 @@ class TestScene(unittest.TestCase):
         self.assertTupleEqual(new_scn1['3'].shape, (36, 70))
         self.assertTupleEqual(new_scn1['4'].shape, (18, 35))
 
+    def test_crop_rgb(self):
+        """Test the crop method on multi-dimensional data."""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        import numpy as np
+        scene1 = Scene()
+        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
+                       5570248.477339745)
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        x_size = 3712
+        y_size = 3712
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size,
+            y_size,
+            area_extent,
+        )
+        area_def2 = AreaDefinition(
+            'test2',
+            'test2',
+            'test2',
+            proj_dict,
+            x_size // 2,
+            y_size // 2,
+            area_extent,
+            )
+        scene1["1"] = DataArray(np.zeros((3, y_size, x_size)), dims=('bands', 'y', 'x'), attrs={'area': area_def})
+        scene1["2"] = DataArray(np.zeros((y_size // 2, 3, x_size // 2)), dims=('y', 'bands', 'x'),
+                                attrs={'area': area_def2})
+
+        # by lon/lat bbox
+        new_scn1 = scene1.crop(ll_bbox=(-20., -5., 0, 0))
+        self.assertIn('1', new_scn1)
+        self.assertIn('2', new_scn1)
+        self.assertIn('bands', new_scn1['1'].dims)
+        self.assertIn('bands', new_scn1['2'].dims)
+        self.assertTupleEqual(new_scn1['1'].shape, (3, 184, 714))
+        self.assertTupleEqual(new_scn1['2'].shape, (92, 3, 357))
+
     def test_contains(self):
         from satpy import Scene
         from xarray import DataArray
@@ -1483,12 +1527,12 @@ class TestSceneResampling(unittest.TestCase):
         """Return copy of dataset pretending it was resampled."""
         return dataset.copy()
 
-    @mock.patch('satpy.scene.Scene._reduce_data')
+    @mock.patch('satpy.scene.Scene._slice_data')
     @mock.patch('satpy.scene.resample_dataset')
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
-    def test_resample_scene_copy(self, cri, cl, rs, reduce_data):
-        """Test that the Scene is properly copied during resampled.
+    def test_resample_scene_copy(self, cri, cl, rs, slice_data):
+        """Test that the Scene is properly copied during resampling.
 
         The Scene that is created as a copy of the original Scene should not
         be able to affect the original Scene object.
@@ -1508,8 +1552,9 @@ class TestSceneResampling(unittest.TestCase):
         proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
                                       '+lon_0=-95. +lat_0=25 +lat_1=25 '
                                       '+units=m +no_defs')
-        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 200, 400, (-1000., -1500., 1000., 1500.))
-
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        area_def.get_area_slices = mock.MagicMock()
+        get_area_slices = area_def.get_area_slices
         scene = satpy.scene.Scene(filenames=['bla'],
                                   base_dir='bli',
                                   reader='fake_reader')
@@ -1541,15 +1586,50 @@ class TestSceneResampling(unittest.TestCase):
 
         # Test that data reduction can be disabled
         scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
-
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
+        get_area_slices.return_value = (slice(0, 5, None), slice(0, 5, None))
         scene.resample(area_def, reduce_data=False)
-        self.assertFalse(reduce_data.called)
+        self.assertFalse(slice_data.called)
+        self.assertFalse(get_area_slices.called)
         scene.resample(area_def)
-        self.assertTrue(reduce_data.called_once)
+        self.assertTrue(slice_data.called_once)
+        self.assertTrue(get_area_slices.called_once)
         scene.resample(area_def, reduce_data=True)
-        self.assertEqual(reduce_data.call_count, 2)
+        self.assertEqual(slice_data.call_count, 2)
+        self.assertTrue(get_area_slices.called_once)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_resample_ancillary(self, cri, cl):
+        """Test that the Scene reducing data does not affect final output."""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+
+        scene.load(['comp19', 'comp20'])
+        scene['comp19'].attrs['area'] = area_def
+        scene['comp19'].attrs['ancillary_variables'] = [scene['comp20']]
+        scene['comp20'].attrs['area'] = area_def
+
+        dst_area = AreaDefinition('dst', 'dst', 'dst',
+                                  proj_dict,
+                                  2, 2,
+                                  (-1000., -1500., 0., 0.),
+                                  )
+        new_scene = scene.resample(dst_area)
+        self.assertIs(new_scene['comp20'], new_scene['comp19'].attrs['ancillary_variables'][0])
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
