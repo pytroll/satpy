@@ -19,7 +19,15 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE SAR L2 OCN format."""
+"""SAFE SAR L2 OCN format reader
+
+The OCN data contains various parameters, but mainly the wind speed and direction
+calculated from SAR data and input model data from ECMWF
+
+Implemented in this reader is the OWI, Ocean Wind field.
+
+See more at ESA webpage https://sentinel.esa.int/web/sentinel/ocean-wind-field-component
+"""
 
 import logging
 
@@ -106,16 +114,20 @@ class SAFENC(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Product start_time, parsed from the measurement file name."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Product end_time, parsed from the measurement file name."""
         return self._end_time
 
     @property
     def fstart_time(self):
+        """Product fstart_time meaning the start time parsed from the SAFE directory."""
         return self._fstart_time
 
     @property
     def fend_time(self):
+        """Product fend_time meaning the end time parsed from the SAFE directory."""
         return self._fend_time
