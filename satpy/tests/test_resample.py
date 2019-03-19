@@ -422,7 +422,7 @@ class TestBilinearResampler(unittest.TestCase):
         fill_value = 8
         resampler.compute(data, fill_value=fill_value)
         resampler.resampler.get_sample_from_bil_info.assert_called_with(
-            data, fill_value=fill_value, output_shape=target_area.shape)
+            data, fill_value=fill_value)
 
         # Test that the resampling info is tried to read from the disk
         resampler = BilinearResampler(source_swath, target_area)
