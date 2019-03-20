@@ -1,6 +1,6 @@
 reader:
     description: VIIRS Active Fires Reader
-    name: viirs_active_fires
+    name: viirs_edr_fires
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [viirs]
 

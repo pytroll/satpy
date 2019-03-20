@@ -114,12 +114,12 @@ class FakeFiresTextFileHandler(BaseFileHandler):
 
 class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
     """Test VIIRS Fires Reader"""
-    yaml_file = 'viirs_active_fires.yaml'
+    yaml_file = 'viirs_edr_fires.yaml'
 
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler"""
         from satpy.config import config_search_paths
-        from satpy.readers.viirs_active_fires import VIIRSActiveFiresFileHandler
+        from satpy.readers.viirs_edr_fires import VIIRSActiveFiresFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeFiresNetCDF4FileHandler,))
         self.fake_handler = self.p.start()
@@ -166,12 +166,12 @@ class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
 class TestVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader"""
-    yaml_file = 'viirs_active_fires.yaml'
+    yaml_file = 'viirs_edr_fires.yaml'
 
     def setUp(self):
         """Wrap file handler with own fake file handler"""
         from satpy.config import config_search_paths
-        from satpy.readers.viirs_active_fires import VIIRSActiveFiresTextFileHandler
+        from satpy.readers.viirs_edr_fires import VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeFiresTextFileHandler,))
         self.fake_handler = self.p.start()
