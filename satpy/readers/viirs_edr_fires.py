@@ -32,8 +32,20 @@ import xarray as xr
 
 
 class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
+    """NetCDF4 reader for VIIRS Active Fires
+    """
 
     def get_dataset(self, dsid, dsinfo):
+        """Get dataset function
+
+        Args:
+            dsid: Dataset ID
+            param2: Dataset Information
+
+        Returns:
+            Dask DataArray: Data
+
+        """
         data = self[dsinfo.get('file_key', dsid.name)]
         data.attrs.update(dsinfo)
 
@@ -60,7 +72,16 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
 
 
 class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
+    """ASCII reader for VIIRS Active Fires
+    """
     def __init__(self, filename, filename_info, filetype_info):
+        """Makes sure filepath is valid and then reads data into a Dask DataFrame
+
+        Args:
+            filename: Filename
+            filename_info: Filename information
+            filetype_info: Filetype information
+        """
         super(VIIRSActiveFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
 
         if not os.path.isfile(filename):
