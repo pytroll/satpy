@@ -101,7 +101,7 @@ class FakeFiresTextFileHandler(BaseFileHandler):
         self.file_content = self.get_test_content()
 
     def get_test_content(self):
-        fake_file = io.StringIO('''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
+        fake_file = io.StringIO(u'''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
         24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
         25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
 
