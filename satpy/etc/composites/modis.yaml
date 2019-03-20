@@ -79,3 +79,14 @@ composites:
         - wavelength: 10.8
     - wavelength: 6.7
     standard_name: airmass
+
+  ocean_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: '1'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: '4'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: '3'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: ocean_color
