@@ -185,12 +185,8 @@ def _determine_mode(dataset):
 
 def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
                 level_coast=1, level_borders=1, fill_value=None,
-                Dlonlat=None, dlonlat=None, font=None, write_text=True, fill=None, fill_opacity=255,
-                major_outline='white', major_width=1, major_outline_opacity=255,
-                minor_outline='white', minor_width=0.5,
-                minor_outline_opacity=255, minor_is_tick=True,
-                lon_placement='tb', lat_placement='lr'):
-    """Add coastline, political borders and grid(graticlues) to image.
+                grid=None):
+    """Add coastline, political borders and grid(graticules) to image.
 
     Uses ``color`` for feature colors where ``color`` is a 3-element tuple
     of integers between 0 and 255 representing (R, G, B).
@@ -208,6 +204,8 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     | 'l' | Low resolution          | 5.0 km  |
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
+
+    ``grid`` is a dictionary with key values as documented in pycoast
 
     For grid if aggdraw is used, font option is mandatory, if not write_text is set to False
     eg. font = aggdraw.Font('black', '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
@@ -257,16 +255,44 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
                        resolution=resolution, width=width, level=level_coast)
     cw_.add_borders(img, area, outline=color,
                     resolution=resolution, width=width, level=level_borders)
-    # Only add grid if Dlonlat is given.
-    if Dlonlat:
-        # If dlonlat (minor_latlon) is not given set it equal to the Dlonlat (major_lonlat)
-        if not dlonlat:
-            dlonlat = Dlonlat
-        cw_.add_grid(img, area, Dlonlat, dlonlat, font, write_text, fill, fill_opacity,
-                     major_outline, major_width, major_outline_opacity,
-                     minor_outline, minor_width,
-                     minor_outline_opacity, minor_is_tick,
-                     lon_placement, lat_placement)
+    # Only add grid if major_lonlat is given.
+    if grid and 'major_lonlat' in grid and grid['major_lonlat']:
+        # If minor_latlon is not given set it equal to the major_lonlat
+        if 'minor_lonlat' not in grid or not grid['minor_lonlat']:
+            grid['minor_lonlat'] = grid['major_lonlat']
+        if 'font' not in grid:
+            grid['font'] = None
+        if 'write_text' not in grid:
+            grid['write_text'] = True
+        if 'fill' not in grid:
+            grid['fill'] = None
+        if 'fill_opacity' not in grid:
+            grid['fill_opacity'] = 255
+        if 'major_outline' not in grid:
+            grid['major_outline'] = 'white'
+        if 'major_width' not in grid:
+            grid['major_width'] = 1
+        if 'major_outline_opacity' not in grid:
+            grid['major_outline_opacity'] = 255
+        if 'minor_outline' not in grid:
+            grid['minor_outline'] = 'white'
+        if 'minor_width' not in grid:
+            grid['minor_width'] = 0.5
+        if 'minor_outline_opacity' not in grid:
+            grid['minor_outline_opacity'] = 255
+        if 'minor_is_tick' not in grid:
+            grid['minor_is_tick'] = True
+        if 'lon_placement' not in grid:
+            grid['lon_placement'] = 'tb'
+        if 'lat_placement' not in grid:
+            grid['lat_placement'] = 'lr'
+
+        cw_.add_grid(img, area, grid['major_lonlat'], grid['minor_lonlat'], grid['font'],
+                     grid['write_text'], grid['fill'], grid['fill_opacity'],
+                     grid['major_outline'], grid['major_width'], grid['major_outline_opacity'],
+                     grid['minor_outline'], grid['minor_width'],
+                     grid['minor_outline_opacity'], grid['minor_is_tick'],
+                     grid['lon_placement'], grid['lat_placement'])
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
