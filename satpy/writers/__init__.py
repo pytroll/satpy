@@ -258,34 +258,20 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     # Only add grid if major_lonlat is given.
     if grid and 'major_lonlat' in grid and grid['major_lonlat']:
         # If minor_latlon is not given set it equal to the major_lonlat
-        if 'minor_lonlat' not in grid or not grid['minor_lonlat']:
-            grid['minor_lonlat'] = grid['major_lonlat']
-        if 'font' not in grid:
-            grid['font'] = None
-        if 'write_text' not in grid:
-            grid['write_text'] = True
-        if 'fill' not in grid:
-            grid['fill'] = None
-        if 'fill_opacity' not in grid:
-            grid['fill_opacity'] = 255
-        if 'major_outline' not in grid:
-            grid['major_outline'] = 'white'
-        if 'major_width' not in grid:
-            grid['major_width'] = 1
-        if 'major_outline_opacity' not in grid:
-            grid['major_outline_opacity'] = 255
-        if 'minor_outline' not in grid:
-            grid['minor_outline'] = 'white'
-        if 'minor_width' not in grid:
-            grid['minor_width'] = 0.5
-        if 'minor_outline_opacity' not in grid:
-            grid['minor_outline_opacity'] = 255
-        if 'minor_is_tick' not in grid:
-            grid['minor_is_tick'] = True
-        if 'lon_placement' not in grid:
-            grid['lon_placement'] = 'tb'
-        if 'lat_placement' not in grid:
-            grid['lat_placement'] = 'lr'
+        grid.setdefault('minor_lonlat', grid['major_lonlat'])
+        grid.setdefault('font', None)
+        grid.setdefault('write_text', True)
+        grid.setdefault('fill', None)
+        grid.setdefault('fill_opacity', 255)
+        grid.setdefault('major_outline', 'white')
+        grid.setdefault('major_width', 1)
+        grid.setdefault('major_outline_opacity', 255)
+        grid.setdefault('minor_outline', 'white')
+        grid.setdefault('minor_width', 0.5)
+        grid.setdefault('minor_outline_opacity', 255)
+        grid.setdefault('minor_is_tick', True)
+        grid.setdefault('lon_placement', 'tb')
+        grid.setdefault('lat_placement', 'lr')
 
         cw_.add_grid(img, area, grid['major_lonlat'], grid['minor_lonlat'], grid['font'],
                      grid['write_text'], grid['fill'], grid['fill_opacity'],
