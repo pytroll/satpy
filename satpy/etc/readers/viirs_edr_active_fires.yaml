@@ -1,16 +1,16 @@
 reader:
     description: VIIRS Active Fires Reader
-    name: viirs_edr_fires
+    name: viirs_edr_active_fires
     reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
     sensors: [viirs]
 
 file_types:
     fires_netcdf:
-        file_reader: !!python/name:satpy.readers.viirs_edr_fires.VIIRSActiveFiresFileHandler
+        file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresFileHandler
         file_patterns:
             - 'AFEDR_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
     fires_text:
-        file_reader: !!python/name:satpy.readers.viirs_edr_fires.VIIRSActiveFiresTextFileHandler
+        file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresTextFileHandler
         file_patterns:
             - 'AFEDR_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.txt'
 
