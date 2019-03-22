@@ -258,10 +258,7 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     # Only add grid if major_lonlat is given.
     if grid and 'major_lonlat' in grid and grid['major_lonlat']:
         major_lonlat = grid.pop('major_lonlat')
-        if 'minor_lonlat' in grid:
-            minor_lonlat = grid.pop('minor_lonlat')
-        else:
-            minor_lonlat = major_lonlat
+        minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
 
         cw_.add_grid(img, area, major_lonlat, minor_lonlat, **grid)
 
