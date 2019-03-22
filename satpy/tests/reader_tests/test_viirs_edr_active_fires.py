@@ -114,7 +114,7 @@ class FakeFiresTextFileHandler(BaseFileHandler):
 
 class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
     """Test VIIRS Fires Reader"""
-    yaml_file = 'viirs_edr_fires.yaml'
+    yaml_file = 'viirs_edr_active_fires.yaml'
 
     def setUp(self):
         """Wrap CDF4 file handler with own fake file handler"""
@@ -166,7 +166,7 @@ class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
 class TestVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader"""
-    yaml_file = 'viirs_edr_fires.yaml'
+    yaml_file = 'viirs_edr_active_fires.yaml'
 
     def setUp(self):
         """Wrap file handler with own fake file handler"""
