@@ -46,7 +46,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
 
-from satpy.readers.seviri_base import SEVIRICalibrationHandler
+from satpy.readers.seviri_base import SEVIRICalibrationHandler, chebyshev
 from satpy.readers.seviri_base import (CHANNEL_NAMES, VIS_CHANNELS, CALIB, SATNUM)
 
 from satpy.readers.seviri_l1b_native_hdr import (hrit_prologue, hrit_epilogue,
@@ -106,6 +106,10 @@ cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
 
 
+class NoValidNavigationCoefs(Exception):
+    pass
+
+
 class HRITMSGPrologueFileHandler(HRITFileHandler):
     """SEVIRI HRIT prologue reader.
     """
@@ -120,6 +124,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                                                           msg_text_headers))
         self.prologue = {}
         self.read_prologue()
+        self.satpos = None
 
         service = filename_info['service']
         if service == '':
@@ -140,6 +145,80 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                 logger.info('No IMPF configuration field found in prologue.')
             else:
                 self.prologue.update(recarray2dict(impf))
+
+    def get_satpos(self):
+        """Get actual satellite position in earth-centered spherical coordinates
+
+        Returns: Longitude [deg east], Latitude [deg north], Distance from earth centre [m]
+        """
+        if self.satpos is None:
+            logger.debug("Computing actual satellite position")
+
+            try:
+                # Get satellite position in cartesian coordinates
+                x, y, z = self._get_satpos_cart()
+
+                # Transform to spherical coordinates
+                dist = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+                lat = np.arcsin(z / dist)
+                lon = np.arccos(x / dist / np.cos(lat)) * np.sign(y)
+
+                lon = np.rad2deg(lon)
+                lat = np.rad2deg(lat)
+            except NoValidNavigationCoefs as err:
+                logger.warning(err)
+                lon = lat = dist = None
+
+            # Cache results
+            self.satpos = lon, lat, dist
+
+        return self.satpos
+
+    def _get_satpos_cart(self):
+        """Determine satellite position in earth-centered cartesion coordinates
+
+        The coordinates as a function of time are encoded in the coefficients of an 8th-order Chebyshev polynomial.
+        In the prologue there is one set of coefficients for each coordinate (x, y, z). The coordinates are obtained by
+        evalutaing the polynomials at the start time of the scan.
+
+        Returns: x, y, z [m]
+        """
+        orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
+
+        # Find Chebyshev coefficients for the given time
+        coef_idx = self._find_navigation_coefs()
+        tstart = orbit_polynomial['StartTime'][0, coef_idx]
+        tend = orbit_polynomial['EndTime'][0, coef_idx]
+
+        # Obtain cartesian coordinates (x, y, z) of the satellite by evaluating the Chebyshev polynomial at the
+        # start time of the scan. Express timestamps in microseconds since 1970-01-01 00:00.
+        time = self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        time64 = np.datetime64(time).astype('int64')
+        domain = [np.datetime64(tstart).astype('int64'),
+                  np.datetime64(tend).astype('int64')]
+        x = chebyshev(coefs=orbit_polynomial['X'][coef_idx], time=time64, domain=domain)
+        y = chebyshev(coefs=orbit_polynomial['Y'][coef_idx], time=time64, domain=domain)
+        z = chebyshev(coefs=orbit_polynomial['Z'][coef_idx], time=time64, domain=domain)
+
+        return x*1000, y*1000, z*1000  # km -> m
+
+    def _find_navigation_coefs(self):
+        """Find navigation coefficients for the current time
+
+        The navigation Chebyshev coefficients are only valid for a certain time interval. The header entry
+        SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients for multiple time intervals. Find the
+        coefficients which are valid for the nominal timestamp of the scan.
+
+        Returns: Corresponding index in the coefficient list.
+        """
+        # Find index of interval enclosing the nominal timestamp of the scan
+        time = self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        intervals_tstart = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['StartTime'][0]
+        intervals_tend = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['EndTime'][0]
+        try:
+            return np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0][0]
+        except IndexError:
+            raise NoValidNavigationCoefs('Unable to find navigation coefficients valid for {}'.format(time))
 
 
 class HRITMSGEpilogueFileHandler(HRITFileHandler):
@@ -230,6 +309,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                                   msg_variable_length_headers,
                                                   msg_text_headers))
 
+        self.prologue_ = prologue
         self.prologue = prologue.prologue
         self.epilogue = epilogue.epilogue
         self._filename_info = filename_info
@@ -247,6 +327,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
         self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 2
+
+        # Projection
         b = (earth_model['NorthPolarRadius'] +
              earth_model['SouthPolarRadius']) / 2.0 * 1000
         self.mda['projection_parameters'][
@@ -256,6 +338,17 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             'ProjectionDescription']['LongitudeOfSSP']
         self.mda['projection_parameters']['SSP_longitude'] = ssp
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
+
+        # Navigation
+        actual_lon, actual_lat, actual_dist = self.prologue_.get_satpos()
+        self.mda['navigation_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
+            'SatelliteDefinition']['NominalLongitude']
+        self.mda['navigation_parameters']['satellite_nominal_latitude'] = 0.0
+        self.mda['navigation_parameters']['satellite_actual_longitude'] = actual_lon
+        self.mda['navigation_parameters']['satellite_actual_latitude'] = actual_lat
+        self.mda['navigation_parameters']['satellite_actual_distance'] = actual_dist
+
+        # Misc
         self.platform_id = self.prologue["SatelliteStatus"][
             "SatelliteDefinition"]["SatelliteId"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
@@ -404,6 +497,11 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['satellite_latitude'] = self.mda[
             'projection_parameters']['SSP_latitude']
         res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
+        res.attrs['projection'] = {'satellite_longitude': self.mda['projection_parameters']['SSP_longitude'],
+                                   'satellite_latitude': self.mda['projection_parameters']['SSP_latitude'],
+                                   'satellite_altitude': self.mda['projection_parameters']['h']}
+        res.attrs['navigation'] = self.mda['navigation_parameters'].copy()
+
         return res
 
     def calibrate(self, data, calibration):
