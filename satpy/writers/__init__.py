@@ -257,13 +257,13 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
                     resolution=resolution, width=width, level=level_borders)
     # Only add grid if major_lonlat is given.
     if grid and 'major_lonlat' in grid and grid['major_lonlat']:
-        # If minor_latlon is not given set it equal to the major_lonlat
-        grid.setdefault('minor_lonlat', grid['major_lonlat'])
-        # Need to rename keys to match add_grid
-        grid['Dlonlat'] = grid.pop('major_lonlat')
-        grid['dlonlat'] = grid.pop('minor_lonlat')
+        major_lonlat = grid.pop('major_lonlat')
+        if 'minor_lonlat' in grid:
+            minor_lonlat = grid.pop('minor_lonlat')
+        else:
+            minor_lonlat = major_lonlat
 
-        cw_.add_grid(img, area, **grid)
+        cw_.add_grid(img, area, major_lonlat, minor_lonlat, **grid)
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
