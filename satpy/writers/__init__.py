@@ -259,26 +259,11 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     if grid and 'major_lonlat' in grid and grid['major_lonlat']:
         # If minor_latlon is not given set it equal to the major_lonlat
         grid.setdefault('minor_lonlat', grid['major_lonlat'])
-        grid.setdefault('font', None)
-        grid.setdefault('write_text', True)
-        grid.setdefault('fill', None)
-        grid.setdefault('fill_opacity', 255)
-        grid.setdefault('major_outline', 'white')
-        grid.setdefault('major_width', 1)
-        grid.setdefault('major_outline_opacity', 255)
-        grid.setdefault('minor_outline', 'white')
-        grid.setdefault('minor_width', 0.5)
-        grid.setdefault('minor_outline_opacity', 255)
-        grid.setdefault('minor_is_tick', True)
-        grid.setdefault('lon_placement', 'tb')
-        grid.setdefault('lat_placement', 'lr')
+        # Need to rename keys to match add_grid
+        grid['Dlonlat'] = grid.pop('major_lonlat')
+        grid['dlonlat'] = grid.pop('minor_lonlat')
 
-        cw_.add_grid(img, area, grid['major_lonlat'], grid['minor_lonlat'], grid['font'],
-                     grid['write_text'], grid['fill'], grid['fill_opacity'],
-                     grid['major_outline'], grid['major_width'], grid['major_outline_opacity'],
-                     grid['minor_outline'], grid['minor_width'],
-                     grid['minor_outline_opacity'], grid['minor_is_tick'],
-                     grid['lon_placement'], grid['lat_placement'])
+        cw_.add_grid(img, area, **grid)
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
