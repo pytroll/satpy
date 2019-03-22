@@ -364,10 +364,10 @@ satpy.readers.viirs\_compact module
     :undoc-members:
     :show-inheritance:
 
-satpy.readers.viirs\_edr\_fires module
+satpy.readers.viirs\_edr\_active\_fires module
 --------------------------------------
 
-.. automodule:: satpy.readers.viirs_edr_fires
+.. automodule:: satpy.readers.viirs_edr_active_fires
     :members:
     :undoc-members:
     :show-inheritance:
