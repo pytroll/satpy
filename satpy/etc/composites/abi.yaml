@@ -52,6 +52,32 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirection_reflectance
 
+  cimss_green:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    fractions: [0.45, 0.45, 0.01]
+    prerequisites:
+      # should we be using the most corrected or least corrected inputs?
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: C03
+        modifiers: [sunz_corrected]
+    standard_name: toa_bidirection_reflectance
+
+  cimss_green_raw:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    fractions: [0.45, 0.45, 0.01]
+    prerequisites:
+      # should we be using the most corrected or least corrected inputs?
+      - name: C01
+        modifiers: [sunz_corrected]
+      - name: C02
+        modifiers: [sunz_corrected]
+      - name: C03
+        modifiers: [sunz_corrected]
+    standard_name: toa_bidirection_reflectance
+
   green:
     compositor: !!python/name:satpy.composites.abi.SimulatedGreen
     # FUTURE: Set a wavelength...see what happens. Dependency finding
@@ -84,6 +110,30 @@ composites:
     - name: green_raw
     - name: C01
       modifiers: [sunz_corrected]
+    standard_name: true_color
+
+  cimss_true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: CIMSS Enhanced Natural Color RGB
+    references:
+      - https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000379
+    prerequisites:
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: cimss_green
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  cimss_true_color_raw:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: CIMSS Natural Color RGB (no rayleigh)
+    prerequisites:
+      - name: C02
+        modifiers: [sunz_corrected]
+      - name: cimss_green_raw
+      - name: C01
+        modifiers: [sunz_corrected]
     standard_name: true_color
 
   true_color:
