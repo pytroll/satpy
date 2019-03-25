@@ -57,6 +57,9 @@ class GeoTIFFWriter(ImageWriter):
 
         scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
 
+    For performance tips on creating geotiffs quickly and making them smaller
+    see the :doc:`faq`.
+
     """
 
     GDAL_OPTIONS = ("tfw",

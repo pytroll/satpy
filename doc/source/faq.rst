@@ -95,3 +95,24 @@ How do I avoid memory errors?
 If your environment is using many dask workers, it may be using more memory
 than it needs to be using. See the "Why is SatPy slow on my powerful machine?"
 question above for more information on changing SatPy's memory usage.
+
+Reducing GDAL output size?
+--------------------------
+
+Sometimes GDAL-based products, like geotiffs, can be much larger than expected.
+This can be caused by GDAL's internal memory caching conflicting with dask's
+chunking of the data arrays. Modern versions of GDAL default to using 5% of
+available memory for holding on to data before compressing it and writing it
+to disk. On more powerful systems (~128GB of memory) this is usually not a
+problem. However, on low memory systems this may mean that GDAL is only
+compressing a small amount of data before writing it to disk. This results
+in poor compression and large overhead from the many small compressed areas.
+One solution is to increase the chunk size used by dask but this can result
+in poor performance during computation. Another solution is to increase
+``GDAL_CACHEMAX``, an environment variable that GDAL uses. This defaults to
+``"5%"``, but can be increased::
+
+    export GDAL_CACHEMAX="15%"
+
+For more information see
+`GDAL's documentation <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_CACHEMAX>`_.
