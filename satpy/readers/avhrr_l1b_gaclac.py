@@ -59,12 +59,11 @@ class GACLACFile(BaseFileHandler):
                                           filename_info['end_time'].time())
         if self._end_time < self._start_time:
             self._end_time += timedelta(days=1)
+        self.platform_id = filename_info['platform_id']
 
     def get_dataset(self, key, info):
         if self.reader is None:
-            with open(self.filename) as fdes:
-                data = fdes.read(3)
-            if data in ["CMS", "NSS", "UKM", "DSS"]:
+            if self.platform_id in ['NK', 'NL', 'NM', 'NN', 'NP']:
                 reader = GACKLMReader
                 self.chn_dict = AVHRR3_CHANNEL_NAMES
             else:
