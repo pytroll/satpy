@@ -159,9 +159,10 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                 # Get satellite position in cartesian coordinates
                 x, y, z = self._get_satpos_cart()
 
-                # Transform to WGS84 coordinates
+                # Transform to geodetic coordinates
                 geocent = pyproj.Proj(proj='geocent')
-                latlong = pyproj.Proj(proj='latlong', datum='WGS84')
+                a, b = self.get_earth_radii()
+                latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='meters')
                 lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
             except NoValidNavigationCoefs as err:
                 logger.warning(err)
@@ -219,6 +220,18 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
             return np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0][0]
         except IndexError:
             raise NoValidNavigationCoefs('Unable to find navigation coefficients valid for {}'.format(time))
+
+    def get_earth_radii(self):
+        """Get earth radii from prologue
+
+        Returns:
+            Equatorial radius, polar radius [m]
+        """
+        earth_model = self.prologue['GeometricProcessing']['EarthModel']
+        a = earth_model['EquatorialRadius'] * 1000
+        b = (earth_model['NorthPolarRadius'] +
+             earth_model['SouthPolarRadius']) / 2.0 * 1000
+        return a, b
 
 
 class HRITMSGEpilogueFileHandler(HRITFileHandler):
@@ -329,10 +342,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 2
 
         # Projection
-        b = (earth_model['NorthPolarRadius'] +
-             earth_model['SouthPolarRadius']) / 2.0 * 1000
-        self.mda['projection_parameters'][
-            'a'] = earth_model['EquatorialRadius'] * 1000
+        a, b = self.prologue_.get_earth_radii()
+        self.mda['projection_parameters']['a'] = a
         self.mda['projection_parameters']['b'] = b
         ssp = self.prologue['ImageDescription'][
             'ProjectionDescription']['LongitudeOfSSP']
