@@ -65,5 +65,7 @@ def suite():
     """The test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDec10216))
+    tests = [TestDec10216, TestChebyshev]
+    for test in tests:
+        mysuite.addTest(loader.loadTestsFromTestCase(test))
     return mysuite
