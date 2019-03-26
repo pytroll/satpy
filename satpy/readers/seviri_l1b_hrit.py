@@ -37,6 +37,7 @@ import logging
 from datetime import datetime
 
 import numpy as np
+import pyproj
 
 from pyresample import geometry
 
@@ -147,9 +148,9 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                 self.prologue.update(recarray2dict(impf))
 
     def get_satpos(self):
-        """Get actual satellite position in earth-centered spherical coordinates
+        """Get actual satellite position in geodetic coordinates (WGS-84)
 
-        Returns: Longitude [deg east], Latitude [deg north], Distance from earth centre [m]
+        Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
         if self.satpos is None:
             logger.debug("Computing actual satellite position")
@@ -158,19 +159,16 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                 # Get satellite position in cartesian coordinates
                 x, y, z = self._get_satpos_cart()
 
-                # Transform to spherical coordinates
-                dist = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-                lat = np.arcsin(z / dist)
-                lon = np.arccos(x / dist / np.cos(lat)) * np.sign(y)
-
-                lon = np.rad2deg(lon)
-                lat = np.rad2deg(lat)
+                # Transform to WGS84 coordinates
+                geocent = pyproj.Proj(proj='geocent')
+                latlong = pyproj.Proj(proj='latlong', datum='WGS84')
+                lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
             except NoValidNavigationCoefs as err:
                 logger.warning(err)
-                lon = lat = dist = None
+                lon = lat = alt = None
 
             # Cache results
-            self.satpos = lon, lat, dist
+            self.satpos = lon, lat, alt
 
         return self.satpos
 
@@ -342,13 +340,13 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
 
         # Navigation
-        actual_lon, actual_lat, actual_dist = self.prologue_.get_satpos()
+        actual_lon, actual_lat, actual_alt = self.prologue_.get_satpos()
         self.mda['navigation_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
         self.mda['navigation_parameters']['satellite_nominal_latitude'] = 0.0
         self.mda['navigation_parameters']['satellite_actual_longitude'] = actual_lon
         self.mda['navigation_parameters']['satellite_actual_latitude'] = actual_lat
-        self.mda['navigation_parameters']['satellite_actual_distance'] = actual_dist
+        self.mda['navigation_parameters']['satellite_actual_altitude'] = actual_alt
 
         # Misc
         self.platform_id = self.prologue["SatelliteStatus"][

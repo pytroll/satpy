@@ -109,7 +109,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                     self.reader.mda['navigation_parameters']['satellite_nominal_latitude'] = 0.0
                     self.reader.mda['navigation_parameters']['satellite_actual_longitude'] = 47.5
                     self.reader.mda['navigation_parameters']['satellite_actual_latitude'] = -0.5
-                    self.reader.mda['navigation_parameters']['satellite_actual_distance'] = 42161463.0
+                    self.reader.mda['navigation_parameters']['satellite_actual_altitude'] = 35783328
 
     def test_get_xy_from_linecol(self):
         """Test get_xy_from_linecol."""
@@ -335,7 +335,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
         """Test satellite position in spherical coordinates"""
         get_satpos_cart.return_value = [42078421.37095518, -2611352.744615312, -419828.9699940758]
         lon, lat, dist = self.reader.get_satpos()
-        self.assertTrue(np.allclose(lon, lat, dist), [-3.5511754060136873, -0.5705405726211026, 42161463.02732821])
+        self.assertTrue(np.allclose(lon, lat, dist), [-3.5511754052132387, -0.5711189258438045, 35783328.146167256])
 
         # Test cache
         self.reader.get_satpos()
