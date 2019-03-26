@@ -18,13 +18,10 @@ at the pages listed below.
 Coding guidelines
 =================
 
-SatPy tries to follow
-`PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ style guidelines for
-all of its python code. We also try to limit lines of code to 80 characters
-whenever possible and when it doesn't hurt readability. SatPy follows
-`Google Style Docstrings <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_
-for all code API documentation. When in doubt use the existing code as a
-guide for how coding should be done.
+SatPy is part of `PyTroll <http://pytroll.github.io/>`_,
+and all code should follow the
+`PyTroll coding guidelines and best
+practices <http://pytroll.github.io/guidelines.html>`_.
 
 SatPy currently supports Python 2.7 and 3.4+. All code should be written to
 be compatible with these versions.
