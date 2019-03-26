@@ -699,8 +699,6 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
                                       should map reader names to a list of filenames for that reader.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
-        filter_parameters (dict): Specify loaded file filtering parameters.
-                                  Shortcut for `reader_kwargs['filter_parameters']`.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
         ppp_config_dir (str): The directory containing the configuration files for satpy.
 
