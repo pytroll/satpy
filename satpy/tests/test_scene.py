@@ -168,6 +168,21 @@ class TestScene(unittest.TestCase):
                                                reader_kwargs=None,
                                                )
 
+    def test_create_reader_instances_with_reader_kwargs(self):
+        from satpy.scene import Scene
+        reader = "foo"
+        filenames = ["1", "2", "3"]
+        with mock.patch('satpy.scene.load_readers') as findermock:
+            findermock.return_value = {}
+            reader_kwargs = {'calibration_type': 'gsics'}
+            Scene(reader=reader, filenames=filenames, filter_parameters={'area': 'euron1'},
+                  reader_kwargs=reader_kwargs)
+            self.assertDictEqual(findermock.call_args[1]['reader_kwargs'], reader_kwargs)
+
+            reader_kwargs2 = {'calibration_type': 'gsics', 'filter_parameters': {'area': 'euron1'}}
+            Scene(reader=reader, filenames=filenames, reader_kwargs=reader_kwargs2)
+            self.assertDictEqual(findermock.call_args[1]['reader_kwargs'], reader_kwargs)
+
     def test_iter(self):
         from satpy import Scene
         from xarray import DataArray
