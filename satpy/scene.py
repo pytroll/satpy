@@ -146,6 +146,8 @@ class Scene(MetadataObject):
         if filter_parameters:
             if reader_kwargs is None:
                 reader_kwargs = {}
+            else:
+                reader_kwargs = reader_kwargs.copy()
             reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
