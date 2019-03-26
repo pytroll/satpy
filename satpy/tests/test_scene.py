@@ -86,6 +86,26 @@ class TestScene(unittest.TestCase):
             self.assertEqual(scene.start_time, r.start_time)
             self.assertEqual(scene.end_time, r.end_time)
 
+    def test_init_preserve_reader_kwargs(self):
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader
+        from datetime import datetime
+        with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
+            r = create_fake_reader('fake_reader',
+                                   start_time=datetime(2017, 1, 1, 0, 0, 0),
+                                   end_time=datetime(2017, 1, 1, 1, 0, 0),
+                                   )
+            cri.return_value = {'fake_reader': r}
+            reader_kwargs = {'calibration_type': 'gsics'}
+            scene = satpy.scene.Scene(filenames=['bla'],
+                                      base_dir='bli',
+                                      sensor='fake_sensor',
+                                      filter_parameters={'area': 'euron1'},
+                                      reader_kwargs=reader_kwargs)
+            self.assertIsNot(reader_kwargs, cri.call_args[1]['reader_kwargs'])
+            self.assertEqual(scene.start_time, r.start_time)
+            self.assertEqual(scene.end_time, r.end_time)
+
     def test_init_alone(self):
         from satpy.scene import Scene
         from satpy.config import PACKAGE_CONFIG_PATH
