@@ -272,10 +272,10 @@ composites:
   precipitation_probability:
     compositor: !!python/name:satpy.composites.PrecipCloudsRGB
     prerequisites:
-    - pc_precip_light
-    - pc_precip_moderate
-    - pc_precip_intense
-    - pc_status_flag
+      - pc_precip_light
+      - pc_precip_moderate
+      - pc_precip_intense
+      - pc_status_flag
     standard_name: precipitation_probability
 
   cloudmask:
