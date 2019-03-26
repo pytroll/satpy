@@ -197,9 +197,6 @@ class Scene(MetadataObject):
                                 reader=None,
                                 reader_kwargs=None):
         """Find readers and return their instances."""
-        if reader_kwargs is not None:
-            reader_kwargs = reader_kwargs.copy()
-            reader_kwargs.pop('filter_parameters', None)
         return load_readers(filenames=filenames,
                             reader=reader,
                             reader_kwargs=reader_kwargs,
