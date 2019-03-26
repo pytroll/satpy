@@ -78,6 +78,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                                                                                 'EquatorialRadius': 10}},
                                          'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0}}}
                     prologue.get_satpos.return_value = None, None, None
+                    prologue.get_earth_radii.return_value = None, None
 
                     self.reader = HRITMSGFileHandler(
                         'filename',
@@ -270,6 +271,13 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
         self.reader = HRITMSGPrologueFileHandler()
         self.reader.satpos = None
         self.reader.prologue = {
+            'GeometricProcessing': {
+                'EarthModel': {
+                    'EquatorialRadius': 6378.169,
+                    'NorthPolarRadius': 6356.5838,
+                    'SouthPolarRadius': 6356.5838
+                }
+            },
             'ImageAcquisition': {
                 'PlannedAcquisitionTime': {
                     'TrueRepeatCycleStart': datetime(2006, 1, 1, 12, 15, 9, 304888)
@@ -335,7 +343,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
         """Test satellite position in spherical coordinates"""
         get_satpos_cart.return_value = [42078421.37095518, -2611352.744615312, -419828.9699940758]
         lon, lat, dist = self.reader.get_satpos()
-        self.assertTrue(np.allclose(lon, lat, dist), [-3.5511754052132387, -0.5711189258438045, 35783328.146167256])
+        self.assertTrue(np.allclose(lon, lat, dist), [-3.5511754052132387, -0.5711189258409902, 35783328.146167226])
 
         # Test cache
         self.reader.get_satpos()
