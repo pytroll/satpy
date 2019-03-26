@@ -709,6 +709,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     """
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
+    reader_kwargs_without_filter = reader_kwargs.copy()
+    reader_kwargs_without_filter.pop('filter_parameters', None)
+
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
@@ -749,7 +752,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         if readers_files:
             loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs)
+            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:
