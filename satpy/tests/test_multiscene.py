@@ -267,7 +267,7 @@ class TestMultiSceneSave(unittest.TestCase):
         client_mock.compute.side_effect = lambda x: tuple(v.compute() for v in x)
         client_mock.gather.side_effect = lambda x: x
         with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer, \
-                mock.patch('satpy.multiscene.get_client', mock.Mock(side_effect=ValueError("No client"))) as get_client:
+                mock.patch('satpy.multiscene.get_client', mock.Mock(side_effect=ValueError("No client"))):
             get_writer.return_value = writer_mock
             # force order of datasets by specifying them
             mscn.save_animation(fn, datasets=['ds1', 'ds2', 'ds3'])
