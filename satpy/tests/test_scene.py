@@ -189,19 +189,34 @@ class TestScene(unittest.TestCase):
                                                )
 
     def test_create_reader_instances_with_reader_kwargs(self):
-        from satpy.scene import Scene
-        reader = "foo"
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader
+        from datetime import datetime
         filenames = ["1", "2", "3"]
-        with mock.patch('satpy.scene.load_readers') as findermock:
-            findermock.return_value = {}
-            reader_kwargs = {'calibration_type': 'gsics'}
-            Scene(reader=reader, filenames=filenames, filter_parameters={'area': 'euron1'},
-                  reader_kwargs=reader_kwargs)
-            self.assertDictEqual(findermock.call_args[1]['reader_kwargs'], reader_kwargs)
+        reader_kwargs = {'calibration_type': 'gsics'}
+        filter_parameters = {'area': 'euron1'}
+        reader_kwargs2 = {'calibration_type': 'gsics', 'filter_parameters': filter_parameters}
 
-            reader_kwargs2 = {'calibration_type': 'gsics', 'filter_parameters': {'area': 'euron1'}}
-            Scene(reader=reader, filenames=filenames, reader_kwargs=reader_kwargs2)
-            self.assertDictEqual(findermock.call_args[1]['reader_kwargs'], reader_kwargs)
+        with mock.patch('satpy.readers.load_reader') as lr_mock:
+            r = create_fake_reader('fake_reader',
+                                   start_time=datetime(2017, 1, 1, 0, 0, 0),
+                                   end_time=datetime(2017, 1, 1, 1, 0, 0),
+                                   )
+            lr_mock.return_value = r
+            r.select_path_from_pathnames.return_value = filenames
+            scene = satpy.scene.Scene(filenames=['bla'],
+                                      base_dir='bli',
+                                      sensor='fake_sensor',
+                                      filter_parameters={'area': 'euron1'},
+                                      reader_kwargs=reader_kwargs)
+            del scene
+            self.assertDictEqual(reader_kwargs, r.create_filehandlers.call_args[1]['fh_kwargs'])
+            scene = satpy.scene.Scene(filenames=['bla'],
+                                      base_dir='bli',
+                                      sensor='fake_sensor',
+                                      reader_kwargs=reader_kwargs2)
+            self.assertDictEqual(reader_kwargs, r.create_filehandlers.call_args[1]['fh_kwargs'])
+            del scene
 
     def test_iter(self):
         from satpy import Scene
