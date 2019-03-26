@@ -33,6 +33,7 @@ from pygac.gac_klm import GACKLMReader
 from pygac.gac_pod import GACPODReader
 import xarray as xr
 import dask.array as da
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
@@ -53,25 +54,22 @@ class GACLACFile(BaseFileHandler):
 
         self.reader = None
         self.channels = None
-        self.chn_dict = None
         self._start_time = filename_info['start_time']
         self._end_time = datetime.combine(filename_info['start_time'].date(),
                                           filename_info['end_time'].time())
         if self._end_time < self._start_time:
             self._end_time += timedelta(days=1)
+        self.platform_id = filename_info['platform_id']
+        if self.platform_id in ['NK', 'NL', 'NM', 'NN', 'NP']:
+            self.reader_class = GACKLMReader
+            self.chn_dict = AVHRR3_CHANNEL_NAMES
+        else:
+            self.reader_class = GACPODReader
+            self.chn_dict = AVHRR_CHANNEL_NAMES
 
     def get_dataset(self, key, info):
         if self.reader is None:
-            with open(self.filename) as fdes:
-                data = fdes.read(3)
-            if data in ["CMS", "NSS", "UKM", "DSS"]:
-                reader = GACKLMReader
-                self.chn_dict = AVHRR3_CHANNEL_NAMES
-            else:
-                reader = GACPODReader
-                self.chn_dict = AVHRR_CHANNEL_NAMES
-
-            self.reader = reader()
+            self.reader = self.reader_class()
             self.reader.read(self.filename)
 
         if key.name in ['latitude', 'longitude']:
@@ -79,17 +77,18 @@ class GACLACFile(BaseFileHandler):
                 # self.reader.get_lonlat(clock_drift_adjust=False)
                 self.reader.get_lonlat()
             if key.name == 'latitude':
-                return xr.DataArray(da.from_array(self.reader.lats, chunks=1000),
-                                    dims=['y', 'x'], attrs=info)
+                data = self.reader.lats
             else:
-                return xr.DataArray(da.from_array(self.reader.lons, chunks=1000),
-                                    dims=['y', 'x'], attrs=info)
+                data = self.reader.lons
+        else:
+            if self.channels is None:
+                self.channels = self.reader.get_calibrated_channels()
 
-        if self.channels is None:
-            self.channels = self.reader.get_calibrated_channels()
+            data = self.channels[:, :, self.chn_dict[key.name]]
 
-        data = self.channels[:, :, self.chn_dict[key.name]]
-        return xr.DataArray(da.from_array(data, chunks=1000),
+        chunk_cols = data.shape[1]
+        chunk_lines = int((CHUNK_SIZE ** 2) / chunk_cols)
+        return xr.DataArray(da.from_array(data, chunks=(chunk_lines, chunk_cols)),
                             dims=['y', 'x'], attrs=info)
 
     @property
