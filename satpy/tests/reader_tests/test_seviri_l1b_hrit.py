@@ -356,6 +356,16 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
             'TrueRepeatCycleStart'] = datetime(2000, 1, 1)
         self.assertTupleEqual(self.reader.get_satpos(), (None, None, None))
 
+    def test_get_earth_radii(self):
+        """Test readout of earth radii"""
+        earth_model = self.reader.prologue['GeometricProcessing']['EarthModel']
+        earth_model['EquatorialRadius'] = 2
+        earth_model['NorthPolarRadius'] = 1
+        earth_model['SouthPolarRadius'] = 2
+        a, b = self.reader.get_earth_radii()
+        self.assertEqual(a, 2000)
+        self.assertEqual(b, 1500)
+
 
 class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
     """Test the HRIT epilogue file handler."""
