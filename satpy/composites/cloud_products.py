@@ -28,6 +28,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.composites import ColormapCompositor
+from satpy.composites import GenericCompositor
 
 
 class CloudTopHeightCompositor(ColormapCompositor):
