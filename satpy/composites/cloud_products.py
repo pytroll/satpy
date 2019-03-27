@@ -81,7 +81,7 @@ class CloudTopHeightCompositor(ColormapCompositor):
 class PrecipCloudsRGB(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
-        """Make an RGB image out of the three probability categories of the NWCSAF precip product"""
+        """Make an RGB image out of the three probability categories of the NWCSAF precip product."""
 
         projectables = self.check_areas(projectables)
         light = projectables[0]
