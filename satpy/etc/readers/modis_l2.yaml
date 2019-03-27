@@ -1,0 +1,36 @@
+reader:
+  default_datasets: [cloud_mask]
+  description: MODIS HDF-EOS Cloud Mask Reader
+  name: modis_l2
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [modis]
+
+file_types:
+  hdf:
+    file_patterns:
+    - 'M{platform_indicator:1s}D35_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
+
+datasets:
+  cloud_mask:
+    name: cloud_mask
+    resolution: [1000]
+    byte: 0
+    bits: [1, 2]
+    file_key: Cloud_Mask
+    file_type: hdf
+
+  longitude:
+    name: longitude
+    units: degree
+    resolution: [1000, 5000]
+    file_key: Longitude
+    file_type: hdf
+
+  latitude:
+    name: latitude
+    units: degree
+    resolution: [1000, 5000]
+    file_key: Latitude
+    file_type: hdf
+
