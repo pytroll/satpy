@@ -37,6 +37,7 @@ import logging
 from datetime import datetime
 
 import numpy as np
+import pyproj
 
 from pyresample import geometry
 
@@ -46,8 +47,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
 
-from satpy.readers.seviri_base import SEVIRICalibrationHandler
-from satpy.readers.seviri_base import (CHANNEL_NAMES, CALIB, SATNUM)
+from satpy.readers.seviri_base import SEVIRICalibrationHandler, chebyshev
+from satpy.readers.seviri_base import (CHANNEL_NAMES, VIS_CHANNELS, CALIB, SATNUM)
 
 from satpy.readers.seviri_l1b_native_hdr import (hrit_prologue, hrit_epilogue,
                                                  impf_configuration)
@@ -106,11 +107,16 @@ cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
 
 
+class NoValidNavigationCoefs(Exception):
+    pass
+
+
 class HRITMSGPrologueFileHandler(HRITFileHandler):
     """SEVIRI HRIT prologue reader.
     """
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
+                 ext_calib_coefs=None):
         """Initialize the reader."""
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -119,6 +125,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                                                           msg_text_headers))
         self.prologue = {}
         self.read_prologue()
+        self.satpos = None
 
         service = filename_info['service']
         if service == '':
@@ -140,12 +147,99 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
             else:
                 self.prologue.update(recarray2dict(impf))
 
+    def get_satpos(self):
+        """Get actual satellite position in geodetic coordinates (WGS-84)
+
+        Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
+        """
+        if self.satpos is None:
+            logger.debug("Computing actual satellite position")
+
+            try:
+                # Get satellite position in cartesian coordinates
+                x, y, z = self._get_satpos_cart()
+
+                # Transform to geodetic coordinates
+                geocent = pyproj.Proj(proj='geocent')
+                a, b = self.get_earth_radii()
+                latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='meters')
+                lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
+            except NoValidNavigationCoefs as err:
+                logger.warning(err)
+                lon = lat = alt = None
+
+            # Cache results
+            self.satpos = lon, lat, alt
+
+        return self.satpos
+
+    def _get_satpos_cart(self):
+        """Determine satellite position in earth-centered cartesion coordinates
+
+        The coordinates as a function of time are encoded in the coefficients of an 8th-order Chebyshev polynomial.
+        In the prologue there is one set of coefficients for each coordinate (x, y, z). The coordinates are obtained by
+        evalutaing the polynomials at the start time of the scan.
+
+        Returns: x, y, z [m]
+        """
+        orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
+
+        # Find Chebyshev coefficients for the given time
+        coef_idx = self._find_navigation_coefs()
+        tstart = orbit_polynomial['StartTime'][0, coef_idx]
+        tend = orbit_polynomial['EndTime'][0, coef_idx]
+
+        # Obtain cartesian coordinates (x, y, z) of the satellite by evaluating the Chebyshev polynomial at the
+        # start time of the scan. Express timestamps in microseconds since 1970-01-01 00:00.
+        time = self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart']
+        time64 = np.datetime64(time).astype('int64')
+        domain = [np.datetime64(tstart).astype('int64'),
+                  np.datetime64(tend).astype('int64')]
+        x = chebyshev(coefs=orbit_polynomial['X'][coef_idx], time=time64, domain=domain)
+        y = chebyshev(coefs=orbit_polynomial['Y'][coef_idx], time=time64, domain=domain)
+        z = chebyshev(coefs=orbit_polynomial['Z'][coef_idx], time=time64, domain=domain)
+
+        return x*1000, y*1000, z*1000  # km -> m
+
+    def _find_navigation_coefs(self):
+        """Find navigation coefficients for the current time
+
+        The navigation Chebyshev coefficients are only valid for a certain time interval. The header entry
+        SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients for multiple time intervals. Find the
+        coefficients which are valid for the nominal timestamp of the scan.
+
+        Returns: Corresponding index in the coefficient list.
+        """
+        # Find index of interval enclosing the nominal timestamp of the scan
+        time = np.datetime64(self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart'])
+        intervals_tstart = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['StartTime'][0].astype(
+            'datetime64')
+        intervals_tend = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['EndTime'][0].astype(
+            'datetime64')
+        try:
+            return np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0][0]
+        except IndexError:
+            raise NoValidNavigationCoefs('Unable to find navigation coefficients valid for {}'.format(time))
+
+    def get_earth_radii(self):
+        """Get earth radii from prologue
+
+        Returns:
+            Equatorial radius, polar radius [m]
+        """
+        earth_model = self.prologue['GeometricProcessing']['EarthModel']
+        a = earth_model['EquatorialRadius'] * 1000
+        b = (earth_model['NorthPolarRadius'] +
+             earth_model['SouthPolarRadius']) / 2.0 * 1000
+        return a, b
+
 
 class HRITMSGEpilogueFileHandler(HRITFileHandler):
     """SEVIRI HRIT epilogue reader.
     """
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
+                 ext_calib_coefs=None):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -172,10 +266,55 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     """SEVIRI HRIT format reader
-    """
 
+    It is possible to choose between two file-internal calibration coefficients for the conversion
+    from counts to radiances:
+
+        - Nominal for all channels (default)
+        - GSICS for IR channels and nominal for VIS channels
+
+    In order to change the default behaviour, use the ``reader_kwargs`` upon Scene creation::
+
+        import satpy
+        import glob
+
+        filenames = glob.glob('H-000-MSG3*')
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'calib_mode': 'GSICS'})
+        scene.load(['VIS006', 'IR_108'])
+
+    Furthermore, it is possible to specify external calibration coefficients for the conversion from
+    counts to radiances. They must be specified in [mW m-2 sr-1 (cm-1)-1]. External coefficients
+    take precedence over internal coefficients. If external calibration coefficients are specified
+    for only a subset of channels, the remaining channels will be calibrated using the chosen
+    file-internal coefficients (nominal or GSICS).
+
+    In the following example we use external calibration coefficients for the ``VIS006`` &
+    ``IR_108`` channels, and nominal coefficients for the remaining channels::
+
+        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'ext_calib_coefs': coefs})
+        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+    In the next example we use we use external calibration coefficients for the ``VIS006`` &
+    ``IR_108`` channels, nominal coefficients for the remaining VIS channels and GSICS coefficients
+    for the remaining IR channels::
+
+        coefs = {'VIS006': {'gain': 0.0236, 'offset': -1.20},
+                 'IR_108': {'gain': 0.2156, 'offset': -10.4}}
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'calib_mode': 'GSICS',
+                                           'ext_calib_coefs': coefs})
+        scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
+
+    """
     def __init__(self, filename, filename_info, filetype_info,
-                 prologue, epilogue):
+                 prologue, epilogue, calib_mode='nominal', ext_calib_coefs=None):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -183,9 +322,16 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                                   msg_variable_length_headers,
                                                   msg_text_headers))
 
+        self.prologue_ = prologue
         self.prologue = prologue.prologue
         self.epilogue = epilogue.epilogue
         self._filename_info = filename_info
+        self.ext_calib_coefs = ext_calib_coefs if ext_calib_coefs is not None else {}
+        calib_mode_choices = ('NOMINAL', 'GSICS')
+        if calib_mode.upper() not in calib_mode_choices:
+            raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
+                calib_mode, calib_mode_choices))
+        self.calib_mode = calib_mode.upper()
 
         self._get_header()
 
@@ -194,15 +340,26 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
         self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 2
-        b = (earth_model['NorthPolarRadius'] +
-             earth_model['SouthPolarRadius']) / 2.0 * 1000
-        self.mda['projection_parameters'][
-            'a'] = earth_model['EquatorialRadius'] * 1000
+
+        # Projection
+        a, b = self.prologue_.get_earth_radii()
+        self.mda['projection_parameters']['a'] = a
         self.mda['projection_parameters']['b'] = b
         ssp = self.prologue['ImageDescription'][
             'ProjectionDescription']['LongitudeOfSSP']
         self.mda['projection_parameters']['SSP_longitude'] = ssp
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
+
+        # Navigation
+        actual_lon, actual_lat, actual_alt = self.prologue_.get_satpos()
+        self.mda['navigation_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
+            'SatelliteDefinition']['NominalLongitude']
+        self.mda['navigation_parameters']['satellite_nominal_latitude'] = 0.0
+        self.mda['navigation_parameters']['satellite_actual_longitude'] = actual_lon
+        self.mda['navigation_parameters']['satellite_actual_latitude'] = actual_lat
+        self.mda['navigation_parameters']['satellite_actual_altitude'] = actual_alt
+
+        # Misc
         self.platform_id = self.prologue["SatelliteStatus"][
             "SatelliteDefinition"]["SatelliteId"]
         self.platform_name = "Meteosat-" + SATNUM[self.platform_id]
@@ -351,6 +508,11 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['satellite_latitude'] = self.mda[
             'projection_parameters']['SSP_latitude']
         res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
+        res.attrs['projection'] = {'satellite_longitude': self.mda['projection_parameters']['SSP_longitude'],
+                                   'satellite_latitude': self.mda['projection_parameters']['SSP_latitude'],
+                                   'satellite_altitude': self.mda['projection_parameters']['h']}
+        res.attrs['navigation'] = self.mda['navigation_parameters'].copy()
+
         return res
 
     def calibrate(self, data, calibration):
@@ -361,11 +523,24 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         if calibration == 'counts':
             res = data
         elif calibration in ['radiance', 'reflectance', 'brightness_temperature']:
+            # Choose calibration coefficients
+            # a) Internal: Nominal or GSICS?
+            band_idx = self.mda['spectral_channel_id'] - 1
+            if self.calib_mode != 'GSICS' or self.channel_name in VIS_CHANNELS:
+                # you cant apply GSICS values to the VIS channels
+                coefs = self.prologue["RadiometricProcessing"]["Level15ImageCalibration"]
+                int_gain = coefs['CalSlope'][band_idx]
+                int_offset = coefs['CalOffset'][band_idx]
+            else:
+                coefs = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
+                int_gain = coefs['GSICSCalCoeff'][band_idx]
+                int_offset = coefs['GSICSOffsetCount'][band_idx]
 
-            coeffs = self.prologue["RadiometricProcessing"]
-            coeffs = coeffs["Level15ImageCalibration"]
-            gain = coeffs['CalSlope'][self.mda['spectral_channel_id'] - 1]
-            offset = coeffs['CalOffset'][self.mda['spectral_channel_id'] - 1]
+            # b) Internal or external? External takes precedence.
+            gain = self.ext_calib_coefs.get(self.channel_name, {}).get('gain', int_gain)
+            offset = self.ext_calib_coefs.get(self.channel_name, {}).get('offset', int_offset)
+
+            # Convert to radiance
             data = data.where(data > 0)
             res = self._convert_to_radiance(data.astype(np.float32), gain, offset)
             line_mask = self.mda['image_segment_line_quality']['line_validity'] >= 2

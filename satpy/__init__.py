@@ -40,6 +40,9 @@ DEFAULT_CALIBRATION_ORDER = [
     'reflectance',
     'radiance',
     'counts',
+    'gamma',
+    'sigma_nought',
+    'beta_nought',
 ]
 CALIBRATION_ORDER = os.getenv('PYTROLL_CALIBRATION_ORDER', None)
 if CALIBRATION_ORDER is None:

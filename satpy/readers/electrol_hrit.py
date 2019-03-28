@@ -305,6 +305,10 @@ class HRITGOMSFileHandler(HRITFileHandler):
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
 
+    @staticmethod
+    def _getitem(block, lut):
+        return lut[block]
+
     def _calibrate(self, data):
         """Visible/IR channel calibration."""
         lut = self.prologue['ImageCalibration'][self.chid]
@@ -315,7 +319,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         lut /= 1000
         lut[0] = np.nan
         # Dask/XArray don't support indexing in 2D (yet).
-        res = data.data.map_blocks(lambda block: lut[block], dtype=lut.dtype)
+        res = data.data.map_blocks(self._getitem, dtype=lut.dtype)
         res = xr.DataArray(res, dims=data.dims,
                            attrs=data.attrs, coords=data.coords)
         res = res.where(data > 0)

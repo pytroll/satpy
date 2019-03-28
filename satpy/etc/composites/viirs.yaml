@@ -37,7 +37,7 @@ modifiers:
       modifiers: [sunz_corrected_iband]
     optional_prerequisites:
     - name: satellite_azimuth_angle
-      resolution: 371    
+      resolution: 371
     - name: satellite_zenith_angle
       resolution: 371
     - name: solar_azimuth_angle
@@ -55,7 +55,7 @@ modifiers:
       modifiers: [sunz_corrected]
     optional_prerequisites:
     - name: satellite_azimuth_angle
-      resolution: 742    
+      resolution: 742
     - name: satellite_zenith_angle
       resolution: 742
     - name: solar_azimuth_angle
@@ -73,7 +73,7 @@ modifiers:
       modifiers: [sunz_corrected]
     optional_prerequisites:
     - name: satellite_azimuth_angle
-      resolution: 742    
+      resolution: 742
     - name: satellite_zenith_angle
       resolution: 742
     - name: solar_azimuth_angle
@@ -91,7 +91,7 @@ modifiers:
       modifiers: [sunz_corrected]
     optional_prerequisites:
     - name: satellite_azimuth_angle
-      resolution: 742    
+      resolution: 742
     - name: satellite_zenith_angle
       resolution: 742
     - name: solar_azimuth_angle
@@ -460,3 +460,18 @@ composites:
     - name: M11
       modifiers: [sunz_corrected]
     standard_name: snow_age
+
+  ocean_color:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+    - name: M05
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: M04
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: M03
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    optional_prerequisites:
+    - name: I01
+      modifiers: [sunz_corrected_iband, rayleigh_corrected_iband]
+    standard_name: ocean_color
+    high_resolution_band: red

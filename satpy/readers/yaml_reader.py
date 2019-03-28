@@ -26,15 +26,20 @@ import glob
 import itertools
 import logging
 import os
+import warnings
 from abc import ABCMeta, abstractmethod, abstractproperty
 from collections import deque, OrderedDict
 from fnmatch import fnmatch
-import warnings
+from weakref import WeakValueDictionary
 
 import six
 import xarray as xr
 import yaml
-from weakref import WeakValueDictionary
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
@@ -89,7 +94,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         self.config_files = config_files
         for config_file in config_files:
             with open(config_file) as fd:
-                self.config = recursive_dict_update(self.config, yaml.load(fd))
+                self.config = recursive_dict_update(self.config, yaml.load(fd, Loader=UnsafeLoader))
 
         self.info = self.config['reader']
         self.name = self.info['name']
@@ -383,10 +388,14 @@ class FileYAMLReader(AbstractYAMLReader):
                 matched_files.append(filename)
                 yield filename, filename_info
 
-    def new_filehandler_instances(self, filetype_info, filename_items):
+    def new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
         """Generate new filehandler instances."""
         requirements = filetype_info.get('requires')
         filetype_cls = filetype_info['file_reader']
+
+        if fh_kwargs is None:
+            fh_kwargs = {}
+
         for filename, filename_info in filename_items:
             try:
                 req_fh = self.find_required_filehandlers(requirements,
@@ -400,7 +409,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 warnings.warn(str(err) + ' for {}'.format(filename))
                 continue
 
-            yield filetype_cls(filename, filename_info, filetype_info, *req_fh)
+            yield filetype_cls(filename, filename_info, filetype_info, *req_fh, **fh_kwargs)
 
     def time_matches(self, fstart, fend):
         start_time = self.filter_parameters.get('start_time')
@@ -473,7 +482,7 @@ class FileYAMLReader(AbstractYAMLReader):
             for fn, _ in filename_iter:
                 yield fn
 
-    def new_filehandlers_for_filetype(self, filetype_info, filenames):
+    def new_filehandlers_for_filetype(self, filetype_info, filenames, fh_kwargs=None):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
@@ -482,27 +491,30 @@ class FileYAMLReader(AbstractYAMLReader):
             # to reduce the number of files to open
             filename_iter = self.filter_filenames_by_info(filename_iter)
         filehandler_iter = self.new_filehandler_instances(filetype_info,
-                                                          filename_iter)
+                                                          filename_iter,
+                                                          fh_kwargs=fh_kwargs)
         filtered_iter = self.filter_fh_by_metadata(filehandler_iter)
         return list(filtered_iter)
 
-    def create_filehandlers(self, filenames):
+    def create_filehandlers(self, filenames, fh_kwargs=None):
         """Organize the filenames into file types and create file handlers."""
         filenames = list(OrderedDict.fromkeys(filenames))
         logger.debug("Assigning to %s: %s", self.info['name'], filenames)
 
         self.info.setdefault('filenames', []).extend(filenames)
         filename_set = set(filenames)
-
+        created_fhs = {}
         # load files that we know about by creating the file handlers
         for filetype, filetype_info in self.sorted_filetype_items():
             filehandlers = self.new_filehandlers_for_filetype(filetype_info,
-                                                              filename_set)
+                                                              filename_set,
+                                                              fh_kwargs=fh_kwargs)
 
             filename_set -= set([fhd.filename for fhd in filehandlers])
             if filehandlers:
+                created_fhs[filetype] = filehandlers
                 self.file_handlers[filetype] = sorted(
-                    filehandlers,
+                    self.file_handlers.get(filetype, []) + filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
         # update existing dataset IDs with information from the file handler
@@ -510,6 +522,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         # load any additional dataset IDs determined dynamically from the file
         self.add_ds_ids_from_files()
+        return created_fhs
 
     def update_ds_ids_from_file_handlers(self):
         """Update DatasetIDs with information from loaded files.

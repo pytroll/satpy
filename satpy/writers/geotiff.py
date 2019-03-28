@@ -27,26 +27,23 @@ import logging
 
 import dask
 import numpy as np
-from osgeo import gdal, osr
 
 from satpy.utils import ensure_dir
 from satpy.writers import ImageWriter
 
+try:
+    import rasterio
+    gdal = osr = None
+except ImportError as r_exc:
+    try:
+        # fallback to legacy gdal writer
+        from osgeo import gdal, osr
+        rasterio = None
+    except ImportError:
+        # raise the original rasterio exception
+        raise r_exc
+
 LOG = logging.getLogger(__name__)
-
-
-# Map numpy data types to GDAL data types
-NP2GDAL = {
-    np.float32: gdal.GDT_Float32,
-    np.float64: gdal.GDT_Float64,
-    np.uint8: gdal.GDT_Byte,
-    np.uint16: gdal.GDT_UInt16,
-    np.uint32: gdal.GDT_UInt32,
-    np.int16: gdal.GDT_Int16,
-    np.int32: gdal.GDT_Int32,
-    np.complex64: gdal.GDT_CFloat32,
-    np.complex128: gdal.GDT_CFloat64,
-}
 
 
 class GeoTIFFWriter(ImageWriter):
@@ -59,6 +56,9 @@ class GeoTIFFWriter(ImageWriter):
     Un-enhanced float geotiff with NaN for fill values:
 
         scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
+
+    For performance tips on creating geotiffs quickly and making them smaller
+    see the :doc:`faq`.
 
     """
 
@@ -157,7 +157,7 @@ class GeoTIFFWriter(ImageWriter):
 
             # Create raster GeoTransform based on upper left corner and pixel
             # resolution ... if not overwritten by argument geotransform.
-            if "area" is None:
+            if area is None:
                 LOG.warning("No 'area' metadata found in image")
             else:
                 self._gdal_write_geo(dst_ds, area)
@@ -177,11 +177,38 @@ class GeoTIFFWriter(ImageWriter):
 
     def save_image(self, img, filename=None, dtype=None, fill_value=None,
                    floating_point=None, compute=True, **kwargs):
-        """Save the image to the given *filename* in geotiff_ format.
-        `floating_point` allows the saving of
-        'L' mode images in floating point format if set to True.
+        """Save the image to the given ``filename`` in geotiff_ format.
+
+        Note for faster output and reduced memory usage the ``rasterio``
+        library must be installed. This writer currently falls back to
+        using ``gdal`` directly, but that will be deprecated in the future.
+
+        Args:
+            img (xarray.DataArray): Data to save to geotiff.
+            filename (str): Filename to save the image to. Defaults to
+                ``filename`` passed during writer creation. Unlike the
+                creation ``filename`` keyword argument, this filename does not
+                get formatted with data attributes.
+            dtype (numpy.dtype): Numpy data type to save the image as.
+                Defaults to 8-bit unsigned integer (``np.uint8``). If the
+                ``dtype`` argument is provided during writer creation then
+                that will be used as the default.
+            fill_value (int or float): Value to use where data values are
+                NaN/null. If this is specified in the writer configuration
+                file that value will be used as the default.
+            floating_point (bool): Deprecated. Use ``dtype=np.float64``
+                instead.
+            compute (bool): Compute dask arrays and save the image
+                immediately. If ``False`` then the return value can be passed
+                to :func:`~satpy.writers.compute_writer_results` to do the
+                computation. This is useful when multiple images may share
+                input calculations where dask can benefit from not repeating
+                them multiple times. Defaults to ``True`` in the writer by
+                itself, but is typically passed as ``False`` by callers where
+                calculations can be combined.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
+
         """
         filename = filename or self.get_filename(**img.data.attrs)
 
@@ -190,6 +217,9 @@ class GeoTIFFWriter(ImageWriter):
         for k in kwargs.keys():
             if k in self.GDAL_OPTIONS:
                 gdal_options[k] = kwargs[k]
+        if fill_value is None:
+            # fall back to fill_value from configuration file
+            fill_value = self.info.get('fill_value')
 
         if floating_point is not None:
             import warnings
@@ -222,6 +252,24 @@ class GeoTIFFWriter(ImageWriter):
         except ImportError:
             LOG.warning("Using legacy/slower geotiff save method, install "
                         "'rasterio' for faster saving.")
+            warnings.warn("Using legacy/slower geotiff save method with 'gdal'."
+                          "This will be deprecated in the future. Install "
+                          "'rasterio' for faster saving and future "
+                          "compatibility.", PendingDeprecationWarning)
+
+            # Map numpy data types to GDAL data types
+            NP2GDAL = {
+                np.float32: gdal.GDT_Float32,
+                np.float64: gdal.GDT_Float64,
+                np.uint8: gdal.GDT_Byte,
+                np.uint16: gdal.GDT_UInt16,
+                np.uint32: gdal.GDT_UInt32,
+                np.int16: gdal.GDT_Int16,
+                np.int32: gdal.GDT_Int32,
+                np.complex64: gdal.GDT_CFloat32,
+                np.complex128: gdal.GDT_CFloat64,
+            }
+
             # force to numpy dtype object
             dtype = np.dtype(dtype)
             gformat = NP2GDAL[dtype.type]

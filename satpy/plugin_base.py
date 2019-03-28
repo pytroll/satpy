@@ -23,7 +23,13 @@
 """
 
 import logging
+
 import yaml
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from satpy.config import config_search_paths, get_environ_config_dir, recursive_dict_update
 
@@ -67,4 +73,4 @@ class Plugin(object):
     def load_yaml_config(self, conf):
         """Load a YAML configuration file and recursively update the overall configuration."""
         with open(conf) as fd:
-            self.config = recursive_dict_update(self.config, yaml.load(fd))
+            self.config = recursive_dict_update(self.config, yaml.load(fd, Loader=UnsafeLoader))
