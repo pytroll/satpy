@@ -64,7 +64,6 @@ composites:
     - name: '2'
       modifiers: [sunz_corrected]
     - name: '31'
-      modifiers: [sunz_corrected]
     standard_name: overview
 
   airmass:
@@ -80,3 +79,28 @@ composites:
         - wavelength: 10.8
     - wavelength: 6.7
     standard_name: airmass
+
+  ocean_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: '1'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: '4'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: '3'
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: ocean_color
+
+  night_fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 12.0
+      - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - 10.8
+      - 3.75
+    - 10.8
+    standard_name: night_fog
