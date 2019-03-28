@@ -34,7 +34,6 @@ import unittest
 
 
 class TestCheckArea(unittest.TestCase):
-
     """Test the utility method 'check_areas'."""
 
     def _get_test_ds(self, shape=(50, 100), dims=('y', 'x')):
@@ -252,6 +251,15 @@ class TestSunZenithCorrector(unittest.TestCase):
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
         res = comp((self.ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        self.assertIn('y', res.coords)
+        self.assertIn('x', res.coords)
+        ds1 = self.ds1.copy()
+        del ds1.coords['y']
+        del ds1.coords['x']
+        res = comp((ds1,), test_attr='test')
+        np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
+        self.assertNotIn('y', res.coords)
+        self.assertNotIn('x', res.coords)
 
     def test_basic_lims_not_provided(self):
         """Test custom limits when SZA isn't provided."""
@@ -547,16 +555,138 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=['value', 'band'])
         palette.attrs['palette_meanings'] = [2, 3, 4]
-        status = np.array([1, 0, 1])
-        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8), dims=['y', 'x'])
+        status = xr.DataArray(np.array([[1, 0, 1], [1, 0, 65535]]), dims=['y', 'x'],
+                              attrs={'_FillValue': 65535})
+        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8),
+                            dims=['y', 'x'])
         res = cmap_comp([data, palette, status])
-        exp = np.array([[[0., 0.498039, 0.],
-                         [0., 0.498039, 0.]],
-                        [[0., 0.498039, 0.],
-                         [0., 0.498039, 0.]],
-                        [[0., 0.498039, 0.],
-                         [0., 0.498039, 0.]]])
-        self.assertTrue(np.allclose(res, exp))
+        exp = np.array([[[0., 0.49803922, 0.],
+                         [0., 0.49803922, np.nan]],
+                        [[0., 0.49803922, 0.],
+                         [0., 0.49803922, np.nan]],
+                        [[0., 0.49803922, 0.],
+                         [0., 0.49803922, np.nan]]])
+        np.testing.assert_allclose(res, exp)
+
+
+class TestGenericCompositor(unittest.TestCase):
+    """Test generic compositor."""
+
+    def setUp(self):
+        """Create test data."""
+        from satpy.composites import GenericCompositor
+        self.comp = GenericCompositor(name='test')
+        self.comp2 = GenericCompositor(name='test2', common_channel_mask=False)
+
+        all_valid = np.ones((1, 2, 2))
+        self.all_valid = xr.DataArray(all_valid, dims=['bands', 'y', 'x'])
+        first_invalid = np.reshape(np.array([np.nan, 1., 1., 1.]), (1, 2, 2))
+        self.first_invalid = xr.DataArray(first_invalid,
+                                          dims=['bands', 'y', 'x'])
+        second_invalid = np.reshape(np.array([1., np.nan, 1., 1.]), (1, 2, 2))
+        self.second_invalid = xr.DataArray(second_invalid,
+                                           dims=['bands', 'y', 'x'])
+        wrong_shape = np.reshape(np.array([1., 1., 1.]), (1, 3, 1))
+        self.wrong_shape = xr.DataArray(wrong_shape, dims=['bands', 'y', 'x'])
+
+    def test_masking(self):
+        """Test masking in generic compositor."""
+        # Single channel
+        res = self.comp([self.all_valid])
+        np.testing.assert_allclose(res.data, 1., atol=1e-9)
+        # Three channels, one value invalid
+        res = self.comp([self.all_valid, self.all_valid, self.first_invalid])
+        correct = np.reshape(np.array([np.nan, 1., 1., 1.]), (2, 2))
+        for i in range(3):
+            np.testing.assert_almost_equal(res.data[i, :, :], correct)
+        # Three channels, two values invalid
+        res = self.comp([self.all_valid, self.first_invalid, self.second_invalid])
+        correct = np.reshape(np.array([np.nan, np.nan, 1., 1.]), (2, 2))
+        for i in range(3):
+            np.testing.assert_almost_equal(res.data[i, :, :], correct)
+
+    def test_concat_datasets(self):
+        """Test concatenation of datasets."""
+        from satpy.composites import IncompatibleAreas
+        res = self.comp._concat_datasets([self.all_valid], 'L')
+        num_bands = len(res.bands)
+        self.assertEqual(num_bands, 1)
+        self.assertEqual(res.shape[0], num_bands)
+        self.assertTrue(res.bands[0] == 'L')
+        res = self.comp._concat_datasets([self.all_valid, self.all_valid], 'LA')
+        num_bands = len(res.bands)
+        self.assertEqual(num_bands, 2)
+        self.assertEqual(res.shape[0], num_bands)
+        self.assertTrue(res.bands[0] == 'L')
+        self.assertTrue(res.bands[1] == 'A')
+        self.assertRaises(IncompatibleAreas, self.comp._concat_datasets,
+                          [self.all_valid, self.wrong_shape], 'LA')
+
+    def test_get_sensors(self):
+        """Test getting sensors from the dataset attributes."""
+        res = self.comp._get_sensors([self.all_valid])
+        self.assertIsNone(res)
+        dset1 = self.all_valid
+        dset1.attrs['sensor'] = 'foo'
+        res = self.comp._get_sensors([dset1])
+        self.assertEqual(res, 'foo')
+        dset2 = self.first_invalid
+        dset2.attrs['sensor'] = 'bar'
+        res = self.comp._get_sensors([dset1, dset2])
+        self.assertTrue('foo' in res)
+        self.assertTrue('bar' in res)
+        self.assertEqual(len(res), 2)
+        self.assertTrue(isinstance(res, set))
+
+    @mock.patch('satpy.composites.GenericCompositor._get_sensors')
+    @mock.patch('satpy.composites.combine_metadata')
+    @mock.patch('satpy.composites.check_times')
+    @mock.patch('satpy.composites.GenericCompositor.check_areas')
+    def test_call_with_mock(self, check_areas, check_times, combine_metadata, get_sensors):
+        """Test calling generic compositor"""
+        from satpy.composites import IncompatibleAreas
+        combine_metadata.return_value = dict()
+        get_sensors.return_value = 'foo'
+        # One dataset, no mode given
+        res = self.comp([self.all_valid])
+        self.assertEqual(res.shape[0], 1)
+        self.assertEqual(res.attrs['mode'], 'L')
+        check_areas.assert_not_called()
+        # This compositor has been initialized without common masking, so the
+        # masking shouldn't have been called
+        projectables = [self.all_valid, self.first_invalid, self.second_invalid]
+        check_areas.return_value = projectables
+        res = self.comp2(projectables)
+        check_areas.assert_called_once()
+        check_areas.reset_mock()
+        # Dataset for alpha given, so shouldn't be masked
+        projectables = [self.all_valid, self.all_valid]
+        check_areas.return_value = projectables
+        res = self.comp(projectables)
+        check_areas.assert_called_once()
+        check_areas.reset_mock()
+        # When areas are incompatible, masking shouldn't happen
+        check_areas.side_effect = IncompatibleAreas()
+        self.assertRaises(IncompatibleAreas,
+                          self.comp, [self.all_valid, self.wrong_shape])
+        check_areas.assert_called_once()
+
+    def test_call(self):
+        """Test calling generic compositor"""
+        # Multiple datasets with extra attributes
+        all_valid = self.all_valid
+        all_valid.attrs['sensor'] = 'foo'
+        attrs = {'foo': 'bar'}
+        res = self.comp([self.all_valid, self.first_invalid], **attrs)
+        # Verify attributes
+        self.assertEqual(res.attrs.get('sensor'), 'foo')
+        self.assertTrue('foo' in res.attrs)
+        self.assertEqual(res.attrs.get('foo'), 'bar')
+        self.assertTrue('units' not in res.attrs)
+        self.assertTrue('calibration' not in res.attrs)
+        self.assertTrue('modifiers' not in res.attrs)
+        self.assertIsNone(res.attrs['wavelength'])
+        self.assertEqual(res.attrs['mode'], 'LA')
 
 
 def suite():
@@ -578,6 +708,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestColormapCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPaletteCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestCloudTopHeightCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestGenericCompositor))
 
     return mysuite
 

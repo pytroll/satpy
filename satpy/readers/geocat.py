@@ -200,9 +200,9 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             area_name,
             area_name,
             area_name,
-            proj_dict=proj4_str_to_dict(proj),
-            x_size=lon.shape[1],
-            y_size=lon.shape[0],
+            proj4_str_to_dict(proj),
+            lon.shape[1],
+            lon.shape[0],
             area_extent=extents,
         )
         return area_def

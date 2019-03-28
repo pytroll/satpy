@@ -260,13 +260,13 @@ class HRITJMAFileHandler(HRITFileHandler):
                      'units': 'm'}
 
         area = geometry.AreaDefinition(
-            area_id=AREA_NAMES[self.area_id]['short'],
-            name=AREA_NAMES[self.area_id]['long'],
-            proj_id='geosmsg',
-            proj_dict=proj_dict,
-            x_size=ncols,
-            y_size=nlines,
-            area_extent=area_extent)
+            AREA_NAMES[self.area_id]['short'],
+            AREA_NAMES[self.area_id]['long'],
+            'geosmsg',
+            proj_dict,
+            ncols,
+            nlines,
+            area_extent)
 
         return area
 
@@ -300,6 +300,10 @@ class HRITJMAFileHandler(HRITFileHandler):
         geomask = get_geostationary_mask(area=self.area)
         return data.where(geomask)
 
+    @staticmethod
+    def _interp(arr, cal):
+        return np.interp(arr.ravel(), cal[:, 0], cal[:, 1]).reshape(arr.shape)
+
     def calibrate(self, data, calibration):
         """Calibrate the data."""
         tic = datetime.now()
@@ -310,13 +314,7 @@ class HRITJMAFileHandler(HRITFileHandler):
             raise NotImplementedError("Can't calibrate to radiance.")
         else:
             cal = self.calibration_table
-
-            def interp(arr):
-                return np.interp(arr.ravel(),
-                                 cal[:, 0], cal[:, 1]).reshape(arr.shape)
-
-            res = data.data.map_blocks(interp, dtype=cal[:, 0].dtype)
-
+            res = data.data.map_blocks(self._interp, cal, dtype=cal[:, 0].dtype)
             res = xr.DataArray(res,
                                dims=data.dims, attrs=data.attrs,
                                coords=data.coords)
