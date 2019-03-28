@@ -175,6 +175,9 @@ installation.
     * - SCMI ABI L1B format
       - `abi_l1b_scmi`
       - Beta
+    * - VIRR data in HDF5 format
+      - `virr_l1b`
+      - Beta
 
 Indices and tables
 ==================
