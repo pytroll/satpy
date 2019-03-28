@@ -10,6 +10,8 @@ reader:
   sensors: [abi]
   default_channels:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', 'scene_abbr']
 
 file_types:
     # NOTE: observation_type == product acronym in PUG document

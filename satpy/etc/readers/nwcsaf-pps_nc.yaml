@@ -187,15 +187,53 @@ datasets:
   cpp_phase:
     name: cpp_phase
     file_type: nc_nwcsaf_cpp
+    coordinates: [lon, lat]
 
-  cmic_phase_pal:
+  cpp_phase_pal:
     name: cpp_phase_pal
     file_type: nc_nwcsaf_cpp
 
   cpp_reff:
     name: cpp_reff
     file_type: nc_nwcsaf_cpp
+    coordinates: [lon, lat]
 
   cpp_reff_pal:
     name: cpp_reff_pal
+    file_type: nc_nwcsaf_cpp
+
+  cpp_cot:
+    name: cpp_cot
+    file_type: nc_nwcsaf_cpp
+    coordinates: [lon, lat]
+
+  cpp_cot_pal:
+    name: cpp_cot_pal
+    file_type: nc_nwcsaf_cpp
+
+  cpp_cwp:
+    name: cpp_cwp
+    file_type: nc_nwcsaf_cpp
+    coordinates: [lon, lat]
+
+  cpp_cwp_pal:
+    name: cpp_cwp_pal
+    file_type: nc_nwcsaf_cpp
+
+  cpp_iwp:
+    name: cpp_iwp
+    file_type: nc_nwcsaf_cpp
+    coordinates: [lon, lat]
+
+  cpp_iwp_pal:
+    name: cpp_iwp_pal
+    file_type: nc_nwcsaf_cpp
+
+  cpp_lwp:
+    name: cpp_lwp
+    file_type: nc_nwcsaf_cpp
+    coordinates: [lon, lat]
+
+  cpp_lwp_pal:
+    name: cpp_lwp_pal
     file_type: nc_nwcsaf_cpp

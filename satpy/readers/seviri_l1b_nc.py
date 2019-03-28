@@ -35,10 +35,6 @@ from pyresample import geometry
 import datetime
 
 
-def _time_format(tval):
-    return datetime.datetime.strftime(tval, '%Y-%m-%d %H:%M:%S.%f')
-
-
 class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
@@ -49,11 +45,11 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     @property
     def start_time(self):
-        return (_time_format(self.deltaSt))
+        return self.deltaSt
 
     @property
     def end_time(self):
-        return (_time_format(self.deltaEnd))
+        return self.deltaEnd
 
     def _read_file(self):
         if self.nc is None:

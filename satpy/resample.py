@@ -38,7 +38,7 @@ Resampling algorithms
     "nearest", "Nearest Neighbor", :class:`~satpy.resample.KDTreeResampler`
     "ewa", "Elliptical Weighted Averaging", :class:`~satpy.resample.EWAResampler`
     "native", "Native", :class:`~satpy.resample.NativeResampler`
-    "bilinear", "Bilinear", :class`~satpy.resample.BilinearResampler`
+    "bilinear", "Bilinear", :class:`~satpy.resample.BilinearResampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
@@ -177,7 +177,10 @@ def get_area_def(area_name):
     The file is defined to use is to be placed in the $PPP_CONFIG_DIR
     directory, and its name is defined in satpy's configuration file.
     """
-    from pyresample.utils import parse_area_file
+    try:
+        from pyresample import parse_area_file
+    except ImportError:
+        from pyresample.utils import parse_area_file
     return parse_area_file(get_area_file(), area_name)[0]
 
 
@@ -260,7 +263,11 @@ class BaseResampler(object):
                 geo_dims = ('y', 'x')
             flat_dims = [dim for dim in data.dims if dim not in geo_dims]
             # xarray <= 0.10.1 computes dask arrays during isnull
-            kwargs['mask'] = data.isnull().all(dim=flat_dims)
+            if np.issubdtype(data.dtype, np.integer):
+                kwargs['mask'] = data == data.attrs.get('_FillValue', np.iinfo(data.dtype.type).max)
+            else:
+                kwargs['mask'] = data.isnull()
+            kwargs['mask'] = kwargs['mask'].all(dim=flat_dims)
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
@@ -673,6 +680,14 @@ class BilinearResampler(BaseResampler):
         return res
 
 
+def _mean(data, y_size, x_size):
+    rows, cols = data.shape
+    new_shape = (int(rows / y_size), int(y_size),
+                 int(cols / x_size), int(x_size))
+    data_mean = np.nanmean(data.reshape(new_shape), axis=(1, 3))
+    return data_mean
+
+
 class NativeResampler(BaseResampler):
     """Expand or reduce input datasets to be the same shape.
 
@@ -697,13 +712,6 @@ class NativeResampler(BaseResampler):
     @staticmethod
     def aggregate(d, y_size, x_size):
         """Average every 4 elements (2x2) in a 2D array"""
-        def _mean(data):
-            rows, cols = data.shape
-            new_shape = (int(rows / y_size), int(y_size),
-                         int(cols / x_size), int(x_size))
-            data_mean = np.nanmean(data.reshape(new_shape), axis=(1, 3))
-            return data_mean
-
         if d.ndim != 2:
             # we can't guarantee what blocks we are getting and how
             # it should be reshaped to do the averaging.
@@ -720,7 +728,7 @@ class NativeResampler(BaseResampler):
 
         new_chunks = (tuple(int(x / y_size) for x in d.chunks[0]),
                       tuple(int(x / x_size) for x in d.chunks[1]))
-        return da.core.map_blocks(_mean, d, dtype=d.dtype, chunks=new_chunks)
+        return da.core.map_blocks(_mean, d, y_size, x_size, dtype=d.dtype, chunks=new_chunks)
 
     @classmethod
     def expand_reduce(cls, d_arr, repeats):

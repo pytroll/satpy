@@ -229,6 +229,7 @@ class HRITFileHandler(BaseFileHandler):
                                              'h': 35785831.00,
                                              # FIXME: find a reasonable SSP
                                              'SSP_longitude': 0.0}
+        self.mda['navigation_parameters'] = {}
 
     def get_shape(self, dsid, ds_info):
         return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])
