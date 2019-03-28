@@ -166,6 +166,9 @@ installation.
     * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
       - `maia`
       - Nominal
+    * - VIIRS EDR Active Fires data in NetCDF4 & CSV .txt format
+      - `viirs_edr_active_fires`
+      - Beta
     * - VIIRS EDR Flood data in hdf4 format
       - `viirs_edr_flood`
       - Beta
