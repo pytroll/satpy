@@ -1,3 +1,52 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2016-2018 SatPy developers
+#
+# Author(s):
+#
+#
+#   William Roberts <wroberts4@wisc.edu>
+#   David Hoese <david.hoese@ssec.wisc.edu>
+#
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Interface to VIRR (Visible and Infra-Red Radiometer) level 1b format.
+
+The file format is HDF5. Important attributes:
+
+    - Latitude
+    - Longitude
+    - SolarZenith
+    - EV_Emissive
+    - EV_RefSB
+    - Emissive_Radiance_Offsets
+    - Emissive_Radiance_Scales
+    - RefSB_Cal_Coefficients
+    - RefSB_Effective_Wavelength
+    - Emmisive_Centroid_Wave_Number
+
+Supported satellites:
+
+    - FY-3B and FY-3C.
+
+For more information:
+
+    - https://www.wmo-sat.info/oscar/instruments/view/607.
+
+"""
+
 from datetime import datetime
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
@@ -17,6 +66,7 @@ class VIRR_L1B(HDF5FileHandler):
         self.platform_id = filename_info['platform_id']
         self.l1b_prefix = 'Data/'
         self.wave_number = 'Emissive_Centroid_Wave_Number'
+        # Else filename_info['platform_id'] == FY3C.
         if filename_info['platform_id'] == 'FY3B':
             self.l1b_prefix = ''
             self.wave_number = 'Emmisive_Centroid_Wave_Number'
