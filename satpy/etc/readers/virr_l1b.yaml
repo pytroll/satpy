@@ -2,7 +2,6 @@ reader:
   description: reader for VIRR data
   name: virr_l1b
   sensors: [virr]
-  default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
