@@ -25,7 +25,7 @@
 
 import sys
 import numpy as np
-from satpy.readers.seviri_base import dec10216
+from satpy.readers.seviri_base import dec10216, chebyshev
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -45,9 +45,27 @@ class TestDec10216(unittest.TestCase):
         self.assertTrue(np.all(res == exp))
 
 
+class TestChebyshev(unittest.TestCase):
+    def chebyshev4(self, c, x, domain):
+        """Evaluate 4th order Chebyshev polynomial"""
+        start_x, end_x = domain
+        t = (x - 0.5 * (end_x + start_x)) / (0.5 * (end_x - start_x))
+        return c[0] + c[1]*t + c[2]*(2*t**2 - 1) + c[3]*(4*t**3 - 3*t) - 0.5*c[0]
+
+    def test_chebyshev(self):
+        coefs = [1, 2, 3, 4]
+        time = 123
+        domain = [120, 130]
+        res = chebyshev(coefs=[1, 2, 3, 4], time=time, domain=domain)
+        exp = self.chebyshev4(coefs, time, domain)
+        self.assertTrue(np.allclose(res, exp))
+
+
 def suite():
     """The test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDec10216))
+    tests = [TestDec10216, TestChebyshev]
+    for test in tests:
+        mysuite.addTest(loader.loadTestsFromTestCase(test))
     return mysuite

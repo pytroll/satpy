@@ -33,6 +33,7 @@ installation.
 
     overview
     install
+    data_download
     examples
     quickstart
     readers
@@ -41,8 +42,12 @@ installation.
     writers
     multiscene
     dev_guide/index
-    SatPy API <api/satpy>
 
+.. toctree::
+    :maxdepth: 1
+
+    SatPy API <api/satpy>
+    faq
 
 .. _reader_table:
 

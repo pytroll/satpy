@@ -233,4 +233,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         if factors[0] != 1 or factors[1] != 0:
             data *= factors[0]
             data += factors[1]
+        # rename dimensions to correspond to satpy's 'y' and 'x' standard
+        if 'number_of_lines' in data.dims:
+            data = data.rename({'number_of_lines': 'y', 'number_of_pixels': 'x'})
         return data

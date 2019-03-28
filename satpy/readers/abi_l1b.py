@@ -45,8 +45,7 @@ PLATFORM_NAMES = {
 class NC_ABI_L1B(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(NC_ABI_L1B, self).__init__(filename, filename_info,
-                                         filetype_info)
+        super(NC_ABI_L1B, self).__init__(filename, filename_info, filetype_info)
         # xarray's default netcdf4 engine
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
@@ -137,6 +136,10 @@ class NC_ABI_L1B(BaseFileHandler):
         # copy global attributes to metadata
         for key in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
             res.attrs[key] = self.nc.attrs.get(key)
+        # only include these if they are present
+        for key in ('fusion_args',):
+            if key in self.nc.attrs:
+                res.attrs[key] = self.nc.attrs[key]
 
         return res
 
@@ -218,5 +221,5 @@ class NC_ABI_L1B(BaseFileHandler):
     def __del__(self):
         try:
             self.nc.close()
-        except (IOError, OSError):
+        except (IOError, OSError, AttributeError):
             pass

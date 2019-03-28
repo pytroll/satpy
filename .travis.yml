@@ -5,7 +5,7 @@ env:
         - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
         - NUMPY_VERSION=stable
         - MAIN_CMD='python setup.py'
-        - CONDA_DEPENDENCIES='xarray dask toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff pycoast pydecorate'
+        - CONDA_DEPENDENCIES='xarray dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio<1.0.14 imageio pyhdf mock libtiff pycoast pydecorate geoviews'
         - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
@@ -37,7 +37,7 @@ deploy:
     user: dhoese
     password:
       secure: frK+0k1STeTM7SizRseP0qdTfOVz9ZMIra+3qEytPdxCLceXAH8LxPU16zj5rdNQxasF1hZ6rAd952fly+ypw2TEf5r2WnStrt7G5QlyE7VB6XGSDpIUxKF1FYccLvYs0/R6Y35MTEPqdM51PM5yEBjoY5b4tA3RF3fDq11cqc/SiWr6DgSLB1WJZULOdtCzBbfGbm5LyJ7yeNbISASSAwVvZTGWw7kJDgi0W5zxwEX82N5tBGbfKIu59qmxyj8FxmcrUwKZ4P3rQNg1kN1utzAB+PSf3GAVvbZfWJQuAKwMqpZgaV9lX0V7eUd/AxPobzEk9WyoNBMIdrSPej5BKWTDiYvaeRTOsggoUCSQJJA/SITEvkJgLWXoKKX2OWrM8RBUO4MoZJpPGXN42PRtMJkV2sx6ZigkpJlHdn39SsIRZX31zsfv8bBhclb70bt1Ts0fDd0rVdZAI6gMI+sgUePwEUn+XbWrvI0sMfDX3QsXDMV393RHgaIPxd+lRqUlYsNOxjsWpsbsvX55ePLxYHsNrv11KKyL/iGjGotVeVUO5D78qvfd4JrsUnMalQyZfW8NTEKa5Ebcs7gYJTwYEOTCQU12BkHOv1zFkjZG5RdGwkEvG3pykLhx+qDyYEd7pKB3TvhzLPqZPSrPxirwcoc0UzCc6ocYdzpqVuViFuk=
-    distributions: sdist bdist_wheel
+    distributions: sdist
     skip_existing: true
     on:
       tags: true
