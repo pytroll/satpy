@@ -69,26 +69,31 @@ class HDFEOSFileReader(BaseFileHandler):
 
     @property
     def start_time(self):
-        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
-                self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
+        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' '
+                + self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
     @property
     def end_time(self):
-        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
-                self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
+        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' '
+                + self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
-    def read_mda(self, attribute):
+    @staticmethod
+    def read_mda(attribute):
+        """Read HDFEOS metadata and return a dict with all the key/value pairs."""
         lines = attribute.split('\n')
         mda = {}
         current_dict = mda
         path = []
+        prev_line = None
         for line in lines:
             if not line:
                 continue
             if line == 'END':
                 break
+            if prev_line:
+                line = prev_line + line
             key, val = line.split('=')
             key = key.strip()
             val = val.strip()
@@ -96,6 +101,10 @@ class HDFEOSFileReader(BaseFileHandler):
                 val = eval(val)
             except NameError:
                 pass
+            except SyntaxError:
+                prev_line = line
+                continue
+            prev_line = None
             if key in ['GROUP', 'OBJECT']:
                 new_dict = {}
                 path.append(val)

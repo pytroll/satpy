@@ -102,6 +102,7 @@ To save metadata, we use the :attr:`~xarray.DataArray.attrs` dictionary.
     my_dataarray.attrs['platform_name'] = 'Sentinel-3A'
 
 Some metadata that should always be present in our dataarrays:
+
 - ``area`` the area of the dataset. This should be handled in the reader.
 - ``start_time``, ``end_time``
 - ``sensor``
@@ -297,12 +298,13 @@ than creating a delayed function. Similar to delayed functions the inputs to
 the function are fully computed DataArrays or numpy arrays, but only the
 individual chunks of the dask array at a time. Note that ``map_blocks`` must
 be provided dask arrays and won't function properly on XArray DataArrays.
+It is recommended that the function object passed to ``map_blocks`` **not**
+be an internal function (a function defined inside another function) or it
+may be unserializable and can cause issues in some environments.
 
 .. code-block:: python
 
     my_new_arr = da.map_blocks(_complex_operation, my_dask_arr1, my_dask_arr2, dtype=my_dask_arr1.dtype)
-
-http://dask.pydata.org/en/latest/array-api.html#dask.array.core.map_blocks
 
 Helpful functions
 *****************

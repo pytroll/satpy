@@ -158,16 +158,16 @@ class NCOLCI1B(NCOLCIChannelBase):
                        dtype=solar_flux.dtype)
         return res
 
+    @staticmethod
+    def _get_items(idx, solar_flux):
+        return solar_flux[idx]
+
     def _get_solar_flux(self, band):
         """Get the solar flux for the band."""
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
         d_index = self.cal['detector_index'].fillna(0).astype(int)
 
-        def get_items(idx, solar_flux):
-            return solar_flux[idx]
-
-        return da.map_blocks(get_items, d_index.data, solar_flux=solar_flux,
-                             dtype=solar_flux.dtype)
+        return da.map_blocks(self._get_items, d_index.data, solar_flux=solar_flux, dtype=solar_flux.dtype)
 
     def get_dataset(self, key, info):
         """Load a dataset."""

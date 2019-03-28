@@ -26,6 +26,7 @@
 
 from datetime import datetime, timedelta
 import numpy as np
+from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
 import xarray.ufuncs as xu
 
@@ -48,6 +49,8 @@ CHANNEL_NAMES = {1: "VIS006",
                  10: "IR_120",
                  11: "IR_134",
                  12: "HRV"}
+
+VIS_CHANNELS = ['HRV', 'VIS006', 'VIS008', 'IR_016']
 
 # Polynomial coefficients for spectral-effective BT fits
 BTFIT = {}
@@ -286,3 +289,16 @@ class SEVIRICalibrationHandler(object):
         """Calibrate to reflectance."""
 
         return data * 100.0 / solar_irradiance
+
+
+def chebyshev(coefs, time, domain):
+    """Evaluate a Chebyshev Polynomial
+
+    Args:
+        coefs (list, np.array): Coefficients defining the polynomial
+        time (int, float): Time where to evaluate the polynomial
+        domain (list, tuple): Domain (or time interval) for which the polynomial is defined: [left, right]
+
+    Reference: Appendix A in the MSG Level 1.5 Image Data Format Description.
+    """
+    return Chebyshev(coefs, domain=domain)(time) - 0.5 * coefs[0]
