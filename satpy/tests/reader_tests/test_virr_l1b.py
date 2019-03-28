@@ -100,7 +100,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         self.assertEqual(level, attributes['level'])
         self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
 
-    def _FY3_helper(self, platform_name, reader, Emissive_units):
+    def _fy3_helper(self, platform_name, reader, Emissive_units):
         import datetime
         band_values = {'R1': 22.0, 'R2': 22.0, 'R3': 22.0, 'R4': 22.0, 'R5': 22.0, 'R6': 22.0, 'R7': 22.0,
                        'E1': 496.542155, 'E2': 297.444511, 'E3': 288.956557, 'solar_zenith_angle': .1,
@@ -137,7 +137,7 @@ class TestVIRRL1BReader(unittest.TestCase):
             self.assertEqual(band_values[dataset.name],
                              round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6))
 
-    def test_FY3B_file(self):
+    def test_fy3b_file(self):
         from satpy.readers import load_reader
         FY3B_reader = load_reader(self.reader_configs)
         FY3B_file = FY3B_reader.select_files_from_pathnames(['tf2018359214943.FY3B-L_VIRRX_L1B.HDF'])
@@ -145,7 +145,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         FY3B_reader.create_filehandlers(FY3B_file)
         # Make sure we have some files
         self.assertTrue(FY3B_reader.file_handlers)
-        self._FY3_helper('FY3B', FY3B_reader, 'milliWstts/m^2/cm^(-1)/steradian')
+        self._fy3_helper('FY3B', FY3B_reader, 'milliWstts/m^2/cm^(-1)/steradian')
 
     def test_FY3C_file(self):
         from satpy.readers import load_reader
@@ -156,7 +156,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         FY3C_reader.create_filehandlers(FY3C_files)
         # Make sure we have some files
         self.assertTrue(FY3C_reader.file_handlers)
-        self._FY3_helper('FY3C', FY3C_reader, '1')
+        self._fy3_helper('FY3C', FY3C_reader, '1')
 
 
 def suite():
