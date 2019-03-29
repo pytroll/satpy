@@ -49,8 +49,9 @@ CF_UNITS = {
 
 class GRIBFileHandler(BaseFileHandler):
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, *req_fh, **fh_kwargs):
         super(GRIBFileHandler, self).__init__(filename, filename_info, filetype_info)
+
 
         self._msg_datasets = {}
         self._start_time = None
@@ -58,8 +59,8 @@ class GRIBFileHandler(BaseFileHandler):
 
         try:
             #FIXME add indexpath='' to backend kwargs to disable creation of index file
-            kwargs = [#{'filter_by_keys': {'typeOfLevel': 'maxWind'}},
-                      {'filter_by_keys': {'typeOfLevel': 'potentialVorticity'}},
+           # kwargs = [{'filter_by_keys': {'typeOfLevel': 'maxWind'}},
+                      #{'filter_by_keys': {'typeOfLevel': 'potentialVorticity'}},
                 #      {'filter_by_keys': {'typeOfLevel': 'unknown'}},
                 #    {'filter_by_keys': {'typeOfLevel': 'isobaricInhPa'}},
                 #    {'filter_by_keys':{'typeOfLevel': 'surface'}},
@@ -71,19 +72,19 @@ class GRIBFileHandler(BaseFileHandler):
                 #    {'filter_by_keys':{'typeOfLevel': 'isothermZero'}},
                 #    {'filter_by_keys':{'typeOfLevel': 'pressureFromGroundLayer'}},
                 #    {'filter_by_keys':{'typeOfLevel': 'sigmaLayer'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'sigma'}},
+            #        {'filter_by_keys':{'typeOfLevel': 'sigma'}},
                 #    {'filter_by_keys':{'typeOfLevel': 'potentialVorticity'}},
                 #    {'filter_by_keys':{'typeOfLevel': 'nominalTop'}},
                 #    {'filter_by_keys':{'typeOfLevel': 'heightAboveGroundLayer'}},
                 #    {'filter_by_keys':{'typeOfLevel': 'meanSea'}}
-                ]
+             #   ]
 
-            for kwarg in kwargs:
-                grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs=kwarg)
-                self._start_time = self._convert_datetime(grib_file.valid_time.values)
-                self._end_time = self._convert_datetime(grib_file.valid_time.values)
+            fh_kwargs = fh_kwargs.get('backend_kwargs', {})
+            grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs=fh_kwargs)
+            self._start_time = self._convert_datetime(grib_file.valid_time.values)
+            self._end_time = self._convert_datetime(grib_file.valid_time.values)
 
-                self._analyze_messages(grib_file)
+            self._analyze_messages(grib_file, fh_kwargs)
 
 
 #            grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'maxWind'}})
@@ -123,11 +124,11 @@ class GRIBFileHandler(BaseFileHandler):
       #              self._idx = pygrib.index(self.filename,
       #                                       *filetype_info['keys'].keys())
         except KeyError:
-            raise KeyError("Unknown argument in backend_kwargs: {}".format(kwargs))
+            raise KeyError("Unknown argument in backend_kwargs: {}".format(fh_kwargs))
         except RuntimeError:
             raise IOError("Unknown GRIB file format: {}".format(self.filename))
 
-    def _analyze_messages(self, grib_file):
+    def _analyze_messages(self, grib_file, fh_kwargs):
         # grib file is the xarray dataset
 
 
@@ -149,7 +150,8 @@ class GRIBFileHandler(BaseFileHandler):
                     'name': val.attrs['GRIB_shortName'],
                     'level': val.attrs['GRIB_typeOfLevel'],
                     'file_type': self.filetype_info['file_type'],
-                    'centreDescription': grib_file.attrs['GRIB_centreDescription']
+                    'centreDescription': grib_file.attrs['GRIB_centreDescription'],
+                    'fh_kwargs': fh_kwargs,
                 }
 
                 self._msg_datasets[msg_id] = ds_info
@@ -231,8 +233,7 @@ class GRIBFileHandler(BaseFileHandler):
 
         #FIXME change to not having the typeOfLEvel stuff
 
-        grib_file = xr.open_dataset(self.filename, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': ds_info['level']}})
-        print(grib_file[ds_info['name']])
+        grib_file = xr.open_dataset(self.filename, engine='cfgrib', backend_kwargs=ds_info['fh_kwargs'])
         return grib_file[ds_info['name']]
 
 #        if 'message' in ds_info:
@@ -477,7 +478,6 @@ class GRIBFileHandler(BaseFileHandler):
             data[data == fill] = np.nan
             data = da.from_array(data, chunks=CHUNK_SIZE)
 
-        #print(data.compute())
         return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
 
   #      msg = self._get_message(ds_info)
