@@ -51,33 +51,12 @@ class GRIBFileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, *req_fh, **fh_kwargs):
         super(GRIBFileHandler, self).__init__(filename, filename_info, filetype_info)
-
-
         self._msg_datasets = {}
         self._start_time = None
         self._end_time = None
 
         try:
             #FIXME add indexpath='' to backend kwargs to disable creation of index file
-           # kwargs = [{'filter_by_keys': {'typeOfLevel': 'maxWind'}},
-                      #{'filter_by_keys': {'typeOfLevel': 'potentialVorticity'}},
-                #      {'filter_by_keys': {'typeOfLevel': 'unknown'}},
-                #    {'filter_by_keys': {'typeOfLevel': 'isobaricInhPa'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'surface'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'depthBelowLandLayer'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'heightAboveGround'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'tropopause'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'maxWind'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'heightAboveSea'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'isothermZero'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'pressureFromGroundLayer'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'sigmaLayer'}},
-            #        {'filter_by_keys':{'typeOfLevel': 'sigma'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'potentialVorticity'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'nominalTop'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'heightAboveGroundLayer'}},
-                #    {'filter_by_keys':{'typeOfLevel': 'meanSea'}}
-             #   ]
 
             fh_kwargs = fh_kwargs.get('backend_kwargs', {})
             grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs=fh_kwargs)
@@ -85,62 +64,12 @@ class GRIBFileHandler(BaseFileHandler):
             self._end_time = self._convert_datetime(grib_file.valid_time.values)
 
             self._analyze_messages(grib_file, fh_kwargs)
-
-
-#            grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'maxWind'}})
-#            #FIXME starting and ending time
-#            start_time = self._convert_datetime(grib_file.valid_time.values)
-#            end_time = self._convert_datetime(grib_file.valid_time.values)
-#            self._start_time = start_time
-#            self._end_time = end_time
-#
-#            self._analyze_messages(grib_file)
-#            self._idx = None
-#
-#            grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'potentialVorticity'}})
-#            #FIXME starting and ending time
-#            start_time = self._convert_datetime(grib_file.valid_time.values)
-#            end_time = self._convert_datetime(grib_file.valid_time.values)
-#            self._start_time = start_time
-#            self._end_time = end_time
-#
-#            self._analyze_messages(grib_file)
-#            self._idx = None
-
-      #      with pygrib.open(self.filename) as grib_file:
-      #          first_msg = grib_file.message(1)
-      #          last_msg = grib_file.message(grib_file.messages)
-      #          start_time = self._convert_datetime(
-      #              first_msg, 'validityDate', 'validityTime')
-      #          end_time = self._convert_datetime(
-      #              last_msg, 'validityDate', 'validityTime')
-      #          self._start_time = start_time
-      #          self._end_time = end_time
-      #          if 'keys' not in filetype_info:
-      #              self._analyze_messages(grib_file)
-      #              self._idx = None
-      #          else: #FIXME probably dont need this??
-      #              self._create_dataset_ids(filetype_info['keys'])
-      #              self._idx = pygrib.index(self.filename,
-      #                                       *filetype_info['keys'].keys())
         except KeyError:
             raise KeyError("Unknown argument in backend_kwargs: {}".format(fh_kwargs))
         except RuntimeError:
             raise IOError("Unknown GRIB file format: {}".format(self.filename))
 
     def _analyze_messages(self, grib_file, fh_kwargs):
-        # grib file is the xarray dataset
-
-
-        # go over all of the messages in the dataarray -> can't really iterate over things in the dataarray
-        # FLATTEN THE ARRAY
-        # each of the data variables in the grib file hold the actual messages (with the shortName and the level)
-        # level == typeOfLevel??
-
-        # since everything in cfgrib is already in a array, need to take everything in there and make it into a datasetID thing and store it
-
-        # all files
-        #grib_file = grib_file.stack(flat=tuple(a for a, b in grib_file.data_vars))
         for var in grib_file.data_vars.keys():
                 for val in grib_file[var]:
                     msg_id = DatasetID(name=val.attrs['GRIB_shortName'],
@@ -156,20 +85,6 @@ class GRIBFileHandler(BaseFileHandler):
 
                 self._msg_datasets[msg_id] = ds_info
 
-  #      grib_file.seek(0)
-  #      for idx, msg in enumerate(grib_file):
-  #          msg_id = DatasetID(name=msg['shortName'],
-  #                             level=msg['level'])
-  #          ds_info = {
-  #              # FIXME probably dont need the first one, but the others can stay
-  #              'message': idx + 1,
-  #              'name': msg['shortName'],
-  #              'level': msg['level'],
-  #              'file_type': self.filetype_info['file_type'],
-  #          }
-  #          self._msg_datasets[msg_id] = ds_info
-
-    #FIXME do i need this
     def _create_dataset_ids(self, keys):
         from itertools import product
         ordered_keys = [k for k in keys.keys() if 'id_key' in keys[k]]
@@ -185,17 +100,10 @@ class GRIBFileHandler(BaseFileHandler):
 
     @staticmethod
     def _convert_datetime(msg, format="%Y-%m-%d %H:%M:%S"):
-        #return (datetime.utcfromtimestamp(msg.astype('O')/1e9)).strptime(format)
         u = np.datetime64(0, 's')
         o = np.timedelta64(1, 's')
         s = (msg - u) / o
         return datetime.utcfromtimestamp(s)
-
-
-#    @staticmethod
-#    def _convert_datetime(msg, date_key, time_key, format="%Y%m%d%H%M"):
-#        date_str = "{:d}{:04d}".format(msg[date_key], msg[time_key])
-#        return datetime.strptime(date_str, format)
 
     @property
     def start_time(self):
@@ -219,52 +127,15 @@ class GRIBFileHandler(BaseFileHandler):
         """Automatically determine datasets provided by this file"""
         return self._msg_datasets.items()
 
-    # returns from the message location in the file
     def _get_message(self, ds_info):
-
-        #grib_file = xr.open_dataset(self.filename, engine='cfgrib', backend_kwargs={'filter_by_keys': {'typeOfLevel': 'surface'}})
-
-        # dsinfo has the "index" but probably doesnt matter??
-        # get the "index" from dsinfo
-        # use that info to be able to access the message
-        # use type of level to access
-        # use datavar to access one more level
-
-
-        #FIXME change to not having the typeOfLEvel stuff
-
         grib_file = xr.open_dataset(self.filename, engine='cfgrib', backend_kwargs=ds_info['fh_kwargs'])
         return grib_file[ds_info['name']]
 
-#        if 'message' in ds_info:
-#            msg_num = ds_info['index']
-#            msg = grib_file.message(msg_num)
-
-        #FIXME need this second part??
-       # else:
-       #     msg_keys = self.filetype_info['keys'].keys()
-       #     msg = self._idx(**{k: ds_info[k] for k in msg_keys})[0]
-        #return msg
-
-
-    #    with pygrib.open(self.filename) as grib_file:
-    #        if 'message' in ds_info:
-    #            msg_num = ds_info['message']
-    #            msg = grib_file.message(msg_num)
-    #        else:
-    #            msg_keys = self.filetype_info['keys'].keys()
-    #            msg = self._idx(**{k: ds_info[k] for k in msg_keys})[0]
-    #        return msg
 
     def _area_def_from_msg(self, msg):
-        # TODO find the projparams in the data array
-        # has to do with the radius/shapeOfTheEarth and the proj type can be found from the grid type
-        # update: probably don't need to worry about this?
-
         proj_params = {}
         lats = msg['latitude'].values
         lons = msg['longitude'].values
-        #FIXME need to include other types of grids and projections
         if msg.attrs['GRIB_gridType'] in ['regular_ll', 'regular_gg']:
             proj_params['proj'] = 'eqc'
             proj = Proj(**proj_params)
@@ -324,72 +195,6 @@ class GRIBFileHandler(BaseFileHandler):
         )
 
 
-#        proj_params = msg.projparams.copy()
-#        # correct for longitudes over 180
-#        for lon_param in ['lon_0', 'lon_1', 'lon_2']:
-#            if proj_params.get(lon_param, 0) > 180:
-#                proj_params[lon_param] -= 360
-#
-#        if proj_params['proj'] == 'cyl':
-#            proj_params['proj'] = 'eqc'
-#            proj = Proj(**proj_params)
-#            lons = msg['distinctLongitudes']
-#            lats = msg['distinctLatitudes']
-#            min_lon = lons[0]
-#            max_lon = lons[-1]
-#            min_lat = lats[0]
-#            max_lat = lats[-1]
-#            if min_lat > max_lat:
-#                # lats aren't in the order we thought they were, flip them
-#                # we also need to flip the data in the data loading section
-#                min_lat, max_lat = max_lat, min_lat
-#            shape = (lats.shape[0], lons.shape[0])
-#            min_x, min_y = proj(min_lon, min_lat)
-#            max_x, max_y = proj(max_lon, max_lat)
-#            if max_x < min_x and 'over' not in proj_params:
-#                # wrap around
-#                proj_params['over'] = True
-#                proj = Proj(**proj_params)
-#                max_x, max_y = proj(max_lon, max_lat)
-#            pixel_size_x = (max_x - min_x) / (shape[1] - 1)
-#            pixel_size_y = (max_y - min_y) / (shape[0] - 1)
-#            extents = (
-#                min_x - pixel_size_x / 2.,
-#                min_y - pixel_size_y / 2.,
-#                max_x + pixel_size_x / 2.,
-#                max_y + pixel_size_y / 2.,
-#            )
-#        else:
-#            lats, lons = msg.latlons()
-#            shape = lats.shape
-#            # take the corner points only
-#            lons = lons[([0, 0, -1, -1], [0, -1, 0, -1])]
-#            lats = lats[([0, 0, -1, -1], [0, -1, 0, -1])]
-#            # correct for longitudes over 180
-#            lons[lons > 180] -= 360
-#
-#            proj = Proj(**proj_params)
-#            x, y = proj(lons, lats)
-#            if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
-#                min_x, min_y = x[0], y[0]
-#                max_x, max_y = x[3], y[3]
-#            else:
-#                min_x, min_y = x[2], y[2]
-#                max_x, max_y = x[1], y[1]
-#            half_x = abs((max_x - min_x) / (shape[1] - 1)) / 2.
-#            half_y = abs((max_y - min_y) / (shape[0] - 1)) / 2.
-#            extents = (min_x - half_x, min_y - half_y, max_x + half_x, max_y + half_y)
-#
-#        return geometry.AreaDefinition(
-#            'on-the-fly grib area',
-#            'on-the-fly grib area',
-#            'on-the-fly grib area',
-#            proj_params,
-#            shape[1],
-#            shape[0],
-#            extents,
-#        )
-
     def get_area_def(self, dsid):
         """Get area definition for message.
 
@@ -409,56 +214,18 @@ class GRIBFileHandler(BaseFileHandler):
 
         ds_info.update({
             'filename': self.filename,
+            # FIXME some GRIB files don't have shortname attr
             'shortName': msg.attrs['GRIB_shortName'],
-            #'long_name': msg.attrs['long_name'],
-            #'pressureUnits': msg['pressureUnits'],
             'typeOfLevel': msg.attrs['GRIB_typeOfLevel'],
-            #'standard_name': msg.attrs['GRIB_cfName'],
             'units': msg.attrs['units'],
-           # 'modelName': msg['modelName'],
             'model_time': model_time,
             'valid_min': np.amin(msg.values),
             'valid_max': np.amax(msg.values),
             'start_time': start_time,
             'end_time': end_time,
-           # 'sensor': msg['modelName'],
-            # National Weather Prediction
             'platform_name': 'unknown'
         })
         return ds_info
-
-
-  #      # TIME coord is this
-  #      model_time = self._convert_datetime(msg, 'dataDate',
-  #                                          'dataTime')
-  #      # VALID_TIME coord is this
-  #      start_time = self._convert_datetime(msg, 'validityDate',
-  #                                          'validityTime')
-  #      end_time = start_time
-  #      try:
-  #          center_description = msg['centreDescription']
-  #      except (RuntimeError, KeyError):
-  #          center_description = None
-  #      ds_info.update({
-  #          'filename': self.filename,
-  #          'shortName': msg['shortName'],
-  #          'long_name': msg['name'],
-  #          'pressureUnits': msg['pressureUnits'],
-  #          'typeOfLevel': msg['typeOfLevel'],
-  #          'standard_name': msg['cfName'],
-  #          'units': msg['units'],
-  #          'modelName': msg['modelName'],
-  #          'model_time': model_time,
-  #          'centreDescription': center_description,
-  #          'valid_min': msg['minimum'],
-  #          'valid_max': msg['maximum'],
-  #          'start_time': start_time,
-  #          'end_time': end_time,
-  #          'sensor': msg['modelName'],
-  #          # National Weather Prediction
-  #          'platform_name': 'unknown',
-  #      })
-  #      return ds_info
 
     def get_dataset(self, dataset_id, ds_info):
         """Read a GRIB message into an xarray DataArray."""
@@ -479,19 +246,3 @@ class GRIBFileHandler(BaseFileHandler):
             data = da.from_array(data, chunks=CHUNK_SIZE)
 
         return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
-
-  #      msg = self._get_message(ds_info)
-  #      ds_info = self.get_metadata(msg, ds_info)
-  #      fill = msg['missingValue']
-  #      data = msg.values.astype(np.float32)
-  #      if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
-  #          data = data[::-1]
-
-  #      if isinstance(data, np.ma.MaskedArray):
-  #          data = data.filled(np.nan)
-  #          data = da.from_array(data, chunks=CHUNK_SIZE)
-  #      else:
-  #          data[data == fill] = np.nan
-  #          data = da.from_array(data, chunks=CHUNK_SIZE)
-
-  #      return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
