@@ -222,7 +222,7 @@ _SPARE_TYPE = np.dtype([
 
 class AHIHSDFileHandler(BaseFileHandler):
     """AHI standard format reader.
-    The AHI sensor produces data for some pixels outside the Earth disk (i,e: 
+    The AHI sensor produces data for some pixels outside the Earth disk (i,e:
     atmospheric limb or deep space pixels).
     By default, these pixels are masked out as they contain data of limited
     or no value, but some applications do require these pixels.
