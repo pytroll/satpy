@@ -235,7 +235,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             mask = im.to_masked_array().mask
             ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
             self.assertTrue(np.all(mask == ref_mask))
-            
+
         # Test if masking space pixels disables with appropriate flag
         self.fh.mask_space = False
         with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
