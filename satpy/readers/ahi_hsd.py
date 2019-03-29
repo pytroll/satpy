@@ -445,7 +445,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         # Mask space pixels
         if (self.mask_space):
-           res = self._mask_space(res)
+            res = self._mask_space(res)
 
         return res
 
