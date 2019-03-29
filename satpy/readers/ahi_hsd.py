@@ -465,7 +465,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
 
         # Mask space pixels
-        if (self.mask_space):
+        if self.mask_space:
             res = self._mask_space(res)
 
         return res
