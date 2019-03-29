@@ -236,11 +236,11 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
             self.assertTrue(np.all(mask == ref_mask))
 
-        # Test if masking space pixels disables with appropriate flag
-        self.fh.mask_space = False
-        with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
-            self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
-            mask_space.assert_not_called()
+            # Test if masking space pixels disables with appropriate flag
+            self.fh.mask_space = False
+            with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
+                self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+                mask_space.assert_not_called()
 
 
 def suite():
