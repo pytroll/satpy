@@ -229,22 +229,18 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         calibrate.return_value = np.ones((nrows, ncols))
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            # Default behaviour, mask space pixels
             im = self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
             # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
             # is False
             mask = im.to_masked_array().mask
             ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
-            self.assertTrue(np.all(mask == ref_mask))
-
-            # Modified behaviour, do not mask space pixels
-            self.fh.mask_space = False
-            im = self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
-            # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
-            # is False
-            mask = im.to_masked_array().mask
-            ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
-            self.assertFalse(np.all(mask == ref_mask))
+            self.assertTrue(np.all(mask == ref_mask))    
+            
+        # Test if masking space pixels disables with appropriate flag
+        self.fh.mask_space = False
+        with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
+            self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+            mask_space.assert_not_called()
 
 
 def suite():
