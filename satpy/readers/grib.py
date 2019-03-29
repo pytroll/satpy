@@ -56,14 +56,14 @@ class GRIBFileHandler(BaseFileHandler):
         self._end_time = None
 
         try:
-            #FIXME add indexpath='' to backend kwargs to disable creation of index file
-
-            fh_kwargs = fh_kwargs.get('backend_kwargs', {})
-            grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs=fh_kwargs)
+            if fh_kwargs.get('backend_kwargs', None) is not None:
+                grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs=fh_kwargs['backend_kwargs'])
+            else:
+                grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs={'indexpath': ''})
             self._start_time = self._convert_datetime(grib_file.valid_time.values)
             self._end_time = self._convert_datetime(grib_file.valid_time.values)
 
-            self._analyze_messages(grib_file, fh_kwargs)
+            self._analyze_messages(grib_file, fh_kwargs['backend_kwargs'])
         except KeyError:
             raise KeyError("Unknown argument in backend_kwargs: {}".format(fh_kwargs))
         except RuntimeError:
@@ -72,11 +72,11 @@ class GRIBFileHandler(BaseFileHandler):
     def _analyze_messages(self, grib_file, fh_kwargs):
         for var in grib_file.data_vars.keys():
                 for val in grib_file[var]:
-                    msg_id = DatasetID(name=val.attrs['GRIB_shortName'],
+                    msg_id = DatasetID(name=val.name,
                                    level=val.attrs['GRIB_typeOfLevel'])
 
                 ds_info = {
-                    'name': val.attrs['GRIB_shortName'],
+                    'name': val.name,
                     'level': val.attrs['GRIB_typeOfLevel'],
                     'file_type': self.filetype_info['file_type'],
                     'centreDescription': grib_file.attrs['GRIB_centreDescription'],
@@ -214,8 +214,7 @@ class GRIBFileHandler(BaseFileHandler):
 
         ds_info.update({
             'filename': self.filename,
-            # FIXME some GRIB files don't have shortname attr
-            'shortName': msg.attrs['GRIB_shortName'],
+            'name': msg.name,
             'typeOfLevel': msg.attrs['GRIB_typeOfLevel'],
             'units': msg.attrs['units'],
             'model_time': model_time,
