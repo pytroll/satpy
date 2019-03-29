@@ -243,7 +243,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     """
 
-    def __init__(self, filename, filename_info, filetype_info,mask_space=True):
+    def __init__(self, filename, filename_info, filetype_info, mask_space=True):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
