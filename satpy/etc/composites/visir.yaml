@@ -270,7 +270,7 @@ composites:
       - solar_zenith_angle
 
   precipitation_probability:
-    compositor: !!python/name:satpy.composites.PrecipCloudsRGB
+    compositor: !!python/name:satpy.composites.cloud_products.PrecipCloudsRGB
     prerequisites:
       - pc_precip_light
       - pc_precip_moderate
