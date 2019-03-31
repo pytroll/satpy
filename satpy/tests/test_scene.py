@@ -1570,18 +1570,16 @@ class TestSceneLoading(unittest.TestCase):
 
 
 class TestSceneResampling(unittest.TestCase):
-
     """Test resampling a Scene to another Scene object."""
 
     def _fake_resample_dataset(self, dataset, dest_area, **kwargs):
         """Return copy of dataset pretending it was resampled."""
         return dataset.copy()
 
-    @mock.patch('satpy.scene.Scene._slice_data')
     @mock.patch('satpy.scene.resample_dataset')
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
-    def test_resample_scene_copy(self, cri, cl, rs, slice_data):
+    def test_resample_scene_copy(self, cri, cl, rs):
         """Test that the Scene is properly copied during resampling.
 
         The Scene that is created as a copy of the original Scene should not
@@ -1604,7 +1602,6 @@ class TestSceneResampling(unittest.TestCase):
                                       '+units=m +no_defs')
         area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
         area_def.get_area_slices = mock.MagicMock()
-        get_area_slices = area_def.get_area_slices
         scene = satpy.scene.Scene(filenames=['bla'],
                                   base_dir='bli',
                                   reader='fake_reader')
@@ -1634,20 +1631,70 @@ class TestSceneResampling(unittest.TestCase):
         self.assertTupleEqual(tuple(loaded_ids[0]), tuple(DatasetID(name='comp19')))
         self.assertTupleEqual(tuple(loaded_ids[1]), tuple(DatasetID(name='new_ds')))
 
+    @mock.patch('satpy.scene.resample_dataset')
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_resample_reduce_data_toggle(self, cri, cl, rs):
+        """Test that the Scene can be reduced or not reduced during resampling."""
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        import dask.array as da
+        import xarray as xr
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        rs.side_effect = self._fake_resample_dataset
+
+        proj_dict = proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 '
+                                      '+lon_0=-95. +lat_0=25 +lat_1=25 '
+                                      '+units=m +no_defs')
+        target_area = AreaDefinition('test', 'test', 'test', proj_dict, 4, 4, (-1000., -1500., 1000., 1500.))
+        area_def = AreaDefinition('test', 'test', 'test', proj_dict, 5, 5, (-1000., -1500., 1000., 1500.))
+        area_def.get_area_slices = mock.MagicMock()
+        get_area_slices = area_def.get_area_slices
+        get_area_slices.return_value = (slice(0, 3, None), slice(0, 3, None))
+        area_def_big = AreaDefinition('test', 'test', 'test', proj_dict, 10, 10, (-1000., -1500., 1000., 1500.))
+        area_def_big.get_area_slices = mock.MagicMock()
+        get_area_slices_big = area_def_big.get_area_slices
+        get_area_slices_big.return_value = (slice(0, 6, None), slice(0, 6, None))
+
         # Test that data reduction can be disabled
         scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
         scene.load(['comp19'])
         scene['comp19'].attrs['area'] = area_def
-        get_area_slices.return_value = (slice(0, 5, None), slice(0, 5, None))
-        scene.resample(area_def, reduce_data=False)
-        self.assertFalse(slice_data.called)
-        self.assertFalse(get_area_slices.called)
-        scene.resample(area_def)
-        self.assertTrue(slice_data.called_once)
-        self.assertTrue(get_area_slices.called_once)
-        scene.resample(area_def, reduce_data=True)
-        self.assertEqual(slice_data.call_count, 2)
-        self.assertTrue(get_area_slices.called_once)
+        scene['comp19_big'] = xr.DataArray(
+            da.zeros((10, 10)), dims=('y', 'x'),
+            attrs=scene['comp19'].attrs.copy())
+        scene['comp19_big'].attrs['area'] = area_def_big
+        scene['comp19_copy'] = scene['comp19'].copy()
+        orig_slice_data = scene._slice_data
+        # we force the below order of processing to test that success isn't
+        # based on data of the same resolution being processed together
+        test_order = [
+            DatasetID.from_dict(scene['comp19'].attrs),
+            DatasetID.from_dict(scene['comp19_big'].attrs),
+            DatasetID.from_dict(scene['comp19_copy'].attrs),
+        ]
+        with mock.patch('satpy.scene.Scene._slice_data') as slice_data, \
+                mock.patch('satpy.dataset.dataset_walker') as ds_walker:
+            ds_walker.return_value = test_order
+            slice_data.side_effect = orig_slice_data
+            scene.resample(target_area, reduce_data=False)
+            self.assertFalse(slice_data.called)
+            self.assertFalse(get_area_slices.called)
+            scene.resample(target_area)
+            self.assertTrue(slice_data.called_once)
+            self.assertTrue(get_area_slices.called_once)
+            scene.resample(target_area, reduce_data=True)
+            # 2 times for each dataset
+            # once for default (reduce_data=True)
+            # once for kwarg forced to `True`
+            self.assertEqual(slice_data.call_count, 2 * 3)
+            self.assertTrue(get_area_slices.called_once)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
