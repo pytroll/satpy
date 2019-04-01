@@ -403,8 +403,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         If no correction was applied, adjust the area extent to match the shifted data.
 
         For more information see Section 3.1.4.2 in the MSG Level 1.5 Image Data Format Description. The correction
-        of the area extent is documented in a `developer's memo <https://github.com/pytroll/pytroll-examples/
-        blob/master/satpy/dev_memos/seviri_l1b_hrit_georef_offset.ipynb>`_.
+        of the area extent is documented in a `developer's memo <https://github.com/pytroll/satpy/wiki/
+        SEVIRI-georeferencing-offset-correction>`_.
         """
         nlines, ncols = size
         h = platform_height
