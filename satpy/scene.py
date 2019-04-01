@@ -962,7 +962,7 @@ class Scene(MetadataObject):
                 if reduce_data:
                     key = source_area
                     try:
-                        slices, source_area = reductions[key]
+                        (slice_x, slice_y), source_area = reductions[key]
                     except KeyError:
                         slice_x, slice_y = source_area.get_area_slices(destination_area)
                         source_area = source_area[slice_y, slice_x]
@@ -979,8 +979,7 @@ class Scene(MetadataObject):
                 self.resamplers[key] = resampler
             kwargs = resample_kwargs.copy()
             kwargs['resampler'] = resamplers[source_area]
-            res = resample_dataset(dataset, destination_area,
-                                   **kwargs)
+            res = resample_dataset(dataset, destination_area, **kwargs)
             new_datasets[ds_id] = res
             if ds_id in new_scn.datasets:
                 new_scn.datasets[ds_id] = res
