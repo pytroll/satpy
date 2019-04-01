@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 import logging
+from functools import lru_cache
 
 from datetime import datetime
 import xarray as xr
@@ -104,6 +105,30 @@ class HDFEOSBaseFileReader(BaseFileHandler):
                 self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
+    @lru_cache(32)
+    def _read_dataset_in_file(self, dataset_name):
+        if dataset_name not in self.sd.datasets():
+            error_message = "Dataset name {} not included in available datasets {}".format(
+                dataset_name, self.sd.datasets()
+            )
+            raise KeyError(error_message)
+
+        dataset = self.sd.select(dataset_name)
+        return dataset
+
+    def load_dataset(self, dataset_name):
+        """Load the dataset from HDF EOS file. """
+        from satpy.readers.hdf4_utils import from_sds
+
+        dataset = self._read_dataset_in_file(dataset_name)
+        fill_value = dataset._FillValue
+        scale_factor = np.float32(dataset.scale_factor)
+        data = xr.DataArray(from_sds(dataset, chunks=CHUNK_SIZE),
+                            dims=['y', 'x']).astype(np.float32)
+        data_mask = data.where(data != fill_value)
+        data = data_mask * scale_factor
+        return data
+
 
 class HDFEOSGeoReader(HDFEOSBaseFileReader):
     """Handler for the geographical datasets. """
@@ -138,14 +163,15 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         return self.read_geo_resolution(self.metadata)
 
     def get_dataset(self, dataset_keys, dataset_info):
-        """Get the dataset designated by *key*."""
+        """Get the geolocation dataset."""
         # Name of the dataset as it appears in the HDF EOS file
         in_file_dataset_name = dataset_info['file_key']
         # Name of the dataset in the YAML file
         dataset_name = dataset_keys.name
+        # Resolution asked
+        resolution = dataset_keys.resolution
 
         data = self.load_dataset(in_file_dataset_name)
-        resolution = dataset_keys.resolution
 
         if resolution != self.geo_resolution:
 
@@ -193,7 +219,7 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             else:
                 if dataset_name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
                     sensor_azimuth_a = self.load_dataset('SensorAzimuth')
-                    sensor_azimuth_b = self.load('SensorZenith') - 90
+                    sensor_azimuth_b = self.load_dataset('SensorZenith') - 90
                     sensor_azimuth_a, sensor_azimuth_b = interpolate(
                         sensor_azimuth_a, sensor_azimuth_b, sensor_zenith
                     )
@@ -201,8 +227,8 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
                     interpolated_dataset['satellite_zentih_angle'] = sensor_azimuth_b + 90
 
                 elif dataset_name in ['solar_azimuth_angle', 'solar_zenith_angle']:
-                    solar_azimuth_a = self.load('SolarAzimuth')
-                    solar_azimuth_b = self.load('SolarZenith') - 90
+                    solar_azimuth_a = self.load_dataset('SolarAzimuth')
+                    solar_azimuth_b = self.load_dataset('SolarZenith') - 90
                     solar_azimuth_a, solar_azimuth_b = interpolate(
                         solar_azimuth_a, solar_azimuth_b, sensor_zentih
                     )
@@ -212,22 +238,3 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             data = interpolated_dataset[dataset_name]
 
         return data
-
-    def load_dataset(self, dataset_name):
-        """Load the dataset from HDF EOS file. """
-
-        from satpy.readers.hdf4_utils import from_sds
-        if dataset_name in self.sd.datasets():
-            dataset = self.sd.select(dataset_name)
-            fill_value = dataset._FillValue
-            scale_factor = np.float32(dataset.scale_factor)
-            data = xr.DataArray(from_sds(dataset, chunks=CHUNK_SIZE),
-                                dims=['y', 'x']).astype(np.float32)
-            data_mask = data.where(data != fill_value)
-            data = data_mask * scale_factor
-            return data
-
-        error_message = "Dataset name {} not included in available datasets {}".format(
-            dataset_name, self.sd.datasets()
-        )
-        raise KeyError(error_message)
