@@ -37,7 +37,6 @@ from datetime import datetime
 from satpy import DatasetID, CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 import cfgrib
-#import pygrib
 
 LOG = logging.getLogger(__name__)
 
@@ -183,7 +182,6 @@ class GRIBFileHandler(BaseFileHandler):
             half_y = abs((max_y - min_y) / (shape[0] - 1)) / 2.
             extents = (min_x - half_x, min_y - half_y, max_x + half_x, max_y + half_y)
 
-        print(shape)
         return geometry.AreaDefinition(
             'on-the-fly grib area',
             'on-the-fly grib area',
@@ -233,7 +231,6 @@ class GRIBFileHandler(BaseFileHandler):
         ds_info = self.get_metadata(msg, ds_info)
         fill = msg.attrs['GRIB_missingValue']
         data = msg.values.astype(np.float32)
-        print(data)
         if msg.attrs.get('jScansPositively', -1) == 1:
             data = data[::1]
 
