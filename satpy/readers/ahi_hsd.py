@@ -221,9 +221,30 @@ _SPARE_TYPE = np.dtype([
 
 
 class AHIHSDFileHandler(BaseFileHandler):
-    """AHI standard format reader."""
+    """AHI standard format reader.
 
-    def __init__(self, filename, filename_info, filetype_info):
+    The AHI sensor produces data for some pixels outside the Earth disk (i,e:
+    atmospheric limb or deep space pixels).
+    By default, these pixels are masked out as they contain data of limited
+    or no value, but some applications do require these pixels.
+    It is therefore possible to override the default behaviour and perform no
+    masking of non-Earth pixels.
+
+    In order to change the default behaviour, use the 'mask_space' variable
+    as part of ``reader_kwargs`` upon Scene creation::
+
+        import satpy
+        import glob
+
+        filenames = glob.glob('*FLDK*.dat')
+        scene = satpy.Scene(filenames,
+                            reader='ahi_hsd',
+                            reader_kwargs={'mask_space': False})
+        scene.load([0.6])
+
+    """
+
+    def __init__(self, filename, filename_info, filetype_info, mask_space=True):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -254,6 +275,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.platform_name = np2str(self.basic_info['satellite'])
         self.observation_area = np2str(self.basic_info['observation_area'])
         self.sensor = 'ahi'
+        self.mask_space = mask_space
 
     @property
     def start_time(self):
@@ -444,7 +466,8 @@ class AHIHSDFileHandler(BaseFileHandler):
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
 
         # Mask space pixels
-        res = self._mask_space(res)
+        if self.mask_space:
+            res = self._mask_space(res)
 
         return res
 
