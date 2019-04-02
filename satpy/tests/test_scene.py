@@ -500,6 +500,8 @@ class TestScene(unittest.TestCase):
 
     def test_aggregate(self):
         """Test the aggregate method."""
+        if (sys.version_info < (3, 0)):
+            self.skipTest("Not implemented in python 2 (xarray).")
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
