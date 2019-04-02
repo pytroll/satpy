@@ -181,7 +181,6 @@ _INTER_CALIBRATION_INFO_TYPE = np.dtype([
     ("spare", "S56"),
 ])
 
-
 # 7 Segment information block
 _SEGMENT_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
@@ -208,7 +207,6 @@ _OBS_TIME_INFO_TYPE = np.dtype([
     ("blocklength", "<u2"),
     ("number_of_observation_times", "<u2"),
 ])
-
 
 # 10 Error information block
 _ERROR_INFO_TYPE = np.dtype([
