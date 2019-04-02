@@ -33,3 +33,4 @@ The following people have made contributions to this project:
 - [sjoro (sjoro)](https://github.com/sjoro)
 - Guido della Bruna - meteoswiss
 - Marco Sassi - meteoswiss
+- [Rohan Daruwala (rdaruwala)](https://github.com/rdaruwala)
