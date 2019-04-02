@@ -396,7 +396,16 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         return x__, y__
 
     def get_area_extent(self, size, offsets, factors, platform_height):
-        """Get the area extent of the file."""
+        """Get the area extent of the file.
+
+        Until December 2017, the data is shifted by 1.5km SSP North and West against the nominal GEOS projection. Since
+        December 2017 this offset has been corrected. A flag in the data indicates if the correction has been applied.
+        If no correction was applied, adjust the area extent to match the shifted data.
+
+        For more information see Section 3.1.4.2 in the MSG Level 1.5 Image Data Format Description. The correction
+        of the area extent is documented in a `developer's memo <https://github.com/pytroll/satpy/wiki/
+        SEVIRI-georeferencing-offset-correction>`_.
+        """
         nlines, ncols = size
         h = platform_height
 
@@ -416,8 +425,14 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
 
         if not self.mda['offset_corrected']:
+            # Geo-referencing offset present. Adjust area extent to match the shifted data. Note that we have to adjust
+            # the corners in the *opposite* direction, i.e. S-E. Think of it as if the coastlines were fixed and you
+            # dragged the image to S-E until coastlines and data area aligned correctly.
+            #
+            # Although the image is flipped upside-down and left-right, the projection coordinates retain their
+            # properties, i.e. positive x/y is East/North, respectively.
             xadj = 1500
-            yadj = 1500
+            yadj = -1500
             aex = (aex[0] + xadj, aex[1] + yadj,
                    aex[2] + xadj, aex[3] + yadj)
 
