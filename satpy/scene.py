@@ -618,6 +618,51 @@ class Scene(MetadataObject):
 
         return new_scn
 
+    def aggregate(self, dataset_ids=None, boundary='exact', side='left', func='mean', **dim_kwargs):
+        """Create an aggregated version of the Scene.
+
+        Args:
+            dataset_ids (iterable): DatasetIDs to include in the returned
+                                    `Scene`. Defaults to all datasets.
+            func (string): Function to apply on each aggregation window. One of
+                           'mean', 'sum', 'min', 'max', 'median', 'argmin',
+                           'argmax', 'prod', 'std', 'var'.
+                           'mean' is the default.
+            boundary: Not implemented.
+            side: Not implemented.
+            dim_kwargs: the size of the windows to aggregate.
+
+        Returns:
+            A new aggregated scene
+
+        See also:
+            xarray.DataArray.coarsen
+
+        Example:
+            `scn.aggregate(func='min', x=2, y=2)` will aggregate 2x2 pixels by
+            applying the `min` function.
+        """
+        new_scn = self.copy(datasets=dataset_ids)
+
+        for src_area, dataset_ids in new_scn.iter_by_area():
+            if src_area is None:
+                for ds_id in dataset_ids:
+                    new_scn.datasets[ds_id] = self[ds_id]
+                continue
+
+            if boundary != 'exact':
+                raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
+            target_area = src_area.aggregate(**dim_kwargs)
+            resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            for ds_id in dataset_ids:
+                res = self[ds_id].coarsen(boundary=boundary, side=side, func=func, **dim_kwargs)
+
+                new_scn.datasets[ds_id] = getattr(res, func)()
+                new_scn.datasets[ds_id].attrs['area'] = target_area
+                new_scn.datasets[ds_id].attrs['resolution'] = resolution
+
+        return new_scn
+
     def get(self, key, default=None):
         """Return value from DatasetDict with optional default."""
         return self.datasets.get(key, default)
