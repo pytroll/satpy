@@ -157,7 +157,10 @@ _IRCAL_INFO_TYPE = np.dtype([("c0_rad2tb_conversion", "f8"),
 # Visible, near-infrared band (Band No. 1 – 6)
 # (Band No. 1: backup operation (See Table 4 bb))
 _VISCAL_INFO_TYPE = np.dtype([("coeff_rad2albedo_conversion", "f8"),
-                              ("spare", "S104"),
+                              ("coeff_update_time", "f8"),
+                              ("cali_gain_count2rad_conversion", "f8"),
+                              ("cali_offset_count2rad_conversion", "f8"),
+                              ("spare", "S80"),
                               ])
 
 # 6 Inter-calibration information block
@@ -165,16 +168,17 @@ _INTER_CALIBRATION_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
     ("blocklength", "<u2"),
     ("gsics_calibration_intercept", "f8"),
-    ("gsics_calibration_intercept_stderr", "f8"),
     ("gsics_calibration_slope", "f8"),
-    ("gsics_calibration_slope_stderr", "f8"),
     ("gsics_calibration_coeff_quadratic_term", "f8"),
-    ("gsics_calibration_coeff_quadratic_term_stderr",
-     "f8"),
+    ("gsics_std_scn_radiance_bias", "f8"),
+    ("gsics_std_scn_radiance_bias_uncertainty", "f8"),
+    ("gsics_std_scn_radiance", "f8"),
     ("gsics_correction_starttime", "f8"),
     ("gsics_correction_endtime", "f8"),
-    ("ancillary_text", "S64"),
-    ("spare", "S128"),
+    ("gsics_radiance_validity_upper_lim", "f4"),
+    ("gsics_radiance_validity_lower_lim", "f4"),
+    ("gsics_filename", "S128"),
+    ("spare", "S56"),
 ])
 
 
@@ -205,10 +209,11 @@ _OBS_TIME_INFO_TYPE = np.dtype([
     ("number_of_observation_times", "<u2"),
 ])
 
+
 # 10 Error information block
 _ERROR_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
-    ("blocklength", "<u2"),
+    ("blocklength", "<u4"),
     ("number_of_error_info_data", "<u2"),
 ])
 
