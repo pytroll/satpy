@@ -82,7 +82,8 @@ def create_test_data():
     ending_date = beginning_date + timedelta(minutes=5)
     core_metadata_header = "GROUP = INVENTORYMETADATA\nGROUPTYPE = MASTERGROUP\n\n" \
                            "GROUP = RANGEDATETIME\n\nOBJECT = RANGEBEGINNINGDATE\nNUM_VAL = 1\nVALUE = \"{}\"\n" \
-                           "END_OBJECT = RANGEBEGINNINGDATE\n\nOBJECT = RANGEBEGINNINGTIME\nNUM_VAL = 1\nVALUE = \"{}\"\n"\
+                           "END_OBJECT = RANGEBEGINNINGDATE\n\nOBJECT = RANGEBEGINNINGTIME\n"\
+                           "NUM_VAL = 1\nVALUE = \"{}\"\n"\
                            "END_OBJECT = RANGEBEGINNINGTIME\n\nOBJECT = RANGEENDINGDATE\nNUM_VAL = 1\nVALUE = \"{}\"\n"\
                            "END_OBJECT = RANGEENDINGDATE\n\nOBJECT = RANGEENDINGTIME\nNUM_VAL = 1\nVALUE = \"{}\"\n" \
                            "END_OBJECT = RANGEENDINGTIME\nEND_GROUP = RANGEDATETIME".format(
@@ -92,14 +93,14 @@ def create_test_data():
                                ending_date.strftime("%H:%M:%S.%f")
                            )
     struct_metadata_header = "GROUP=SwathStructure\n"\
-                                     "GROUP=SWATH_1\n"\
-                                     "GROUP=DimensionMap\n"\
-                                     "OBJECT=DimensionMap_2\n"\
-                                     "GeoDimension=\"Cell_Along_Swath_5km\"\n"\
-                                     "END_OBJECT=DimensionMap_2\n"\
-                                     "END_GROUP=DimensionMap\n"\
-                                     "END_GROUP=SWATH_1\n"\
-                                     "END_GROUP=SwathStructure\nEND"
+                             "GROUP=SWATH_1\n"\
+                             "GROUP=DimensionMap\n"\
+                             "OBJECT=DimensionMap_2\n"\
+                             "GeoDimension=\"Cell_Along_Swath_5km\"\n"\
+                             "END_OBJECT=DimensionMap_2\n"\
+                             "END_GROUP=DimensionMap\n"\
+                             "END_GROUP=SWATH_1\n"\
+                             "END_GROUP=SwathStructure\nEND"
     archive_metadata_header = "GROUP = ARCHIVEDMETADATA\nEND_GROUP = ARCHIVEDMETADATA\nEND"
     setattr(h, 'CoreMetadata.0', core_metadata_header)
     setattr(h, 'StructMetadata.0', struct_metadata_header)
