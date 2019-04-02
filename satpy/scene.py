@@ -646,9 +646,9 @@ class Scene(MetadataObject):
         """
         new_scn = self.copy(datasets=dataset_ids)
 
-        for src_area, dataset_ids in new_scn.iter_by_area():
+        for src_area, ds_ids in new_scn.iter_by_area():
             if src_area is None:
-                for ds_id in dataset_ids:
+                for ds_id in ds_ids:
                     new_scn.datasets[ds_id] = self[ds_id]
                 continue
 
