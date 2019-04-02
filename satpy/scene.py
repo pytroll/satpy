@@ -588,6 +588,8 @@ class Scene(MetadataObject):
         # get the lowest resolution area, use it as the base of the slice
         # this makes sure that the other areas *should* be a consistent factor
         min_area = new_scn.min_area()
+        if isinstance(area, str):
+            area = get_area_def(area)
         new_min_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
             min_area, area, ll_bbox, xy_bbox)
         new_target_areas = {}
