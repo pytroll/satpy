@@ -31,15 +31,15 @@ from satpy.readers.file_handlers import BaseFileHandler
 logger = logging.getLogger(__name__)
 
 
-class GLD360FileHandler(BaseFileHandler):
+class VaisalaGLD360FileHandler(BaseFileHandler):
     """Vaisala Global Lightning Dataset Reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(GLD360FileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(VaisalaGLD360FileHandler, self).__init__(filename, filename_info, filetype_info)
 
         names = ['date', 'time', 'latitude', 'longitude', 'power', 'unit']
-        dtypes = {'date': 'str', 'time': 'str', 'latitude': 'float',
-                  'longitude': 'float', 'power': 'float', 'units': 'str'}
+        types = ['str', 'str', 'float', 'float', 'float', 'str']
+        dtypes = dict(zip(names, types))
         parse_dates = {'datetime': ['date', 'time']}
 
         self.data = pd.read_csv(filename, delim_whitespace=True, header=None,
