@@ -124,7 +124,7 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
 
-    """VIIRS HDF5 File Reader
+    """VIIRS HDF5 File Reader.
     """
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
@@ -337,6 +337,14 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             return data.where(data < fill_min)
 
     def get_dataset(self, dataset_id, ds_info):
+        """Get the dataset corresponding to *dataset_id*.
+
+        The size of the return DataArray will be dependent on the number of
+        scans actually sensed, and not necessarily the regular 768 scanlines
+        that the file contains for each granule. To that end, the number of
+        scans for each granule is read from:
+          `Data_Products/...Gran_x/N_Number_Of_Scans`.
+        """
         dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
         if not dataset_group:
             return
