@@ -3,8 +3,8 @@ reader:
   name: gld360
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
   sensors: [vaisala]
-  default_datasets:
-  default_channels: [power]
+  #default_datasets:
+  #default_channels: [power]
 
 file_types:
   gld360:
@@ -13,10 +13,10 @@ file_types:
 
 datasets:
   datetime:
-      name: datetime
-      sensor: vaisala
-      resolution: 2000
-      file_type: gld360
+    name: datetime
+    sensor: vaisala
+    resolution: 2000
+    file_type: gld360
 
   latitude:
     name: latitude
@@ -26,18 +26,18 @@ datasets:
     standard_name: latitude
 
   longitude:
-      name: longitude
-      sensor: vaisala
-      resolution: 2000
-      file_type: gld360
-      standard_name: longitude
+    name: longitude
+    sensor: vaisala
+    resolution: 2000
+    file_type: gld360
+    standard_name: longitude
 
   power:
-      name: power
-      sensor: vaisala
-      resolution: 2000
-      file_type: gld360
-      coordinates:
-        - longitude
-        - latitude
-      standard_name: power
+    name: power
+    sensor: vaisala
+    resolution: 2000
+    file_type: gld360
+    coordinates:
+      - longitude
+      - latitude
+    standard_name: power
