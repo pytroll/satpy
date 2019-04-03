@@ -656,7 +656,7 @@ class Scene(MetadataObject):
                 raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
             target_area = src_area.aggregate(**dim_kwargs)
             resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
-            for ds_id in dataset_ids:
+            for ds_id in ds_ids:
                 res = self[ds_id].coarsen(boundary=boundary, side=side, func=func, **dim_kwargs)
 
                 new_scn.datasets[ds_id] = getattr(res, func)()
