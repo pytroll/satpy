@@ -37,9 +37,9 @@ class GLD360FileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         super(GLD360FileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        names = ['date', 'time', 'lat', 'lon', 'power', 'unit']
-        dtypes = {'date': 'str', 'time': 'str', 'lat': 'float',
-                  'lon': 'float', 'power': 'float', 'units': 'str'}
+        names = ['date', 'time', 'latitude', 'longitude', 'power', 'unit']
+        dtypes = {'date': 'str', 'time': 'str', 'latitude': 'float',
+                  'longitude': 'float', 'power': 'float', 'units': 'str'}
         parse_dates = {'datetime': ['date', 'time']}
 
         self.data = pd.read_csv(filename, delim_whitespace=True, header=None,
