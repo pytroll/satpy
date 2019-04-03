@@ -304,10 +304,16 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         else:
             scan_size = 16
         scans_path = 'All_Data/{dataset_group}_All/NumberOfScans'
-        scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
+        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        scans = []
+        for granule in range(self[nb_granules_path]):
+            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
+            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
+            scans.append(self[scans_path])
         start_scan = 0
         data_chunks = []
-        scans = self[scans_path]
+        scans = xr.DataArray(scans)
         variable = self[var_path]
         # check if these are single per-granule value
         if variable.size != scans.size:
