@@ -245,9 +245,14 @@ class AHIHSDFileHandler(BaseFileHandler):
                             reader_kwargs={'mask_space': False})
         scene.load([0.6])
 
+    The AHI HSD data files contain multiple VIS channel calibration
+    coefficients. By default, the standard coefficients in header block 5
+    are used.
+
     """
 
-    def __init__(self, filename, filename_info, filetype_info, mask_space=True):
+    def __init__(self, filename, filename_info, filetype_info,
+                 mask_space=True, calib_mode='update'):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -279,6 +284,12 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.observation_area = np2str(self.basic_info['observation_area'])
         self.sensor = 'ahi'
         self.mask_space = mask_space
+
+        calib_mode_choices = ('NOMINAL', 'UPDATE')
+        if calib_mode.upper() not in calib_mode_choices:
+            raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
+                calib_mode, calib_mode_choices))
+        self.calib_mode = calib_mode.upper()
 
     @property
     def start_time(self):
@@ -494,8 +505,19 @@ class AHIHSDFileHandler(BaseFileHandler):
     def convert_to_radiance(self, data):
         """Calibrate to radiance."""
 
-        gain = self._header["block5"]["gain_count2rad_conversion"][0]
-        offset = self._header["block5"]["offset_count2rad_conversion"][0]
+        bnum = self._header["block5"]['band_number'][0]
+        # Check calibration mode and select corresponding coefficients
+        if (self.calib_mode == "UPDATE" and bnum < 7):
+            gain = self._header['calibration']["cali_gain_count2rad_conversion"][0]
+            offset = self._header['calibration']["cali_offset_count2rad_conversion"][0]
+            if (gain == 0 and offset == 0):
+                logger.info(
+                    "No valid updated coefficients, fall back to pre-launch")
+                gain = self._header["block5"]["gain_count2rad_conversion"][0]
+                offset = self._header["block5"]["offset_count2rad_conversion"][0]
+        else:
+            gain = self._header["block5"]["gain_count2rad_conversion"][0]
+            offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
         return (data * gain + offset).clip(0)
 
