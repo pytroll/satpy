@@ -3,12 +3,6 @@
 #
 # Copyright (c) 2014-2019 PyTroll developers
 #
-# Author(s):
-#
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Cooke, Michael.C, UK Met Office
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
