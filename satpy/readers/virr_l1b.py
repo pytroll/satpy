@@ -2,13 +2,6 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2016-2018 SatPy developers
 #
-# Author(s):
-#
-#
-#   William Roberts <wroberts4@wisc.edu>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
-#
 # This file is part of satpy.
 #
 # satpy is free software: you can redistribute it and/or modify it under the
