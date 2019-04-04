@@ -8,7 +8,6 @@
 #   Adam.Dybbroe <adam.dybbroe@smhi.se>
 #   Cooke, Michael.C, UK Met Office
 #   Martin Raspaud <martin.raspaud@smhi.se>
-#   Simon R. Proud <simon.proud@physics.ox.ac.uk>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,6 +45,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import dask.array as da
 import xarray as xr
+import warnings
 
 from pyresample import geometry
 from satpy import CHUNK_SIZE
@@ -351,15 +351,23 @@ class AHIHSDFileHandler(BaseFileHandler):
         header['block1'] = np.fromfile(
             fp_, dtype=_BASIC_INFO_TYPE, count=1)
         fpos = fpos + int(header['block1']['blocklength'])
+        if (fp_.tell() != fpos):
+            warnings.warn("Actual block1 header size does not match expected")
         fp_.seek(fpos, 0)
         header["block2"] = np.fromfile(fp_, dtype=_DATA_INFO_TYPE, count=1)
         fpos = fpos + int(header['block2']['blocklength'])
+        if (fp_.tell() != fpos):
+            warnings.warn("Actual block2 header size does not match expected")
         fp_.seek(fpos, 0)
         header["block3"] = np.fromfile(fp_, dtype=_PROJ_INFO_TYPE, count=1)
         fpos = fpos + int(header['block3']['blocklength'])
+        if (fp_.tell() != fpos):
+            warnings.warn("Actual block3 header size does not match expected")
         fp_.seek(fpos, 0)
         header["block4"] = np.fromfile(fp_, dtype=_NAV_INFO_TYPE, count=1)
         fpos = fpos + int(header['block4']['blocklength'])
+        if (fp_.tell() != fpos):
+            warnings.warn("Actual block4 header size does not match expected")
         fp_.seek(fpos, 0)
         header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
         logger.debug("Band number = " +
@@ -372,6 +380,8 @@ class AHIHSDFileHandler(BaseFileHandler):
         else:
             cal = np.fromfile(fp_, dtype=_IRCAL_INFO_TYPE, count=1)
         fpos = fpos + int(header['block5']['blocklength'])
+        if (fp_.tell() != fpos):
+            warnings.warn("Actual block5 header size does not match expected")
         fp_.seek(fpos, 0)
 
         header['calibration'] = cal
@@ -379,10 +389,14 @@ class AHIHSDFileHandler(BaseFileHandler):
         header["block6"] = np.fromfile(
             fp_, dtype=_INTER_CALIBRATION_INFO_TYPE, count=1)
         fpos = fpos + int(header['block6']['blocklength'])
+        if (fp_.tell() != fpos):
+            warnings.warn("Actual block6 header size does not match expected")
         fp_.seek(fpos, 0)
         header["block7"] = np.fromfile(
             fp_, dtype=_SEGMENT_INFO_TYPE, count=1)
         fpos = fpos + int(header['block7']['blocklength'])
+        if (fp_.tell() != fpos):
+            warnings.warn("Actual block7 header size does not match expected")
         fp_.seek(fpos, 0)
         header["block8"] = np.fromfile(
             fp_, dtype=_NAVIGATION_CORRECTION_INFO_TYPE, count=1)
@@ -397,6 +411,8 @@ class AHIHSDFileHandler(BaseFileHandler):
         for i in range(ncorrs):
             corrections.append(np.fromfile(fp_, dtype=dtype, count=1))
         fpos = fpos + int(header['block8']['blocklength'])
+        if (fp_.tell() + 40 != fpos):
+            warnings.warn("Actual block8 header size does not match expected")
         fp_.seek(fpos, 0)
         header['navigation_corrections'] = corrections
         header["block9"] = np.fromfile(fp_,
@@ -415,6 +431,8 @@ class AHIHSDFileHandler(BaseFileHandler):
                                                count=1))
         header['observation_time_information'] = lines_and_times
         fpos = fpos + int(header['block9']['blocklength'])
+        if (fp_.tell() + 40 != fpos):
+            warnings.warn("Actual block9 header size does not match expected")
         fp_.seek(fpos, 0)
 
         header["block10"] = np.fromfile(fp_,
@@ -431,10 +449,14 @@ class AHIHSDFileHandler(BaseFileHandler):
             err_info_data.append(np.fromfile(fp_, dtype=dtype, count=1))
         header['error_information_data'] = err_info_data
         fpos = fpos + int(header['block10']['blocklength'])
+        if (fp_.tell() + 40 != fpos):
+            warnings.warn("Actual block10 header size does not match expected")
         fp_.seek(fpos, 0)
 
         header["block11"] = np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
         fpos = fpos + int(header['block11']['blocklength'])
+        if (fp_.tell() != fpos):
+            warnings.warn("Actual block11 header size does not match expected")
         fp_.seek(fpos, 0)
 
         return header
