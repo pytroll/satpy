@@ -524,7 +524,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             offset = self._header['calibration']["cali_offset_count2rad_conversion"][0]
             if (gain == 0 and offset == 0):
                 logger.info(
-                    "No valid updated coefficients, fall back to pre-launch")
+                    "No valid updated coefficients, fall back to default values.")
                 gain = self._header["block5"]["gain_count2rad_conversion"][0]
                 offset = self._header["block5"]["offset_count2rad_conversion"][0]
         else:
