@@ -234,7 +234,7 @@ class AHIHSDFileHandler(BaseFileHandler):
     masking of non-Earth pixels.
 
     In order to change the default behaviour, use the 'mask_space' variable
-    as part of ``reader_kwargs`` upon Scene creation::
+    as part of ``reader_kwargs`` upon Scene creation:
 
         import satpy
         import glob
@@ -247,12 +247,24 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     The AHI HSD data files contain multiple VIS channel calibration
     coefficients. By default, the standard coefficients in header block 5
-    are used.
+    are used. If the user prefers the updated calibration coefficients then
+    they can pass calib_mode='update' when creating a scene:
+
+        import satpy
+        import glob
+
+        filenames = glob.glob('*FLDK*.dat')
+        scene = satpy.Scene(filenames,
+                            reader='ahi_hsd',
+                            reader_kwargs={'calib_mode': 'update'})
+        scene.load([0.6])
+
+    By default these updated coefficients are not used.
 
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 mask_space=True, calib_mode='update'):
+                 mask_space=True, calib_mode='nominal'):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
