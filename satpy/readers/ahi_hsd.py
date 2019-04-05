@@ -224,7 +224,7 @@ _SPARE_TYPE = np.dtype([
 
 
 class AHIHSDFileHandler(BaseFileHandler):
-    """AHI standard format reader.
+    """AHI standard format reader
 
     The AHI sensor produces data for some pixels outside the Earth disk (i,e:
     atmospheric limb or deep space pixels).
@@ -234,7 +234,7 @@ class AHIHSDFileHandler(BaseFileHandler):
     masking of non-Earth pixels.
 
     In order to change the default behaviour, use the 'mask_space' variable
-    as part of ``reader_kwargs`` upon Scene creation:
+    as part of ``reader_kwargs`` upon Scene creation::
 
         import satpy
         import glob
@@ -242,13 +242,13 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'mask_space': False})
+                            reader_kwargs={'mask_space':: False})
         scene.load([0.6])
 
     The AHI HSD data files contain multiple VIS channel calibration
     coefficients. By default, the standard coefficients in header block 5
     are used. If the user prefers the updated calibration coefficients then
-    they can pass calib_mode='update' when creating a scene:
+    they can pass calib_mode='update' when creating a scene::
 
         import satpy
         import glob
@@ -256,7 +256,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'calib_mode': 'update'})
+                            reader_kwargs={'calib_mode':: 'update'})
         scene.load([0.6])
 
     By default these updated coefficients are not used.
@@ -519,10 +519,10 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         bnum = self._header["block5"]['band_number'][0]
         # Check calibration mode and select corresponding coefficients
-        if (self.calib_mode == "UPDATE" and bnum < 7):
+        if self.calib_mode == "UPDATE" and bnum < 7:
             gain = self._header['calibration']["cali_gain_count2rad_conversion"][0]
             offset = self._header['calibration']["cali_offset_count2rad_conversion"][0]
-            if (gain == 0 and offset == 0):
+            if gain == 0 and offset == 0:
                 logger.info(
                     "No valid updated coefficients, fall back to default values.")
                 gain = self._header["block5"]["gain_count2rad_conversion"][0]
