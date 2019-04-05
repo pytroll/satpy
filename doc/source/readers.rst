@@ -6,7 +6,7 @@ Readers
 
     How to read cloud products from NWCSAF software. (separate document?)
 
-SatPy supports reading and loading data from many input file formats and
+Satpy supports reading and loading data from many input file formats and
 schemes. The :class:`~satpy.scene.Scene` object provides a simple interface
 around all the complexity of these various formats through its ``load``
 method. The following sections describe the different way data can be loaded,
@@ -28,7 +28,7 @@ Coming soon...
 Load data
 =========
 
-Datasets in SatPy are identified by certain pieces of metadata set during
+Datasets in Satpy are identified by certain pieces of metadata set during
 data loading. These include `name`, `wavelength`, `calibration`,
 `resolution`, `polarization`, and `modifiers`. Normally, once a ``Scene``
 is created requesting datasets by `name` or `wavelength` is all that is
@@ -43,7 +43,7 @@ However, in many cases datasets are available in multiple spatial resolutions,
 multiple calibrations (``brightness_temperature``, ``reflectance``,
 ``radiance``, etc),
 multiple polarizations, or have corrections or other modifiers already applied
-to them. By default SatPy will provide the version of the dataset with the
+to them. By default Satpy will provide the version of the dataset with the
 highest resolution and the highest level of calibration (brightness
 temperature or reflectance over radiance). It is also possible to request one
 of these exact versions of a dataset by using the
@@ -63,7 +63,7 @@ Or multiple calibrations::
 
     >>> scn.load([0.6, 10.8], calibrations=['brightness_temperature', 'radiance'])
 
-In the above case SatPy will load whatever dataset is available and matches
+In the above case Satpy will load whatever dataset is available and matches
 the specified parameters. So the above ``load`` call would load the ``0.6``
 (a visible/reflectance band) radiance data and ``10.8`` (an IR band)
 brightness temperature data.
@@ -89,7 +89,7 @@ names of Datasets::
 Search for local files
 ======================
 
-SatPy provides a utility
+Satpy provides a utility
 :func:`~satpy.readers.find_files_and_readers` for searching for files in
 a base directory matching various search parameters. This function discovers
 files based on filename patterns. It returns a dictionary mapping reader name
@@ -109,7 +109,7 @@ the :class:`~satpy.scene.Scene` initialization.
 See the :func:`~satpy.readers.find_files_and_readers` documentation for
 more information on the possible parameters.
 
-Adding a Reader to SatPy
+Adding a Reader to Satpy
 ========================
 
 This is described in the developer guide, see :doc:`dev_guide/custom_reader`.

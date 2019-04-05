@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2019 SatPy developers
+# Copyright (c) 2019 Satpy developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ including:
 - uwaos_thredds: Access data using OpenDAP or similar method from the
     University of Wisconsin - Madison's AOS department's THREDDS server.
 - http: A last resort download method when nothing else is available of a
-    tarball or zip file from one or more servers available to the SatPy
+    tarball or zip file from one or more servers available to the Satpy
     project.
 - uw_arcdata: A network mount available on many servers at the Space Science
     and Engineering Center (SSEC) at the University of Wisconsin - Madison.
