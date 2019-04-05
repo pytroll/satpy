@@ -6,7 +6,7 @@ reader:
 
 file_types:
   vaisala_gld360:
-    file_reader: !!python/name:satpy.readers.vaisala_gld360.VaisalaGLD360FileHandler ''
+    file_reader: !!python/name:satpy.readers.vaisala_gld360.VaisalaGLD360TextFileHandler ''
     file_patterns: ['flashes_{start_time:%Y%m%d}.txt']
 
 datasets:
