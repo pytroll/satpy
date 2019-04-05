@@ -19,12 +19,21 @@
 import os
 import logging
 
+try:
+    import gcsfs
+except ImportError:
+    gcsfs = None
+
 LOG = logging.getLogger(__name__)
 
 
 def is_google_cloud_instance():
     from urllib.request import urlopen
-    return urlopen('http://metadata.google.internal').headers.get('Metadata-Flavor') == 'Google'
+    from urllib.error import URLError
+    try:
+        return urlopen('http://metadata.google.internal').headers.get('Metadata-Flavor') == 'Google'
+    except URLError:
+        return False
 
 
 def get_bucket_files(glob_pattern, base_dir, force=False):
@@ -41,10 +50,11 @@ def get_bucket_files(glob_pattern, base_dir, force=False):
             download directory.
 
     """
-    try:
-        import gcsfs
-    except ImportError:
+    if gcsfs is None:
         raise RuntimeError("Missing 'gcsfs' dependency for GCS download.")
+    if not os.path.isdir(base_dir):
+        # it is the caller's responsibility to make this
+        raise OSError("Directory does not exist: {}".format(base_dir))
 
     if isinstance(glob_pattern, str):
         glob_pattern = [glob_pattern]
