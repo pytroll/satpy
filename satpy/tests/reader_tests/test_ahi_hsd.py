@@ -175,10 +175,15 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                 return_value=None)
     def test_calibrate(self, *mocks):
         """Test calibration"""
+        def_cali = [-0.0037, 15.20]
+        upd_cali = [-0.0074, 30.40]
+        bad_cali = [0.0, 0.0]
         fh = AHIHSDFileHandler()
+        fh.calib_mode = 'NOMINAL'
         fh._header = {
-            'block5': {'gain_count2rad_conversion': [-0.0037],
-                       'offset_count2rad_conversion': [15.20],
+            'block5': {'band_number': [5],
+                       'gain_count2rad_conversion': [def_cali[0]],
+                       'offset_count2rad_conversion': [def_cali[1]],
                        'central_wave_length': [10.4073], },
             'calibration': {'coeff_rad2albedo_conversion': [0.0019255],
                             'speed_of_light': [299792458.0],
@@ -186,7 +191,9 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             'boltzmann_constant': [1.3806488e-23],
                             'c0_rad2tb_conversion': [-0.116127314574],
                             'c1_rad2tb_conversion': [1.00099153832],
-                            'c2_rad2tb_conversion': [-1.76961091571e-06]},
+                            'c2_rad2tb_conversion': [-1.76961091571e-06],
+                            'cali_gain_count2rad_conversion': [upd_cali[0]],
+                            'cali_offset_count2rad_conversion': [upd_cali[1]]},
         }
 
         # Counts
@@ -212,6 +219,35 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                              [1.50189, 0.]])
         refl = fh.calibrate(data=counts, calibration='reflectance')
         self.assertTrue(np.allclose(refl, refl_exp))
+
+        # Updated calibration
+        # Standard operation
+        fh.calib_mode = 'UPDATE'
+        rad_exp = np.array([[30.4, 23.0],
+                            [15.6, 0.]])
+        rad = fh.calibrate(data=counts, calibration='radiance')
+        self.assertTrue(np.allclose(rad, rad_exp))
+
+        # Case for no updated calibration available (older data)
+        fh._header = {
+            'block5': {'band_number': [5],
+                       'gain_count2rad_conversion': [def_cali[0]],
+                       'offset_count2rad_conversion': [def_cali[1]],
+                       'central_wave_length': [10.4073], },
+            'calibration': {'coeff_rad2albedo_conversion': [0.0019255],
+                            'speed_of_light': [299792458.0],
+                            'planck_constant': [6.62606957e-34],
+                            'boltzmann_constant': [1.3806488e-23],
+                            'c0_rad2tb_conversion': [-0.116127314574],
+                            'c1_rad2tb_conversion': [1.00099153832],
+                            'c2_rad2tb_conversion': [-1.76961091571e-06],
+                            'cali_gain_count2rad_conversion': [bad_cali[0]],
+                            'cali_offset_count2rad_conversion': [bad_cali[1]]},
+        }
+        rad = fh.calibrate(data=counts, calibration='radiance')
+        rad_exp = np.array([[15.2, 11.5],
+                            [7.8, 0]])
+        self.assertTrue(np.allclose(rad, rad_exp))
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
