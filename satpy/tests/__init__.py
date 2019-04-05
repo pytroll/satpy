@@ -26,7 +26,7 @@ import logging
 import sys
 
 from satpy.tests import (reader_tests, test_dataset, test_file_handlers,
-                         test_readers, test_resample,
+                         test_readers, test_resample, test_demo,
                          test_scene, test_utils, test_writers,
                          test_yaml_reader, writer_tests,
                          test_enhancements, compositor_tests, test_multiscene)
@@ -49,6 +49,7 @@ def suite():
     mysuite.addTests(test_writers.suite())
     mysuite.addTests(test_readers.suite())
     mysuite.addTests(test_resample.suite())
+    mysuite.addTests(test_demo.suite())
     mysuite.addTests(test_yaml_reader.suite())
     mysuite.addTests(reader_tests.suite())
     mysuite.addTests(writer_tests.suite())
