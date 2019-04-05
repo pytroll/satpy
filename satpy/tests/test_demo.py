@@ -33,12 +33,13 @@ except ImportError:
 class TestDemo(unittest.TestCase):
     """Test demo data download functions."""
 
-    @mock.patch('satpy.demo.google_cloud_platform.gcsfs.GCSFileSystem')
-    def test_get_us_midlatitude_cyclone_abi(self, gcsfs_cls):
+    @mock.patch('satpy.demo.google_cloud_platform.gcsfs')
+    def test_get_us_midlatitude_cyclone_abi(self, gcsfs_mod):
         """Test data download function."""
         from satpy.demo import get_us_midlatitude_cyclone_abi
+        gcsfs_mod.GCSFileSystem = mock.MagicMock()
         gcsfs_inst = mock.MagicMock()
-        gcsfs_cls.return_value = gcsfs_inst
+        gcsfs_mod.GCSFileSystem.return_value = gcsfs_inst
         gcsfs_inst.glob.return_value = ['a.nc', 'b.nc']
         self.assertRaises(AssertionError, get_us_midlatitude_cyclone_abi)
         self.assertRaises(NotImplementedError, get_us_midlatitude_cyclone_abi, method='unknown')
@@ -53,9 +54,11 @@ class TestDemo(unittest.TestCase):
 class TestGCPUtils(unittest.TestCase):
     """Test Google Cloud Platform utilities."""
 
-    def test_is_gcp_instance(self):
+    @mock.patch('satpy.demo.google_cloud_platform.urlopen')
+    def test_is_gcp_instance(self, uo):
         """Test is_google_cloud_instance."""
-        from satpy.demo.google_cloud_platform import is_google_cloud_instance
+        from satpy.demo.google_cloud_platform import is_google_cloud_instance, URLError
+        uo.side_effect = URLError("Test Environment")
         self.assertFalse(is_google_cloud_instance())
 
     @mock.patch('satpy.demo.google_cloud_platform.gcsfs.GCSFileSystem')
