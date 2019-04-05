@@ -61,12 +61,13 @@ class TestGCPUtils(unittest.TestCase):
         uo.side_effect = URLError("Test Environment")
         self.assertFalse(is_google_cloud_instance())
 
-    @mock.patch('satpy.demo.google_cloud_platform.gcsfs.GCSFileSystem')
-    def test_get_bucket_files(self, gcsfs_cls):
+    @mock.patch('satpy.demo.google_cloud_platform.gcsfs')
+    def test_get_bucket_files(self, gcsfs_mod):
         """Test get_bucket_files basic cases."""
         from satpy.demo.google_cloud_platform import get_bucket_files
+        gcsfs_mod.GCSFileSystem = mock.MagicMock()
         gcsfs_inst = mock.MagicMock()
-        gcsfs_cls.return_value = gcsfs_inst
+        gcsfs_mod.GCSFileSystem.return_value = gcsfs_inst
         gcsfs_inst.glob.return_value = ['a.nc', 'b.nc']
         filenames = get_bucket_files('*.nc', '.')
         expected = [os.path.join('.', 'a.nc'), os.path.join('.', 'b.nc')]
