@@ -81,14 +81,14 @@ class TestGCPUtils(unittest.TestCase):
         gcsfs_inst.get.reset_mock()
         gcsfs_inst.glob.return_value = ['a.nc']
         filenames = get_bucket_files('*.nc', '.')
-        self.assertEqual(['./a.nc'], filenames)
+        self.assertEqual([os.path.join('.', 'a.nc')], filenames)
         gcsfs_inst.get.assert_not_called()
 
         # force redownload
         gcsfs_inst.get.reset_mock()
         gcsfs_inst.glob.return_value = ['a.nc']
         filenames = get_bucket_files('*.nc', '.', force=True)
-        self.assertEqual(['./a.nc'], filenames)
+        self.assertEqual([os.path.join('.', 'a.nc')], filenames)
         gcsfs_inst.get.assert_called_once()
 
         # if we don't get any results then we expect an exception
