@@ -718,14 +718,13 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                 sampling = SAMPLING_NS_IR
             pix_size = ALTITUDE * sampling
             area_def = pyresample.geometry.AreaDefinition(
-                area_id='goes_geos_uniform',
-                name='{} geostationary projection (uniform sampling)'.format(
-                    self.platform_name),
-                proj_id='goes_geos_uniform',
-                proj_dict=proj_dict,
-                x_size=np.rint((urx - llx) / pix_size).astype(int),
-                y_size=np.rint((ury - lly) / pix_size).astype(int),
-                area_extent=area_extent)
+                'goes_geos_uniform',
+                '{} geostationary projection (uniform sampling)'.format(self.platform_name),
+                'goes_geos_uniform',
+                proj_dict,
+                np.rint((urx - llx) / pix_size).astype(int),
+                np.rint((ury - lly) / pix_size).astype(int),
+                area_extent)
 
             return area_def
         else:
