@@ -1,7 +1,7 @@
 Examples
 ========
 
-SatPy examples are available as Jupyter Notebooks on the
+Satpy examples are available as Jupyter Notebooks on the
 `pytroll-examples <https://github.com/pytroll/pytroll-examples/tree/master/satpy>`_
 git repository. They include python code, PNG images, and descriptions of
 what the example is doing. Below is a list of some of the examples and a brief
@@ -22,7 +22,7 @@ as explanations in the various sections of this documentation.
     * - `Sentinel-3 OLCI True Color <https://github.com/pytroll/pytroll-examples/blob/master/satpy/OLCI%20L1B.ipynb>`_
       - Reading OLCI data from Sentinel 3 with Pytroll/Satpy
     * - `Sentinel 2 MSI true color <https://github.com/pytroll/pytroll-examples/blob/master/satpy/Sentinel%202%20MSI%20true%20color.ipynb>`_
-      - Reading MSI data from Sentinel 2 with Pytroll/SatPy
+      - Reading MSI data from Sentinel 2 with Pytroll/Satpy
     * - `Suomi-NPP VIIRS SDR True Color <https://github.com/pytroll/pytroll-examples/blob/master/satpy/satpy_rayleigh_iband_enhanced.ipynb>`_
       - Generate a rayleigh corrected true color RGB from VIIRS I- and M-bands
     * - `Aqua/Terra MODIS True Color <https://github.com/pytroll/pytroll-examples/blob/master/satpy/satpy_rayleigh_modis.ipynb>`_
