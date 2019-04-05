@@ -20,6 +20,13 @@ import os
 import logging
 
 try:
+    from urllib.request import urlopen
+    from urllib.error import URLError
+except ImportError:
+    # python 2
+    from urllib2 import urlopen, URLError
+
+try:
     import gcsfs
 except ImportError:
     gcsfs = None
@@ -28,8 +35,6 @@ LOG = logging.getLogger(__name__)
 
 
 def is_google_cloud_instance():
-    from urllib.request import urlopen
-    from urllib.error import URLError
     try:
         return urlopen('http://metadata.google.internal').headers.get('Metadata-Flavor') == 'Google'
     except URLError:
