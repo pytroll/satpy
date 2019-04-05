@@ -75,7 +75,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'SatPy'
+project = u'Satpy'
 copyright = u'2009-{}, The PyTroll Team'.format(datetime.utcnow().strftime("%Y"))
 
 # The version info for the project you're documenting, acts as replacement for

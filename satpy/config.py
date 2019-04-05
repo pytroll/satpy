@@ -23,7 +23,7 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""SatPy Configuration directory and file handling
+"""Satpy Configuration directory and file handling
 """
 import glob
 import logging
