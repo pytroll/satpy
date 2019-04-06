@@ -219,7 +219,7 @@ _SPARE_TYPE = np.dtype([
 
 
 class AHIHSDFileHandler(BaseFileHandler):
-    """AHI standard format reader.
+    """AHI standard format reader
 
     The AHI sensor produces data for some pixels outside the Earth disk (i,e:
     atmospheric limb or deep space pixels).
@@ -237,12 +237,29 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'mask_space': False})
+                            reader_kwargs={'mask_space':: False})
         scene.load([0.6])
+
+    The AHI HSD data files contain multiple VIS channel calibration
+    coefficients. By default, the standard coefficients in header block 5
+    are used. If the user prefers the updated calibration coefficients then
+    they can pass calib_mode='update' when creating a scene::
+
+        import satpy
+        import glob
+
+        filenames = glob.glob('*FLDK*.dat')
+        scene = satpy.Scene(filenames,
+                            reader='ahi_hsd',
+                            reader_kwargs={'calib_mode':: 'update'})
+        scene.load([0.6])
+
+    By default these updated coefficients are not used.
 
     """
 
-    def __init__(self, filename, filename_info, filetype_info, mask_space=True):
+    def __init__(self, filename, filename_info, filetype_info,
+                 mask_space=True, calib_mode='nominal'):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -274,6 +291,12 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.observation_area = np2str(self.basic_info['observation_area'])
         self.sensor = 'ahi'
         self.mask_space = mask_space
+
+        calib_mode_choices = ('NOMINAL', 'UPDATE')
+        if calib_mode.upper() not in calib_mode_choices:
+            raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
+                calib_mode, calib_mode_choices))
+        self.calib_mode = calib_mode.upper()
 
     @property
     def start_time(self):
@@ -337,6 +360,12 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.area = area
         return area
 
+    def _check_fpos(self, fp_, fpos, offset, block):
+        """Check file position matches blocksize"""
+        if (fp_.tell() + offset != fpos):
+            warnings.warn("Actual "+block+" header size does not match expected")
+        return
+
     def _read_header(self, fp_):
         """Read header"""
         header = {}
@@ -345,23 +374,19 @@ class AHIHSDFileHandler(BaseFileHandler):
         header['block1'] = np.fromfile(
             fp_, dtype=_BASIC_INFO_TYPE, count=1)
         fpos = fpos + int(header['block1']['blocklength'])
-        if (fp_.tell() != fpos):
-            warnings.warn("Actual block1 header size does not match expected")
+        self._check_fpos(fp_, fpos, 0, 'block1')
         fp_.seek(fpos, 0)
         header["block2"] = np.fromfile(fp_, dtype=_DATA_INFO_TYPE, count=1)
         fpos = fpos + int(header['block2']['blocklength'])
-        if (fp_.tell() != fpos):
-            warnings.warn("Actual block2 header size does not match expected")
+        self._check_fpos(fp_, fpos, 0, 'block2')
         fp_.seek(fpos, 0)
         header["block3"] = np.fromfile(fp_, dtype=_PROJ_INFO_TYPE, count=1)
         fpos = fpos + int(header['block3']['blocklength'])
-        if (fp_.tell() != fpos):
-            warnings.warn("Actual block3 header size does not match expected")
+        self._check_fpos(fp_, fpos, 0, 'block3')
         fp_.seek(fpos, 0)
         header["block4"] = np.fromfile(fp_, dtype=_NAV_INFO_TYPE, count=1)
         fpos = fpos + int(header['block4']['blocklength'])
-        if (fp_.tell() != fpos):
-            warnings.warn("Actual block4 header size does not match expected")
+        self._check_fpos(fp_, fpos, 0, 'block4')
         fp_.seek(fpos, 0)
         header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
         logger.debug("Band number = " +
@@ -374,8 +399,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         else:
             cal = np.fromfile(fp_, dtype=_IRCAL_INFO_TYPE, count=1)
         fpos = fpos + int(header['block5']['blocklength'])
-        if (fp_.tell() != fpos):
-            warnings.warn("Actual block5 header size does not match expected")
+        self._check_fpos(fp_, fpos, 0, 'block5')
         fp_.seek(fpos, 0)
 
         header['calibration'] = cal
@@ -383,14 +407,12 @@ class AHIHSDFileHandler(BaseFileHandler):
         header["block6"] = np.fromfile(
             fp_, dtype=_INTER_CALIBRATION_INFO_TYPE, count=1)
         fpos = fpos + int(header['block6']['blocklength'])
-        if (fp_.tell() != fpos):
-            warnings.warn("Actual block6 header size does not match expected")
+        self._check_fpos(fp_, fpos, 0, 'block6')
         fp_.seek(fpos, 0)
         header["block7"] = np.fromfile(
             fp_, dtype=_SEGMENT_INFO_TYPE, count=1)
         fpos = fpos + int(header['block7']['blocklength'])
-        if (fp_.tell() != fpos):
-            warnings.warn("Actual block7 header size does not match expected")
+        self._check_fpos(fp_, fpos, 0, 'block7')
         fp_.seek(fpos, 0)
         header["block8"] = np.fromfile(
             fp_, dtype=_NAVIGATION_CORRECTION_INFO_TYPE, count=1)
@@ -405,8 +427,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         for i in range(ncorrs):
             corrections.append(np.fromfile(fp_, dtype=dtype, count=1))
         fpos = fpos + int(header['block8']['blocklength'])
-        if (fp_.tell() + 40 != fpos):
-            warnings.warn("Actual block8 header size does not match expected")
+        self._check_fpos(fp_, fpos, 40, 'block8')
         fp_.seek(fpos, 0)
         header['navigation_corrections'] = corrections
         header["block9"] = np.fromfile(fp_,
@@ -425,8 +446,7 @@ class AHIHSDFileHandler(BaseFileHandler):
                                                count=1))
         header['observation_time_information'] = lines_and_times
         fpos = fpos + int(header['block9']['blocklength'])
-        if (fp_.tell() + 40 != fpos):
-            warnings.warn("Actual block9 header size does not match expected")
+        self._check_fpos(fp_, fpos, 40, 'block9')
         fp_.seek(fpos, 0)
 
         header["block10"] = np.fromfile(fp_,
@@ -443,14 +463,12 @@ class AHIHSDFileHandler(BaseFileHandler):
             err_info_data.append(np.fromfile(fp_, dtype=dtype, count=1))
         header['error_information_data'] = err_info_data
         fpos = fpos + int(header['block10']['blocklength'])
-        if (fp_.tell() + 40 != fpos):
-            warnings.warn("Actual block10 header size does not match expected")
+        self._check_fpos(fp_, fpos, 40, 'block10')
         fp_.seek(fpos, 0)
 
         header["block11"] = np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
         fpos = fpos + int(header['block11']['blocklength'])
-        if (fp_.tell() != fpos):
-            warnings.warn("Actual block11 header size does not match expected")
+        self._check_fpos(fp_, fpos, 0, 'block11')
         fp_.seek(fpos, 0)
 
         return header
@@ -531,8 +549,19 @@ class AHIHSDFileHandler(BaseFileHandler):
     def convert_to_radiance(self, data):
         """Calibrate to radiance."""
 
-        gain = self._header["block5"]["gain_count2rad_conversion"][0]
-        offset = self._header["block5"]["offset_count2rad_conversion"][0]
+        bnum = self._header["block5"]['band_number'][0]
+        # Check calibration mode and select corresponding coefficients
+        if self.calib_mode == "UPDATE" and bnum < 7:
+            gain = self._header['calibration']["cali_gain_count2rad_conversion"][0]
+            offset = self._header['calibration']["cali_offset_count2rad_conversion"][0]
+            if gain == 0 and offset == 0:
+                logger.info(
+                    "No valid updated coefficients, fall back to default values.")
+                gain = self._header["block5"]["gain_count2rad_conversion"][0]
+                offset = self._header["block5"]["offset_count2rad_conversion"][0]
+        else:
+            gain = self._header["block5"]["gain_count2rad_conversion"][0]
+            offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
         return (data * gain + offset).clip(0)
 
