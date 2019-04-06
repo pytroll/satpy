@@ -283,7 +283,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         m = mock.mock_open()
         with mock.patch('__main__.open', m, create=True):
             fpos = 50
-            with open('/tmp/ahitmp', 'r') as fp_:
+            with open('fakefile', 'r') as fp_:
                 # Expected and actual blocklength match
                 fp_.tell.return_value = 50
                 with warnings.catch_warnings(record=True) as w:
