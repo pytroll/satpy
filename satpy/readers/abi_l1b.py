@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016-2018 SatPy developers
+# Copyright (c) 2016-2018 Satpy developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -136,6 +136,10 @@ class NC_ABI_L1B(BaseFileHandler):
         # copy global attributes to metadata
         for key in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
             res.attrs[key] = self.nc.attrs.get(key)
+        # only include these if they are present
+        for key in ('fusion_args',):
+            if key in self.nc.attrs:
+                res.attrs[key] = self.nc.attrs[key]
 
         return res
 

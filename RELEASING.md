@@ -1,4 +1,4 @@
-# Releasing SatPy
+# Releasing Satpy
 
 1. checkout master
 2. pull from repo

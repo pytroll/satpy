@@ -269,6 +269,15 @@ composites:
       - night_fog
       - solar_zenith_angle
 
+  precipitation_probability:
+    compositor: !!python/name:satpy.composites.cloud_products.PrecipCloudsRGB
+    prerequisites:
+      - pc_precip_light
+      - pc_precip_moderate
+      - pc_precip_intense
+      - pc_status_flag
+    standard_name: precipitation_probability
+
   cloudmask:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
@@ -325,6 +334,34 @@ composites:
     - cpp_reff
     - cpp_reff_pal
     standard_name: cloud_drop_effective_radius
+
+  cloud_optical_thickness:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_cot
+    - cpp_cot_pal
+    standard_name: cloud_optical_thickness
+
+  cloud_water_path:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_cwp
+    - cpp_cwp_pal
+    standard_name: cloud_water_path
+
+  ice_water_path:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_iwp
+    - cpp_iwp_pal
+    standard_name: ice_water_path
+
+  liquid_water_path:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cpp_lwp
+    - cpp_lwp_pal
+    standard_name: liquid_water_path
 
   night_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor

@@ -157,7 +157,10 @@ _IRCAL_INFO_TYPE = np.dtype([("c0_rad2tb_conversion", "f8"),
 # Visible, near-infrared band (Band No. 1 – 6)
 # (Band No. 1: backup operation (See Table 4 bb))
 _VISCAL_INFO_TYPE = np.dtype([("coeff_rad2albedo_conversion", "f8"),
-                              ("spare", "S104"),
+                              ("coeff_update_time", "f8"),
+                              ("cali_gain_count2rad_conversion", "f8"),
+                              ("cali_offset_count2rad_conversion", "f8"),
+                              ("spare", "S80"),
                               ])
 
 # 6 Inter-calibration information block
@@ -165,18 +168,18 @@ _INTER_CALIBRATION_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
     ("blocklength", "<u2"),
     ("gsics_calibration_intercept", "f8"),
-    ("gsics_calibration_intercept_stderr", "f8"),
     ("gsics_calibration_slope", "f8"),
-    ("gsics_calibration_slope_stderr", "f8"),
     ("gsics_calibration_coeff_quadratic_term", "f8"),
-    ("gsics_calibration_coeff_quadratic_term_stderr",
-     "f8"),
+    ("gsics_std_scn_radiance_bias", "f8"),
+    ("gsics_std_scn_radiance_bias_uncertainty", "f8"),
+    ("gsics_std_scn_radiance", "f8"),
     ("gsics_correction_starttime", "f8"),
     ("gsics_correction_endtime", "f8"),
-    ("ancillary_text", "S64"),
-    ("spare", "S128"),
+    ("gsics_radiance_validity_upper_lim", "f4"),
+    ("gsics_radiance_validity_lower_lim", "f4"),
+    ("gsics_filename", "S128"),
+    ("spare", "S56"),
 ])
-
 
 # 7 Segment information block
 _SEGMENT_INFO_TYPE = np.dtype([
@@ -208,7 +211,7 @@ _OBS_TIME_INFO_TYPE = np.dtype([
 # 10 Error information block
 _ERROR_INFO_TYPE = np.dtype([
     ("hblock_number", "u1"),
-    ("blocklength", "<u2"),
+    ("blocklength", "<u4"),
     ("number_of_error_info_data", "<u2"),
 ])
 
@@ -221,9 +224,47 @@ _SPARE_TYPE = np.dtype([
 
 
 class AHIHSDFileHandler(BaseFileHandler):
-    """AHI standard format reader."""
+    """AHI standard format reader
 
-    def __init__(self, filename, filename_info, filetype_info):
+    The AHI sensor produces data for some pixels outside the Earth disk (i,e:
+    atmospheric limb or deep space pixels).
+    By default, these pixels are masked out as they contain data of limited
+    or no value, but some applications do require these pixels.
+    It is therefore possible to override the default behaviour and perform no
+    masking of non-Earth pixels.
+
+    In order to change the default behaviour, use the 'mask_space' variable
+    as part of ``reader_kwargs`` upon Scene creation::
+
+        import satpy
+        import glob
+
+        filenames = glob.glob('*FLDK*.dat')
+        scene = satpy.Scene(filenames,
+                            reader='ahi_hsd',
+                            reader_kwargs={'mask_space':: False})
+        scene.load([0.6])
+
+    The AHI HSD data files contain multiple VIS channel calibration
+    coefficients. By default, the standard coefficients in header block 5
+    are used. If the user prefers the updated calibration coefficients then
+    they can pass calib_mode='update' when creating a scene::
+
+        import satpy
+        import glob
+
+        filenames = glob.glob('*FLDK*.dat')
+        scene = satpy.Scene(filenames,
+                            reader='ahi_hsd',
+                            reader_kwargs={'calib_mode':: 'update'})
+        scene.load([0.6])
+
+    By default these updated coefficients are not used.
+
+    """
+
+    def __init__(self, filename, filename_info, filetype_info,
+                 mask_space=True, calib_mode='nominal'):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -254,6 +295,13 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.platform_name = np2str(self.basic_info['satellite'])
         self.observation_area = np2str(self.basic_info['observation_area'])
         self.sensor = 'ahi'
+        self.mask_space = mask_space
+
+        calib_mode_choices = ('NOMINAL', 'UPDATE')
+        if calib_mode.upper() not in calib_mode_choices:
+            raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
+                calib_mode, calib_mode_choices))
+        self.calib_mode = calib_mode.upper()
 
     @property
     def start_time(self):
@@ -444,7 +492,8 @@ class AHIHSDFileHandler(BaseFileHandler):
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
 
         # Mask space pixels
-        res = self._mask_space(res)
+        if self.mask_space:
+            res = self._mask_space(res)
 
         return res
 
@@ -468,8 +517,19 @@ class AHIHSDFileHandler(BaseFileHandler):
     def convert_to_radiance(self, data):
         """Calibrate to radiance."""
 
-        gain = self._header["block5"]["gain_count2rad_conversion"][0]
-        offset = self._header["block5"]["offset_count2rad_conversion"][0]
+        bnum = self._header["block5"]['band_number'][0]
+        # Check calibration mode and select corresponding coefficients
+        if self.calib_mode == "UPDATE" and bnum < 7:
+            gain = self._header['calibration']["cali_gain_count2rad_conversion"][0]
+            offset = self._header['calibration']["cali_offset_count2rad_conversion"][0]
+            if gain == 0 and offset == 0:
+                logger.info(
+                    "No valid updated coefficients, fall back to default values.")
+                gain = self._header["block5"]["gain_count2rad_conversion"][0]
+                offset = self._header["block5"]["offset_count2rad_conversion"][0]
+        else:
+            gain = self._header["block5"]["gain_count2rad_conversion"][0]
+            offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
         return (data * gain + offset).clip(0)
 

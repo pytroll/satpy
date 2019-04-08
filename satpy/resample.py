@@ -19,12 +19,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""SatPy provides multiple resampling algorithms for resampling geolocated
+"""Satpy provides multiple resampling algorithms for resampling geolocated
 data to uniform projected grids. The easiest way to perform resampling in
-SatPy is through the :class:`~satpy.scene.Scene` object's
+Satpy is through the :class:`~satpy.scene.Scene` object's
 :meth:`~satpy.scene.Scene.resample` method. Additional utility functions are
 also available to assist in resampling data. Below is more information on
-resampling with SatPy as well as links to the relevant API documentation for
+resampling with Satpy as well as links to the relevant API documentation for
 available keyword arguments.
 
 Resampling algorithms
@@ -82,7 +82,7 @@ may work, but behavior is currently undefined.
 Caching for geostationary data
 ------------------------------
 
-SatPy will do its best to reuse calculations performed to resample datasets,
+Satpy will do its best to reuse calculations performed to resample datasets,
 but it can only do this for the current processing and will lose this
 information when the process/script ends. Some resampling algorithms, like
 ``nearest`` and ``bilinear``, can benefit by caching intermediate data on disk in the directory
@@ -263,7 +263,11 @@ class BaseResampler(object):
                 geo_dims = ('y', 'x')
             flat_dims = [dim for dim in data.dims if dim not in geo_dims]
             # xarray <= 0.10.1 computes dask arrays during isnull
-            kwargs['mask'] = data.isnull().all(dim=flat_dims)
+            if np.issubdtype(data.dtype, np.integer):
+                kwargs['mask'] = data == data.attrs.get('_FillValue', np.iinfo(data.dtype.type).max)
+            else:
+                kwargs['mask'] = data.isnull()
+            kwargs['mask'] = kwargs['mask'].all(dim=flat_dims)
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
@@ -499,7 +503,7 @@ class EWAResampler(BaseResampler):
         if cache_dir:
             LOG.warning("'cache_dir' is not used by EWA resampling")
 
-        # SatPy/PyResample don't support dynamic grids out of the box yet
+        # Satpy/PyResample don't support dynamic grids out of the box yet
         lons, lats = source_geo_def.get_lonlats()
         if isinstance(lons, xr.DataArray):
             # get dask arrays

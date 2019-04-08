@@ -47,7 +47,8 @@ from satpy.readers.eum_base import recarray2dict
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM,
                                        dec10216, VISIR_NUM_COLUMNS,
-                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS)
+                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS,
+                                       VIS_CHANNELS)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
 
@@ -431,9 +432,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             return data
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            # you cant apply GSICS values to the VIS channels
-            visual_channels = ['HRV', 'VIS006', 'VIS008', 'IR_016']
-
             # determine the required calibration coefficients to use
             # for the Level 1.5 Header
             if (self.calib_mode.upper() != 'GSICS' and self.calib_mode.upper() != 'NOMINAL'):
@@ -441,7 +439,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                     'Unknown Calibration mode : Please check')
 
             # NB GSICS doesn't have calibration coeffs for VIS channels
-            if (self.calib_mode.upper() != 'GSICS' or channel in visual_channels):
+            if (self.calib_mode.upper() != 'GSICS' or channel in VIS_CHANNELS):
                 coeffs = data15hdr[
                     'RadiometricProcessing']['Level15ImageCalibration']
                 gain = coeffs['CalSlope'][i]
