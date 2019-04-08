@@ -205,7 +205,16 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
 
-    ``grid`` is a dictionary with key values as documented in pycoast
+    ``grid`` is a dictionary with key values as documented in detail in pycoast
+
+    eg. overlay={'grid': {'major_lonlat': (10, 10),
+                          'write_text': False,
+                          'outline': (224, 224, 224),
+                          'width': 0.5}}
+
+    Here major_lonlat is plotted every 10 deg for both longitude and latitude,
+    no labels for the grid lines are plotted, the color used for the grid lines
+    is light gray, and the width of the gratucules is 0.5 pixels.
 
     For grid if aggdraw is used, font option is mandatory, if not write_text is set to False
     eg. font = aggdraw.Font('black', '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
