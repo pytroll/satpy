@@ -264,7 +264,8 @@ class TestHRITMSGFileHandler(unittest.TestCase):
             'projection': {'satellite_longitude': self.reader.mda['projection_parameters']['SSP_longitude'],
                            'satellite_latitude': self.reader.mda['projection_parameters']['SSP_latitude'],
                            'satellite_altitude': self.reader.mda['projection_parameters']['h']},
-            'navigation': self.reader.mda['navigation_parameters']
+            'navigation': self.reader.mda['navigation_parameters'],
+            'georef_offset_corrected': self.reader.mda['offset_corrected']
         })
 
         self.assertDictEqual(attrs_exp, res.attrs)
