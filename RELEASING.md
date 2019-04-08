@@ -4,7 +4,7 @@
 2. pull from repo
 3. run the unittests
 4. run `loghub`.  Replace <github username> and <previous version> with proper
-   values.  To get the previous version run `git --tag` and select the most
+   values.  To get the previous version run `git tag` and select the most
    recent with highest version number.
 
 ```
