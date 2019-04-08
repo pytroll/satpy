@@ -440,6 +440,19 @@ def show(dataset, **kwargs):
 
 
 def to_image(dataset):
+    """convert ``dataset`` into a :class:`~trollimage.xrimage.XRImage` instance.
+
+    Convert the ``dataset`` into an instance of the
+    :class:`~trollimage.xrimage.XRImage` class.  This function makes no other
+    changes.  To get an enhanced image, possibly with overlays and decoration,
+    see :func:`~get_enhanced_image`.
+
+    Args:
+        dataset (xarray.DataArray): Data to be converted to an image.
+
+    Returns:
+        Instance of :class:`~trollimage.xrimage.XRImage`.
+    """
     dataset = dataset.squeeze()
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
