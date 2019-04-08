@@ -440,9 +440,9 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             that files will not be grouped properly (datetimes being barely
             unequal). Defaults to a reader's ``group_keys`` configuration (set
             in YAML), otherwise ``('start_time',)``.
-        ppp_config_dir (str): Root usser configuration directory for SatPy.
+        ppp_config_dir (str): Root usser configuration directory for Satpy.
             This will be deprecated in the future, but is here for consistency
-            with other SatPy features.
+            with other Satpy features.
         reader_kwargs (dict): Additional keyword arguments to pass to reader
             creation.
 
@@ -559,10 +559,10 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
                 continue
 
             new_name = OLD_READER_NAMES[reader_name]
-            # SatPy 0.11 only displays a warning
-            # SatPy 0.13 will raise an exception
+            # Satpy 0.11 only displays a warning
+            # Satpy 0.13 will raise an exception
             raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
-            # SatPy 0.15 or 1.0, remove exception and mapping
+            # Satpy 0.15 or 1.0, remove exception and mapping
 
         reader = new_readers
         # given a config filename or reader name
@@ -638,7 +638,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         sensor (str or list): Limit used files by provided sensors.
         ppp_config_dir (str): The directory containing the configuration
-                              files for SatPy.
+                              files for Satpy.
         filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
                                   automatically added to this dictionary. Shortcut for
                                   `reader_kwargs['filter_parameters']`.
@@ -699,8 +699,6 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
                                       should map reader names to a list of filenames for that reader.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
-        filter_parameters (dict): Specify loaded file filtering parameters.
-                                  Shortcut for `reader_kwargs['filter_parameters']`.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
         ppp_config_dir (str): The directory containing the configuration files for satpy.
 
@@ -709,6 +707,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     """
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
+    reader_kwargs_without_filter = reader_kwargs.copy()
+    reader_kwargs_without_filter.pop('filter_parameters', None)
+
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
@@ -749,7 +750,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         if readers_files:
             loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs)
+            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:

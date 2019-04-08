@@ -79,11 +79,10 @@ class HDF5FileHandler(BaseFileHandler):
         if isinstance(val, h5py.Dataset):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
             dset = h5py.File(self.filename, 'r')[key]
-            dset = da.from_array(dset, chunks=CHUNK_SIZE)
-            if dset.ndim > 1:
-                return xr.DataArray(dset, dims=['y', 'x'])
-            else:
-                return xr.DataArray(dset)
+            dset_data = da.from_array(dset, chunks=CHUNK_SIZE)
+            if dset.ndim == 2:
+                return xr.DataArray(dset_data, dims=['y', 'x'], attrs=dset.attrs)
+            return xr.DataArray(dset_data)
 
         return val
 
