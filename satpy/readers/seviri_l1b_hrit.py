@@ -527,6 +527,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                    'satellite_latitude': self.mda['projection_parameters']['SSP_latitude'],
                                    'satellite_altitude': self.mda['projection_parameters']['h']}
         res.attrs['navigation'] = self.mda['navigation_parameters'].copy()
+        res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
 
         return res
 
