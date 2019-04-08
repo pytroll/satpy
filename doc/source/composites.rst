@@ -117,8 +117,8 @@ data::
 
     >>> from satpy.composites import RealisticColors
     >>> compositor = RealisticColors("realcols", lim_low=85., lim_high=95.)
-    >>> composite = compositor([local_scene['VIS_006'],
-    ...                         local_scene['VIS_008'],
+    >>> composite = compositor([local_scene['VIS006'],
+    ...                         local_scene['VIS008'],
     ...                         local_scene['HRV']])
 
 CloudCompositor
@@ -237,8 +237,8 @@ it extends the generic visir composites::
       overview:
         compositor: !!python/name:satpy.composites.GenericCompositor
         prerequisites:
-        - VIS_006
-        - VIS_008
+        - VIS006
+        - VIS008
         - IR_108
         standard_name: overview
 
@@ -256,9 +256,9 @@ following way::
       overview:
         compositor: !!python/name:satpy.composites.GenericCompositor
         prerequisites:
-        - name: VIS_006
+        - name: VIS006
           modifiers: [sunz_corrected]
-        - name: VIS_008
+        - name: VIS008
           modifiers: [sunz_corrected]
         - IR_108
         standard_name: overview
