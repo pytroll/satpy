@@ -285,22 +285,20 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                 mask_space.assert_not_called()
 
     def test_blocklen_error(self, *mocks):
-        m = mock.mock_open()
+        open_name = '%s.open' % __name__
         fpos = 50
-        with mock.patch('builtins.open', m, create=True):
-            with builtins.open(mock.MagicMock(), 'r') as fp_:
+        with mock.patch(open_name, create=True) as mock_open:
+            with open(mock.MagicMock(), 'r') as fp_:
                 # Expected and actual blocklength match
                 fp_.tell.return_value = 50
                 with warnings.catch_warnings(record=True) as w:
                     self.fh._check_fpos(fp_, fpos, 0, 'header 1')
-                    print(w)
                     self.assertTrue(len(w) == 0)
 
                 # Expected and actual blocklength do not match
                 fp_.tell.return_value = 100
                 with warnings.catch_warnings(record=True) as w:
                     self.fh._check_fpos(fp_, fpos, 0, 'header 1')
-                    print(w)
                     self.assertTrue(len(w) > 0)
 
 
