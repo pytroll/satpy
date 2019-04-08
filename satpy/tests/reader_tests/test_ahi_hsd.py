@@ -281,8 +281,8 @@ class TestAHIHSDFileHandler(unittest.TestCase):
 
     def test_blocklen_error(self, *mocks):
         m = mock.mock_open()
-        with mock.patch('__main__.open', m, create=True):
-            fpos = 50
+        fpos = 50
+        with mock.patch('builtins.open', m, create=True):
             with open(mock.MagicMock(), 'r') as fp_:
                 # Expected and actual blocklength match
                 fp_.tell.return_value = 50
