@@ -26,6 +26,11 @@ try:
     from unittest import mock
 except ImportError:
     import mock
+    
+try:
+    import builtins
+except ImportError:
+    import __builtin__ as builtins
 
 import warnings
 import numpy as np
