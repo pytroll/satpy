@@ -1314,7 +1314,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         new_G = G * ratio
         new_B = B * ratio
 
-
     """
 
     @staticmethod
