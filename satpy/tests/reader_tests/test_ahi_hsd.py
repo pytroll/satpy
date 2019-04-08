@@ -26,7 +26,7 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-    
+
 try:
     import builtins
 except ImportError:
@@ -288,7 +288,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         m = mock.mock_open()
         fpos = 50
         with mock.patch('builtins.open', m, create=True):
-            with open(mock.MagicMock(), 'r') as fp_:
+            with builtins.open(mock.MagicMock(), 'r') as fp_:
                 # Expected and actual blocklength match
                 fp_.tell.return_value = 50
                 with warnings.catch_warnings(record=True) as w:
