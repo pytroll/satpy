@@ -27,6 +27,7 @@ try:
 except ImportError:
     import mock
 
+import warnings
 import numpy as np
 import dask.array as da
 from datetime import datetime
@@ -131,6 +132,10 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
+            # Check if file handler raises exception for invalid calibration mode
+            with self.assertRaises(ValueError):
+                fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
+
             fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
@@ -277,6 +282,44 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
                 self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
                 mask_space.assert_not_called()
+
+    def test_blocklen_error(self, *mocks):
+        open_name = '%s.open' % __name__
+        fpos = 50
+        with mock.patch(open_name, create=True) as mock_open:
+            with mock_open(mock.MagicMock(), 'r') as fp_:
+                # Expected and actual blocklength match
+                fp_.tell.return_value = 50
+                with warnings.catch_warnings(record=True) as w:
+                    self.fh._check_fpos(fp_, fpos, 0, 'header 1')
+                    self.assertTrue(len(w) == 0)
+
+                # Expected and actual blocklength do not match
+                fp_.tell.return_value = 100
+                with warnings.catch_warnings(record=True) as w:
+                    self.fh._check_fpos(fp_, fpos, 0, 'header 1')
+                    self.assertTrue(len(w) > 0)
+
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._check_fpos')
+    def test_read_header(self, *mocks):
+        nhdr = [
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0, 'band_number': [4]},
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0, 'numof_correction_info_data': [1]},
+            {'blocklength': 0},
+            {'blocklength': 0, 'number_of_observation_times': [1]},
+            {'blocklength': 0},
+            {'blocklength': 0, 'number_of_error_info_data': [1]},
+            {'blocklength': 0},
+            {'blocklength': 0}]
+        with mock.patch('numpy.fromfile', side_effect=nhdr):
+            self.fh._read_header(mock.MagicMock())
 
 
 def suite():
