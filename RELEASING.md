@@ -22,6 +22,13 @@ CHANGELOG.md!
 git tag -a v<new version> -m "Version <new version>"
 ```
 
+For example if the previous tag was `v0.9.0` and the new release is a
+patch release, do:
+
+```
+git tag -a v0.9.1 -m "Version 0.9.1"
+```
+
 See [semver.org](http://semver.org/) on how to write a version number.
 
 
