@@ -3,22 +3,26 @@
 1. checkout master
 2. pull from repo
 3. run the unittests
-4. run `loghub` and update the `CHANGELOG.md` file:
+4. run `loghub`.  Replace <github username> and <previous version> with proper
+   values.  To get the previous version run `git --tag` and select the most
+   recent with highest version number.
 
 ```
-loghub pytroll/satpy -u <username> -st v0.8.0 -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backwards incompatible changes"
+loghub pytroll/satpy -u <github username> -st v<previous version> -plg bug "Bugs fixed" -plg enhancement "Features added" -plg documentation "Documentation changes" -plg backwards-incompatibility "Backwards incompatible changes"
 ```
 
-Don't forget to commit!
+This command will create a CHANGELOG.temp file which need to be added
+to the top of the CHANGLOG.md file.  Remember to update also the
+version number to the same given in step 5. Don't forget to commit
+CHANGELOG.md!
 
 5. Create a tag with the new version number, starting with a 'v', eg:
 
 ```
-git tag -a v0.22.45 -m "Version 0.22.45"
+git tag -a v<new version> -m "Version <new version>"
 ```
 
 See [semver.org](http://semver.org/) on how to write a version number.
-
 
 
 6. push changes to github `git push --follow-tags`
