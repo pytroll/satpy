@@ -12,8 +12,9 @@ loghub pytroll/satpy -u <github username> -st v<previous version> -plg bug "Bugs
 ```
 
 This command will create a CHANGELOG.temp file which need to be added
-to the top of the CHANGLOG.md file.  Remember to update also the
-version number to the same given in step 5. Don't forget to commit
+to the top of the CHANGLOG.md file.  The same content is also printed
+to terminal, so that can be copy-pasted, too.  Remember to update also
+the version number to the same given in step 5. Don't forget to commit
 CHANGELOG.md!
 
 5. Create a tag with the new version number, starting with a 'v', eg:
