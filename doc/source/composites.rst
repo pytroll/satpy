@@ -49,7 +49,8 @@ is generated.  To get an image out of the above composite::
     >>> img.gamma(1.7)
     >>> img.show()
 
-This part is called `enhancement`, and is covered in more detail in LINK HERE.
+This part is called `enhancement`, and is covered in more detail in
+:doc:`enhancements`.
 
 
 DifferenceCompositor
