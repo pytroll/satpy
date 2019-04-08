@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2014-2018 PyTroll developers
-#
-# Author(s):
-#
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Cooke, Michael.C, UK Met Office
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# Copyright (c) 2014-2019 PyTroll developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,6 +39,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import dask.array as da
 import xarray as xr
+import warnings
 
 from pyresample import geometry
 from satpy import CHUNK_SIZE
@@ -365,15 +360,34 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.area = area
         return area
 
+    def _check_fpos(self, fp_, fpos, offset, block):
+        """Check file position matches blocksize"""
+        if (fp_.tell() + offset != fpos):
+            warnings.warn("Actual "+block+" header size does not match expected")
+        return
+
     def _read_header(self, fp_):
         """Read header"""
         header = {}
 
+        fpos = 0
         header['block1'] = np.fromfile(
             fp_, dtype=_BASIC_INFO_TYPE, count=1)
+        fpos = fpos + int(header['block1']['blocklength'])
+        self._check_fpos(fp_, fpos, 0, 'block1')
+        fp_.seek(fpos, 0)
         header["block2"] = np.fromfile(fp_, dtype=_DATA_INFO_TYPE, count=1)
+        fpos = fpos + int(header['block2']['blocklength'])
+        self._check_fpos(fp_, fpos, 0, 'block2')
+        fp_.seek(fpos, 0)
         header["block3"] = np.fromfile(fp_, dtype=_PROJ_INFO_TYPE, count=1)
+        fpos = fpos + int(header['block3']['blocklength'])
+        self._check_fpos(fp_, fpos, 0, 'block3')
+        fp_.seek(fpos, 0)
         header["block4"] = np.fromfile(fp_, dtype=_NAV_INFO_TYPE, count=1)
+        fpos = fpos + int(header['block4']['blocklength'])
+        self._check_fpos(fp_, fpos, 0, 'block4')
+        fp_.seek(fpos, 0)
         header["block5"] = np.fromfile(fp_, dtype=_CAL_INFO_TYPE, count=1)
         logger.debug("Band number = " +
                      str(header["block5"]['band_number'][0]))
@@ -384,13 +398,22 @@ class AHIHSDFileHandler(BaseFileHandler):
             cal = np.fromfile(fp_, dtype=_VISCAL_INFO_TYPE, count=1)
         else:
             cal = np.fromfile(fp_, dtype=_IRCAL_INFO_TYPE, count=1)
+        fpos = fpos + int(header['block5']['blocklength'])
+        self._check_fpos(fp_, fpos, 0, 'block5')
+        fp_.seek(fpos, 0)
 
         header['calibration'] = cal
 
         header["block6"] = np.fromfile(
             fp_, dtype=_INTER_CALIBRATION_INFO_TYPE, count=1)
+        fpos = fpos + int(header['block6']['blocklength'])
+        self._check_fpos(fp_, fpos, 0, 'block6')
+        fp_.seek(fpos, 0)
         header["block7"] = np.fromfile(
             fp_, dtype=_SEGMENT_INFO_TYPE, count=1)
+        fpos = fpos + int(header['block7']['blocklength'])
+        self._check_fpos(fp_, fpos, 0, 'block7')
+        fp_.seek(fpos, 0)
         header["block8"] = np.fromfile(
             fp_, dtype=_NAVIGATION_CORRECTION_INFO_TYPE, count=1)
         # 8 The navigation corrections:
@@ -403,7 +426,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         corrections = []
         for i in range(ncorrs):
             corrections.append(np.fromfile(fp_, dtype=dtype, count=1))
-        fp_.seek(40, 1)
+        fpos = fpos + int(header['block8']['blocklength'])
+        self._check_fpos(fp_, fpos, 40, 'block8')
+        fp_.seek(fpos, 0)
         header['navigation_corrections'] = corrections
         header["block9"] = np.fromfile(fp_,
                                        dtype=_OBS_TIME_INFO_TYPE,
@@ -420,7 +445,9 @@ class AHIHSDFileHandler(BaseFileHandler):
                                                dtype=dtype,
                                                count=1))
         header['observation_time_information'] = lines_and_times
-        fp_.seek(40, 1)
+        fpos = fpos + int(header['block9']['blocklength'])
+        self._check_fpos(fp_, fpos, 40, 'block9')
+        fp_.seek(fpos, 0)
 
         header["block10"] = np.fromfile(fp_,
                                         dtype=_ERROR_INFO_TYPE,
@@ -435,9 +462,14 @@ class AHIHSDFileHandler(BaseFileHandler):
         for i in range(num_err_info_data):
             err_info_data.append(np.fromfile(fp_, dtype=dtype, count=1))
         header['error_information_data'] = err_info_data
-        fp_.seek(40, 1)
+        fpos = fpos + int(header['block10']['blocklength'])
+        self._check_fpos(fp_, fpos, 40, 'block10')
+        fp_.seek(fpos, 0)
 
-        np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
+        header["block11"] = np.fromfile(fp_, dtype=_SPARE_TYPE, count=1)
+        fpos = fpos + int(header['block11']['blocklength'])
+        self._check_fpos(fp_, fpos, 0, 'block11')
+        fp_.seek(fpos, 0)
 
         return header
 

@@ -34,3 +34,4 @@ The following people have made contributions to this project:
 - Guido della Bruna - meteoswiss
 - Marco Sassi - meteoswiss
 - [Rohan Daruwala (rdaruwala)](https://github.com/rdaruwala)
+- [Simon R. Proud (simonrp84)](https://github.com/simonrp84)
