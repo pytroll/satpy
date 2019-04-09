@@ -19,12 +19,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""SatPy provides multiple resampling algorithms for resampling geolocated
+"""Satpy provides multiple resampling algorithms for resampling geolocated
 data to uniform projected grids. The easiest way to perform resampling in
-SatPy is through the :class:`~satpy.scene.Scene` object's
+Satpy is through the :class:`~satpy.scene.Scene` object's
 :meth:`~satpy.scene.Scene.resample` method. Additional utility functions are
 also available to assist in resampling data. Below is more information on
-resampling with SatPy as well as links to the relevant API documentation for
+resampling with Satpy as well as links to the relevant API documentation for
 available keyword arguments.
 
 Resampling algorithms
@@ -82,7 +82,7 @@ may work, but behavior is currently undefined.
 Caching for geostationary data
 ------------------------------
 
-SatPy will do its best to reuse calculations performed to resample datasets,
+Satpy will do its best to reuse calculations performed to resample datasets,
 but it can only do this for the current processing and will lose this
 information when the process/script ends. Some resampling algorithms, like
 ``nearest`` and ``bilinear``, can benefit by caching intermediate data on disk in the directory
@@ -324,11 +324,18 @@ class KDTreeResampler(BaseResampler):
                         "resampler. Cached parameters are affected by "
                         "masked pixels. Will not cache results.")
             cache_dir = None
-
+        # TODO: move this to pyresample
         if radius_of_influence is None:
             try:
                 radius_of_influence = source_geo_def.lons.resolution * 3
-            except (AttributeError, TypeError):
+            except AttributeError:
+                try:
+                    radius_of_influence = max(abs(source_geo_def.pixel_size_x),
+                                              abs(source_geo_def.pixel_size_y)) * 3
+                except AttributeError:
+                    radius_of_influence = 1000
+
+            except TypeError:
                 radius_of_influence = 10000
 
         kwargs = dict(source_geo_def=source_geo_def,
@@ -503,7 +510,7 @@ class EWAResampler(BaseResampler):
         if cache_dir:
             LOG.warning("'cache_dir' is not used by EWA resampling")
 
-        # SatPy/PyResample don't support dynamic grids out of the box yet
+        # Satpy/PyResample don't support dynamic grids out of the box yet
         lons, lats = source_geo_def.get_lonlats()
         if isinstance(lons, xr.DataArray):
             # get dask arrays

@@ -269,6 +269,15 @@ composites:
       - night_fog
       - solar_zenith_angle
 
+  precipitation_probability:
+    compositor: !!python/name:satpy.composites.cloud_products.PrecipCloudsRGB
+    prerequisites:
+      - pc_precip_light
+      - pc_precip_moderate
+      - pc_precip_intense
+      - pc_status_flag
+    standard_name: precipitation_probability
+
   cloudmask:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
