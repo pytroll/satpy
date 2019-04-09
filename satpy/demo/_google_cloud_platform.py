@@ -41,18 +41,24 @@ def is_google_cloud_instance():
         return False
 
 
-def get_bucket_files(glob_pattern, base_dir, force=False):
+def get_bucket_files(glob_pattern, base_dir, force=False, pattern_slice=slice(None)):
     """Helper function to download files from Google Cloud Storage.
 
     Args:
         glob_pattern (str or list): Glob pattern string or series of patterns
             used to search for on Google Cloud Storage. The pattern should
-            include the "gs://" protocol prefix.
+            include the "gs://" protocol prefix. If a list of lists, then the
+            results of each sublist pattern are concatenated and the result is
+            treated as one pattern result. This is important for things like
+            ``pattern_slice`` and complicated glob patterns not supported by
+            GCP.
         base_dir (str): Root directory to place downloaded files on the local
             system.
         force (bool): Force re-download of data regardless of its existence on
             the local system. Warning: May delete non-demo files stored in
             download directory.
+        pattern_slice (slice): Slice object to limit the number of files
+            returned by each glob pattern.
 
     """
     if gcsfs is None:
@@ -67,16 +73,25 @@ def get_bucket_files(glob_pattern, base_dir, force=False):
     fs = gcsfs.GCSFileSystem(token='anon')
     filenames = []
     for gp in glob_pattern:
-        for fn in fs.glob(gp):
+        # handle multiple glob patterns being treated as one pattern
+        # for complicated patterns that GCP can't handle
+        if isinstance(gp, str):
+            glob_results = list(fs.glob(gp))
+        else:
+            # flat list of results
+            glob_results = [fn for pat in gp for fn in fs.glob(pat)]
+
+        for fn in glob_results[pattern_slice]:
             ondisk_fn = os.path.basename(fn)
             ondisk_pathname = os.path.join(base_dir, ondisk_fn)
             filenames.append(ondisk_pathname)
-            LOG.info("Downloading: {}".format(ondisk_pathname))
 
             if force and os.path.isfile(ondisk_pathname):
                 os.remove(ondisk_pathname)
             elif os.path.isfile(ondisk_pathname):
+                LOG.info("Found existing: {}".format(ondisk_pathname))
                 continue
+            LOG.info("Downloading: {}".format(ondisk_pathname))
             fs.get('gs://' + fn, ondisk_pathname)
 
     if not filenames:
