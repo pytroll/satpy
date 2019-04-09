@@ -1,3 +1,55 @@
+## Version 0.14.0 (2019/04/09)
+
+### Issues Closed
+
+* [Issue 698](https://github.com/pytroll/satpy/issues/698) - Read WKT geotiff
+* [Issue 692](https://github.com/pytroll/satpy/issues/692) - sdr_viirs_l1b reader fails in 0.13, recent master, Works with version 0.12.0 ([PR 693](https://github.com/pytroll/satpy/pull/693))
+* [Issue 683](https://github.com/pytroll/satpy/issues/683) - Question: Change image size when saving with satpy.save_dataset ([PR 691](https://github.com/pytroll/satpy/pull/691))
+* [Issue 681](https://github.com/pytroll/satpy/issues/681) - incorrect data offset in HSD files ([PR 689](https://github.com/pytroll/satpy/pull/689))
+* [Issue 666](https://github.com/pytroll/satpy/issues/666) - Add drawing of lat lon graticules when saving dataset ([PR 668](https://github.com/pytroll/satpy/pull/668))
+* [Issue 646](https://github.com/pytroll/satpy/issues/646) - Add 'demo' subpackage for accessing example data ([PR 686](https://github.com/pytroll/satpy/pull/686))
+* [Issue 528](https://github.com/pytroll/satpy/issues/528) - Support dask version of PySpectral ([PR 529](https://github.com/pytroll/satpy/pull/529))
+* [Issue 511](https://github.com/pytroll/satpy/issues/511) - Add/update documentation about composites and compositors ([PR 705](https://github.com/pytroll/satpy/pull/705))
+
+In this release 8 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 700](https://github.com/pytroll/satpy/pull/700) - Mask out invalid values in the precipitation probability product
+* [PR 693](https://github.com/pytroll/satpy/pull/693) - Fix VIIRS SDR reading of visible channels at nighttime ([692](https://github.com/pytroll/satpy/issues/692))
+* [PR 689](https://github.com/pytroll/satpy/pull/689) - Fix Himawari HSD reader's incorrect header information ([681](https://github.com/pytroll/satpy/issues/681))
+* [PR 688](https://github.com/pytroll/satpy/pull/688) - Fix offset correction in seviri_l1b_hrit
+* [PR 685](https://github.com/pytroll/satpy/pull/685) - Fix bug in Scene.resample causing AssertionError
+* [PR 677](https://github.com/pytroll/satpy/pull/677) - Fix MultiScene save_animation when distributed isn't installed
+* [PR 675](https://github.com/pytroll/satpy/pull/675) - Do not pass `filter_parameters` to the filehandler creation
+
+#### Features added
+
+* [PR 691](https://github.com/pytroll/satpy/pull/691) - Add Scene.aggregate method (python 3 only) ([683](https://github.com/pytroll/satpy/issues/683))
+* [PR 686](https://github.com/pytroll/satpy/pull/686) - Add demo subpackage to simplify test data download ([646](https://github.com/pytroll/satpy/issues/646))
+* [PR 676](https://github.com/pytroll/satpy/pull/676) - Feature add nightfog modis
+* [PR 674](https://github.com/pytroll/satpy/pull/674) - Use platform ID to choose the right reader for AVHRR GAC data
+* [PR 671](https://github.com/pytroll/satpy/pull/671) - Add satellite position to dataset attributes (seviri_l1b_hrit)
+* [PR 669](https://github.com/pytroll/satpy/pull/669) - Add ocean-color for viirs and modis
+* [PR 668](https://github.com/pytroll/satpy/pull/668) - Add grid/graticules to add_overlay function. ([666](https://github.com/pytroll/satpy/issues/666))
+* [PR 665](https://github.com/pytroll/satpy/pull/665) - Add reader for VIIRS Active Fires
+* [PR 645](https://github.com/pytroll/satpy/pull/645) - Reader for the SAR OCN L2 wind product in SAFE format.
+* [PR 565](https://github.com/pytroll/satpy/pull/565) - Add reader for FY-3 VIRR (virr_l1b)
+* [PR 529](https://github.com/pytroll/satpy/pull/529) - Add dask support to NIRReflectance modifier ([528](https://github.com/pytroll/satpy/issues/528))
+
+#### Documentation changes
+
+* [PR 707](https://github.com/pytroll/satpy/pull/707) - Add ABI Meso demo data case and clean up documentation
+* [PR 705](https://github.com/pytroll/satpy/pull/705) - Document composites ([511](https://github.com/pytroll/satpy/issues/511))
+* [PR 701](https://github.com/pytroll/satpy/pull/701) - Clarify release instructions
+* [PR 699](https://github.com/pytroll/satpy/pull/699) - Rename SatPy to Satpy throughout documentation
+* [PR 673](https://github.com/pytroll/satpy/pull/673) - Add information about GDAL_CACHEMAX to FAQ
+
+In this release 23 pull requests were closed.
+
+
 ## Version 0.13.0 (2019/03/18)
 
 ### Issues Closed
