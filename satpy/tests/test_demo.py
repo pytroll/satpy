@@ -57,14 +57,14 @@ class TestGCPUtils(unittest.TestCase):
     @mock.patch('satpy.demo.google_cloud_platform.urlopen')
     def test_is_gcp_instance(self, uo):
         """Test is_google_cloud_instance."""
-        from satpy.demo.google_cloud_platform import is_google_cloud_instance, URLError
+        from satpy.demo._google_cloud_platform import is_google_cloud_instance, URLError
         uo.side_effect = URLError("Test Environment")
         self.assertFalse(is_google_cloud_instance())
 
     @mock.patch('satpy.demo.google_cloud_platform.gcsfs')
     def test_get_bucket_files(self, gcsfs_mod):
         """Test get_bucket_files basic cases."""
-        from satpy.demo.google_cloud_platform import get_bucket_files
+        from satpy.demo._google_cloud_platform import get_bucket_files
         gcsfs_mod.GCSFileSystem = mock.MagicMock()
         gcsfs_inst = mock.MagicMock()
         gcsfs_mod.GCSFileSystem.return_value = gcsfs_inst
@@ -99,7 +99,7 @@ class TestGCPUtils(unittest.TestCase):
     @mock.patch('satpy.demo.google_cloud_platform.gcsfs', None)
     def test_no_gcsfs(self):
         """Test that 'gcsfs' is required."""
-        from satpy.demo.google_cloud_platform import get_bucket_files
+        from satpy.demo._google_cloud_platform import get_bucket_files
         self.assertRaises(RuntimeError, get_bucket_files, '*.nc', '.')
 
 
