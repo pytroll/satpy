@@ -324,11 +324,18 @@ class KDTreeResampler(BaseResampler):
                         "resampler. Cached parameters are affected by "
                         "masked pixels. Will not cache results.")
             cache_dir = None
-
+        # TODO: move this to pyresample
         if radius_of_influence is None:
             try:
                 radius_of_influence = source_geo_def.lons.resolution * 3
-            except (AttributeError, TypeError):
+            except AttributeError:
+                try:
+                    radius_of_influence = max(abs(source_geo_def.pixel_size_x),
+                                              abs(source_geo_def.pixel_size_y)) * 3
+                except AttributeError:
+                    radius_of_influence = 1000
+
+            except TypeError:
                 radius_of_influence = 10000
 
         kwargs = dict(source_geo_def=source_geo_def,
