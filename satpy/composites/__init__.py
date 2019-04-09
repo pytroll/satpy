@@ -902,7 +902,7 @@ class PaletteCompositor(ColormapCompositor):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, lim_low=85., lim_high=95., **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=95., **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -1132,7 +1132,7 @@ class RealisticColors(GenericCompositor):
 
 class CloudCompositor(GenericCompositor):
 
-    def __init__(self, transition_min=258.15, transition_max=298.15,
+    def __init__(self, name, transition_min=258.15, transition_max=298.15,
                  transition_gamma=3.0, **kwargs):
         """Collect custom configuration values.
 
@@ -1313,7 +1313,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         new_R = R
         new_G = G * ratio
         new_B = B * ratio
-
 
     """
 
