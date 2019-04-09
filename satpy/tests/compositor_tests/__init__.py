@@ -506,6 +506,75 @@ class TestInlineComposites(unittest.TestCase):
                          ['IR_108', 'IR_087'])
 
 
+class TestNIRReflectance(unittest.TestCase):
+    """Test NIR reflectance compositor."""
+
+    @mock.patch('satpy.composites.sun_zenith_angle')
+    @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.composites.Calculator')
+    def test_compositor(self, calculator, apply_modifier_info, sza):
+        """Test NIR reflectance compositor."""
+        import numpy as np
+        import xarray as xr
+        refl_arr = np.random.random((2, 2))
+        refl = xr.DataArray(refl_arr, dims=['y', 'x'])
+        refl_from_tbs = mock.MagicMock()
+        refl_from_tbs.return_value = refl
+        calculator.return_value = mock.MagicMock(
+            reflectance_from_tbs=refl_from_tbs)
+
+        from satpy.composites import NIRReflectance
+
+        nir_arr = np.random.random((2, 2))
+        nir = xr.DataArray(nir_arr, dims=['y', 'x'])
+        platform = 'Meteosat-11'
+        sensor = 'seviri'
+        chan_name = 'IR_039'
+        nir.attrs['platform_name'] = platform
+        nir.attrs['sensor'] = sensor
+        nir.attrs['name'] = chan_name
+        get_lonlats_dask = mock.MagicMock()
+        lons, lats = 1, 2
+        get_lonlats_dask.return_value = (lons, lats)
+        nir.attrs['area'] = mock.MagicMock(get_lonlats_dask=get_lonlats_dask)
+        start_time = 1
+        nir.attrs['start_time'] = start_time
+        ir_arr = 100 * np.random.random((2, 2))
+        ir_ = xr.DataArray(ir_arr, dims=['y', 'x'])
+        sunz_arr = 100 * np.random.random((2, 2))
+        sunz = xr.DataArray(sunz_arr, dims=['y', 'x'])
+        sunz.attrs['standard_name'] = 'solar_zenith_angle'
+        sunz2 = xr.DataArray(sunz_arr, dims=['y', 'x'])
+        sunz2.attrs['standard_name'] = 'solar_zenith_angle'
+        sza.return_value = sunz2
+
+        comp = NIRReflectance(name='test')
+        info = {'modifiers': None}
+        res = comp([nir, ir_], optional_datasets=[sunz], **info)
+        self.assertEqual(res.attrs['units'], '%')
+        self.assertEqual(res.attrs['platform_name'], platform)
+        self.assertEqual(res.attrs['sensor'], sensor)
+        self.assertEqual(res.attrs['name'], chan_name)
+        calculator.assert_called()
+        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039')
+        self.assertTrue(apply_modifier_info.call_args[0][0] is nir)
+        self.assertTrue(comp._refl3x is calculator.return_value)
+        refl_from_tbs.reset_mock()
+
+        res = comp([nir, ir_], optional_datasets=[], **info)
+        get_lonlats_dask.assert_called()
+        sza.assert_called_with(start_time, lons, lats)
+        refl_from_tbs.assert_called_with(sunz2, nir, ir_, tb_ir_co2=None)
+        refl_from_tbs.reset_mock()
+
+        co2_arr = np.random.random((2, 2))
+        co2 = xr.DataArray(co2_arr, dims=['y', 'x'])
+        co2.attrs['wavelength'] = [12.0, 13.0, 14.0]
+        co2.attrs['units'] = 'K'
+        res = comp([nir, ir_], optional_datasets=[co2], **info)
+        refl_from_tbs.assert_called_with(sunz2, nir, ir_, tb_ir_co2=co2)
+
+
 class TestColormapCompositor(unittest.TestCase):
     """Test the ColormapCompositor."""
 
@@ -738,6 +807,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestPaletteCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestCloudTopHeightCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestGenericCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestNIRReflectance))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPrecipCloudsCompositor))
 
     return mysuite
