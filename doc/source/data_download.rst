@@ -2,8 +2,11 @@ Downloading Data
 ================
 
 One of the main features of Satpy is its ability to read various satellite
-data formats. However, it does not currently provide any functionality for
-downloading data from any remote sources. Satpy assumes all data is available
+data formats. However, it currently only provides limited methods for
+downloading data from remote sources and these methods are limited to demo
+data for `Pytroll examples <https://github.com/pytroll/pytroll-examples>`_.
+See the examples and the :mod:`~satpy.demo` API documentation for details.
+Otherwise, Satpy assumes all data is available
 through the local system, either as a local directory or network
 mounted file systems. Certain readers that use ``xarray`` to open data files
 may be able to load files from remote systems by using OpenDAP or similar

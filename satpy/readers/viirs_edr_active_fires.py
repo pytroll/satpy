@@ -15,7 +15,8 @@
 #
 #
 """VIIRS Active Fires reader
-*********************
+*************************
+
 This module implements readers for VIIRS Active Fires NetCDF and
 ASCII files.
 """
