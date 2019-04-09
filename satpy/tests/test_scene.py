@@ -498,6 +498,44 @@ class TestScene(unittest.TestCase):
         self.assertTupleEqual(new_scn1['1'].shape, (3, 184, 714))
         self.assertTupleEqual(new_scn1['2'].shape, (92, 3, 357))
 
+    def test_aggregate(self):
+        """Test the aggregate method."""
+        if (sys.version_info < (3, 0)):
+            self.skipTest("Not implemented in python 2 (xarray).")
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        import numpy as np
+        scene1 = Scene()
+        area_extent = (-5570248.477339745, -5561247.267842293, 5567248.074173927,
+                       5570248.477339745)
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        x_size = 3712
+        y_size = 3712
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size,
+            y_size,
+            area_extent,
+        )
+
+        scene1["1"] = DataArray(np.ones((y_size, x_size)))
+        scene1["2"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'))
+        scene1["3"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def})
+
+        scene2 = scene1.aggregate(func='sum', x=2, y=2)
+        self.assertIs(scene1['1'], scene2['1'])
+        self.assertIs(scene1['2'], scene2['2'])
+        np.testing.assert_allclose(scene2['3'].data, 4)
+        self.assertTupleEqual(scene2['1'].shape, (y_size, x_size))
+        self.assertTupleEqual(scene2['2'].shape, (y_size, x_size))
+        self.assertTupleEqual(scene2['3'].shape, (y_size / 2, x_size / 2))
+
     def test_contains(self):
         from satpy import Scene
         from xarray import DataArray
