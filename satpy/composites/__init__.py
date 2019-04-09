@@ -618,7 +618,6 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         # needs to be derived first in order to get the emissive part.
         _ = self._get_reflectance(projectables, optional_datasets)
         _nir, _ = projectables
-        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
         proj = xr.DataArray(self._refl3x.emissive_part_3x(), attrs=_nir.attrs,
                             dims=_nir.dims, coords=_nir.coords)
 
