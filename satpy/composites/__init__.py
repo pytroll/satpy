@@ -913,7 +913,7 @@ class DayNightCompositor(GenericCompositor):
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
-        super(DayNightCompositor, self).__init__(**kwargs)
+        super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         projectables = self.check_areas(projectables)
@@ -1147,7 +1147,7 @@ class CloudCompositor(GenericCompositor):
         self.transition_min = transition_min
         self.transition_max = transition_max
         self.transition_gamma = transition_gamma
-        super(CloudCompositor, self).__init__(**kwargs)
+        super(CloudCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
 
