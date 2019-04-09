@@ -1,16 +1,16 @@
 =====================
-SatPy's Documentation
+Satpy's Documentation
 =====================
 
-SatPy is a python library for reading and manipulating
+Satpy is a python library for reading and manipulating
 meteorological remote sensing data and writing it to various image and
-data file formats. SatPy comes with the ability to make various RGB
+data file formats. Satpy comes with the ability to make various RGB
 composites directly from satellite instrument channel data or higher level
 processing output. The
 `pyresample <http://pyresample.readthedocs.io/en/latest/>`_ package is used
 to resample data to different uniform areas or grids. Various atmospheric
 corrections and visual enhancements are also provided, either directly in
-SatPy or from those in the
+Satpy or from those in the
 `PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_ and
 `TrollImage <http://trollimage.readthedocs.io/en/latest/>`_ packages.
 
@@ -18,12 +18,12 @@ Go to the project_ page for source code and downloads.
 
 It is designed to be easily extendable to support any meteorological satellite
 by the creation of plugins (readers, compositors, writers, etc). The table at
-the bottom of this page shows the input formats supported by the base SatPy
+the bottom of this page shows the input formats supported by the base Satpy
 installation.
 
 .. note::
 
-    SatPy's interfaces are not guaranteed stable and may change until version
+    Satpy's interfaces are not guaranteed stable and may change until version
     1.0 when backwards compatibility will be a main focus.
 
 .. _project: http://github.com/pytroll/satpy
@@ -39,6 +39,7 @@ installation.
     readers
     composites
     resample
+    enhancements
     writers
     multiscene
     dev_guide/index
@@ -46,12 +47,12 @@ installation.
 .. toctree::
     :maxdepth: 1
 
-    SatPy API <api/satpy>
+    Satpy API <api/satpy>
     faq
 
 .. _reader_table:
 
-.. list-table:: SatPy Readers
+.. list-table:: Satpy Readers
     :header-rows: 1
     :widths: 45 25 30
 
@@ -166,6 +167,9 @@ installation.
     * - AAPP MAIA VIIRS and AVHRR products in hdf5 format
       - `maia`
       - Nominal
+    * - VIIRS EDR Active Fires data in NetCDF4 & CSV .txt format
+      - `viirs_edr_active_fires`
+      - Beta
     * - VIIRS EDR Flood data in hdf4 format
       - `viirs_edr_flood`
       - Beta
@@ -174,6 +178,9 @@ installation.
       - Beta
     * - SCMI ABI L1B format
       - `abi_l1b_scmi`
+      - Beta
+    * - VIRR data in HDF5 format
+      - `virr_l1b`
       - Beta
 
 Indices and tables

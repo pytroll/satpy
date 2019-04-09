@@ -45,6 +45,11 @@ try:
 except ImportError:
     imageio = None
 
+try:
+    from dask.distributed import get_client
+except ImportError:
+    get_client = None
+
 log = logging.getLogger(__name__)
 
 
@@ -389,17 +394,18 @@ class MultiScene(object):
     def _get_client(self, client=True):
         """Determine what dask distributed client to use."""
         client = client or None  # convert False/None to None
-        if client is True:
+        if client is True and get_client is None:
+            log.debug("'dask.distributed' library was not found, will "
+                      "use simple serial processing.")
+            client = None
+        elif client is True:
             try:
                 # get existing client
-                from dask.distributed import get_client
                 client = get_client()
-            except ImportError:
-                log.debug("'dask.distributed' library was not found, will "
-                          "use simple serial processing.")
             except ValueError:
                 log.warning("No dask distributed client was provided or found, "
                             "but distributed features were requested. Will use simple serial processing.")
+                client = None
         return client
 
     def _distribute_frame_compute(self, writers, frame_keys, frames_to_write, client, batch_size=1):

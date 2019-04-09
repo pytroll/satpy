@@ -137,10 +137,10 @@ class SAFEMSIMDXML(BaseFileHandler):
                     self.tile,
                     "On-the-fly area",
                     self.tile,
-                    proj_dict={'init': epsg},
-                    x_size=cols,
-                    y_size=rows,
-                    area_extent=area_extent)
+                    {'init': epsg},
+                    cols,
+                    rows,
+                    area_extent)
         return area
 
     @staticmethod
