@@ -22,17 +22,22 @@ a list of paths to those files. Some (not all) functions have multiple options
 for how the data is downloaded (via the ``method`` keyword argument)
 including:
 
-- gcsfs: Download data from a public google cloud storage bucket using the
+- gcsfs:
+    Download data from a public google cloud storage bucket using the
     ``gcsfs`` package.
-- unidata_thredds: Access data using OpenDAP or similar method from Unidata's
+- unidata_thredds:
+    Access data using OpenDAP or similar method from Unidata's
     public THREDDS server
     (https://thredds.unidata.ucar.edu/thredds/catalog.html).
-- uwaos_thredds: Access data using OpenDAP or similar method from the
+- uwaos_thredds:
+    Access data using OpenDAP or similar method from the
     University of Wisconsin - Madison's AOS department's THREDDS server.
-- http: A last resort download method when nothing else is available of a
+- http:
+    A last resort download method when nothing else is available of a
     tarball or zip file from one or more servers available to the Satpy
     project.
-- uw_arcdata: A network mount available on many servers at the Space Science
+- uw_arcdata:
+    A network mount available on many servers at the Space Science
     and Engineering Center (SSEC) at the University of Wisconsin - Madison.
     This is method is mainly meant when tutorials are taught at the SSEC
     using a Jupyter Hub server.
@@ -82,7 +87,7 @@ def get_us_midlatitude_cyclone_abi(base_dir='.', method=None, force=False):
         raise NotImplementedError("Demo data download method '{}' not "
                                   "implemented yet.".format(method))
 
-    from .google_cloud_platform import get_bucket_files
+    from ._google_cloud_platform import get_bucket_files
     patterns = ['gs://gcp-public-data-goes-16/ABI-L1b-RadC/2019/073/00/*0002*.nc']
     subdir = os.path.join(base_dir, 'abi_l1b', '20190314_us_midlatitude_cyclone')
     makedirs(subdir, exist_ok=True)
