@@ -611,7 +611,6 @@ class FileYAMLReader(AbstractYAMLReader):
         # Update the metadata
         proj.attrs['start_time'] = file_handlers[0].start_time
         proj.attrs['end_time'] = file_handlers[-1].end_time
-
         return proj
 
     def _preferred_filetype(self, filetypes):

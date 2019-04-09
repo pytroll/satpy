@@ -146,6 +146,8 @@ class Scene(MetadataObject):
         if filter_parameters:
             if reader_kwargs is None:
                 reader_kwargs = {}
+            else:
+                reader_kwargs = reader_kwargs.copy()
             reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
@@ -586,6 +588,8 @@ class Scene(MetadataObject):
         # get the lowest resolution area, use it as the base of the slice
         # this makes sure that the other areas *should* be a consistent factor
         min_area = new_scn.min_area()
+        if isinstance(area, str):
+            area = get_area_def(area)
         new_min_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
             min_area, area, ll_bbox, xy_bbox)
         new_target_areas = {}
@@ -613,6 +617,51 @@ class Scene(MetadataObject):
                 new_target_areas[src_area] = self._slice_area_from_bbox(
                     src_area, area, ll_bbox, xy_bbox
                 )
+
+        return new_scn
+
+    def aggregate(self, dataset_ids=None, boundary='exact', side='left', func='mean', **dim_kwargs):
+        """Create an aggregated version of the Scene.
+
+        Args:
+            dataset_ids (iterable): DatasetIDs to include in the returned
+                                    `Scene`. Defaults to all datasets.
+            func (string): Function to apply on each aggregation window. One of
+                           'mean', 'sum', 'min', 'max', 'median', 'argmin',
+                           'argmax', 'prod', 'std', 'var'.
+                           'mean' is the default.
+            boundary: Not implemented.
+            side: Not implemented.
+            dim_kwargs: the size of the windows to aggregate.
+
+        Returns:
+            A new aggregated scene
+
+        See also:
+            xarray.DataArray.coarsen
+
+        Example:
+            `scn.aggregate(func='min', x=2, y=2)` will aggregate 2x2 pixels by
+            applying the `min` function.
+        """
+        new_scn = self.copy(datasets=dataset_ids)
+
+        for src_area, ds_ids in new_scn.iter_by_area():
+            if src_area is None:
+                for ds_id in ds_ids:
+                    new_scn.datasets[ds_id] = self[ds_id]
+                continue
+
+            if boundary != 'exact':
+                raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
+            target_area = src_area.aggregate(**dim_kwargs)
+            resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            for ds_id in ds_ids:
+                res = self[ds_id].coarsen(boundary=boundary, side=side, func=func, **dim_kwargs)
+
+                new_scn.datasets[ds_id] = getattr(res, func)()
+                new_scn.datasets[ds_id].attrs['area'] = target_area
+                new_scn.datasets[ds_id].attrs['resolution'] = resolution
 
         return new_scn
 
@@ -960,7 +1009,7 @@ class Scene(MetadataObject):
                 if reduce_data:
                     key = source_area
                     try:
-                        slices, source_area = reductions[key]
+                        (slice_x, slice_y), source_area = reductions[key]
                     except KeyError:
                         slice_x, slice_y = source_area.get_area_slices(destination_area)
                         source_area = source_area[slice_y, slice_x]
@@ -977,8 +1026,7 @@ class Scene(MetadataObject):
                 self.resamplers[key] = resampler
             kwargs = resample_kwargs.copy()
             kwargs['resampler'] = resamplers[source_area]
-            res = resample_dataset(dataset, destination_area,
-                                   **kwargs)
+            res = resample_dataset(dataset, destination_area, **kwargs)
             new_datasets[ds_id] = res
             if ds_id in new_scn.datasets:
                 new_scn.datasets[ds_id] = res

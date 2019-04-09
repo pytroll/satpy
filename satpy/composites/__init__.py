@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2018 PyTroll developers
+# Copyright (c) 2015-2019 PyTroll developers
 
 # Author(s):
 
@@ -909,7 +909,7 @@ class PaletteCompositor(ColormapCompositor):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, lim_low=85., lim_high=95., **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=95., **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -920,7 +920,7 @@ class DayNightCompositor(GenericCompositor):
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
-        super(DayNightCompositor, self).__init__(**kwargs)
+        super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         projectables = self.check_areas(projectables)
@@ -1139,7 +1139,7 @@ class RealisticColors(GenericCompositor):
 
 class CloudCompositor(GenericCompositor):
 
-    def __init__(self, transition_min=258.15, transition_max=298.15,
+    def __init__(self, name, transition_min=258.15, transition_max=298.15,
                  transition_gamma=3.0, **kwargs):
         """Collect custom configuration values.
 
@@ -1154,7 +1154,7 @@ class CloudCompositor(GenericCompositor):
         self.transition_min = transition_min
         self.transition_max = transition_max
         self.transition_gamma = transition_gamma
-        super(CloudCompositor, self).__init__(**kwargs)
+        super(CloudCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
 
@@ -1320,7 +1320,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         new_R = R
         new_G = G * ratio
         new_B = B * ratio
-
 
     """
 
