@@ -139,10 +139,10 @@ def get_hurricane_florence_abi(base_dir='.', method=None, force=False,
         # patterns += ['gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/1[3456]/'
         #              '*C{:02d}*s20182541[3456]*.nc'.format(channel)]
         patterns += [(
-            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/13/*C{:02d}*s201825413*.nc'.format(channel),
-            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/14/*C{:02d}*s201825414*.nc'.format(channel),
-            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/15/*C{:02d}*s201825415*.nc'.format(channel),
-            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/16/*C{:02d}*s201825416*.nc'.format(channel),
+            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/13/*RadM1*C{:02d}*s201825413*.nc'.format(channel),
+            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/14/*RadM1*C{:02d}*s201825414*.nc'.format(channel),
+            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/15/*RadM1*C{:02d}*s201825415*.nc'.format(channel),
+            'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/16/*RadM1*C{:02d}*s201825416*.nc'.format(channel),
         )]
     subdir = os.path.join(base_dir, 'abi_l1b', '20180911_hurricane_florence_abi_l1b')
     _makedirs(subdir, exist_ok=True)
