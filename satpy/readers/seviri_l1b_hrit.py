@@ -162,7 +162,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                 # Transform to geodetic coordinates
                 geocent = pyproj.Proj(proj='geocent')
                 a, b = self.get_earth_radii()
-                latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='meters')
+                latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
                 lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
             except NoValidNavigationCoefs as err:
                 logger.warning(err)
