@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 import logging
-from functools import lru_cache
 
 from datetime import datetime
 import xarray as xr
@@ -105,7 +104,6 @@ class HDFEOSBaseFileReader(BaseFileHandler):
                 self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
-    @lru_cache(32)
     def _read_dataset_in_file(self, dataset_name):
         if dataset_name not in self.sd.datasets():
             error_message = "Dataset name {} not included in available datasets {}".format(
