@@ -608,7 +608,7 @@ class MITIFFWriter(ImageWriter):
             img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
             for i, band in enumerate(img.data['bands']):
                 chn = img.data.sel(bands=band)
-                data = chn.values * 254. + 1
+                data = chn.values.clip(0, 1) * 254. + 1
                 data = data.clip(0, 255)
                 tif.write_image(data.astype(np.uint8), compression='deflate')
 
