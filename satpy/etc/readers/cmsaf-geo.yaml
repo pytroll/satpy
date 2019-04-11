@@ -1,0 +1,56 @@
+reader:
+  description: NetCDF4 reader for the CMSAF MSG Seviri products
+  name: cmsaf-geo
+  sensors: [seviri]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+# CMSAF naming convention:
+#   https://www.cmsaf.eu/EN/Products/NamingConvention/Naming_Convention_node.html
+
+file_types:
+    nc_nwcsaf_ctx:
+        file_reader: !!python/name:satpy.readers.cmsaf_nc.NcCMSAF
+        file_patterns: ['CTXin{start_time:%Y%m%d%H%M%S}305SVMSG01MD.nc']
+
+    nc_nwcsaf_cpp:
+        file_reader: !!python/name:satpy.readers.cmsaf_nc.NcCMSAF
+        file_patterns: ['CPPin{start_time:%Y%m%d%H%M%S}305SVMSG01MD.nc']
+
+datasets:
+
+  ctt:
+    name: ctt
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ctx
+
+  ctp:
+    name: ctp
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ctx
+
+  cth:
+    name: cth
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ctx
+
+  cot:
+    name: cot
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_cpp
+
+  reff:
+    name: reff
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_cpp
+
+  lwp:
+    name: lwp
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_cpp
