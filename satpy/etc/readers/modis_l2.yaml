@@ -13,10 +13,13 @@ file_types:
 
 datasets:
   cloud_mask:
+    # byte Cloud_Mask(Byte_Segment, Cell_Along_Swath_1km, Cell_Across_Swath_1km)
     name: cloud_mask
     resolution: [1000]
     byte: 0
     bits: [1, 2]
+    # The dimension of the dataset where is stored the information
+    byte_dimension: 0
     file_key: Cloud_Mask
     file_type: hdf
 
@@ -32,5 +35,16 @@ datasets:
     units: degree
     resolution: [1000, 5000]
     file_key: Latitude
+    file_type: hdf
+
+  quality_assurance:
+    # byte Quality_Assurance(Cell_Along_Swath_1km, Cell_Across_Swath_1km, QA_Dimension)
+    name: quality_assurance
+    resolution: [1000]
+    # The dimension of the dataset where is stored the information
+    byte_dimension: 2
+    byte: 0
+    bits: [0, 1]
+    file_key: Quality_Assurance
     file_type: hdf
 

@@ -49,7 +49,12 @@ TEST_DATA = {
                    'type': SDC.INT8,
                    'attrs': {'dim_labels': ['Byte_Segment:mod35',
                                             'Cell_Along_Swath_1km:mod35',
-                                            'Cell_Across_Swath_1km:mod35']}}
+                                            'Cell_Across_Swath_1km:mod35']}},
+    'Quality_Assurance': {'data': np.ones((5*SCAN_WIDTH, 5*SCAN_LEN+4, 10), dtype=np.int8),
+                          'type': SDC.INT8,
+                          'attrs': {'dim_labels': ['Cell_Along_Swath_1km:mod35',
+                                                   'Cell_Across_Swath_1km:mod35',
+                                                   'QA_Dimension:mod35']}}
 }
 
 
@@ -163,6 +168,15 @@ class TestModisL2(unittest.TestCase):
             longitude_5km_id = DatasetID(name=dataset_name, resolution=5000)
             longitude_5km = scene[longitude_5km_id]
             self.assertEqual(longitude_5km.shape, TEST_DATA[dataset_name.capitalize()]['data'].shape)
+
+    def test_load_quality_assurance(self):
+        from satpy import DatasetID
+        scene = Scene(reader='modis_l2', filenames=[self.file_name])
+        dataset_name = 'quality_assurance'
+        scene.load([dataset_name])
+        quality_assurance_id = DatasetID(name=dataset_name, resolution=1000)
+        quality_assurance = scene[quality_assurance_id]
+        self.assertEqual(quality_assurance.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
 
 
 def suite():
