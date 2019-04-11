@@ -399,8 +399,8 @@ seviri_0deg:
     height: 3712
     width: 3712
   area_extent:
-    lower_left_xy: [-5570248.477339261, -5567248.074173444]
-    upper_right_xy: [5567248.074173444, 5570248.477339261]
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708, 5570248.686685662]
 seviri_iodc:
   description: Full globe MSG image 41.5 degrees
   projection:
@@ -413,8 +413,8 @@ seviri_iodc:
     height: 3712
     width: 3712
   area_extent:
-    lower_left_xy: [-5570248.477339261, -5567248.074173444]
-    upper_right_xy: [5567248.074173444, 5570248.477339261]
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708, 5570248.686685662]
 msg_resample_area:
   description: Full globe MSG image 20.75 degrees
   projection:
