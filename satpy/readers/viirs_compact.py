@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2014, 2015 Martin Raspaud
+# Copyright (c) 2014 - 2019 PyTroll
 
 # Author(s):
 
@@ -65,7 +65,9 @@ c = 299792458  # m.s-1
 h = 6.6260755e-34  # m2kg.s-1
 k = 1.380658e-23  # m2kg.s-2.K-1
 
-short_names = {'NPP': 'Suomi-NPP'}
+short_names = {'NPP': 'Suomi-NPP',
+               'J01': 'NOAA-20',
+               'J02': 'NOAA-21'}
 
 
 class VIIRSCompactFileHandler(BaseFileHandler):
