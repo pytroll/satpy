@@ -343,7 +343,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         scans actually sensed, and not necessarily the regular 768 scanlines
         that the file contains for each granule. To that end, the number of
         scans for each granule is read from:
-          `Data_Products/...Gran_x/N_Number_Of_Scans`.
+        ``Data_Products/...Gran_x/N_Number_Of_Scans``.
         """
         dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
         if not dataset_group:
