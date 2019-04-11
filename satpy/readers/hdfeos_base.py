@@ -214,12 +214,15 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
                 interpolated_dataset['longitude'] = longitude
                 interpolated_dataset['latitude'] = latitude
 
-            # Warning: Are these interpolations originally correct?
-            # Does geotiepoints actually interpolate azimuth coordinates?
             else:
                 if dataset_name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
-                    sensor_azimuth_a = self.load_dataset('SensorAzimuth')
-                    sensor_azimuth_b = self.load_dataset('SensorZenith') - 90
+                    # Sensor dataset names differs between L1b and L2 products
+                    try:
+                        sensor_azimuth_a = self.load_dataset('SensorAzimuth')
+                        sensor_azimuth_b = self.load_dataset('SensorZenith') - 90
+                    except KeyError:
+                        sensor_azimuth_a = self.load_dataset('Sensor_Azimuth')
+                        sensor_azimuth_b = self.load_dataset('Sensor_Zenith') - 90
                     sensor_azimuth_a, sensor_azimuth_b = interpolate(
                         sensor_azimuth_a, sensor_azimuth_b, sensor_zenith
                     )
@@ -227,8 +230,13 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
                     interpolated_dataset['satellite_zentih_angle'] = sensor_azimuth_b + 90
 
                 elif dataset_name in ['solar_azimuth_angle', 'solar_zenith_angle']:
-                    solar_azimuth_a = self.load_dataset('SolarAzimuth')
-                    solar_azimuth_b = self.load_dataset('SolarZenith') - 90
+                    # Sensor dataset names differs between L1b and L2 products
+                    try:
+                        solar_azimuth_a = self.load_dataset('SolarAzimuth')
+                        solar_azimuth_b = self.load_dataset('SolarZenith') - 90
+                    except KeyError:
+                        solar_azimuth_a = self.load_dataset('Solar_Azimuth')
+                        solar_azimuth_b = self.load_dataset('Solar_Zenith') - 90
                     solar_azimuth_a, solar_azimuth_b = interpolate(
                         solar_azimuth_a, solar_azimuth_b, sensor_zentih
                     )
