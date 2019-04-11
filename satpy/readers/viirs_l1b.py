@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2013, 2014, 2015.
+# Copyright (c) 2011 - 2019 PyTroll
 
 # Author(s):
 
@@ -36,6 +36,7 @@ LOG = logging.getLogger(__name__)
 class VIIRSL1BFileHandler(NetCDF4FileHandler):
     """VIIRS L1B File Reader
     """
+
     def _parse_datetime(self, datestr):
         return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
 
@@ -59,13 +60,14 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             res = self.get('/attr/platform',
                            self.filename_info['platform_shortname'])
         except KeyError:
-            res = 'Suomi-NPP'
+            res = 'Unknown'
 
         return {
-            'Suomi-NPP': 'NPP',
-            'JPSS-1': 'J01',
-            'NP': 'NPP',
-            'J1': 'J01',
+            'JPSS-1': 'NOAA-20',
+            'NP': 'Suomi-NPP',
+            'J1': 'NOAA-20',
+            'J2': 'NOAA-21',
+            'JPSS-2': 'NOAA-21',
         }.get(res, res)
 
     @property
