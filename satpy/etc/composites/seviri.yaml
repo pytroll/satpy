@@ -333,3 +333,71 @@ composites:
       - name: 'HRV'
         modifiers: [sunz_corrected]
       - name: colorized_ir_clouds
+  
+  ir108_inverse:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: ir108_inverse
+    prerequisites:
+      - name: 'IR_108'
+      
+  ir039_inverse:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: ir039_inverse
+    prerequisites:
+      - name: 'IR_039'
+      
+  ir087_inverse:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: ir087_inverse
+    prerequisites:
+      - name: 'IR_087'
+      
+  ir097_inverse:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: ir097_inverse
+    prerequisites:
+      - name: 'IR_097'
+      
+  ir120_inverse:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: ir120_inverse
+    prerequisites:
+      - name: 'IR_120'
+      
+  ir134_inverse:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: ir134_inverse
+    prerequisites:
+      - name: 'IR_134'
+      
+  wv062_inverse:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: wv062_inverse
+    prerequisites:
+      - name: 'WV_062'
+      
+  wv073_inverse:
+    compositor: !!python/name:satpy.composites.BWCompositor
+    standard_name: wv073_inverse
+    prerequisites:
+      - name: 'WV_073'
+
+  snow_fogday:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: IR_016
+      modifiers: [sunz_corrected]
+    - name: VIS008
+      modifiers: [sunz_corrected]
+    - name: VIS006
+      modifiers: [sunz_corrected]
+    standard_name: snow_fogday
+
+  stratus_fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: IR_039
+      modifiers: [co2_corrected]
+    - name: IR_108
+    - name: IR_120
+    standard_name: stratus_fog

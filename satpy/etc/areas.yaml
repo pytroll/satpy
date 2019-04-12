@@ -1,3 +1,113 @@
+nrIODC8km:
+  description: nrIODC8km
+  projection:
+    proj: eqc
+    lon_0: 41.5
+    a: 6378137.00
+  area_extent:
+    lower_left_xy: [-10008769.814946, -10016778.695711]
+    upper_right_xy: [10016777.025919, 10008768.924390]
+  shape:
+    height: 2500
+    width: 2500
+    
+nrMET3km:
+  description: nrMET3km
+  projection:
+    proj: eqc
+    lon_0: 0.0
+    a: 6378137.00
+  area_extent:
+    lower_left_xy: [-10010271.403557, -10013274.469460]
+    upper_right_xy: [10013274.469460, 10010271.403557]
+  shape:
+    height: 6666
+    width: 6666
+    
+nrEURO1km:
+  description: nrEURO1km
+  projection:
+    proj: eqc
+    lon_0: 0.0
+    a: 6378137.00
+  area_extent:
+    lower_left_xy: [-2518713.908133, 3082306.010984]
+    upper_right_xy: [4490228.732948, 6887160.120028]
+  shape:
+    height: 3800
+    width: 7000
+    
+NinJoGOESEregion:
+  description: NinJo GOESE region
+  projection:
+    ellps: WGS84
+    proj: eqc
+    lon_0: -75.0
+  area_extent:
+    lower_left_xy: [-10008769.814946, -10016778.695711]
+    upper_right_xy: [10016778.695711, 10008768.924390]
+  shape:
+    height: 2500
+    width: 2500
+    
+swissLarge1600m:
+  description: SwissLarge 2500x2000 NPOL projection 1600m resolution
+  projection:
+    ellps: WGS84
+    proj: stere
+    lat_0: 60.0
+    lon_0: 10
+  area_extent:
+    lower_left_xy: [-724534.506579, -1959852.778231]
+    upper_right_xy: [156610.094431, -1134112.405507]
+  shape:
+    height: 550
+    width: 600
+    
+nrEURO3km:
+  description: nrEURO3km ninjo mercator projection
+  projection:
+    ellps: WGS84
+    proj: eqc
+    lat_0: 42.06787
+    lon_0: -1.02539
+  area_extent:
+    lower_left_xy: [-4504247.085104304, -2251372.135989299]
+    upper_right_xy: [4504247.085104305, 2251372.135989299]
+  shape:
+    height: 1500
+    width: 3000
+
+snowmaskIR:
+  description: snowmaskIR
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.00
+    b: 6356583.80
+    h: 35785831.0
+  shape:
+    height: 461
+    width: 801
+  area_extent:
+    lower_left_xy: [-807108.186609, 3579481.649041]
+    upper_right_xy: [1596214.020380, 4962667.119304]
+
+snowmaskHRV:
+  description: snowmaskHRV
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.00
+    b: 6356583.80
+    h: 35785831.0
+  shape:
+    height: 1383
+    width: 2403
+  area_extent:
+    lower_left_xy: [-808108.783276, 3580481.088239]
+    upper_right_xy: [1595214.539263, 4963666.390614]
+
 omerc_bb:
   description: Oblique Mercator Bounding Box for Polar Overpasses
   projection:
