@@ -15,11 +15,22 @@ datasets:
   cloud_mask:
     # byte Cloud_Mask(Byte_Segment, Cell_Along_Swath_1km, Cell_Across_Swath_1km)
     name: cloud_mask
-    resolution: [1000]
-    byte: 0
-    bits: [1, 2]
-    # The dimension of the dataset where is stored the information
+    resolution: [1000, 250]
+    # The dimension of the dataset where the byte information is stored
     byte_dimension: 0
+    # Different logic depending on the resolution
+    byte:
+      - 1000: [0]
+      - 250: [4, 5]
+    bit_start:
+      - 1000: 1
+      - 250: 0
+    bit_count:
+      - 1000: 2
+      - 250: 1
+    # Quality Assurance flag is necessary for 250m resolution dataset
+    qa:
+      - 250: True
     file_key: Cloud_Mask
     file_type: hdf
 
@@ -41,10 +52,12 @@ datasets:
     # byte Quality_Assurance(Cell_Along_Swath_1km, Cell_Across_Swath_1km, QA_Dimension)
     name: quality_assurance
     resolution: [1000]
-    # The dimension of the dataset where is stored the information
+    # The dimension of the dataset where the byte information is stored
     byte_dimension: 2
-    byte: 0
-    bits: [0, 1]
+    # The byte to consider to extract relevant bits
+    byte: [0]
+    bit_start: 0
+    bit_count: 1
     file_key: Quality_Assurance
     file_type: hdf
 

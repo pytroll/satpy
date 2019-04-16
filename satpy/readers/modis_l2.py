@@ -69,9 +69,32 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
                 bit_mask = pow(2, bit_start + bit_count) - 1
                 return np.right_shift(np.bitwise_and(value, bit_mask), bit_start)
 
-            bit_start = dataset_info['bits'][0]
-            bit_count = dataset_info['bits'][1]
-            dataset = bits_strip(bit_start, bit_count, dataset[dataset_info['byte'], :, :])
+            byte_list = dataset_info['byte']
+            bit_start = dataset_info['bit_start']  # At which bit starts the information
+            bit_count = dataset_info['bit_count']  # How many bits store the information
+
+            # Only one byte: select the byte information
+            if len(byte_list) == 1:
+                byte = byte_list[0]
+                byte_dataset = dataset[byte, :, :]
+
+            # Two bytes: recombine the two bytes
+            elif len(byte_list) == 2:
+                # We recombine the two bytes
+                dataset_a = dataset[byte_list[0], :, :]
+                dataset_b = dataset[byte_list[1], :, :]
+                dataset_a = np.uint16(dataset_a)
+                dataset_a = np.left_shift(dataset_a, 8)  # dataset_a << 8
+                byte_dataset = np.bitwise_or(dataset_a, dataset_b).astype(np.uint16)
+                # We replicate the concatenated byte with the right shape
+                byte_dataset = np.repeat(np.repeat(byte_dataset, 4, axis=0), 4, axis=1)
+                # All bits carry information, we update bit_start consequently
+                bit_start = np.arrange(16, dtype=np.uint16).reshape((4, 4))
+
+            # Compute the final bit mask
+            dataset = bits_strip(bit_start, bit_count, byte_dataset)
+
+        # No byte manipulation required
         else:
             dataset = self.load_dataset(dataset_name)
 
