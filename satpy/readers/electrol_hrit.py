@@ -319,7 +319,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         lut /= 1000
         lut[0] = np.nan
         # Dask/XArray don't support indexing in 2D (yet).
-        res = data.data.map_blocks(self._getitem, dtype=lut.dtype)
+        res = data.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
         res = xr.DataArray(res, dims=data.dims,
                            attrs=data.attrs, coords=data.coords)
         res = res.where(data > 0)
