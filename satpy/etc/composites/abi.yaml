@@ -550,3 +550,15 @@ composites:
   #     modifiers: [sunz_corrected]
   #   - name: C14
   #   standard_name: natural_color_enh2
+
+  true_color_fire:
+    compositor: !!python/name:satpy.composites.TrueColorFire
+    prerequisites:
+    - name: C02
+      modifiers: [sunz_corrected]
+    - name: green_raw
+    - name: C01
+      modifiers: [sunz_corrected]
+    - name: C05
+    - name: C06
+    standard_name: true_color_fire
