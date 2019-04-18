@@ -175,8 +175,29 @@ class TestModisL2(unittest.TestCase):
         dataset_name = 'quality_assurance'
         scene.load([dataset_name])
         quality_assurance_id = DatasetID(name=dataset_name, resolution=1000)
+        self.assertIn(quality_assurance_id, scene.datasets)
         quality_assurance = scene[quality_assurance_id]
         self.assertEqual(quality_assurance.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
+
+    def test_load_1000m_cloud_mask_dataset(self):
+        from satpy import DatasetID
+        scene = Scene(reader='modis_l2', filenames=[self.file_name])
+        dataset_name = 'cloud_mask'
+        scene.load([dataset_name], resolution=1000)
+        cloud_mask_id = DatasetID(name=dataset_name, resolution=1000)
+        self.assertIn(cloud_mask_id, scene.datasets)
+        cloud_mask = scene[cloud_mask_id]
+        self.assertEqual(cloud_mask.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
+
+    def test_load_250m_cloud_mask_dataset(self):
+        from satpy import DatasetID
+        scene = Scene(reader='modis_l2', filenames=[self.file_name])
+        dataset_name = 'cloud_mask'
+        scene.load([dataset_name], resolution=250)
+        cloud_mask_id = DatasetID(name=dataset_name, resolution=250)
+        self.assertIn(cloud_mask_id, scene.datasets)
+        cloud_mask = scene[cloud_mask_id]
+        self.assertEqual(cloud_mask.shape, (4*5*SCAN_WIDTH, 4*(5*SCAN_LEN+4)))
 
 
 def suite():
