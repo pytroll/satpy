@@ -219,6 +219,18 @@ composites:
     standard_name: false_color
     high_resolution_band: blue
 
+  fire_temperature:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: M12
+      modifiers:
+    - name: M11
+      modifiers: [sunz_corrected]
+    - name: M10
+      modifiers: [sunz_corrected]
+    standard_name: fire_temperature
+
+
   natural_color:
     compositor: !!python/name:satpy.composites.RatioSharpenedRGB
     prerequisites:
