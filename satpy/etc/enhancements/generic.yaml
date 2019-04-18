@@ -79,6 +79,22 @@ enhancements:
     - name: gamma
       method: *gammafun
       kwargs: {gamma: 1.8}
+  fire_temperature_default:
+    standard_name: fire_temperature
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [340, 35.0, 35.0]
+        max_stretch: [380, 140., 140.]    
+        # min_stretch: [340, 40.0, 40.0]
+        # max_stretch: [400, 180., 180.]    
+    # - name: cira_stretch
+    #   method: !!python/name:satpy.enhancements.cira_stretch
+    # - name: gamma
+    #   method: *gammafun
+    #   kwargs: {gamma: 1.8}
   airmass_default:
     standard_name: airmass
     operations:
