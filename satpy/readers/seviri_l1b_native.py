@@ -172,9 +172,9 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.mda['channel_list'] = [i for i in CHANNEL_NAMES.values()
                                     if self.mda['available_channels'][i]]
 
-        self.mda['platform_id'] = data15hd[
+        self.platform_id = data15hd[
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
-        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.mda['platform_id']]
+        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
 
         equator_radius = data15hd['GeometricProcessing'][
             'EarthModel']['EquatorialRadius'] * 1000.
@@ -453,7 +453,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             res = self._convert_to_radiance(data, gain, offset)
 
         if calibration == 'reflectance':
-            solar_irradiance = CALIB[self.mda['platform_id']][channel]["F"]
+            solar_irradiance = CALIB[self.platform_id][channel]["F"]
             res = self._vis_calibrate(res, solar_irradiance)
 
         elif calibration == 'brightness_temperature':

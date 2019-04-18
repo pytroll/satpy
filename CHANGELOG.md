@@ -1,3 +1,32 @@
+## Version 0.14.1 (2019/04/12)
+
+### Issues Closed
+
+* [Issue 716](https://github.com/pytroll/satpy/issues/716) - Reading the EUMETSAT compact viirs format returns wrong platform name (J01 instead of NOAA-20) ([PR 717](https://github.com/pytroll/satpy/pull/717))
+* [Issue 710](https://github.com/pytroll/satpy/issues/710) - Question (maybe a bug): Why does RBG array exported with scn.save_dataset contain values greater than 255 ?
+
+In this release 2 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 721](https://github.com/pytroll/satpy/pull/721) - Consistent platform id attribute across NAT + HRIT SEVIRI readers
+* [PR 719](https://github.com/pytroll/satpy/pull/719) - Fix VIIRS 'night_fog' RGB composite recipe to use M12 instead of M14
+* [PR 718](https://github.com/pytroll/satpy/pull/718) - Fix 'seviri_l1b_hrit' reader's area creation for pyproj 2.0+
+* [PR 717](https://github.com/pytroll/satpy/pull/717) - Fix 'viirs_compact' and 'viirs_l1b' readers to return WMO/Oscar platform name ([716](https://github.com/pytroll/satpy/issues/716))
+* [PR 715](https://github.com/pytroll/satpy/pull/715) - Fix hurricane florence demo download to only include M1 files
+* [PR 712](https://github.com/pytroll/satpy/pull/712) - Fix 'mitiff' writer not clipping enhanced data before scaling to 8 bit values
+* [PR 709](https://github.com/pytroll/satpy/pull/709) - Fix datetime64 use in 'seviri_l1b_hrit' reader for numpy < 1.15
+* [PR 708](https://github.com/pytroll/satpy/pull/708) - Fix 'seviri_0deg' and 'seviri_iodc' builtin areas (areas.yaml) not matching reader areas
+
+#### Documentation changes
+
+* [PR 713](https://github.com/pytroll/satpy/pull/713) - Add links to source from API documentation
+
+In this release 9 pull requests were closed.
+
+
 ## Version 0.14.0 (2019/04/09)
 
 ### Issues Closed
