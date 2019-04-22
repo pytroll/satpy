@@ -184,3 +184,13 @@ def check_satpy():
     print('=======')
     for writer, res in sorted(check_yaml_configs(configs_for_writer(), 'writer', 3).items()):
         print(writer + ': ' + res)
+    print()
+    print('Extras')
+    print('======')
+    for module_name in sorted(('cartopy', 'geoviews')):
+        try:
+            __import__(module_name)
+            res = 'ok'
+        except ImportError as err:
+            res = str(err)
+        print(module_name + ': ' + res)
