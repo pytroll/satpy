@@ -1,4 +1,4 @@
-# Copyright (c) 2012, 2015
+# Copyright (c) 2012, 2015, 2019
 #
 
 # Author(s):
@@ -104,19 +104,33 @@ if __name__ == '__main__':
         " +".join(("proj=" + proj + ",lat_0=" + str(lat_0) +
                    ",lon_0=" + str(lon_0) + ",ellps=WGS84").split(","))
 
-    print proj4_string
+    print(proj4_string)
 
-    print "REGION:", name, "{"
-    print "\tNAME:\t", name
-    print "\tPCS_ID:\t", proj + "_" + str(lon_0) + "_" + str(lat_0)
-    print ("\tPCS_DEF:\tproj=" + proj +
-           ",lat_0=" + str(lat_0) +
-           ",lon_0=" + str(lon_0) +
-           ",ellps=WGS84")
-    print "\tXSIZE:\t", xsize
-    print "\tYSIZE:\t", ysize
-    print "\tAREA_EXTENT:\t", area_extent
-    print "};"
+    print("REGION:", name, "{")
+    print("\tNAME:\t", name)
+    print("\tPCS_ID:\t", proj + "_" + str(lon_0) + "_" + str(lat_0))
+    print("\tPCS_DEF:\tproj=" + proj +
+          ",lat_0=" + str(lat_0) +
+          ",lon_0=" + str(lon_0) +
+          ",ellps=WGS84")
+    print("\tXSIZE:\t", xsize)
+    print("\tYSIZE:\t", ysize)
+    print("\tAREA_EXTENT:\t", area_extent)
+    print("};")
+
+    print(name + ":")
+    print("  description: " + name)
+    print("  projection:")
+    print("    proj: " + proj)
+    print("    ellps: WGS84")
+    print("    lat_0: " + str(lat_0))
+    print("    lon_0: " + str(lon_0))
+    print("  shape:")
+    print("    height: " + str(ysize))
+    print("    width: " + str(xsize))
+    print("  area_extent:")
+    print("    lower_left_xy: [%f, %f]" % (area_extent[0], area_extent[1]))
+    print("    upper_right_xy: [%f, %f]" % (area_extent[2], area_extent[3]))
 
     if args.shapes is None:
         sys.exit(0)
