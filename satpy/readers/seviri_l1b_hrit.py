@@ -47,7 +47,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
 
-from satpy.readers.seviri_base import SEVIRICalibrationHandler, chebyshev
+from satpy.readers.seviri_base import SEVIRICalibrationHandler, chebyshev, get_cds_time
 from satpy.readers.seviri_base import (CHANNEL_NAMES, VIS_CHANNELS, CALIB, SATNUM)
 
 from satpy.readers.seviri_l1b_native_hdr import (hrit_prologue, hrit_epilogue,
@@ -529,6 +529,10 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['navigation'] = self.mda['navigation_parameters'].copy()
         res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
 
+        # Add scanline timestamps as additional y-coordinate
+        res['acq_time'] = ('y', self._get_timestamps())
+        res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
+
         return res
 
     def calibrate(self, data, calibration):
@@ -576,6 +580,13 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
+
+    def _get_timestamps(self):
+        """Read scanline timestamps from the segment header"""
+        tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
+        tline = get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
+        tline[tline == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
+        return tline
 
 
 def show(data, negate=False):
