@@ -86,15 +86,8 @@ enhancements:
       method: *stretchfun
       kwargs:
         stretch: crude
-        min_stretch: [340, 35.0, 35.0]
-        max_stretch: [380, 140., 140.]    
-        # min_stretch: [340, 40.0, 40.0]
-        # max_stretch: [400, 180., 180.]    
-    # - name: cira_stretch
-    #   method: !!python/name:satpy.enhancements.cira_stretch
-    # - name: gamma
-    #   method: *gammafun
-    #   kwargs: {gamma: 1.8}
+        min_stretch: [298, 20.0, 15.0]
+        max_stretch: [368, 100., 95.]
   airmass_default:
     standard_name: airmass
     operations:
