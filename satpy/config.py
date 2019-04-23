@@ -37,6 +37,7 @@ try:
     from yaml import UnsafeLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
+from yaml import BaseLoader
 
 LOG = logging.getLogger(__name__)
 
@@ -139,12 +140,10 @@ def recursive_dict_update(d, u):
     return d
 
 
-def check_yaml_configs(configs, key, hdr_len):
+def check_yaml_configs(configs, key):
     """Get a diagnostic for the yaml *configs*.
 
     *key* is the section to look for to get a name for the config at hand.
-    *hdr_len* is the number of lines that can be safely read from the config to
-    get a name.
     """
     diagnostic = {}
     for i in configs:
@@ -158,8 +157,7 @@ def check_yaml_configs(configs, key, hdr_len):
                         continue
                 except yaml.YAMLError as err:
                     stream.seek(0)
-                    lines = ''.join(stream.readline() for line in range(hdr_len))
-                    res = yaml.load(lines, Loader=UnsafeLoader)
+                    res = yaml.load(stream, Loader=BaseLoader)
                     if err.context == 'while constructing a Python object':
                         problem = err.problem
                     else:
@@ -177,12 +175,12 @@ def check_satpy():
     from satpy.writers import configs_for_writer
     print('Readers')
     print('=======')
-    for reader, res in sorted(check_yaml_configs(configs_for_reader(), 'reader', 5).items()):
+    for reader, res in sorted(check_yaml_configs(configs_for_reader(), 'reader').items()):
         print(reader + ': ' + res)
     print()
     print('Writers')
     print('=======')
-    for writer, res in sorted(check_yaml_configs(configs_for_writer(), 'writer', 3).items()):
+    for writer, res in sorted(check_yaml_configs(configs_for_writer(), 'writer').items()):
         print(writer + ': ' + res)
     print()
     print('Extras')
