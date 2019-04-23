@@ -169,26 +169,62 @@ def check_yaml_configs(configs, key):
     return diagnostic
 
 
-def check_satpy():
-    """Check the satpy readers and writers for correct installation."""
-    from satpy.readers import configs_for_reader
-    from satpy.writers import configs_for_writer
-    print('Readers')
-    print('=======')
-    for reader, res in sorted(check_yaml_configs(configs_for_reader(), 'reader').items()):
-        print(reader + ': ' + res)
-    print()
-    print('Writers')
-    print('=======')
-    for writer, res in sorted(check_yaml_configs(configs_for_writer(), 'writer').items()):
-        print(writer + ': ' + res)
-    print()
-    print('Extras')
-    print('======')
-    for module_name in sorted(('cartopy', 'geoviews')):
+def _check_import(module_names):
+    """Import the specified modules and provide status."""
+    diagnostics = {}
+    for module_name in module_names:
         try:
             __import__(module_name)
             res = 'ok'
         except ImportError as err:
             res = str(err)
-        print(module_name + ': ' + res)
+        diagnostics[module_name] = res
+    return diagnostics
+
+
+def _print_diagnostic(feature, status_msg, features=None):
+    """Print diagnostic information from :func:`check_satpy`."""
+    if features is not None and feature not in features:
+        return
+    print(feature + ': ', status_msg)
+
+
+def check_satpy(readers=None, writers=None, extras=None):
+    """Check the satpy readers and writers for correct installation.
+
+    Args:
+        readers (list or None): Limit readers checked to those specified
+        writers (list or None): Limit writers checked to those specified
+        extras (list or None): Limit extras checked to those specified
+
+    Returns: bool
+        True if all specified features were successfully loaded.
+
+    """
+    from satpy.readers import configs_for_reader
+    from satpy.writers import configs_for_writer
+    return_status = True
+
+    print('Readers')
+    print('=======')
+    for reader, res in sorted(check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
+        return_status = return_status and res == 'ok'
+        _print_diagnostic(reader, res, readers)
+    print()
+
+    print('Writers')
+    print('=======')
+    for writer, res in sorted(check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
+        return_status = return_status and res == 'ok'
+        _print_diagnostic(writer, res, writers)
+    print()
+
+    print('Extras')
+    print('======')
+    module_names = extras if extras is not None else ('cartopy', 'geoviews')
+    for module_name, res in sorted(_check_import(module_names).items()):
+        return_status = return_status and res == 'ok'
+        _print_diagnostic(module_name, res, extras)
+    print()
+
+    return return_status
