@@ -105,19 +105,7 @@ if __name__ == '__main__':
                    ",lon_0=" + str(lon_0) + ",ellps=WGS84").split(","))
 
     print(proj4_string)
-
-    print("REGION:", name, "{")
-    print("\tNAME:\t", name)
-    print("\tPCS_ID:\t", proj + "_" + str(lon_0) + "_" + str(lat_0))
-    print("\tPCS_DEF:\tproj=" + proj +
-          ",lat_0=" + str(lat_0) +
-          ",lon_0=" + str(lon_0) +
-          ",ellps=WGS84")
-    print("\tXSIZE:\t", xsize)
-    print("\tYSIZE:\t", ysize)
-    print("\tAREA_EXTENT:\t", area_extent)
-    print("};")
-
+    print()
     print(name + ":")
     print("  description: " + name)
     print("  projection:")
