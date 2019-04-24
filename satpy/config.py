@@ -25,6 +25,7 @@
 
 """Satpy Configuration directory and file handling
 """
+from __future__ import print_function
 import glob
 import logging
 import os
@@ -151,21 +152,20 @@ def check_yaml_configs(configs, key):
             with open(fname) as stream:
                 try:
                     res = yaml.load(stream, Loader=UnsafeLoader)
-                    try:
-                        diagnostic[res[key]['name']] = 'ok'
-                    except Exception:
-                        continue
+                    msg = 'ok'
                 except yaml.YAMLError as err:
                     stream.seek(0)
                     res = yaml.load(stream, Loader=BaseLoader)
                     if err.context == 'while constructing a Python object':
-                        problem = err.problem
+                        msg = err.problem
                     else:
-                        problem = 'error'
+                        msg = 'error'
+                finally:
                     try:
-                        diagnostic[res[key]['name']] = problem
-                    except Exception:
-                        continue
+                        diagnostic[res[key]['name']] = msg
+                    except (KeyError, TypeError):
+                        # this object doesn't have a 'name'
+                        pass
     return diagnostic
 
 
@@ -182,13 +182,6 @@ def _check_import(module_names):
     return diagnostics
 
 
-def _print_diagnostic(feature, status_msg, features=None):
-    """Print diagnostic information from :func:`check_satpy`."""
-    if features is not None and feature not in features:
-        return
-    print(feature + ': ', status_msg)
-
-
 def check_satpy(readers=None, writers=None, extras=None):
     """Check the satpy readers and writers for correct installation.
 
@@ -203,28 +196,22 @@ def check_satpy(readers=None, writers=None, extras=None):
     """
     from satpy.readers import configs_for_reader
     from satpy.writers import configs_for_writer
-    return_status = True
 
     print('Readers')
     print('=======')
     for reader, res in sorted(check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
-        return_status = return_status and res == 'ok'
-        _print_diagnostic(reader, res, readers)
+        print(reader + ': ', res)
     print()
 
     print('Writers')
     print('=======')
     for writer, res in sorted(check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
-        return_status = return_status and res == 'ok'
-        _print_diagnostic(writer, res, writers)
+        print(writer + ': ', res)
     print()
 
     print('Extras')
     print('======')
     module_names = extras if extras is not None else ('cartopy', 'geoviews')
     for module_name, res in sorted(_check_import(module_names).items()):
-        return_status = return_status and res == 'ok'
-        _print_diagnostic(module_name, res, extras)
+        print(module_name + ': ', res)
     print()
-
-    return return_status
