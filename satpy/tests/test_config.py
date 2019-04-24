@@ -19,7 +19,6 @@
 """
 
 import sys
-from io import StringIO
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
