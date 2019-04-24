@@ -33,25 +33,29 @@ from satpy import available_readers, Scene
 # Mock MODIS HDF4 file
 SCAN_WIDTH = 406
 SCAN_LEN = 270
-FILL_VALUE = 255
 SCALE_FACTOR = 1
 TEST_DATA = {
     'Latitude': {'data': np.zeros((SCAN_WIDTH, SCAN_LEN), dtype=np.float32),
                  'type': SDC.FLOAT32,
+                 'fill_value': -999,
                  'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
     'Longitude': {'data': np.zeros((SCAN_WIDTH, SCAN_LEN), dtype=np.float32),
                   'type': SDC.FLOAT32,
+                  'fill_value': -999,
                   'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
     'Sensor_Zenith': {'data': np.zeros((SCAN_WIDTH, SCAN_LEN), dtype=np.int16),
-                      'type': SDC.INT16,
+                      'type': SDC.INT32,
+                      'fill_value': -32767,
                       'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
     'Cloud_Mask': {'data': np.zeros((6, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.int8),
                    'type': SDC.INT8,
+                   'fill_value': 0,
                    'attrs': {'dim_labels': ['Byte_Segment:mod35',
                                             'Cell_Along_Swath_1km:mod35',
                                             'Cell_Across_Swath_1km:mod35']}},
     'Quality_Assurance': {'data': np.ones((5*SCAN_WIDTH, 5*SCAN_LEN+4, 10), dtype=np.int8),
                           'type': SDC.INT8,
+                          'fill_value': 0,
                           'attrs': {'dim_labels': ['Cell_Along_Swath_1km:mod35',
                                                    'Cell_Across_Swath_1km:mod35',
                                                    'QA_Dimension:mod35']}}
@@ -119,7 +123,7 @@ def create_test_data():
         for dimension_name in TEST_DATA[dataset]['attrs']['dim_labels']:
             v.dim(dim_count).setname(dimension_name)
             dim_count += 1
-        v.setfillvalue(FILL_VALUE)
+        v.setfillvalue(TEST_DATA[dataset]['fill_value'])
         v.scale_factor = SCALE_FACTOR
     h.end()
     return base_dir, file_name
