@@ -86,5 +86,6 @@ def suite():
     mysuite.addTests(test_modis_l1b.suite())
     mysuite.addTests(test_viirs_edr_active_fires.suite())
     mysuite.addTests(test_safe_sar_l2_ocn.suite())
+    mysuite.addTests(test_electrol_hrit.suite())
 
     return mysuite
