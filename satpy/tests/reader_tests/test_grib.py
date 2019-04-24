@@ -29,7 +29,7 @@ class FakeGRIB(object):
 
         vals = np.arange(25.).reshape((5, 5))
         latlon_vals = np.arange(25, 30)
-        
+
         self.grib_file = xr.Dataset({'t': (['latitude', 'longitude'], vals),
                                     'u': (['latitude', 'longitude'], vals),
                                     'v': (['latitude', 'longitude'], vals)},
@@ -62,7 +62,7 @@ class FakeGRIB(object):
 
         vals = np.arange(50.).reshape((2, 5, 5))
         lvl_vals = [1, 2]
-    
+
         self.grib_file_nd = xr.Dataset({'t': (['potentialVorticity', 'latitude', 'longitude'], vals),
                                     'u': (['potentialVorticity', 'latitude', 'longitude'], vals),
                                     'v': (['potentialVorticity', 'latitude', 'longitude'], vals)},
@@ -94,7 +94,7 @@ class FakeGRIB(object):
         return self.grib_file_nd
     def get_data_irr(self):
         return self.grib_file_irr
-    
+
 
 class TestGRIBReader(unittest.TestCase):
     """Test GRIB Reader"""
@@ -128,7 +128,7 @@ class TestGRIBReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
-        
+
     #@mock.patch('satpy.readers.grib.cfgrib')
     @mock.patch('satpy.readers.grib.xr.open_dataset')
     def test_load_all(self, xar):
@@ -164,7 +164,7 @@ class TestGRIBReader(unittest.TestCase):
             DatasetID(name='v', level=1),
             DatasetID(name='t', level=2),
             DatasetID(name='u', level=2),
-            DatasetID(name='v', level=2), 
+            DatasetID(name='v', level=2),
         ])
         # using 3d dataset, so by default should load by level
         self.assertEqual(len(datasets), 6)

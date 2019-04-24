@@ -54,20 +54,21 @@ class GRIBFileHandler(BaseFileHandler):
         self._msg_datasets = {}
         self._start_time = None
         self._end_time = None
-        self.allow_nd = fh_kwargs.get('allow_nd', False)
         self.grib_file = None
+        self.allow_nd = fh_kwargs.get('allow_nd', False)
 
         try:
             if fh_kwargs.get('backend_kwargs', None) is not None:
-                self.grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs=fh_kwargs['backend_kwargs'])
+                self.grib_file = xr.open_dataset(filename, engine='cfgrib',
+                    backend_kwargs=fh_kwargs['backend_kwargs'])
             else:
-                self.grib_file = xr.open_dataset(filename, engine='cfgrib', backend_kwargs={'indexpath': ''})
+                self.grib_file = xr.open_dataset(filename, engine='cfgrib',
+                    backend_kwargs={'indexpath': ''})
         except KeyError:
             raise KeyError("Unknown argument in backend_kwargs: {}".format(fh_kwargs))
         except RuntimeError:
             raise IOError("Unknown GRIB file format: {}".format(self.filename))
         except ValueError:
-            # use cfgirb message api
             gf = dataset.messages.FileStream(filename)
             names = []
             for message in gf:
@@ -78,12 +79,12 @@ class GRIBFileHandler(BaseFileHandler):
             for name in names:
                 try:
                     fh_kwargs['backend_kwargs']['filter_by_keys']['shortName'] = name
-                    dts.append(xr.open_dataset(filename, engine='cfgrib', backend_kwargs=fh_kwargs['backend_kwargs']))
+                    dts.append(xr.open_dataset(filename, engine='cfgrib',
+                        backend_kwargs=fh_kwargs['backend_kwargs']))
                 except:
                     continue
-            print(dts)
             self.grib_file = xr.merge(dts)
-            print(self.grib_file)
+
         try:
             self._start_time = self._convert_datetime(self.grib_file.coords['valid_time'].values)
             self._end_time = self._convert_datetime(self.grib_file.coords['valid_time'].values)
@@ -92,24 +93,9 @@ class GRIBFileHandler(BaseFileHandler):
             self._start_time = None
             self._end_time = None
 
-    # analyzes msgs per var
     def _analyze_messages(self):
-        # opening them this way opens them by level
-        # need to test with four vars??
-        # open it the normal way
-        # should only be 3 dimensions or less (lat, long, level)
-        #print(self.grib_file)
         for var in self.grib_file.data_vars.keys():
-            print(var)
-                # if the dimensions of the dataset are two, then level should be None
-                # else, there should be level for each dimension 
-                # if there are more than 3 dimensions, allow_nd should be true
-                # check number of dimensions
-            # if doing per level, then has to be greater than 2 dimensions if want to double loop
-            #if not self.allow_nd and len(self.grib_file.dims) > 2:
             if not self.allow_nd:
-                print('got here')
-                print(self.grib_file[var]) 
                 if len(self.grib_file[var].dims) < 3:
                     level = None
                     msg_id = DatasetID(name=self.grib_file[var].name, level=level)
@@ -122,11 +108,11 @@ class GRIBFileHandler(BaseFileHandler):
                     self._msg_datasets[msg_id] = ds_info
                 else:
                     for val in self.grib_file[var]:
-                        print('val: ', val)
-                        if len(self.grib_file[var].dims) > 2: # lat long and assuming the type of level
+                        if len(self.grib_file[var].dims) > 2:
                             level = int(val.coords[val.attrs['GRIB_typeOfLevel']].values)
                         else:
-                            raise ValueError('Specify allow_nd to True in reader keyword arguments to allow multidimensional datasets')
+                            raise ValueError('Specify allow_nd to True in reader \
+                                keyword arguments to allow multidimensional datasets')
                         msg_id = DatasetID(name=val.name, level=level)
                         ds_info = {
                             'name': val.name,
@@ -136,8 +122,7 @@ class GRIBFileHandler(BaseFileHandler):
                         }
                         self._msg_datasets[msg_id] = ds_info
 
-            else: # open the dataset as nd bc it is greater than 2 dims
-            # ex. just iterate over the vars and open them
+            else:
                 msg_id = DatasetID(name=self.grib_file[var].name,
                             level=None)
 
@@ -149,20 +134,6 @@ class GRIBFileHandler(BaseFileHandler):
                 }
 
                 self._msg_datasets[msg_id] = ds_info
-
-    # FIXME not needed?
-    def _create_dataset_ids(self, keys):
-        from itertools import product
-        ordered_keys = [k for k in keys.keys() if 'id_key' in keys[k]]
-        for id_vals in product(*[keys[k]['values'] for k in ordered_keys]):
-            id_keys = [keys[k]['id_key'] for k in ordered_keys]
-            msg_info = dict(zip(ordered_keys, id_vals))
-            ds_info = dict(zip(id_keys, id_vals))
-            msg_id = DatasetID(**ds_info)
-            ds_info = msg_id.to_dict()
-            ds_info.update(msg_info)
-            ds_info['file_type'] = self.filetype_info['file_type']
-            self._msg_datasets[msg_id] = ds_info
 
     @staticmethod
     def _convert_datetime(msg, format="%Y-%m-%d %H:%M:%S"):
@@ -194,13 +165,9 @@ class GRIBFileHandler(BaseFileHandler):
         return self._msg_datasets.items()
 
     def _get_message(self, ds_info):
-        #self.grib_file = xr.open_dataset(self.filename, engine='cfgrib', backend_kwargs=ds_info['fh_kwargs'])
-        print(ds_info)
         if self.allow_nd or len(self.grib_file[ds_info['name']].dims) < 3:
-            ret = self.grib_file[ds_info['name']]
-            return ret
+            return self.grib_file[ds_info['name']]
         else:
-            # make sure the dims are in the right order
             l = []
             for k in self.grib_file[ds_info['name']].dims:
                 if k == ds_info['typeOfLevel']:
@@ -208,8 +175,9 @@ class GRIBFileHandler(BaseFileHandler):
                 else:
                     l.append(k)
             self.grib_file.transpose(*l)
-            ret = self.grib_file[ds_info['name']].loc[ds_info['level'], :, :]
-            return ret
+
+            # assumes 3 dimensions
+            return self.grib_file[ds_info['name']].loc[ds_info['level'], :, :]
 
 
     def _area_def_from_msg(self, msg):
@@ -250,7 +218,7 @@ class GRIBFileHandler(BaseFileHandler):
     #        lats = lats[([0, 0, -1, -1])]
     #        # correct for longitudes over 180
     #        lons[lons > 180] -= 360
-    #        #proj_params['proj'] = 
+    #        #proj_params['proj'] =
     #        proj = Proj(**proj_params)
     #        x, y = proj(lons, lats)
     #        if msg.attrs.get('jScansPositively', -1) == 1:
@@ -310,20 +278,20 @@ class GRIBFileHandler(BaseFileHandler):
 
         msg = self._get_message(ds_info)
         msg = msg.rename({'latitude': 'y', 'longitude': 'x'})
-        new_dims = msg.dims 
+        new_dims = msg.dims
         ds_info = self.get_metadata(msg, ds_info)
         fill = msg.attrs['GRIB_missingValue']
         data = msg.values.astype(np.float32)
         if msg.attrs.get('jScansPositively', -1) == 1:
             data = data[::1]
-        
+
         if isinstance(data, np.ma.MaskedArray):
             data = data.filled(np.nan)
             data = da.from_array(data, chunks=CHUNK_SIZE)
         else:
             data[data == fill] = np.nan
             data = da.from_array(data, chunks=CHUNK_SIZE)
-    
+
         if len(data.shape) < 3:
             return xr.DataArray(data, attrs=ds_info, dims=('y', 'x'))
         else:
