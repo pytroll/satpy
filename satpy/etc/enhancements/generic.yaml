@@ -87,7 +87,10 @@ enhancements:
       kwargs:
         stretch: crude
         min_stretch: [298, 20.0, 15.0]
-        max_stretch: [368, 100., 95.]
+        max_stretch: [368, 130., 130.]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: [1.1, 1.2, 1.2]}
   airmass_default:
     standard_name: airmass
     operations:
