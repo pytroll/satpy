@@ -58,12 +58,12 @@ DEFAULT_POWER_FILE_DATA = np.arange(start=1, stop=25, step=0.24,
                                     dtype=DEFAULT_POWER_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 
-class FakeFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
+class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
     """Swap in CDF4 file handler"""
     def get_test_content(self, filename, filename_info, filename_type):
         """Mimic reader input file content"""
         file_content = {}
-        file_content['/attr/satellite_name'] = "AFEDR_npp"
+        file_content['/attr/satellite_name'] = "AFMOD"
         file_content['/attr/instrument_name'] = 'VIIRS'
 
         file_content['Fire Pixels/FP_latitude'] = DEFAULT_LATLON_FILE_DATA
@@ -89,6 +89,34 @@ class FakeFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
 
         return file_content
 
+class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
+    """Swap in CDF4 file handler"""
+    def get_test_content(self, filename, filename_info, filename_type):
+        """Mimic reader input file content"""
+        file_content = {}
+        file_content['/attr/satellite_name'] = "AFIMG"
+        file_content['/attr/instrument_name'] = 'VIIRS'
+
+        file_content['FP_latitude'] = DEFAULT_LATLON_FILE_DATA
+        file_content['FP_longitude'] = DEFAULT_LATLON_FILE_DATA
+        file_content['FP_power'] = DEFAULT_POWER_FILE_DATA
+        file_content['FP_T4'] = DEFAULT_M13_FILE_DATA
+        file_content['FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
+
+        # convert to xarrays
+        from xarray import DataArray
+        for key, val in file_content.items():
+            if isinstance(val, np.ndarray):
+                attrs = {}
+                for a in ['FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence']:
+                    if key + '/attr/' + a in file_content:
+                        attrs[a] = file_content[key + '/attr/' + a]
+                if val.ndim > 1:
+                    file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
+                else:
+                    file_content[key] = DataArray(val, attrs=attrs)
+
+        return file_content
 
 class FakeModFiresTextFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, **kwargs):

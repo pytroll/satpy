@@ -97,7 +97,7 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
         if not os.path.isfile(filename):
             return
 
-        if filename_info.get('data_id') == 'AFIMG':
+        if filename_info.get('satellite_name') == 'AFIMG':
             self.file_content = dd.read_csv(filename, skiprows=15, header=None,
                                             names=["latitude", "longitude",
                                                    "T4", "Along-scan", "Along-track", "confidence_cat",
