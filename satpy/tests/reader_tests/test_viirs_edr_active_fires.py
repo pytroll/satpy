@@ -108,7 +108,7 @@ class FakeFiresTextFileHandler(BaseFileHandler):
                                                  "power"]), chunksize=1)
 
 
-class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
+class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_edr_active_fires.yaml'
 
@@ -130,7 +130,8 @@ class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc',
+            'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
         self.assertTrue(len(loadables), 1)
         r.create_filehandlers(loadables)
@@ -141,7 +142,8 @@ class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc',
+            'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(['confidence_pct'])
@@ -159,8 +161,59 @@ class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
 
+class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
+    """Test VIIRS Fires Reader"""
+    yaml_file = 'viirs_edr_active_fires.yaml'
 
-class TestVIIRSActiveFiresText(unittest.TestCase):
+    def setUp(self):
+        """Wrap CDF4 file handler with own fake file handler"""
+        from satpy.config import config_search_paths
+        from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
+        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.p = mock.patch.object(VIIRSActiveFiresFileHandler, '__bases__', (FakeFiresNetCDF4FileHandler,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+
+    def tearDown(self):
+        """Stop wrapping the CDF4 file handler"""
+        self.p.stop()
+
+    def test_init(self):
+        """Test basic init with no extra parameters"""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+        ])
+        self.assertTrue(len(loadables), 1)
+        r.create_filehandlers(loadables)
+        self.assertTrue(r.file_handlers)
+
+    def test_load_dataset(self):
+        """Test loading all datasets"""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['confidence_cat'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], '[7,8,9]->[lo,med,hi]')
+
+        datasets = r.load(['T4'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'K')
+
+        datasets = r.load(['power'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'MW')
+
+
+class TestModVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_edr_active_fires.yaml'
 
@@ -182,7 +235,8 @@ class TestVIIRSActiveFiresText(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt',
+            'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
         ])
         self.assertTrue(len(loadables), 1)
         r.create_filehandlers(loadables)
@@ -193,15 +247,67 @@ class TestVIIRSActiveFiresText(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt',
+            'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['detection_confidence'])
+        datasets = r.load(['confidence_pct'])
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], '%')
 
         datasets = r.load(['T13'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'K')
+
+        datasets = r.load(['power'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'MW')
+
+class TestImgVIIRSActiveFiresText(unittest.TestCase):
+    """Test VIIRS Fires Reader"""
+    yaml_file = 'viirs_edr_active_fires.yaml'
+
+    def setUp(self):
+        """Wrap file handler with own fake file handler"""
+        from satpy.config import config_search_paths
+        from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
+        self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
+        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeFiresTextFileHandler,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+
+    def tearDown(self):
+        """Stop wrapping the text file handler"""
+        self.p.stop()
+
+    def test_init(self):
+        """Test basic init with no extra parameters"""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+        ])
+        self.assertTrue(len(loadables), 1)
+        r.create_filehandlers(loadables)
+        self.assertTrue(r.file_handlers)
+
+    def test_load_dataset(self):
+        """Test loading all datasets"""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'AFIMG_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['confidence_cat'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], '[7,8,9]->[lo,med,hi]')
+
+        datasets = r.load(['T4'])
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
@@ -217,7 +323,9 @@ def suite():
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSActiveFiresNetCDF4))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSActiveFiresText))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestModVIIRSActiveFiresNetCDF4))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestModVIIRSActiveFiresText))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestImgVIIRSActiveFiresNetCDF4))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestImgVIIRSActiveFiresText))
 
     return mysuite

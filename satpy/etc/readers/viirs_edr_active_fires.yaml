@@ -68,4 +68,4 @@ datasets:
         file_type: [fires_text, fires_netcdf_img]
         file_key: "{variable_prefix}T4"
         coordinates: [longitude, latitude]
-        units: 'K'1
+        units: 'K'
