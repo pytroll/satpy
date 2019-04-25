@@ -148,7 +148,6 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc',
             'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
         self.assertTrue(len(loadables), 1)
@@ -160,7 +159,6 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc',
             'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
         r.create_filehandlers(loadables)
