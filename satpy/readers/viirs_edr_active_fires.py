@@ -49,13 +49,8 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             Dask DataArray: Data
 
         """
-        print(str(dsid))
-        print("Prefix: " + str(dsinfo.get('variable_prefix')))
-       # print(dsinfo.get('file_key').format(variable_prefix=self.prefix))
 
         key = dsinfo.get('file_key', dsid.name).format(variable_prefix=self.prefix)
-
-        print(key)
         data = self[key]
         data.attrs.update(dsinfo)
 
