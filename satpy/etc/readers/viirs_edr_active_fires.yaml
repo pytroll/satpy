@@ -20,7 +20,7 @@ file_types:
     fires_text:
         file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresTextFileHandler
         file_patterns:
-            - '{data_id}_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.txt'
+            - '{satellite_name}_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.txt'
 
 datasets:
     confidence_cat:
@@ -64,6 +64,6 @@ datasets:
     T4:
         name: T4
         file_type: [fires_text, fires_netcdf_img]
-        file_key: "{variable_prefix}T4"
+        file_key: "{variable_prefix}FP_T4"
         coordinates: [longitude, latitude]
         units: 'K'
