@@ -90,10 +90,10 @@ class FakeFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         return file_content
 
 
-class FakeFiresTextFileHandler(BaseFileHandler):
+class FakeModFiresTextFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Get fake file content from 'get_test_content'"""
-        super(FakeFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(FakeModFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content()
 
     def get_test_content(self):
@@ -105,6 +105,24 @@ class FakeFiresTextFileHandler(BaseFileHandler):
                                           names=["latitude", "longitude",
                                                  "T13", "Along-scan", "Along-track",
                                                  "confidence_pct",
+                                                 "power"]), chunksize=1)
+
+
+class FakeImgFiresTextFileHandler(BaseFileHandler):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Get fake file content from 'get_test_content'"""
+        super(FakeImgFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
+        self.file_content = self.get_test_content()
+
+    def get_test_content(self):
+        fake_file = io.StringIO(u'''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
+        24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
+        25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
+
+        return dd.from_pandas(pd.read_csv(fake_file, skiprows=15, header=None,
+                                          names=["latitude", "longitude",
+                                                 "T4", "Along-scan", "Along-track",
+                                                 "confidence_cat",
                                                  "power"]), chunksize=1)
 
 
@@ -222,7 +240,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         from satpy.config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeFiresTextFileHandler,))
+        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeModFiresTextFileHandler,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -275,7 +293,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         from satpy.config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
-        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeFiresTextFileHandler,))
+        self.p = mock.patch.object(VIIRSActiveFiresTextFileHandler, '__bases__', (FakeImgFiresTextFileHandler,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
