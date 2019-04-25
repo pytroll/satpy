@@ -104,7 +104,7 @@ class FakeFiresTextFileHandler(BaseFileHandler):
         return dd.from_pandas(pd.read_csv(fake_file, skiprows=15, header=None,
                                           names=["latitude", "longitude",
                                                  "T13", "Along-scan", "Along-track",
-                                                 "detection_confidence",
+                                                 "confidence_pct",
                                                  "power"]), chunksize=1)
 
 
@@ -144,7 +144,7 @@ class TestVIIRSActiveFiresNetCDF4(unittest.TestCase):
             'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['detection_confidence'])
+        datasets = r.load(['confidence_pct'])
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], '%')
