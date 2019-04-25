@@ -97,15 +97,16 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
         if not os.path.isfile(filename):
             return
 
-        if filename_info.get('data_id') == 'AFMOD':
-            confidence = 'confidence_pct'
+        if filename_info.get('data_id') == 'AFIMG':
+            self.file_content = dd.read_csv(filename, skiprows=15, header=None,
+                                            names=["latitude", "longitude",
+                                                   "T4", "Along-scan", "Along-track", "confidence_cat",
+                                                   "power"])
         else:
-            confidence = 'confidence_cat'
-
-        self.file_content = dd.read_csv(filename, skiprows=15, header=None,
-                                        names=["latitude", "longitude",
-                                               "T13", "Along-scan", "Along-track", confidence,
-                                               "power"])
+            self.file_content = dd.read_csv(filename, skiprows=15, header=None,
+                                            names=["latitude", "longitude",
+                                                   "T13", "Along-scan", "Along-track", "confidence_pct",
+                                                   "power"])
 
     def get_dataset(self, dsid, dsinfo):
         ds = self[dsid.name].to_dask_array(lengths=True)
