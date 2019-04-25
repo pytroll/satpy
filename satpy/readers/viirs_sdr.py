@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011-2017.
+# Copyright (c) 2011-2019 Pytroll
 
 # Author(s):
 
@@ -119,6 +119,7 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
                 'SVM14': 'VIIRS-M14-SDR',
                 'SVM15': 'VIIRS-M15-SDR',
                 'SVM16': 'VIIRS-M16-SDR',
+                'IVCDB': 'VIIRS-DualGain-Cal-IP'
                 }
 
 
