@@ -32,6 +32,12 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
     """NetCDF4 reader for VIIRS Active Fires
     """
 
+    def __init__(self, filename, filename_info, filetype_info,
+                 auto_maskandscale=False, xarray_kwargs=None):
+        super(VIIRSActiveFiresFileHandler, self).__init__(
+            filename, filename_info, filetype_info)
+        self.prefix = filetype_info.get('variable_prefix')
+
     def get_dataset(self, dsid, dsinfo):
         """Get dataset function
 
@@ -43,11 +49,18 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             Dask DataArray: Data
 
         """
-        data = self[dsinfo.get('file_key', dsid.name)]
+        print(str(dsid))
+        print("Prefix: " + str(dsinfo.get('variable_prefix')))
+       # print(dsinfo.get('file_key').format(variable_prefix=self.prefix))
+
+        key = dsinfo.get('file_key', dsid.name).format(variable_prefix=self.prefix)
+
+        print(key)
+        data = self[key]
         data.attrs.update(dsinfo)
 
-        data.attrs["platform_name"] = self['/attr/satellite_name']
-        data.attrs["sensor"] = self['/attr/instrument_name']
+        data.attrs["platform_name"] = self.get('/attr/satellite_name')
+        data.attrs["sensor"] = self.get('/attr/instrument_name')
 
         return data
 
@@ -84,9 +97,14 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
         if not os.path.isfile(filename):
             return
 
+        if filename_info.get('data_id') == 'AFMOD':
+            confidence = 'confidence_pct'
+        else:
+            confidence = 'confidence_cat'
+
         self.file_content = dd.read_csv(filename, skiprows=15, header=None,
                                         names=["latitude", "longitude",
-                                               "T13", "Along-scan", "Along-track", "detection_confidence",
+                                               "T13", "Along-scan", "Along-track", confidence,
                                                "power"])
 
     def get_dataset(self, dsid, dsinfo):
