@@ -59,7 +59,13 @@ datasets:
         units: 'MW'
     T13:
         name: T13
-        file_type: [fires_netcdf, fires_text, fires_netcdf_img]
+        file_type: [fires_netcdf, fires_text]
         file_key: "{variable_prefix}FP_T13"
         coordinates: [longitude, latitude]
         units: 'K'
+    T4:
+        name: T4
+        file_type: [fires_text, fires_netcdf_img]
+        file_key: "{variable_prefix}T4"
+        coordinates: [longitude, latitude]
+        units: 'K'1
