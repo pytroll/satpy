@@ -24,6 +24,7 @@
 
 import logging
 from datetime import datetime
+import json
 
 import xarray as xr
 import numpy as np
@@ -160,16 +161,127 @@ def make_time_bounds(dataarray, start_times, end_times):
                         dims=['time_bnds'], coords={'time_bnds': [0, 1]})
 
 
+class AttributeEncoder(json.JSONEncoder):
+    """JSON encoder for dataset attributes"""
+    def default(self, obj):
+        """Returns a json-serializable object for 'obj'
+
+        In order to facilitate decoding, elements in dictionaries, lists/tuples and multi-dimensional arrays are
+        encoded recursively.
+        """
+        if isinstance(obj, dict):
+            serialized = obj.copy()
+            for key, val in obj.items():
+                serialized[key] = self.default(val)
+            return serialized
+        elif isinstance(obj, (list, tuple, np.ndarray)):
+            return [self.default(item) for item in obj]
+        else:
+            return self._encode(obj)
+
+    def _encode(self, obj):
+        """Encode the given object as a json-serializable datatype.
+
+        Use the netcdf encoder as it covers most of the datatypes appearing in dataset attributes. If that fails,
+        return the string representation of the object."""
+        try:
+            return _encode_nc(obj)
+        except ValueError:
+            return str(obj)
+
+
+def _encode_nc(obj):
+    """Encode an arbitrary object in a netcdf compatible datatype
+
+    Raises:
+        ValueError if no netcdf compatible datatype could be found
+    """
+    if isinstance(obj, np.bool_) or isinstance(obj, bool):
+        # Bool has to be checked first, because it is a subclass of int
+        return str(obj)
+    elif isinstance(obj, (int, float, str)):
+        return obj
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.void):
+        return tuple(obj)
+    elif isinstance(obj, np.ndarray):
+        if not len(obj.dtype) and len(obj.shape) <= 1:
+            # Multi-dimensional nc attributes are not supported, so we have to skip record arrays and multi-dimensional
+            # arrays here
+            return obj.tolist()
+
+    raise ValueError('Unable to encode')
+
+
+def encode_nc(obj):
+    """Encode an arbitrary object in a netcdf compatible datatype
+
+    Try to find the best matching datatype. If that fails, encode as a string. Plain lists are encoded recursively.
+    """
+    if isinstance(obj, (list, tuple)) and all([not isinstance(item, (list, tuple)) for item in obj]):
+        return [encode_nc(item) for item in obj]
+    try:
+        return _encode_nc(obj)
+    except ValueError:
+        return json.dumps(obj, cls=AttributeEncoder)
+
+
+def encode_attrs_nc(attrs, unfold_dicts=False):
+    """Encode dataset attributes in a netcdf compatible datatype
+
+    By default dictionaries are encoded as a single string. That can be changed using the `unfold_dicts` flag. See
+    :func:`~satpy.writers.cf_writer.encode_nc` for encoding details.
+
+    Args:
+        attrs (dict):
+            Attributes to be encoded
+        unfold_dicts (bool):
+            If True, add contents of dict-type attributes as separate nc-attributes with a common prefix. Each of the
+            dictionary items will be encoded separately.
+
+    Returns:
+        dict: Encoded attributes
+    """
+    encoded_attrs = {}
+    for key, val in sorted(attrs.items()):
+        if isinstance(val, dict) and unfold_dicts:
+            # Add a new attribute "key_key2" for each item in the dictionary
+            for key2, val2 in val.items():
+                new_key = '{}_{}'.format(key, key2)
+                encoded_attrs[new_key] = encode_nc(val2)
+        else:
+            encoded_attrs[key] = encode_nc(val)
+    return encoded_attrs
+
+
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH):
-        """Convert the dataarray to something cf-compatible."""
+    def da2cf(dataarray, epoch=EPOCH, unfold_dict_attrs=False, exclude_attrs=None):
+        """Convert the dataarray to something cf-compatible.
+
+        Args:
+            dataarray (xr.DataArray):
+                The data array to be converted
+            epoch (str):
+                Reference time for encoding of time coordinates
+            unfold_dict_attrs (bool):
+                If True, add contents of dict-type attributes as separate nc-attributes with a common prefix.
+            exclude_attrs (list):
+                List of dataset attributes to be excluded (default: `['raw_metadata']`)
+        """
+        if exclude_attrs is None:
+            exclude_attrs = ['raw_metadata']
+
         new_data = dataarray.copy()
 
-        # Remove the area
-        new_data.attrs.pop('area', None)
+        # Remove the area as well as user-defined attributes
+        for key in ['area'] + exclude_attrs:
+            new_data.attrs.pop(key, None)
 
         anc = [ds.attrs['name']
                for ds in new_data.attrs.get('ancillary_variables', [])]
@@ -200,6 +312,10 @@ class CFWriter(Writer):
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
         if 'prerequisites' in new_data.attrs:
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
+
+        # Encode attributes to netcdf-compatible datatype
+        new_data.attrs = encode_attrs_nc(new_data.attrs, unfold_dicts=unfold_dict_attrs)
+
         return new_data
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
@@ -220,11 +336,12 @@ class CFWriter(Writer):
             except KeyError:
                 new_datasets = [ds.copy(deep=True)]
             for new_ds in new_datasets:
-                start_times.append(new_ds.attrs.pop("start_time", None))
-                end_times.append(new_ds.attrs.pop("end_time", None))
+                start_times.append(new_ds.attrs.get("start_time", None))
+                end_times.append(new_ds.attrs.get("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds,
-                                                         kwargs.get('epoch',
-                                                                    EPOCH))
+                                                         epoch=kwargs.get('epoch', EPOCH),
+                                                         unfold_dict_attrs=kwargs.get('unfold_dict_attrs', False),
+                                                         exclude_attrs=kwargs.get('exclude_attrs', None))
         return datas, start_times, end_times
 
     def save_datasets(self, datasets, filename=None, **kwargs):
