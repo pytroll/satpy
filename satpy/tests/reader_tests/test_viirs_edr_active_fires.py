@@ -89,6 +89,7 @@ class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
 
         return file_content
 
+
 class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
     """Swap in CDF4 file handler"""
     def get_test_content(self, filename, filename_info, filename_type):
@@ -117,6 +118,7 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
                     file_content[key] = DataArray(val, attrs=attrs)
 
         return file_content
+
 
 class FakeModFiresTextFileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
@@ -204,6 +206,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
+
 
 class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
     """Test VIIRS Fires Reader"""
@@ -309,6 +312,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
+
 
 class TestImgVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader"""
