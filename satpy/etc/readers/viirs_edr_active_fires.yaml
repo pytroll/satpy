@@ -15,7 +15,6 @@ file_types:
         variable_prefix: "Fire Pixels/"
         file_patterns:
         - 'AFEDR_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
-        - 'AF_v1r1_npp_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
         - 'AFMOD_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
     fires_text:
         file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresTextFileHandler
