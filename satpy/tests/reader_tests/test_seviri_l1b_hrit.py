@@ -253,7 +253,8 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         parent_get_dataset.assert_called_with(key, info)
         calibrate.assert_called_with(parent_get_dataset(), key.calibration)
 
-        # Test attributes
+        # Test attributes (just check if raw metadata is there and then remove it before checking the remaining
+        # attributes)
         attrs_exp = info.copy()
         attrs_exp.update({
             'platform_name': self.reader.platform_name,
@@ -267,8 +268,19 @@ class TestHRITMSGFileHandler(unittest.TestCase):
             'navigation': self.reader.mda['navigation_parameters'],
             'georef_offset_corrected': self.reader.mda['offset_corrected']
         })
-
+        self.assertIn('raw_metadata', res.attrs)
+        res.attrs.pop('raw_metadata')
         self.assertDictEqual(attrs_exp, res.attrs)
+
+    def test_get_raw_mda(self):
+        self.reader.mda = {'segment': 1, 'loff': 123}
+        self.reader.prologue_.reduced = {'prologue': 1}
+        self.reader.epilogue_.reduced = {'epilogue': 1}
+        expected = {'prologue': 1, 'epilogue': 1, 'segment': 1}
+        self.assertDictEqual(self.reader._get_raw_mda(), expected)
+
+        # Make sure _get_raw_mda() doesn't modify the original dictionary
+        self.assertIn('loff', self.reader.mda)
 
 
 class TestHRITMSGPrologueFileHandler(unittest.TestCase):
