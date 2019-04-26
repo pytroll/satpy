@@ -37,7 +37,6 @@ from cfgrib import dataset
 
 from satpy import DatasetID, CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-import cfgrib
 
 LOG = logging.getLogger(__name__)
 
@@ -57,13 +56,17 @@ class GRIBFileHandler(BaseFileHandler):
         self.grib_file = None
         self.allow_nd = fh_kwargs.get('allow_nd', False)
 
+        if fh_kwargs.get('backend_kwargs', False):
+            fh_kwargs['backend_kwargs']['errors'] = 'ignore'
+
         try:
             if fh_kwargs.get('backend_kwargs', None) is not None:
                 self.grib_file = xr.open_dataset(filename, engine='cfgrib',
-                    backend_kwargs=fh_kwargs['backend_kwargs'])
+                                                 backend_kwargs=fh_kwargs['backend_kwargs'])
             else:
                 self.grib_file = xr.open_dataset(filename, engine='cfgrib',
-                    backend_kwargs={'indexpath': ''})
+                                                 backend_kwargs={'indexpath': '',
+                                                                 'errors': 'ignore'})
         except KeyError:
             raise KeyError("Unknown argument in backend_kwargs: {}".format(fh_kwargs))
         except RuntimeError:
@@ -80,8 +83,8 @@ class GRIBFileHandler(BaseFileHandler):
                 try:
                     fh_kwargs['backend_kwargs']['filter_by_keys']['shortName'] = name
                     dts.append(xr.open_dataset(filename, engine='cfgrib',
-                        backend_kwargs=fh_kwargs['backend_kwargs']))
-                except:
+                                               backend_kwargs=fh_kwargs['backend_kwargs']))
+                except (KeyError, ValueError):
                     continue
             self.grib_file = xr.merge(dts)
 
@@ -89,7 +92,7 @@ class GRIBFileHandler(BaseFileHandler):
             self._start_time = self._convert_datetime(self.grib_file.coords['valid_time'].values)
             self._end_time = self._convert_datetime(self.grib_file.coords['valid_time'].values)
             self._analyze_messages()
-        except:
+        except KeyError:
             self._start_time = None
             self._end_time = None
 
@@ -124,7 +127,7 @@ class GRIBFileHandler(BaseFileHandler):
 
             else:
                 msg_id = DatasetID(name=self.grib_file[var].name,
-                            level=None)
+                                   level=None)
 
                 ds_info = {
                     'name': self.grib_file[var].name,
@@ -168,17 +171,16 @@ class GRIBFileHandler(BaseFileHandler):
         if self.allow_nd or len(self.grib_file[ds_info['name']].dims) < 3:
             return self.grib_file[ds_info['name']]
         else:
-            l = []
+            dims = []
             for k in self.grib_file[ds_info['name']].dims:
                 if k == ds_info['typeOfLevel']:
-                    l.insert(0, k)
+                    dims.insert(0, k)
                 else:
-                    l.append(k)
-            self.grib_file.transpose(*l)
+                    dims.append(k)
+            self.grib_file.transpose(*dims)
 
             # assumes 3 dimensions
             return self.grib_file[ds_info['name']].loc[ds_info['level'], :, :]
-
 
     def _area_def_from_msg(self, msg):
         proj_params = {}
@@ -240,7 +242,6 @@ class GRIBFileHandler(BaseFileHandler):
             shape[0],
             extents,
         )
-
 
     def get_area_def(self, dsid):
         """Get area definition for message.

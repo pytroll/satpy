@@ -21,7 +21,7 @@ except ImportError:
 
 class FakeGRIB(object):
     """Fake GRIB file returned from xr.open_dataset."""
-    def __init__(self, messages=None, proj_params=None):
+    def __init__(self):
         super(FakeGRIB, self).__init__()
 
         self.grib_file = None
@@ -31,8 +31,8 @@ class FakeGRIB(object):
         latlon_vals = np.arange(25, 30)
 
         self.grib_file = xr.Dataset({'t': (['latitude', 'longitude'], vals),
-                                    'u': (['latitude', 'longitude'], vals),
-                                    'v': (['latitude', 'longitude'], vals)},
+                                     'u': (['latitude', 'longitude'], vals),
+                                     'v': (['latitude', 'longitude'], vals)},
                                     coords={'latitude': (['latitude'], latlon_vals),
                                             'longitude': (['longitude'], latlon_vals),
                                             'time': np.datetime64('2018-07-22T00:00:00'),
@@ -64,15 +64,15 @@ class FakeGRIB(object):
         lvl_vals = [1, 2]
 
         self.grib_file_nd = xr.Dataset({'t': (['potentialVorticity', 'latitude', 'longitude'], vals),
-                                    'u': (['potentialVorticity', 'latitude', 'longitude'], vals),
-                                    'v': (['potentialVorticity', 'latitude', 'longitude'], vals)},
-                                    coords={'latitude': (['latitude'], latlon_vals),
-                                            'longitude': (['longitude'], latlon_vals),
-                                            'potentialVorticity': (['potentialVorticity'], lvl_vals),
-                                            'time': np.datetime64('2018-07-22T00:00:00'),
-                                            'valid_time': np.datetime64('2018-07-22T06:00:00')},
-                                    attrs={'GRIB_edition': 2, 'GRIB_centre': 'kwbc',
-                                           'Conventions': 'CF-1.7', 'GRIB_centreDescription': 'NCEP'})
+                                        'u': (['potentialVorticity', 'latitude', 'longitude'], vals),
+                                        'v': (['potentialVorticity', 'latitude', 'longitude'], vals)},
+                                       coords={'latitude': (['latitude'], latlon_vals),
+                                               'longitude': (['longitude'], latlon_vals),
+                                               'potentialVorticity': (['potentialVorticity'], lvl_vals),
+                                               'time': np.datetime64('2018-07-22T00:00:00'),
+                                               'valid_time': np.datetime64('2018-07-22T06:00:00')},
+                                       attrs={'GRIB_edition': 2, 'GRIB_centre': 'kwbc',
+                                              'Conventions': 'CF-1.7', 'GRIB_centreDescription': 'NCEP'})
 
         for dsvars in self.grib_file_nd.data_vars:
             dsvar = self.grib_file_nd.data_vars[dsvars]
@@ -83,17 +83,9 @@ class FakeGRIB(object):
             dsvar.attrs['GRIB_missingValue'] = 9999
             dsvar.attrs['units'] = 'K'
 
-
-    def __enter__(self):
-        return self
-    def __exit__(self):
-        pass
-    def get_data(self):
-        return self.grib_file
-    def get_data_nd(self):
-        return self.grib_file_nd
-    def get_data_irr(self):
-        return self.grib_file_irr
+    def get_data(self, num):
+        d = {0: self.grib_file, 1: self.grib_file_nd, 2: self.grib_file_irr}
+        return d[num]
 
 
 class TestGRIBReader(unittest.TestCase):
@@ -115,10 +107,10 @@ class TestGRIBReader(unittest.TestCase):
         """Re-enable cfgrib import."""
         sys.modules['cfgrib'] = self.orig_cfgrib
 
-    @mock.patch('satpy.readers.grib.cfgrib')
-    def test_init(self, cf):
+    @mock.patch('satpy.readers.grib.xr.open_dataset')
+    def test_init(self, xar):
         """Test basic init with no extra parameters."""
-        cf.open_file.return_value = FakeGRIB()
+        xar.return_value = FakeGRIB().get_data(0)
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -129,13 +121,11 @@ class TestGRIBReader(unittest.TestCase):
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
-    #@mock.patch('satpy.readers.grib.cfgrib')
     @mock.patch('satpy.readers.grib.xr.open_dataset')
     def test_load_all(self, xar):
         """Test loading all test datasets"""
-        xar.return_value = FakeGRIB().get_data()
+        xar.return_value = FakeGRIB().get_data(0)
         from satpy.readers import load_reader
-        from satpy import DatasetID
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'gfs.t18z.sfluxgrbf106.grib2',
@@ -150,7 +140,7 @@ class TestGRIBReader(unittest.TestCase):
     @mock.patch('satpy.readers.grib.xr.open_dataset')
     def test_load_all_by_level(self, xar):
         """Test loading all test datasets with a multidimensional grib file"""
-        xar.return_value = FakeGRIB().get_data_nd()
+        xar.return_value = FakeGRIB().get_data(1)
         from satpy.readers import load_reader
         from satpy import DatasetID
         r = load_reader(self.reader_configs)
@@ -175,7 +165,7 @@ class TestGRIBReader(unittest.TestCase):
     @mock.patch('satpy.readers.grib.xr.open_dataset')
     def test_load_all_nd(self, xar):
         """Test loading all test datasets with a multidimensional grib file"""
-        xar.return_value = FakeGRIB().get_data_nd()
+        xar.return_value = FakeGRIB().get_data(1)
         from satpy.readers import load_reader
         from satpy import DatasetID
         r = load_reader(self.reader_configs)
@@ -197,7 +187,7 @@ class TestGRIBReader(unittest.TestCase):
 #    @mock.patch('satpy.readers.grib.xr.open_dataset')
 #    def test_load_all_lcc(self, xar):
 #        """Test loading all test datasets with lcc projections"""
-#        xar.return_value = FakeGRIB().get_data_irr()
+#        xar.return_value = FakeGRIB().get_data(2)
 #        from satpy.readers import load_reader
 #        from satpy import DatasetID
 #        r = load_reader(self.reader_configs)
