@@ -33,6 +33,7 @@ References:
 
 """
 
+import copy
 import logging
 from datetime import datetime
 
@@ -52,6 +53,8 @@ from satpy.readers.seviri_base import (CHANNEL_NAMES, VIS_CHANNELS, CALIB, SATNU
 
 from satpy.readers.seviri_l1b_native_hdr import (hrit_prologue, hrit_epilogue,
                                                  impf_configuration)
+import satpy.readers.utils as utils
+
 
 logger = logging.getLogger('hrit_msg')
 
@@ -126,6 +129,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         self.prologue = {}
         self.read_prologue()
         self.satpos = None
+        self._reduced = None
 
         service = filename_info['service']
         if service == '':
@@ -233,6 +237,12 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
              earth_model['SouthPolarRadius']) / 2.0 * 1000
         return a, b
 
+    @property
+    def reduced(self):
+        if self._reduced is None:
+            self._reduced = utils.reduce_mda(self.prologue)
+        return self._reduced
+
 
 class HRITMSGEpilogueFileHandler(HRITFileHandler):
     """SEVIRI HRIT epilogue reader.
@@ -248,6 +258,7 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
                                                           msg_text_headers))
         self.epilogue = {}
         self.read_epilogue()
+        self._reduced = None
 
         service = filename_info['service']
         if service == '':
@@ -262,6 +273,12 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=hrit_epilogue, count=1)
             self.epilogue.update(recarray2dict(data))
+
+    @property
+    def reduced(self):
+        if self._reduced is None:
+            self._reduced = utils.reduce_mda(self.epilogue)
+        return self._reduced
 
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
@@ -323,6 +340,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                                   msg_text_headers))
 
         self.prologue_ = prologue
+        self.epilogue_ = epilogue
         self.prologue = prologue.prologue
         self.epilogue = epilogue.epilogue
         self._filename_info = filename_info
@@ -528,6 +546,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                    'satellite_altitude': self.mda['projection_parameters']['h']}
         res.attrs['navigation'] = self.mda['navigation_parameters'].copy()
         res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
+        res.attrs['raw_metadata'] = self._get_raw_mda()
 
         return res
 
@@ -576,6 +595,19 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
+
+    def _get_raw_mda(self):
+        """Compile raw metadata to be included in the dataset attributes"""
+        # Metadata from segment header (excluding items which vary among the different segments)
+        raw_mda = copy.deepcopy(self.mda)
+        for key in ('image_segment_line_quality', 'segment_sequence_number', 'annotation_header', 'loff'):
+            raw_mda.pop(key, None)
+
+        # Metadata from prologue and epilogue (large arrays removed)
+        raw_mda.update(self.prologue_.reduced)
+        raw_mda.update(self.epilogue_.reduced)
+
+        return raw_mda
 
 
 def show(data, negate=False):
