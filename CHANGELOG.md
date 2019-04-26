@@ -1,3 +1,29 @@
+## Version 0.14.2 (2019/04/25)
+
+### Issues Closed
+
+* [Issue 679](https://github.com/pytroll/satpy/issues/679) - Cannot save a multiscene animation - imagio:ffmpeg warning
+
+In this release 1 issue was closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 731](https://github.com/pytroll/satpy/pull/731) - Fix viirs sdr reader to allow ivcdb files in the sdr directory
+* [PR 726](https://github.com/pytroll/satpy/pull/726) - Bugfixes in the Electro-L reader ([](https://groups.google.com/forum//issues/))
+
+#### Features added
+
+* [PR 729](https://github.com/pytroll/satpy/pull/729) - Add "extras" checks to check_satpy utility function
+
+#### Documentation changes
+
+* [PR 724](https://github.com/pytroll/satpy/pull/724) - Add codeowners
+
+In this release 4 pull requests were closed.
+
+
 ## Version 0.14.1 (2019/04/12)
 
 ### Issues Closed
