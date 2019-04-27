@@ -47,7 +47,6 @@ from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
-from satpy.readers.utils import get_area_slices, get_sub_area
 from trollsift.parser import globify, parse
 from satpy import CHUNK_SIZE
 
@@ -600,11 +599,7 @@ class FileYAMLReader(AbstractYAMLReader):
         res.attrs = combined_info
         return res
 
-    def _load_dataset_data(self,
-                           file_handlers,
-                           dsid,
-                           xslice=slice(None),
-                           yslice=slice(None)):
+    def _load_dataset_data(self, file_handlers, dsid):
         ds_info = self.ids[dsid]
         proj = self._load_dataset(dsid, ds_info, file_handlers)
         # FIXME: areas could be concatenated here
@@ -717,30 +712,6 @@ class FileYAMLReader(AbstractYAMLReader):
                 logger.debug("No coordinates found for %s", str(dsid))
             return area
 
-    # TODO: move this out of here.
-    def _get_slices(self, area):
-        """Get the slices of raw data covering area.
-
-        Args:
-            area: the area to slice.
-
-        Returns:
-            slice_kwargs: kwargs to pass on to loading giving the span of the
-                data to load.
-            area: the trimmed area corresponding to the slices.
-        """
-        slice_kwargs = {}
-
-        if area is not None and self.filter_parameters.get('area') is not None:
-            try:
-                slices = get_area_slices(area, self.filter_parameters['area'])
-                area = get_sub_area(area, *slices)
-                slice_kwargs['xslice'], slice_kwargs['yslice'] = slices
-            except (NotImplementedError, AttributeError):
-                logger.info("Cannot compute specific slice of data to load.")
-
-        return slice_kwargs, area
-
     def _load_dataset_with_area(self, dsid, coords):
         """Loads *dsid* and it's area if available."""
         file_handlers = self._get_file_handlers(dsid)
@@ -748,10 +719,9 @@ class FileYAMLReader(AbstractYAMLReader):
             return
 
         area = self._load_dataset_area(dsid, file_handlers, coords)
-        slice_kwargs, area = self._get_slices(area)
 
         try:
-            ds = self._load_dataset_data(file_handlers, dsid, **slice_kwargs)
+            ds = self._load_dataset_data(file_handlers, dsid)
         except (KeyError, ValueError) as err:
             logger.exception("Could not load dataset '%s': %s", dsid, str(err))
             return None
