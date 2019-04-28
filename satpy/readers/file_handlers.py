@@ -122,15 +122,69 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         """List of sensors represented in this file."""
         raise NotImplementedError
 
-    def available_datasets(self):
-        """Get information of available datasets in file.
+    def file_type_matches(self, ds_ftype):
+        """This file handler's type can handle this dataset's file type.
 
-        This is used for dynamically specifying what datasets are available
-        from a file instead of those listed in a YAML configuration file.
+        Args:
+            ds_ftype (str or list): File type or list of file types that a
+                dataset is configured to be loaded from.
 
-        Returns: Iterator of (DatasetID, dict) pairs where dict is the
-                 dataset's metadata, similar to that specified in the YAML
-                 configuration files.
+        Returns: ``True`` if this file handler object's type matches the
+            dataset's file type(s), ``False`` otherwise.
 
         """
-        raise NotImplementedError
+        if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
+            return True
+        elif self.filetype_info['file_type'] in ds_ftype:
+            return True
+        return None
+
+    def available_datasets(self, configured_datasets=None):
+        """Get information of available datasets in this file.
+
+        This is used for dynamically specifying what datasets are available
+        from a file in addition to what's configured in a YAML configuration
+        file. Note that this method will only be called once for each
+        "file type"; the first file handler for each type.
+
+        This method should **not** update values of the dataset information
+        dictionary **unless* this file handler has a matching file type
+        (the data could be loaded from this object in the future) and at least
+        **one** :class:`satpy.dataset.DatasetID` key is also modified.
+        Otherwise, this file type may override the information provided by
+        a more preferred file type (as specified in the YAML file).
+        It is recommended that any non-ID metadata be updated during the
+        :meth:`BaseFileHandler.get_dataset` part of loading.
+        This method is not guaranteed that it will be called before any
+        other file type's handler.
+        The availability "boolean" not being ``None`` does not mean that a
+        file handler called later can't provide an additional dataset, but
+        it must provide more identifying (DatasetID) information to do so
+        and should yield its new dataset in addition to the previous one.
+
+        Args:
+            configured_datasets (list): Series of (bool, dict) in the same
+                way as is returned by this method (see below). The bool is
+                whether or not the dataset is available from at least one
+                of the current file handlers. It can also be ``None`` if
+                no file handler knows before us knows how to handle it.
+                The dictionary is existing dataset metadata. The dictionaries
+                are typically provided from a YAML configuration file and may
+                be modified, updated, or used as a "template" for additional
+                available datasets. This argument could be the result of a
+                previous file handler's implementation of this method.
+
+        Returns: Iterator of (bool, dict) pairs where dict is the
+            dataset's metadata. If the dataset is available in the current
+            file type then the boolean value should be ``True``, ``False``
+            if we **know** about the dataset but it is unavailable, or
+            ``None`` if this file object is not responsible for it.
+
+        """
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                # some other file handler said it has this dataset
+                # we don't know any more information than the previous
+                # file handler so let's yield early
+                yield is_avail, ds_info
+            yield self.file_type_matches(ds_info['file_type']), ds_info

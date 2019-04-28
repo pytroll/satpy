@@ -262,6 +262,7 @@ class FileYAMLReader(AbstractYAMLReader):
         super(FileYAMLReader, self).__init__(config_files)
 
         self.file_handlers = {}
+        self.available_ids = {}
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
         if kwargs:
@@ -287,12 +288,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     @property
     def available_dataset_ids(self):
-        for ds_id in self.all_dataset_ids:
-            fts = self.ids[ds_id]["file_type"]
-            if isinstance(fts, str) and fts in self.file_handlers:
-                yield ds_id
-            elif any(ft in self.file_handlers for ft in fts):
-                yield ds_id
+        return self.available_ids.keys()
 
     @property
     def start_time(self):
@@ -545,30 +541,66 @@ class FileYAMLReader(AbstractYAMLReader):
                     continue
                 if ds_id.resolution is not None:
                     continue
+                # TODO: Update the file handlers using this functionality to use available_datasets
                 ds_info['resolution'] = res
                 new_id = DatasetID.from_dict(ds_info)
                 self.ids[new_id] = ds_info
                 del self.ids[ds_id]
 
-    def add_ds_ids_from_files(self):
-        """Check files for more dynamically discovered datasets."""
-        for file_handlers in self.file_handlers.values():
-            try:
-                fh = file_handlers[0]
-                avail_ids = fh.available_datasets()
-            except NotImplementedError:
-                continue
+    def _file_handlers_available_datasets(self):
+        """Generate a series of available dataset information.
 
-            # dynamically discover other available datasets
-            for ds_id, ds_info in avail_ids:
-                # don't overwrite an existing dataset
-                # especially from the yaml config
-                coordinates = ds_info.get('coordinates')
-                if isinstance(coordinates, list):
-                    # xarray doesn't like concatenating attributes that are
-                    # lists: https://github.com/pydata/xarray/issues/2060
-                    ds_info['coordinates'] = tuple(ds_info['coordinates'])
-                self.ids.setdefault(ds_id, ds_info)
+        This is done by chaining file handler's
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        together. See that method's documentation for more information.
+
+        Returns:
+            Generator of (bool, dict) where the boolean tells whether the
+            current dataset is available from any of the file handlers. The
+            boolean can also be None in the case where no loaded file handler
+            is configured to load the dataset. The
+            dictionary is the metadata provided either by the YAML
+            configuration files or by the file handler itself if it is a new
+            dataset. The file handler may have also supplemented or modified
+            the information.
+
+        """
+        first_fhs = (fhs[0] for fhs in self.file_handlers.values())
+        configured_datasets = ((None, ds_info) for ds_info in self.ids.values())
+        for fh in first_fhs:
+            # chain the 'available_datasets' methods together by calling the
+            # current file handler's method with the previous ones result
+            configured_datasets = fh.available_datasets(configured_datasets=configured_datasets)
+        return configured_datasets
+
+    def add_ds_ids_from_files(self):
+        """Add or modify available dataset information.
+
+        Each file handler is consulted on whether or not it can load the
+        dataset with the provided information dictionary.
+        See
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        for more information.
+
+        """
+        avail_datasets = self._file_handlers_available_datasets()
+        for is_avail, ds_info in avail_datasets:
+            # especially from the yaml config
+            coordinates = ds_info.get('coordinates')
+            if isinstance(coordinates, list):
+                # xarray doesn't like concatenating attributes that are
+                # lists: https://github.com/pydata/xarray/issues/2060
+                ds_info['coordinates'] = tuple(ds_info['coordinates'])
+
+            ds_info.setdefault('modifiers', tuple())  # default to no mods
+            ds_id = DatasetID.from_dict(ds_info)
+            # all datasets
+            self.ids[ds_id] = ds_info
+            # available datasets
+            # False == we have the file type but it doesn't have this dataset
+            # None == we don't have the file type object to ask
+            if is_avail:
+                self.available_ids[ds_id] = ds_info
 
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
@@ -767,10 +799,25 @@ class FileYAMLReader(AbstractYAMLReader):
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
 
+    def get_dataset_key(self, key, prefer_available=False, **kwargs):
+        """Get the fully qualified `DatasetID` matching `key`.
+
+        See `satpy.readers.get_key` for more information about kwargs.
+
+        """
+        if prefer_available:
+            try:
+                return get_key(key, self.available_ids.keys(), **kwargs)
+            except KeyError:
+                return get_key(key, self.ids.keys(), **kwargs)
+        # FIXME: Only do the try/except above
+        return get_key(key, self.ids.keys(), **kwargs)
+
     def load(self, dataset_keys, previous_datasets=None):
         """Load `dataset_keys`.
 
-        If `previous_datasets` is provided, do not reload those."""
+        If `previous_datasets` is provided, do not reload those.
+        """
         all_datasets = previous_datasets or DatasetDict()
         datasets = DatasetDict()
 
