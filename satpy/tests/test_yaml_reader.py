@@ -196,6 +196,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         res_dict = {'reader': {'name': 'fake',
                                'sensors': ['canon']},
                     'file_types': {'ftype1': {'name': 'ft1',
+                                              'file_reader': BaseFileHandler,
                                               'file_patterns': patterns}},
                     'datasets': {'ch1': {'name': 'ch01',
                                          'wavelength': [0.5, 0.6, 0.7],
@@ -255,7 +256,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_available_dataset_ids(self):
         """Get ids of the available datasets."""
-        self.reader.file_handlers = ['ftype1']
+        loadables = self.reader.select_files_from_pathnames(['a001.bla'])
+        self.reader.create_filehandlers(loadables)
         self.assertSetEqual(set(self.reader.available_dataset_ids),
                             {DatasetID(name='ch02',
                                        wavelength=(0.7, 0.75, 0.8),
@@ -272,7 +274,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_available_dataset_names(self):
         """Get ids of the available datasets."""
-        self.reader.file_handlers = ['ftype1']
+        loadables = self.reader.select_files_from_pathnames(['a001.bla'])
+        self.reader.create_filehandlers(loadables)
         self.assertSetEqual(set(self.reader.available_dataset_names),
                             set(["ch01", "ch02"]))
 
