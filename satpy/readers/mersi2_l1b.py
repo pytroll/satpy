@@ -1,0 +1,130 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2016-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Reader for the FY-3D MERSI-2 L1B file format.
+
+The files for this reader are HDF5 and come in four varieties; band data
+and geolocation data, both at 250m and 1000m resolution.
+
+This reader was tested on FY-3D MERSI-2 data, but should work on future
+platforms as well assuming no file format changes.
+
+"""
+from datetime import datetime
+from satpy.readers.hdf5_utils import HDF5FileHandler
+from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
+import numpy as np
+import xarray as xr
+import dask.array as da
+import logging
+
+
+class MERSI2L1B(HDF5FileHandler):
+    """MERSI-2 L1B file reader."""
+
+    def __init__(self, filename, filename_info, filetype_info):
+        super(MERSI2L1B, self).__init__(filename, filename_info, filetype_info)
+
+    def _strptime(self, date_attr, time_attr):
+        """Helper to parse date/time strings."""
+        date = self[date_attr]
+        time = self[time_attr]  # "18:27:39.720"
+        # cuts off microseconds because of unknown meaning
+        # is .720 == 720 microseconds or 720000 microseconds
+        return datetime.strptime(date + " " + time.split('.')[0], "%Y-%m-%d %H:%M:%S")
+
+    @property
+    def start_time(self):
+        return self._strptime('/attr/Observing Beginning Date', '/attr/Observing Beginning Time')
+
+    @property
+    def end_time(self):
+        return self._strptime('/attr/Observing Ending Date', '/attr/Observing Ending Time')
+
+    def _get_coefficients(self, cal_key, cal_index):
+        coeffs = self[cal_key][cal_index]
+        slope = coeffs.attrs.pop('Slope', None)
+        intercept = coeffs.attrs.pop('Intercept', None)
+        if slope is not None:
+            slope = slope[cal_index]
+            intercept = intercept[cal_index]
+            coeffs = coeffs * slope + intercept
+        return coeffs
+
+    def get_dataset(self, dataset_id, ds_info):
+        """Load data variable and metadata and calibrate if needed."""
+        file_key = ds_info.get('file_key', dataset_id.name)
+        band_index = ds_info.get('band_index')
+        data = self[file_key]
+        if band_index is not None:
+            data = data[band_index]
+        data = data.rename({data.dims[0]: 'y', data.dims[1]: 'x'})
+        attrs = data.attrs.copy()  # avoid contaminating other band loading
+        attrs.update(ds_info)
+        if 'rows_per_scan' in self.filetype_info:
+            attrs.setdefault('rows_per_scan', self.filetype_info['rows_per_scan'])
+
+        valid_range = attrs.pop('valid_range', None)
+        attrs.pop('FillValue', None)  # covered by valid_range
+        if valid_range is not None:
+            # typically bad_values == 65535, saturated == 65534
+            # dead detector == 65533
+            data = data.where((data >= valid_range[0]) &
+                              (data <= valid_range[1]))
+
+        slope = attrs.pop('Slope', None)
+        intercept = attrs.pop('Intercept', None)
+        # applying the
+        if slope is not None and dataset_id.calibration == 'radiance':
+            if band_index is not None:
+                slope = slope[band_index]
+                intercept = intercept[band_index]
+            data = data * slope + intercept
+
+        if dataset_id.calibration == "reflectance":
+            attrs['units'] = '1'
+            coeffs = self._get_coefficients(ds_info['calibration_key'],
+                                            ds_info['calibration_index'])
+            data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2
+        elif dataset_id.calibration == "brightness_temperature":
+            # units are from the file, so no need to change it
+            coeffs = self._get_coefficients(ds_info['calibration_key'],
+                                            ds_info['calibration_index'])
+            # coefficients are per-scan, we need to repeat the values for a
+            # clean alignment
+            coeffs = np.repeat(coeffs, data.shape[0] // coeffs.shape[1], axis=1)
+            coeffs = coeffs.rename({
+                coeffs.dims[0]: 'coefficients', coeffs.dims[1]: 'y'
+            })  # match data dims
+            data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2 + coeffs[3] * data**3
+            # TODO: This is radiance, right? Still need to convert to brightness temperature
+
+        data.attrs = attrs
+        # convert bytes to str
+        for key, val in attrs.items():
+            # python 3 only
+            if bytes is not str and isinstance(val, bytes):
+                data.attrs[key] = val.decode('utf8')
+
+        data.attrs.update({
+            'platform_name': self['/attr/Satellite Name'],
+            'sensor': self['/attr/Sensor Identification Code'],
+        })
+        if data.attrs['units'] == 'NO':
+            data.attrs['units'] = '1'
+
+        return data
