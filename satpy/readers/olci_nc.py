@@ -205,8 +205,11 @@ class NCOLCI2(NCOLCIChannelBase):
 
         if key.name == 'wqsf':
             dataset.attrs['_FillValue'] = 1
-        elif key.name == 'mask':
-            mask = self.getbitmask(dataset.to_masked_array().data)
+        elif key.name in ['mask', 'cloud_mask']:
+            if key.name == 'cloud_mask':
+                mask = self.getbitmask(dataset.to_masked_array().data, items=["CLOUD"])
+            else:
+                mask = self.getbitmask(dataset.to_masked_array().data)
             dataset = dataset * np.nan
             dataset = dataset.where(~ mask, True)
 
@@ -217,9 +220,10 @@ class NCOLCI2(NCOLCIChannelBase):
 
     def getbitmask(self, wqsf, items=[]):
         """ """
-        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
-                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
-                 "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+        if not any(items):
+            items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                     "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                     "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
         bflags = BitFlags(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
 
