@@ -208,6 +208,9 @@ def _encode_nc(obj):
     elif isinstance(obj, np.void):
         return tuple(obj)
     elif isinstance(obj, np.ndarray):
+        if not len(obj.dtype) and obj.dtype == np.bool_:
+            # Convert array of booleans to array of strings
+            obj = obj.astype(str)
         if not len(obj.dtype) and len(obj.shape) <= 1:
             # Multi-dimensional nc attributes are not supported, so we have to skip record arrays and multi-dimensional
             # arrays here
