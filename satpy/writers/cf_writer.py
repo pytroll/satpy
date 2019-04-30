@@ -226,7 +226,12 @@ def encode_nc(obj):
     try:
         return _encode_nc(obj)
     except ValueError:
-        return json.dumps(obj, cls=AttributeEncoder)
+        try:
+            # Decode byte-strings
+            decoded = obj.decode()
+        except AttributeError:
+            decoded = obj
+        return json.dumps(decoded, cls=AttributeEncoder).strip('"')
 
 
 def encode_attrs_nc(attrs, unfold_dicts=False):
