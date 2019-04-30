@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011-2017.
+# Copyright (c) 2011-2019 Pytroll
 
 # Author(s):
 
@@ -119,12 +119,13 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
                 'SVM14': 'VIIRS-M14-SDR',
                 'SVM15': 'VIIRS-M15-SDR',
                 'SVM16': 'VIIRS-M16-SDR',
+                'IVCDB': 'VIIRS-DualGain-Cal-IP'
                 }
 
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
 
-    """VIIRS HDF5 File Reader
+    """VIIRS HDF5 File Reader.
     """
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
@@ -304,10 +305,16 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         else:
             scan_size = 16
         scans_path = 'All_Data/{dataset_group}_All/NumberOfScans'
-        scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
+        nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
+        scans = []
+        for granule in range(self[nb_granules_path]):
+            scans_path = 'Data_Products/{dataset_group}/{dataset_group}_Gran_{granule}/attr/N_Number_Of_Scans'
+            scans_path = scans_path.format(dataset_group=DATASET_KEYS[dataset_group], granule=granule)
+            scans.append(self[scans_path])
         start_scan = 0
         data_chunks = []
-        scans = self[scans_path]
+        scans = xr.DataArray(scans)
         variable = self[var_path]
         # check if these are single per-granule value
         if variable.size != scans.size:
@@ -331,6 +338,14 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             return data.where(data < fill_min)
 
     def get_dataset(self, dataset_id, ds_info):
+        """Get the dataset corresponding to *dataset_id*.
+
+        The size of the return DataArray will be dependent on the number of
+        scans actually sensed, and not necessarily the regular 768 scanlines
+        that the file contains for each granule. To that end, the number of
+        scans for each granule is read from:
+        ``Data_Products/...Gran_x/N_Number_Of_Scans``.
+        """
         dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
         if not dataset_group:
             return

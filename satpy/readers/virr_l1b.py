@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2018 SatPy developers
-#
-# Author(s):
-#
-#
-#   William Roberts <wroberts4@wisc.edu>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
+# Copyright (c) 2016-2018 Satpy developers
 #
 # This file is part of satpy.
 #

@@ -142,6 +142,13 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                          (-77771774058.38356, -3720765401003.719,
                           30310525626438.438, 77771774058.38356))
 
+        # Data shifted by 1.5km to N-W
+        self.reader.mda['offset_corrected'] = False
+        area = self.reader.get_area_def(DatasetID('VIS006'))
+        self.assertEqual(area.area_extent,
+                         (-77771772558.38356, -3720765402503.719,
+                          30310525627938.438, 77771772558.38356))
+
     @mock.patch('satpy.readers.hrit_base.np.memmap')
     def test_read_band(self, memmap):
         nbits = self.reader.mda['number_of_bits_per_pixel']
@@ -257,7 +264,8 @@ class TestHRITMSGFileHandler(unittest.TestCase):
             'projection': {'satellite_longitude': self.reader.mda['projection_parameters']['SSP_longitude'],
                            'satellite_latitude': self.reader.mda['projection_parameters']['SSP_latitude'],
                            'satellite_altitude': self.reader.mda['projection_parameters']['h']},
-            'navigation': self.reader.mda['navigation_parameters']
+            'navigation': self.reader.mda['navigation_parameters'],
+            'georef_offset_corrected': self.reader.mda['offset_corrected']
         })
 
         self.assertDictEqual(attrs_exp, res.attrs)

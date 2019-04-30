@@ -351,7 +351,7 @@ composites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
       - M15
-      - M14
+      - M12
     - M15
     standard_name: night_fog
 
