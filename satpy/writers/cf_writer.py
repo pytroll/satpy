@@ -277,10 +277,10 @@ class CFWriter(Writer):
             unfold_dict_attrs (bool):
                 If True, add contents of dict-type attributes as separate nc-attributes with a common prefix.
             exclude_attrs (list):
-                List of dataset attributes to be excluded (default: `['raw_metadata']`)
+                List of dataset attributes to be excluded
         """
         if exclude_attrs is None:
-            exclude_attrs = ['raw_metadata']
+            exclude_attrs = []
 
         new_data = dataarray.copy()
 
