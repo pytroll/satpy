@@ -63,7 +63,7 @@ class TestCFWriter(unittest.TestCase):
                                    "resolution=None, polarization=None, "
                                    "calibration=None, level=None, modifiers=())")
                 self.assertEqual(f['test-array'].attrs['prerequisites'][0],
-                                 np.string_(expected_prereq))
+                                 expected_prereq)
         finally:
             os.remove(filename)
 
@@ -224,6 +224,77 @@ class TestCFWriter(unittest.TestCase):
                 self.assertTrue('orbit' not in f.attrs.keys())
         finally:
             os.remove(filename)
+
+    def test_encode_attrs_nc(self):
+        from satpy.writers.cf_writer import encode_attrs_nc
+        import json
+
+        attrs = {'name': 'IR_108',
+                 'start_time': datetime(2018, 1, 1, 0),
+                 'end_time': datetime(2018, 1, 1, 0, 15),
+                 'int': 1,
+                 'float': 1.0,
+                 'list': [1, 2, np.float64(3)],
+                 'nested_list': ["1", ["2", [3]]],
+                 'bool': True,
+                 'array': np.array([1, 2, 3]),
+                 'array_2d': np.array([[1, 2], [3, 4]]),
+                 'array_3d': np.array([[[1, 2], [3, 4]], [[1, 2], [3, 4]]]),
+                 'dict': {'a': 1, 'b': 2},
+                 'nested_dict': {'l1': {'l2': {'l3': np.array([1, 2, 3])}}},
+                 'raw_metadata': {'recarray': np.zeros(3, dtype=[('x', 'i4'), ('y', 'u1')]),
+                                  'flag': np.bool_(True),
+                                  'dict': {'a': 1, 'b': np.array([1, 2, 3])}}}
+        expected = {'name': 'IR_108',
+                    'start_time': '2018-01-01 00:00:00',
+                    'end_time': '2018-01-01 00:15:00',
+                    'int': 1,
+                    'float': 1.0,
+                    'list': [1, 2, 3.0],
+                    'nested_list': '["1", ["2", [3]]]',
+                    'bool': 'True',
+                    'array': [1, 2, 3],
+                    'array_2d': '[[1, 2], [3, 4]]',
+                    'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
+                    'dict': '{"a": 1, "b": 2}',
+                    'nested_dict': '{"l1": {"l2": {"l3": [1, 2, 3]}}}',
+                    'raw_metadata': '{"recarray": [[0, 0], [0, 0], [0, 0]], '
+                                    '"flag": "True", "dict": {"a": 1, "b": [1, 2, 3]}}'}
+        expected_unfold = {'name': 'IR_108',
+                           'start_time': '2018-01-01 00:00:00',
+                           'end_time': '2018-01-01 00:15:00',
+                           'int': 1,
+                           'float': 1.0,
+                           'list': [1, 2, 3.0],
+                           'nested_list': '["1", ["2", [3]]]',
+                           'bool': 'True',
+                           'array': [1, 2, 3],
+                           'array_2d': '[[1, 2], [3, 4]]',
+                           'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
+                           'dict_a': 1,
+                           'dict_b': 2,
+                           'nested_dict_l1': '{"l2": {"l3": [1, 2, 3]}}',
+                           'raw_metadata_recarray': '[[0, 0], [0, 0], [0, 0]]',
+                           'raw_metadata_flag': 'True',
+                           'raw_metadata_dict': '{"a": 1, "b": [1, 2, 3]}'}
+
+        # Test encoding
+        encoded = encode_attrs_nc(attrs, unfold_dicts=False)
+        self.assertDictEqual(encoded, expected)
+        self.assertDictEqual(encode_attrs_nc(attrs, unfold_dicts=True), expected_unfold)
+
+        # Test decoding of json-encoded attributes
+        raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],
+                            'flag': "True",
+                            'dict': {'a': 1, 'b': [1, 2, 3]}}
+        self.assertDictEqual(json.loads(encoded['raw_metadata']), raw_md_roundtrip)
+        self.assertListEqual(json.loads(encoded['array_3d']), [[[1, 2], [3, 4]], [[1, 2], [3, 4]]])
+        self.assertDictEqual(json.loads(encoded['nested_dict']), {"l1": {"l2": {"l3": [1, 2, 3]}}})
+        self.assertListEqual(json.loads(encoded['nested_list']), ["1", ["2", [3]]])
+
+    def test_da2cf(self):
+        # TODO
+        pass
 
 
 def suite():
