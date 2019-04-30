@@ -48,7 +48,6 @@ import xarray as xr
 import dask.array as da
 import logging
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -84,7 +83,8 @@ class VIRR_L1B(HDF5FileHandler):
             if 'E' in dataset_id.name:
                 slope = self[self.l1b_prefix + 'Emissive_Radiance_Scales'].data[:, band_index][:, np.newaxis]
                 intercept = self[self.l1b_prefix + 'Emissive_Radiance_Offsets'].data[:, band_index][:, np.newaxis]
-                # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data) to SI units m^-1, mW*m^-3*str^-1.
+                # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
+                # to SI units m^-1, mW*m^-3*str^-1.
                 radiance_data = rad2temp(self['/attr/' + self.wave_number][band_index] * 100,
                                          (data * slope + intercept) * 1e-5)
                 data = xr.DataArray(da.from_array(radiance_data, data.chunks),
