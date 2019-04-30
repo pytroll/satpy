@@ -49,6 +49,9 @@ import dask.array as da
 import logging
 
 
+LOG = logging.getLogger(__name__)
+
+
 class VIRR_L1B(HDF5FileHandler):
     """VIRR_L1B reader."""
 
