@@ -237,31 +237,33 @@ def encode_nc(obj):
         return json.dumps(decoded, cls=AttributeEncoder).strip('"')
 
 
-def encode_attrs_nc(attrs, unfold_dicts=False):
-    """Encode dataset attributes in a netcdf compatible datatype
+def flatten_dict(d, parent_key='', sep='_'):
+    """Flatten the given dictionary
 
-    By default dictionaries are encoded as a single string. That can be changed using the `unfold_dicts` flag. See
-    :func:`~satpy.writers.cf_writer.encode_nc` for encoding details.
+    Based on https://stackoverflow.com/a/6027615/5703449
+    """
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, parent_key=new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
+def encode_attrs_nc(attrs):
+    """Encode dataset attributes in a netcdf compatible datatype
 
     Args:
         attrs (dict):
             Attributes to be encoded
-        unfold_dicts (bool):
-            If True, add contents of dict-type attributes as separate nc-attributes with a common prefix. Each of the
-            dictionary items will be encoded separately.
-
     Returns:
         dict: Encoded attributes
     """
     encoded_attrs = {}
     for key, val in sorted(attrs.items()):
-        if isinstance(val, dict) and unfold_dicts:
-            # Add a new attribute "key_key2" for each item in the dictionary
-            for key2, val2 in val.items():
-                new_key = '{}_{}'.format(key, key2)
-                encoded_attrs[new_key] = encode_nc(val2)
-        else:
-            encoded_attrs[key] = encode_nc(val)
+        encoded_attrs[key] = encode_nc(val)
     return encoded_attrs
 
 
@@ -269,7 +271,7 @@ class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH, unfold_dict_attrs=False, exclude_attrs=None):
+    def da2cf(dataarray, epoch=EPOCH, flatten_dict_attrs=False, exclude_attrs=None):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -277,8 +279,8 @@ class CFWriter(Writer):
                 The data array to be converted
             epoch (str):
                 Reference time for encoding of time coordinates
-            unfold_dict_attrs (bool):
-                If True, add contents of dict-type attributes as separate nc-attributes with a common prefix.
+            flatten_dict_attrs (bool):
+                If True, flatten dict-type attributes
             exclude_attrs (list):
                 List of dataset attributes to be excluded
         """
@@ -321,8 +323,12 @@ class CFWriter(Writer):
         if 'prerequisites' in new_data.attrs:
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
 
+        # Flatten dict-type attributes, if desired
+        if flatten_dict_attrs:
+            new_data.attrs = flatten_dict(new_data.attrs)
+
         # Encode attributes to netcdf-compatible datatype
-        new_data.attrs = encode_attrs_nc(new_data.attrs, unfold_dicts=unfold_dict_attrs)
+        new_data.attrs = encode_attrs_nc(new_data.attrs)
 
         return new_data
 
@@ -348,7 +354,7 @@ class CFWriter(Writer):
                 end_times.append(new_ds.attrs.get("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds,
                                                          epoch=kwargs.get('epoch', EPOCH),
-                                                         unfold_dict_attrs=kwargs.get('unfold_dict_attrs', False),
+                                                         flatten_dict_attrs=kwargs.get('flatten_dict_attrs', False),
                                                          exclude_attrs=kwargs.get('exclude_attrs', None))
         return datas, start_times, end_times
 
