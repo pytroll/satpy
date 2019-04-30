@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2018 PyTroll developers
+# Copyright (c) 2015-2019 PyTroll developers
 
 # Author(s):
 
@@ -48,6 +48,16 @@ from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 from satpy import CHUNK_SIZE
+
+try:
+    from pyspectral.near_infrared_reflectance import Calculator
+except ImportError:
+    Calculator = None
+try:
+    from pyorbital.astronomy import sun_zenith_angle
+except ImportError:
+    sun_zenith_angle = None
+
 
 LOG = logging.getLogger(__name__)
 
@@ -550,7 +560,7 @@ class NIRReflectance(CompositeBase):
         self._init_refl3x(projectables)
         _nir, _ = projectables
         refl = self._get_reflectance(projectables, optional_datasets) * 100
-        proj = xr.DataArray(refl.filled(np.nan), dims=_nir.dims,
+        proj = xr.DataArray(refl, dims=_nir.dims,
                             coords=_nir.coords, attrs=_nir.attrs)
 
         proj.attrs['units'] = '%'
@@ -560,12 +570,9 @@ class NIRReflectance(CompositeBase):
 
     def _init_refl3x(self, projectables):
         """Initiate the 3.x reflectance derivations."""
-        try:
-            from pyspectral.near_infrared_reflectance import Calculator
-        except ImportError:
+        if not Calculator:
             LOG.info("Couldn't load pyspectral")
-            raise
-
+            raise ImportError("No module named pyspectral.near_infrared_reflectance")
         _nir, _tb11 = projectables
         self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'])
 
@@ -588,9 +595,10 @@ class NIRReflectance(CompositeBase):
 
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
-            from pyorbital.astronomy import sun_zenith_angle as sza
+            if sun_zenith_angle is None:
+                raise ImportError("No module named pyorbital.astronomy")
             lons, lats = _nir.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
-            sun_zenith = sza(_nir.attrs['start_time'], lons, lats)
+            sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
 
         return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
 
@@ -610,7 +618,6 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         # needs to be derived first in order to get the emissive part.
         _ = self._get_reflectance(projectables, optional_datasets)
         _nir, _ = projectables
-        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
         proj = xr.DataArray(self._refl3x.emissive_part_3x(), attrs=_nir.attrs,
                             dims=_nir.dims, coords=_nir.coords)
 
@@ -902,7 +909,7 @@ class PaletteCompositor(ColormapCompositor):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, lim_low=85., lim_high=95., **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=95., **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -913,7 +920,7 @@ class DayNightCompositor(GenericCompositor):
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
-        super(DayNightCompositor, self).__init__(**kwargs)
+        super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         projectables = self.check_areas(projectables)
@@ -1132,7 +1139,7 @@ class RealisticColors(GenericCompositor):
 
 class CloudCompositor(GenericCompositor):
 
-    def __init__(self, transition_min=258.15, transition_max=298.15,
+    def __init__(self, name, transition_min=258.15, transition_max=298.15,
                  transition_gamma=3.0, **kwargs):
         """Collect custom configuration values.
 
@@ -1147,7 +1154,7 @@ class CloudCompositor(GenericCompositor):
         self.transition_min = transition_min
         self.transition_max = transition_max
         self.transition_gamma = transition_gamma
-        super(CloudCompositor, self).__init__(**kwargs)
+        super(CloudCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
 
@@ -1313,7 +1320,6 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         new_R = R
         new_G = G * ratio
         new_B = B * ratio
-
 
     """
 
