@@ -68,9 +68,11 @@ class VIRR_L1B(HDF5FileHandler):
         file_key = self.geolocation_prefix + ds_info.get('file_key', dataset_id.name)
         if self.platform_id == 'FY3B':
             file_key = file_key.replace('Data/', '')
-        data = self.get(file_key)
-        if data is None:
-            logging.error('File key "{0}" could not be found in file {1}'.format(file_key, self.filename))
+        try:
+            data = self[file_key]
+        except KeyError:
+            LOG.error('File key "{0}" could not be found in file {1}'.format(file_key, self.filename))
+            raise
         band_index = ds_info.get('band_index')
         if band_index is not None:
             data = data[band_index]
@@ -79,6 +81,7 @@ class VIRR_L1B(HDF5FileHandler):
             if 'E' in dataset_id.name:
                 slope = self[self.l1b_prefix + 'Emissive_Radiance_Scales'].data[:, band_index][:, np.newaxis]
                 intercept = self[self.l1b_prefix + 'Emissive_Radiance_Offsets'].data[:, band_index][:, np.newaxis]
+                # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data) to SI units m^-1, mW*m^-3*str^-1.
                 radiance_data = rad2temp(self['/attr/' + self.wave_number][band_index] * 100,
                                          (data * slope + intercept) * 1e-5)
                 data = xr.DataArray(da.from_array(radiance_data, data.chunks),
