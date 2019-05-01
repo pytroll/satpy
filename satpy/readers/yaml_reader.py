@@ -799,7 +799,7 @@ class FileYAMLReader(AbstractYAMLReader):
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
 
-    def get_dataset_key(self, key, prefer_available=False, **kwargs):
+    def get_dataset_key(self, key, prefer_available=True, **kwargs):
         """Get the fully qualified `DatasetID` matching `key`.
 
         See `satpy.readers.get_key` for more information about kwargs.
@@ -810,7 +810,6 @@ class FileYAMLReader(AbstractYAMLReader):
                 return get_key(key, self.available_ids.keys(), **kwargs)
             except KeyError:
                 return get_key(key, self.ids.keys(), **kwargs)
-        # FIXME: Only do the try/except above
         return get_key(key, self.ids.keys(), **kwargs)
 
     def load(self, dataset_keys, previous_datasets=None):
