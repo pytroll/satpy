@@ -173,14 +173,13 @@ class AttributeEncoder(json.JSONEncoder):
         encoded recursively.
         """
         if isinstance(obj, dict):
-            serialized = obj.copy()
+            serialized = {}
             for key, val in obj.items():
                 serialized[key] = self.default(val)
             return serialized
         elif isinstance(obj, (list, tuple, np.ndarray)):
             return [self.default(item) for item in obj]
-        else:
-            return self._encode(obj)
+        return self._encode(obj)
 
     def _encode(self, obj):
         """Encode the given object as a json-serializable datatype.
@@ -199,7 +198,7 @@ def _encode_nc(obj):
     Raises:
         ValueError if no netcdf compatible datatype could be found
     """
-    if isinstance(obj, np.bool_) or isinstance(obj, bool):
+    if isinstance(obj, (bool, np.bool_)):
         # Bool has to be checked first, because it is a subclass of int
         return str(obj)
     elif isinstance(obj, (int, float, str)):
