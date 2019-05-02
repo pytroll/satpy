@@ -336,7 +336,7 @@ class TestCFWriter(unittest.TestCase):
         self.assertDictEqual(res.attrs, attrs_expected)
 
         # Test attribute kwargs
-        res_flat = CFWriter.da2cf(arr, flatten_dict_attrs=True, exclude_attrs=['int'])
+        res_flat = CFWriter.da2cf(arr, flatten_attrs=True, exclude_attrs=['int'])
         attrs_expected_flat.pop('int')
         self.assertDictEqual(res_flat.attrs, attrs_expected_flat)
 

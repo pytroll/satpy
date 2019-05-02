@@ -259,7 +259,7 @@ class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH, flatten_dict_attrs=False, exclude_attrs=None):
+    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -267,7 +267,7 @@ class CFWriter(Writer):
                 The data array to be converted
             epoch (str):
                 Reference time for encoding of time coordinates
-            flatten_dict_attrs (bool):
+            flatten_attrs (bool):
                 If True, flatten dict-type attributes
             exclude_attrs (list):
                 List of dataset attributes to be excluded
@@ -312,7 +312,7 @@ class CFWriter(Writer):
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
 
         # Flatten dict-type attributes, if desired
-        if flatten_dict_attrs:
+        if flatten_attrs:
             new_data.attrs = flatten_dict(new_data.attrs)
 
         # Encode attributes to netcdf-compatible datatype
@@ -342,7 +342,7 @@ class CFWriter(Writer):
                 end_times.append(new_ds.attrs.get("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds,
                                                          epoch=kwargs.get('epoch', EPOCH),
-                                                         flatten_dict_attrs=kwargs.get('flatten_dict_attrs', False),
+                                                         flatten_attrs=kwargs.get('flatten_attrs', False),
                                                          exclude_attrs=kwargs.get('exclude_attrs', None))
         return datas, start_times, end_times
 
