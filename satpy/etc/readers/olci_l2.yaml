@@ -355,6 +355,14 @@ datasets:
     file_type: esa_l2_wqsf
     nc_key: WQSF
 
+  cloud_mask:
+    name: cloud_mask
+    sensor: olci
+    resolution: 300
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_wqsf
+    nc_key: WQSF
+
   solar_zenith_angle:
     name: solar_zenith_angle
     sensor: olci
