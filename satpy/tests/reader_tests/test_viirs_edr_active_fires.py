@@ -212,7 +212,6 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
             self.assertEqual(v.attrs['sensor'], 'VIIRS')
 
 
-
 class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_edr_active_fires.yaml'
