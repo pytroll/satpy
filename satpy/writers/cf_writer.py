@@ -32,6 +32,8 @@ import numpy as np
 
 from pyresample.geometry import AreaDefinition, SwathDefinition
 from satpy.writers import Writer
+from satpy.writers.utils import flatten_dict
+
 
 logger = logging.getLogger(__name__)
 
@@ -236,21 +238,6 @@ def encode_nc(obj):
         except AttributeError:
             decoded = obj
         return json.dumps(decoded, cls=AttributeEncoder).strip('"')
-
-
-def flatten_dict(d, parent_key='', sep='_'):
-    """Flatten the given dictionary
-
-    Based on https://stackoverflow.com/a/6027615/5703449
-    """
-    items = []
-    for k, v in d.items():
-        new_key = parent_key + sep + k if parent_key else k
-        if isinstance(v, dict):
-            items.extend(flatten_dict(v, parent_key=new_key, sep=sep).items())
-        else:
-            items.append((new_key, v))
-    return dict(items)
 
 
 def encode_attrs_nc(attrs):
