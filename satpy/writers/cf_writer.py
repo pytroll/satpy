@@ -22,6 +22,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Writer for netCDF4/CF."""
 
+from collections import OrderedDict
 import logging
 from datetime import datetime
 import json
@@ -259,12 +260,12 @@ def encode_attrs_nc(attrs):
         attrs (dict):
             Attributes to be encoded
     Returns:
-        dict: Encoded attributes
+        dict: Encoded (and sorted) attributes
     """
-    encoded_attrs = {}
+    encoded_attrs = []
     for key, val in sorted(attrs.items()):
-        encoded_attrs[key] = encode_nc(val)
-    return encoded_attrs
+        encoded_attrs.append((key, encode_nc(val)))
+    return OrderedDict(encoded_attrs)
 
 
 class CFWriter(Writer):
