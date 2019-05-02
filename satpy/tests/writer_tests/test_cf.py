@@ -225,10 +225,12 @@ class TestCFWriter(unittest.TestCase):
         finally:
             os.remove(filename)
 
-    def test_encode_attrs_nc(self):
-        from satpy.writers.cf_writer import encode_attrs_nc
-        import json
+    def get_test_attrs(self):
+        """Create some dataset attributes for testing purpose
 
+        Returns:
+            Attributes, encoded attributes, encoded and flattened attributes
+        """
         attrs = {'name': 'IR_108',
                  'start_time': datetime(2018, 1, 1, 0),
                  'end_time': datetime(2018, 1, 1, 0, 15),
@@ -238,6 +240,7 @@ class TestCFWriter(unittest.TestCase):
                  'nested_list': ["1", ["2", [3]]],
                  'bool': True,
                  'array': np.array([1, 2, 3]),
+                 'array_bool': np.array([True, False, True]),
                  'array_2d': np.array([[1, 2], [3, 4]]),
                  'array_3d': np.array([[[1, 2], [3, 4]], [[1, 2], [3, 4]]]),
                  'dict': {'a': 1, 'b': 2},
@@ -245,43 +248,52 @@ class TestCFWriter(unittest.TestCase):
                  'raw_metadata': {'recarray': np.zeros(3, dtype=[('x', 'i4'), ('y', 'u1')]),
                                   'flag': np.bool_(True),
                                   'dict': {'a': 1, 'b': np.array([1, 2, 3])}}}
-        expected = {'name': 'IR_108',
-                    'start_time': '2018-01-01 00:00:00',
-                    'end_time': '2018-01-01 00:15:00',
-                    'int': 1,
-                    'float': 1.0,
-                    'list': [1, 2, 3.0],
-                    'nested_list': '["1", ["2", [3]]]',
-                    'bool': 'True',
-                    'array': [1, 2, 3],
-                    'array_2d': '[[1, 2], [3, 4]]',
-                    'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
-                    'dict': '{"a": 1, "b": 2}',
-                    'nested_dict': '{"l1": {"l2": {"l3": [1, 2, 3]}}}',
-                    'raw_metadata': '{"recarray": [[0, 0], [0, 0], [0, 0]], '
-                                    '"flag": "True", "dict": {"a": 1, "b": [1, 2, 3]}}'}
-        expected_unfold = {'name': 'IR_108',
-                           'start_time': '2018-01-01 00:00:00',
-                           'end_time': '2018-01-01 00:15:00',
-                           'int': 1,
-                           'float': 1.0,
-                           'list': [1, 2, 3.0],
-                           'nested_list': '["1", ["2", [3]]]',
-                           'bool': 'True',
-                           'array': [1, 2, 3],
-                           'array_2d': '[[1, 2], [3, 4]]',
-                           'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
-                           'dict_a': 1,
-                           'dict_b': 2,
-                           'nested_dict_l1': '{"l2": {"l3": [1, 2, 3]}}',
-                           'raw_metadata_recarray': '[[0, 0], [0, 0], [0, 0]]',
-                           'raw_metadata_flag': 'True',
-                           'raw_metadata_dict': '{"a": 1, "b": [1, 2, 3]}'}
+        encoded = {'name': 'IR_108',
+                   'start_time': '2018-01-01 00:00:00',
+                   'end_time': '2018-01-01 00:15:00',
+                   'int': 1,
+                   'float': 1.0,
+                   'list': [1, 2, 3.0],
+                   'nested_list': '["1", ["2", [3]]]',
+                   'bool': 'True',
+                   'array': [1, 2, 3],
+                   'array_bool': ['True', 'False', 'True'],
+                   'array_2d': '[[1, 2], [3, 4]]',
+                   'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
+                   'dict': '{"a": 1, "b": 2}',
+                   'nested_dict': '{"l1": {"l2": {"l3": [1, 2, 3]}}}',
+                   'raw_metadata': '{"recarray": [[0, 0], [0, 0], [0, 0]], '
+                                   '"flag": "True", "dict": {"a": 1, "b": [1, 2, 3]}}'}
+        encoded_flat = {'name': 'IR_108',
+                        'start_time': '2018-01-01 00:00:00',
+                        'end_time': '2018-01-01 00:15:00',
+                        'int': 1,
+                        'float': 1.0,
+                        'list': [1, 2, 3.0],
+                        'nested_list': '["1", ["2", [3]]]',
+                        'bool': 'True',
+                        'array': [1, 2, 3],
+                        'array_bool': ['True', 'False', 'True'],
+                        'array_2d': '[[1, 2], [3, 4]]',
+                        'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
+                        'dict_a': 1,
+                        'dict_b': 2,
+                        'nested_dict_l1_l2_l3': [1, 2, 3],
+                        'raw_metadata_recarray': '[[0, 0], [0, 0], [0, 0]]',
+                        'raw_metadata_flag': 'True',
+                        'raw_metadata_dict_a': 1,
+                        'raw_metadata_dict_b': [1, 2, 3]}
+        return attrs, encoded, encoded_flat
+
+    def test_encode_attrs_nc(self):
+        from satpy.writers.cf_writer import encode_attrs_nc
+        import json
+
+        attrs, expected, _ = self.get_test_attrs()
 
         # Test encoding
-        encoded = encode_attrs_nc(attrs, unfold_dicts=False)
+        encoded = encode_attrs_nc(attrs)
         self.assertDictEqual(encoded, expected)
-        self.assertDictEqual(encode_attrs_nc(attrs, unfold_dicts=True), expected_unfold)
 
         # Test decoding of json-encoded attributes
         raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],
@@ -293,8 +305,40 @@ class TestCFWriter(unittest.TestCase):
         self.assertListEqual(json.loads(encoded['nested_list']), ["1", ["2", [3]]])
 
     def test_da2cf(self):
-        # TODO
-        pass
+        from satpy.writers.cf_writer import CFWriter
+        import xarray as xr
+
+        # Create set of test attributes
+        attrs, attrs_expected, attrs_expected_flat = self.get_test_attrs()
+        attrs['area'] = 'some_area'
+        attrs['prerequisites'] = [DatasetID('hej')]
+
+        # Adjust expected attributes
+        expected_prereq = ("DatasetID(name='hej', wavelength=None, resolution=None, polarization=None, "
+                           "calibration=None, level=None, modifiers=())")
+        update = {'prerequisites': [expected_prereq], 'long_name': attrs['name']}
+
+        attrs_expected.update(update)
+        attrs_expected_flat.update(update)
+
+        attrs_expected.pop('name')
+        attrs_expected_flat.pop('name')
+
+        # Create test data array
+        arr = xr.DataArray(np.array([[1, 2], [3, 4]]), attrs=attrs, dims=('y', 'x'), coords={'y': [0, 1], 'x': [1, 2]})
+
+        # Test conversion to something cf-compliant
+        res = CFWriter.da2cf(arr)
+        self.assertTrue(np.all(res['x'] == arr['x']))
+        self.assertTrue(np.all(res['y'] == arr['y']))
+        self.assertDictEqual(res['x'].attrs, {'units': 'm', 'standard_name': 'projection_x_coordinate'})
+        self.assertDictEqual(res['y'].attrs, {'units': 'm', 'standard_name': 'projection_y_coordinate'})
+        self.assertDictEqual(res.attrs, attrs_expected)
+
+        # Test attribute kwargs
+        res_flat = CFWriter.da2cf(arr, flatten_dict_attrs=True, exclude_attrs=['int'])
+        attrs_expected_flat.pop('int')
+        self.assertDictEqual(res_flat.attrs, attrs_expected_flat)
 
 
 def suite():
