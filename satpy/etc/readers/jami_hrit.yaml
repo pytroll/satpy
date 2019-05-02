@@ -1,0 +1,122 @@
+# References:
+#   - https://www.wmo-sat.info/oscar/instruments/view/236
+#   - http://www.data.jma.go.jp/mscweb/notice/Himawari7_e.html
+#
+# Note that the there exist two versions of the dataset. A segmented (data
+# split into multiple files) and a non-segmented version (all data in one
+# file).
+
+reader:
+  description: Reader for MTSAT-1R JAMI data in JMA HRIT Format
+  name: jami_hrit
+  sensors: [jami]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    hrit_vis:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}VIS'
+
+    hrit_ir1:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR1'
+
+    hrit_ir2:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR2'
+
+    hrit_ir3:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR3'
+
+
+    hrit_ir4:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT1_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR4'
+
+datasets:
+  VIS:
+    name: VIS
+    sensor: jami
+    wavelength: [0.55, 0.675, 0.90]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: hrit_vis
+
+  IR1:
+    name: IR1
+    sensor: jami
+    wavelength: [10.3, 10.8, 11.3]
+    resolution: 4000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: hrit_ir1
+
+  IR2:
+    name: IR2
+    sensor: jami
+    wavelength: [11.5, 12.0, 12.5]
+    resolution: 4000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: hrit_ir2
+
+  IR3:
+    name: IR3
+    sensor: jami
+    wavelength: [6.5, 6.75, 7.0]
+    resolution: 4000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: hrit_ir3
+
+  IR4:
+    name: IR4
+    sensor: jami
+    wavelength: [3.5, 3.75, 4.0]
+    resolution: 4000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: hrit_ir4

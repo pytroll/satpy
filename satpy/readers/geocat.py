@@ -40,7 +40,6 @@ from pyresample import geometry
 from pyresample.utils import proj4_str_to_dict
 
 from satpy.dataset import DatasetID
-from satpy.readers.yaml_reader import FileYAMLReader
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 LOG = logging.getLogger(__name__)
@@ -74,6 +73,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         'ahi': {
             1: 999.9999820317674,  # assumption
             2: 1999.999964063535,
+            4: 3999.99992812707,
         }
     }
 
@@ -102,6 +102,10 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return GEO_PROJS[platform].format(lon_0=ref_lon)
 
     @property
+    def sensor_names(self):
+        return [self.get_sensor(self['/attr/Sensor_Name'])]
+
+    @property
     def start_time(self):
         return self.filename_info['start_time']
 
@@ -114,11 +118,20 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         platform = self.get_platform(self['/attr/Platform_Name'])
         return platform in GEO_PROJS
 
-    def available_dataset_ids(self):
-        """Automatically determine datasets provided by this file"""
+    @property
+    def resolution(self):
         elem_res = self['/attr/Element_Resolution']
+        return int(elem_res * 1000)
+
+    def _calc_area_resolution(self, ds_res):
+        elem_res = round(ds_res / 1000.)  # mimic 'Element_Resolution' attribute from above
         sensor = self.get_sensor(self['/attr/Sensor_Name'])
-        res = self.resolutions.get(sensor, {}).get(int(elem_res), elem_res * 1000.)
+        return self.resolutions.get(sensor, {}).get(int(elem_res),
+                                                    elem_res * 1000.)
+
+    def available_datasets(self):
+        """Automatically determine datasets provided by this file"""
+        res = self.resolution
         coordinates = ['pixel_longitude', 'pixel_latitude']
         for var_name, val in self.file_content.items():
             if isinstance(val, netCDF4.Variable):
@@ -174,7 +187,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             raise NotImplementedError("Don't know how to get the Area Definition for this file")
 
         platform = self.get_platform(self['/attr/Platform_Name'])
-        res = dsid.resolution
+        res = self._calc_area_resolution(dsid.resolution)
         proj = self._get_proj(platform, float(self['/attr/Subsatellite_Longitude']))
         area_name = '{} {} Area at {}m'.format(
             platform,
@@ -187,72 +200,50 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             area_name,
             area_name,
             area_name,
-            proj_dict=proj4_str_to_dict(proj),
-            x_size=lon.shape[1],
-            y_size=lon.shape[0],
+            proj4_str_to_dict(proj),
+            lon.shape[1],
+            lon.shape[0],
             area_extent=extents,
         )
         return area_def
 
     def get_metadata(self, dataset_id, ds_info):
         var_name = ds_info.get('file_key', dataset_id.name)
-        i = {}
-        i.update(ds_info)
-        for a in ['standard_name', 'units', 'long_name', 'flag_meanings', 'flag_values', 'flag_masks']:
-            attr_path = var_name + '/attr/' + a
-            if attr_path in self:
-                i[a] = self[attr_path]
-
-        u = i.get('units')
+        shape = self.get_shape(dataset_id, ds_info)
+        info = getattr(self[var_name], 'attrs', {})
+        info['shape'] = shape
+        info.update(ds_info)
+        u = info.get('units')
         if u in CF_UNITS:
             # CF compliance
-            i['units'] = CF_UNITS[u]
+            info['units'] = CF_UNITS[u]
 
-        i['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
-        i['platform'] = self.get_platform(self['/attr/Platform_Name'])
-        i['resolution'] = dataset_id.resolution
+        info['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
+        info['platform_name'] = self.get_platform(self['/attr/Platform_Name'])
+        info['resolution'] = dataset_id.resolution
         if var_name == 'pixel_longitude':
-            i['standard_name'] = 'longitude'
+            info['standard_name'] = 'longitude'
         elif var_name == 'pixel_latitude':
-            i['standard_name'] = 'latitude'
+            info['standard_name'] = 'latitude'
 
-        return i
+        return info
 
-    def get_dataset(self, dataset_id, ds_info, out=None,
-                    xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, dataset_id, ds_info, xslice=slice(None), yslice=slice(None)):
         var_name = ds_info.get('file_key', dataset_id.name)
         # FUTURE: Metadata retrieval may be separate
-        i = self.get_metadata(dataset_id, ds_info)
+        info = self.get_metadata(dataset_id, ds_info)
         data = self[var_name][yslice, xslice]
         fill = self[var_name + '/attr/_FillValue']
         factor = self.get(var_name + '/attr/scale_factor')
         offset = self.get(var_name + '/attr/add_offset')
         valid_range = self.get(var_name + '/attr/valid_range')
 
-        mask = data == fill
+        data = data.where(data != fill)
         if valid_range is not None:
-            mask |= (data < valid_range[0]) | (data > valid_range[1])
-        data = data.astype(out.data.dtype)
+            data = data.where((data >= valid_range[0]) & (data <= valid_range[1]))
         if factor is not None and offset is not None:
-            data *= factor
-            data += offset
+            data = data * factor + offset
 
-        out.data[:] = data
-        out.mask[:] |= mask
-        out.info.update(i)
-        return out
-
-
-class GEOCATYAMLReader(FileYAMLReader):
-    def create_filehandlers(self, filenames):
-        super(GEOCATYAMLReader, self).create_filehandlers(filenames)
-        self.load_ds_ids_from_files()
-
-    def load_ds_ids_from_files(self):
-        for file_handlers in self.file_handlers.values():
-            fh = file_handlers[0]
-            for ds_id, ds_info in fh.available_dataset_ids():
-                # don't overwrite an existing dataset
-                # especially from the yaml config
-                self.ids.setdefault(ds_id, ds_info)
-
+        data.attrs.update(info)
+        data = data.rename({'lines': 'y', 'elements': 'x'})
+        return data

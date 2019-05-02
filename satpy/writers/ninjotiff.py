@@ -26,50 +26,18 @@
 """
 
 import logging
-
-import numpy as np
-
 import pyninjotiff.ninjotiff as nt
-from satpy.utils import ensure_dir
 from satpy.writers import ImageWriter
 
 LOG = logging.getLogger(__name__)
 
 
 class NinjoTIFFWriter(ImageWriter):
-    GDAL_OPTIONS = ("tfw",
-                    "rpb",
-                    "rpctxt",
-                    "interleave",
-                    "tiled",
-                    "blockxsize",
-                    "blockysize",
-                    "nbits",
-                    "compress",
-                    "num_threads",
-                    "predictor",
-                    "discard_lsb",
-                    "sparse_ok",
-                    "jpeg_quality",
-                    "jpegtablesmode",
-                    "zlevel",
-                    "photometric",
-                    "alpha",
-                    "profile",
-                    "bigtiff",
-                    "pixeltype",
-                    "copy_src_overviews", )
 
-    def __init__(self, floating_point=False, tags=None, **kwargs):
-        ImageWriter.__init__(self,
-                             default_config_filename="writers/ninjotiff.yaml",
-                             **kwargs)
+    def __init__(self, tags=None, **kwargs):
+        ImageWriter.__init__(self, default_config_filename="writers/ninjotiff.yaml", **kwargs)
 
-        # self.floating_point = bool(self.config_options.get(
-        #     "floating_point", None) if floating_point is None else
-        #     floating_point)
-        self.tags = self.info.get("tags",
-                                  None) if tags is None else tags
+        self.tags = self.info.get("tags", None) if tags is None else tags
         if self.tags is None:
             self.tags = {}
         elif not isinstance(self.tags, dict):
@@ -81,6 +49,5 @@ class NinjoTIFFWriter(ImageWriter):
 
         .. _ninjotiff: http://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html
         """
-
-        filename = filename or self.get_filename(**img.info)
+        filename = filename or self.get_filename(**img.data.attrs)
         nt.save(img, filename, **kwargs)
