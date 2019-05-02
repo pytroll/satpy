@@ -30,9 +30,15 @@ file_types:
       # tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF
       - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_GEOQK_L1B.{ext}'
 
+# NOTE: OSCAR website currently has bands in wavelength order
+#       https://www.wmo-sat.info/oscar/instruments/view/279
+#       The order below is by the wavelength in the input files
+#       The slides at the below link have band 5 and 19 swapped:
+#       http://www.wmo.int/pages/prog/sat/meetings/documents/IPET-SUP-4_Doc_05-04_FY-3D-ppt.pdf
 datasets:
   '1':
     name: '1'
+    wavelength: [0.445, 0.470, 0.495]
     resolution:
       1000:
         file_type: mersi2_l1b_1000
@@ -45,18 +51,19 @@ datasets:
         file_key: Data/EV_250_RefSB_b1
         calibration_key: Calibration/VIS_Cal_Coeff
         calibration_index: 0
-    wavelength: [0.402, 0.412, 0.422]
     coordinates: [longitude, latitude]
     calibration:
       reflectance:
         units: "%"
         standard_name: toa_bidirection_reflectance
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '2':
     name: '2'
-    wavelength: [0.433, 0.443, 0.453]
+    wavelength: [0.525, 0.550, 0.575]
     resolution:
       1000:
         file_type: mersi2_l1b_1000
@@ -74,12 +81,14 @@ datasets:
       reflectance:
         units: "%"
         standard_name: toa_bidirection_reflectance
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '3':
     name: '3'
-    wavelength: [0.445, 0.470, 0.495]
+    wavelength: [0.625, 0.650, 0.675]
     resolution:
       1000:
         file_type: mersi2_l1b_1000
@@ -97,12 +106,14 @@ datasets:
       reflectance:
         units: "%"
         standard_name: toa_bidirection_reflectance
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '4':
     name: '4'
-    wavelength: [0.480, 0.490, 0.500]
+    wavelength: [0.840, 0.865, 0.890]
     resolution:
       1000:
         file_type: mersi2_l1b_1000
@@ -120,13 +131,15 @@ datasets:
       reflectance:
         units: "%"
         standard_name: toa_bidirection_reflectance
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
 
   '5':
     name: '5'
-    wavelength: [0.525, 0.550, 0.575]
+    wavelength: [1.37, 1.38, 1.39]  # or 30nm bandwidth?
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -141,11 +154,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '6':
     name: '6'
-    wavelength: [0.545, 0.555, 0.565]
+    wavelength: [1.615, 1.640, 1.665]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -160,11 +173,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '7':
     name: '7'
-    wavelength: [0.625, 0.650, 0.675]
+    wavelength: [2.105, 2.130, 2.155]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -179,11 +192,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '8':
     name: '8'
-    wavelength: [0.660, 0.670, 0.680]
+    wavelength: [0.402, 0.412, 0.422]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -198,11 +211,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '9':
     name: '9'
-    wavelength: [0.699, 0.709, 0.719]
+    wavelength: [0.433, 0.443, 0.453]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -217,11 +230,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '10':
     name: '10'
-    wavelength: [0.736, 0.746, 0.756]
+    wavelength: [0.480, 0.490, 0.500]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -236,11 +249,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '11':
     name: '11'
-    wavelength: [0.855, 0.865, 0.875]
+    wavelength: [0.545, 0.555, 0.565]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -255,11 +268,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '12':
     name: '12'
-    wavelength: [0.840, 0.865, 0.890]
+    wavelength: [0.660, 0.670, 0.680]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -274,11 +287,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '13':
     name: '13'
-    wavelength: [0.895, 0.905, 0.915]
+    wavelength: [0.699, 0.709, 0.719]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -293,11 +306,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '14':
     name: '14'
-    wavelength: [0.926, 0.936, 0.946]
+    wavelength: [0.736, 0.746, 0.756]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -312,11 +325,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '15':
     name: '15'
-    wavelength: [0.915, 0.940, 0.965]
+    wavelength: [0.855, 0.865, 0.875]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -331,11 +344,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '16':
     name: '16'
-    wavelength: [1.23, 1.24, 1.25]  # or 1.03um?
+    wavelength: [0.895, 0.905, 0.915]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -350,11 +363,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '17':
     name: '17'
-    wavelength: [1.37, 1.38, 1.39]  # or 30nm bandwidth?
+    wavelength: [0.926, 0.936, 0.946]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -369,11 +382,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '18':
     name: '18'
-    wavelength: [1.615, 1.640, 1.665]
+    wavelength: [0.915, 0.940, 0.965]
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -388,11 +401,11 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '19':
     name: '19'
-    wavelength: [2.105, 2.130, 2.155]
+    wavelength: [1.23, 1.24, 1.25]  # or 1.03um?
     resolution: 1000
     file_type: mersi2_l1b_1000
     file_key: Data/EV_1KM_RefSB
@@ -407,9 +420,10 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
 
+  # Not sure how to get radiance for BT channels
   '20':
     name: '20'
     wavelength: [3.710, 3.800, 3.890]
@@ -424,10 +438,8 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '21':
     name: '21'
@@ -443,10 +455,8 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '22':
     name: '22'
@@ -462,10 +472,8 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '23':
     name: '23'
@@ -481,10 +489,8 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '24':
     name: '24'
@@ -506,10 +512,8 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
   '25':
     name: '25'
@@ -531,12 +535,9 @@ datasets:
       brightness_temperature:
         units: "K"
         standard_name: toa_brightness_temperature
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
       counts:
-        units: 1
+        units: "1"
         standard_name: counts
-
 
   longitude:
     name: longitude
