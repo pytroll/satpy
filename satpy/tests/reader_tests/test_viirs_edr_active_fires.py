@@ -180,7 +180,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+            'AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
         self.assertTrue(len(loadables), 1)
         r.create_filehandlers(loadables)
@@ -191,7 +191,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
+            'AFMOD_j02_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.nc'
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(['confidence_pct'])
@@ -208,6 +208,9 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
+            self.assertEqual(v.attrs['platform_name'], 'NOAA-21')
+            self.assertEqual(v.attrs['sensor'], 'VIIRS')
+
 
 
 class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
@@ -260,6 +263,8 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
+            self.assertEqual(v.attrs['platform_name'], 'Suomi-NPP')
+            self.assertEqual(v.attrs['sensor'], 'VIIRS')
 
 
 class TestModVIIRSActiveFiresText(unittest.TestCase):
@@ -284,8 +289,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt',
-            'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+            'AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
         ])
         self.assertTrue(len(loadables), 1)
         r.create_filehandlers(loadables)
@@ -296,8 +300,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'AFEDR_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt',
-            'AFMOD_npp_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
+            'AFEDR_j01_d20180829_t2015451_e2017093_b35434_c20180829210527716708_cspp_dev.txt'
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(['confidence_pct'])
@@ -314,6 +317,8 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
+            self.assertEqual(v.attrs['platform_name'], 'NOAA-20')
+            self.assertEqual(v.attrs['sensor'], 'VIIRS')
 
 
 class TestImgVIIRSActiveFiresText(unittest.TestCase):
@@ -366,6 +371,8 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'MW')
+            self.assertEqual(v.attrs['platform_name'], 'Suomi-NPP')
+            self.assertEqual(v.attrs['sensor'], 'VIIRS')
 
 
 def suite():
