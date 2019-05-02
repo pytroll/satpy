@@ -959,6 +959,33 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         except (AttributeError, IOError, OSError):
             pass
 
+    def available_datasets(self, configured_datasets=None):
+        """Update information for or add datasets provided by this file.
+
+        If this file handler can load a dataset then it will supplement the
+        dataset info with the resolution and possibly coordinate datasets
+        needed to load it. Otherwise it will continue passing the dataset
+        information down the chain.
+
+        See
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        for details.
+
+        """
+        res = self.resolution
+        # update previously configured datasets
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                yield is_avail, ds_info
+
+            matches = self.file_type_matches(ds_info['file_type'])
+            if matches and ds_info.get('resolution') is None:
+                new_info = ds_info.copy()
+                new_info['resolution'] = res
+                yield True, new_info
+            elif is_avail is None:
+                yield is_avail, ds_info
+
 
 class GOESNCFileHandler(GOESNCBaseFileHandler):
     """File handler for GOES Imager data in netCDF format"""

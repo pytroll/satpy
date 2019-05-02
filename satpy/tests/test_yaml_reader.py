@@ -542,13 +542,43 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
 
     def test_update_ds_ids_from_file_handlers(self):
         """Test updating existing dataset IDs with information from the file"""
+        from functools import partial
         orig_ids = self.reader.ids
+
+        def available_datasets(self, configured_datasets=None):
+            res = self.resolution
+            # update previously configured datasets
+            for is_avail, ds_info in (configured_datasets or []):
+                if is_avail is not None:
+                    yield is_avail, ds_info
+
+                matches = self.file_type_matches(ds_info['file_type'])
+                if matches and ds_info.get('resolution') != res:
+                    new_info = ds_info.copy()
+                    new_info['resolution'] = res
+                    yield True, new_info
+                elif is_avail is None:
+                    yield is_avail, ds_info
+
+        def file_type_matches(self, ds_ftype):
+            if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
+                return True
+            elif self.filetype_info['file_type'] in ds_ftype:
+                return True
+            return None
+
         for ftype, resol in zip(('ftype1', 'ftype2'), (1, 2)):
-            with patch.dict(self.reader.ids, orig_ids, clear=True):
+            # need to copy this because the dataset infos will be modified
+            _orig_ids = {key: val.copy() for key, val in orig_ids.items()}
+            with patch.dict(self.reader.ids, _orig_ids, clear=True), \
+                    patch.dict(self.reader.available_ids, {}, clear=True):
                 # Add a file handler with resolution property
+                fh = MagicMock(filetype_info={'file_type': ftype},
+                               resolution=resol)
+                fh.available_datasets = partial(available_datasets, fh)
+                fh.file_type_matches = partial(file_type_matches, fh)
                 self.reader.file_handlers = {
-                    ftype: [MagicMock(filetype_info={'file_type': ftype},
-                                      resolution=resol)]}
+                    ftype: [fh]}
 
                 # Update existing dataset IDs with resolution property from
                 # the file handler
@@ -561,7 +591,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                     if not isinstance(file_types, list):
                         file_types = [file_types]
                     expected = resol if ftype in file_types else None
-                    self.assertEqual(ds_id.resolution, expected)
+                    self.assertEqual(expected, ds_id.resolution)
 
 
 def suite():
