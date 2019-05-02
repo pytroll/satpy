@@ -180,6 +180,49 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
             if we **know** about the dataset but it is unavailable, or
             ``None`` if this file object is not responsible for it.
 
+        Example 1 - Supplement existing configured information::
+
+            def available_datasets(self, configured_datasets=None):
+                "Add information to configured datasets."
+                # we know the actual resolution
+                res = self.resolution
+
+                # update previously configured datasets
+                for is_avail, ds_info in (configured_datasets or []):
+                    # some other file handler knows how to load this
+                    # don't override what they've done
+                    if is_avail is not None:
+                        yield is_avail, ds_info
+
+                    matches = self.file_type_matches(ds_info['file_type'])
+                    if matches and ds_info.get('resolution') is None:
+                        # we are meant to handle this dataset (file type matches)
+                        # and the information we can provide isn't available yet
+                        new_info = ds_info.copy()
+                        new_info['resolution'] = res
+                        yield True, new_info
+                    elif is_avail is None:
+                        # we don't know what to do with this
+                        # see if another future file handler does
+                        yield is_avail, ds_info
+
+        Example 2 - Add dynamic datasets from the file::
+
+            def available_datasets(self, configured_datasets=None):
+                "Add information to configured datasets."
+                # pass along existing datasets
+                for is_avail, ds_info in (configured_datasets or []):
+                    yield is_avail, ds_info
+
+                # get dynamic variables known to this file (that we created)
+                for var_name, val in self.dynamic_variables.items():
+                    ds_info = {
+                        'file_type': self.filetype_info['file_type'],
+                        'resolution': 1000,
+                        'name': var_name,
+                    }
+                    yield True, ds_info
+
         """
         for is_avail, ds_info in (configured_datasets or []):
             if is_avail is not None:
