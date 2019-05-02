@@ -54,6 +54,67 @@ To get a list of available writers use the `available_writers` function::
     >>> from satpy import available_writers
     >>> available_writers()
 
+
+Examples
+========
+
+CF-Writer
+---------
+
+The CF writer saves datasets in a Scene as `CF-compliant`_ netCDF file. Here is an example with MSG SEVIRI data in HRIT
+format:
+
+    >>> from satpy import Scene
+    >>> import glob
+    >>> filenames = glob.glob('data/H*201903011200*')
+    >>> scn = Scene(filenames=filenames, reader='seviri_l1b_hrit')
+    >>> scn.load(['VIS006', 'IR_108'])
+    >>> scn.save_datasets(writer='cf', datasets=['VIS006', 'IR_108'], filename='seviri_test.nc',
+                          exclude_attrs=['raw_metadata'])
+
+You can select the netCDF backend using the ``engine`` keyword argument. Default is ``h5netcdf``, an alternative could
+be, for example, ``netCDF4``.
+
+In the above example, raw metadata from the HRIT files has been excluded. If you want all attributes to be included,
+just remove the ``exclude_attrs`` keyword argument. By default, dict-type dataset attributes, such as the raw metadata,
+are encoded as a string using json. Thus, you can use json to decode them afterwards:
+
+    >>> import xarray as xr
+    >>> import json
+    >>> # Save scene to nc-file
+    >>> scn.save_datasets(writer='cf', datasets=['VIS006', 'IR_108'], filename='seviri_test.nc')
+    >>> # Now read data from the nc-file
+    >>> ds = xr.open_dataset('seviri_test.nc')
+    >>> raw_mda = json.loads(ds['IR_108'].attrs['raw_metadata'])
+    >>> print(raw_mda['RadiometricProcessing']['Level15ImageCalibration']['CalSlope'])
+    [0.020865   0.0278287  0.0232411  0.00365867 0.00831811 0.03862197
+     0.12674432 0.10396091 0.20503568 0.22231115 0.1576069  0.0352385]
+
+
+Alternatively it is possible to flatten dict-type attributes by setting ``flatten_attrs=True``. This is more human
+readable as it will create a separate nc-attribute for each item in every dictionary. Keys oare concatenated with
+underscore separators. The `CalSlope` attribute can then be accessed as follows:
+
+    >>> scn.save_datasets(writer='cf', datasets=['VIS006', 'IR_108'], filename='seviri_test.nc',
+                          flatten_attrs=True)
+    >>> ds = xr.open_dataset('seviri_test.nc')
+    >>> print(ds['IR_108'].attrs['raw_metadata_RadiometricProcessing_Level15ImageCalibration_CalSlope'])
+    [0.020865   0.0278287  0.0232411  0.00365867 0.00831811 0.03862197
+     0.12674432 0.10396091 0.20503568 0.22231115 0.1576069  0.0352385]
+
+This is what the corresponding ``ncdump`` output would look like in this case:
+
+.. code-block:: none
+
+    $ ncdump -h test_seviri.nc
+    ...
+    IR_108:raw_metadata_RadiometricProcessing_Level15ImageCalibration_CalOffset = -1.064, ...;
+    IR_108:raw_metadata_RadiometricProcessing_Level15ImageCalibration_CalSlope = 0.021, ...;
+    IR_108:raw_metadata_RadiometricProcessing_MPEFCalFeedback_AbsCalCoeff = 0.021, ...;
+    ...
+
+.. _CF-compliant: http://cfconventions.org/
+
 Colorizing and Palettizing using user-supplied colormaps
 ========================================================
 
