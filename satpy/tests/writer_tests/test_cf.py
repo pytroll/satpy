@@ -21,6 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer.
 """
+from collections import OrderedDict
 import os
 import sys
 from datetime import datetime
@@ -245,9 +246,11 @@ class TestCFWriter(unittest.TestCase):
                  'array_3d': np.array([[[1, 2], [3, 4]], [[1, 2], [3, 4]]]),
                  'dict': {'a': 1, 'b': 2},
                  'nested_dict': {'l1': {'l2': {'l3': np.array([1, 2, 3])}}},
-                 'raw_metadata': {'recarray': np.zeros(3, dtype=[('x', 'i4'), ('y', 'u1')]),
-                                  'flag': np.bool_(True),
-                                  'dict': {'a': 1, 'b': np.array([1, 2, 3])}}}
+                 'raw_metadata': OrderedDict([
+                      ('recarray', np.zeros(3, dtype=[('x', 'i4'), ('y', 'u1')])),
+                      ('flag', np.bool_(True)),
+                      ('dict', OrderedDict([('a', 1), ('b', np.array([1, 2, 3]))]))
+                 ])}
         encoded = {'name': 'IR_108',
                    'start_time': '2018-01-01 00:00:00',
                    'end_time': '2018-01-01 00:15:00',
