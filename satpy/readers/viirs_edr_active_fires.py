@@ -53,9 +53,9 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
         key = dsinfo.get('file_key', dsid.name).format(variable_prefix=self.prefix)
         data = self[key]
         data.attrs.update(dsinfo)
-
-        data.attrs["platform_name"] = self.get('/attr/satellite_name')
-        data.attrs["sensor"] = self.get('/attr/instrument_name')
+        print(self.filename_info)
+        data.attrs["platform_name"] = self.filename_info.get('satellite_name')
+        data.attrs["sensor"] = "VIIRS"
 
         return data
 
@@ -92,7 +92,7 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
         if not os.path.isfile(filename):
             return
 
-        if filename_info.get('satellite_name') == 'AFIMG':
+        if filename_info.get('data_id') == 'AFIMG':
             self.file_content = dd.read_csv(filename, skiprows=15, header=None,
                                             names=["latitude", "longitude",
                                                    "T4", "Along-scan", "Along-track", "confidence_cat",

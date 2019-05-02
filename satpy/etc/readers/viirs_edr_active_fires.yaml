@@ -9,29 +9,27 @@ file_types:
         file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresFileHandler
         variable_prefix: ""
         file_patterns:
-            - 'AFIMG_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
+            - 'AFIMG_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
     fires_netcdf:
         file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresFileHandler
         variable_prefix: "Fire Pixels/"
         file_patterns:
-        - 'AFEDR_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
-        - 'AFMOD_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
+        - 'AFEDR_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
+        - 'AFMOD_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
     fires_text:
         file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresTextFileHandler
         file_patterns:
-            - '{satellite_name}_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.txt'
+            - '{data_id}_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.txt'
 
 datasets:
     confidence_cat:
         name: confidence_cat
-        standard_name: confidence_cat
-        file_type: [fires_text, fires_netcdf_img]
+        file_type: [fires_netcdf_img, fires_text]
         file_key: "{variable_prefix}FP_confidence"
         coordinates: [longitude, latitude]
         units: '[7,8,9]->[lo,med,hi]'
     confidence_pct:
         name: confidence_pct
-        standard_name: confidence_pct
         file_type: [fires_netcdf, fires_text]
         file_key: "{variable_prefix}FP_confidence"
         coordinates: [longitude, latitude]
@@ -39,18 +37,18 @@ datasets:
     longitude:
         name: longitude
         standard_name: longitude
-        file_type: [fires_netcdf, fires_text, fires_netcdf_img]
+        file_type: [fires_netcdf_img, fires_netcdf, fires_text]
         file_key: "{variable_prefix}FP_longitude"
         units: 'degrees'
     latitude:
         name: latitude
         standard_name: latitude
-        file_type: [fires_netcdf, fires_text, fires_netcdf_img]
+        file_type: [fires_netcdf_img, fires_netcdf, fires_text]
         file_key: "{variable_prefix}FP_latitude"
         units: 'degrees'
     power:
         name: power
-        file_type: [fires_netcdf, fires_text, fires_netcdf_img]
+        file_type: [fires_netcdf_img, fires_netcdf, fires_text]
         file_key: "{variable_prefix:s}FP_power"
         coordinates: [longitude, latitude]
         units: 'MW'
@@ -62,7 +60,7 @@ datasets:
         units: 'K'
     T4:
         name: T4
-        file_type: [fires_text, fires_netcdf_img]
+        file_type: [fires_netcdf_img, fires_text]
         file_key: "{variable_prefix}FP_T4"
         coordinates: [longitude, latitude]
         units: 'K'
