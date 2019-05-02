@@ -64,8 +64,8 @@ class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         """Mimic reader input file content"""
         file_content = {}
         file_content['/attr/data_id'] = "AFMOD"
-        file_content['/attr/satellite_name'] = "npp"
-        file_content['/attr/instrument_name'] = 'VIIRS'
+        file_content['satellite_name'] = "npp"
+        file_content['sensor'] = 'VIIRS'
 
         file_content['Fire Pixels/FP_latitude'] = DEFAULT_LATLON_FILE_DATA
         file_content['Fire Pixels/FP_longitude'] = DEFAULT_LATLON_FILE_DATA
@@ -97,8 +97,8 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         """Mimic reader input file content"""
         file_content = {}
         file_content['/attr/data_id'] = "AFIMG"
-        file_content['/attr/satellite_name'] = "npp"
-        file_content['/attr/instrument_name'] = 'VIIRS'
+        file_content['satellite_name'] = "npp"
+        file_content['sensor'] = 'VIIRS'
 
         file_content['FP_latitude'] = DEFAULT_LATLON_FILE_DATA
         file_content['FP_longitude'] = DEFAULT_LATLON_FILE_DATA
