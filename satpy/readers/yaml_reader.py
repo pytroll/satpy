@@ -512,40 +512,10 @@ class FileYAMLReader(AbstractYAMLReader):
                     self.file_handlers.get(filetype, []) + filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
-        # update existing dataset IDs with information from the file handler
-        self.update_ds_ids_from_file_handlers()
-
         # load any additional dataset IDs determined dynamically from the file
-        self.add_ds_ids_from_files()
+        # and update any missing metadata that only the file knows
+        self.update_ds_ids_from_file_handlers()
         return created_fhs
-
-    def update_ds_ids_from_file_handlers(self):
-        """Update DatasetIDs with information from loaded files.
-
-        This is useful, for example, if dataset resolution may change
-        depending on what files were loaded.
-
-        """
-        for file_handlers in self.file_handlers.values():
-            fh = file_handlers[0]
-            # update resolution in the dataset IDs for this files resolution
-            res = getattr(fh, 'resolution', None)
-            if res is None:
-                continue
-
-            for ds_id, ds_info in list(self.ids.items()):
-                file_types = ds_info['file_type']
-                if not isinstance(file_types, list):
-                    file_types = [file_types]
-                if fh.filetype_info['file_type'] not in file_types:
-                    continue
-                if ds_id.resolution is not None:
-                    continue
-                # TODO: Update the file handlers using this functionality to use available_datasets
-                ds_info['resolution'] = res
-                new_id = DatasetID.from_dict(ds_info)
-                self.ids[new_id] = ds_info
-                del self.ids[ds_id]
 
     def _file_handlers_available_datasets(self):
         """Generate a series of available dataset information.
@@ -574,7 +544,7 @@ class FileYAMLReader(AbstractYAMLReader):
             configured_datasets = fh.available_datasets(configured_datasets=configured_datasets)
         return configured_datasets
 
-    def add_ds_ids_from_files(self):
+    def update_ds_ids_from_file_handlers(self):
         """Add or modify available dataset information.
 
         Each file handler is consulted on whether or not it can load the
@@ -585,6 +555,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         """
         avail_datasets = self._file_handlers_available_datasets()
+        new_ids = {}
         for is_avail, ds_info in avail_datasets:
             # especially from the yaml config
             coordinates = ds_info.get('coordinates')
@@ -596,12 +567,13 @@ class FileYAMLReader(AbstractYAMLReader):
             ds_info.setdefault('modifiers', tuple())  # default to no mods
             ds_id = DatasetID.from_dict(ds_info)
             # all datasets
-            self.ids[ds_id] = ds_info
+            new_ids[ds_id] = ds_info
             # available datasets
             # False == we have the file type but it doesn't have this dataset
             # None == we don't have the file type object to ask
             if is_avail:
                 self.available_ids[ds_id] = ds_info
+        self.ids = new_ids
 
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
