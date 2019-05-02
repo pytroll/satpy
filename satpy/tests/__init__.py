@@ -26,10 +26,11 @@ import logging
 import sys
 
 from satpy.tests import (reader_tests, test_dataset, test_file_handlers,
-                         test_helper_functions, test_readers, test_resample,
+                         test_readers, test_resample, test_demo,
                          test_scene, test_utils, test_writers,
                          test_yaml_reader, writer_tests,
-                         test_enhancements)
+                         test_enhancements, compositor_tests, test_multiscene,
+                         test_crefl_utils, test_config)
 
 
 if sys.version_info < (2, 7):
@@ -49,13 +50,17 @@ def suite():
     mysuite.addTests(test_writers.suite())
     mysuite.addTests(test_readers.suite())
     mysuite.addTests(test_resample.suite())
+    mysuite.addTests(test_demo.suite())
     mysuite.addTests(test_yaml_reader.suite())
-    mysuite.addTests(test_helper_functions.suite())
     mysuite.addTests(reader_tests.suite())
     mysuite.addTests(writer_tests.suite())
     mysuite.addTests(test_file_handlers.suite())
     mysuite.addTests(test_utils.suite())
     mysuite.addTests(test_enhancements.suite())
+    mysuite.addTests(compositor_tests.suite())
+    mysuite.addTests(test_multiscene.suite())
+    mysuite.addTests(test_crefl_utils.suite())
+    mysuite.addTests(test_config.suite())
 
     return mysuite
 

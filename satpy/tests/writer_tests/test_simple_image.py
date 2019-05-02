@@ -21,15 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer.
 """
-import os
 import sys
-
-import numpy as np
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -38,14 +30,62 @@ else:
 
 
 class TestPillowWriter(unittest.TestCase):
+
+    def setUp(self):
+        """Create temporary directory to save files to."""
+        import tempfile
+        self.base_dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test."""
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
+
+    @staticmethod
+    def _get_test_datasets():
+        """Create DataArray for testing."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow()}
+        )
+        return [ds1]
+
     def test_init(self):
+        """Test creating the default writer."""
         from satpy.writers.simple_image import PillowWriter
-        w = PillowWriter()
+        PillowWriter()
+
+    def test_simple_write(self):
+        """Test writing datasets with default behavior."""
+        from satpy.writers.simple_image import PillowWriter
+        datasets = self._get_test_datasets()
+        w = PillowWriter(base_dir=self.base_dir)
+        w.save_datasets(datasets)
+
+    def test_simple_delayed_write(self):
+        """Test writing datasets with delayed computation."""
+        from dask.delayed import Delayed
+        from satpy.writers.simple_image import PillowWriter
+        from satpy.writers import compute_writer_results
+        datasets = self._get_test_datasets()
+        w = PillowWriter(base_dir=self.base_dir)
+        res = w.save_datasets(datasets, compute=False)
+        for r__ in res:
+            self.assertIsInstance(r__, Delayed)
+            r__.compute()
+        compute_writer_results(res)
 
 
 def suite():
-    """The test suite for this writer's tests.
-    """
+    """The test suite for this writer's tests."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestPillowWriter))

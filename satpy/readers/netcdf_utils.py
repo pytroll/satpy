@@ -26,10 +26,12 @@
 
 """
 import netCDF4
-import numpy as np
 import logging
+import xarray as xr
 
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.utils import np2str
 
 LOG = logging.getLogger(__name__)
 
@@ -63,7 +65,8 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     """
 
-    def __init__(self, filename, filename_info, filetype_info, auto_maskandscale=False):
+    def __init__(self, filename, filename_info, filetype_info,
+                 auto_maskandscale=False, xarray_kwargs=None):
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
@@ -81,17 +84,20 @@ class NetCDF4FileHandler(BaseFileHandler):
         self.collect_metadata("", file_handle)
         self.collect_dimensions("", file_handle)
         file_handle.close()
+        self._xarray_kwargs = xarray_kwargs or {}
+        self._xarray_kwargs.setdefault('chunks', CHUNK_SIZE)
+        self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
 
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object.
         """
         for key in obj.ncattrs():
             value = getattr(obj, key)
-            value = np.squeeze(value)
-            if issubclass(value.dtype.type, str) or np.issubdtype(value.dtype, np.character):
-                self.file_content["{}/attr/{}".format(name, key)] = str(value)
-            else:
-                self.file_content["{}/attr/{}".format(name, key)] = value
+            fc_key = "{}/attr/{}".format(name, key)
+            try:
+                self.file_content[fc_key] = np2str(value)
+            except ValueError:
+                self.file_content[fc_key] = value
 
     def collect_metadata(self, name, obj):
         """Collect all file variables and attributes for the provided file object.
@@ -120,9 +126,15 @@ class NetCDF4FileHandler(BaseFileHandler):
         if isinstance(val, netCDF4.Variable):
             # these datasets are closed and inaccessible when the file is
             # closed, need to reopen
-            v = netCDF4.Dataset(self.filename, 'r')
-            val = v[key]
-            val.set_auto_maskandscale(self.auto_maskandscale)
+            # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
+            parts = key.rsplit('/', 1)
+            if len(parts) == 2:
+                group, key = parts
+            else:
+                group = None
+            with xr.open_dataset(self.filename, group=group,
+                                 **self._xarray_kwargs) as nc:
+                val = nc[key]
         return val
 
     def __contains__(self, item):

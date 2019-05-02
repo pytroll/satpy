@@ -1,0 +1,48 @@
+reader:
+    description: VIIRS Active Fires Reader
+    name: viirs_edr_active_fires
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [viirs]
+
+file_types:
+    fires_netcdf:
+        file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresFileHandler
+        file_patterns:
+            - 'AFEDR_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
+    fires_text:
+        file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresTextFileHandler
+        file_patterns:
+            - 'AFEDR_npp_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.txt'
+
+datasets:
+    detection_confidence:
+        name: detection_confidence
+        standard_name: fire_confidence
+        file_type: [fires_netcdf, fires_text]
+        file_key: "Fire Pixels/FP_confidence"
+        coordinates: [longitude, latitude]
+        units: '%'
+    longitude:
+        name: longitude
+        standard_name: longitude
+        file_type: [fires_netcdf, fires_text]
+        file_key: "Fire Pixels/FP_longitude"
+        units: 'degrees'
+    latitude:
+        name: latitude
+        standard_name: latitude
+        file_type: [fires_netcdf, fires_text]
+        file_key: "Fire Pixels/FP_latitude"
+        units: 'degrees'
+    power:
+        name: power
+        file_type: [fires_netcdf, fires_text]
+        file_key: "Fire Pixels/FP_power"
+        coordinates: [longitude, latitude]
+        units: 'MW'
+    T13:
+        name: T13
+        file_type: [fires_netcdf, fires_text]
+        file_key: "Fire Pixels/FP_T13"
+        coordinates: [longitude, latitude]
+        units: 'K'

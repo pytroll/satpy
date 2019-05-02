@@ -24,28 +24,58 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Setup file for satpy."""
 
-import imp
 import os.path
 import sys
 from glob import glob
+import versioneer
 
 from setuptools import find_packages, setup
 
-version = imp.load_source('satpy.version', 'satpy/version.py')
+requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.10.3', 'trollsift',
+            'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
+            'dask[array] >=0.17.1', 'pyproj']
 
-BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
-    os.path.sep))
-
-requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.4.0', 'trollsift',
-            'trollimage', 'pykdtree', 'six', 'pyyaml']
-
-if sys.version < '2.7':
-    requires.append('ordereddict')
-
-test_requires = ['behave']
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
+                 'rasterio', 'geoviews']
 
 if sys.version < '3.0':
     test_requires.append('mock')
+
+
+extras_require = {
+    # Readers:
+    'modis_l1b': ['pyhdf', 'python-geotiepoints >= 1.1.7'],
+    'geocat': ['pyhdf'],
+    'acspo': ['netCDF4 >= 1.1.8'],
+    'clavrx': ['netCDF4 >= 1.1.8'],
+    'viirs_l1b': ['netCDF4 >= 1.1.8'],
+    'viirs_sdr': ['h5py >= 2.7.0'],
+    'viirs_compact': ['h5py >= 2.7.0'],
+    'omps_edr': ['h5py >= 2.7.0'],
+    'amsr2_l1b': ['h5py >= 2.7.0'],
+    'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
+    'proj': ['pyresample'],
+    'pyspectral': ['pyspectral >= 0.8.7'],
+    'pyorbital': ['pyorbital >= 1.3.1'],
+    'hrit_msg': ['pytroll-schedule'],
+    'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
+    'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
+    'abi_l1b': ['h5netcdf'],
+    # Writers:
+    'scmi': ['netCDF4 >= 1.1.8'],
+    'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'mitiff': ['libtiff'],
+    # MultiScene:
+    'animations': ['imageio'],
+    # Documentation:
+    'doc': ['sphinx'],
+    # Other
+    'geoviews': ['geoviews'],
+}
+all_extras = []
+for extra_deps in extras_require.values():
+    all_extras.extend(extra_deps)
+extras_require['all'] = list(set(all_extras))
 
 
 def _config_data_files(base_dirs, extensions=(".cfg", )):
@@ -72,10 +102,13 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 
 
 NAME = 'satpy'
+README = open('README.rst', 'r').read()
 
 setup(name=NAME,
-      version=version.__version__,
-      description='Meteorological post processing package',
+      version=versioneer.get_version(),
+      cmdclass=versioneer.get_cmdclass(),
+      description='Python package for earth-observing satellite data processing',
+      long_description=README,
       author='The Pytroll Team',
       author_email='pytroll@googlegroups.com',
       classifiers=["Development Status :: 5 - Production/Stable",
@@ -89,7 +122,7 @@ setup(name=NAME,
       test_suite='satpy.tests.suite',
       packages=find_packages(),
       package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
-                              os.path.join('etc', 'areas.def'),
+                              os.path.join('etc', 'areas.yaml'),
                               os.path.join('etc', 'satpy.cfg'),
                               os.path.join('etc', 'himawari-8.cfg'),
                               os.path.join('etc', 'eps_avhrrl1b_6.5.xml'),
@@ -102,28 +135,6 @@ setup(name=NAME,
       zip_safe=False,
       install_requires=requires,
       tests_require=test_requires,
-      extras_require={
-          # Readers:
-          'xRIT': ['mipp >= 0.6.0'],
-          'hdfeos_l1b': ['python-hdf4'],
-          'geocat': ['python-hdf4'],
-          'acspo': ['netCDF4 >= 1.1.8'],
-          'clavrx': ['netCDF4 >= 1.1.8'],
-          'viirs_l1b': ['netCDF4 >= 1.1.8'],
-          'viirs_sdr': ['h5py >= 2.7.0'],
-          'viirs_compact': ['h5py >= 2.7.0'],
-          'omps_edr': ['h5py >= 2.7.0'],
-          'amsr2_l1b': ['h5py >= 2.7.0'],
-          'hrpt': ['pyorbital', 'pygac', 'python-geotiepoints'],
-          'proj': ['pyresample'],
-          'pyspectral': ['pyspectral'],
-          'pyorbital': ['pyorbital >= v0.2.3'],
-          'hrit_msg': ['pytroll-schedule'],
-          'nc_nwcsaf_msg': ['h5netcdf'],
-          'sar_c': ['python-geotiepoints', 'gdal'],
-          'abi_l1b': ['h5netcdf'],
-          # Writers:
-          'scmi': ['netCDF4 >= 1.1.8'],
-          'geotiff': ['gdal'],
-          },
+      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
+      extras_require=extras_require,
       )

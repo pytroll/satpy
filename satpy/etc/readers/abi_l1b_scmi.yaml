@@ -1,0 +1,288 @@
+reader:
+  description: SCMI NetCDF4 Reader for ABI data
+  name: abi_l1b_scmi
+  sensors: []
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+# Typical filenames from Unidata THREDDS server:
+# Server: http://thredds-test.unidata.ucar.edu/thredds/catalog/satellite/goes16/GOES16/CONUS/Channel02/current/catalog.xml
+# satellite/goes16/GOES16/CONUS/Channel02/current/GOES16_CONUS_20180912_201712_0.64_500m_30.1N_87.1W.nc4
+# Typical names for operational/official SCMI files (CSPP Geo, etc):
+# CG_EFD-005-B12-M3C02-T131_G16_s2018257024530_c2018257132258.nc
+# Operational/official SCMI files for Meso sectors:
+# CG_EMESO-020-B14-S1-N34W077-M3C07-T001_G16_s2018257000420_c2018257142255.nc
+file_types:
+  c01:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_0.47_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C01-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C01-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c02:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_0.64_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C02-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C02-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c03:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_0.87_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C03-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C03-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c04:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_1.38_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C04-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C04-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c05:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_1.61_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C05-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C05-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c06:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_2.25_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C06-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C06-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c07:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_3.90_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C07-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C07-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c08:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_6.19_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C08-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C08-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c09:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_6.95_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C09-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C09-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c10:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_7.34_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C10-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C10-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c11:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_8.50_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C11-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C11-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c12:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_9.61_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C12-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C12-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c13:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_10.35_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C13-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C13-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c14:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_11.20_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C14-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C14-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c15:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_12.30_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C15-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C15-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+  c16:
+    file_reader: !!python/name:satpy.readers.scmi.SCMIFileHandler
+    file_patterns:
+    - '{satellite}_{area_code:s}_{start_time:%Y%m%d_%H%M%S}_13.30_{res}_{lat}_{lon}.nc{nc_version}'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-M{mode}C16-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+    - '{environ}_{sector_id}-{nadir_res:3d}-B{bit_depth:2d}-S{meso_scene:d}-{center}-M{mode}C16-T{tile}_{satellite}_s{start_time:%Y%j%H%M%S}_c{creation_time:%Y%j%H%M%S}.nc'
+
+datasets:
+  C01:
+    name: C01
+    sensor: abi
+    wavelength: [0.450, 0.470, 0.490]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c01
+
+  C02:
+    name: C02
+    sensor: abi
+    wavelength: [0.590, 0.640, 0.690]
+    resolution: 500
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c02
+
+  C03:
+    name: C03
+    sensor: abi
+    wavelength: [0.8455, 0.865, 0.8845]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c03
+
+  C04:
+    name: C04
+    sensor: abi
+    wavelength: [1.3705, 1.378, 1.3855]
+    resolution: 2000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c04
+
+  C05:
+    name: C05
+    sensor: abi
+    wavelength: [1.580, 1.610, 1.640]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c05
+
+  C06:
+    name: C06
+    sensor: abi
+    wavelength: [2.225, 2.250, 2.275]
+    resolution: 2000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: c06
+
+  C07:
+    name: C07
+    sensor: abi
+    wavelength: [3.80, 3.90, 4.00]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c07
+
+  C08:
+    name: C08
+    sensor: abi
+    wavelength: [5.770, 6.185, 6.600]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c08
+
+  C09:
+    name: C09
+    sensor: abi
+    wavelength: [6.75, 6.95, 7.15]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c09
+
+  C10:
+    name: C10
+    sensor: abi
+    wavelength: [7.24, 7.34, 7.44]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c10
+
+  C11:
+    name: C11
+    sensor: abi
+    wavelength: [8.30, 8.50, 8.70]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c11
+
+  C12:
+    name: C12
+    sensor: abi
+    wavelength: [9.42, 9.61, 9.80]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c12
+
+  C13:
+    name: C13
+    sensor: abi
+    wavelength: [10.10, 10.35, 10.60]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c13
+
+  C14:
+    name: C14
+    sensor: abi
+    wavelength: [10.80, 11.20, 11.60]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c14
+
+  C15:
+    name: C15
+    sensor: abi
+    wavelength: [11.80, 12.30, 12.80]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c15
+
+  C16:
+    name: C16
+    sensor: abi
+    wavelength: [13.00, 13.30, 13.60]
+    resolution: 2000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+    file_type: c16

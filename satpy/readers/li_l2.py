@@ -34,31 +34,29 @@ import logging
 import numpy as np
 from datetime import datetime
 from pyresample import geometry
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
+# FIXME: This is not xarray/dask compatible
+# TODO: Once migrated to xarray/dask, remove ignored path in setup.cfg
+from satpy.dataset import Dataset
 
 logger = logging.getLogger(__name__)
 
 
 class LIFileHandler(BaseFileHandler):
-    """MTG LI File Reader
-    """
+    """MTG LI File Reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(LIFileHandler, self).__init__(filename, filename_info,
-                                            filetype_info)
-
-        self.nc = h5netcdf.File(filename, 'r')
+        super(LIFileHandler, self).__init__(filename, filename_info, filetype_info)
+        self.nc = h5netcdf.File(self.filename, 'r')
         # Get grid dimensions from file
         refdim = self.nc['grid_position'][:]
         # Get number of lines and columns
         self.nlines = int(refdim[2])
         self.ncols = int(refdim[3])
-        self.filename = filename
         self.cache = {}
         logger.debug('Dimension : {}'.format(refdim))
         logger.debug('Row/Cols: {} / {}'.format(self.nlines, self.ncols))
-        logger.debug('Reading: {}'.format(filename))
+        logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
@@ -124,17 +122,20 @@ class LIFileHandler(BaseFileHandler):
         return(out)
 
     def get_area_def(self, key, info=None):
-        """ Projection information are hard coded for 0 degree geos projection
-        Test dataset doen't provide the values in the file container.
-        Only fill values are inserted
+        """Create AreaDefinition for specified product.
+
+        Projection information are hard coded for 0 degree geos projection
+        Test dataset doesn't provide the values in the file container.
+        Only fill values are inserted.
+
         """
         # TODO Get projection information from input file
         a = 6378169.
         h = 35785831.
         b = 6356583.8
         lon_0 = 0.
-        #area_extent = (-5432229.9317116784, -5429229.5285458621,
-        #               5429229.5285458621, 5432229.9317116784)
+        # area_extent = (-5432229.9317116784, -5429229.5285458621,
+        #                5429229.5285458621, 5432229.9317116784)
         area_extent = (-5570248.4773392612, -5567248.074173444,
                        5567248.074173444, 5570248.4773392612)
         proj_dict = {'a': float(a),
@@ -155,6 +156,3 @@ class LIFileHandler(BaseFileHandler):
         self.area = area
         logger.debug("Dataset area definition: \n {}".format(area))
         return area
-
-    def get_shape(self, dsid, ds_info):
-        return int(self.nlines), int(self.ncols)

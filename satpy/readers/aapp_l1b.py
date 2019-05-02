@@ -39,9 +39,11 @@ import logging
 from datetime import datetime, timedelta
 
 import numpy as np
+import xarray as xr
 
-from satpy.dataset import Dataset
+import dask.array as da
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,22 @@ CHANNEL_NAMES = ['1', '2', '3a', '3b', '4', '5']
 ANGLES = {'sensor_zenith_angle': 'satz',
           'solar_zenith_angle': 'sunz',
           'sun_sensor_azimuth_difference_angle': 'azidiff'}
+
+PLATFORM_NAMES = {4: 'NOAA-15',
+                  2: 'NOAA-16',
+                  6: 'NOAA-17',
+                  7: 'NOAA-18',
+                  8: 'NOAA-19',
+                  11: 'Metop-B',
+                  12: 'Metop-A',
+                  13: 'Metop-C',
+                  14: 'Metop simulator'}
+
+
+def create_xarray(arr):
+    res = da.from_array(arr, chunks=(CHUNK_SIZE, CHUNK_SIZE))
+    res = xr.DataArray(res, dims=['y', 'x'])
+    return res
 
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
@@ -67,7 +85,13 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self.lons = None
         self.lats = None
         self.area = None
+        self.sensor = 'avhrr-3'
         self.read()
+
+        self.platform_name = PLATFORM_NAMES.get(self._header['satid'][0], None)
+
+        if self.platform_name is None:
+            raise ValueError("Unsupported platform ID: %d" % self.header['satid'])
 
         self.sunz, self.satz, self.azidiff = None, None, None
 
@@ -91,29 +115,27 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         """Get a dataset from the file."""
 
         if key.name in CHANNEL_NAMES:
-            dataset = self.calibrate([key])[0]
-            # dataset.info.update(info)
+            dataset = self.calibrate(key)
         elif key.name in ['longitude', 'latitude']:
             if self.lons is None or self.lats is None:
                 self.navigate()
             if key.name == 'longitude':
-                return Dataset(self.lons, id=key, **info)
+                dataset = create_xarray(self.lons)
             else:
-                return Dataset(self.lats, id=key, **info)
+                dataset = create_xarray(self.lats)
+            dataset.attrs = info
         else:  # Get sun-sat angles
             if key.name in ANGLES:
                 if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):
-                    dataset = Dataset(
-                        getattr(self, ANGLES[key.name]),
-                        copy=False)
+                    dataset = create_xarray(getattr(self, ANGLES[key.name]))
                 else:
                     dataset = self.get_angles(key.name)
             else:
-                logger.exception(
-                    "Not a supported sun-sensor viewing angle: %s", key.name)
-                raise
+                raise ValueError("Not a supported sun-sensor viewing angle: %s", key.name)
 
-        # TODO get metadata
+        dataset.attrs.update({'platform_name': self.platform_name,
+                              'sensor': self.sensor})
+        dataset.attrs.update(key.to_dict())
 
         if not self._shape:
             self._shape = dataset.shape
@@ -166,7 +188,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             logger.debug("Interpolate sun-sat angles: time %s",
                          str(datetime.now() - tic))
 
-        return Dataset(getattr(self, ANGLES[angle_id]), copy=False)
+        return create_xarray(getattr(self, ANGLES[angle_id]))
 
     def navigate(self):
         """Return the longitudes and latitudes of the scene.
@@ -198,7 +220,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             logger.debug("Navigation time %s", str(datetime.now() - tic))
 
     def calibrate(self,
-                  dataset_ids,
+                  dataset_id,
                   pre_launch_coeffs=False,
                   calib_coeffs=None):
         """Calibrate the data
@@ -208,17 +230,12 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         if calib_coeffs is None:
             calib_coeffs = {}
 
-        chns = dict((dataset_id.name, dataset_id)
-                    for dataset_id in dataset_ids)
-
-        res = []
-        # FIXME this should be done in _vis_calibrate
         units = {'reflectance': '%',
                  'brightness_temperature': 'K',
                  'counts': '',
                  'radiance': 'W*m-2*sr-1*cm ?'}
 
-        if ("3a" in chns or "3b" in chns) and self._is3b is None:
+        if dataset_id.name in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
             is3b = np.expand_dims(
                 np.bitwise_and(
@@ -226,39 +243,42 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             self._is3b = np.repeat(is3b,
                                    self._data['hrpt'][0].shape[0], axis=1)
 
-        for idx, name in enumerate(['1', '2', '3a']):
-            if name in chns:
-                coeffs = calib_coeffs.get('ch' + name)
-                # FIXME data should be masked before calibration
-                ds = Dataset(
-                    _vis_calibrate(self._data,
-                                   idx,
-                                   chns[name].calibration,
-                                   pre_launch_coeffs,
-                                   coeffs,
-                                   mask=(name == '3a' and self._is3b)),
-                    units=units[chns[name].calibration],
-                    id=chns[name],
-                    **chns[name]._asdict())
-                res.append(ds)
+        try:
+            vis_idx = ['1', '2', '3a'].index(dataset_id.name)
+            ir_idx = None
+        except ValueError:
+            vis_idx = None
+            ir_idx = ['3b', '4', '5'].index(dataset_id.name)
 
-        for idx, name in enumerate(['3b', '4', '5']):
-            if name in chns:
-                ds = Dataset(
-                    _ir_calibrate(self._header,
-                                  self._data,
-                                  idx,
-                                  chns[name].calibration,
-                                  mask=(name == '3b' and
-                                        (np.logical_not(self._is3b)))),
-                    units=units[chns[name].calibration],
-                    id=chns[name],
-                    **chns[name]._asdict())
-                res.append(ds)
+        if vis_idx is not None:
+            coeffs = calib_coeffs.get('ch' + dataset_id.name)
+            ds = create_xarray(
+                _vis_calibrate(self._data,
+                               vis_idx,
+                               dataset_id.calibration,
+                               pre_launch_coeffs,
+                               coeffs,
+                               mask=(dataset_id.name == '3a' and self._is3b)))
+        else:
+            ds = create_xarray(
+                _ir_calibrate(self._header,
+                              self._data,
+                              ir_idx,
+                              dataset_id.calibration,
+                              mask=(dataset_id.name == '3b' and
+                                    np.logical_not(self._is3b))))
+
+        if dataset_id.name == '3a' and np.all(np.isnan(ds)):
+            raise ValueError("Empty dataset for channel 3A")
+        if dataset_id.name == '3b' and np.all(np.isnan(ds)):
+            raise ValueError("Empty dataset for channel 3B")
+
+        ds.attrs['units'] = units[dataset_id.calibration]
+        ds.attrs.update(dataset_id._asdict())
 
         logger.debug("Calibration time %s", str(datetime.now() - tic))
 
-        return res
+        return ds
 
 
 AVHRR_CHANNEL_NAMES = ("1", "2", "3a", "3b", "4", "5")
@@ -456,7 +476,9 @@ def _vis_calibrate(data,
         raise ValueError('Calibration ' + calib_type + ' unknown!')
 
     arr = data["hrpt"][:, :, chn]
-    channel = np.ma.array(arr.astype(np.float), mask=mask * arr)
+    mask |= arr == 0
+
+    channel = arr.astype(np.float)
     if calib_type == 'counts':
         return channel
 
@@ -504,8 +526,9 @@ def _vis_calibrate(data,
 
     channel[mask2] = (channel * slope2 + intercept2)[mask2]
 
-    channel[channel < 0] = np.nan
-    return np.ma.masked_invalid(channel)
+    channel = channel.clip(min=0)
+
+    return np.where(mask, np.nan, channel)
 
 
 def _ir_calibrate(header, data, irchn, calib_type, mask=False):
@@ -513,10 +536,13 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
     *calib_type* in brightness_temperature, radiance, count
     """
 
-    count = data['hrpt'][:, :, irchn + 2].astype(np.float)
+    count = data["hrpt"][:, :, irchn + 2].astype(np.float)
 
     if calib_type == 0:
         return count
+
+    # Mask unnaturally low values
+    mask |= count == 0.0
 
     k1_ = np.expand_dims(data['calir'][:, irchn, 0, 0] / 1.0e9, 1)
     k2_ = np.expand_dims(data['calir'][:, irchn, 0, 1] / 1.0e6, 1)
@@ -534,7 +560,8 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
         logger.info("Suspicious scan lines: %s", str(suspect_line_nums))
 
     if calib_type == 2:
-        return rad
+        mask |= rad <= 0.0
+        return np.where(mask, np.nan, rad)
 
     # Central wavenumber:
     cwnum = header['radtempcnv'][0, irchn, 0]
@@ -545,20 +572,6 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
 
     bandcor_2 = header['radtempcnv'][0, irchn, 1] / 1e5
     bandcor_3 = header['radtempcnv'][0, irchn, 2] / 1e6
-
-    # Count to radiance conversion:
-    rad = k1_ * count * count + k2_ * count + k3_
-
-    if calib_type == 2:
-        return rad
-
-    all_zero = np.logical_and(
-        np.logical_and(
-            np.equal(k1_, 0), np.equal(k2_, 0)), np.equal(k3_, 0))
-    idx = np.indices((all_zero.shape[0], ))
-    suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
-    if suspect_line_nums.any():
-        logger.info("Suspect scan lines: %s", str(suspect_line_nums))
 
     ir_const_1 = 1.1910659e-5
     ir_const_2 = 1.438833
@@ -573,34 +586,7 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
     else:  # AAPP 1 to 4
         tb_ = (t_planck - bandcor_2) / bandcor_3
 
-    # tb_[tb_ <= 0] = np.nan
-    # Data with count=0 are often related to erroneous (bad) lines, but in case
-    # of saturation (channel 3b) count=0 can be observed and associated to a
-    # real measurement. So we leave out this filtering to the user!
-    # tb_[count == 0] = np.nan
-    # tb_[rad == 0] = np.nan
-    tb_ = np.ma.masked_array(tb_, copy=False, mask=mask)
-    tb_ = np.ma.masked_invalid(tb_, copy=False)
-    if calib_type == 'brightness_temperature':
-        tb_ = np.ma.masked_less(tb_, 0.1, copy=False)
+    # Mask unnaturally low values
+    # mask |= tb_ < 0.1
 
-    return tb_
-
-
-if __name__ == '__main__':
-
-    def norm255(a__):
-        """normalize array to uint8.
-        """
-        arr = a__ * 1.0
-        arr = (arr - arr.min()) * 255.0 / (arr.max() - arr.min())
-        return arr.astype(np.uint8)
-
-    def show(a__):
-        """show array.
-        """
-        from PIL import Image
-        Image.fromarray(norm255(a__), "L").show()
-
-    import sys
-    res = read_raw(sys.argv[1])
+    return np.where(mask, np.nan, tb_)

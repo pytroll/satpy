@@ -30,15 +30,14 @@ Documentation reference:
 
 """
 import logging
-from collections import defaultdict
-from datetime import datetime, timedelta
 
 import h5py
 import numpy as np
+from xarray import DataArray
+import dask.array as da
 
-from satpy.dataset import Dataset, DatasetID
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.yaml_reader import FileYAMLReader
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -59,62 +58,61 @@ class MAIAFileHandler(BaseFileHandler):
             self.finfo['end_time'] = self.finfo['end_time'].replace(
                 day=myday + 1)
         self.selected = None
-        self.read(filename)
+        self.read(self.filename)
 
     def read(self, filename):
         self.h5 = h5py.File(filename, 'r')
         missing = -9999.
-        self.Lat = self.h5[u'DATA/Latitude'][:] / 10000.
-        self.Lon = self.h5[u'DATA/Longitude'][:] / 10000.
+        self.Lat = da.from_array(self.h5[u'DATA/Latitude'], chunks=CHUNK_SIZE) / 10000.
+        self.Lon = da.from_array(self.h5[u'DATA/Longitude'], chunks=CHUNK_SIZE) / 10000.
         self.selected = (self.Lon > missing)
         self.file_content = {}
         for key in self.h5['DATA'].keys():
-            self.file_content[key] = self.h5[u'DATA/' + key][:]
+            self.file_content[key] = da.from_array(self.h5[u'DATA/' + key], chunks=CHUNK_SIZE)
         for key in self.h5[u'HEADER'].keys():
             self.file_content[key] = self.h5[u'HEADER/' + key][:]
-        self.h5.close()
 
         # Cloud Mask on pixel
         mask = 2**0 + 2**1 + 2**2
-        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = self.file_content[u'CloudMask'] & mask
         lst = lst / 2**0
         self.file_content[u"cma"] = lst
 
         # Cloud Mask confidence
         mask = 2**5 + 2**6
-        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = self.file_content[u'CloudMask'] & mask
         lst = lst / 2**5
         self.file_content[u"cma_conf"] = lst
 
         # Cloud Mask Quality
         mask = 2**3 + 2**4
-        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = self.file_content[u'CloudMask'] & mask
         lst = lst / 2**3
         self.file_content[u'cma_qual'] = lst
 
         # Opaque Cloud
         mask = 2**21
-        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = self.file_content[u'CloudMask'] & mask
         lst = lst / 2**21
         self.file_content[u'opaq_cloud'] = lst
 
         # land /water Background
         mask = 2**15 + 2**16 + 2**17
-        lst = self.file_content[u'CloudMask'][:] & mask
+        lst = self.file_content[u'CloudMask'] & mask
         lst = lst / 2**15
         self.file_content[u'land_water_background'] = lst
 
         # CT (Actual CloudType)
         mask = 2**4 + 2**5 + 2**6 + 2**7 + 2**8
-        classif = self.file_content[u'CloudType'][:] & mask
+        classif = self.file_content[u'CloudType'] & mask
         classif = classif / 2**4
-        self.file_content['ct'] = classif
+        self.file_content['ct'] = classif.astype(np.uint8)
 
     def get_platform(self, platform):
         if self.file_content['sat_id'] in (14,):
-            return viirs
+            return "viirs"
         else:
-            return avhrr
+            return "avhrr"
 
     @property
     def start_time(self):
@@ -126,7 +124,7 @@ class MAIAFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, info, out=None):
         """Get a dataset from the file."""
-        
+
         logger.debug("Reading %s.", key.name)
         values = self.file_content[key.name]
         selected = np.array(self.selected)
@@ -141,11 +139,14 @@ class MAIAFileHandler(BaseFileHandler):
                 values = values / 10.
         else:
             selected = self.selected
-        mask_values = np.ma.masked_array(values, mask=~selected)
+        info.update(self.finfo)
+
+        fill_value = np.nan
+
+        if key.name == 'ct':
+            fill_value = 0
+            info['_FillValue'] = 0
+        ds = DataArray(values, dims=['y', 'x'], attrs=info).where(selected, fill_value)
 
         # update dataset info with file_info
-        for k, v in self.finfo.items():
-            info[k] = v
-
-        ds = Dataset(mask_values, copy=False, **info)
         return ds
