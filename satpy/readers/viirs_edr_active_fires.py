@@ -54,16 +54,9 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
         data = self[key]
         data.attrs.update(dsinfo)
 
-        if self.filename_info['satellite_name'].upper() == "NPP":
-            data.attrs["platform_name"] = "Suomi-NP"
-        elif self.filename_info['satellite_name'].upper() == "J01":
-            data.attrs["platform_name"] = "NOAA-20"
-        elif self.filename_info['satellite_name'].upper() == "J02":
-            data.attrs["platform_name"] = "NOAA-21"
-        else:
-            print("ERROR - Invalid platform")
-            data.attrs["platform_name"] = "unknown"
+        platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
 
+        data.attrs["platform_name"] = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
         data.attrs["sensor"] = "VIIRS"
 
         return data
@@ -101,15 +94,9 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
         if not os.path.isfile(filename):
             return
 
-        if filename_info['satellite_name'].upper() == "NPP":
-            self.platform_name = "Suomi-NP"
-        elif filename_info['satellite_name'].upper() == "J01":
-            self.platform_name = "NOAA-20"
-        elif filename_info['satellite_name'].upper() == "J02":
-            self.platform_name = "NOAA-21"
-        else:
-            print("ERROR - Invalid platform")
-            self.platform_name = "unknown"
+        platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
+
+        self.platform_name = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
 
         if filetype_info.get('file_type') == 'fires_text_img':
             self.file_content = dd.read_csv(filename, skiprows=15, header=None,
@@ -123,6 +110,7 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
                                                    "power"])
 
     def get_dataset(self, dsid, dsinfo):
+        print(self.platform_name)
         ds = self[dsid.name].to_dask_array(lengths=True)
         data_array = xr.DataArray(ds, dims=("y",), attrs={"platform_name": self.platform_name, "sensor": "VIIRS"})
         data_array.attrs.update(dsinfo)
