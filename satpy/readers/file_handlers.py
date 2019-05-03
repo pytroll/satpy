@@ -144,8 +144,9 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
 
         This is used for dynamically specifying what datasets are available
         from a file in addition to what's configured in a YAML configuration
-        file. Note that this method will only be called once for each
-        "file type"; the first file handler for each type.
+        file. Note that this method is called for each file handler for each
+        file type; care should be taken when possible to reduce the amount
+        of redundant datasets produced.
 
         This method should **not** update values of the dataset information
         dictionary **unless* this file handler has a matching file type
@@ -163,9 +164,9 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         and should yield its new dataset in addition to the previous one.
 
         Args:
-            configured_datasets (list): Series of (bool, dict) in the same
-                way as is returned by this method (see below). The bool is
-                whether or not the dataset is available from at least one
+            configured_datasets (list): Series of (bool or None, dict) in the
+                same way as is returned by this method (see below). The bool
+                is whether or not the dataset is available from at least one
                 of the current file handlers. It can also be ``None`` if
                 no file handler knows before us knows how to handle it.
                 The dictionary is existing dataset metadata. The dictionaries
@@ -174,7 +175,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                 available datasets. This argument could be the result of a
                 previous file handler's implementation of this method.
 
-        Returns: Iterator of (bool, dict) pairs where dict is the
+        Returns: Iterator of (bool or None, dict) pairs where dict is the
             dataset's metadata. If the dataset is available in the current
             file type then the boolean value should be ``True``, ``False``
             if we **know** about the dataset but it is unavailable, or
@@ -195,7 +196,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                         yield is_avail, ds_info
 
                     matches = self.file_type_matches(ds_info['file_type'])
-                    if matches and ds_info.get('resolution') is None:
+                    if matches and ds_info.get('resolution') != res:
                         # we are meant to handle this dataset (file type matches)
                         # and the information we can provide isn't available yet
                         new_info = ds_info.copy()
@@ -230,4 +231,5 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                 # we don't know any more information than the previous
                 # file handler so let's yield early
                 yield is_avail, ds_info
+                continue
             yield self.file_type_matches(ds_info['file_type']), ds_info

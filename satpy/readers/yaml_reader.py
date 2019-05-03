@@ -535,10 +535,11 @@ class FileYAMLReader(AbstractYAMLReader):
             the information.
 
         """
-        first_fhs = (fhs[0] for fhs in self.file_handlers.values())
+        # flatten all file handlers in to one list
+        flat_fhs = (fh for fhs in self.file_handlers.values() for fh in fhs)
         id_values = list(self.ids.values())
         configured_datasets = ((None, ds_info) for ds_info in id_values)
-        for fh in first_fhs:
+        for fh in flat_fhs:
             # chain the 'available_datasets' methods together by calling the
             # current file handler's method with the previous ones result
             configured_datasets = fh.available_datasets(configured_datasets=configured_datasets)
