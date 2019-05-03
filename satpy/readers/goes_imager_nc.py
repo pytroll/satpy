@@ -979,7 +979,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                 yield is_avail, ds_info
 
             matches = self.file_type_matches(ds_info['file_type'])
-            if matches and ds_info.get('resolution') is None:
+            if matches and ds_info.get('resolution') != res:
                 new_info = ds_info.copy()
                 new_info['resolution'] = res
                 yield True, new_info
