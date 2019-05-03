@@ -28,7 +28,6 @@ import dask.dataframe as dd
 import pandas as pd
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
-from unittest.mock import patch
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -276,7 +275,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
             self.assertEqual(v.attrs['sensor'], 'VIIRS')
 
 
-@patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
+@mock.patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
 class TestModVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_edr_active_fires.yaml'
@@ -331,7 +330,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
             self.assertEqual(v.attrs['sensor'], 'VIIRS')
 
 
-@patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
+@mock.patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
 class TestImgVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_edr_active_fires.yaml'
