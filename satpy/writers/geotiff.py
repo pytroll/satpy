@@ -252,6 +252,7 @@ class GeoTIFFWriter(ImageWriter):
         except ImportError:
             LOG.warning("Using legacy/slower geotiff save method, install "
                         "'rasterio' for faster saving.")
+            import warnings
             warnings.warn("Using legacy/slower geotiff save method with 'gdal'."
                           "This will be deprecated in the future. Install "
                           "'rasterio' for faster saving and future "
