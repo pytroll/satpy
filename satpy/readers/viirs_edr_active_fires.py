@@ -89,14 +89,6 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
             filename_info: Filename information
             filetype_info: Filetype information
         """
-        super(VIIRSActiveFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
-
-        if not os.path.isfile(filename):
-            return
-
-        platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
-
-        self.platform_name = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
 
         if filetype_info.get('file_type') == 'fires_text_img':
             self.file_content = dd.read_csv(filename, skiprows=15, header=None,
@@ -108,6 +100,12 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
                                             names=["latitude", "longitude",
                                                    "T13", "Along-scan", "Along-track", "confidence_pct",
                                                    "power"])
+
+        super(VIIRSActiveFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
+
+        platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
+
+        self.platform_name = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
 
     def get_dataset(self, dsid, dsinfo):
         ds = self[dsid.name].to_dask_array(lengths=True)
