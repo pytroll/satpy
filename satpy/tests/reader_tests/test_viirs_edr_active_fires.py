@@ -128,6 +128,10 @@ class FakeModFiresTextFileHandler(BaseFileHandler):
         super(FakeModFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content()
 
+        platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
+
+        self.platform_name = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
+
     def get_test_content(self):
         fake_file = io.StringIO(u'''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
         24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
@@ -150,6 +154,10 @@ class FakeImgFiresTextFileHandler(BaseFileHandler):
         fake_file = io.StringIO(u'''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
         24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
         25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
+
+        platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
+
+        self.platform_name = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
 
         return dd.from_pandas(pd.read_csv(fake_file, skiprows=15, header=None,
                                           names=["latitude", "longitude",
