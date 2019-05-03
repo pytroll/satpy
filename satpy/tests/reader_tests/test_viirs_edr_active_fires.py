@@ -28,6 +28,8 @@ import dask.dataframe as dd
 import pandas as pd
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
+from unittest.mock import patch
+
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -274,6 +276,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
             self.assertEqual(v.attrs['sensor'], 'VIIRS')
 
 
+@patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
 class TestModVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_edr_active_fires.yaml'
@@ -291,7 +294,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         """Stop wrapping the text file handler"""
         self.p.stop()
 
-    def test_init(self):
+    def test_init(self, mock_obj):
         """Test basic init with no extra parameters"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
@@ -302,7 +305,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
-    def test_load_dataset(self):
+    def test_load_dataset(self, csv_mock):
         """Test loading all datasets"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
@@ -328,6 +331,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
             self.assertEqual(v.attrs['sensor'], 'VIIRS')
 
 
+@patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
 class TestImgVIIRSActiveFiresText(unittest.TestCase):
     """Test VIIRS Fires Reader"""
     yaml_file = 'viirs_edr_active_fires.yaml'
@@ -345,7 +349,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         """Stop wrapping the text file handler"""
         self.p.stop()
 
-    def test_init(self):
+    def test_init(self, mock_obj):
         """Test basic init with no extra parameters"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
@@ -356,7 +360,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
-    def test_load_dataset(self):
+    def test_load_dataset(self, mock_obj):
         """Test loading all datasets"""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
