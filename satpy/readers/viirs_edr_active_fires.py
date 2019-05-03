@@ -110,7 +110,6 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
                                                    "power"])
 
     def get_dataset(self, dsid, dsinfo):
-        print(self.platform_name)
         ds = self[dsid.name].to_dask_array(lengths=True)
         data_array = xr.DataArray(ds, dims=("y",), attrs={"platform_name": self.platform_name, "sensor": "VIIRS"})
         data_array.attrs.update(dsinfo)
