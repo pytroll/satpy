@@ -124,9 +124,7 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
 
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
-
-    """VIIRS HDF5 File Reader.
-    """
+    """VIIRS HDF5 File Reader."""
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
         self.datasets = filename_info['datasets'].split('-')
@@ -414,6 +412,24 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             idx += 1
 
         return lons_ring, lats_ring
+
+    def available_datasets(self, configured_datasets=None):
+        """Generate dataset info and their availablity.
+
+        See
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        for details.
+
+        """
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                yield is_avail, ds_info
+                continue
+            dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
+            if dataset_group:
+                yield True, ds_info
+            elif is_avail is None:
+                yield is_avail, ds_info
 
 
 def split_desired_other(fhs, req_geo, rem_geo):
