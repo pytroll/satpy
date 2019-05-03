@@ -125,7 +125,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
                 handled_variables.add(var_name)
                 new_info = ds_info.copy()  # don't mess up the above yielded
                 new_info['resolution'] = nadir_resolution
-                if not self.is_geo and this_coords is None:
+                if self._is_polar() and this_coords is None:
                     new_info['coordinates'] = coordinates
                 yield True, new_info
             elif is_avail is None:
