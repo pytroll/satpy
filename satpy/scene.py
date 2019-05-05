@@ -218,7 +218,7 @@ class Scene(MetadataObject):
         return set(self.wishlist) - set(self.datasets.keys())
 
     def _compare_areas(self, datasets=None, compare_func=max):
-        """Get  for the provided datasets.
+        """Compare areas for the provided datasets.
 
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can

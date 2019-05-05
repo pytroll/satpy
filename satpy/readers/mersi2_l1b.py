@@ -58,8 +58,13 @@ class MERSI2L1B(HDF5FileHandler):
         slope = coeffs.attrs.pop('Slope', None)
         intercept = coeffs.attrs.pop('Intercept', None)
         if slope is not None:
-            slope = slope[cal_index]
-            intercept = intercept[cal_index]
+            # sometimes slope has multiple elements
+            if hasattr(slope, '__len__') and len(slope) == 1:
+                slope = slope[0]
+                intercept = intercept[0]
+            elif hasattr(slope, '__len__'):
+                slope = slope[cal_index]
+                intercept = intercept[cal_index]
             coeffs = coeffs * slope + intercept
         return coeffs
 
@@ -70,7 +75,8 @@ class MERSI2L1B(HDF5FileHandler):
         data = self[file_key]
         if band_index is not None:
             data = data[band_index]
-        data = data.rename({data.dims[0]: 'y', data.dims[1]: 'x'})
+        if data.ndim >= 2:
+            data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
         attrs = data.attrs.copy()  # avoid contaminating other band loading
         attrs.update(ds_info)
         if 'rows_per_scan' in self.filetype_info:
@@ -86,7 +92,6 @@ class MERSI2L1B(HDF5FileHandler):
 
         slope = attrs.pop('Slope', None)
         intercept = attrs.pop('Intercept', None)
-        # applying the
         if slope is not None and dataset_id.calibration != 'counts':
             if band_index is not None:
                 slope = slope[band_index]
@@ -94,6 +99,9 @@ class MERSI2L1B(HDF5FileHandler):
             data = data * slope + intercept
 
         if dataset_id.calibration == "reflectance":
+            # some bands have 0 counts for the first N columns and
+            # seem to be invalid data points
+            data = data.where(data != 0)
             attrs['units'] = '1'
             coeffs = self._get_coefficients(ds_info['calibration_key'],
                                             ds_info['calibration_index'])
