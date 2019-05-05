@@ -561,6 +561,35 @@ datasets:
       250:
         file_type: mersi2_l1b_250_geo
         file_key: Latitude
-
-
-
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    units: degree
+    standard_name: solar_zenith_angle
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi2_l1b_1000_geo
+    file_key: Geolocation/SolarZenith
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    units: degree
+    standard_name: solar_azimuth_angle
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi2_l1b_1000_geo
+    file_key: Geolocation/SolarAzimuth
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    units: degree
+    standard_name: sensor_zenith_angle
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi2_l1b_1000_geo
+    file_key: Geolocation/SensorZenith
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    units: degree
+    standard_name: sensor_azimuth_angle
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi2_l1b_1000_geo
+    file_key: Geolocation/SensorAzimuth
