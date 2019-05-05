@@ -269,6 +269,16 @@ composites:
       - night_fog
       - solar_zenith_angle
 
+  # fire_temperature:
+  #   compositor: !!python/name:satpy.composites.GenericCompositor
+  #   prerequisites:
+  #   - 3.9
+  #   - wavelength: 2.25
+  #     modifiers: [sunz_corrected]
+  #   - wavelength: 1.6
+  #     modifiers: [sunz_corrected]
+  #   standard_name: fire_temperature
+
   precipitation_probability:
     compositor: !!python/name:satpy.composites.cloud_products.PrecipCloudsRGB
     prerequisites:
