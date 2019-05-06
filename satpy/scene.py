@@ -770,12 +770,12 @@ class Scene(MetadataObject):
             keepables.update([x.name for x in prereq_nodes])
             LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
             if not skip:
-                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
+                LOG.debug("Delayed prerequisite for '{}': '{}'".format(comp_id, prereq_id))
                 raise DelayedGeneration(
-                    "Missing composite prerequisite for "
+                    "Delayed composite prerequisite for "
                     "'{}': '{}'".format(comp_id, prereq_id))
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
+                LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -796,7 +796,7 @@ class Scene(MetadataObject):
         compositor, prereqs, optional_prereqs = comp_node.data
 
         try:
-            missing_prereq = False
+            delayed_prereq = False
             prereq_datasets = self._get_prereq_datasets(
                 comp_node.name,
                 prereqs,
@@ -806,7 +806,7 @@ class Scene(MetadataObject):
             # if we are missing a required dependency that could be generated
             # later then we need to wait to return until after we've also
             # processed the optional dependencies
-            missing_prereq = True
+            delayed_prereq = True
         except KeyError:
             # we are missing a hard requirement that will never be available
             # there is no need to "keep" optional dependencies
@@ -823,7 +823,7 @@ class Scene(MetadataObject):
         # in the future we may be able to generate this composite (delayed)
         # so we need to hold on to successfully loaded prerequisites and
         # optional prerequisites
-        if missing_prereq:
+        if delayed_prereq:
             preservable_datasets = set(self.datasets.keys())
             prereq_ids = set(p.name for p in prereqs)
             opt_prereq_ids = set(p.name for p in optional_prereqs)
