@@ -1,0 +1,250 @@
+# References:
+#  - L1_SDR Data of FY4A Advanced Geostationary Radiation Imager
+#  - http://fy4.nsmc.org.cn/data/en/data/realtime.html
+
+reader:
+  name: agrl_l1
+  description: FY-4A AGRL instrument HDF5 reader
+  sensors: [agrl]
+  default_channels:
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    agrl_l1:
+        file_reader: !!python/name:satpy.readers.agrl_l1.HDF_AGRL_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_{code:s}-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{resolution:5s}_{version:s}.HDF']
+
+datasets:
+  C01:
+    name: C01
+    wavelength: [0.45, 0.47, 0.49]
+    resolution: [1000,2000,4000]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_key: NOMChannel01
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C02:
+    name: C02
+    wavelength: [0.55, 0.65, 0.75]
+    resolution: [500,1000,2000,4000]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel02
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C03:
+    name: C03
+    wavelength: [0.75, 0.83, 0.90]
+    resolution: [1000,2000,4000]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel03
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C04:
+    name: C04
+    wavelength: [1.36, 1.37, 1.39]
+    resolution: [2000,4000]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel04
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C05:
+    name: C05
+    wavelength: [1.58, 1.61, 1.64]
+    resolution: [2000,4000]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel05
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C06:
+    name: C06
+    wavelength: [2.10, 2.22, 2.35]
+    resolution: [2000,4000]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel06
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C07:
+    name: C07
+    wavelength: [3.5, 3.72, 4.0]
+    resolution: [2000,4000]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel07
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C08:
+    name: C08
+    wavelength: [3.5, 3.72, 4.0]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel08
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C09:
+    name: C09
+    wavelength: [5.8, 6.25, 6.7]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel09
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C10:
+    name: C10
+    wavelength: [6.9, 7.10, 7.3]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel10
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C11:
+    name: C11
+    wavelength: [8.0, 8.5, 9.0]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel11
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C12:
+    name: C12
+    wavelength: [10.3, 10.8, 11.1]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel12
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C13:
+    name: C13
+    wavelength: [11.5, 12.0, 12.5]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel13
+    file_type: agrl_l1
+    fill_value: 65535
+
+  C14:
+    name: C14
+    wavelength: [13.2, 13.5, 13.8]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1    
+    file_key: NOMChannel14
+    file_type: agrl_l1
+    fill_value: 65535
