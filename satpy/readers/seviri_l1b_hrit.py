@@ -23,14 +23,108 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """SEVIRI HRIT format reader
-******************************
+============================
+
+Introduction
+------------
+
+The ``seviri_l1b_hrit`` reader reads and calibrates MSG-SEVIRI L1.5 image data in HRIT format. The format is explained
+in the `MSG Level 1.5 Image Format Description`_. The files are usually named as
+follows:
+
+.. code-block:: none
+
+    H-000-MSG4__-MSG4________-_________-PRO______-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000001___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000002___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000003___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000004___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000005___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000006___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000007___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000008___-201903011200-__
+    H-000-MSG4__-MSG4________-_________-EPI______-201903011200-__
+
+Each image is decomposed into 24 segments (files) for the high-resolution-visible (HRV) channel and 8 segments for other
+visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
+which contain global metadata valid for all channels.
+
+Example
+-------
+Here is an example how to read the data in satpy:
+
+.. code-block:: python
+
+    from satpy import Scene
+    import glob
+
+    filenames = glob.glob('data/H-000-MSG4__-MSG4________-*201903011200*')
+    scn = Scene(filenames=filenames, reader='seviri_l1b_hrit')
+    scn.load(['VIS006', 'IR_108'])
+    print(scn['IR_108'])
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray 'reshape-5b8fc7364b289af7dec1f45b88ad2056' (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+        acq_time  (y) datetime64[ns] NaT NaT NaT NaT NaT NaT ... NaT NaT NaT NaT NaT
+      * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
+      * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
+    Attributes:
+        satellite_longitude:      0.0
+        satellite_latitude:       0.0
+        satellite_altitude:       35785831.0
+        georef_offset_corrected:  True
+        wavelength:               (9.8, 10.8, 11.8)
+        units:                    K
+        standard_name:            brightness_temperature
+        sensor:                   seviri
+        navigation:               {'satellite_nominal_longitude': 0.0, 'satellite...
+        projection:               {'satellite_longitude': 0.0, 'satellite_latitud...
+        platform_name:            Meteosat-11
+        start_time:               2019-03-01 12:00:09.716000
+        end_time:                 2019-03-01 12:12:42.946000
+        area:                     Area ID: some_area_name\\nDescription: On-the-fl...
+        name:                     IR_108
+        resolution:               3000.403165817
+        calibration:              brightness_temperature
+        polarization:             None
+        level:                    None
+        modifiers:                ()
+        ancillary_variables:      []
+
+
+* The ``projection`` attribute specifies the projection parameters which are used to, for example, compute lat/lon
+  coordinates.
+* The ``navigation`` attribute holds the actual position of the satellite required for computing viewing
+  angles etc.
+* You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
+  :class:`HRITMSGFileHandler`.
+* The ``acq_time`` coordinate provides the acquisition time for each scanline. Use a ``MultiIndex`` to enable selection
+  by acquisition time:
+
+  .. code-block:: python
+
+      import pandas as pd
+      mi = pd.MultiIndex.from_arrays([scn['IR_108']['y'].data, scn['IR_108']['acq_time'].data],
+                                     names=('y_coord', 'time'))
+      scn['IR_108']['y'] = mi
+      scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
+
 
 References:
-    - MSG Level 1.5 Image Data Format Description
-    - Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent
-      Spectral Blackbody Radiance
+    - `MSG Level 1.5 Image Format Description`_
+    - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
 
+.. _MSG Level 1.5 Image Format Description: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=
+    PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
 
+.. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
+    RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
 import logging
