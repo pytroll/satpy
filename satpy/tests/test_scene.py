@@ -1195,9 +1195,47 @@ class TestSceneLoading(unittest.TestCase):
         #   ds4 (mod1, mod3)
         #   ds5 (mod1, incomp_areas)
         # We should end up with ds3, ds4 (mod1, mod3), ds5 (mod1), and ds1
-        # for the mod1 modifier
+        # for the incomp_areas modifier
         self.assertEqual(len(loaded_ids), 4)  # the 1 dependencies
         self.assertIn('ds3', scene.datasets)
+        self.assertIn(DatasetID(name='ds4', calibration='reflectance',
+                                modifiers=('mod1', 'mod3')),
+                      scene.datasets)
+        self.assertIn(DatasetID(name='ds5', resolution=250,
+                                modifiers=('mod1',)),
+                      scene.datasets)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp18_2(self, cri, cl):
+        """Test loading a composite that depends on a incompatible area modified dataset.
+
+        Specifically a modified dataset where the modifier has optional
+        dependencies.
+
+        """
+        import satpy.scene
+        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': create_fake_reader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp18_2'])
+        loaded_ids = list(scene.datasets.keys())
+        # depends on:
+        #   ds3
+        #   ds4 (mod1, mod3)
+        #   ds5 (mod1, incomp_areas_opt)
+        # We should end up with ds3, ds4 (mod1, mod3), ds5 (mod1), and ds1
+        # and ds2 for the incomp_areas_opt modifier
+        self.assertEqual(len(loaded_ids), 5)  # the 1 dependencies
+        self.assertIn('ds3', scene.datasets)
+        self.assertIn('ds2', scene.datasets)
         self.assertIn(DatasetID(name='ds4', calibration='reflectance',
                                 modifiers=('mod1', 'mod3')),
                       scene.datasets)
