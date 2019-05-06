@@ -214,7 +214,7 @@ class FakeReader(FileYAMLReader):
         else:
             available_datasets = all_ds
 
-        self.ids = {ds_id: {} for ds_id in all_ds}
+        self.all_ids = {ds_id: {} for ds_id in all_ds}
         self.available_ids = {ds_id: {} for ds_id in available_datasets}
 
         # Wrap load method in mock object so we can record call information
@@ -236,7 +236,7 @@ class FakeReader(FileYAMLReader):
         from satpy import DatasetDict
         from xarray import DataArray
         import numpy as np
-        dataset_ids = self.ids.keys()
+        dataset_ids = self.all_ids.keys()
         loaded_datasets = DatasetDict()
         for k in dataset_keys:
             if k == 'ds9_fail_load':

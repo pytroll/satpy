@@ -110,7 +110,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             self.info['sensors'] = [self.info['sensors']]
         self.datasets = self.config.get('datasets', {})
         self.info['filenames'] = []
-        self.ids = {}
+        self.all_ids = {}
         self.load_ds_ids_from_config()
 
     @property
@@ -119,7 +119,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @property
     def all_dataset_ids(self):
-        return self.ids.keys()
+        return self.all_ids.keys()
 
     @property
     def all_dataset_names(self):
@@ -199,7 +199,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         See `satpy.readers.get_key` for more information about kwargs.
 
         """
-        return get_key(key, self.ids.keys(), **kwargs)
+        return get_key(key, self.all_ids.keys(), **kwargs)
 
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
@@ -246,7 +246,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                     # this is important for wavelength which was converted
                     # to a tuple
                     ds_info[key] = getattr(dsid, key)
-                self.ids[dsid] = ds_info
+                self.all_ids[dsid] = ds_info
 
         return ids
 
@@ -537,7 +537,7 @@ class FileYAMLReader(AbstractYAMLReader):
         """
         # flatten all file handlers in to one list
         flat_fhs = (fh for fhs in self.file_handlers.values() for fh in fhs)
-        id_values = list(self.ids.values())
+        id_values = list(self.all_ids.values())
         configured_datasets = ((None, ds_info) for ds_info in id_values)
         for fh in flat_fhs:
             # chain the 'available_datasets' methods together by calling the
@@ -574,7 +574,7 @@ class FileYAMLReader(AbstractYAMLReader):
             # None == we don't have the file type object to ask
             if is_avail:
                 self.available_ids[ds_id] = ds_info
-        self.ids = new_ids
+        self.all_ids = new_ids
 
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
@@ -606,7 +606,7 @@ class FileYAMLReader(AbstractYAMLReader):
         return res
 
     def _load_dataset_data(self, file_handlers, dsid):
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
         proj = self._load_dataset(dsid, ds_info, file_handlers)
         # FIXME: areas could be concatenated here
         # Update the metadata
@@ -639,7 +639,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _get_coordinates_for_dataset_key(self, dsid):
         """Get the coordinate dataset keys for *dsid*."""
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
         cids = []
 
         for cinfo in ds_info.get('coordinates', []):
@@ -664,7 +664,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _get_file_handlers(self, dsid):
         """Get the file handler to load this dataset."""
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
 
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
@@ -783,8 +783,8 @@ class FileYAMLReader(AbstractYAMLReader):
             try:
                 return get_key(key, self.available_ids.keys(), **kwargs)
             except KeyError:
-                return get_key(key, self.ids.keys(), **kwargs)
-        return get_key(key, self.ids.keys(), **kwargs)
+                return get_key(key, self.all_ids.keys(), **kwargs)
+        return get_key(key, self.all_ids.keys(), **kwargs)
 
     def load(self, dataset_keys, previous_datasets=None):
         """Load `dataset_keys`.
