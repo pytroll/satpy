@@ -217,8 +217,6 @@ def get_cds_time(days, msecs):
     return time
 
 
-
-
 def dec10216(inbuf):
     """Decode 10 bits data into 16 bits words.
 

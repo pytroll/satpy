@@ -72,7 +72,6 @@ class SeviriBaseTest(unittest.TestCase):
         self.assertTrue(np.all(get_cds_time(days=days, msecs=msecs) == expected))
 
 
-
 def suite():
     """The test suite for test_scene."""
     loader = unittest.TestLoader()
