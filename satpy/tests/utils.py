@@ -170,7 +170,7 @@ def test_composites(sensor_name):
         'mod3': (['ds2'], []),
         'res_change': ([], []),
         'incomp_areas': (['ds1'], []),
-        'incomp_areas_opt': (['ds1'], ['ds2']),
+        'incomp_areas_opt': ([DatasetID(name='ds1', modifiers=('incomp_areas',))], ['ds2']),
         'mod_opt_prereq': (['ds1'], ['ds2']),
         'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
         'mod_opt_only': ([], ['ds2']),
