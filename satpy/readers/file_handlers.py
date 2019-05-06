@@ -149,7 +149,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         of redundant datasets produced.
 
         This method should **not** update values of the dataset information
-        dictionary **unless* this file handler has a matching file type
+        dictionary **unless** this file handler has a matching file type
         (the data could be loaded from this object in the future) and at least
         **one** :class:`satpy.dataset.DatasetID` key is also modified.
         Otherwise, this file type may override the information provided by
