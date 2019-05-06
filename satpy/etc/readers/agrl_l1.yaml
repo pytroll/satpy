@@ -25,7 +25,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1
+        units: "1"
     file_key: NOMChannel01
     file_type: agrl_l1
     fill_value: 65535
@@ -40,7 +40,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel02
     file_type: agrl_l1
     fill_value: 65535
@@ -55,7 +55,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel03
     file_type: agrl_l1
     fill_value: 65535
@@ -70,7 +70,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel04
     file_type: agrl_l1
     fill_value: 65535
@@ -85,7 +85,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel05
     file_type: agrl_l1
     fill_value: 65535
@@ -100,7 +100,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel06
     file_type: agrl_l1
     fill_value: 65535
@@ -118,7 +118,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel07
     file_type: agrl_l1
     fill_value: 65535
@@ -136,7 +136,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel08
     file_type: agrl_l1
     fill_value: 65535
@@ -154,7 +154,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel09
     file_type: agrl_l1
     fill_value: 65535
@@ -172,7 +172,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel10
     file_type: agrl_l1
     fill_value: 65535
@@ -190,7 +190,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel11
     file_type: agrl_l1
     fill_value: 65535
@@ -208,7 +208,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel12
     file_type: agrl_l1
     fill_value: 65535
@@ -226,7 +226,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel13
     file_type: agrl_l1
     fill_value: 65535
@@ -244,7 +244,7 @@ datasets:
         units: "%"
       counts:
         standard_name: counts
-        units: 1    
+        units: "1"
     file_key: NOMChannel14
     file_type: agrl_l1
     fill_value: 65535
