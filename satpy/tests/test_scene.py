@@ -1262,9 +1262,9 @@ class TestSceneLoading(unittest.TestCase):
 
         """
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
