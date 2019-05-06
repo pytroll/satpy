@@ -231,7 +231,6 @@ composites:
       calibration: radiance
     standard_name: fire_temperature
     name: fire_temperature
-
   fire_temperature_awips:
     # CIRA: EUMETSAT
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -251,7 +250,6 @@ composites:
     - name: M10
     standard_name: fire_temperature
     name: fire_temperature_eumetsat
-    
   fire_temperature_39refl:
     # CIRA: All bands in Reflectance units (%)
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -263,21 +261,8 @@ composites:
     - name: M10
       modifiers: [sunz_corrected]
     standard_name: fire_temperature
-    name: fire_temperature_39refl
-    
-  fire_temperature_smhi:
-    # Iterated ("reverse engineered") to look like the CIRA type RGBs
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - name: M12
-      modifiers:
-    - name: M11
-      modifiers: [sunz_corrected]
-    - name: M10
-      modifiers: [sunz_corrected]
-    standard_name: fire_temperature
-    name: fire_temperature_smhi
-    
+    name: fire_temperature_39refl    
+
   natural_color:
     compositor: !!python/name:satpy.composites.RatioSharpenedRGB
     prerequisites:
