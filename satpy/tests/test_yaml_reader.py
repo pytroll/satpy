@@ -543,7 +543,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
     def test_update_ds_ids_from_file_handlers(self):
         """Test updating existing dataset IDs with information from the file"""
         from functools import partial
-        orig_ids = self.reader.ids
+        orig_ids = self.reader.all_ids
 
         def available_datasets(self, configured_datasets=None):
             res = self.resolution
@@ -570,7 +570,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
         for ftype, resol in zip(('ftype1', 'ftype2'), (1, 2)):
             # need to copy this because the dataset infos will be modified
             _orig_ids = {key: val.copy() for key, val in orig_ids.items()}
-            with patch.dict(self.reader.ids, _orig_ids, clear=True), \
+            with patch.dict(self.reader.all_ids, _orig_ids, clear=True), \
                     patch.dict(self.reader.available_ids, {}, clear=True):
                 # Add a file handler with resolution property
                 fh = MagicMock(filetype_info={'file_type': ftype},
@@ -586,7 +586,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
 
                 # Make sure the resolution property has been transferred
                 # correctly from the file handler to the dataset ID
-                for ds_id, ds_info in self.reader.ids.items():
+                for ds_id, ds_info in self.reader.all_ids.items():
                     file_types = ds_info['file_type']
                     if not isinstance(file_types, list):
                         file_types = [file_types]

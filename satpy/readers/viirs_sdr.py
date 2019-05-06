@@ -547,7 +547,7 @@ class VIIRSSDRReader(FileYAMLReader):
 
     def get_right_geo_fhs(self, dsid, fhs):
         """Find the right geographical file handlers for given dataset ID *dsid*."""
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
         req_geo, rem_geo = self._get_req_rem_geo(ds_info)
         desired, other = split_desired_other(fhs, req_geo, rem_geo)
         if desired:
@@ -561,7 +561,7 @@ class VIIRSSDRReader(FileYAMLReader):
 
     def _get_file_handlers(self, dsid):
         """Get the file handler to load this dataset."""
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
 
         fhs = [fh for fh in self.file_handlers['generic_file']
                if set(fh.datasets) & set(ds_info['dataset_groups'])]
@@ -581,7 +581,7 @@ class VIIRSSDRReader(FileYAMLReader):
         """
         coords = super(VIIRSSDRReader, self)._get_coordinates_for_dataset_key(dsid)
         for c_id in coords:
-            c_info = self.ids[c_id]  # c_info['dataset_groups'] should be a list of 2 elements
+            c_info = self.all_ids[c_id]  # c_info['dataset_groups'] should be a list of 2 elements
             self._get_file_handlers(c_id)
             if len(c_info['dataset_groups']) == 1:  # filtering already done
                 continue

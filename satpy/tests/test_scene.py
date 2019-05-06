@@ -673,10 +673,10 @@ class TestScene(unittest.TestCase):
         scene.cpl.compositors = comps
         scene.cpl.modifiers = mods
         id_list = scene.all_dataset_ids()
-        self.assertEqual(len(id_list), len(r.ids))
+        self.assertEqual(len(id_list), len(r.all_ids))
         id_list = scene.all_dataset_ids(composites=True)
         self.assertEqual(len(id_list),
-                         len(r.ids) + len(scene.cpl.compositors['fake_sensor'].keys()))
+                         len(r.all_ids) + len(scene.cpl.compositors['fake_sensor'].keys()))
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
