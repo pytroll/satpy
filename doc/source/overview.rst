@@ -80,24 +80,7 @@ out certain features of the data. This includes using one dataset to enhance
 another, combining 3 or more datasets in to an RGB image, or any other
 combination of datasets. Satpy comes with a lot of common composite
 combinations built-in and allows the user to request them like any other
-dataset.
-
-The list of default RGB composites available depends obviously on the
-sensor. For instance the AVHRR sensor does not allow to generate a true color
-RGB, whereas that is possible with VIIRS and MODIS. It is straightforward to
-see what default possibilities are available:
-
-    >>> from satpy.scene import Scene
-    >>> scene = Scene(filenames=myfiles)
-    >>> print(scene.available_composite_names())
-
-These default RGB composites have recipes that are specified in the
-`visir.yaml` and/or in the config file specific for the given sensor
-(e.g. `viirs.yaml` or `seviri.yaml`). The composites may use different
-enhancements, see below. For more details on how to add your own composite
-recipe to the configuration see :doc:`composites` and :doc:`enhancements`.
-
-Satpy also makes it possible to create your own custom composites
+dataset. Satpy also makes it possible to create your own custom composites
 and have Satpy treat them like any other dataset. See :doc:`composites`
 for more information.
 

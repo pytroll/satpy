@@ -2,7 +2,6 @@
 Composites
 ==========
 
-
 Built-in Compositors
 ====================
 
@@ -23,78 +22,6 @@ that are specific to an instrument can be placed in YAML config files named
 accordingly (e.g., ``seviri.yaml`` or ``viirs.yaml``). See the
 `satpy repository <https://github.com/pytroll/satpy/tree/master/satpy/etc/composites>`_
 for more examples.
-
-Before we go on with the various compositors available first some words on
-creating/adding a default RGB composite with associated enhancement.
-
-
-RGB composites and associated enhancements
-------------------------------------------
-
-The default RGB composites available are all configured in YAML configuration
-files, as mentioned above. However, the composite YAML configuration files
-doesn't specify how the final image is enhanced (stretched). This is specified
-in the YAML configuration files for the enhancements (e.g. `generic.yaml`).  It
-is possible to have several recipes for the same combination of channels. This
-is for instace the case for the fire temperature RGB, where different agencies
-use slightly different enhancements for the same combination VIIRS bands.
-
-Here are two different enhancements used at EUMETSAT and NOAA::
-
-  fire_temperature_awips:
-    standard_name: fire_temperature
-    name: fire_temperature_awips
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs:
-        stretch: crude
-        min_stretch: [273.0, 0, 0]
-        max_stretch: [333.0, 100., 75.]
-    - name: gamma
-      method: *gammafun
-      kwargs: {gamma: [0.4, 1.0, 1.0]}
-  fire_temperature_eumetsat:
-    standard_name: fire_temperature
-    name: fire_temperature_eumetsat
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs:
-        stretch: crude
-        min_stretch: [273.0, 0, 0]
-        max_stretch: [350.0, 60., 60.]
-    - name: gamma
-      method: *gammafun
-      kwargs: {gamma: [1.0, 1.0, 1.0]}
-
-
-In the composite YAML file it os then necessary to map the right enhancement to
-the right composite using the `name` attribute::
-
-  fire_temperature_awips:
-    # CIRA: EUMETSAT
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - name: M12
-    - name: M11
-    - name: M10
-    standard_name: fire_temperature
-    name: fire_temperature_awips
-    
-  fire_temperature_eumetsat:
-    # CIRA: AWIPS
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - name: M12
-    - name: M11
-    - name: M10
-    standard_name: fire_temperature
-    name: fire_temperature_eumetsat
-
-
-
-
 
 GenericCompositor
 -----------------
