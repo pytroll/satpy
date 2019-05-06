@@ -106,7 +106,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 if name == 'res_change' and resolution is not None:
                     i = datasets[0].attrs.copy()
                     i['resolution'] *= 5
-                elif name == 'incomp_areas':
+                elif 'incomp_areas' in name:
                     raise IncompatibleAreas(
                         "Test modifier 'incomp_areas' always raises IncompatibleAreas")
                 else:
@@ -150,6 +150,9 @@ def test_composites(sensor_name):
         DatasetID(name='comp18'): (['ds3',
                                     DatasetID(name='ds4', modifiers=('mod1', 'mod3',)),
                                     DatasetID(name='ds5', modifiers=('mod1', 'incomp_areas'))], []),
+        DatasetID(name='comp18_2'): (['ds3',
+                                      DatasetID(name='ds4', modifiers=('mod1', 'mod3',)),
+                                      DatasetID(name='ds5', modifiers=('mod1', 'incomp_areas_opt'))], []),
         DatasetID(name='comp19'): ([DatasetID('ds5', modifiers=('res_change',)), 'comp13', 'ds2'], []),
         DatasetID(name='comp20'): ([DatasetID(name='ds5', modifiers=('mod_opt_prereq',))], []),
         DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
@@ -163,6 +166,7 @@ def test_composites(sensor_name):
         'mod3': (['ds2'], []),
         'res_change': ([], []),
         'incomp_areas': (['ds1'], []),
+        'incomp_areas_opt': ([DatasetID(name='ds1', modifiers=('incomp_areas',))], ['ds2']),
         'mod_opt_prereq': (['ds1'], ['ds2']),
         'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
         'mod_opt_only': ([], ['ds2']),
