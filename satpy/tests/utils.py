@@ -1,28 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
+# Copyright (c) 2017-2019 Satpy developers
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for various satpy tests.
 """
 
 from datetime import datetime
+from satpy.readers.yaml_reader import FileYAMLReader
 
 try:
     from unittest import mock
@@ -183,46 +179,75 @@ def test_composites(sensor_name):
     return comps, mods
 
 
-def _get_dataset_key(self, key, **kwargs):
-    from satpy.readers import get_key
-    return get_key(key, self.datasets, **kwargs)
+def _filter_datasets(all_ds, names_or_ids):
+    """Helper function for filtering DatasetIDs by name or DatasetID."""
+    # DatasetID will match a str to the name
+    # need to separate them out
+    str_filter = [ds_name for ds_name in names_or_ids if isinstance(ds_name, str)]
+    id_filter = [ds_id for ds_id in names_or_ids if not isinstance(ds_id, str)]
+    for ds_id in all_ds:
+        if ds_id in id_filter or ds_id.name in str_filter:
+            yield ds_id
 
 
-def _reader_load(self, dataset_keys):
-    from satpy import DatasetDict
-    from xarray import DataArray
-    import numpy as np
-    dataset_ids = self.datasets
-    loaded_datasets = DatasetDict()
-    for k in dataset_keys:
-        if k == 'ds9_fail_load':
-            continue
-        for ds in dataset_ids:
-            if ds == k:
-                loaded_datasets[ds] = DataArray(data=np.arange(25).reshape(5, 5),
-                                                attrs=ds.to_dict(),
-                                                dims=['y', 'x'])
-    return loaded_datasets
+class FakeReader(FileYAMLReader):
+    """Fake reader to make testing basic Scene/reader functionality easier."""
 
+    def __init__(self, name, sensor_name='fake_sensor', datasets=None,
+                 available_datasets=None, start_time=None, end_time=None):
+        """Initialize reader and mock necessary properties and methods."""
+        with mock.patch('satpy.readers.yaml_reader.recursive_dict_update') as rdu, \
+                mock.patch('satpy.readers.yaml_reader.open'), \
+                mock.patch('satpy.readers.yaml_reader.yaml.load'):
+            rdu.return_value = {'reader': {'name': name}, 'file_types': {}}
+            super(FakeReader, self).__init__(['fake.yaml'])
 
-def create_fake_reader(reader_name, sensor_name='fake_sensor', datasets=None,
-                       start_time=None, end_time=None):
-    from functools import partial
-    if start_time is None:
-        start_time = datetime.utcnow()
-    if end_time is None:
-        end_time = start_time
-    r = mock.MagicMock()
-    ds = test_datasets()
-    if datasets is not None:
-        ds = [d for d in ds if d.name in datasets]
+        if start_time is None:
+            start_time = datetime.utcnow()
+        self._start_time = start_time
+        if end_time is None:
+            end_time = start_time
+        self._end_time = end_time
+        self._sensor_name = set([sensor_name])
 
-    r.datasets = ds
-    r.start_time = start_time
-    r.end_time = end_time
-    r.sensor_names = set([sensor_name])
-    r.get_dataset_key = partial(_get_dataset_key, r)
-    r.all_dataset_ids = r.datasets
-    r.available_dataset_ids = r.datasets
-    r.load.side_effect = partial(_reader_load, r)
-    return r
+        all_ds = test_datasets()
+        if datasets is not None:
+            all_ds = list(_filter_datasets(all_ds, datasets))
+        if available_datasets is not None:
+            available_datasets = list(_filter_datasets(all_ds, available_datasets))
+        else:
+            available_datasets = all_ds
+
+        self.all_ids = {ds_id: {} for ds_id in all_ds}
+        self.available_ids = {ds_id: {} for ds_id in available_datasets}
+
+        # Wrap load method in mock object so we can record call information
+        self.load = mock.patch.object(self, 'load', wraps=self.load).start()
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
+
+    @property
+    def sensor_names(self):
+        return self._sensor_name
+
+    def load(self, dataset_keys):
+        from satpy import DatasetDict
+        from xarray import DataArray
+        import numpy as np
+        dataset_ids = self.all_ids.keys()
+        loaded_datasets = DatasetDict()
+        for k in dataset_keys:
+            if k == 'ds9_fail_load':
+                continue
+            for ds in dataset_ids:
+                if ds == k:
+                    loaded_datasets[ds] = DataArray(data=np.arange(25).reshape(5, 5),
+                                                    attrs=ds.to_dict(),
+                                                    dims=['y', 'x'])
+        return loaded_datasets
