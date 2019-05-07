@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012 Martin Raspaud
+# Copyright (c) 2012-2018 Pytroll Community
 
 # Author(s):
 
@@ -155,8 +155,11 @@ def parse_format(xml_file):
     tree = ElementTree()
     tree.parse(xml_file)
 
-    for param in tree.find("parameters").getchildren():
-        VARIABLES[param.get("name")] = param.get("value")
+    try:
+        for param in tree.find("parameters").getchildren():
+            VARIABLES[param.get("name")] = param.get("value")
+    except AttributeError:
+        pass
 
     types_scales = {}
 

@@ -1,0 +1,230 @@
+reader:
+    name: eps_amsua_l1b
+    description: EPS Reader for amsu-a
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+    sensors: [amsu-a]
+    default_channels:
+
+datasets:
+    '1':
+        name: '1'
+        wavelength: [0.58, 0.63, 0.68]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '2':
+        name: '2'
+        wavelength: [0.725, 0.8625, 1.0]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '3':
+        name: '3'
+        wavelength: [1.58, 1.61, 1.64]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '4':
+        name: '4'
+        wavelength: [10.3, 10.8, 11.3]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '5':
+        name: '5'
+        wavelength: [11.5, 12.0, 12.5]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '6':
+        name: '6'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '7':
+        name: '7'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '8':
+        name: '8'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '9':
+        name: '9'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '10':
+        name: '10'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '11':
+        name: '11'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '12':
+        name: '12'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '13':
+        name: '13'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '14':
+        name: '14'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+    '15':
+        name: '15'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 40000
+        calibration:
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: amsu-a_eps
+
+    latitude:
+        name: latitude
+        resolution: 40000
+        file_type: amsu-a_eps
+        standard_name: latitude
+        units: degree
+
+    longitude:
+        name: longitude
+        resolution: 40000
+        file_type: amsu-a_eps
+        standard_name: longitude
+        units: degree
+
+    solar_zenith_angle:
+        name: solar_zenith_angle
+        sensor: amsu-a
+        resolution: 40000
+        coordinates: [longitude, latitude]
+        file_type: amsu-a_eps
+
+    solar_azimuth_angle:
+        name: solar_azimuth_angle
+        sensor: amsu-a
+        resolution: 40000
+        coordinates: [longitude, latitude]
+        file_type: amsu-a_eps
+
+    satellite_zenith_angle:
+        name: satellite_zenith_angle
+        sensor: amsu-a
+        resolution: 40000
+        coordinates: [longitude, latitude]
+        file_type: amsu-a_eps
+
+    satellite_azimuth_angle:
+        name: satellite_azimuth_angle
+        sensor: amsu-a
+        resolution: 40000
+        coordinates: [longitude, latitude]
+        file_type: amsu-a_eps
+
+    terrain_elevation:
+        name: terrain_elevation
+        sensor: amsu_a
+        resolution: 40000
+        coordinates: [longitude, latitude]
+        file_type: amsu-a_eps
+        units: m
+
+file_types:
+    amsu-a_eps:
+        file_reader: !!python/name:satpy.readers.eps_amsua_l1b.EPSAMSUAFile ''
+        file_patterns: [
+                       'AMSA_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_N_O_{creation_time:%Y%m%d%H%M%SZ}',
+                       'AMSA_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_N_O_{creation_time:%Y%m%d%H%M%SZ}.nat']
