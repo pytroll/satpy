@@ -38,9 +38,9 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_nc_slstr, test_olci_nc,
                                       test_viirs_edr_flood, test_nwcsaf_nc,
                                       test_seviri_l1b_hrit, test_sar_c_safe,
-                                      test_modis_l1b, test_viirs_edr_active_fires,
-                                      test_safe_sar_l2_ocn, test_electrol_hrit)
-
+                                      test_safe_sar_l2_ocn, test_viirs_edr_active_fires,
+                                      test_hdfeos_base, test_modis_l2,
+                                      test_electrol_hrit)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -83,9 +83,10 @@ def suite():
     mysuite.addTests(test_nwcsaf_nc.suite())
     mysuite.addTests(test_seviri_l1b_hrit.suite())
     mysuite.addTests(test_sar_c_safe.suite())
-    mysuite.addTests(test_modis_l1b.suite())
     mysuite.addTests(test_viirs_edr_active_fires.suite())
     mysuite.addTests(test_safe_sar_l2_ocn.suite())
+    mysuite.addTests(test_hdfeos_base.suite())
+    mysuite.addTests(test_modis_l2.suite())
     mysuite.addTests(test_electrol_hrit.suite())
 
     return mysuite
