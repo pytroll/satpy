@@ -144,7 +144,7 @@ composites:
         - 1.6
         - 0.6
     standard_name: convection
-    
+
   snow:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -155,7 +155,7 @@ composites:
     - wavelength: 3.9
       modifiers: [nir_reflectance]
     standard_name: snow
-    
+
   day_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -165,7 +165,7 @@ composites:
       modifiers: [nir_reflectance]
     - 10.8
     standard_name: day_microphysics
-    
+
   dust:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -268,16 +268,6 @@ composites:
       - natural_color
       - night_fog
       - solar_zenith_angle
-
-  # fire_temperature:
-  #   compositor: !!python/name:satpy.composites.GenericCompositor
-  #   prerequisites:
-  #   - 3.9
-  #   - wavelength: 2.25
-  #     modifiers: [sunz_corrected]
-  #   - wavelength: 1.6
-  #     modifiers: [sunz_corrected]
-  #   standard_name: fire_temperature
 
   precipitation_probability:
     compositor: !!python/name:satpy.composites.cloud_products.PrecipCloudsRGB

@@ -240,7 +240,7 @@ composites:
     - name: M10
     standard_name: fire_temperature
     name: fire_temperature_awips
-    
+
   fire_temperature_eumetsat:
     # CIRA: AWIPS
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -261,7 +261,7 @@ composites:
     - name: M10
       modifiers: [sunz_corrected]
     standard_name: fire_temperature
-    name: fire_temperature_39refl    
+    name: fire_temperature_39refl
 
   natural_color:
     compositor: !!python/name:satpy.composites.RatioSharpenedRGB
