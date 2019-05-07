@@ -53,6 +53,15 @@ class MERSI2L1B(HDF5FileHandler):
     def end_time(self):
         return self._strptime('/attr/Observing Ending Date', '/attr/Observing Ending Time')
 
+    @property
+    def sensor_names(self):
+        """Map sensor name to Satpy 'standard' sensor names."""
+        file_sensor = self['/attr/Sensor Identification Code']
+        sensor = {
+            'MERSI': 'mersi2',
+        }.get(file_sensor, file_sensor)
+        return {sensor}  # set
+
     def _get_coefficients(self, cal_key, cal_index):
         coeffs = self[cal_key][cal_index]
         slope = coeffs.attrs.pop('Slope', None)
@@ -102,7 +111,6 @@ class MERSI2L1B(HDF5FileHandler):
             # some bands have 0 counts for the first N columns and
             # seem to be invalid data points
             data = data.where(data != 0)
-            attrs['units'] = '1'
             coeffs = self._get_coefficients(ds_info['calibration_key'],
                                             ds_info['calibration_index'])
             data = coeffs[0] + coeffs[1] * data + coeffs[2] * data**2
@@ -147,9 +155,7 @@ class MERSI2L1B(HDF5FileHandler):
 
         data.attrs.update({
             'platform_name': self['/attr/Satellite Name'],
-            'sensor': self['/attr/Sensor Identification Code'],
+            'sensor': self.sensor_names,
         })
-        if data.attrs['units'] == 'NO':
-            data.attrs['units'] = '1'
 
         return data
