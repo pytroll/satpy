@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2019 Satpy developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -63,6 +63,7 @@ class HDF_AGRL_L1(HDF5FileHandler):
         calibration = ds_info['calibration']
 
         if calibration == 'counts':
+            data.attrs['units'] = '1'
             return data
         elif calibration == 'reflectance':
             logger.debug("Calibrating to reflectances")
@@ -71,21 +72,16 @@ class HDF_AGRL_L1(HDF5FileHandler):
             slope = self.get(cal_coef)[:, 0][int(file_key[-2:])-1].values
             offset = self.get(cal_coef)[:, 1][int(file_key[-2:])-1].values
             data = self.dn2reflectance(data, slope, offset)
+            data.attrs['units'] = '%'
         elif calibration == 'brightness_temperature':
             logger.debug("Calibrating to brightness_temperature")
             # the value of dn is the index of brightness_temperature
             data = self.calibrate(data, 'CAL'+file_key[3:])
+            data.attrs['units'] = 'K'
 
         data.attrs.update({'platform_name': self['/attr/Satellite Name'],
                            'sensor': self['/attr/Sensor Identification Code']})
         data.attrs.update(ds_info)
-
-        if data.attrs.get('calibration') == 'brightness_temperature':
-            data.attrs.update({'units': 'K'})
-        elif data.attrs.get('calibration') == 'reflectance':
-            data.attrs.update({'units': '%'})
-        else:
-            data.attrs.update({'units': '1'})
 
         return data
 
