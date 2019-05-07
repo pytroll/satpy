@@ -24,7 +24,6 @@
 """Utilities and eventually also base classes for MSG HRIT/Native data reading
 """
 
-from datetime import datetime, timedelta
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
@@ -195,22 +194,24 @@ CALIB[324] = {'HRV': {'F': 79.0035 / np.pi},
 def get_cds_time(days, msecs):
     """Compute timestamp given the days since epoch and milliseconds of the day
 
+    1958-01-01 00:00 is interpreted as fill value and will be replaced by NaT (Not a Time).
+
     Args:
-        days (int or numpy.ndarray):
+        days (int, either scalar or numpy.ndarray):
             Days since 1958-01-01
-        msecs (int or numpy.ndarray):
+        msecs (int, either scalar or numpy.ndarray):
             Milliseconds of the day
 
     Returns:
         numpy.datetime64: Timestamp(s)
-
     """
-    if isinstance(days, (int, float)):
+    if np.isscalar(days):
         days = np.array([days], dtype='int64')
         msecs = np.array([msecs], dtype='int64')
 
     time = np.datetime64('1958-01-01').astype('datetime64[ms]') + \
         days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]')
+    time[time == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
 
     if len(time) == 1:
         return time[0]
