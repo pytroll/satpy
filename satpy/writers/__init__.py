@@ -195,13 +195,18 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
         This function currently loses the data mask (alpha band).
 
-    ``resolution`` is chosen automatically if None (default), otherwise it should be one of:
+    ``resolution`` is chosen automatically if None (default),
+    otherwise it should be one of:
 
     +-----+-------------------------+---------+
     | 'f' | Full resolution         | 0.04 km |
+    +-----+-------------------------+---------+
     | 'h' | High resolution         | 0.2 km  |
+    +-----+-------------------------+---------+
     | 'i' | Intermediate resolution | 1.0 km  |
+    +-----+-------------------------+---------+
     | 'l' | Low resolution          | 5.0 km  |
+    +-----+-------------------------+---------+
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
 
@@ -216,9 +221,12 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
     no labels for the grid lines are plotted, the color used for the grid lines
     is light gray, and the width of the gratucules is 0.5 pixels.
 
-    For grid if aggdraw is used, font option is mandatory, if not write_text is set to False
-    eg. font = aggdraw.Font('black', '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
+    For grid if aggdraw is used, font option is mandatory, if not
+    ``write_text`` is set to False::
+
+        font = aggdraw.Font('black', '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
                             opacity=127, size=16)
+
     """
 
     if area is None:

@@ -112,6 +112,11 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                     self.reader.mda['navigation_parameters']['satellite_actual_latitude'] = -0.5
                     self.reader.mda['navigation_parameters']['satellite_actual_altitude'] = 35783328
 
+                    tline = np.zeros(nlines, dtype=[('days', '>u2'), ('milliseconds', '>u4')])
+                    tline['days'][1:-1] = 21246 * np.ones(nlines-2)  # 2016-03-03
+                    tline['milliseconds'][1:-1] = np.arange(nlines-2)
+                    self.reader.mda['image_segment_line_quality'] = {'line_mean_acquisition': tline}
+
     def test_get_xy_from_linecol(self):
         """Test get_xy_from_linecol."""
         x__, y__ = self.reader.get_xy_from_linecol(0, 0, (10, 10), (5, 5))
@@ -239,13 +244,17 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         self.assertRaises(ValueError, HRITMSGFileHandler, filename=None, filename_info=None,
                           filetype_info=None, prologue=pro, epilogue=epi, calib_mode='invalid')
 
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_timestamps')
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
-    def test_get_dataset(self, calibrate, parent_get_dataset):
+    def test_get_dataset(self, calibrate, parent_get_dataset, _get_timestamps):
         key = mock.MagicMock(calibration='calibration')
         info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
+        timestamps = np.array([1, 2, 3], dtype='datetime64[ns]')
+
         parent_get_dataset.return_value = mock.MagicMock()
-        calibrate.return_value = mock.MagicMock(attrs={})
+        calibrate.return_value = xr.DataArray(data=np.zeros((3, 3)), dims=('y', 'x'))
+        _get_timestamps.return_value = timestamps
 
         res = self.reader.get_dataset(key, info)
 
@@ -272,6 +281,10 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         res.attrs.pop('raw_metadata')
         self.assertDictEqual(attrs_exp, res.attrs)
 
+        # Test timestamps
+        self.assertTrue(np.all(res['acq_time'] == timestamps))
+        self.assertEqual(res['acq_time'].attrs['long_name'], 'Mean scanline acquisition time')
+
     def test_get_raw_mda(self):
         self.reader.mda = {'segment': 1, 'loff': 123}
         self.reader.prologue_.reduced = {'prologue': 1}
@@ -281,6 +294,23 @@ class TestHRITMSGFileHandler(unittest.TestCase):
 
         # Make sure _get_raw_mda() doesn't modify the original dictionary
         self.assertIn('loff', self.reader.mda)
+
+    def test_get_timestamps(self):
+        tline = self.reader._get_timestamps()
+
+        # First and last scanline have invalid timestamps (space)
+        self.assertTrue(np.isnat(tline[0]))
+        self.assertTrue(np.isnat(tline[-1]))
+
+        # Test remaining lines
+        year = tline.astype('datetime64[Y]').astype(int) + 1970
+        month = tline.astype('datetime64[M]').astype(int) % 12 + 1
+        day = (tline.astype('datetime64[D]') - tline.astype('datetime64[M]') + 1).astype(int)
+        msec = (tline - tline.astype('datetime64[D]')).astype(int)
+        self.assertTrue(np.all(year[1:-1] == 2016))
+        self.assertTrue(np.all(month[1:-1] == 3))
+        self.assertTrue(np.all(day[1:-1] == 3))
+        self.assertTrue(np.all(msec[1:-1] == np.arange(len(tline) - 2)))
 
 
 class TestHRITMSGPrologueFileHandler(unittest.TestCase):
