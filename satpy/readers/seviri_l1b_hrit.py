@@ -678,9 +678,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     def _get_timestamps(self):
         """Read scanline timestamps from the segment header"""
         tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
-        tline = get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
-        tline[tline == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
-        return tline
+        return get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
 
 
 def show(data, negate=False):
