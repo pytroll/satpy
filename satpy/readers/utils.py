@@ -33,6 +33,8 @@ import numpy as np
 from pyresample.geometry import AreaDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 
+from satpy import CHUNK_SIZE
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -96,7 +98,7 @@ def get_geostationary_mask(area):
     ymax *= h
 
     # Compute projection coordinates at the centre of each pixel
-    x, y = area.get_proj_coords_dask()
+    x, y = area.get_proj_coords(chunks=CHUNK_SIZE)
 
     # Compute mask of the earth's elliptical shape
     return ((x / xmax) ** 2 + (y / ymax) ** 2) <= 1
