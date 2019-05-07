@@ -182,6 +182,9 @@ installation.
     * - VIRR data in HDF5 format
       - `virr_l1b`
       - Beta
+    * - MERSI-2 L1B data in HDF5 format
+      - `mersi2_l1b`
+      - Beta
 
 Indices and tables
 ==================
