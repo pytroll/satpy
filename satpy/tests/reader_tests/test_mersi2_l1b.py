@@ -60,9 +60,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         data = {
             'Data/EV_1KM_RefSB':
                 xr.DataArray(
-                    da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((15, num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 15, 'Intercept': [0.] * 15,
+                        'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
                         'long_name': b'1km Earth View Science Data',
@@ -70,9 +72,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     dims=('_ref_bands', '_rows', '_cols')),
             'Data/EV_1KM_Emissive':
                 xr.DataArray(
-                    da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 4, 'Intercept': [0.] * 4,
+                        'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 25000],
                         'long_name': b'1km Emissive Bands Earth View '
@@ -81,9 +85,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     dims=('_ir_bands', '_rows', '_cols')),
             'Data/EV_250_Aggr.1KM_RefSB':
                 xr.DataArray(
-                    da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((4, num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 4, 'Intercept': [0.] * 4,
+                        'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
                         'long_name': b'250m Reflective Bands Earth View '
@@ -92,9 +98,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     dims=('_ref250_bands', '_rows', '_cols')),
             'Data/EV_250_Aggr.1KM_Emissive':
                 xr.DataArray(
-                    da.ones((2, num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((2, num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 2, 'Intercept': [0.] * 2,
+                        'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 4095],
                         'long_name': b'250m Emissive Bands Earth View '
@@ -108,54 +116,66 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         data = {
             'Data/EV_250_RefSB_b1':
                 xr.DataArray(
-                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
                     },
                     dims=('_rows', '_cols')),
             'Data/EV_250_RefSB_b2':
                 xr.DataArray(
-                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
                     },
                     dims=('_rows', '_cols')),
             'Data/EV_250_RefSB_b3':
                 xr.DataArray(
-                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
                     },
                     dims=('_rows', '_cols')),
             'Data/EV_250_RefSB_b4':
                 xr.DataArray(
-                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'FillValue': 65535,
                         'units': 'NO',
                         'valid_range': [0, 4095],
                     },
                     dims=('_rows', '_cols')),
             'Data/EV_250_Emissive_b24':
                 xr.DataArray(
-                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 4095],
                     },
                     dims=('_rows', '_cols')),
             'Data/EV_250_Emissive_b25':
                 xr.DataArray(
-                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024),
+                    da.ones((num_scans * rows_per_scan, num_cols), chunks=1024,
+                            dtype=np.uint16),
                     attrs={
                         'Slope': [1.] * 1, 'Intercept': [0.] * 1,
+                        'FillValue': 65535,
                         'units': 'mW/ (m2 cm-1 sr)',
                         'valid_range': [0, 4095],
                     },
@@ -327,27 +347,35 @@ class TestMERSI2L1BReader(unittest.TestCase):
         self.assertEqual(8, len(res))
         self.assertEqual((2 * 40, 2048 * 2), res['1'].shape)
         self.assertEqual('counts', res['1'].attrs['calibration'])
+        self.assertEqual(res['1'].dtype, np.uint16)
         self.assertEqual('1', res['1'].attrs['units'])
         self.assertEqual((2 * 40, 2048 * 2), res['2'].shape)
         self.assertEqual('counts', res['2'].attrs['calibration'])
+        self.assertEqual(res['2'].dtype, np.uint16)
         self.assertEqual('1', res['2'].attrs['units'])
         self.assertEqual((2 * 40, 2048 * 2), res['3'].shape)
         self.assertEqual('counts', res['3'].attrs['calibration'])
+        self.assertEqual(res['3'].dtype, np.uint16)
         self.assertEqual('1', res['3'].attrs['units'])
         self.assertEqual((2 * 40, 2048 * 2), res['4'].shape)
         self.assertEqual('counts', res['4'].attrs['calibration'])
+        self.assertEqual(res['4'].dtype, np.uint16)
         self.assertEqual('1', res['4'].attrs['units'])
         self.assertEqual((2 * 10, 2048), res['5'].shape)
         self.assertEqual('counts', res['5'].attrs['calibration'])
+        self.assertEqual(res['5'].dtype, np.uint16)
         self.assertEqual('1', res['5'].attrs['units'])
         self.assertEqual((2 * 10, 2048), res['20'].shape)
         self.assertEqual('counts', res['20'].attrs['calibration'])
+        self.assertEqual(res['20'].dtype, np.uint16)
         self.assertEqual('1', res['20'].attrs['units'])
         self.assertEqual((2 * 40, 2048 * 2), res['24'].shape)
         self.assertEqual('counts', res['24'].attrs['calibration'])
+        self.assertEqual(res['24'].dtype, np.uint16)
         self.assertEqual('1', res['24'].attrs['units'])
         self.assertEqual((2 * 40, 2048 * 2), res['25'].shape)
         self.assertEqual('counts', res['25'].attrs['calibration'])
+        self.assertEqual(res['25'].dtype, np.uint16)
         self.assertEqual('1', res['25'].attrs['units'])
 
     def test_fy3d_rad_calib(self):

@@ -91,13 +91,16 @@ class MERSI2L1B(HDF5FileHandler):
         if 'rows_per_scan' in self.filetype_info:
             attrs.setdefault('rows_per_scan', self.filetype_info['rows_per_scan'])
 
+        fill_value = attrs.pop('FillValue', np.nan)  # covered by valid_range
         valid_range = attrs.pop('valid_range', None)
-        attrs.pop('FillValue', None)  # covered by valid_range
+        if dataset_id.calibration == 'counts':
+            # preserve integer type of counts if possible
+            attrs['_FillValue'] = fill_value
         if valid_range is not None:
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
             data = data.where((data >= valid_range[0]) &
-                              (data <= valid_range[1]))
+                              (data <= valid_range[1]), fill_value)
 
         slope = attrs.pop('Slope', None)
         intercept = attrs.pop('Intercept', None)
