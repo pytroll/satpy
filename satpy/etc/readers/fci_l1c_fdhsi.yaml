@@ -22,7 +22,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   vis_05:
     name: vis_05
@@ -39,7 +39,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   vis_06:
     name: vis_06
@@ -56,7 +56,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   vis_06_hr:
     name: vis_06_hr
@@ -73,7 +73,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   vis_08:
     name: vis_08
@@ -90,7 +90,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   vis_09:
     name: vis_09
@@ -107,7 +107,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   nir_13:
     name: nir_13
@@ -124,7 +124,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   nir_16:
     name: nir_16
@@ -141,7 +141,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   nir_22:
     name: nir_22
@@ -158,7 +158,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   nir_22_hr:
     name: nir_22_hr
@@ -175,7 +175,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   ir_38:
     name: ir_38
@@ -192,7 +192,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   ir_38_hr:
     name: ir_38_hr
@@ -209,7 +209,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
 
   wv_63:
@@ -227,7 +227,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   wv_73:
     name: wv_73
@@ -244,7 +244,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   ir_87:
     name: ir_87
@@ -261,7 +261,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   ir_97:
     name: ir_97
@@ -278,7 +278,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   ir_105:
     name: ir_105
@@ -295,7 +295,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   ir_105_hr:
     name: ir_105_hr
@@ -312,7 +312,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
 
   ir_123:
@@ -330,7 +330,7 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
   ir_133:
     name: ir_133
@@ -347,12 +347,12 @@ datasets:
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
-    file_type: fci_fdhsi
+    file_type: fci_l1c_fdhsi
 
 
 # Source: FCI L1 Dataset User Guide [FCIL1DUG]
 # ftp://ftp.eumetsat.int/pub/OPS/out/test-data/FCI_L1C_Format_Familiarisation/FCI_L1_Dataset_User_Guide_[FCIL1DUG].pdf
 file_types:
-  fci_fdhsi:
+  fci_l1c_fdhsi:
     file_reader: !!python/name:satpy.readers.fci_l1c_fdhsi.FCIFDHSIFileHandler ''
     file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_evel}-{type}-{subtype}-{coverage}-{subsetting}-{component1}-{component2}-{component3}-{purpose}-{format}-{oflag}-{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{accumulation_interval_in_day}.nc']
