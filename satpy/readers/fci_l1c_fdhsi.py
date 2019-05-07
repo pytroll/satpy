@@ -7,6 +7,7 @@
 #
 #   Thomas Leppelt <thomas.leppelt@gmail.com>
 #   Sauli Joro <sauli.joro@icloud.com>
+#   Gerrit Holl <gerrit.holl@dwd.de>
 
 # This file is part of satpy.
 
@@ -22,16 +23,17 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Interface to MTG-FCI Retrieval NetCDF files
+"""Interface to MTG-FCI-FDHSI L1C NetCDF files
 
 """
-import xarray.ufuncs as xu
-from pyresample import geometry
-import xarray as xr
 import logging
+import numpy as np
+import xarray as xr
 
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
+from pyresample import geometry
+
+from ..readers.file_handlers import BaseFileHandler
+from .. import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +202,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         c1, c2 = measured['radiance_to_bt_conversion_constants']
 
         nom = c2 * vc
-        denom = a * xu.log(1 + (c1 * vc**3) / Lv)
+        denom = a * np.log(1 + (c1 * vc**3) / Lv)
 
         return nom / denom - b / a
 
