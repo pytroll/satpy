@@ -51,6 +51,10 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
+class DelayedGeneration(KeyError):
+    pass
+
+
 class Scene(MetadataObject):
     """The Almighty Scene Class.
 
@@ -218,7 +222,7 @@ class Scene(MetadataObject):
         return set(self.wishlist) - set(self.datasets.keys())
 
     def _compare_areas(self, datasets=None, compare_func=max):
-        """Get  for the provided datasets.
+        """Compare areas for the provided datasets.
 
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
@@ -754,8 +758,10 @@ class Scene(MetadataObject):
                 delayed_gen = True
                 continue
             elif not skip:
-                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite")
+                LOG.debug("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite for"
+                               " '{}': '{}'".format(comp_id, prereq_id))
             else:
                 LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
@@ -764,10 +770,12 @@ class Scene(MetadataObject):
             keepables.update([x.name for x in prereq_nodes])
             LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
             if not skip:
-                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite")
+                LOG.debug("Delayed prerequisite for '{}': '{}'".format(comp_id, prereq_id))
+                raise DelayedGeneration(
+                    "Delayed composite prerequisite for "
+                    "'{}': '{}'".format(comp_id, prereq_id))
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
+                LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -788,12 +796,20 @@ class Scene(MetadataObject):
         compositor, prereqs, optional_prereqs = comp_node.data
 
         try:
+            delayed_prereq = False
             prereq_datasets = self._get_prereq_datasets(
                 comp_node.name,
                 prereqs,
                 keepables,
             )
+        except DelayedGeneration:
+            # if we are missing a required dependency that could be generated
+            # later then we need to wait to return until after we've also
+            # processed the optional dependencies
+            delayed_prereq = True
         except KeyError:
+            # we are missing a hard requirement that will never be available
+            # there is no need to "keep" optional dependencies
             return
 
         optional_datasets = self._get_prereq_datasets(
@@ -802,6 +818,17 @@ class Scene(MetadataObject):
             keepables,
             skip=True
         )
+
+        # we are missing some prerequisites
+        # in the future we may be able to generate this composite (delayed)
+        # so we need to hold on to successfully loaded prerequisites and
+        # optional prerequisites
+        if delayed_prereq:
+            preservable_datasets = set(self.datasets.keys())
+            prereq_ids = set(p.name for p in prereqs)
+            opt_prereq_ids = set(p.name for p in optional_prereqs)
+            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
+            return
 
         try:
             composite = compositor(prereq_datasets,
