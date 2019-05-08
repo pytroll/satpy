@@ -80,7 +80,7 @@ This is what the corresponding ``ncdump`` output would look like in this case:
 .. _CF-compliant: http://cfconventions.org/
 """
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import logging
 from datetime import datetime
 import json
@@ -220,6 +220,36 @@ def make_time_bounds(dataarray, start_times, end_times):
                  (np.datetime64(end_time) - dtnp64)]
     return xr.DataArray(np.array(time_bnds) / np.timedelta64(1, 's'),
                         dims=['time_bnds'], coords={'time_bnds': [0, 1]})
+
+
+def make_coords_unique(datas):
+    """Make sure non-dimensional (or alternative) coordinates have unique names by prepending the dataset name
+
+    In principle this would only be required if multiple datasets had alternative coordinates with the same name but
+    different values. But to ensure consistency we always prepend the dataset name. Otherwise the name of the
+    alternative coordinates in the nc file would depend on the number/set of datasets written to it.
+
+    Args:
+        datas (dict): Dictionary of (dataset name, dataset)
+
+    Returns:
+        Dictionary holding the updated datasets
+    """
+    # Collect all alternative coordinates
+    alt_coords = [c for data_array in datas.values() for c in data_array.coords if c not in data_array.dims]
+
+    # Prepend dataset name
+    new_datas = {}
+    for ds_name, data_array in datas.items():
+        rename = {}
+        for coord_name in alt_coords:
+            if coord_name in data_array.coords:
+                rename[coord_name] = '{}_{}'.format(ds_name, coord_name)
+        if rename:
+            data_array = data_array.rename(rename)
+        new_datas[ds_name] = data_array
+
+    return new_datas
 
 
 class AttributeEncoder(json.JSONEncoder):
@@ -399,6 +429,8 @@ class CFWriter(Writer):
                 end_times.append(new_ds.attrs.get("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                                          exclude_attrs=exclude_attrs)
+        datas = make_coords_unique(datas)
+
         return datas, start_times, end_times
 
     def save_datasets(self, datasets, filename=None, **kwargs):

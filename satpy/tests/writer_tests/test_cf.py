@@ -34,6 +34,11 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
 
 class TestCFWriter(unittest.TestCase):
     def test_init(self):
@@ -328,12 +333,14 @@ class TestCFWriter(unittest.TestCase):
         attrs_expected_flat.pop('name')
 
         # Create test data array
-        arr = xr.DataArray(np.array([[1, 2], [3, 4]]), attrs=attrs, dims=('y', 'x'), coords={'y': [0, 1], 'x': [1, 2]})
+        arr = xr.DataArray(np.array([[1, 2], [3, 4]]), attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 1], 'x': [1, 2], 'acq_time': ('y', [3, 4])})
 
         # Test conversion to something cf-compliant
         res = CFWriter.da2cf(arr)
         self.assertTrue(np.all(res['x'] == arr['x']))
         self.assertTrue(np.all(res['y'] == arr['y']))
+        self.assertTrue(np.all(res['acq_time'] == arr['acq_time']))
         self.assertDictEqual(res['x'].attrs, {'units': 'm', 'standard_name': 'projection_x_coordinate'})
         self.assertDictEqual(res['y'].attrs, {'units': 'm', 'standard_name': 'projection_y_coordinate'})
         self.assertDictEqual(res.attrs, attrs_expected)
@@ -342,6 +349,73 @@ class TestCFWriter(unittest.TestCase):
         res_flat = CFWriter.da2cf(arr, flatten_attrs=True, exclude_attrs=['int'])
         attrs_expected_flat.pop('int')
         self.assertDictEqual(res_flat.attrs, attrs_expected_flat)
+
+    @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
+    @mock.patch('satpy.writers.cf_writer.CFWriter.da2cf')
+    @mock.patch('satpy.writers.cf_writer.make_coords_unique')
+    def test_collect_datasets(self, make_coords_unique, da2cf, *mocks):
+        from satpy.writers.cf_writer import CFWriter
+        import xarray as xr
+
+        def da2cf_patched(new_ds, **kwargs):
+            return new_ds
+        da2cf.side_effect = da2cf_patched
+        make_coords_unique.return_value = 'unique_coords'
+
+        data = [[1, 2], [3, 4]]
+        y = [1, 2]
+        x = [1, 2]
+        time = [1, 2]
+        tstart = datetime(2019, 4, 1, 12, 0)
+        tend = datetime(2019, 4, 1, 12, 15)
+        datasets = [xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
+                                 attrs={'name': 'var1', 'start_time': tstart, 'end_time': tend}),
+                    xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
+                                 attrs={'name': 'var2'})]
+        expected = {'var1': datasets[0], 'var2': datasets[1]}
+
+        writer = CFWriter()
+        datas, start_times, end_times = writer._collect_datasets(datasets)
+
+        self.assertEqual(datas, 'unique_coords')
+        self.assertListEqual(start_times, [tstart, None])
+        self.assertListEqual(end_times, [tend, None])
+
+        make_coords_unique.assert_called()
+        call_arg = make_coords_unique.call_args[0][0]
+        self.assertIsInstance(call_arg, dict)
+        self.assertSetEqual(set(call_arg.keys()), {'var1', 'var2'})
+        self.assertTrue(np.all(call_arg['var1'] == expected['var1']))
+        self.assertTrue(np.all(call_arg['var2'] == expected['var2']))
+
+    def test_make_coords_unique(self):
+        import xarray as xr
+        from satpy.writers.cf_writer import make_coords_unique
+
+        data = [[1, 2], [3, 4]]
+        y = [1, 2]
+        x = [1, 2]
+        time1 = [1, 2]
+        time2 = [3, 4]
+        datasets = {'var1': xr.DataArray(data=data,
+                                         dims=('y', 'x'),
+                                         coords={'y': y, 'x': x, 'acq_time': ('y', time1)}),
+                    'var2': xr.DataArray(data=data,
+                                         dims=('y', 'x'),
+                                         coords={'y': y, 'x': x, 'acq_time': ('y', time2)})}
+        res = make_coords_unique(datasets)
+
+        # Test that dataset names are prepended to alternative coordinates
+        self.assertTrue(np.all(res['var1']['var1_acq_time'] == time1))
+        self.assertTrue(np.all(res['var2']['var2_acq_time'] == time2))
+        self.assertNotIn('acq_time', res['var1'].coords)
+        self.assertNotIn('acq_time', res['var2'].coords)
+
+        # Make sure nothing else is modified
+        self.assertTrue(np.all(res['var1']['x'] == x))
+        self.assertTrue(np.all(res['var1']['y'] == y))
+        self.assertTrue(np.all(res['var2']['x'] == x))
+        self.assertTrue(np.all(res['var2']['y'] == y))
 
 
 def suite():
