@@ -1,0 +1,83 @@
+sensor_name: visir/mersi2
+
+modifiers:
+  rayleigh_corrected:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: '3'
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+    - name: satellite_zenith_angle
+    - name: solar_azimuth_angle
+    - name: solar_zenith_angle
+  sunz_corrected:
+    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    prerequisites:
+      - solar_zenith_angle
+
+composites:
+
+  airmass:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - wavelength: 6.2
+          - wavelength: 7.3
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - wavelength: 9.7
+          - wavelength: 10.8
+      - wavelength: 6.2
+    standard_name: airmass
+
+  ash:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - 12.0
+          - 10.8
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - 10.8
+          - 8.7
+      - 10.8
+    standard_name: ash
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - '3'
+      - '2'
+      - '1'
+    standard_name: true_color
+
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '3'  # 0.65
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: '2'
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: '1'  # 0.47
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.RatioSharpenedRGB
+    prerequisites:
+      - name: '6'
+        modifiers: [sunz_corrected]
+      - name: '4'
+        modifiers: [sunz_corrected]
+      - name: '3'
+        modifiers: [sunz_corrected]
+    optional_prerequisites:
+      - name: '15'
+        modifiers: [sunz_corrected]
+    standard_name: natural_color
+    high_resolution_band: green

@@ -109,14 +109,13 @@ class TestVIRRL1BReader(unittest.TestCase):
         self.p.stop()
 
     def _band_helper(self, attributes, units, calibration, standard_name,
-                     file_type, band_index_size, resolution, level):
+                     file_type, band_index_size, resolution):
         self.assertEqual(units, attributes['units'])
         self.assertEqual(calibration, attributes['calibration'])
         self.assertEqual(standard_name, attributes['standard_name'])
         self.assertEqual(file_type, attributes['file_type'])
         self.assertTrue(attributes['band_index'] in range(band_index_size))
         self.assertEqual(resolution, attributes['resolution'])
-        self.assertEqual(level, attributes['level'])
         self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
 
     def _fy3_helper(self, platform_name, reader, Emissive_units):
@@ -136,11 +135,12 @@ class TestVIRRL1BReader(unittest.TestCase):
             self.assertEqual((19, 20), datasets[dataset.name].shape)
             self.assertEqual(('y', 'x'), datasets[dataset.name].dims)
             if 'R' in dataset.name:
-                self._band_helper(attributes, '%', 'reflectance', 'toa_bidirectional_reflectance', 'virr_l1b', 7, 1000,
-                                  1)
+                self._band_helper(attributes, '%', 'reflectance',
+                                  'toa_bidirectional_reflectance', 'virr_l1b',
+                                  7, 1000)
             elif 'E' in dataset.name:
                 self._band_helper(attributes, Emissive_units, 'brightness_temperature',
-                                  'toa_brightness_temperature', 'virr_l1b', 3, 1000, 1)
+                                  'toa_brightness_temperature', 'virr_l1b', 3, 1000)
             elif dataset.name in ['longitude', 'latitude']:
                 self.assertEqual('degrees', attributes['units'])
                 self.assertTrue(attributes['standard_name'] in ['longitude', 'latitude'])
