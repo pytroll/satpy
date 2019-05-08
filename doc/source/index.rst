@@ -185,6 +185,9 @@ installation.
     * - MERSI-2 L1B data in HDF5 format
       - `mersi2_l1b`
       - Beta
+    * - FY-4A AGRI L1 data in HDF5 format
+      - `agri_l1`
+      - Beta
 
 Indices and tables
 ==================
