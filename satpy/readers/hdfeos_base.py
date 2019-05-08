@@ -15,6 +15,7 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+import re
 import logging
 
 from datetime import datetime
@@ -28,6 +29,27 @@ from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
 logger = logging.getLogger(__name__)
+
+
+def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
+    from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
+
+    interpolation_functions = {
+        (5000, 1000): modis_5km_to_1km,
+        (1000, 500): modis_1km_to_500m,
+        (1000, 250): modis_1km_to_250m
+    }
+
+    try:
+        interpolation_function = interpolation_functions[(src_resolution, dst_resolution)]
+    except KeyError:
+        error_message = "Interpolation from {}m to {}m not implemented".format(
+            src_resolution, dst_resolution)
+        raise NotImplementedError(error_message)
+
+    logger.debug("Interpolating from {} to {}".format(src_resolution, dst_resolution))
+
+    return interpolation_function(clons, clats, csatz)
 
 
 class HDFEOSBaseFileReader(BaseFileHandler):
@@ -120,11 +142,24 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
         dataset = self._read_dataset_in_file(dataset_name)
         fill_value = dataset._FillValue
-        scale_factor = np.float32(dataset.scale_factor)
-        data = xr.DataArray(from_sds(dataset, chunks=CHUNK_SIZE),
-                            dims=['y', 'x']).astype(np.float32)
-        data_mask = data.where(data != fill_value)
-        data = data_mask * scale_factor
+        dask_arr = from_sds(dataset, chunks=CHUNK_SIZE)
+        dims = ('y', 'x') if dask_arr.ndim == 2 else None
+        data = xr.DataArray(dask_arr, dims=dims,
+                            attrs=dataset.attributes())
+
+        # preserve integer data types if possible
+        if np.issubdtype(data.dtype, np.integer):
+            new_fill = fill_value
+        else:
+            new_fill = np.nan
+            data.attrs.pop('_FillValue', None)
+        good_mask = data != fill_value
+
+        scale_factor = data.attrs.get('scale_factor')
+        if scale_factor is not None:
+            data = data * scale_factor
+
+        data = data.where(good_mask, new_fill)
         return data
 
 
@@ -132,115 +167,124 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
     """Handler for the geographical datasets. """
 
     # list of geographical datasets handled by the georeader
-    DATASET_NAMES = ['longitude', 'latitude',
-                     'satellite_azimuth_angle', 'satellite_zenith_angle',
-                     'solar_azimuth_angle', 'solar_zenith_angle']
+    # mapping to the default variable name if not specified in YAML
+    DATASET_NAMES = {
+        'longitude': 'Longitude',
+        'latitude': 'Latitude',
+        'satellite_azimuth_angle': ('SensorAzimuth', 'Sensor_Azimuth'),
+        'satellite_zenith_angle': ('SensorZenith', 'Sensor_Zenith'),
+        'solar_azimuth_angle': ('SolarAzimuth', 'SolarAzimuth'),
+        'solar_zenith_angle': ('SolarZenith', 'Solar_Zenith'),
+    }
 
     def __init__(self, filename, filename_info, filetype_info):
         HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
 
     @staticmethod
     def read_geo_resolution(metadata):
-        """Parses metada to find the geolocation resolution.
+        """Parses metadata to find the geolocation resolution.
+
         It is implemented as a staticmethod to match read_mda pattern.
 
         """
-        import re
+        # level 1 files
+        try:
+            ds = metadata['INVENTORYMETADATA']['COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
+            if ds.endswith('D03'):
+                return 1000
+            else:
+                # 1km files have 5km geolocation usually
+                return 5000
+        except KeyError:
+            pass
+
+        # data files probably have this level 2 files
+        # this does not work for L1B 1KM data files because they are listed
+        # as 1KM data but the geo data inside is at 5km
         try:
             latitude_dim = metadata['SwathStructure']['SWATH_1']['DimensionMap']['DimensionMap_2']['GeoDimension']
-        except KeyError as e:
-            logger.debug("Resolution not found in metadata: {}".format(e))
-            return None
-        resolution_regex = re.compile(r'(?P<resolution>\d+)(km|KM)')
-        resolution_match = resolution_regex.search(latitude_dim)
-        return int(resolution_match.group('resolution')) * 1000
+            resolution_regex = re.compile(r'(?P<resolution>\d+)(km|KM)')
+            resolution_match = resolution_regex.search(latitude_dim)
+            return int(resolution_match.group('resolution')) * 1000
+        except (AttributeError, KeyError):
+            pass
+
+        raise RuntimeError("Could not determine resolution from file metadata")
 
     @property
     def geo_resolution(self):
-        """Resolution of the geographical data retrieved in the metada. """
+        """Resolution of the geographical data retrieved in the metadata."""
         return self.read_geo_resolution(self.metadata)
+
+    def _load_ds_by_name(self, ds_name):
+        """Helper to attempt loading using multiple common names."""
+        var_names = self.DATASET_NAMES[ds_name]
+        if isinstance(var_names, (list, tuple)):
+            try:
+                return self.load_dataset(var_names[0])
+            except KeyError:
+                return self.load_dataset(var_names[1])
+        return self.load_dataset(var_names)
 
     def get_dataset(self, dataset_keys, dataset_info):
         """Get the geolocation dataset."""
         # Name of the dataset as it appears in the HDF EOS file
-        in_file_dataset_name = dataset_info['file_key']
+        in_file_dataset_name = dataset_info.get('file_key')
         # Name of the dataset in the YAML file
         dataset_name = dataset_keys.name
         # Resolution asked
         resolution = dataset_keys.resolution
-
-        data = self.load_dataset(in_file_dataset_name)
-
+        if in_file_dataset_name is not None:
+            # if the YAML was configured with a specific name use that
+            data = self.load_dataset(in_file_dataset_name)
+        else:
+            # otherwise use the default name for this variable
+            data = self._load_ds_by_name(dataset_name)
         if resolution != self.geo_resolution:
+            if in_file_dataset_name is not None:
+                # they specified a custom variable name but
+                # we don't know how to interpolate this yet
+                raise NotImplementedError(
+                    "Interpolation for variable '{}' is not "
+                    "configured".format(dataset_name))
 
             # The data must be interpolated
             interpolated_dataset = {}
-
-            def interpolate(clons, clats, csatz):
-                from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
-
-                interpolation_functions = {
-                    (5000, 1000): modis_5km_to_1km,
-                    (1000, 500): modis_1km_to_500m,
-                    (1000, 250): modis_1km_to_250m
-                }
-
-                try:
-                    interpolation_function = interpolation_functions[(self.geo_resolution, resolution)]
-                except KeyError:
-                    error_message = "Interpolation from {}m to {}m not implemented".format(
-                        self.geo_resolution, resolution)
-                    raise NotImplementedError(error_message)
-
-                logger.debug("Interpolating from {} to {}".format(self.geo_resolution, resolution))
-
-                return interpolation_function(clons, clats, csatz)
-
-            # Sensor zenith dataset name differs between L1b and L2 products
-            sensor_zentih = None
-            try:
-                sensor_zenith = self.load_dataset('SensorZenith')
-            except KeyError:
-                sensor_zenith = self.load_dataset('Sensor_Zenith')
-
+            sensor_zenith = self._load_ds_by_name(dataset_name)
             if dataset_name in ['longitude', 'latitude']:
-                latitude = self.load_dataset('Longitude')
-                longitude = self.load_dataset('Latitude')
+                latitude = self._load_ds_by_name('longitude')
+                longitude = self._load_ds_by_name('latitude')
                 longitude, latitude = interpolate(
-                    longitude, latitude, sensor_zenith
+                    longitude, latitude, sensor_zenith,
+                    self.geo_resolution, resolution
                 )
                 interpolated_dataset['longitude'] = longitude
                 interpolated_dataset['latitude'] = latitude
-
-            else:
-                if dataset_name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
-                    # Sensor dataset names differs between L1b and L2 products
-                    try:
-                        sensor_azimuth_a = self.load_dataset('SensorAzimuth')
-                        sensor_azimuth_b = self.load_dataset('SensorZenith') - 90
-                    except KeyError:
-                        sensor_azimuth_a = self.load_dataset('Sensor_Azimuth')
-                        sensor_azimuth_b = self.load_dataset('Sensor_Zenith') - 90
-                    sensor_azimuth_a, sensor_azimuth_b = interpolate(
-                        sensor_azimuth_a, sensor_azimuth_b, sensor_zenith
-                    )
-                    interpolated_dataset['satellite_azimuth_angle'] = sensor_azimuth_a
-                    interpolated_dataset['satellite_zentih_angle'] = sensor_azimuth_b + 90
-
-                elif dataset_name in ['solar_azimuth_angle', 'solar_zenith_angle']:
-                    # Sensor dataset names differs between L1b and L2 products
-                    try:
-                        solar_azimuth_a = self.load_dataset('SolarAzimuth')
-                        solar_azimuth_b = self.load_dataset('SolarZenith') - 90
-                    except KeyError:
-                        solar_azimuth_a = self.load_dataset('Solar_Azimuth')
-                        solar_azimuth_b = self.load_dataset('Solar_Zenith') - 90
-                    solar_azimuth_a, solar_azimuth_b = interpolate(
-                        solar_azimuth_a, solar_azimuth_b, sensor_zentih
-                    )
-                    interpolated_dataset['solar_azimuth_angle'] = solar_azimuth_a
-                    interpolated_dataset['solar_zentih_angle'] = solar_azimuth_b + 90
+            elif dataset_name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
+                # Sensor dataset names differs between L1b and L2 products
+                sensor_azimuth_a = self._load_ds_by_name('satellite_azimuth_angle')
+                sensor_azimuth_b = self._load_ds_by_name('satellite_zenith_angle') - 90
+                sensor_azimuth_a, sensor_azimuth_b = interpolate(
+                    sensor_azimuth_a, sensor_azimuth_b, sensor_zenith,
+                    self.geo_resolution, resolution
+                )
+                interpolated_dataset['satellite_azimuth_angle'] = sensor_azimuth_a
+                interpolated_dataset['satellite_zenith_angle'] = sensor_azimuth_b + 90
+            elif dataset_name in ['solar_azimuth_angle', 'solar_zenith_angle']:
+                # Sensor dataset names differs between L1b and L2 products
+                solar_azimuth_a = self._load_ds_by_name('solar_azimuth_angle')
+                solar_azimuth_b = self._load_ds_by_name('solar_zenith_angle') - 90
+                solar_azimuth_a, solar_azimuth_b = interpolate(
+                    solar_azimuth_a, solar_azimuth_b, sensor_zenith,
+                    self.geo_resolution, resolution
+                )
+                interpolated_dataset['solar_azimuth_angle'] = solar_azimuth_a
+                interpolated_dataset['solar_zenith_angle'] = solar_azimuth_b + 90
 
             data = interpolated_dataset[dataset_name]
+
+        for key in ('standard_name', 'units'):
+            if key in dataset_info:
+                data.attrs[key] = dataset_info[key]
 
         return data
