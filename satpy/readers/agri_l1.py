@@ -26,6 +26,8 @@ The files read by this reader are described in the official Real Time Data Servi
 
 import logging
 import numpy as np
+import xarray as xr
+import dask.array as da
 from datetime import datetime
 from pyresample import geometry
 from satpy.readers.hdf5_utils import HDF5FileHandler
@@ -40,31 +42,31 @@ _LOFF_list = [10991.5, 5495.5, 2747.5, 1373.5]
 _LFAC_list = [81865099.0, 40932549.0, 20466274.0, 10233137.0]
 
 
-class HDF_AGRL_L1(HDF5FileHandler):
+class HDF_AGRI_L1(HDF5FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(HDF_AGRL_L1, self).__init__(filename, filename_info, filetype_info)
+        super(HDF_AGRI_L1, self).__init__(filename, filename_info, filetype_info)
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', dataset_id.name)
         file_key = ds_info.get('file_key', dataset_id.name)
+        lut_key = ds_info.get('lut_key', dataset_id.name)
         data = self.get(file_key)
+        lut = self.get(lut_key)
 
         # convert bytes to string
         data.attrs['long_name'] = data.attrs['long_name'].decode("utf-8")
         data.attrs['band_names'] = data.attrs['band_names'].decode("utf-8")
-
-        # fill_value = data.attrs['FillValue']
-        data = data.where((data >= data.attrs['valid_range'][0]) &
-                          (data <= data.attrs['valid_range'][1]))
+        data.attrs['center_wavelength'] = data.attrs['center_wavelength'].decode("utf-8")
 
         # calibration
         calibration = ds_info['calibration']
 
         if calibration == 'counts':
-            data.attrs['units'] = '1'
+            ds_info['valid_range'] = data.attrs['valid_range']
             return data
+
         elif calibration == 'reflectance':
             logger.debug("Calibrating to reflectances")
             # using the corresponding SCALE and OFFSET
@@ -72,16 +74,25 @@ class HDF_AGRL_L1(HDF5FileHandler):
             slope = self.get(cal_coef)[:, 0][int(file_key[-2:])-1].values
             offset = self.get(cal_coef)[:, 1][int(file_key[-2:])-1].values
             data = self.dn2reflectance(data, slope, offset)
-            data.attrs['units'] = '%'
+            ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset) * 100
+
         elif calibration == 'brightness_temperature':
             logger.debug("Calibrating to brightness_temperature")
             # the value of dn is the index of brightness_temperature
-            data = self.calibrate(data, 'CAL'+file_key[3:])
-            data.attrs['units'] = 'K'
+            data = self.calibrate(data, lut)
+            ds_info['valid_range'] = lut.attrs['valid_range']
 
         data.attrs.update({'platform_name': self['/attr/Satellite Name'],
                            'sensor': self['/attr/Sensor Identification Code']})
         data.attrs.update(ds_info)
+
+        # remove attributes that could be confusing later
+        data.attrs.pop('FillValue', None)
+        data.attrs.pop('Intercept', None)
+        data.attrs.pop('Slope', None)
+
+        data = data.where((data >= data.attrs['valid_range'][0]) &
+                          (data <= data.attrs['valid_range'][1]))
 
         return data
 
@@ -123,7 +134,7 @@ class HDF_AGRL_L1(HDF5FileHandler):
 
         area = geometry.AreaDefinition(
             self.filename_info['observation_type'],
-            "AGRL {} area".format(self.filename_info['observation_type']),
+            "AGRI {} area".format(self.filename_info['observation_type']),
             'FY-4A',
             proj_dict,
             ncols,
@@ -145,27 +156,31 @@ class HDF_AGRL_L1(HDF5FileHandler):
         """
         ref = dn * slope + offset
         ref *= 100  # set unit to %
+        ref = ref.clip(min=0)
+        ref.attrs = dn.attrs
 
-        return ref.clip(min=0)
+        return ref
 
-    def calibrate(self, data, cal_key):
+    @staticmethod
+    def _getitem(block, lut):
+        return lut[block]
+
+    def calibrate(self, data, lut):
         """Calibrate digital number (DN) to brightness_temperature
         Args:
             dn: Raw detector digital number
-            cal_key: the name of CAL variable
+            lut: the look up table
         Returns:
             brightness_temperature [K]
         """
-        # get indexes of nan values
-        nan_index = np.isnan(data).values
-        # assign 0 to nan values temporarily
-        data.values = data.fillna(0).values.astype(int)
-        # dn is the index of CAL table
-        data.values = np.take(self.get(cal_key).values, data.values)
-        # restore none value
-        data.values[nan_index] = np.nan
+        # append nan to the end of lut for fillvalue
+        lut = np.append(lut, np.nan)
+        data.data = da.where(data.data == data.attrs['FillValue'], lut.shape[0] - 1, data.data)
+        res = data.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
+        res = xr.DataArray(res, dims=data.dims,
+                           attrs=data.attrs, coords=data.coords)
 
-        return data
+        return res
 
     @property
     def start_time(self):
