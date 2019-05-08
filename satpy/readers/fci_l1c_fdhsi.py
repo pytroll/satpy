@@ -25,22 +25,37 @@
 
 """Interface to MTG-FCI-FDHSI L1C NetCDF files
 
+This module defines the :class:`FCIFDHSIFileHandler` file handler, to
+be used for reading Meteosat Third Generation (MTG) Flexible Combined
+Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.  FCI will fly
+on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
+in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
+
+.. EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci
 """
+
 import logging
 import numpy as np
 import xarray as xr
 
 from pyresample import geometry
+from netCDF4 import default_fillvals
 
-from ..readers.file_handlers import BaseFileHandler
+from .file_handlers import BaseFileHandler
 from .. import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
 
 class FCIFDHSIFileHandler(BaseFileHandler):
+    """Class implementing the MTG FCI FDHSI File Reader
 
-    """MTG FCI FDHSI File Reader
+    This class implements the Meteosat Third Generation (MTG) Flexible
+    Combined Imager (FCI) Full Disk High Spectral Imagery (FDHSI) reader.
+    It is designed to be used through the :class:`~satpy.Scene`
+    class using the :mod:`~satpy.Scene.load` method with the reader
+    `"fci_l1c_fdhsi"`.
+
     """
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -110,6 +125,7 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         """Calculate area extent for a dataset."""
         # Calculate the area extent of the swath based on start line and column
         # information, total number of segments and channel resolution
+        # numbers from Package Description, Table 8
         xyres = {500: 22272, 1000: 11136, 2000: 5568}
         chkres = xyres[key.resolution]
 
@@ -143,6 +159,9 @@ class FCIFDHSIFileHandler(BaseFileHandler):
                       5429229.5285458621, startl)
         return(chk_extent)
 
+    _fallback_area_def = {
+            "reference_altitude": 35786400, # metre
+            }
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
         # TODO Projection information are hard coded for 0 degree geos projection
@@ -153,6 +172,14 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         b = float(self.nc['processor']['earth_polar_radius'])
         h = float(self.nc['processor']['reference_altitude'])
         lon_0 = float(self.nc['processor']['projection_origin_longitude'])
+        if h == default_fillvals[
+                self.nc["processor"]["reference_altitude"].dtype.str[1:]]:
+            logger.warn(
+                    "Reference altitude in {:s} set to "
+                    "fill value, using {:d}".format(
+                        self.filename,
+                        self._fallback_area_def["reference_altitude"]))
+            h = self._fallback_area_def["reference_altitude"]
         # Channel dependent swath resoultion
         area_extent = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
