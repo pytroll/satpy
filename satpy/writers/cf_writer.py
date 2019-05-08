@@ -381,7 +381,7 @@ class CFWriter(Writer):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
-    def _collect_datasets(self, datasets, kwargs):
+    def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, **kwargs):
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
@@ -397,10 +397,8 @@ class CFWriter(Writer):
             for new_ds in new_datasets:
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
-                datas[new_ds.attrs['name']] = self.da2cf(new_ds,
-                                                         epoch=kwargs.get('epoch', EPOCH),
-                                                         flatten_attrs=kwargs.get('flatten_attrs', False),
-                                                         exclude_attrs=kwargs.get('exclude_attrs', None))
+                datas[new_ds.attrs['name']] = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
+                                                         exclude_attrs=exclude_attrs)
         return datas, start_times, end_times
 
     def save_datasets(self, datasets, filename=None, **kwargs):
@@ -408,7 +406,7 @@ class CFWriter(Writer):
         logger.info('Saving datasets to NetCDF4/CF.')
         # XXX: Should we combine the info of all datasets?
         filename = filename or self.get_filename(**datasets[0].attrs)
-        datas, start_times, end_times = self._collect_datasets(datasets, kwargs)
+        datas, start_times, end_times = self._collect_datasets(datasets, **kwargs)
 
         dataset = xr.Dataset(datas)
         try:
