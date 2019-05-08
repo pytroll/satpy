@@ -234,15 +234,16 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         dataset_name = dataset_keys.name
         # Resolution asked
         resolution = dataset_keys.resolution
-        # Default variable name
         if in_file_dataset_name is not None:
+            # if the YAML was configured with a specific name use that
             data = self.load_dataset(in_file_dataset_name)
         else:
+            # otherwise use the default name for this variable
             data = self._load_ds_by_name(dataset_name)
         if resolution != self.geo_resolution:
             if in_file_dataset_name is not None:
-                # they specified a custom variable name but we don't know
-                # how to interpolate this yet
+                # they specified a custom variable name but
+                # we don't know how to interpolate this yet
                 raise NotImplementedError(
                     "Interpolation for variable '{}' is not "
                     "configured".format(dataset_name))
