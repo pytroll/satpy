@@ -4,8 +4,8 @@ Satpy's Documentation
 
 Satpy is a python library for reading, manipulating, and writing data from
 remote-sensing earth-observing satellite instruments. Satpy provides users
-with a series of readers that convert satellite instrument file formats to
-the common Xarray :class:`~xarray.DataArray` and
+with readers that convert remotely sensed geophysical parameters from various
+file formats to the common Xarray :class:`~xarray.DataArray` and
 :class:`~xarray.Dataset` classes for easier interoperability with other
 scientific python libraries. Satpy also provides interfaces for creating
 RGB (Red/Green/Blue) images and other composite types by combining data
@@ -30,10 +30,10 @@ libraries maintained by the Pytroll group including:
 
 Go to the Satpy project_ page for source code and downloads.
 
-It is designed to be easily extendable to support any meteorological satellite
-by the creation of plugins (readers, compositors, writers, etc). The table at
-the bottom of this page shows the input formats supported by the base Satpy
-installation.
+Satpy is designed to be easily extendable to support any meteorological
+satellite by the creation of plugins (readers, compositors, writers, etc).
+The table at the bottom of this page shows the input formats supported by
+the base Satpy installation.
 
 .. note::
 
