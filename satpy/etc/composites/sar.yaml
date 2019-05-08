@@ -6,8 +6,10 @@ composites:
     prerequisites:
     - name: measurement
       polarization: hh
+      calibration: gamma
     - name: measurement
       polarization: hv
+      calibraion: gamma
     standard_name: sar-ice
 
   sar-ice-iw:
@@ -15,8 +17,10 @@ composites:
     prerequisites:
     - name: measurement
       polarization: vv
+      calibration: gamma
     - name: measurement
       polarization: vh
+      calibration: gamma
     standard_name: sar-ice
 
   sar-rgb:
@@ -36,3 +40,21 @@ composites:
     - name: measurement
       polarization: hv
     standard_name: sar-quick
+
+  sar-ice-legacy:
+    compositor: !!python/name:satpy.composites.sar.SARIceLegacy
+    prerequisites:
+    - name: measurement
+      polarization: hh
+    - name: measurement
+      polarization: hv
+    standard_name: sar-ice-legacy
+
+  sar-land:
+    compositor: !!python/name:satpy.composites.sar.SARIce
+    prerequisites:
+    - name: measurement
+      polarization: hh
+    - name: measurement
+      polarization: hv
+    standard_name: sar-land

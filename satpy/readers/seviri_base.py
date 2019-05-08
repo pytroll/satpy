@@ -24,8 +24,8 @@
 """Utilities and eventually also base classes for MSG HRIT/Native data reading
 """
 
-from datetime import datetime, timedelta
 import numpy as np
+from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
 import xarray.ufuncs as xu
 
@@ -48,6 +48,8 @@ CHANNEL_NAMES = {1: "VIS006",
                  10: "IR_120",
                  11: "IR_134",
                  12: "HRV"}
+
+VIS_CHANNELS = ['HRV', 'VIS006', 'VIS008', 'IR_016']
 
 # Polynomial coefficients for spectral-effective BT fits
 BTFIT = {}
@@ -190,11 +192,30 @@ CALIB[324] = {'HRV': {'F': 79.0035 / np.pi},
 
 
 def get_cds_time(days, msecs):
-    """Get the datetime object of the time since epoch given in days and
-    milliseconds of day
+    """Compute timestamp given the days since epoch and milliseconds of the day
+
+    1958-01-01 00:00 is interpreted as fill value and will be replaced by NaT (Not a Time).
+
+    Args:
+        days (int, either scalar or numpy.ndarray):
+            Days since 1958-01-01
+        msecs (int, either scalar or numpy.ndarray):
+            Milliseconds of the day
+
+    Returns:
+        numpy.datetime64: Timestamp(s)
     """
-    return datetime(1958, 1, 1) + timedelta(days=float(days),
-                                            milliseconds=float(msecs))
+    if np.isscalar(days):
+        days = np.array([days], dtype='int64')
+        msecs = np.array([msecs], dtype='int64')
+
+    time = np.datetime64('1958-01-01').astype('datetime64[ms]') + \
+        days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]')
+    time[time == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
+
+    if len(time) == 1:
+        return time[0]
+    return time
 
 
 def dec10216(inbuf):
@@ -286,3 +307,16 @@ class SEVIRICalibrationHandler(object):
         """Calibrate to reflectance."""
 
         return data * 100.0 / solar_irradiance
+
+
+def chebyshev(coefs, time, domain):
+    """Evaluate a Chebyshev Polynomial
+
+    Args:
+        coefs (list, np.array): Coefficients defining the polynomial
+        time (int, float): Time where to evaluate the polynomial
+        domain (list, tuple): Domain (or time interval) for which the polynomial is defined: [left, right]
+
+    Reference: Appendix A in the MSG Level 1.5 Image Data Format Description.
+    """
+    return Chebyshev(coefs, domain=domain)(time) - 0.5 * coefs[0]
