@@ -3,15 +3,15 @@
 #  - http://fy4.nsmc.org.cn/data/en/data/realtime.html
 
 reader:
-  name: agrl_l1
-  description: FY-4A AGRL instrument HDF5 reader
-  sensors: [agrl]
+  name: agri_l1
+  description: FY-4A AGRI instrument HDF5 reader
+  sensors: [agri]
   default_channels:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    agrl_l1:
-        file_reader: !!python/name:satpy.readers.agrl_l1.HDF_AGRL_L1
+    agri_l1:
+        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
         file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_{code:s}-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{resolution:5s}_{version:s}.HDF']
 
 datasets:
@@ -27,7 +27,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel01
-    file_type: agrl_l1
+    lut_key: CALChannel01
+    file_type: agri_l1
     fill_value: 65535
 
   C02:
@@ -42,7 +43,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel02
-    file_type: agrl_l1
+    lut_key: CALChannel02
+    file_type: agri_l1
     fill_value: 65535
 
   C03:
@@ -57,7 +59,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel03
-    file_type: agrl_l1
+    lut_key: CALChannel03
+    file_type: agri_l1
     fill_value: 65535
 
   C04:
@@ -72,7 +75,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel04
-    file_type: agrl_l1
+    lut_key: CALChannel04
+    file_type: agri_l1
     fill_value: 65535
 
   C05:
@@ -87,7 +91,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel05
-    file_type: agrl_l1
+    lut_key: CALChannel05
+    file_type: agri_l1
     fill_value: 65535
 
   C06:
@@ -102,7 +107,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel06
-    file_type: agrl_l1
+    lut_key: CALChannel06
+    file_type: agri_l1
     fill_value: 65535
 
   C07:
@@ -120,7 +126,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel07
-    file_type: agrl_l1
+    lut_key: CALChannel07
+    file_type: agri_l1
     fill_value: 65535
 
   C08:
@@ -138,7 +145,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel08
-    file_type: agrl_l1
+    lut_key: CALChannel08
+    file_type: agri_l1
     fill_value: 65535
 
   C09:
@@ -156,7 +164,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel09
-    file_type: agrl_l1
+    lut_key: CALChannel09
+    file_type: agri_l1
     fill_value: 65535
 
   C10:
@@ -174,7 +183,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel10
-    file_type: agrl_l1
+    lut_key: CALChannel10
+    file_type: agri_l1
     fill_value: 65535
 
   C11:
@@ -192,7 +202,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel11
-    file_type: agrl_l1
+    lut_key: CALChannel11
+    file_type: agri_l1
     fill_value: 65535
 
   C12:
@@ -210,7 +221,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel12
-    file_type: agrl_l1
+    lut_key: CALChannel12
+    file_type: agri_l1
     fill_value: 65535
 
   C13:
@@ -228,7 +240,8 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel13
-    file_type: agrl_l1
+    lut_key: CALChannel13
+    file_type: agri_l1
     fill_value: 65535
 
   C14:
@@ -246,5 +259,6 @@ datasets:
         standard_name: counts
         units: "1"
     file_key: NOMChannel14
-    file_type: agrl_l1
+    lut_key: CALChannel14
+    file_type: agri_l1
     fill_value: 65535
