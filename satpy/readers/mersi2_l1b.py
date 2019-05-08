@@ -96,11 +96,14 @@ class MERSI2L1B(HDF5FileHandler):
         if dataset_id.calibration == 'counts':
             # preserve integer type of counts if possible
             attrs['_FillValue'] = fill_value
+            new_fill = fill_value
+        else:
+            new_fill = np.nan
         if valid_range is not None:
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
             data = data.where((data >= valid_range[0]) &
-                              (data <= valid_range[1]), fill_value)
+                              (data <= valid_range[1]), new_fill)
 
         slope = attrs.pop('Slope', None)
         intercept = attrs.pop('Intercept', None)
