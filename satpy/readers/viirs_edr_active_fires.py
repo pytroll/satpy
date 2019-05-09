@@ -32,6 +32,12 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
     """NetCDF4 reader for VIIRS Active Fires
     """
 
+    def __init__(self, filename, filename_info, filetype_info,
+                 auto_maskandscale=False, xarray_kwargs=None):
+        super(VIIRSActiveFiresFileHandler, self).__init__(
+            filename, filename_info, filetype_info)
+        self.prefix = filetype_info.get('variable_prefix')
+
     def get_dataset(self, dsid, dsinfo):
         """Get dataset function
 
@@ -43,11 +49,15 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             Dask DataArray: Data
 
         """
-        data = self[dsinfo.get('file_key', dsid.name)]
+
+        key = dsinfo.get('file_key', dsid.name).format(variable_prefix=self.prefix)
+        data = self[key]
         data.attrs.update(dsinfo)
 
-        data.attrs["platform_name"] = self['/attr/satellite_name']
-        data.attrs["sensor"] = self['/attr/instrument_name']
+        platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
+
+        data.attrs["platform_name"] = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
+        data.attrs["sensor"] = "VIIRS"
 
         return data
 
@@ -79,21 +89,28 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
             filename_info: Filename information
             filetype_info: Filetype information
         """
+
+        if filetype_info.get('file_type') == 'fires_text_img':
+            self.file_content = dd.read_csv(filename, skiprows=15, header=None,
+                                            names=["latitude", "longitude",
+                                                   "T4", "Along-scan", "Along-track", "confidence_cat",
+                                                   "power"])
+        else:
+            self.file_content = dd.read_csv(filename, skiprows=15, header=None,
+                                            names=["latitude", "longitude",
+                                                   "T13", "Along-scan", "Along-track", "confidence_pct",
+                                                   "power"])
+
         super(VIIRSActiveFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
 
-        if not os.path.isfile(filename):
-            return
+        platform_key = {"NPP": "Suomi-NPP", "J01": "NOAA-20", "J02": "NOAA-21"}
 
-        self.file_content = dd.read_csv(filename, skiprows=15, header=None,
-                                        names=["latitude", "longitude",
-                                               "T13", "Along-scan", "Along-track", "detection_confidence",
-                                               "power"])
+        self.platform_name = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
 
     def get_dataset(self, dsid, dsinfo):
         ds = self[dsid.name].to_dask_array(lengths=True)
-        data_array = xr.DataArray(ds, dims=("y",), attrs={"platform_name": "unknown", "sensor": "viirs"})
+        data_array = xr.DataArray(ds, dims=("y",), attrs={"platform_name": self.platform_name, "sensor": "VIIRS"})
         data_array.attrs.update(dsinfo)
-
         return data_array
 
     @property
