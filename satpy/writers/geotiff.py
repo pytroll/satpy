@@ -207,6 +207,21 @@ class GeoTIFFWriter(ImageWriter):
                 them multiple times. Defaults to ``True`` in the writer by
                 itself, but is typically passed as ``False`` by callers where
                 calculations can be combined.
+            keep_palette (bool): Save palette/color table to geotiff.
+                To be used with images that were palettized with the
+                "palettize" enhancement. Setting this to ``True`` will cause
+                the colormap of the image to be written as a "color table" in
+                the output geotiff and the image data values will represent
+                the index values in to that color table. By default, this will
+                use the colormap used in the "palettize" operation.
+                See the ``cmap`` option for other options. This option defaults
+                to ``False`` and palettized images will be converted to RGB/A.
+            cmap (trollimage.colormap.Colormap or None): Colormap to save
+                as a color table in the output geotiff. See ``keep_palette``
+                for more information. Defaults to the palette of the provided
+                ``img`` object. The colormap's range should be set to match
+                the index range of the palette
+                (ex. `cmap.set_range(0, len(colors))`).
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
@@ -244,6 +259,10 @@ class GeoTIFFWriter(ImageWriter):
                 LOG.debug("Alpha band not supported for float geotiffs, "
                           "setting fill value to 'NaN'")
                 fill_value = np.nan
+        if keep_palette and cmap is None and img.palette is not None:
+            from satpy.enhancements import create_colormap
+            cmap = create_colormap({'colors': img.palette})
+            cmap.set_range(0, len(img.palette) - 1)
 
         try:
             import rasterio  # noqa
