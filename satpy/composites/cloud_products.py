@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2018 PyTroll developers
+# Copyright (c) 2015-2019 PyTroll developers
 
 # Author(s):
 
@@ -28,6 +28,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.composites import ColormapCompositor
+from satpy.composites import GenericCompositor
 
 
 class CloudTopHeightCompositor(ColormapCompositor):
@@ -71,8 +72,51 @@ class CloudTopHeightCompositor(ColormapCompositor):
                                 dims=data.dims, coords=data.coords,
                                 attrs=data.attrs).where(mask_nan)
             # Set cloud-free pixels as black
-            chans.append(chan.where(mask_cloud_free, 0))
+            chans.append(chan.where(mask_cloud_free, 0).where(status != status.attrs['_FillValue']))
 
         res = super(CloudTopHeightCompositor, self).__call__(chans, **data.attrs)
         res.attrs['_FillValue'] = np.nan
+        return res
+
+
+class PrecipCloudsRGB(GenericCompositor):
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Make an RGB image out of the three probability categories of the NWCSAF precip product."""
+
+        projectables = self.check_areas(projectables)
+        light = projectables[0]
+        moderate = projectables[1]
+        intense = projectables[2]
+        status_flag = projectables[3]
+
+        if np.bitwise_and(status_flag, 4).any():
+            # AMSU is used
+            maxs1 = 70
+            maxs2 = 70
+            maxs3 = 100
+        else:
+            # avhrr only
+            maxs1 = 30
+            maxs2 = 50
+            maxs3 = 40
+
+        scalef3 = 1.0 / maxs3 - 1 / 255.0
+        scalef2 = 1.0 / maxs2 - 1 / 255.0
+        scalef1 = 1.0 / maxs1 - 1 / 255.0
+
+        p1data = (light*scalef1).where(light != 0)
+        p1data = p1data.where(light != light.attrs['_FillValue'])
+        p1data.attrs = light.attrs
+        data = moderate*scalef2
+        p2data = data.where(moderate != 0)
+        p2data = p2data.where(moderate != moderate.attrs['_FillValue'])
+        p2data.attrs = moderate.attrs
+        data = intense*scalef3
+        p3data = data.where(intense != 0)
+        p3data = p3data.where(intense != intense.attrs['_FillValue'])
+        p3data.attrs = intense.attrs
+
+        res = super(PrecipCloudsRGB, self).__call__((p3data, p2data, p1data),
+                                                    *args, **kwargs)
         return res

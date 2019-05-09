@@ -1,0 +1,170 @@
+reader:
+  description: reader for VIRR data
+  name: virr_l1b
+  sensors: [virr]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    virr_l1b:
+        file_reader: !!python/name:satpy.readers.virr_l1b.VIRR_L1B
+        file_patterns:
+        - 'tf{creation_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_L1B.HDF'
+        geolocation_prefix: ''
+    virr_geoxx:
+        file_reader: !!python/name:satpy.readers.virr_l1b.VIRR_L1B
+        file_patterns:
+        - 'tf{creation_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_GEOXX.HDF'
+        geolocation_prefix: 'Geolocation/'
+
+datasets:
+  R1:
+    name: R1
+    wavelength: [0.58, 0.63, 0.68]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_RefSB
+    band_index: 0
+    standard_name: toa_bidirectional_reflectance
+    coordinates: [longitude, latitude]
+    calibration: reflectance
+
+  R2:
+    name: R2
+    wavelength: [0.84, 0.865, 0.89]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_RefSB
+    band_index: 1
+    standard_name: toa_bidirectional_reflectance
+    coordinates: [longitude, latitude]
+    calibration: reflectance
+
+  E1:
+    name: E1
+    wavelength: [3.55, 3.74, 3.93]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_Emissive
+    band_index: 0
+    standard_name: toa_brightness_temperature
+    coordinates: [longitude, latitude]
+    calibration: brightness_temperature
+
+  E2:
+    name: E2
+    wavelength: [10.3, 10.8, 11.3]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_Emissive
+    band_index: 1
+    standard_name: toa_brightness_temperature
+    coordinates: [longitude, latitude]
+    calibration: brightness_temperature
+
+  E3:
+    name: E3
+    wavelength: [11.5, 12.0, 12.5]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_Emissive
+    band_index: 2
+    standard_name: toa_brightness_temperature
+    coordinates: [longitude, latitude]
+    calibration: brightness_temperature
+
+  R3:
+    name: R3
+    wavelength: [1.55, 1.6, 1.64]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_RefSB
+    band_index: 2
+    standard_name: toa_bidirectional_reflectance
+    coordinates: [longitude, latitude]
+    calibration: reflectance
+
+  R4:
+    name: R4
+    wavelength: [0.43, 0.455, 0.48]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_RefSB
+    band_index: 3
+    standard_name: toa_bidirectional_reflectance
+    coordinates: [longitude, latitude]
+    calibration: reflectance
+
+  R5:
+    name: R5
+    wavelength: [0.48, 0.505, 0.53]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_RefSB
+    band_index: 4
+    standard_name: toa_bidirectional_reflectance
+    coordinates: [longitude, latitude]
+    calibration: reflectance
+
+  R6:
+    name: R6
+    wavelength: [0.53, 0.555, 0.58]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_RefSB
+    band_index: 5
+    standard_name: toa_bidirectional_reflectance
+    coordinates: [longitude, latitude]
+    calibration: reflectance
+
+  R7:
+    name: R7
+    wavelength: [1.325, 1.36, 1.395]
+    resolution: 1000
+    file_type: virr_l1b
+    file_key: Data/EV_RefSB
+    band_index: 6
+    standard_name: toa_bidirectional_reflectance
+    coordinates: [longitude, latitude]
+    calibration: reflectance
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    file_type: [virr_geoxx, virr_l1b]
+    file_key: SensorAzimuth
+    standard_name: sensor_azimuth_angle
+    coordinates: [longitude, latitude]
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    file_type: [virr_geoxx, virr_l1b]
+    file_key: SensorZenith
+    standard_name: sensor_zenith_angle
+    coordinates: [longitude, latitude]
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    file_type: [virr_geoxx, virr_l1b]
+    file_key: SolarAzimuth
+    standard_name: solar_azimuth_angle
+    coordinates: [longitude, latitude]
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    file_type: [virr_geoxx, virr_l1b]
+    file_key: SolarZenith
+    standard_name: solar_zenith_angle
+    coordinates: [longitude, latitude]
+
+  longitude:
+    name: longitude
+    resolution: 1000
+    file_type: [virr_l1b, virr_geoxx]
+    file_key: Longitude
+    standard_name: longitude
+
+  latitude:
+    name: latitude
+    resolution: 1000
+    file_type: [virr_l1b, virr_geoxx]
+    file_key: Latitude
+    standard_name: latitude
