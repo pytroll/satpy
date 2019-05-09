@@ -215,11 +215,11 @@ def create_colormap(palette):
         return Colormap(*cmap)
 
     colors = palette.get('colors', None)
-    if isinstance(colors, list):
+    if isinstance(colors, (tuple, list)):
         cmap = []
         values = palette.get('values', None)
         for idx, color in enumerate(colors):
-            if values:
+            if values is not None:
                 value = values[idx]
             else:
                 value = idx / float(len(colors) - 1)
