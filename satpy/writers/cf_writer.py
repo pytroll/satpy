@@ -80,7 +80,7 @@ This is what the corresponding ``ncdump`` output would look like in this case:
 .. _CF-compliant: http://cfconventions.org/
 """
 
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import logging
 from datetime import datetime
 import json
@@ -184,8 +184,9 @@ def area2lonlat(dataarray):
                                'standard_name': "latitude",
                                'units': 'degrees_north'},
                         name='latitude')
-    dataarray.attrs['coordinates'] = 'longitude latitude'
-    return [dataarray, lons, lats]
+    dataarray['longitude'] = lons
+    dataarray['latitude'] = lats
+    return [dataarray]
 
 
 def area2gridmapping(dataarray):
@@ -231,11 +232,14 @@ def make_time_bounds(dataarray, start_times, end_times):
 
 
 def make_coords_unique(datas):
-    """Make sure non-dimensional (or alternative) coordinates have unique names by prepending the dataset name
+    """Make non-dimensional (or alternative) coordinates in a nc group unique by prepending the dataset name
+
+    Exeption: `latitude` and `longitude`, because we assume that all datasets in one group have the same projection
+    coordinates `x` and `y`.
 
     In principle this would only be required if multiple datasets had alternative coordinates with the same name but
     different values. But to ensure consistency we always prepend the dataset name. Otherwise the name of the
-    alternative coordinates in the nc file would depend on the number/set of datasets written to it.
+    alternative coordinates in the nc group would depend on the number/set of datasets written to it.
 
     Args:
         datas (dict): Dictionary of (dataset name, dataset)
@@ -243,8 +247,12 @@ def make_coords_unique(datas):
     Returns:
         Dictionary holding the updated datasets
     """
-    # Collect all alternative coordinates
-    alt_coords = [c for data_array in datas.values() for c in data_array.coords if c not in data_array.dims]
+    # Collect all alternative coordinates, except longitude/latitude
+    alt_coords = []
+    for data_array in datas.values():
+        for coord in data_array.coords:
+            if coord not in data_array.dims + ('longitude', 'latitude'):
+                alt_coords.append(coord)
 
     # Prepend dataset name
     new_datas = {}
@@ -441,32 +449,62 @@ class CFWriter(Writer):
 
         return datas, start_times, end_times
 
-    def save_datasets(self, datasets, filename=None, **kwargs):
-        """Save all datasets to one or more files."""
+    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', **kwargs):
+        """Save all datasets to one netCDF file
+
+        By default only datasets with the same projection coordinates (`x` and `y`) can be saved together in one file.
+        But it is possible save datasets with different grids in different groups (see the `group` argument).
+
+        Args:
+            datasets (list): Names of datasets to be saved
+            filename (str): Output file
+            groups (dict): Group datasets according to the given assignment:
+                `{'group_name': ['dataset1', 'dataset2', ...]}`. Group name `None` corresponds to the root of the file,
+                i.e. no group will be created. Note that all datasets in one group must have the same projection
+                coordinates (`x` and `y`).
+        """
         logger.info('Saving datasets to NetCDF4/CF.')
-        # XXX: Should we combine the info of all datasets?
+
+        to_netcdf_kwargs = {}
+        for key in ['format', 'encoding', 'unlimited_dims', 'compute']:
+            to_netcdf_kwargs[key] = kwargs.pop(key, None)
+
+        if groups is None:
+            # Separate group for each dataset
+            groups_ = {None: datasets}
+        else:
+            # User specified a group assignment using dataset names. Collect the corresponding datasets.
+            groups_ = defaultdict(list)
+            for dataset in datasets:
+                for group_name, group_members in groups.items():
+                    if dataset.attrs['name'] in group_members:
+                        groups_[group_name].append(dataset)
+                        break
+
+        # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
-        datas, start_times, end_times = self._collect_datasets(datasets, **kwargs)
-
-        dataset = xr.Dataset(datas)
-        try:
-            dataset['time_bnds'] = make_time_bounds(dataset,
-                                                    start_times,
-                                                    end_times)
-            dataset['time'].attrs['bounds'] = "time_bnds"
-        except KeyError:
-            logger.warning('No time dimension in datasets, skipping time bounds creation.')
-
-        header_attrs = kwargs.pop('header_attrs', None)
-
+        root = xr.Dataset({})
         if header_attrs is not None:
-            dataset.attrs.update({k: v for k, v in header_attrs.items() if v})
+            root.attrs.update({k: v for k, v in header_attrs.items() if v})
+        root.attrs['history'] = ("Created by pytroll/satpy on {}".format(datetime.utcnow()))
+        if groups is None:
+            root.attrs['Conventions'] = 'CF-1.7'
+        root.to_netcdf(filename, engine=engine, mode='w', **to_netcdf_kwargs)
 
-        dataset.attrs['history'] = ("Created by pytroll/satpy on " +
-                                    str(datetime.utcnow()))
-        dataset.attrs['conventions'] = 'CF-1.7'
-        engine = kwargs.pop("engine", 'h5netcdf')
-        for key in list(kwargs.keys()):
-            if key not in ['mode', 'format', 'group', 'encoding', 'unlimited_dims', 'compute']:
-                kwargs.pop(key, None)
-        return dataset.to_netcdf(filename, engine=engine, **kwargs)
+        # Write datasets to groups (appending to the file)
+        written = []
+        for group_name, group_datasets in groups_.items():
+            # XXX: Should we combine the info of all datasets?
+            datas, start_times, end_times = self._collect_datasets(group_datasets, **kwargs)
+            dataset = xr.Dataset(datas)
+            try:
+                dataset['time_bnds'] = make_time_bounds(dataset,
+                                                        start_times,
+                                                        end_times)
+                dataset['time'].attrs['bounds'] = "time_bnds"
+            except KeyError:
+                logger.warning('No time dimension in group {}, skipping time bounds creation.'.format(group_name))
+
+            res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', **to_netcdf_kwargs)
+            written.append(res)
+        return written
