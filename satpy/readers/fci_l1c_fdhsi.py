@@ -86,8 +86,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         radiances = self[radlab]
         radiances = radiances.where(radiances > radiances.attrs['valid_range'][0])
         radiances = radiances.where(radiances < radiances.attrs['valid_range'][1])
-        radiances = (radiances * self[radlab + "/scale_factor"] +
-                     self[radlab + "/add_offset"])
+        radiances = (radiances * radiances.attrs["scale_factor"] +
+                     radiances.attrs["add_offset"])
 
         res = self.calibrate(radiances, key, measured, root)
 
@@ -111,13 +111,12 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
-        variable = self[measured + "/effective_radiance"]
         # Get start/end line and column of loaded swath.
         self.startline = int(self[measured + "/start_position_row"])
         self.endline = int(self[measured + "/end_position_row"])
         self.startcol = int(self[measured + "/start_position_column"])
         self.endcol = int(self[measured + "/end_position_column"])
-        self.nlines, self.ncols = variable.shape
+        self.nlines, self.ncols = self[measured + "/effective_radiance/shape"]
 
         logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
         logger.debug('Row/Cols: {} / {}'.format(self.nlines, self.ncols))
