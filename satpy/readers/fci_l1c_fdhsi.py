@@ -36,13 +36,11 @@ in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 
 import logging
 import numpy as np
-import xarray as xr
 
 from pyresample import geometry
 from netCDF4 import default_fillvals
 
 from .netcdf_utils import NetCDF4FileHandler
-from .. import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -139,8 +137,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         return(chk_extent)
 
     _fallback_area_def = {
-            "reference_altitude": 35786400, # metre
+            "reference_altitude": 35786400,  # metre
             }
+
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
         # TODO Projection information are hard coded for 0 degree geos projection
