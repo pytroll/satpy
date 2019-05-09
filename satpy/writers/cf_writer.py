@@ -80,10 +80,11 @@ This is what the corresponding ``ncdump`` output would look like in this case:
 .. _CF-compliant: http://cfconventions.org/
 """
 
-from collections import OrderedDict, defaultdict
+from collections import OrderedDict
 import logging
 from datetime import datetime
 import json
+import warnings
 
 import xarray as xr
 import numpy as np
@@ -152,7 +153,9 @@ def create_grid_mapping(area):
         grid_mapping = mappings[area.proj_dict['proj']](area)
         grid_mapping['name'] = area.proj_dict['proj']
     except KeyError:
-        raise NotImplementedError
+        warnings.warn('The projection "{}" is either not CF compliant or not implemented yet. '
+                      'Using the proj4 string instead.'.format(area.proj_str))
+        grid_mapping = {'name': 'proj4', 'proj4': area.proj_str}
 
     return grid_mapping
 
@@ -182,15 +185,20 @@ def area2lonlat(dataarray):
                                'units': 'degrees_north'},
                         name='latitude')
     dataarray.attrs['coordinates'] = 'longitude latitude'
-
     return [dataarray, lons, lats]
 
 
 def area2gridmapping(dataarray):
     area = dataarray.attrs['area']
     attrs = create_grid_mapping(area)
-    name = attrs['name']
-    dataarray.attrs['grid_mapping'] = name
+    if attrs is not None and 'name' in attrs.keys() and attrs['name'] != "proj4":
+        dataarray.attrs['grid_mapping'] = attrs['name']
+        name = attrs['name']
+    else:
+        # Handle the case when the projection cannot be converted to a standard CF representation or this has not
+        # been implemented yet.
+        dataarray.attrs['grid_proj4'] = area.proj4_string
+        name = "proj4"
     return [dataarray, xr.DataArray(0, attrs=attrs, name=name)]
 
 
@@ -411,7 +419,7 @@ class CFWriter(Writer):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
-    def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, **kwargs):
+    def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, latlon=False, **kwargs):
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
@@ -421,7 +429,7 @@ class CFWriter(Writer):
         end_times = []
         for ds in ds_collection.values():
             try:
-                new_datasets = area2cf(ds)
+                new_datasets = area2cf(ds, strict=latlon)
             except KeyError:
                 new_datasets = [ds.copy(deep=True)]
             for new_ds in new_datasets:

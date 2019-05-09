@@ -351,17 +351,25 @@ class TestCFWriter(unittest.TestCase):
         self.assertDictEqual(res_flat.attrs, attrs_expected_flat)
 
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
+    @mock.patch('satpy.writers.cf_writer.area2cf')
     @mock.patch('satpy.writers.cf_writer.CFWriter.da2cf')
     @mock.patch('satpy.writers.cf_writer.make_coords_unique')
-    def test_collect_datasets(self, make_coords_unique, da2cf, *mocks):
+    def test_collect_datasets(self, make_coords_unique, da2cf, area2cf, *mocks):
         from satpy.writers.cf_writer import CFWriter
         import xarray as xr
 
-        def da2cf_patched(new_ds, **kwargs):
-            return new_ds
-        da2cf.side_effect = da2cf_patched
+        # Patch methods
+        def identity(arg, **kwargs):
+            return arg
+
+        def raise_key_error(arg, **kwargs):
+            raise KeyError
+
+        da2cf.side_effect = identity
+        area2cf.side_effect = raise_key_error
         make_coords_unique.return_value = 'unique_coords'
 
+        # Define test datasets
         data = [[1, 2], [3, 4]]
         y = [1, 2]
         x = [1, 2]
@@ -374,19 +382,27 @@ class TestCFWriter(unittest.TestCase):
                                  attrs={'name': 'var2'})]
         expected = {'var1': datasets[0], 'var2': datasets[1]}
 
+        # Collect datasets
         writer = CFWriter()
-        datas, start_times, end_times = writer._collect_datasets(datasets)
+        datas, start_times, end_times = writer._collect_datasets(datasets, latlon=True)
 
+        # Test results
         self.assertEqual(datas, 'unique_coords')
         self.assertListEqual(start_times, [tstart, None])
         self.assertListEqual(end_times, [tend, None])
 
+        # Test area2cf call
+        self.assertEqual(len(area2cf.call_args_list), 2)
+        for call_args, ds in zip(area2cf.call_args_list, datasets):
+            self.assertEqual(call_args, mock.call(ds, strict=True))
+
+        # Test make_coords_unique call
         make_coords_unique.assert_called()
         call_arg = make_coords_unique.call_args[0][0]
         self.assertIsInstance(call_arg, dict)
         self.assertSetEqual(set(call_arg.keys()), {'var1', 'var2'})
-        self.assertTrue(np.all(call_arg['var1'] == expected['var1']))
-        self.assertTrue(np.all(call_arg['var2'] == expected['var2']))
+        for key, ds in expected.items():
+            self.assertTrue(call_arg[key].identical(ds))
 
     def test_make_coords_unique(self):
         import xarray as xr
@@ -416,6 +432,106 @@ class TestCFWriter(unittest.TestCase):
         self.assertTrue(np.all(res['var1']['y'] == y))
         self.assertTrue(np.all(res['var2']['x'] == x))
         self.assertTrue(np.all(res['var2']['y'] == y))
+
+    @mock.patch('satpy.writers.cf_writer.area2lonlat')
+    @mock.patch('satpy.writers.cf_writer.area2gridmapping')
+    def test_area2cf(self, area2gridmapping, area2lonlat):
+        import xarray as xr
+        import pyresample.geometry
+        from satpy.writers.cf_writer import area2cf
+
+        area2gridmapping.side_effect = lambda x: [1, 2, 3]
+        area2lonlat.side_effect = lambda x: [4, 5, 6]
+        ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]},
+                               attrs={'name': 'var1'})
+
+        # a) Area Definition and strict=False
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
+        ds = ds_base.copy(deep=True)
+        ds.attrs['area'] = geos
+
+        res = area2cf(ds)
+        self.assertEqual(len(res), 4)
+        self.assertListEqual(res[0:3], [1, 2, 3])
+        self.assertTrue(ds.identical(res[3]))
+
+        # b) Area Definition and strict=False
+        area2cf(ds, strict=True)
+        area2lonlat.assert_called()
+
+        # c) Swath Definition
+        swath = pyresample.geometry.SwathDefinition(lons=[[1, 1], [2, 2]], lats=[[1, 2], [1, 2]])
+        ds = ds_base.copy(deep=True)
+        ds.attrs['area'] = swath
+
+        res = area2cf(ds)
+        self.assertEqual(len(res), 4)
+        self.assertListEqual(res[0:3], [4, 5, 6])
+        self.assertTrue(ds.identical(res[3]))
+
+    def test_area2gridmapping(self):
+        import xarray as xr
+        import pyresample.geometry
+        from satpy.writers.cf_writer import area2gridmapping
+
+        ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]},
+                               attrs={'name': 'var1'})
+
+        # a) Projection has a corresponding CF representation (e.g. geos)
+        a = 6378169.
+        b = 6356583.8
+        h = 35785831.
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': h, 'a': a, 'b': b},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
+        geos_expected = xr.DataArray(data=0,
+                                     attrs={'perspective_point_height': h,
+                                            'latitude_of_projection_origin': None,
+                                            'longitude_of_projection_origin': None,
+                                            'grid_mapping_name': 'geostationary',
+                                            'semi_major_axis': a,
+                                            'semi_minor_axis': b,
+                                            'sweep_axis': None,
+                                            'name': 'geos'})
+
+        ds = ds_base.copy()
+        ds.attrs['area'] = geos
+        res, grid_mapping = area2gridmapping(ds)
+
+        self.assertEqual(res.attrs['grid_mapping'], 'geos')
+        self.assertEqual(grid_mapping, geos_expected)
+
+        # b) Projection does not have a corresponding CF representation (COSMO)
+        cosmo7 = pyresample.geometry.AreaDefinition(
+            area_id='cosmo7',
+            description='cosmo7',
+            proj_id='cosmo7',
+            projection={'proj': 'ob_tran', 'ellps': 'WGS84', 'lat_0': 46, 'lon_0': 4.535,
+                        'o_proj': 'stere', 'o_lat_p': 90, 'o_lon_p': -5.465},
+            width=597, height=510,
+            area_extent=[-1812933, -1003565, 814056, 1243448]
+        )
+        proj_str = '+proj=ob_tran +ellps=WGS84 +lat_0=46.0 +lon_0=4.535 +o_proj=stere +o_lat_p=90.0 +o_lon_p=-5.465'
+        cosmo_expected = xr.DataArray(data=0, attrs={'name': 'proj4', 'proj4': proj_str})
+
+        ds = ds_base.copy()
+        ds.attrs['area'] = cosmo7
+
+        with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
+            res, grid_mapping = area2gridmapping(ds)
+            warn.assert_called()
+            self.assertEqual(res.attrs['grid_proj4'], proj_str)
+            self.assertEqual(grid_mapping, cosmo_expected)
 
 
 def suite():
