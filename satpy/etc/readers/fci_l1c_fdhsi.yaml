@@ -58,23 +58,6 @@ datasets:
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
 
-  vis_06_hr:
-    name: vis_06_hr
-    sensor: fci
-    wavelength: [0.590, 0.640, 0.690]
-    resolution: 500
-    calibration:
-      counts:
-        standard_name: counts
-        units: "count"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-    file_type: fci_l1c_fdhsi
-
   vis_08:
     name: vis_08
     sensor: fci
@@ -160,45 +143,11 @@ datasets:
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
 
-  nir_22_hr:
-    name: nir_22_hr
-    sensor: fci
-    wavelength: [2.200, 2.250, 2.300]
-    resolution: 500
-    calibration:
-      counts:
-        standard_name: counts
-        units: "count"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-    file_type: fci_l1c_fdhsi
-
   ir_38:
     name: ir_38
     sensor: fci
     wavelength: [3.400, 3.800, 4.200]
     resolution: 2000
-    calibration:
-      counts:
-        standard_name: counts
-        units: "count"
-      brightness_temperature:
-        standard_name: toa_brightness_temperature
-        units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-    file_type: fci_l1c_fdhsi
-
-  ir_38_hr:
-    name: ir_38_hr
-    sensor: fci
-    wavelength: [3.400, 3.800, 4.200]
-    resolution: 1000
     calibration:
       counts:
         standard_name: counts
@@ -285,23 +234,6 @@ datasets:
     sensor: fci
     wavelength: [9.800, 10.500, 11.200]
     resolution: 2000
-    calibration:
-      counts:
-        standard_name: counts
-        units: "count"
-      brightness_temperature:
-        standard_name: toa_brightness_temperature
-        units: "K"
-      radiance:
-        standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
-    file_type: fci_l1c_fdhsi
-
-  ir_105_hr:
-    name: ir_105_hr
-    sensor: fci
-    wavelength: [9.800, 10.500, 11.200]
-    resolution: 1000
     calibration:
       counts:
         standard_name: counts
