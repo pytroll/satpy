@@ -41,13 +41,13 @@ import xarray as xr
 from pyresample import geometry
 from netCDF4 import default_fillvals
 
-from .file_handlers import BaseFileHandler
+from .netcdf_utils import NetCDF4FileHandler
 from .. import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
 
-class FCIFDHSIFileHandler(BaseFileHandler):
+class FCIFDHSIFileHandler(NetCDF4FileHandler):
     """Class implementing the MTG FCI FDHSI File Reader
 
     This class implements the Meteosat Third Generation (MTG) Flexible
@@ -65,17 +65,6 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
-        nc = xr.open_dataset(self.filename,
-                             mask_and_scale=True,
-                             decode_cf=True,
-                             chunks=CHUNK_SIZE)
-        processor = xr.open_dataset(self.filename,
-                                    mask_and_scale=False,
-                                    decode_cf=True,
-                                    group='/state/processor',
-                                    chunks=CHUNK_SIZE)
-        self.nc = {'root': nc,
-                   'processor': processor}
         self.cache = {}
 
     @property
@@ -93,10 +82,12 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         # Get the dataset
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
-        radiances = measured['effective_radiance']
+        radlab = measured + "/effective_radiance"
+        radiances = self[radlab]
         radiances = radiances.where(radiances > radiances.attrs['valid_range'][0])
         radiances = radiances.where(radiances < radiances.attrs['valid_range'][1])
-        radiances = radiances * radiances.attrs['scale_factor'] + radiances.attrs['add_offset']
+        radiances = (radiances * self[radlab + "/scale_factor"] +
+                     self[radlab + "/add_offset"])
 
         res = self.calibrate(radiances, key, measured, root)
 
@@ -105,21 +96,10 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         return res
 
     def get_channel_dataset(self, channel):
-        if channel not in self.nc:
-            root_group = '/data/{}'.format(channel)
-            group = '/data/{}/measured'.format(channel)
-            measured = xr.open_dataset(self.filename,
-                                       mask_and_scale=False,
-                                       decode_cf=True,
-                                       group=group,
-                                       chunks=CHUNK_SIZE)
-            root = xr.open_dataset(self.filename,
-                                   mask_and_scale=False,
-                                   decode_cf=True,
-                                   group=root_group,
-                                   chunks=CHUNK_SIZE)
-            self.nc[channel] = measured, root
-        return self.nc[channel]
+        root_group = 'data/{}'.format(channel)
+        group = 'data/{}/measured'.format(channel)
+
+        return group, root_group
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
@@ -131,12 +111,12 @@ class FCIFDHSIFileHandler(BaseFileHandler):
 
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
-        variable = measured['effective_radiance']
+        variable = self[measured + "/effective_radiance"]
         # Get start/end line and column of loaded swath.
-        self.startline = int(measured['start_position_row'])
-        self.endline = int(measured['end_position_row'])
-        self.startcol = int(measured['start_position_column'])
-        self.endcol = int(measured['end_position_column'])
+        self.startline = int(self[measured + "/start_position_row"])
+        self.endline = int(self[measured + "/end_position_row"])
+        self.startcol = int(self[measured + "/start_position_column"])
+        self.endcol = int(self[measured + "/end_position_column"])
         self.nlines, self.ncols = variable.shape
 
         logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
@@ -168,12 +148,12 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         # Test dataset doen't provide the values in the file container.
         # Only fill values are inserted
 
-        a = float(self.nc['processor']['earth_equatorial_radius'])
-        b = float(self.nc['processor']['earth_polar_radius'])
-        h = float(self.nc['processor']['reference_altitude'])
-        lon_0 = float(self.nc['processor']['projection_origin_longitude'])
+        a = float(self["state/processor/earth_equatorial_radius"])
+        b = float(self["state/processor/earth_polar_radius"])
+        h = float(self["state/processor/reference_altitude"])
+        lon_0 = float(self["state/processor/projection_origin_longitude"])
         if h == default_fillvals[
-                self.nc["processor"]["reference_altitude"].dtype.str[1:]]:
+                self["state/processor/reference_altitude"].dtype.str[1:]]:
             logger.warn(
                     "Reference altitude in {:s} set to "
                     "fill value, using {:d}".format(
@@ -222,11 +202,11 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         """IR channel calibration."""
         # Not sure if Lv is correct, FCI User Guide is a bit unclear
 
-        Lv = radiance * measured['radiance_unit_conversion_coefficient']
-        vc = root['central_wavelength_actual']
-        a, b, c, d = measured['radiance_to_bt_conversion_coefficients']
+        Lv = radiance * self[measured + "/radiance_unit_conversion_coefficient"]
+        vc = self[root + "/central_wavelength_actual"]
+        a, b, c, d = self[root + "/radiance_to_bt_conversion_coefficients"]
 
-        c1, c2 = measured['radiance_to_bt_conversion_constants']
+        c1, c2 = self[measured + "/radiance_to_bt_conversion_constants"]
 
         nom = c2 * vc
         denom = a * np.log(1 + (c1 * vc**3) / Lv)
@@ -238,5 +218,5 @@ class FCIFDHSIFileHandler(BaseFileHandler):
         # radiance to reflectance taken as in mipp/xrit/MSG.py
         # again FCI User Guide is not clear on how to do this
 
-        sirr = float(measured['channel_effective_solar_irradiance'])
+        sirr = float(self[measured + "/channel_effective_solar_irradiance"])
         return radiance / sirr * 100
