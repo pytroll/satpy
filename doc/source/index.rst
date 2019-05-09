@@ -3,8 +3,8 @@ Satpy's Documentation
 =====================
 
 Satpy is a python library for reading, manipulating, and writing data from
-remote-sensing earth-observing satellite instruments. Satpy provides users
-with readers that convert remotely sensed geophysical parameters from various
+remote-sensing earth-observing meteorological satellite instruments. Satpy
+provides users with readers that convert geophysical parameters from various
 file formats to the common Xarray :class:`~xarray.DataArray` and
 :class:`~xarray.Dataset` classes for easier interoperability with other
 scientific python libraries. Satpy also provides interfaces for creating
