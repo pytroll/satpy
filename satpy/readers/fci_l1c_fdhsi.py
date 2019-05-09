@@ -31,7 +31,7 @@ Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.  FCI will fly
 on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
 in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 
-.. EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci
+.. _EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci  # noqa: E501
 """
 
 import logging
@@ -52,7 +52,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     Combined Imager (FCI) Full Disk High Spectral Imagery (FDHSI) reader.
     It is designed to be used through the :class:`~satpy.Scene`
     class using the :mod:`~satpy.Scene.load` method with the reader
-    `"fci_l1c_fdhsi"`.
+    ``"fci_l1c_fdhsi"``.
 
     """
 
