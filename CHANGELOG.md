@@ -1,3 +1,14 @@
+## Version 0.15.1 (2019/05/10)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 761](https://github.com/pytroll/satpy/pull/761) - Fix mersi2_l1b reader setting sensor as a set object
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.15.0 (2019/05/10)
 
 ### Issues Closed
