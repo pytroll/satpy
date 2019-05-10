@@ -42,7 +42,8 @@ logger = logging.getLogger(__name__)
 spacecrafts = {7: "NOAA 15", 3: "NOAA 16", 13: "NOAA 18", 15: "NOAA 19"}
 
 AVHRR3_CHANNEL_NAMES = {"1": 0, "2": 1, "3A": 2, "3B": 3, "4": 4, "5": 5}
-AVHRR_CHANNEL_NAMES = {"1": 0, "2": 1, "3": 2, "4": 3, "5": 4}
+AVHRR2_CHANNEL_NAMES = {"1": 0, "2": 1, "3": 2, "4": 3, "5": 4}
+AVHRR_CHANNEL_NAMES = {"1": 0, "2": 1, "3": 2, "4": 3}
 
 
 class GACLACFile(BaseFileHandler):
@@ -63,9 +64,13 @@ class GACLACFile(BaseFileHandler):
         if self.platform_id in ['NK', 'NL', 'NM', 'NN', 'NP']:
             self.reader_class = GACKLMReader
             self.chn_dict = AVHRR3_CHANNEL_NAMES
+        elif self.platform_id in ['NC', 'ND', 'NF', 'NH', 'NJ']:
+            self.reader_class = GACPODReader
+            self.chn_dict = AVHRR2_CHANNEL_NAMES
         else:
             self.reader_class = GACPODReader
             self.chn_dict = AVHRR_CHANNEL_NAMES
+        self.filename_info = filename_info
 
     def get_dataset(self, key, info):
         if self.reader is None:
@@ -80,16 +85,27 @@ class GACLACFile(BaseFileHandler):
                 data = self.reader.lats
             else:
                 data = self.reader.lons
+        elif key.name in ['sensor_zenith_angle', 'solar_zenith_angle',
+                          'sun_sensor_azimuth_difference_angle']:
+            sat_azi, sat_zenith, sun_azi, sun_zenith, rel_azi = self.reader.get_angles()
+            if key.name == 'sensor_zenith_angle':
+                data = sat_zenith
+            elif key.name == 'solar_zenith_angle':
+                data = sun_zenith
+            elif key.name == 'sun_sensor_azimuth_difference_angle':
+                data = rel_azi
         else:
             if self.channels is None:
                 self.channels = self.reader.get_calibrated_channels()
-
             data = self.channels[:, :, self.chn_dict[key.name]]
 
         chunk_cols = data.shape[1]
         chunk_lines = int((CHUNK_SIZE ** 2) / chunk_cols)
-        return xr.DataArray(da.from_array(data, chunks=(chunk_lines, chunk_cols)),
-                            dims=['y', 'x'], attrs=info)
+        res = xr.DataArray(da.from_array(data, chunks=(chunk_lines, chunk_cols)),
+                           dims=['y', 'x'], attrs=info)
+        res.attrs['platform_name'] = self.reader.spacecraft_name
+        res.attrs['orbit_number'] = self.filename_info['orbit_number']
+        return res
 
     @property
     def start_time(self):
