@@ -109,6 +109,8 @@ class GACLACFile(BaseFileHandler):
         res.attrs['platform_name'] = self.reader.spacecraft_name
         res.attrs['orbit_number'] = self.filename_info['orbit_number']
         res.attrs['sensor'] = self.sensor
+        res['acq_time'] = ('y', self.reader.get_times())
+        res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
         return res
 
     @property
