@@ -76,7 +76,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def get_dataset(self, key, info=None):
         """Load a dataset."""
 
-        logger.debug('Reading {}'.format(key.name))
+        logger.debug('Reading {} from {}'.format(key.name, self.filename))
         # Get the dataset
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
