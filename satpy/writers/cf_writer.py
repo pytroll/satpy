@@ -86,6 +86,7 @@ from datetime import datetime
 import json
 import warnings
 
+import dask.array as da
 import xarray as xr
 import numpy as np
 
@@ -232,14 +233,16 @@ def make_time_bounds(dataarray, start_times, end_times):
 
 
 def make_coords_unique(datas):
-    """Make non-dimensional (or alternative) coordinates in a nc group unique by prepending the dataset name
+    """Make coordinates unique among all datasets
 
-    Exeption: `latitude` and `longitude`, because we assume that all datasets in one group have the same projection
-    coordinates `x` and `y`.
+    By default, all datasets have the same dimension names 'x' and 'y'. As these dimensions might be different for
+    different datasets, collect the unique set of shapes {(x1, y1), (x2, y2), ...} and rename the dataset
+    dimensions accordingly. If there is only one unique shape, leave the dimension names as they are. (It is assumed
+    here that datasets with the same shape also have the same projection coordinates, i.e. the same grid)
 
-    In principle this would only be required if multiple datasets had alternative coordinates with the same name but
-    different values. But to ensure consistency we always prepend the dataset name. Otherwise the name of the
-    alternative coordinates in the nc group would depend on the number/set of datasets written to it.
+    For other non-dimensional (or alternative) coordinates, such as scanline timestamps, we have the same problem.
+    However, in this case one cannot assume that the coordinates are identical if their shape is. That is why the
+    dataset name is prepended to each non-dimensional coordinate.
 
     Args:
         datas (dict): Dictionary of (dataset name, dataset)
@@ -247,23 +250,28 @@ def make_coords_unique(datas):
     Returns:
         Dictionary holding the updated datasets
     """
-    # Collect all alternative coordinates, except longitude/latitude
-    alt_coords = []
-    for data_array in datas.values():
-        for coord in data_array.coords:
-            if coord not in data_array.dims + ('longitude', 'latitude'):
-                alt_coords.append(coord)
-
-    # Prepend dataset name
+    # Rename unique dimensions by appending a number
+    unique_shapes = set([d.shape for d in datas.values() if d.shape != ()])
     new_datas = {}
-    for ds_name, data_array in datas.items():
+    for ishape, shape in enumerate(sorted(unique_shapes), start=1):
+        for ds_name, dataset in datas.items():
+            if dataset.shape == shape:
+                nr = str(ishape) if len(unique_shapes) > 1 else ''
+                rename = {'x': 'x{}'.format(nr), 'y': 'y{}'.format(nr)}
+                if 'longitude' in dataset.coords:
+                    rename.update({'longitude': 'longitude{}'.format(nr),
+                                   'latitude': 'latitude{}'.format(nr)})
+                new_datas[ds_name] = dataset.rename(rename)
+
+    # Prepend dataset name to other non-dimensional coordinates
+    for ds_name, dataset in new_datas.items():
         rename = {}
-        for coord_name in alt_coords:
-            if coord_name in data_array.coords:
+        for coord_name in dataset.coords:
+            if coord_name not in dataset.dims and 'latitude' not in coord_name and 'longitude' not in coord_name:
                 rename[coord_name] = '{}_{}'.format(ds_name, coord_name)
         if rename:
-            data_array = data_array.rename(rename)
-        new_datas[ds_name] = data_array
+            dataset = dataset.rename(rename)
+        new_datas[ds_name] = dataset
 
     return new_datas
 
@@ -460,8 +468,7 @@ class CFWriter(Writer):
             filename (str): Output file
             groups (dict): Group datasets according to the given assignment:
                 `{'group_name': ['dataset1', 'dataset2', ...]}`. Group name `None` corresponds to the root of the file,
-                i.e. no group will be created. Note that all datasets in one group must have the same projection
-                coordinates (`x` and `y`).
+                i.e. no group will be created. Warning: The results will not be fully CF compliant!
         """
         logger.info('Saving datasets to NetCDF4/CF.')
 
@@ -491,7 +498,7 @@ class CFWriter(Writer):
             root.attrs['Conventions'] = 'CF-1.7'
         root.to_netcdf(filename, engine=engine, mode='w', **to_netcdf_kwargs)
 
-        # Write datasets to groups (appending to the file)
+        # Write datasets to groups (appending to the file; group=None means no group)
         written = []
         for group_name, group_datasets in groups_.items():
             # XXX: Should we combine the info of all datasets?
