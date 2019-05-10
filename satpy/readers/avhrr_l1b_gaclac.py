@@ -64,12 +64,15 @@ class GACLACFile(BaseFileHandler):
         if self.platform_id in ['NK', 'NL', 'NM', 'NN', 'NP']:
             self.reader_class = GACKLMReader
             self.chn_dict = AVHRR3_CHANNEL_NAMES
+            self.sensor = 'avhrr-3'
         elif self.platform_id in ['NC', 'ND', 'NF', 'NH', 'NJ']:
             self.reader_class = GACPODReader
             self.chn_dict = AVHRR2_CHANNEL_NAMES
+            self.sensor = 'avhrr-2'
         else:
             self.reader_class = GACPODReader
             self.chn_dict = AVHRR_CHANNEL_NAMES
+            self.sensor = 'avhrr'
         self.filename_info = filename_info
 
     def get_dataset(self, key, info):
@@ -105,6 +108,7 @@ class GACLACFile(BaseFileHandler):
                            dims=['y', 'x'], attrs=info)
         res.attrs['platform_name'] = self.reader.spacecraft_name
         res.attrs['orbit_number'] = self.filename_info['orbit_number']
+        res.attrs['sensor'] = self.sensor
         return res
 
     @property
