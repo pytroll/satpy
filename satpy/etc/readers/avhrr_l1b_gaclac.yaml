@@ -11,7 +11,7 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
             units: '%'
           radiance:
             standard_name: radiance
@@ -25,7 +25,7 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
             units: '%'
           radiance:
             standard_name: radiance
@@ -39,7 +39,7 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
             units: '%'
           radiance:
             standard_name: radiance
@@ -53,7 +53,7 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
             units: '%'
           radiance:
             standard_name: radiance
@@ -67,7 +67,7 @@ datasets:
         resolution: 1050
         calibration:
           brightness_temperature:
-            standard_name: brightness_temperature
+            standard_name: toa_brightness_temperature
             units: K
           radiance:
             standard_name: radiance
@@ -81,7 +81,7 @@ datasets:
         resolution: 1050
         calibration:
           brightness_temperature:
-            standard_name: brightness_temperature
+            standard_name: toa_brightness_temperature
             units: K
           radiance:
             standard_name: radiance
@@ -95,7 +95,7 @@ datasets:
         resolution: 1050
         calibration:
           brightness_temperature:
-            standard_name: brightness_temperature
+            standard_name: toa_brightness_temperature
             units: K
           radiance:
             standard_name: radiance
