@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Pytroll developpers
+# Copyright (c) 2009-2019 Pytroll developers
 
 # This file is part of satpy.
 
