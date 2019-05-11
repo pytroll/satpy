@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2016.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# Copyright (c) 2009-2019 Pytroll developpers
 
 # This file is part of satpy.
 
@@ -29,10 +25,10 @@
 
 import logging
 from datetime import datetime, timedelta
-from pygac.gac_klm import GACKLMReader
-from pygac.gac_pod import GACPODReader
 import xarray as xr
 import dask.array as da
+from pygac.gac_klm import GACKLMReader
+from pygac.gac_pod import GACPODReader
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
