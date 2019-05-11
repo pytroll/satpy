@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Pytroll developpers
+# Copyright (c) 2009-2019 Pytroll developers
 
 # This file is part of satpy.
 
@@ -36,8 +36,10 @@ EXAMPLE_FILENAMES = ['NSS.GHRR.NA.D79184.S1150.E1337.B0008384.WI',
 
 
 class TestGACLACFile(TestCase):
+    """Test the GACLAC file handler."""
 
     def setUp(self):
+        """Patch pygac imports."""
         self.pygac = mock.MagicMock()
         self.fhs = mock.MagicMock()
         modules = {
@@ -50,9 +52,11 @@ class TestGACLACFile(TestCase):
         self.module_patcher.start()
 
     def tearDown(self):
+        """Unpatch the pygac imports."""
         self.module_patcher.stop()
 
     def test_gaclacfile(self):
+        """Test the methods of the GACLACFile class."""
         from satpy.readers.avhrr_l1b_gaclac import GACLACFile
         from trollsift import parse
         from pygac.gac_klm import GACKLMReader
