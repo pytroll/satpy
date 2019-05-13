@@ -43,17 +43,9 @@ KELVIN_TO_CELSIUS = -273.15
 
 class MITIFFWriter(ImageWriter):
 
-    def __init__(self, name=None, filename=None, enhancement_config=None, base_dir=None, tags=None, **kwargs):
-        ImageWriter.__init__(self,
-                             name,
-                             filename,
-                             enhancement_config,
-                             base_dir,
-                             default_config_filename="writers/mitiff.yaml",
-                             **kwargs)
-
-        self.tags = self.info.get("tags",
-                                  None) if tags is None else tags
+    def __init__(self, name=None, tags=None, **kwargs):
+        ImageWriter.__init__(self, name=name, default_config_filename="writers/mitiff.yaml", **kwargs)
+        self.tags = self.info.get("tags", None) if tags is None else tags
         if self.tags is None:
             self.tags = {}
         elif not isinstance(self.tags, dict):
@@ -616,7 +608,7 @@ class MITIFFWriter(ImageWriter):
             img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
             for i, band in enumerate(img.data['bands']):
                 chn = img.data.sel(bands=band)
-                data = chn.values * 254. + 1
+                data = chn.values.clip(0, 1) * 254. + 1
                 data = data.clip(0, 255)
                 tif.write_image(data.astype(np.uint8), compression='deflate')
 

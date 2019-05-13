@@ -5,16 +5,16 @@ Migrating to xarray and dask
 Many python developers dealing with meteorologic satellite data begin with
 using NumPy arrays directly. This work usually involves masked arrays,
 boolean masks, index arrays, and reshaping. Due to the libraries used by
-SatPy these operations can't always be done in the same way. This guide acts
-as a starting point for new SatPy developers in transitioning from NumPy's
-array operations to SatPy's operations, although they are very similar.
+Satpy these operations can't always be done in the same way. This guide acts
+as a starting point for new Satpy developers in transitioning from NumPy's
+array operations to Satpy's operations, although they are very similar.
 
 To provide the most functionality for users,
-SatPy uses the `xarray <http://xarray.pydata.org/en/stable/>`_ library's
+Satpy uses the `xarray <http://xarray.pydata.org/en/stable/>`_ library's
 :class:`~xarray.DataArray` object as the main representation for its data.
 DataArray objects can also benefit from the
 `dask <https://dask.pydata.org/en/latest/>`_ library. The combination of
-these libraries allow SatPy to easily distribute operations over multiple
+these libraries allow Satpy to easily distribute operations over multiple
 workers, lazy evaluate operations, and keep track additional metadata and
 coordinate information.
 
@@ -38,7 +38,7 @@ To create such an array, you can do for example
                                 attrs={'sensor': 'olci'})
 
 where ``my_data`` can be a regular numpy array, a numpy memmap, or, if you
-want to keep things lazy, a dask array (more on dask later). SatPy uses dask
+want to keep things lazy, a dask array (more on dask later). Satpy uses dask
 arrays with all of its DataArrays.
 
 Dimensions
@@ -102,6 +102,7 @@ To save metadata, we use the :attr:`~xarray.DataArray.attrs` dictionary.
     my_dataarray.attrs['platform_name'] = 'Sentinel-3A'
 
 Some metadata that should always be present in our dataarrays:
+
 - ``area`` the area of the dataset. This should be handled in the reader.
 - ``start_time``, ``end_time``
 - ``sensor``
@@ -234,7 +235,7 @@ Regular arithmetic operations are provided, and generate another dask array.
 
 In order to compute the actual data during testing, use the
 :func:`~dask.compute` method.
-In normal SatPy operations you will want the data to be evaluated as late as
+In normal Satpy operations you will want the data to be evaluated as late as
 possible to improve performance so `compute` should only be used when needed.
 
     >>> (arr1 + arr2).compute()
@@ -297,12 +298,13 @@ than creating a delayed function. Similar to delayed functions the inputs to
 the function are fully computed DataArrays or numpy arrays, but only the
 individual chunks of the dask array at a time. Note that ``map_blocks`` must
 be provided dask arrays and won't function properly on XArray DataArrays.
+It is recommended that the function object passed to ``map_blocks`` **not**
+be an internal function (a function defined inside another function) or it
+may be unserializable and can cause issues in some environments.
 
 .. code-block:: python
 
     my_new_arr = da.map_blocks(_complex_operation, my_dask_arr1, my_dask_arr2, dtype=my_dask_arr1.dtype)
-
-http://dask.pydata.org/en/latest/array-api.html#dask.array.core.map_blocks
 
 Helpful functions
 *****************
