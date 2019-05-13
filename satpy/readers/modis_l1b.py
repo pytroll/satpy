@@ -38,7 +38,6 @@ import logging
 
 import numpy as np
 
-import xarray.ufuncs as xu
 import xarray as xr
 from satpy import CHUNK_SIZE
 from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
@@ -268,6 +267,6 @@ def calibrate_bt(array, attributes, index, band_name):
     cwn = cwn[global_index]
     tcs = tcs[global_index]
     tci = tci[global_index]
-    array = c_2 / (cwn * xu.log(c_1 / (1000000 * array * cwn ** 5) + 1))
+    array = c_2 / (cwn * np.log(c_1 / (1000000 * array * cwn ** 5) + 1))
     array = (array - tci) / tcs
     return array
