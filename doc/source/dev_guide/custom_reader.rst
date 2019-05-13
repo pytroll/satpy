@@ -1,7 +1,5 @@
-.. _custom-reader:
-
 =================================
- Adding a Custom Reader to SatPy
+ Adding a Custom Reader to Satpy
 =================================
 
 In order to add a reader to satpy, you will need to create two files:
@@ -10,6 +8,56 @@ In order to add a reader to satpy, you will need to create two files:
 
 For this tutorial, we will implement a reader for the Eumetsat NetCDF
 format for SEVIRI data
+
+.. _reader_naming:
+
+Naming your reader
+------------------
+
+Satpy tries to follow a standard scheme for naming its readers. These names
+are used in filenames, but are also used by users so it is important that
+the name be recognizable and clear. Although some
+special cases exist, most fit in to the following naming scheme:
+
+.. parsed-literal::
+
+    <sensor>[_<processing level>[_<level detail>]][_<file format>]
+
+All components of the name should be lowercase and use underscores as the main
+separator between fields. Hyphens should be used as an intra-field separator
+if needed (ex. goes-imager).
+
+:sensor: The first component of the name represents the sensor or
+    instrument that observed the data stored in the files being read. If
+    the files are the output of a specific processing software or a certain
+    algorithm implementation that supports multiple sensors then a lowercase
+    version of that software's name should be used (e.g. clavrx for CLAVR-x,
+    nucaps for NUCAPS). The ``sensor`` field is the only required field of
+    the naming scheme. If it is actually an instrument name then the reader
+    name should include one of the other optional fields. If sensor is a
+    software package then that may be enough without any additional
+    information to uniquely identify the reader.
+:processing level: This field marks the specific level of processing or
+    calibration that has been performed to produce the data in the files being
+    read. Common values of this field include: ``sdr`` for Sensor Data
+    Record (SDR), ``edr`` for Environmental Data Record (EDR), ``l1b`` for
+    Level 1B, and ``l2`` for Level 2.
+:level detail: In cases where the processing level is not enough to completely
+    define the reader this field can be used to provide a little more context.
+    For example, some VIIRS EDR products are specific to a particular field
+    of study or type of scientific event, like a flood or cloud product. In
+    these cases the detail field can be added to produce a name like
+    ``viirs_edr_flood``. This field shouldn't be used unless processing level
+    is also specified.
+:file format: If the file format of the files is informative to the user or
+    can distinguish one reader from another then this field should be
+    specified. Common format names should be abbreviated following existing
+    abbreviations like `nc` for NetCDF3 or NetCDF4, `hdf` for HDF4, `h5` for
+    HDF5.
+
+The existing :ref:`reader's table <reader_table>` can be used for reference.
+When in doubt, reader names can be discussed in the github pull
+request when this reader is added to Satpy or a github issue.
 
 The YAML file
 -------------
@@ -26,11 +74,9 @@ The ``reader`` section, that provides basic parameters for the reader.
 
 The parameters to provide in this section are:
  - description: General description of the reader
- - name: this is the name of the reader, it
-   should be the same as the filename (without the .yaml extension
-   obviously). This is the name used interactively in satpy, so choose it
-   well! A loose convention is to use ``<format>_<instrument>_<level>`` as
-   a template for the name
+ - name: this is the name of the reader, it should be the same as the
+   filename (without the .yaml extension). The naming convention for
+   this is described above in the :ref:`reader_naming` section above.
  - sensors: the list of sensors this reader will support
  - reader: the metareader to use, in most cases the
    ``FileYAMLReader`` is a good choice.
@@ -317,7 +363,7 @@ needs to implement a few methods:
    - the filename info (dict) that we get by parsing the filename using the pattern defined in the yaml file
    - the filetype info that we get from the filetype definition in the yaml file
 
-  This method can also recieve other file handler instances as parameter
+  This method can also receive other file handler instances as parameter
   if the filetype at hand has requirements. (See the explanation in the
   YAML file filetype section above)
 
@@ -353,7 +399,7 @@ On top of that, two attributes need to be defined: ``start_time`` and
 
         def get_dataset(self, dataset_id, dataset_info):
             if dataset_id.calibration != 'radiance':
-                # TODO: implement calibration to relfectance or brightness temperature
+                # TODO: implement calibration to reflectance or brightness temperature
                 return
             if self.nc is None:
                 self.nc = xr.open_dataset(self.filename,

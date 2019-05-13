@@ -48,7 +48,7 @@ import dask.array as da
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.eum_base import time_cds_short
-from satpy.readers.msg_base import dec10216
+from satpy.readers.seviri_base import dec10216
 
 logger = logging.getLogger('hrit_base')
 
@@ -229,6 +229,7 @@ class HRITFileHandler(BaseFileHandler):
                                              'h': 35785831.00,
                                              # FIXME: find a reasonable SSP
                                              'SSP_longitude': 0.0}
+        self.mda['navigation_parameters'] = {}
 
     def get_shape(self, dsid, ds_info):
         return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])

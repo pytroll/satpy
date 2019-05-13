@@ -672,7 +672,7 @@ class NetCDFWriter(object):
         self.nc.Conventions = "CF-1.7"
         if creator is None:
             from satpy import __version__
-            self.nc.creator = "SatPy Version {} - SCMI Writer".format(__version__)
+            self.nc.creator = "Satpy Version {} - SCMI Writer".format(__version__)
         else:
             self.nc.creator = creator
         self.nc.creation_time = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S')

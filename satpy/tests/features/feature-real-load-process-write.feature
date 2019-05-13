@@ -9,9 +9,9 @@ Feature: Loading real data in many formats with the same command
     called data and a directory with reference images called `ref`, eg:
 
     test_data
-    |_ hrit_msg
+    |_ seviri_l1b_hrit
     |  |_ data
-    |  |  |_ [all the MSG data files]
+    |  |  |_ [all the MSG SEVIRI data files]
     |  |_ ref
     |     |_ overview_eurol.png
     |     |_ ...
@@ -34,7 +34,7 @@ Feature: Loading real data in many formats with the same command
 
     Examples: AAPP L1 data
         | format         | composite         | area    |
-        | aapp_l1b       | overview          | eurol   |
+        | avhrr_l1b_aapp | overview          | eurol   |
 
     Examples: ABI L1 data
         | format         | composite         | area          |
@@ -64,18 +64,18 @@ Feature: Loading real data in many formats with the same command
 
     Examples: EPS L1 data
         | format         | composite         | area    |
-        | epsl1b         | overview          | eurol   |
+        | avhrr_l1b_eps  | overview          | eurol   |
 
     Examples: FCI FDHSI data
         | format         | composite  | area    |
-        | fci_fdhsi      | overview   | eurol   |
-        | fci_fdhsi      | cloudtop   | eurol   |
-        | fci_fdhsi      | true_color | eurol   |
+        | fci_l1c_fdhsi  | overview   | eurol   |
+        | fci_l1c_fdhsi  | cloudtop   | eurol   |
+        | fci_l1c_fdhsi  | true_color | eurol   |
 
     Examples: GAC data
-        | format         | composite  | area    |
-        | gac_lac_l1     | overview   | eurol   |
-        | gac_lac_l1     | cloudtop   | eurol   |
+        | format           | composite  | area    |
+        | avhrr_l1b_gaclac | overview   | eurol   |
+        | avhrr_l1b_gaclac | cloudtop   | eurol   |
 
     # Examples: Generic Images
 
@@ -99,34 +99,34 @@ Feature: Loading real data in many formats with the same command
 
     Examples: MODIS HDF4-EOS data
         | format         | composite         | area    |
-        | hdfeos_l1b     | overview          | eurol   |
-        | hdfeos_l1b     | true_color_lowres | eurol   |
-        | hdfeos_l1b     | true_color        | eurol   |
+        | modis_l1b      | overview          | eurol   |
+        | modis_l1b      | true_color_lowres | eurol   |
+        | modis_l1b      | true_color        | eurol   |
 
     Examples: Electro-L N2 HRIT data
         | format         | composite  | area    |
-        | hrit_electrol  | overview   | india   |
-        | hrit_electrol  | cloudtop   | india   |
+        | electrol_hrit  | overview   | india   |
+        | electrol_hrit  | cloudtop   | india   |
 
     Examples: GOES HRIT data
-        | format         | composite  | area    |
-        | hrit_goes      | overview   | usa     |
-        | hrit_goes      | cloudtop   | usa     |
+        | format           | composite  | area    |
+        | goes-imager_hrit | overview   | usa     |
+        | goes-imager_hrit | cloudtop   | usa     |
 
     Examples: Himawari HRIT data
         | format         | composite  | area        |
-        | hrit_jma       | overview   | australia   |
-        | hrit_jma       | cloudtop   | australia   |
+        | ahi_hrit       | overview   | australia   |
+        | ahi_hrit       | cloudtop   | australia   |
 
     Examples: MSG HRIT data
         | format         | composite  | area    |
-        | hrit_msg       | overview   | eurol   |
-        | hrit_msg       | cloudtop   | eurol   |
+        | seviri_l1b_hrit| overview   | eurol   |
+        | seviri_l1b_hrit| cloudtop   | eurol   |
 
     Examples: HRPT data
         | format         | composite  | area    |
-        | hrpt           | overview   | eurol   |
-        | hrpt           | cloudtop   | eurol   |
+        | avhrr_l1b_hrpt | overview   | eurol   |
+        | avhrr_l1b_hrpt | cloudtop   | eurol   |
 
     # Examples: IASI L2 data
 
@@ -135,38 +135,38 @@ Feature: Loading real data in many formats with the same command
     # Examples: MAIA data
 
     Examples: MSG Native data
-        | format         | composite  | area    |
-        | native_msg     | overview   | eurol   |
-        | native_msg     | snow       | eurol   |
-        | native_msg     | HRV        | -       |
-        | native_msg     | overview   | -       |
+        | format            | composite  | area    |
+        | seviri_l1b_native | overview   | eurol   |
+        | seviri_l1b_native | snow       | eurol   |
+        | seviri_l1b_native | HRV        | -       |
+        | seviri_l1b_native | overview   | -       |
 
     Examples: NWCSAF GEO data
         | format         | composite  | area    |
-        | nc_nwcsaf_msg  | cloudtype  | eurol   |
-        | nc_nwcsaf_msg  | ctth       | eurol   |
+        | nwcsaf-geo     | cloudtype  | eurol   |
+        | nwcsaf-geo     | ctth       | eurol   |
 
     Examples: NWCSAF PPS data
         | format         | composite  | area    |
-        | nc_nwcsaf_pps  | cloudtype  | eurol   |
-        | nc_nwcsaf_pps  | ctth       | eurol   |
+        | nwcsaf-pps_nc  | cloudtype  | eurol   |
+        | nwcsaf-pps_nc  | ctth       | eurol   |
 
     Examples: MSG Native data
-        | format         | composite  | area    |
-        | native_msg     | overview   | eurol   |
-        | native_msg     | cloudtop   | eurol   |
+        | format            | composite  | area    |
+        | seviri_l1b_native | overview   | eurol   |
+        | seviri_l1b_native | cloudtop   | eurol   |
 
     Examples: OLCI L1 data
         | format         | composite         | area    |
-        | nc_olci_l1b    | true_color        | eurol   |
+        | olci_l1b       | true_color        | eurol   |
 
     Examples: OLCI L2 data
         | format         | composite         | area    |
-        | nc_olci_l2     | karo              | eurol   |
+        | olci_l2        | karo              | eurol   |
 
     Examples: SLSTR L1 data
         | format         | composite         | area    |
-        | nc_slstr       | true_color        | eurol   |
+        | slstr_l1b      | true_color        | eurol   |
 
     # Examples: NUCAPS data
 
@@ -174,13 +174,13 @@ Feature: Loading real data in many formats with the same command
 
     Examples: SAFE MSI L1 data
         | format         | composite         | area    |
-        | safe_msi       | true_color        | eurol   |
+        | msi_safe       | true_color        | eurol   |
 
     Examples: SAR-C L1 data
         | format         | composite | area   |
-        | safe_sar_c     | sar-ice   | euron1 |
-        | safe_sar_c     | sar-rgb   | euron1 |
-        | safe_sar_c     | sar-quick | euron1 |
+        | sar-c_safe     | sar-ice   | euron1 |
+        | sar-c_safe     | sar-rgb   | euron1 |
+        | sar-c_safe     | sar-quick | euron1 |
 
     # Examples: SCATSAT 1 data
     #     | format         | composite | area  |
@@ -205,3 +205,7 @@ Feature: Loading real data in many formats with the same command
         | viirs_sdr      | ash                | eurol   |
         | viirs_sdr      | natural_sun_lowres | eurol   |
         | viirs_sdr      | snow_age           | eurol   |
+        | viirs_sdr      | fire_temperature   | eurol   |
+        | viirs_sdr      | fire_temperature_awips      | eurol   |
+        | viirs_sdr      | fire_temperature_eumetsat   | eurol   |
+        | viirs_sdr      | fire_temperature_39refl     | eurol   |

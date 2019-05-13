@@ -1,0 +1,101 @@
+reader:
+  description: SAFE Reader for SAR-C data
+  name: sar-c_safe
+  sensors: [sar-c]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    safe_measurement:
+        file_reader: !!python/name:satpy.readers.sar_c_safe.SAFEGRD
+        file_patterns: ['{fmission_id:3s}_{fsar_mode:2s}_{fproduct_type:3s}{fresolution:1s}_{fprocessing_level:1s}{fproduct_class:1s}{fpolarization:2s}_{fstart_time:%Y%m%dT%H%M%S}_{fend_time:%Y%m%dT%H%M%S}_{forbit_number:6d}_{fmission_data_take_id:6s}_{fproduct_unique_id:4s}.SAFE/measurement/{mission_id:3s}-{swath_id:2s}-{product_type:3s}-{polarization:2s}-{start_time:%Y%m%dt%H%M%S}-{end_time:%Y%m%dt%H%M%S}-{orbit_number:6d}-{mission_data_take_id:6s}-{image_number:3s}.tiff']
+        requires: [safe_calibration, safe_noise]
+    safe_calibration:
+        file_reader: !!python/name:satpy.readers.sar_c_safe.SAFEXML
+        file_patterns: ['{fmission_id:3s}_{fsar_mode:2s}_{fproduct_type:3s}{fresolution:1s}_{fprocessing_level:1s}{fproduct_class:1s}{fpolarization:2s}_{fstart_time:%Y%m%dT%H%M%S}_{fend_time:%Y%m%dT%H%M%S}_{forbit_number:6d}_{fmission_data_take_id:6s}_{fproduct_unique_id:4s}.SAFE/annotation/calibration/calibration-{mission_id:3s}-{swath_id:2s}-{product_type:3s}-{polarization:2s}-{start_time:%Y%m%dt%H%M%S}-{end_time:%Y%m%dt%H%M%S}-{orbit_number:6d}-{mission_data_take_id:6s}-{image_number:3s}.xml']
+        requires: [safe_gcps]
+    safe_noise:
+        file_reader: !!python/name:satpy.readers.sar_c_safe.SAFEXML
+        file_patterns: ['{fmission_id:3s}_{fsar_mode:2s}_{fproduct_type:3s}{fresolution:1s}_{fprocessing_level:1s}{fproduct_class:1s}{fpolarization:2s}_{fstart_time:%Y%m%dT%H%M%S}_{fend_time:%Y%m%dT%H%M%S}_{forbit_number:6d}_{fmission_data_take_id:6s}_{fproduct_unique_id:4s}.SAFE/annotation/calibration/noise-{mission_id:3s}-{swath_id:2s}-{product_type:3s}-{polarization:2s}-{start_time:%Y%m%dt%H%M%S}-{end_time:%Y%m%dt%H%M%S}-{orbit_number:6d}-{mission_data_take_id:6s}-{image_number:3s}.xml']
+        requires: [safe_gcps]
+    safe_gcps:
+        file_reader: !!python/name:satpy.readers.sar_c_safe.SAFEXML
+        file_patterns: ['{fmission_id:3s}_{fsar_mode:2s}_{fproduct_type:3s}{fresolution:1s}_{fprocessing_level:1s}{fproduct_class:1s}{fpolarization:2s}_{fstart_time:%Y%m%dT%H%M%S}_{fend_time:%Y%m%dT%H%M%S}_{forbit_number:6d}_{fmission_data_take_id:6s}_{fproduct_unique_id:4s}.SAFE/annotation/{mission_id:3s}-{swath_id:2s}-{product_type:3s}-{polarization:2s}-{start_time:%Y%m%dt%H%M%S}-{end_time:%Y%m%dt%H%M%S}-{orbit_number:6d}-{mission_data_take_id:6s}-{image_number:3s}.xml']
+
+
+datasets:
+
+  latitude:
+    name: latitude
+    resolution: 80
+    file_type: safe_measurement
+    standard_name: latitude
+    polarization: [hh, hv, vv, vh]
+    units: degree
+
+  longitude:
+    name: longitude
+    resolution: 80
+    file_type: safe_measurement
+    standard_name: longitude
+    polarization: [hh, hv, vv, vh]
+    units: degree
+
+  measurement:
+    name: measurement
+    sensor: sar-c
+    wavelength: [5.400, 5.405, 5.410]
+    resolution: 80
+    polarization: [hh, hv, vv, vh]
+    calibration:
+      gamma:
+        standard_name: backscatter
+        units: 1
+      sigma_nought:
+        standard_name: backscatter
+        units: 1
+      beta_nought:
+        standard_name: backscatter
+        units: 1
+    coordinates: [longitude, latitude]
+    file_type: safe_measurement
+
+  noise:
+    name: noise
+    sensor: sar-c
+    resolution: 80
+    polarization: [hh, hv, vv, vh]
+    file_type: safe_noise
+    xml_item:
+    - noiseVector
+    - noiseRangeVector
+    xml_tag:
+    - noiseLut
+    - noiseRangeLut
+
+  sigma:
+    name: sigma_squared
+    sensor: sar-c
+    resolution: 80
+    polarization: [hh, hv, vv, vh]
+    file_type: safe_calibration
+    xml_item: calibrationVector
+    xml_tag: sigma
+
+  beta:
+    name: beta_squared
+    sensor: sar-c
+    resolution: 80
+    polarization: [hh, hv, vv, vh]
+    file_type: safe_calibration
+    xml_item: calibrationVector
+    xml_tag: beta
+
+  gamma:
+    name: gamma_squared
+    sensor: sar-c
+    resolution: 80
+    polarization: [hh, hv, vv, vh]
+    file_type: safe_calibration
+    xml_item: calibrationVector
+    xml_tag: gamma
