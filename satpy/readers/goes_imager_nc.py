@@ -194,7 +194,6 @@ import re
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 
 import pyresample.geometry
 from satpy import CHUNK_SIZE
@@ -651,7 +650,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
             Mask (1=earth, 0=space)
         """
         logger.debug('Computing earth mask')
-        return xu.fabs(lat) <= 90
+        return np.fabs(lat) <= 90
 
     @staticmethod
     def _get_nadir_pixel(earth_mask, sector):
@@ -873,11 +872,11 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
         # Compute brightness temperature using inverse Planck formula
         n = coefs['n']
-        bteff = C2 * n / xu.log(1 + C1 * n**3 / radiance.where(radiance > 0))
+        bteff = C2 * n / np.log(1 + C1 * n ** 3 / radiance.where(radiance > 0))
         bt = xr.DataArray(bteff * coefs['b'] + coefs['a'])
 
         # Apply BT threshold
-        return bt.where(xu.logical_and(bt >= coefs['btmin'],
+        return bt.where(np.logical_and(bt >= coefs['btmin'],
                                        bt <= coefs['btmax']))
 
     @staticmethod

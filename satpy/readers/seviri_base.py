@@ -27,7 +27,6 @@
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
-import xarray.ufuncs as xu
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
@@ -301,7 +300,7 @@ class SEVIRICalibrationHandler(object):
         """Compute the L15 temperature."""
 
         return ((C2 * wavenumber) /
-                xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
+                np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
     def _vis_calibrate(self, data, solar_irradiance):
         """Calibrate to reflectance."""

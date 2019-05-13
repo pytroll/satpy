@@ -24,7 +24,6 @@
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 import dask
 import dask.array as da
 import logging
@@ -139,7 +138,7 @@ def cira_stretch(img, **kwargs):
         denom = (1.0 - log_root) * 0.75
         band_data *= 0.01
         band_data = band_data.clip(np.finfo(float).eps)
-        band_data = xu.log10(band_data)
+        band_data = np.log10(band_data)
         band_data -= log_root
         band_data /= denom
         return band_data
