@@ -52,7 +52,7 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
         expected = EXPECTED_POWER
 
         filename = StringIO(
-            '2017-06-20 00:00:00.007178  30.5342  -90.1152    12.3 kA\n'
+            u'2017-06-20 00:00:00.007178  30.5342  -90.1152    12.3 kA\n'
             '2017-06-20 00:00:00.020162  -0.5727  104.0688    13.2 kA\n'
             '2017-06-20 00:00:00.023183  12.1529  -10.8756   -31.0 kA'
             )

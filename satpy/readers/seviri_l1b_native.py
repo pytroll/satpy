@@ -172,7 +172,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.mda['channel_list'] = [i for i in CHANNEL_NAMES.values()
                                     if self.mda['available_channels'][i]]
 
-        self.mda['platform_id'] = data15hd[
+        self.platform_id = data15hd[
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
         self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
 
