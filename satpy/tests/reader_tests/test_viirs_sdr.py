@@ -739,8 +739,7 @@ class TestAggrVIIRSSDRReader(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_viirs_sdr.
-    """
+    """The test suite for test_viirs_sdr."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSSDRReader))
