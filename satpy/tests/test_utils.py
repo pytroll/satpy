@@ -21,15 +21,11 @@
 """Testing of utils."""
 
 import unittest
-
 from numpy import sqrt
-
-from satpy.utils import (angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat,
-                         proj_units_to_meters)
+from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat, proj_units_to_meters
 
 
 class TestUtils(unittest.TestCase):
-
     """Testing utils."""
 
     def test_lonlat2xyz(self):

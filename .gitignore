@@ -63,3 +63,4 @@ nosetests.xml
 
 # vi / vim swp files
 *.swp
+.DS_STORE

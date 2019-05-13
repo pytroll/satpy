@@ -1,0 +1,127 @@
+reader:
+    name: avhrr_l1b_aapp
+    description: AAPP l1b Reader for AVHRR
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [avhrr-3,]
+    default_channels: [1, 2, 3a, 3b, 4, 5]
+
+datasets:
+    '1':
+        name: '1'
+        wavelength: [0.58, 0.63, 0.68]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: reflectance
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_aapp_l1b
+    '2':
+        name: '2'
+        wavelength: [0.725, 0.8625, 1.0]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: reflectance
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_aapp_l1b
+    '3a':
+        name: '3a'
+        wavelength: [1.58, 1.61, 1.64]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: reflectance
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_aapp_l1b
+    '3b':
+        name: '3b'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: brightness_temperature
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_aapp_l1b
+    '4':
+        name: '4'
+        wavelength: [10.3, 10.8, 11.3]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: brightness_temperature
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_aapp_l1b
+    '5':
+        name: '5'
+        wavelength: [11.5, 12.0, 12.5]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: brightness_temperature
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_aapp_l1b
+
+    solar_zenith_angle:
+        name: solar_zenith_angle
+        resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_aapp_l1b
+
+    sensor_zenith_angle:
+        name: sensor_zenith_angle
+        resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_aapp_l1b
+
+    sun_sensor_azimuth_difference_angle:
+        name: sun_sensor_azimuth_difference_angle
+        resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_aapp_l1b
+
+    latitude:
+        name: latitude
+        resolution: 1050
+        file_type: avhrr_aapp_l1b
+        standard_name: latitude
+
+    longitude:
+        name: longitude
+        resolution: 1050
+        file_type: avhrr_aapp_l1b
+        standard_name: longitude
+
+file_types:
+    avhrr_aapp_l1b:
+        file_reader: !!python/name:satpy.readers.aapp_l1b.AVHRRAAPPL1BFile
+        file_patterns: ['hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b']

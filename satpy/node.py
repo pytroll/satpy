@@ -21,11 +21,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Nodes to build trees."""
 
-import logging
-
 from satpy import DatasetDict, DatasetID, DATASET_KEYS
+from satpy.readers import TooManyResults
+from satpy.utils import get_logger
 
-LOG = logging.getLogger(__name__)
+LOG = get_logger(__name__)
 
 
 class Node(object):
@@ -291,22 +291,26 @@ class DependencyTree(Node):
                                      that method for more information.
 
         """
+        too_many = False
         for reader_name, reader_instance in self.readers.items():
             try:
                 ds_id = reader_instance.get_dataset_key(dataset_key, **dfilter)
-            except KeyError:
-                # LOG.debug("Can't find dataset %s in reader %s",
-                #           str(dataset_key), reader_name)
+            except TooManyResults:
+                LOG.trace("Too many datasets matching key {} in reader {}".format(dataset_key, reader_name))
+                too_many = True
                 continue
-            # LOG.debug("Found {} in reader {}".format(str(ds_id),
-            #                                          reader_name))
+            except KeyError:
+                LOG.trace("Can't find dataset %s in reader %s", str(dataset_key), reader_name)
+                continue
+            LOG.trace("Found {} in reader {} when asking for {}".format(str(ds_id), reader_name, repr(dataset_key)))
             try:
-                # now that we know we have the exact DatasetID see if we have
-                # already created a Node for it
+                # now that we know we have the exact DatasetID see if we have already created a Node for it
                 return self.getitem(ds_id)
             except KeyError:
                 # we haven't created a node yet, create it now
                 return Node(ds_id, {'reader_name': reader_name})
+        if too_many:
+            raise TooManyResults("Too many keys matching: {}".format(dataset_key))
 
     def _get_compositor_prereqs(self, parent, prereq_names, skip=False,
                                 **dfilter):
@@ -380,10 +384,7 @@ class DependencyTree(Node):
         try:
             compositor = self.get_compositor(dataset_key)
         except KeyError:
-            raise KeyError("Can't find anything called {}".format(
-                str(dataset_key)))
-        # FIXME: What if resolution/calibration/polarization are lists?
-        # compositor.attrs.update(dfilter)
+            raise KeyError("Can't find anything called {}".format(str(dataset_key)))
         dataset_key = compositor.id
         root = Node(dataset_key, data=(compositor, [], []))
         if src_node is not None:
@@ -391,17 +392,17 @@ class DependencyTree(Node):
             root.data[1].append(src_node)
 
         # 2.1 get the prerequisites
-        prereqs, unknowns = self._get_compositor_prereqs(
-            root, compositor.attrs['prerequisites'], **dfilter)
+        LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
+        prereqs, unknowns = self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], **dfilter)
         if unknowns:
             # Should we remove all of the unknown nodes that were found
             # if there is an unknown prerequisite are we in trouble?
             return None, unknowns
         root.data[1].extend(prereqs)
 
+        LOG.trace("Looking for optional prerequisites for: {}".format(dataset_key))
         optional_prereqs, _ = self._get_compositor_prereqs(
-            root, compositor.attrs['optional_prerequisites'], skip=True,
-            **dfilter)
+            root, compositor.attrs['optional_prerequisites'], skip=True, **dfilter)
         root.data[2].extend(optional_prereqs)
 
         return root, set()
@@ -419,32 +420,44 @@ class DependencyTree(Node):
         """
         # 0 check if the *exact* dataset is already loaded
         try:
-            return self.getitem(dataset_key), set()
+            node = self.getitem(dataset_key)
+            LOG.trace("Found exact dataset already loaded: {}".format(node.name))
+            return node, set()
         except KeyError:
             # exact dataset isn't loaded, let's load it below
-            pass
+            LOG.trace("Exact dataset {} isn't loaded, will try reader...".format(dataset_key))
 
         # 1 try to get *best* dataset from reader
-        node = self._find_reader_dataset(dataset_key, **dfilter)
+        try:
+            node = self._find_reader_dataset(dataset_key, **dfilter)
+        except TooManyResults:
+            LOG.warning("Too many possible datasets to load for {}".format(dataset_key))
+            return None, set([dataset_key])
         if node is not None:
+            LOG.trace("Found reader provided dataset:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
             return node, set()
+        LOG.trace("Could not find dataset in reader: {}".format(dataset_key))
 
         # 2 try to find a composite by name (any version of it is good enough)
         try:
             # assume that there is no such thing as a "better" composite
             # version so if we find any DatasetIDs already loaded then
             # we want to use them
-            return self[dataset_key], set()
+            node = self[dataset_key]
+            LOG.trace("Composite already loaded:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
+            return node, set()
         except KeyError:
             # composite hasn't been loaded yet, let's load it below
-            pass
+            LOG.trace("Composite hasn't been loaded yet, will load: {}".format(dataset_key))
 
         # 3 try to find a composite that matches
         try:
             node, unknowns = self._find_compositor(dataset_key, **dfilter)
+            LOG.trace("Found composite:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node and node.name))
         except KeyError:
             node = None
             unknowns = set([dataset_key])
+            LOG.trace("Composite not found: {}".format(dataset_key))
 
         return node, unknowns
 

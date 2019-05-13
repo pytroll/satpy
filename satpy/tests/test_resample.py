@@ -33,6 +33,34 @@ except ImportError:
     import mock
 
 
+class TestHLResample(unittest.TestCase):
+    """Test the higher level resampling functions."""
+
+    def test_type_preserve(self):
+        """Check that the type of resampled datasets is preserved."""
+        from satpy.resample import resample_dataset
+        import xarray as xr
+        import dask.array as da
+        import numpy as np
+        from pyresample.geometry import SwathDefinition
+        source_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=['y', 'x']),
+                                      xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)), dims=['y', 'x']))
+        dest_area = SwathDefinition(xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)) + .0001, dims=['y', 'x']),
+                                    xr.DataArray(da.arange(4, chunks=5).reshape((2, 2)) + .0001, dims=['y', 'x']))
+        expected_gap = np.array([[1, 2], [3, 255]])
+        data = xr.DataArray(da.from_array(expected_gap, chunks=5), dims=['y', 'x'])
+        data.attrs['_FillValue'] = 255
+        data.attrs['area'] = source_area
+        res = resample_dataset(data, dest_area)
+        self.assertEqual(res.dtype, data.dtype)
+        self.assertTrue(np.all(res.values == expected_gap))
+
+        expected_filled = np.array([[1, 2], [3, 3]])
+        res = resample_dataset(data, dest_area, radius_of_influence=1000000)
+        self.assertEqual(res.dtype, data.dtype)
+        self.assertTrue(np.all(res.values == expected_filled))
+
+
 class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
@@ -143,9 +171,9 @@ class TestEWAResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         input_data = xr.DataArray(
             da.zeros((10, 10), chunks=5, dtype=np.float32),
@@ -194,9 +222,9 @@ class TestEWAResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         input_data = xr.DataArray(
             da.zeros((3, 10, 10), chunks=5, dtype=np.float32),
@@ -266,9 +294,9 @@ class TestNativeResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         # source geo def doesn't actually matter
         resampler = NativeResampler(None, target)
@@ -297,9 +325,9 @@ class TestNativeResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         # source geo def doesn't actually matter
         resampler = NativeResampler(None, target)
@@ -325,9 +353,9 @@ class TestNativeResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         # source geo def doesn't actually matter
         resampler = NativeResampler(None, target)
@@ -352,13 +380,103 @@ class TestNativeResampler(unittest.TestCase):
             'test',
             'test',
             proj_dict,
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
         # source geo def doesn't actually matter
         resampler = NativeResampler(None, target)
         self.assertRaises(ValueError, resampler.resample, ds1)
+
+
+class TestBilinearResampler(unittest.TestCase):
+    """Test the bilinear resampler."""
+
+    @mock.patch('satpy.resample.np.savez')
+    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample.BilinearResampler._create_cache_filename')
+    @mock.patch('satpy.resample.XArrayResamplerBilinear')
+    def test_bil_resampling(self, resampler, create_filename, load, savez):
+        """Test the bilinear resampler."""
+        import numpy as np
+        import dask.array as da
+        from satpy.resample import BilinearResampler
+        from pyresample.geometry import SwathDefinition
+        source_area = mock.MagicMock()
+        source_swath = SwathDefinition(
+            da.arange(5, chunks=5), da.arange(5, chunks=5))
+        target_area = mock.MagicMock()
+
+        # Test that bilinear resampling info calculation is called,
+        # and the info is saved
+        load.side_effect = IOError()
+        resampler = BilinearResampler(source_swath, target_area)
+        resampler.precompute(
+            mask=da.arange(5, chunks=5).astype(np.bool))
+        resampler.resampler.get_bil_info.assert_called()
+        resampler.resampler.get_bil_info.assert_called_with()
+        self.assertFalse(len(savez.mock_calls), 1)
+        resampler.resampler.reset_mock()
+        load.reset_mock()
+        load.side_effect = None
+
+        # Test that get_sample_from_bil_info is called properly
+        data = mock.MagicMock()
+        data.name = 'foo'
+        data.data = [1, 2, 3]
+        fill_value = 8
+        resampler.compute(data, fill_value=fill_value)
+        resampler.resampler.get_sample_from_bil_info.assert_called_with(
+            data, fill_value=fill_value, output_shape=target_area.shape)
+
+        # Test that the resampling info is tried to read from the disk
+        resampler = BilinearResampler(source_swath, target_area)
+        resampler.precompute(cache_dir='.')
+        load.assert_called()
+
+        # Test caching the resampling info
+        try:
+            the_dir = tempfile.mkdtemp()
+            resampler = BilinearResampler(source_area, target_area)
+            create_filename.return_value = os.path.join(the_dir, 'test_cache.npz')
+            load.reset_mock()
+            load.side_effect = IOError()
+
+            resampler.precompute(cache_dir=the_dir)
+            savez.assert_called()
+            # assert data was saved to the on-disk cache
+            self.assertEqual(len(savez.mock_calls), 1)
+            # assert that load was called to try to load something from disk
+            self.assertEqual(len(load.mock_calls), 1)
+
+            nbcalls = len(resampler.resampler.get_bil_info.mock_calls)
+            # test reusing the resampler
+            load.side_effect = None
+
+            class FakeNPZ(dict):
+                def close(self):
+                    pass
+
+            load.return_value = FakeNPZ(bilinear_s=1,
+                                        bilinear_t=2,
+                                        valid_input_index=3,
+                                        index_array=4)
+            resampler.precompute(cache_dir=the_dir)
+            # we already have things cached in-memory, no need to save again
+            self.assertEqual(len(savez.mock_calls), 1)
+            # we already have things cached in-memory, don't need to load
+            # self.assertEqual(len(load.mock_calls), 1)
+            self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
+
+            # test loading saved resampler
+            resampler = BilinearResampler(source_area, target_area)
+            resampler.precompute(cache_dir=the_dir)
+            self.assertEqual(len(load.mock_calls), 2)
+            self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
+            # we should have cached things in-memory now
+            # self.assertEqual(len(resampler._index_caches), 1)
+        finally:
+            shutil.rmtree(the_dir)
 
 
 def suite():
@@ -369,6 +487,8 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestNativeResampler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestKDTreeResampler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestEWAResampler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestHLResample))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBilinearResampler))
 
     return mysuite
 
