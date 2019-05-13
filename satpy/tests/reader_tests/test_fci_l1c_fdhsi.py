@@ -21,6 +21,7 @@
 
 import xarray as xr
 import dask.array as da
+import unittest
 
 from .netcdf_utils import NetCDF4FileHandler
 
@@ -114,3 +115,30 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 **self._get_test_content_areadef(),
                 }
 
+class TestFCIL1CFDHSIReader(unittest.Testcase):
+    """Test FCI L1C FDHSI reader
+    """
+    yaml_file = "fci_l1c_fdhsi.yaml"
+
+    def setUp(self):
+        """Wrap NetCDF4 FileHandler with our own fake handler
+        """
+
+        # implementation strongly inspired by test_viirs_l1b.py
+        from satpy.config import config_search_paths
+        from satpy.readers.fci_l1c_fdhsi import FCIFDHSIFileHandler
+
+        self.reader_configs = config_search_paths(
+                os.path.join("readers", self.yaml_file))
+        self.p = mock.patch.object(
+                FCIFDHSIFileHandler,
+                "__bases__",
+                (FakeNetCDF4FileHandler2,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+
+    def tearDown(self):
+        """Stop wrapping the NetCDF4 file handler
+        """
+        # implementation strongly inspired by test_viirs_l1b.py
+        self.p.stop()
