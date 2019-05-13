@@ -42,6 +42,7 @@ else:
 
 EXPECTED_POWER = np.array([12.3,  13.2, -31.])
 
+
 class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
 
     """Test the VaisalaGLD360TextFileHandler."""
@@ -50,7 +51,7 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
 
         expected = EXPECTED_POWER
 
-        filename =  StringIO(
+        filename = StringIO(
             '2017-06-20 00:00:00.007178  30.5342  -90.1152    12.3 kA\n'
             '2017-06-20 00:00:00.020162  -0.5727  104.0688    13.2 kA\n'
             '2017-06-20 00:00:00.023183  12.1529  -10.8756   -31.0 kA'
@@ -59,7 +60,7 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
         filetype_info = {}
 
         self.handler = VaisalaGLD360TextFileHandler(
-            filename, {}, {}
+            filename, filename_info, filetype_info
         )
 
         filename.close()
@@ -67,8 +68,8 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
         dataset_info = {}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
 
-        # import ipdb; ipdb.set_trace()
         np.testing.assert_allclose(result, expected, rtol=1e-05)
+
 
 def suite():
     """The test suite for test_scene.
