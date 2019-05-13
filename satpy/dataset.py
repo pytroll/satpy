@@ -145,7 +145,7 @@ class DatasetID(DatasetID):
     and "reflectance". If an element is `None` then it is considered not
     applicable.
 
-    A DatasetID can also be used in SatPy to query for a Dataset. This way
+    A DatasetID can also be used in Satpy to query for a Dataset. This way
     a fully qualified DatasetID can be found even if some of the DatasetID
     elements are unknown. In this case a `None` signifies something that is
     unknown or not applicable to the requested Dataset.

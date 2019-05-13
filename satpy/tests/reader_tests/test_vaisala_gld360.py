@@ -39,13 +39,8 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
-
-EXPECTED_POWER = np.array([ 12.3,  13.2, -31. ])
+EXPECTED_POWER = np.array([12.3,  13.2, -31.])
 
 class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
 

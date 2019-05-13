@@ -16,15 +16,15 @@ class VIIRSEDRFlood(HDF4FileHandler):
     def sensor_name(self):
         sensor = self['/attr/SensorIdentifyCode']
         if isinstance(sensor, np.ndarray):
-            return str(sensor.astype(str))
-        return sensor
+            return str(sensor.astype(str)).lower()
+        return sensor.lower()
 
     @property
     def platform_name(self):
         platform_name = self['/attr/Satellitename']
         if isinstance(platform_name, np.ndarray):
-            return str(platform_name.astype(str))
-        return platform_name
+            return str(platform_name.astype(str)).lower()
+        return platform_name.lower()
 
     def get_metadata(self, data, ds_info):
         metadata = {}

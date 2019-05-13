@@ -14,9 +14,9 @@ Satpy
     :target: https://badge.fury.io/py/satpy
 
 
-The SatPy package is a python library for reading and manipulating
+The Satpy package is a python library for reading and manipulating
 meteorological remote sensing data and writing it to various image and
-data file formats. SatPy comes with the ability to make various RGB
+data file formats. Satpy comes with the ability to make various RGB
 composites directly from satellite instrument channel data or higher level
 processing output. The
 `pyresample <http://pyresample.readthedocs.io/en/latest/>`_ package is used
@@ -28,7 +28,7 @@ http://satpy.readthedocs.org/.
 Installation
 ------------
 
-SatPy can be installed from PyPI with pip:
+Satpy can be installed from PyPI with pip:
 
 .. code-block:: bash
 
@@ -44,7 +44,7 @@ It is also available from `conda-forge` for conda installations:
 Code of Conduct
 ---------------
 
-SatPy follows the same code of conduct as the PyTroll project. For reference
+Satpy follows the same code of conduct as the PyTroll project. For reference
 it is copied to this repository in CODE_OF_CONDUCT.md_.
 
 As stated in the PyTroll home page, this code of conduct applies to the
