@@ -23,14 +23,108 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 """SEVIRI HRIT format reader
-******************************
+============================
+
+Introduction
+------------
+
+The ``seviri_l1b_hrit`` reader reads and calibrates MSG-SEVIRI L1.5 image data in HRIT format. The format is explained
+in the `MSG Level 1.5 Image Format Description`_. The files are usually named as
+follows:
+
+.. code-block:: none
+
+    H-000-MSG4__-MSG4________-_________-PRO______-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000001___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000002___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000003___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000004___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000005___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000006___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000007___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000008___-201903011200-__
+    H-000-MSG4__-MSG4________-_________-EPI______-201903011200-__
+
+Each image is decomposed into 24 segments (files) for the high-resolution-visible (HRV) channel and 8 segments for other
+visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
+which contain global metadata valid for all channels.
+
+Example
+-------
+Here is an example how to read the data in satpy:
+
+.. code-block:: python
+
+    from satpy import Scene
+    import glob
+
+    filenames = glob.glob('data/H-000-MSG4__-MSG4________-*201903011200*')
+    scn = Scene(filenames=filenames, reader='seviri_l1b_hrit')
+    scn.load(['VIS006', 'IR_108'])
+    print(scn['IR_108'])
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray 'reshape-5b8fc7364b289af7dec1f45b88ad2056' (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+        acq_time  (y) datetime64[ns] NaT NaT NaT NaT NaT NaT ... NaT NaT NaT NaT NaT
+      * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
+      * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
+    Attributes:
+        satellite_longitude:      0.0
+        satellite_latitude:       0.0
+        satellite_altitude:       35785831.0
+        georef_offset_corrected:  True
+        wavelength:               (9.8, 10.8, 11.8)
+        units:                    K
+        standard_name:            brightness_temperature
+        sensor:                   seviri
+        navigation:               {'satellite_nominal_longitude': 0.0, 'satellite...
+        projection:               {'satellite_longitude': 0.0, 'satellite_latitud...
+        platform_name:            Meteosat-11
+        start_time:               2019-03-01 12:00:09.716000
+        end_time:                 2019-03-01 12:12:42.946000
+        area:                     Area ID: some_area_name\\nDescription: On-the-fl...
+        name:                     IR_108
+        resolution:               3000.403165817
+        calibration:              brightness_temperature
+        polarization:             None
+        level:                    None
+        modifiers:                ()
+        ancillary_variables:      []
+
+
+* The ``projection`` attribute specifies the projection parameters which are used to, for example, compute lat/lon
+  coordinates.
+* The ``navigation`` attribute holds the actual position of the satellite required for computing viewing
+  angles etc.
+* You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
+  :class:`HRITMSGFileHandler`.
+* The ``acq_time`` coordinate provides the acquisition time for each scanline. Use a ``MultiIndex`` to enable selection
+  by acquisition time:
+
+  .. code-block:: python
+
+      import pandas as pd
+      mi = pd.MultiIndex.from_arrays([scn['IR_108']['y'].data, scn['IR_108']['acq_time'].data],
+                                     names=('y_coord', 'time'))
+      scn['IR_108']['y'] = mi
+      scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
+
 
 References:
-    - MSG Level 1.5 Image Data Format Description
-    - Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent
-      Spectral Blackbody Radiance
+    - `MSG Level 1.5 Image Format Description`_
+    - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
 
+.. _MSG Level 1.5 Image Format Description: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=
+    PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
 
+.. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
+    RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
 import logging
@@ -47,7 +141,7 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
 
-from satpy.readers.seviri_base import SEVIRICalibrationHandler, chebyshev
+from satpy.readers.seviri_base import SEVIRICalibrationHandler, chebyshev, get_cds_time
 from satpy.readers.seviri_base import (CHANNEL_NAMES, VIS_CHANNELS, CALIB, SATNUM)
 
 from satpy.readers.seviri_l1b_native_hdr import (hrit_prologue, hrit_epilogue,
@@ -162,7 +256,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                 # Transform to geodetic coordinates
                 geocent = pyproj.Proj(proj='geocent')
                 a, b = self.get_earth_radii()
-                latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='meters')
+                latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
                 lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
             except NoValidNavigationCoefs as err:
                 logger.warning(err)
@@ -213,9 +307,9 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         # Find index of interval enclosing the nominal timestamp of the scan
         time = np.datetime64(self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart'])
         intervals_tstart = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['StartTime'][0].astype(
-            'datetime64')
+            'datetime64[us]')
         intervals_tend = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['EndTime'][0].astype(
-            'datetime64')
+            'datetime64[us]')
         try:
             return np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0][0]
         except IndexError:
@@ -396,7 +490,16 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         return x__, y__
 
     def get_area_extent(self, size, offsets, factors, platform_height):
-        """Get the area extent of the file."""
+        """Get the area extent of the file.
+
+        Until December 2017, the data is shifted by 1.5km SSP North and West against the nominal GEOS projection. Since
+        December 2017 this offset has been corrected. A flag in the data indicates if the correction has been applied.
+        If no correction was applied, adjust the area extent to match the shifted data.
+
+        For more information see Section 3.1.4.2 in the MSG Level 1.5 Image Data Format Description. The correction
+        of the area extent is documented in a `developer's memo <https://github.com/pytroll/satpy/wiki/
+        SEVIRI-georeferencing-offset-correction>`_.
+        """
         nlines, ncols = size
         h = platform_height
 
@@ -416,8 +519,14 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
 
         if not self.mda['offset_corrected']:
+            # Geo-referencing offset present. Adjust area extent to match the shifted data. Note that we have to adjust
+            # the corners in the *opposite* direction, i.e. S-E. Think of it as if the coastlines were fixed and you
+            # dragged the image to S-E until coastlines and data area aligned correctly.
+            #
+            # Although the image is flipped upside-down and left-right, the projection coordinates retain their
+            # properties, i.e. positive x/y is East/North, respectively.
             xadj = 1500
-            yadj = 1500
+            yadj = -1500
             aex = (aex[0] + xadj, aex[1] + yadj,
                    aex[2] + xadj, aex[3] + yadj)
 
@@ -512,6 +621,11 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                    'satellite_latitude': self.mda['projection_parameters']['SSP_latitude'],
                                    'satellite_altitude': self.mda['projection_parameters']['h']}
         res.attrs['navigation'] = self.mda['navigation_parameters'].copy()
+        res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
+
+        # Add scanline timestamps as additional y-coordinate
+        res['acq_time'] = ('y', self._get_timestamps())
+        res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
 
         return res
 
@@ -560,6 +674,11 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
+
+    def _get_timestamps(self):
+        """Read scanline timestamps from the segment header"""
+        tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
+        return get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
 
 
 def show(data, negate=False):

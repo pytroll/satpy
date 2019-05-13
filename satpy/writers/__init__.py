@@ -184,8 +184,9 @@ def _determine_mode(dataset):
 
 
 def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
-                level_coast=1, level_borders=1, fill_value=None):
-    """Add coastline and political borders to image.
+                level_coast=1, level_borders=1, fill_value=None,
+                grid=None):
+    """Add coastline, political borders and grid(graticules) to image.
 
     Uses ``color`` for feature colors where ``color`` is a 3-element tuple
     of integers between 0 and 255 representing (R, G, B).
@@ -194,15 +195,37 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
 
         This function currently loses the data mask (alpha band).
 
-    ``resolution`` is chosen automatically if None (default), otherwise it should be one of:
+    ``resolution`` is chosen automatically if None (default),
+    otherwise it should be one of:
 
     +-----+-------------------------+---------+
     | 'f' | Full resolution         | 0.04 km |
+    +-----+-------------------------+---------+
     | 'h' | High resolution         | 0.2 km  |
+    +-----+-------------------------+---------+
     | 'i' | Intermediate resolution | 1.0 km  |
+    +-----+-------------------------+---------+
     | 'l' | Low resolution          | 5.0 km  |
+    +-----+-------------------------+---------+
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
+
+    ``grid`` is a dictionary with key values as documented in detail in pycoast
+
+    eg. overlay={'grid': {'major_lonlat': (10, 10),
+                          'write_text': False,
+                          'outline': (224, 224, 224),
+                          'width': 0.5}}
+
+    Here major_lonlat is plotted every 10 deg for both longitude and latitude,
+    no labels for the grid lines are plotted, the color used for the grid lines
+    is light gray, and the width of the gratucules is 0.5 pixels.
+
+    For grid if aggdraw is used, font option is mandatory, if not
+    ``write_text`` is set to False::
+
+        font = aggdraw.Font('black', '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
+                            opacity=127, size=16)
 
     """
 
@@ -249,6 +272,12 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
                        resolution=resolution, width=width, level=level_coast)
     cw_.add_borders(img, area, outline=color,
                     resolution=resolution, width=width, level=level_borders)
+    # Only add grid if major_lonlat is given.
+    if grid and 'major_lonlat' in grid and grid['major_lonlat']:
+        major_lonlat = grid.pop('major_lonlat')
+        minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
+
+        cw_.add_grid(img, area, major_lonlat, minor_lonlat, **grid)
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
@@ -440,6 +469,19 @@ def show(dataset, **kwargs):
 
 
 def to_image(dataset):
+    """convert ``dataset`` into a :class:`~trollimage.xrimage.XRImage` instance.
+
+    Convert the ``dataset`` into an instance of the
+    :class:`~trollimage.xrimage.XRImage` class.  This function makes no other
+    changes.  To get an enhanced image, possibly with overlays and decoration,
+    see :func:`~get_enhanced_image`.
+
+    Args:
+        dataset (xarray.DataArray): Data to be converted to an image.
+
+    Returns:
+        Instance of :class:`~trollimage.xrimage.XRImage`.
+    """
     dataset = dataset.squeeze()
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")

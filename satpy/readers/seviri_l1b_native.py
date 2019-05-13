@@ -174,7 +174,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         self.mda['platform_id'] = data15hd[
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
-        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.mda['platform_id']]
+        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
 
         equator_radius = data15hd['GeometricProcessing'][
             'EarthModel']['EquatorialRadius'] * 1000.

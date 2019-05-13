@@ -219,6 +219,50 @@ composites:
     standard_name: false_color
     high_resolution_band: blue
 
+  fire_temperature:
+    # CIRA: Original VIIRS
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: M12
+      calibration: radiance
+    - name: M11
+      calibration: radiance
+    - name: M10
+      calibration: radiance
+    standard_name: fire_temperature
+    name: fire_temperature
+  fire_temperature_awips:
+    # CIRA: EUMETSAT
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: M12
+    - name: M11
+    - name: M10
+    standard_name: fire_temperature
+    name: fire_temperature_awips
+
+  fire_temperature_eumetsat:
+    # CIRA: AWIPS
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: M12
+    - name: M11
+    - name: M10
+    standard_name: fire_temperature
+    name: fire_temperature_eumetsat
+  fire_temperature_39refl:
+    # CIRA: All bands in Reflectance units (%)
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: M12
+      modifiers: [nir_reflectance_lowres]
+    - name: M11
+      modifiers: [sunz_corrected]
+    - name: M10
+      modifiers: [sunz_corrected]
+    standard_name: fire_temperature
+    name: fire_temperature_39refl
+
   natural_color:
     compositor: !!python/name:satpy.composites.RatioSharpenedRGB
     prerequisites:
@@ -351,7 +395,7 @@ composites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
       - M15
-      - M14
+      - M12
     - M15
     standard_name: night_fog
 
