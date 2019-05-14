@@ -27,10 +27,13 @@ try:
 except ImportError:
     import mock
 
+import warnings
 import numpy as np
 import dask.array as da
 from datetime import datetime
+from pyresample.geometry import AreaDefinition
 from satpy.readers.ahi_hsd import AHIHSDFileHandler
+from satpy.readers.utils import get_geostationary_mask
 
 
 class TestAHIHSDNavigation(unittest.TestCase):
@@ -129,6 +132,10 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
+            # Check if file handler raises exception for invalid calibration mode
+            with self.assertRaises(ValueError):
+                fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
+
             fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
@@ -173,10 +180,15 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                 return_value=None)
     def test_calibrate(self, *mocks):
         """Test calibration"""
+        def_cali = [-0.0037, 15.20]
+        upd_cali = [-0.0074, 30.40]
+        bad_cali = [0.0, 0.0]
         fh = AHIHSDFileHandler()
+        fh.calib_mode = 'NOMINAL'
         fh._header = {
-            'block5': {'gain_count2rad_conversion': [-0.0037],
-                       'offset_count2rad_conversion': [15.20],
+            'block5': {'band_number': [5],
+                       'gain_count2rad_conversion': [def_cali[0]],
+                       'offset_count2rad_conversion': [def_cali[1]],
                        'central_wave_length': [10.4073], },
             'calibration': {'coeff_rad2albedo_conversion': [0.0019255],
                             'speed_of_light': [299792458.0],
@@ -184,7 +196,9 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             'boltzmann_constant': [1.3806488e-23],
                             'c0_rad2tb_conversion': [-0.116127314574],
                             'c1_rad2tb_conversion': [1.00099153832],
-                            'c2_rad2tb_conversion': [-1.76961091571e-06]},
+                            'c2_rad2tb_conversion': [-1.76961091571e-06],
+                            'cali_gain_count2rad_conversion': [upd_cali[0]],
+                            'cali_offset_count2rad_conversion': [upd_cali[1]]},
         }
 
         # Counts
@@ -210,6 +224,102 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                              [1.50189, 0.]])
         refl = fh.calibrate(data=counts, calibration='reflectance')
         self.assertTrue(np.allclose(refl, refl_exp))
+
+        # Updated calibration
+        # Standard operation
+        fh.calib_mode = 'UPDATE'
+        rad_exp = np.array([[30.4, 23.0],
+                            [15.6, 0.]])
+        rad = fh.calibrate(data=counts, calibration='radiance')
+        self.assertTrue(np.allclose(rad, rad_exp))
+
+        # Case for no updated calibration available (older data)
+        fh._header = {
+            'block5': {'band_number': [5],
+                       'gain_count2rad_conversion': [def_cali[0]],
+                       'offset_count2rad_conversion': [def_cali[1]],
+                       'central_wave_length': [10.4073], },
+            'calibration': {'coeff_rad2albedo_conversion': [0.0019255],
+                            'speed_of_light': [299792458.0],
+                            'planck_constant': [6.62606957e-34],
+                            'boltzmann_constant': [1.3806488e-23],
+                            'c0_rad2tb_conversion': [-0.116127314574],
+                            'c1_rad2tb_conversion': [1.00099153832],
+                            'c2_rad2tb_conversion': [-1.76961091571e-06],
+                            'cali_gain_count2rad_conversion': [bad_cali[0]],
+                            'cali_offset_count2rad_conversion': [bad_cali[1]]},
+        }
+        rad = fh.calibrate(data=counts, calibration='radiance')
+        rad_exp = np.array([[15.2, 11.5],
+                            [7.8, 0]])
+        self.assertTrue(np.allclose(rad, rad_exp))
+
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
+    def test_read_band(self, calibrate, *mocks):
+        # Test masking of space pixels
+        nrows = 25
+        ncols = 100
+        self.fh.area = AreaDefinition('test', 'test', 'test',
+                                      {'a': '6378137.0', 'b': '6356752.3', 'h': '35785863.0', 'lon_0': '140.7',
+                                       'proj': 'geos', 'units': 'm'},
+                                      ncols, nrows,
+                                      [-5499999.901174725, -4399999.92093978, 5499999.901174725, -3299999.9407048346])
+        calibrate.return_value = np.ones((nrows, ncols))
+        m = mock.mock_open()
+        with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
+            im = self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+            # Note: Within the earth's shape get_geostationary_mask() is True but the numpy.ma mask
+            # is False
+            mask = im.to_masked_array().mask
+            ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
+            self.assertTrue(np.all(mask == ref_mask))
+
+            # Test if masking space pixels disables with appropriate flag
+            self.fh.mask_space = False
+            with mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_space') as mask_space:
+                self.fh.read_band(info=mock.MagicMock(), key=mock.MagicMock())
+                mask_space.assert_not_called()
+
+    def test_blocklen_error(self, *mocks):
+        open_name = '%s.open' % __name__
+        fpos = 50
+        with mock.patch(open_name, create=True) as mock_open:
+            with mock_open(mock.MagicMock(), 'r') as fp_:
+                # Expected and actual blocklength match
+                fp_.tell.return_value = 50
+                with warnings.catch_warnings(record=True) as w:
+                    self.fh._check_fpos(fp_, fpos, 0, 'header 1')
+                    self.assertTrue(len(w) == 0)
+
+                # Expected and actual blocklength do not match
+                fp_.tell.return_value = 100
+                with warnings.catch_warnings(record=True) as w:
+                    self.fh._check_fpos(fp_, fpos, 0, 'header 1')
+                    self.assertTrue(len(w) > 0)
+
+    @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._check_fpos')
+    def test_read_header(self, *mocks):
+        nhdr = [
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0, 'band_number': [4]},
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0},
+            {'blocklength': 0, 'numof_correction_info_data': [1]},
+            {'blocklength': 0},
+            {'blocklength': 0, 'number_of_observation_times': [1]},
+            {'blocklength': 0},
+            {'blocklength': 0, 'number_of_error_info_data': [1]},
+            {'blocklength': 0},
+            {'blocklength': 0}]
+        with mock.patch('numpy.fromfile', side_effect=nhdr):
+            self.fh._read_header(mock.MagicMock())
 
 
 def suite():

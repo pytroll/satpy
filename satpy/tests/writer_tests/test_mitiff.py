@@ -57,11 +57,11 @@ class TestMITIFFWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 \
-            +lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
 
         ds1 = xr.DataArray(
@@ -87,11 +87,11 @@ class TestMITIFFWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=geos +datum=WGS84 +ellps=WGS84 \
-            +lon_0=0. h=36000. +units=km'),
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            proj4_str_to_dict('+proj=geos +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. h=36000. +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
 
         ds1 = xr.DataArray(
@@ -103,6 +103,40 @@ class TestMITIFFWriter(unittest.TestCase):
                    'sensor': 'TEST_SENSOR_NAME',
                    'area': area_def}
         )
+        return ds1
+
+    def _get_test_dataset_with_bad_values(self, bands=3):
+        """Helper function to create a single test dataset."""
+        import xarray as xr
+        import numpy as np
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
+        data /= 5.605
+        data[0, 0] = np.nan  # need a nan value
+        data[0, 1] = 0.  # Need a 0 value
+
+        rgb_data = np.stack([data, data, data])
+        ds1 = xr.DataArray(rgb_data,
+                           dims=('bands', 'y', 'x'),
+                           attrs={'name': 'test',
+                                  'start_time': datetime.utcnow(),
+                                  'platform_name': "TEST_PLATFORM_NAME",
+                                  'sensor': 'TEST_SENSOR_NAME',
+                                  'area': area_def,
+                                  'prerequisites': ['1', '2', '3']})
         return ds1
 
     def _get_test_dataset_calibration(self, bands=6):
@@ -118,11 +152,11 @@ class TestMITIFFWriter(unittest.TestCase):
             'test',
             'test',
             'test',
-            proj_dict=proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 \
-            +lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
-            x_size=100,
-            y_size=200,
-            area_extent=(-1000., -1500., 1000., 1500.),
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
         )
 
         d = [
@@ -240,6 +274,25 @@ class TestMITIFFWriter(unittest.TestCase):
         dataset = self._get_test_dataset_calibration()
         w = MITIFFWriter(filename=dataset.attrs['metadata_requirements']['file_pattern'], base_dir=self.base_dir)
         w.save_dataset(dataset)
+
+    def test_save_dataset_with_bad_value(self):
+        """Test basic writer operation."""
+        import os
+        import numpy as np
+        from libtiff import TIFF
+        from satpy.writers.mitiff import MITIFFWriter
+
+        expected = np.array([[0, 4, 1, 37, 73],
+                             [110, 146, 183, 219, 255]])
+
+        dataset = self._get_test_dataset_with_bad_values()
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_dataset(dataset)
+        filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
+                                                         dataset.attrs['start_time'])
+        tif = TIFF.open(os.path.join(self.base_dir, filename))
+        for image in tif.iter_images():
+            np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
 
 def suite():

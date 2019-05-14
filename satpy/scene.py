@@ -30,13 +30,15 @@ import os
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
 from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
-                           replace_anc)
+                           replace_anc, combine_metadata)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
-from pyresample.geometry import AreaDefinition, BaseDefinition
+from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
+
+import xarray as xr
 from xarray import DataArray
 import numpy as np
 import six
@@ -47,6 +49,10 @@ except ImportError:
     from six.moves import configparser  # noqa: F401
 
 LOG = logging.getLogger(__name__)
+
+
+class DelayedGeneration(KeyError):
+    pass
 
 
 class Scene(MetadataObject):
@@ -72,7 +78,7 @@ class Scene(MetadataObject):
     """
 
     def __init__(self, filenames=None, reader=None, filter_parameters=None, reader_kwargs=None,
-                 ppp_config_dir=get_environ_config_dir(),
+                 ppp_config_dir=None,
                  base_dir=None,
                  sensor=None,
                  start_time=None,
@@ -107,6 +113,8 @@ class Scene(MetadataObject):
 
         """
         super(Scene, self).__init__()
+        if ppp_config_dir is None:
+            ppp_config_dir = get_environ_config_dir()
         # Set the PPP_CONFIG_DIR in the environment in case it's used elsewhere in pytroll
         LOG.debug("Setting 'PPP_CONFIG_DIR' to '%s'", ppp_config_dir)
         os.environ["PPP_CONFIG_DIR"] = self.ppp_config_dir = ppp_config_dir
@@ -142,6 +150,8 @@ class Scene(MetadataObject):
         if filter_parameters:
             if reader_kwargs is None:
                 reader_kwargs = {}
+            else:
+                reader_kwargs = reader_kwargs.copy()
             reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
@@ -212,7 +222,7 @@ class Scene(MetadataObject):
         return set(self.wishlist) - set(self.datasets.keys())
 
     def _compare_areas(self, datasets=None, compare_func=max):
-        """Get  for the provided datasets.
+        """Compare areas for the provided datasets.
 
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
@@ -522,7 +532,13 @@ class Scene(MetadataObject):
         new_scn = self.copy()
         new_scn.wishlist = self.wishlist
         for area, dataset_ids in self.iter_by_area():
-            new_area = area[key] if area is not None else None
+            if area is not None:
+                # assume dimensions for area are y and x
+                one_ds = self[dataset_ids[0]]
+                area_key = tuple(sl for dim, sl in zip(one_ds.dims, key) if dim in ['y', 'x'])
+                new_area = area[area_key]
+            else:
+                new_area = None
             new_scn._slice_datasets(dataset_ids, key, new_area)
         return new_scn
 
@@ -576,6 +592,8 @@ class Scene(MetadataObject):
         # get the lowest resolution area, use it as the base of the slice
         # this makes sure that the other areas *should* be a consistent factor
         min_area = new_scn.min_area()
+        if isinstance(area, str):
+            area = get_area_def(area)
         new_min_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
             min_area, area, ll_bbox, xy_bbox)
         new_target_areas = {}
@@ -597,12 +615,57 @@ class Scene(MetadataObject):
                 x_slice = slice(min_x_slice.start * x_factor,
                                 min_x_slice.stop * x_factor)
                 new_area = src_area[y_slice, x_slice]
-                slice_key = (y_slice, x_slice)
+                slice_key = {'y': y_slice, 'x': x_slice}
                 new_scn._slice_datasets(dataset_ids, slice_key, new_area)
             else:
                 new_target_areas[src_area] = self._slice_area_from_bbox(
                     src_area, area, ll_bbox, xy_bbox
                 )
+
+        return new_scn
+
+    def aggregate(self, dataset_ids=None, boundary='exact', side='left', func='mean', **dim_kwargs):
+        """Create an aggregated version of the Scene.
+
+        Args:
+            dataset_ids (iterable): DatasetIDs to include in the returned
+                                    `Scene`. Defaults to all datasets.
+            func (string): Function to apply on each aggregation window. One of
+                           'mean', 'sum', 'min', 'max', 'median', 'argmin',
+                           'argmax', 'prod', 'std', 'var'.
+                           'mean' is the default.
+            boundary: Not implemented.
+            side: Not implemented.
+            dim_kwargs: the size of the windows to aggregate.
+
+        Returns:
+            A new aggregated scene
+
+        See also:
+            xarray.DataArray.coarsen
+
+        Example:
+            `scn.aggregate(func='min', x=2, y=2)` will aggregate 2x2 pixels by
+            applying the `min` function.
+        """
+        new_scn = self.copy(datasets=dataset_ids)
+
+        for src_area, ds_ids in new_scn.iter_by_area():
+            if src_area is None:
+                for ds_id in ds_ids:
+                    new_scn.datasets[ds_id] = self[ds_id]
+                continue
+
+            if boundary != 'exact':
+                raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
+            target_area = src_area.aggregate(**dim_kwargs)
+            resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            for ds_id in ds_ids:
+                res = self[ds_id].coarsen(boundary=boundary, side=side, func=func, **dim_kwargs)
+
+                new_scn.datasets[ds_id] = getattr(res, func)()
+                new_scn.datasets[ds_id].attrs['area'] = target_area
+                new_scn.datasets[ds_id].attrs['resolution'] = resolution
 
         return new_scn
 
@@ -695,8 +758,10 @@ class Scene(MetadataObject):
                 delayed_gen = True
                 continue
             elif not skip:
-                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite")
+                LOG.debug("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite for"
+                               " '{}': '{}'".format(comp_id, prereq_id))
             else:
                 LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
@@ -705,10 +770,12 @@ class Scene(MetadataObject):
             keepables.update([x.name for x in prereq_nodes])
             LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
             if not skip:
-                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite")
+                LOG.debug("Delayed prerequisite for '{}': '{}'".format(comp_id, prereq_id))
+                raise DelayedGeneration(
+                    "Delayed composite prerequisite for "
+                    "'{}': '{}'".format(comp_id, prereq_id))
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
+                LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -729,12 +796,20 @@ class Scene(MetadataObject):
         compositor, prereqs, optional_prereqs = comp_node.data
 
         try:
+            delayed_prereq = False
             prereq_datasets = self._get_prereq_datasets(
                 comp_node.name,
                 prereqs,
                 keepables,
             )
+        except DelayedGeneration:
+            # if we are missing a required dependency that could be generated
+            # later then we need to wait to return until after we've also
+            # processed the optional dependencies
+            delayed_prereq = True
         except KeyError:
+            # we are missing a hard requirement that will never be available
+            # there is no need to "keep" optional dependencies
             return
 
         optional_datasets = self._get_prereq_datasets(
@@ -743,6 +818,17 @@ class Scene(MetadataObject):
             keepables,
             skip=True
         )
+
+        # we are missing some prerequisites
+        # in the future we may be able to generate this composite (delayed)
+        # so we need to hold on to successfully loaded prerequisites and
+        # optional prerequisites
+        if delayed_prereq:
+            preservable_datasets = set(self.datasets.keys())
+            prereq_ids = set(p.name for p in prereqs)
+            opt_prereq_ids = set(p.name for p in optional_prereqs)
+            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
+            return
 
         try:
             composite = compositor(prereq_datasets,
@@ -898,11 +984,24 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    def _resampled_scene(self, new_scn, destination_area, **resample_kwargs):
-        """Resample `datasets` to the `destination` area."""
+    def _slice_data(self, source_area, slices, dataset):
+        """Slice the data to reduce it."""
+        slice_x, slice_y = slices
+        dataset = dataset.isel(x=slice_x, y=slice_y)
+        assert ('x', source_area.x_size) in dataset.sizes.items()
+        assert ('y', source_area.y_size) in dataset.sizes.items()
+        dataset.attrs['area'] = source_area
+
+        return dataset
+
+    def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
+                         **resample_kwargs):
+        """Resample `datasets` to the `destination` area.
+
+        If data reduction is enabled, some local caching is perfomed in order to
+        avoid recomputation of area intersections."""
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
-        max_area = None
         if isinstance(destination_area, (str, six.text_type)):
             destination_area = get_area_def(destination_area)
         if hasattr(destination_area, 'freeze'):
@@ -914,13 +1013,16 @@ class Scene(MetadataObject):
                                  "DynamicAreaDefinition.")
 
         resamplers = {}
+        reductions = {}
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
             if parent_dataset is not None:
                 pres = new_datasets[DatasetID.from_dict(parent_dataset.attrs)]
             if ds_id in new_datasets:
-                replace_anc(dataset, pres)
+                replace_anc(new_datasets[ds_id], pres)
+                if ds_id in new_scn.datasets:
+                    new_scn.datasets[ds_id] = new_datasets[ds_id]
                 continue
             if dataset.attrs.get('area') is None:
                 if parent_dataset is None:
@@ -931,13 +1033,17 @@ class Scene(MetadataObject):
             LOG.debug("Resampling %s", ds_id)
             source_area = dataset.attrs['area']
             try:
-                slice_x, slice_y = source_area.get_area_slices(
-                    destination_area)
-                source_area = source_area[slice_y, slice_x]
-                dataset = dataset.isel(x=slice_x, y=slice_y)
-                assert ('x', source_area.x_size) in dataset.sizes.items()
-                assert ('y', source_area.y_size) in dataset.sizes.items()
-                dataset.attrs['area'] = source_area
+                if reduce_data:
+                    key = source_area
+                    try:
+                        (slice_x, slice_y), source_area = reductions[key]
+                    except KeyError:
+                        slice_x, slice_y = source_area.get_area_slices(destination_area)
+                        source_area = source_area[slice_y, slice_x]
+                        reductions[key] = (slice_x, slice_y), source_area
+                    dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
+                else:
+                    LOG.debug("Data reduction disabled by the user")
             except NotImplementedError:
                 LOG.info("Not reducing data before resampling.")
             if source_area not in resamplers:
@@ -947,16 +1053,16 @@ class Scene(MetadataObject):
                 self.resamplers[key] = resampler
             kwargs = resample_kwargs.copy()
             kwargs['resampler'] = resamplers[source_area]
-            res = resample_dataset(dataset, destination_area,
-                                   **kwargs)
+            res = resample_dataset(dataset, destination_area, **kwargs)
             new_datasets[ds_id] = res
-            if parent_dataset is None:
+            if ds_id in new_scn.datasets:
                 new_scn.datasets[ds_id] = res
-            else:
+            if parent_dataset is not None:
                 replace_anc(res, pres)
 
     def resample(self, destination=None, datasets=None, generate=True,
-                 unload=True, resampler=None, **resample_kwargs):
+                 unload=True, resampler=None, reduce_data=True,
+                 **resample_kwargs):
         """Resample datasets and return a new scene.
 
         Args:
@@ -975,6 +1081,8 @@ class Scene(MetadataObject):
                 ('nearest'). Other possible values include 'native', 'ewa',
                 etc. See the :mod:`~satpy.resample` documentation for more
                 information.
+            reduce_data (bool): Reduce data by matching the input and output
+                areas and slicing the data arrays (default: True)
             resample_kwargs: Remaining keyword arguments to pass to individual
                 resampler classes. See the individual resampler class
                 documentation :mod:`here <satpy.resample>` for available
@@ -990,7 +1098,7 @@ class Scene(MetadataObject):
         # we may have some datasets we asked for but don't exist yet
         new_scn.wishlist = self.wishlist.copy()
         self._resampled_scene(new_scn, destination, resampler=resampler,
-                              **resample_kwargs)
+                              reduce_data=reduce_data, **resample_kwargs)
 
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
@@ -1023,6 +1131,93 @@ class Scene(MetadataObject):
         if not in_ipynb():
             img.show()
         return img
+
+    def to_geoviews(self, gvtype=None, datasets=None, kdims=None, vdims=None, dynamic=False):
+        """Convert satpy Scene to geoviews.
+
+        Args:
+            gvtype (gv plot type):
+                One of gv.Image, gv.LineContours, gv.FilledContours, gv.Points
+                Default to :class:`geoviews.Image`.
+                See Geoviews documentation for details.
+            datasets (list): Limit included products to these datasets
+            kdims (list of str):
+                Key dimensions. See geoviews documentation for more information.
+            vdims : list of str, optional
+                Value dimensions. See geoviews documentation for more information.
+                If not given defaults to first data variable
+            dynamic : boolean, optional, default False
+
+        Returns: geoviews object
+
+        Todo:
+            * better handling of projection information in datasets which are
+              to be passed to geoviews
+
+        """
+        try:
+            import geoviews as gv
+            from cartopy import crs  # noqa
+        except ImportError:
+            import warnings
+            warnings.warn("This method needs the geoviews package installed.")
+
+        if gvtype is None:
+            gvtype = gv.Image
+
+        ds = self.to_xarray_dataset(datasets)
+
+        if vdims is None:
+            # by default select first data variable as display variable
+            vdims = ds.data_vars[list(ds.data_vars.keys())[0]].name
+
+        if hasattr(ds, "area") and hasattr(ds.area, 'to_cartopy_crs'):
+            dscrs = ds.area.to_cartopy_crs()
+            gvds = gv.Dataset(ds, crs=dscrs)
+        else:
+            gvds = gv.Dataset(ds)
+
+        if "latitude" in ds.coords.keys():
+            gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
+        else:
+            gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)
+
+        return gview
+
+    def to_xarray_dataset(self, datasets=None):
+        """Merge all xr.DataArrays of a scene to a xr.DataSet.
+
+        Parameters:
+            datasets (list):
+                List of products to include in the :class:`xarray.Dataset`
+
+        Returns: :class:`xarray.Dataset`
+
+        """
+        if datasets is not None:
+            datasets = [self[ds] for ds in datasets]
+        else:
+            datasets = [self.datasets.get(ds) for ds in self.wishlist]
+            datasets = [ds for ds in datasets if ds is not None]
+
+        ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in datasets if i.attrs.get('area') is not None}
+        mdata = combine_metadata(*tuple(i.attrs for i in datasets))
+        if mdata.get('area') is None or not isinstance(mdata['area'], SwathDefinition):
+            # either don't know what the area is or we have an AreaDefinition
+            ds = xr.merge(ds_dict.values())
+        else:
+            # we have a swath definition and should use lon/lat values
+            lons, lats = mdata['area'].get_lonlats()
+            if not isinstance(lons, DataArray):
+                lons = DataArray(lons, dims=('y', 'x'))
+                lats = DataArray(lats, dims=('y', 'x'))
+            # ds_dict['longitude'] = lons
+            # ds_dict['latitude'] = lats
+            ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], lats),
+                                             "longitude": (["y", "x"], lons)})
+
+        ds.attrs = mdata
+        return ds
 
     def images(self):
         """Generate images for all the datasets from the scene."""

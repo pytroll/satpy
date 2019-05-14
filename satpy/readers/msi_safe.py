@@ -137,11 +137,17 @@ class SAFEMSIMDXML(BaseFileHandler):
                     self.tile,
                     "On-the-fly area",
                     self.tile,
-                    proj_dict={'init': epsg},
-                    x_size=cols,
-                    y_size=rows,
-                    area_extent=area_extent)
+                    {'init': epsg},
+                    cols,
+                    rows,
+                    area_extent)
         return area
+
+    @staticmethod
+    def _do_interp(minterp, xcoord, ycoord):
+        interp_points2 = np.vstack((xcoord.ravel(), ycoord.ravel()))
+        res = minterp(interp_points2)
+        return res.reshape(xcoord.shape)
 
     def interpolate_angles(self, angles, resolution):
         # FIXME: interpolate in cartesian coordinates if the lons or lats are
@@ -158,17 +164,10 @@ class SAFEMSIMDXML(BaseFileHandler):
         minterp = MultilinearInterpolator(smin, smax, orders)
         minterp.set_values(da.atleast_2d(angles.ravel()))
 
-        def _do_interp(minterp, xcoord, ycoord):
-            interp_points2 = np.vstack((xcoord.ravel(),
-                                        ycoord.ravel()))
-            res = minterp(interp_points2)
-            return res.reshape(xcoord.shape)
-
         x = da.arange(rows, dtype=angles.dtype, chunks=CHUNK_SIZE) / (rows-1) * (angles.shape[0] - 1)
         y = da.arange(cols, dtype=angles.dtype, chunks=CHUNK_SIZE) / (cols-1) * (angles.shape[1] - 1)
         xcoord, ycoord = da.meshgrid(x, y)
-        return da.map_blocks(_do_interp, minterp, xcoord, ycoord, dtype=angles.dtype,
-                             chunks=xcoord.chunks)
+        return da.map_blocks(self._do_interp, minterp, xcoord, ycoord, dtype=angles.dtype, chunks=xcoord.chunks)
 
     def _get_coarse_dataset(self, key, info):
         """Get the coarse dataset refered to by `key` from the XML data."""
