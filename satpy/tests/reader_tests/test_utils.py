@@ -321,19 +321,19 @@ class TestHelpers(unittest.TestCase):
         """Test geostationary mask"""
         # Compute mask of a very elliptical earth
         area = pyresample.geometry.AreaDefinition(
-            area_id='FLDK',
-            name='Full Disk',
-            proj_id='geos',
-            proj_dict={'a': '6378169.0',
-                       'b': '3000000.0',
-                       'h': '35785831.0',
-                       'lon_0': '145.0',
-                       'proj': 'geos',
-                       'units': 'm'},
-            x_size=101,
-            y_size=101,
-            area_extent=(-6498000.088960204, -6498000.088960204,
-                         6502000.089024927, 6502000.089024927))
+            'FLDK',
+            'Full Disk',
+            'geos',
+            {'a': '6378169.0',
+             'b': '3000000.0',
+             'h': '35785831.0',
+             'lon_0': '145.0',
+             'proj': 'geos',
+             'units': 'm'},
+            101,
+            101,
+            (-6498000.088960204, -6498000.088960204,
+             6502000.089024927, 6502000.089024927))
 
         mask = hf.get_geostationary_mask(area).astype(np.int).compute()
 

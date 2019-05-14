@@ -25,10 +25,15 @@
 import logging
 import numbers
 import os
-import warnings
+from datetime import datetime, timedelta
 
 import six
 import yaml
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
@@ -407,14 +412,112 @@ class DatasetDict(dict):
             return super(DatasetDict, self).__delitem__(key)
 
 
-def read_reader_config(config_files, loader=yaml.Loader):
+def group_files(files_to_sort, reader=None, time_threshold=10,
+                group_keys=None, ppp_config_dir=None, reader_kwargs=None):
+    """Group series of files by file pattern information.
+
+    By default this will group files by their filename ``start_time``
+    assuming it exists in the pattern. By passing the individual
+    dictionaries returned by this function to the Scene classes'
+    ``filenames``, a series `Scene` objects can be easily created.
+
+    .. versionadded:: 0.12
+
+    Args:
+        files_to_sort (iterable): File paths to sort in to group
+        reader (str): Reader whose file patterns should be used to sort files.
+            This
+        time_threshold (int): Number of seconds used to consider time elements
+            in a group as being equal. For example, if the 'start_time' item
+            is used to group files then any time within `time_threshold`
+            seconds of the first file's 'start_time' will be seen as occurring
+            at the same time.
+        group_keys (list or tuple): File pattern information to use to group
+            files. Keys are sorted in order and only the first key is used when
+            comparing datetime elements with `time_threshold` (see above). This
+            means it is recommended that datetime values should only come from
+            the first key in ``group_keys``. Otherwise, there is a good chance
+            that files will not be grouped properly (datetimes being barely
+            unequal). Defaults to a reader's ``group_keys`` configuration (set
+            in YAML), otherwise ``('start_time',)``.
+        ppp_config_dir (str): Root usser configuration directory for Satpy.
+            This will be deprecated in the future, but is here for consistency
+            with other Satpy features.
+        reader_kwargs (dict): Additional keyword arguments to pass to reader
+            creation.
+
+    Returns:
+        List of dictionaries mapping 'reader' to a list of filenames.
+        Each of these dictionaries can be passed as ``filenames`` to
+        a `Scene` object.
+
+    """
+    # FUTURE: Find the best reader for each filename using `find_files_and_readers`
+    if reader is None:
+        raise ValueError("'reader' keyword argument is required.")
+    elif not isinstance(reader, (list, tuple)):
+        reader = [reader]
+
+    # FUTURE: Handle multiple readers
+    reader = reader[0]
+    reader_configs = list(configs_for_reader(reader, ppp_config_dir))[0]
+    reader_kwargs = reader_kwargs or {}
+    try:
+        reader_instance = load_reader(reader_configs, **reader_kwargs)
+    except (KeyError, IOError, yaml.YAMLError) as err:
+        LOG.info('Cannot use %s', str(reader_configs))
+        LOG.debug(str(err))
+        # if reader and (isinstance(reader, str) or len(reader) == 1):
+        #     # if it is a single reader then give a more usable error
+        #     raise
+        raise
+
+    if group_keys is None:
+        group_keys = reader_instance.info.get('group_keys', ('start_time',))
+    file_keys = []
+    for filetype, filetype_info in reader_instance.sorted_filetype_items():
+        for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
+            group_key = tuple(file_info.get(k) for k in group_keys)
+            file_keys.append((group_key, f))
+
+    prev_key = None
+    threshold = timedelta(seconds=time_threshold)
+    file_groups = {}
+    for gk, f in sorted(file_keys):
+        # use first element of key as time identifier (if datetime type)
+        if prev_key is None:
+            is_new_group = True
+            prev_key = gk
+        elif isinstance(gk[0], datetime):
+            # datetimes within threshold difference are "the same time"
+            is_new_group = (gk[0] - prev_key[0]) > threshold
+        else:
+            is_new_group = gk[0] != prev_key[0]
+
+        # compare keys for those that are found for both the key and
+        # this is a generator and is not computed until the if statement below
+        # when we know that `prev_key` is not None
+        vals_not_equal = (this_val != prev_val for this_val, prev_val in zip(gk[1:], prev_key[1:])
+                          if this_val is not None and prev_val is not None)
+        # if this is a new group based on the first element
+        if is_new_group or any(vals_not_equal):
+            file_groups[gk] = [f]
+            prev_key = gk
+        else:
+            file_groups[prev_key].append(f)
+    sorted_group_keys = sorted(file_groups)
+    # passable to Scene as 'filenames'
+    return [{reader: file_groups[group_key]} for group_key in sorted_group_keys]
+
+
+def read_reader_config(config_files, loader=UnsafeLoader):
     """Read the reader `config_files` and return the info extracted."""
 
     conf = {}
     LOG.debug('Reading %s', str(config_files))
     for config_file in config_files:
         with open(config_file) as fd:
-            conf.update(yaml.load(fd.read(), loader))
+            conf.update(yaml.load(fd.read(), Loader=loader))
 
     try:
         reader_info = conf['reader']
@@ -427,13 +530,9 @@ def read_reader_config(config_files, loader=yaml.Loader):
 
 
 def load_reader(reader_configs, **reader_kwargs):
-    """Import and setup the reader from *reader_info*
-    """
+    """Import and setup the reader from *reader_info*."""
     reader_info = read_reader_config(reader_configs)
-    reader_instance = reader_info['reader'](
-        config_files=reader_configs,
-        **reader_kwargs
-    )
+    reader_instance = reader_info['reader'](config_files=reader_configs, **reader_kwargs)
     return reader_instance
 
 
@@ -460,14 +559,10 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
                 continue
 
             new_name = OLD_READER_NAMES[reader_name]
-            # SatPy 0.11 only displays a warning
-            warnings.warn("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name),
-                          DeprecationWarning)
-            # SatPy 0.12 will raise an exception
-            # raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
-            # SatPy 0.13 or 1.0, remove exception and mapping
-
-            new_readers.append(new_name)
+            # Satpy 0.11 only displays a warning
+            # Satpy 0.13 will raise an exception
+            raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
+            # Satpy 0.15 or 1.0, remove exception and mapping
 
         reader = new_readers
         # given a config filename or reader name
@@ -515,7 +610,7 @@ def available_readers(as_dict=False):
 
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
-                           reader=None, sensor=None, ppp_config_dir=get_environ_config_dir(),
+                           reader=None, sensor=None, ppp_config_dir=None,
                            filter_parameters=None, reader_kwargs=None):
     """Find on-disk files matching the provided parameters.
 
@@ -543,7 +638,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         sensor (str or list): Limit used files by provided sensors.
         ppp_config_dir (str): The directory containing the configuration
-                              files for SatPy.
+                              files for Satpy.
         filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
                                   automatically added to this dictionary. Shortcut for
                                   `reader_kwargs['filter_parameters']`.
@@ -553,6 +648,8 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     Returns: Dictionary mapping reader name string to list of filenames
 
     """
+    if ppp_config_dir is None:
+        ppp_config_dir = get_environ_config_dir()
     reader_files = {}
     reader_kwargs = reader_kwargs or {}
     filter_parameters = filter_parameters or reader_kwargs.get('filter_parameters', {})
@@ -595,15 +692,13 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
 
 
 def load_readers(filenames=None, reader=None, reader_kwargs=None,
-                 ppp_config_dir=get_environ_config_dir()):
+                 ppp_config_dir=None):
     """Create specified readers and assign files to them.
 
     Args:
         filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
                                       should map reader names to a list of filenames for that reader.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
-        filter_parameters (dict): Specify loaded file filtering parameters.
-                                  Shortcut for `reader_kwargs['filter_parameters']`.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
         ppp_config_dir (str): The directory containing the configuration files for satpy.
 
@@ -612,6 +707,11 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     """
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
+    reader_kwargs_without_filter = reader_kwargs.copy()
+    reader_kwargs_without_filter.pop('filter_parameters', None)
+
+    if ppp_config_dir is None:
+        ppp_config_dir = get_environ_config_dir()
 
     if not filenames and not reader:
         # used for an empty Scene
@@ -650,7 +750,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         if readers_files:
             loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables)
+            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:

@@ -215,8 +215,8 @@ class NUCAPSReader(FileYAMLReader):
         pressure level.
         """
         super(NUCAPSReader, self).load_ds_ids_from_config()
-        for ds_id in list(self.ids.keys()):
-            ds_info = self.ids[ds_id]
+        for ds_id in list(self.all_ids.keys()):
+            ds_info = self.all_ids[ds_id]
             if ds_info.get('pressure_based', False):
                 for idx, lvl_num in enumerate(ALL_PRESSURE_LEVELS):
                     if lvl_num < 5.0:
@@ -231,7 +231,7 @@ class NUCAPSReader(FileYAMLReader):
                     new_info['name'] = ds_id.name + suffix
                     new_ds_id = ds_id._replace(name=new_info['name'])
                     new_info['id'] = new_ds_id
-                    self.ids[new_ds_id] = new_info
+                    self.all_ids[new_ds_id] = new_info
                     self.pressure_dataset_names[ds_id.name].append(new_info['name'])
 
     def load(self, dataset_keys, previous_datasets=None, pressure_levels=None):
@@ -246,7 +246,7 @@ class NUCAPSReader(FileYAMLReader):
         if pressure_levels is not None:
             # Filter out datasets that don't fit in the correct pressure level
             for ds_id in dataset_keys.copy():
-                ds_info = self.ids[ds_id]
+                ds_info = self.all_ids[ds_id]
                 ds_level = ds_info.get("pressure_level")
                 if ds_level is not None:
                     if pressure_levels is True:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016-2018 SatPy developers
+# Copyright (c) 2016-2018 Satpy developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ from datetime import datetime
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
@@ -45,8 +44,7 @@ PLATFORM_NAMES = {
 class NC_ABI_L1B(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(NC_ABI_L1B, self).__init__(filename, filename_info,
-                                         filetype_info)
+        super(NC_ABI_L1B, self).__init__(filename, filename_info, filetype_info)
         # xarray's default netcdf4 engine
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
@@ -137,6 +135,10 @@ class NC_ABI_L1B(BaseFileHandler):
         # copy global attributes to metadata
         for key in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
             res.attrs[key] = self.nc.attrs.get(key)
+        # only include these if they are present
+        for key in ('fusion_args',):
+            if key in self.nc.attrs:
+                res.attrs[key] = self.nc.attrs[key]
 
         return res
 
@@ -201,7 +203,7 @@ class NC_ABI_L1B(BaseFileHandler):
         bc1 = float(self["planck_bc1"])
         bc2 = float(self["planck_bc2"])
 
-        res = (fk2 / xu.log(fk1 / data + 1) - bc1) / bc2
+        res = (fk2 / np.log(fk1 / data + 1) - bc1) / bc2
         res.attrs = data.attrs
         res.attrs['units'] = 'K'
         res.attrs['standard_name'] = 'toa_brightness_temperature'
@@ -218,5 +220,5 @@ class NC_ABI_L1B(BaseFileHandler):
     def __del__(self):
         try:
             self.nc.close()
-        except (IOError, OSError):
+        except (IOError, OSError, AttributeError):
             pass
