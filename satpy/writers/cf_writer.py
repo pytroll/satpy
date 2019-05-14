@@ -232,46 +232,68 @@ def make_time_bounds(dataarray, start_times, end_times):
                         dims=['time_bnds'], coords={'time_bnds': [0, 1]})
 
 
-def make_coords_unique(datas):
+def make_coords_unique(datas, pretty):
     """Make coordinates unique among all datasets
 
-    By default, all datasets have the same dimension names 'x' and 'y'. As these dimensions might be different for
-    different datasets, collect the unique set of shapes {(x1, y1), (x2, y2), ...} and rename the dataset
-    dimensions accordingly. If there is only one unique shape, leave the dimension names as they are. (It is assumed
-    here that datasets with the same shape also have the same projection coordinates, i.e. the same grid)
+    In order to facilitate saving datasets with different dimensions in one file, rename the `x`/`y` and
+    `latitude`/`longitude` coordinates to something unique. The default is maximum consistency, i.e. the size of the
+    dimension is appended to its name. For example, `x` becomes `x_1234`, even if there is only one dataset to be saved.
+    This is not pretty but it makes sure the dimension names are independent of the number/set of datasets to be
+    written. Specifying `pretty=True` makes the file prettier (if possible), but possibly less consistent. If all
+    datasets have the same shape and `pretty=True`, the dimension names will not be modified.
 
-    For other non-dimensional (or alternative) coordinates, such as scanline timestamps, we have the same problem.
-    However, in this case one cannot assume that the coordinates are identical if their shape is. That is why the
-    dataset name is prepended to each non-dimensional coordinate.
+    Non-dimensional (or alternative) coordinates, such as scanline timestamps, may have the same dimensions but
+    different values. That is why the name of the corresponding dataset is prepended to those coordinates. If a
+    non-dimensional coordinate is unique among all datasets and `pretty=True`, its name will not be modified.
 
     Args:
         datas (dict): Dictionary of (dataset name, dataset)
+        pretty (bool): Don't modify dimension names, if possible. Makes the file prettier, but possibly less consistent.
 
     Returns:
         Dictionary holding the updated datasets
     """
-    # Rename unique dimensions by appending a number
+    new_datas = datas.copy()
+
+    # Rename dimensions by appending the size to their names
     unique_shapes = set([d.shape for d in datas.values() if d.shape != ()])
-    new_datas = {}
-    for ishape, shape in enumerate(sorted(unique_shapes), start=1):
+    if not pretty or len(unique_shapes) > 1:
+        if pretty:
+            warnings.warn('Cannot pretty-format x/y coordinates because the given datasets have different shapes')
         for ds_name, dataset in datas.items():
-            if dataset.shape == shape:
-                nr = str(ishape) if len(unique_shapes) > 1 else ''
-                rename = {'x': 'x{}'.format(nr), 'y': 'y{}'.format(nr)}
+            if dataset.shape != ():
+                ny, nx = dataset.shape
+                rename = {'x': 'x_{}'.format(ny), 'y': 'y_{}'.format(nx)}
                 if 'longitude' in dataset.coords:
-                    rename.update({'longitude': 'longitude{}'.format(nr),
-                                   'latitude': 'latitude{}'.format(nr)})
+                    rename.update({'longitude': 'longitude_{}_{}'.format(ny, nx),
+                                   'latitude': 'latitude_{}_{}'.format(ny, nx)})
                 new_datas[ds_name] = dataset.rename(rename)
 
-    # Prepend dataset name to other non-dimensional coordinates
-    for ds_name, dataset in new_datas.items():
-        rename = {}
+    # Prepend dataset name to other non-dimensional (or alternative) coordinates
+    alt_coords = defaultdict(list)
+    for dataset in datas.values():
         for coord_name in dataset.coords:
             if coord_name not in dataset.dims and 'latitude' not in coord_name and 'longitude' not in coord_name:
-                rename[coord_name] = '{}_{}'.format(ds_name, coord_name)
-        if rename:
-            dataset = dataset.rename(rename)
-        new_datas[ds_name] = dataset
+                alt_coords[coord_name].append(dataset[coord_name])
+
+    alt_coords_unique = dict()
+    for coord_name, coords in alt_coords.items():
+        alt_coords_unique[coord_name] = True
+        if len(coords) > 1:
+            for c in coords[1:]:
+                if c.shape != coords[0].shape or not np.all(c == coords[0]):
+                    alt_coords_unique[coord_name] = False
+                    break
+
+    for coord_name, unique in alt_coords_unique.items():
+        if not pretty or not unique:
+            if pretty:
+                warnings.warn('Cannot pretty-format "{}" coordinates because they are not unique among the '
+                              'given datasets'.format(coord_name))
+            for ds_name, dataset in datas.items():
+                if coord_name in dataset.coords:
+                    rename = {coord_name: '{}_{}'.format(ds_name, coord_name)}
+                    new_datas[ds_name] = new_datas[ds_name].rename(rename)
 
     return new_datas
 
@@ -435,7 +457,8 @@ class CFWriter(Writer):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
-    def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, latlon=False, **kwargs):
+    def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, latlon=False,
+                          pretty=False, **kwargs):
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
@@ -453,15 +476,12 @@ class CFWriter(Writer):
                 end_times.append(new_ds.attrs.get("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                                          exclude_attrs=exclude_attrs)
-        datas = make_coords_unique(datas)
+        datas = make_coords_unique(datas, pretty=pretty)
 
         return datas, start_times, end_times
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', **kwargs):
         """Save all datasets to one netCDF file
-
-        By default only datasets with the same projection coordinates (`x` and `y`) can be saved together in one file.
-        But it is possible save datasets with different grids in different groups (see the `group` argument).
 
         Args:
             datasets (list): Names of datasets to be saved
@@ -477,7 +497,7 @@ class CFWriter(Writer):
             to_netcdf_kwargs[key] = kwargs.pop(key, None)
 
         if groups is None:
-            # Separate group for each dataset
+            # Write all datasets to the file root without creating a group
             groups_ = {None: datasets}
         else:
             # User specified a group assignment using dataset names. Collect the corresponding datasets.
