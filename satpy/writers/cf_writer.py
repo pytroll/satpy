@@ -459,6 +459,13 @@ class CFWriter(Writer):
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, latlon=False,
                           pretty=False, **kwargs):
+        """
+        Collect and prepare datasets to be written
+
+        Args:
+            datasets (list): List of datasets
+            latlon (bool): Always include latitude and longitude coordinates, even for datasets with area definition
+        """
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
