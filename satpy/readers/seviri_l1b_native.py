@@ -453,7 +453,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             res = self._convert_to_radiance(data, gain, offset)
 
         if calibration == 'reflectance':
-            solar_irradiance = CALIB[self.mda['platform_id']][channel]["F"]
+            solar_irradiance = CALIB[self.platform_id][channel]["F"]
             res = self._vis_calibrate(res, solar_irradiance)
 
         elif calibration == 'brightness_temperature':
