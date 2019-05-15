@@ -47,6 +47,11 @@ def invert(img, *args):
     return img.invert(*args)
 
 
+def get_outputinfo(img, **kwargs):
+    """store additional output data inside img attributes"""
+    return img.get_outputinfo(**kwargs)
+
+
 def apply_enhancement(data, func, exclude=None, separate=False,
                       pass_dask=False):
     """Apply `func` to the provided data.
