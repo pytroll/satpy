@@ -105,7 +105,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             res = data
         else:
             data = (data * attrs.pop("scale_factor", 1) +
-                           attrs.pop("add_offset", 0))
+                    attrs.pop("add_offset", 0))
 
             if key.calibration in ("brightness_temperature", "reflectance"):
                 res = self.calibrate(data, key, measured, root)
