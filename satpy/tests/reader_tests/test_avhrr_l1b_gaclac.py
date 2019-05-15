@@ -20,7 +20,7 @@ from unittest import TestCase, main, TestLoader, TestSuite
 import numpy as np
 try:
     from unittest import mock
-except ImportError: # python 2
+except ImportError:  # python 2
     import mock
 
 GAC_PATTERN = 'NSS.GHRR.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'  # noqa
