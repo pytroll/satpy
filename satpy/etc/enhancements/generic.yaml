@@ -219,7 +219,6 @@ enhancements:
         stretch: linear
         cutoffs: [0.005, 0.005]
 
-
   sar-ice:
     standard_name: sar-ice
     operations:
