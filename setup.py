@@ -31,9 +31,9 @@ import versioneer
 
 from setuptools import find_packages, setup
 
-requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.10.3', 'trollsift',
-            'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
-            'dask[array] >=0.17.1']
+requires = ['numpy ==1.16.2', 'pillow', 'pyresample >=1.10.3', 'trollsift',
+            'trollimage >=1.5.1', 'pykdtree>=1.3.0', 'six', 'pyyaml<=4.2', 'xarray >=0.10.1',
+            'dask[array] >=0.17.1', 'matplotlib<=2.2', 'mipp', 'pyspectral']
 
 # pyhdf (conda) == python-hdf4 (pip)
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
