@@ -29,9 +29,10 @@ import unittest
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 try:
-    from unittest import mock # Python 3.3 or newer
+    from unittest import mock  # Python 3.3 or newer
 except ImportError:
-    import mock # Python 2.7
+    import mock  # Python 2.7
+
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     def _get_test_calib_for_channel_ir(self, chroot, meas):
@@ -77,10 +78,10 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         data[pos.format(ch_str, "end", "column")] = ncols
         if pat.startswith("ir") or pat.startswith("wv"):
             data.update(self._get_test_calib_for_channel_ir(chroot.format(ch_str),
-                meas.format(ch_str)))
+                        meas.format(ch_str)))
         elif pat.startswith("vis") or pat.startswith("nir"):
             data.update(self._get_test_calib_for_channel_vis(chroot.format(ch_str),
-                meas.format(ch_str)))
+                        meas.format(ch_str)))
         data[shp.format(ch_str)] = (nrows, ncols)
         return data
 
@@ -121,6 +122,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 **self._get_test_content_all_channels(),
                 **self._get_test_content_areadef(),
                 }
+
 
 class TestFCIL1CFDHSIReader(unittest.TestCase):
     """Test FCI L1C FDHSI reader
@@ -297,6 +299,7 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
             self.assertEqual(res[ch].attrs["calibration"],
                              "brightness_temperature")
             self.assertEqual(res[ch].attrs["units"], "K")
+
 
 def suite():
     """The test suite
