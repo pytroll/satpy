@@ -82,6 +82,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         measured, root = self.get_channel_dataset(key.name)
         radlab = measured + "/effective_radiance"
         radiances = self[radlab]
+        # FIXME: this needs special case for integer data or it will become
+        # float64, 
         radiances = radiances.where(radiances > radiances.attrs['valid_range'][0])
         radiances = radiances.where(radiances < radiances.attrs['valid_range'][1])
         radiances = (radiances * radiances.attrs["scale_factor"] +
@@ -91,6 +93,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         self.nlines, self.ncols = res.shape
         res.attrs.update(key.to_dict())
+        res.attrs.update(info)
         return res
 
     def get_channel_dataset(self, channel):
@@ -185,6 +188,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def calibrate(self, data, key, measured, root):
         """Data calibration."""
 
+        #from nose.tools import set_trace; set_trace()
         # logger.debug('Calibration: %s' % key.calibration)
         if key.calibration == 'brightness_temperature':
             self._ir_calibrate(data, measured, root)
@@ -198,13 +202,15 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def _ir_calibrate(self, radiance, measured, root):
         """IR channel calibration."""
-        # Not sure if Lv is correct, FCI User Guide is a bit unclear
 
         Lv = radiance * self[measured + "/radiance_unit_conversion_coefficient"]
         vc = self[root + "/central_wavelength_actual"]
-        a, b, c, d = self[root + "/radiance_to_bt_conversion_coefficients"]
 
-        c1, c2 = self[measured + "/radiance_to_bt_conversion_constants"]
+        a = self[measured + "/radiance_to_bt_conversion_coefficient_a"]
+        b = self[measured + "/radiance_to_bt_conversion_coefficient_b"]
+
+        c1 = self[measured + "/radiance_to_bt_conversion_constant_c1"]
+        c2 = self[measured + "/radiance_to_bt_conversion_constant_c2"]
 
         nom = c2 * vc
         denom = a * np.log(1 + (c1 * vc**3) / Lv)
