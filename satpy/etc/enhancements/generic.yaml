@@ -4,7 +4,7 @@ enhancements:
   default:
     operations:
     - name: stretch
-      method: &stretchfun !!python/name:satpy.enhancements.stretch ''
+      method: &stretchfun !!python/name:satpy.enhancements.stretch
       kwargs: {stretch: linear}
   reflectance_default:
     standard_name: toa_bidirectional_reflectance
