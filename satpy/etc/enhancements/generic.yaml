@@ -4,17 +4,10 @@ enhancements:
   default:
     operations:
     - name: stretch
-      method: &stretchfun !!python/name:satpy.enhancements.stretch
+      method: &stretchfun !!python/name:satpy.enhancements.stretch ''
       kwargs: {stretch: linear}
-  reflectance_default:
-    standard_name: toa_bidirectional_reflectance
-    operations:
-    - name: linear_stretch
-      method: !!python/name:satpy.enhancements.stretch
-      kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
-    - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
-      kwargs: {gamma: 1.5}
+    - name: outputinfo
+      method: &outputinfofun !!python/name:satpy.enhancements.get_outputinfo ''
   true_color_default:
     standard_name: true_color
     operations:
@@ -218,6 +211,12 @@ enhancements:
       kwargs:
         stretch: linear
         cutoffs: [0.005, 0.005]
+  reflectance:
+    standard_name: toa_bidirectional_reflectance
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
 
   sar-ice:
     standard_name: sar-ice
@@ -728,3 +727,118 @@ enhancements:
           stretch: crude
           min_stretch: [0, 0, 0]
           max_stretch: [1, 1, 1]
+
+  ir108_inverse:
+    standard_name: ir108_inverse
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [233]
+        max_stretch: [361]
+    - name: outputinfo
+      method: *outputinfofun
+      kwargs:
+        gammacurve: 1
+        physic_unit : "KELVIN"
+        physic_value : "T"
+  
+  ir039_inverse:
+    standard_name: ir039_inverse
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+      
+  ir087_inverse:
+    standard_name: ir087_inverse
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+      
+  ir097_inverse:
+    standard_name: ir097_inverse
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+      
+  ir120_inverse:
+    standard_name: ir120_inverse
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+      
+  ir134_inverse:
+    standard_name: ir134_inverse
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+      
+  wv062_inverse:
+    standard_name: wv062_inverse
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+      
+  wv073_inverse:
+    standard_name: wv073_inverse
+    operations:
+    - name: inverse
+      method: *inversefun
+      args: [true]
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear}
+
+  snow_fogday:
+    standard_name: snow_fogday
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [100, 100, 90]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1.0, 1.15, 1.0]
+
+  stratus_fog:
+    standard_name: stratus_fog
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [186, 186, 186]
+        max_stretch: [313, 313, 313]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1.0, 1.0, 1.0]
+
