@@ -1,0 +1,248 @@
+# GOES-R PUG vol5 L2+ products
+#  https://www.goes-r.gov/products/docs/PUG-L2+-vol5.pdf
+reader:
+  description: NetCDF4 reader for the GOES-R Level 2+ products from NOAA PDA
+  name: abi_l2
+  sensors: ['abi']
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+
+#Datasets 
+datasets:
+  CMIP:                          # Cloud Moisture Image Products
+    name: CMI                   
+    file_type: nc_abi_l2_cmip
+
+  HT:                            #  Cloud Top Height
+    name: HT                     #  variable name in the nc files
+    resolution: 2000               
+    file_type: nc_abi_l2_acha    
+
+  TEMP:                # Cloud Top Temperature 
+    name: TEMP
+    resolution: 2000
+    file_type: nc_abi_l2_acht
+
+  BCM:                 #  clear sky mask 
+    name: BCM
+    resolution: 2000
+    file_type: nc_abi_l2_acm
+
+  Phase:               # Cloud Top Phase
+    name: Phase
+    resolution: 2000
+    file_type: nc_abi_l2_actp
+
+  LST:                 # Land Surface (Skin) Temperature
+    name: LST
+    resolution: 2000
+    file_type: nc_abi_l2_lst
+
+  Aerosol:            # Aerosol Detection: Aerosol
+    name: Aerosol
+    resolution: 2000
+    file_type: nc_abi_l2_adp
+
+  Smoke:               # Aerosol Detection: Smoke
+    name: Smoke           
+    resolution: 2000
+    file_type: nc_abi_l2_adp
+
+  Dust:                # Aerosol Detection: Dust
+    name: Dust       
+    resolution: 2000
+    file_type: nc_abi_l2_adp
+
+  AOD:                # Aerosol Optical Depth
+    name: AOD           
+    resolution: 2000
+    file_type: nc_abi_l2_aod
+
+  COD:                # Cloud Optical Depth at 640 nm
+    name: COD           
+    resolution: 2000
+    file_type: nc_abi_l2_cod
+
+  PSD:                # Cloud Particle Size
+    name: PSD           
+    resolution: 2000
+    file_type: nc_abi_l2_cps
+
+  PRES:                # Cloud Top Pressure, 10 km at nadir
+    name: PRES           
+    resolution: 10000
+    file_type: nc_abi_l2_ctp
+
+  CAPE:                # atmospheric stability indices, CAPE
+    name: CAPE           
+    resolution: 2000
+    file_type: nc_abi_l2_dsi
+
+  TT:                  # atmospheric stability indices, Total Totals Index
+    name: TT           
+    resolution: 2000
+    file_type: nc_abi_l2_dsi
+
+  LI:                  # atmospheric stability indices, Lifted Index
+    name: LI           
+    resolution: 2000
+    file_type: nc_abi_l2_dsi
+
+  SI:                  # atmospheric stability indices, Showalter Index
+    name: SI           
+    resolution: 2000
+    file_type: nc_abi_l2_dsi
+
+  KI:                  # atmospheric stability indices, K-index
+    name: KI           
+    resolution: 2000
+    file_type: nc_abi_l2_dsi
+
+  Area:                # Fire (Hot Spot Characterization): Fire Area
+    name: Area           
+    resolution: 2000
+    file_type: nc_abi_l2_fdc
+
+  Temp:                # Fire (Hot Spot Characterization): Temperature
+    name: Temp           
+    resolution: 2000
+    file_type: nc_abi_l2_fdc
+
+  Power:                # Fire (Hot Spot Characterization): Radiative power
+    name: Power           
+    resolution: 2000
+    file_type: nc_abi_l2_fdc
+
+  Mask:                # Fire (Hot Spot Characterization): Mask
+    name: Mask           
+    resolution: 2000
+    file_type: nc_abi_l2_fdc  
+
+  LST:                 # Land Surface (Skin) Temperature
+    name: LST
+    resolution: 2000
+    file_type: nc_abi_l2_lst
+
+  RSR:                 # Reflected Shortwave Radiation
+    name: RSR
+    resolution: 25000
+    file_type: nc_abi_l2_rsr
+
+  DSR:                 # Downward Shortwave Radiation: Surface
+    name: DSR
+    resolution: 50000
+    file_type: nc_abi_l2_dsr
+
+  RRQPE:               # Rainfall Rate - Quantitative Prediction Estimate
+    name: RRQPE
+    resolution: 2000
+    file_type: nc_abi_l2_rrqpe
+
+  SST:                 #  Sea Surface (Skin) Temperature
+    name: SST
+    resolution: 2000
+    file_type: nc_abi_l2_sst  
+
+  TPW:                # Total Pricipitalable Water
+    name: TPW
+    resolution: 10000
+    file_type: nc_abi_l2_tpw
+
+  VAH:                # Volcanic Ash: Ash Cloud Height
+    name: VAH
+    resolution: 2000
+    file_type: nc_abi_l2_vaa
+
+  VAML:               # Volcanic Ash: Ash Mass Loading
+    name: VAML
+    resolution: 2000
+    file_type: nc_abi_l2_vaa
+
+    
+file_types:
+  nc_abi_l2_acha:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACHA{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_acht:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACHT{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_acm:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACM{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_actp:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACTP{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_adp:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ADP{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_aod:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-AOD{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_cmip:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:1s}-{scan_mode:2s}C{channel_number:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_cod:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-COD{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_cps:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CPS{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_ctp:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CTP{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_dmw:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DMW{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_dsi:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DSI{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_drs:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DRS{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+
+  nc_abi_l2_fdc:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-FDC{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_lst:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-LST{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_rrqpe:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-RRQPE{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_rsr:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-RSR{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_dsr:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DSR{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_sst:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-SST{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_tpw:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-TPW{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  nc_abi_l2_vaa:
+        file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-VAA{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc', '{system_environment:2s}_{mission_id:3s}-L2-VAA{area_code:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-128600_0.nc']
+
+
