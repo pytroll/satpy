@@ -61,11 +61,13 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         ch_str = pat.format(ch)
         ch_path = rad.format(ch_str)
         d = xr.DataArray(
-                da.ones(nrows, ncols, dtype="uint16", chunks=1024),
+                da.ones((nrows, ncols), dtype="uint16", chunks=1024),
+                dims=("y", "x"),
                 attrs={
                     "valid_range": [0, 4095],
                     "scale_factor": 1,
                     "add_offset": 0,
+                    "units": "1",
                     }
                 )
         data[ch_path] = d
@@ -93,7 +95,6 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         for pat in chan_patterns.keys():
             for ch_num in chan_patterns[pat]:
                 data.update(self._get_test_content_for_channel(pat, ch_num))
-        from nose.tools import set_trace; set_trace()
         return data
 
     def _get_test_content_areadef(self):
@@ -209,7 +210,7 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
                     self._chans["solar"] + self._chans["terran"]])
         self.assertEqual(16, len(res))
         for ch in self._chans["solar"] + self._chans["terran"]:
-            self.assertEqual(res[ch].shape, (11136, 206*2))
+            self.assertEqual(res[ch].shape, (200*2, 11136))
             self.assertEqual(res[ch].dtype, np.uint16)
             self.assertEqual(res[ch].attrs["calibration"], "counts")
             self.assertEqual(res[ch].attrs["units"], "1")
@@ -234,8 +235,8 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
                     self._chans["solar"] + self._chans["terran"]])
         self.assertEqual(16, len(res))
         for ch in self._chans["solar"] + self._chans["terran"]:
-            self.assertEqual(res[ch].shape, (11136, 206))
-            self.assertEqual(res[ch].dtype, np.float32)
+            self.assertEqual(res[ch].shape, (200, 11136))
+            self.assertEqual(res[ch].dtype, np.float64)
             self.assertEqual(res[ch].attrs["calibration"], "radiance")
             self.assertEqual(res[ch].attrs["units"], "W m-2 um-1 sr-1")
 
@@ -259,8 +260,8 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
                     self._chans["solar"]])
         self.assertEqual(8, len(res))
         for ch in self._chans["solar"]:
-            self.assertEqual(res[ch].shape, (11136, 206))
-            self.assertEqual(res[ch].dtype, np.float32)
+            self.assertEqual(res[ch].shape, (200, 11136))
+            self.assertEqual(res[ch].dtype, np.float64)
             self.assertEqual(res[ch].attrs["calibration"], "reflectance")
             self.assertEqual(res[ch].attrs["units"], "%")
 
@@ -284,8 +285,8 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
                     name in self._chans["terran"]])
         self.assertEqual(8, len(res))
         for ch in self._chans["terran"]:
-            self.assertEqual(res[ch].shape, (11136, 206))
-            self.assertEqual(res[ch].dtype, np.float32)
+            self.assertEqual(res[ch].shape, (200, 11136))
+            self.assertEqual(res[ch].dtype, np.float64)
             self.assertEqual(res[ch].attrs["calibration"],
                              "brightness_temperature")
             self.assertEqual(res[ch].attrs["units"], "K")
