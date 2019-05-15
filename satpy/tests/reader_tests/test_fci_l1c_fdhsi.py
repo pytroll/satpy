@@ -67,7 +67,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     "valid_range": [0, 4095],
                     "scale_factor": 1,
                     "add_offset": 0,
-                    "units": "1",
+                    "units": "mW.m-2.sr-1.(cm-1)-1",
                     }
                 )
         data[ch_path] = d
@@ -126,6 +126,13 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
     """Test FCI L1C FDHSI reader
     """
     yaml_file = "fci_l1c_fdhsi.yaml"
+
+    # TODO:
+    # - test actual return values for radiances
+    # - test actual return values for reflectances
+    # - test actual return values for BTs
+    # - test special case for extended range IR38
+    # - test geolocation
 
     def setUp(self):
         """Wrap NetCDF4 FileHandler with our own fake handler
@@ -238,7 +245,7 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
             self.assertEqual(res[ch].shape, (200, 11136))
             self.assertEqual(res[ch].dtype, np.float64)
             self.assertEqual(res[ch].attrs["calibration"], "radiance")
-            self.assertEqual(res[ch].attrs["units"], "W m-2 um-1 sr-1")
+            self.assertEqual(res[ch].attrs["units"], 'mW.m-2.sr-1.(cm-1)-1')
 
     def test_load_reflectance(self):
         """Test loading with reflectance

@@ -81,19 +81,46 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
         radlab = measured + "/effective_radiance"
-        radiances = self[radlab]
-        # FIXME: this needs special case for integer data or it will become
-        # float64, 
-        radiances = radiances.where(radiances > radiances.attrs['valid_range'][0])
-        radiances = radiances.where(radiances < radiances.attrs['valid_range'][1])
-        radiances = (radiances * radiances.attrs["scale_factor"] +
-                     radiances.attrs["add_offset"])
+        data = self[radlab]
 
-        res = self.calibrate(radiances, key, measured, root)
+        attrs = data.attrs.copy()
+        info = info.copy()
+        fv = attrs.pop(
+                "FillValue",
+                default_fillvals.get(data.dtype.str[1:], np.nan))
+        vr = attrs.pop("valid_range", [-np.inf, np.inf])
+        if key.calibration == "counts":
+            attrs["_FillValue"] = fv
+            nfv = fv
+        else:
+            nfv = np.nan
+        data = data.where(data > vr[0], nfv)
+        data = data.where(data < vr[1], nfv)
+        if key.calibration == "counts":
+            # from package description, this just means not applying add_offset
+            # and scale_factor
+            attrs.pop("scale_factor")
+            attrs.pop("add_offset")
+            data.attrs["units"] = "1"
+            res = data
+        else:
+            data = (data * attrs.pop("scale_factor", 1) +
+                           attrs.pop("add_offset", 0))
+
+            if key.calibration in ("brightness_temperature", "reflectance"):
+                res = self.calibrate(data, key, measured, root)
+            else:
+                res = data
+                data.attrs["units"] = attrs["units"]
+        # pre-calibration units no longer apply
+        info.pop("units")
+        attrs.pop("units")
 
         self.nlines, self.ncols = res.shape
-        res.attrs.update(key.to_dict())
-        res.attrs.update(info)
+        res.attrs.update({
+                **key.to_dict(),
+                **info,
+                **attrs})
         return res
 
     def get_channel_dataset(self, channel):
@@ -188,15 +215,12 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def calibrate(self, data, key, measured, root):
         """Data calibration."""
 
-        #from nose.tools import set_trace; set_trace()
-        # logger.debug('Calibration: %s' % key.calibration)
         if key.calibration == 'brightness_temperature':
-            self._ir_calibrate(data, measured, root)
-            pass
+            data = self._ir_calibrate(data, measured, root)
         elif key.calibration == 'reflectance':
-            self._vis_calibrate(data, measured)
+            data = self._vis_calibrate(data, measured)
         else:
-            logger.warning('Calibration disabled!')
+            raise RuntimeError("Reached unreachable code!")
 
         return data
 
@@ -215,7 +239,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         nom = c2 * vc
         denom = a * np.log(1 + (c1 * vc**3) / Lv)
 
-        return nom / denom - b / a
+        res = nom / denom - b / a
+        res.attrs["units"] = "K"
+        return res
 
     def _vis_calibrate(self, radiance, measured):
         """VIS channel calibration."""
@@ -223,4 +249,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # again FCI User Guide is not clear on how to do this
 
         sirr = float(self[measured + "/channel_effective_solar_irradiance"])
-        return radiance / sirr * 100
+        res = radiance / sirr * 100
+        res.attrs["units"] = "%"
+        return res
