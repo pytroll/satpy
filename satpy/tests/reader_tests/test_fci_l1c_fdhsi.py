@@ -19,6 +19,10 @@
 
 """Tests for the 'fci_l1c_fdhsi' reader."""
 
+from __future__ import (division, absolute_import, print_function,
+                        unicode_literals)
+
+import sys
 import os
 
 import numpy as np
@@ -126,11 +130,10 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         #
         # ... but only what satpy is using ...
 
-        return {
-                **self._get_test_content_all_channels(),
-                **self._get_test_content_areadef(),
-                }
-
+        D = {}
+        D.update(self._get_test_content_all_channels())
+        D.update(self._get_test_content_areadef())
+        return D
 
 class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
     """Mock bad data
@@ -338,6 +341,10 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     _alt_handler = FakeNetCDF4FileHandler3
 
+    @unittest.skipIf(
+            sys.version < (3, 4),
+            "skipping log message testing on old Python version "
+            "that doesn't have TestCase.assertLogs")
     def test_handling_bad_data_ir(self):
         """Test handling of bad data
         """
