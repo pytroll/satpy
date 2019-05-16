@@ -6,6 +6,7 @@
 # Author(s):
 #
 #   Martin Raspaud <martin.raspaud@smhi.se>
+#   Panu Lahtinen <panu.lahtinen@fmi.fi>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -142,6 +143,7 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition, AreaDefinition
 from pyresample.kd_tree import XArrayResamplerNN
 from pyresample.bilinear.xarr import XArrayResamplerBilinear
+from pyresample import bucket
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
 
@@ -823,11 +825,75 @@ class NativeResampler(BaseResampler):
                             coords=coords or None)
 
 
+class BucketResampler(BaseResampler):
+    """Base class for bucket resampling which implements averaging.
+
+    This resampler implements on-disk caching when the `cache_dir` argument
+    is provided to the `resample` method. This should provide significant
+    performance improvements on consecutive resampling of geostationary data.
+
+    Args:
+        cache_dir (str): Long term storage directory for intermediate
+                         results. By default only 10 different source/target
+                         combinations are cached to save space.
+
+    """
+
+    def __init__(self, source_geo_def, target_geo_def):
+        super(BucketResampler, self).__init__(source_geo_def, target_geo_def)
+        self._cache = {}
+
+    def precompute(self, **kwargs):
+        """Create a X and Y indices and store them for later use.
+        """
+        LOG.debug("Computing resampling indices")
+        lons, lats = self.source_geo_def.get_lonlats()
+        x_idxs, y_idxs = bucket.get_bucket_indices(self.target_geo_def,
+                                                   lons, lats)
+        self._cache = {'x_idxs': x_idxs, 'y_idxs': y_idxs}
+
+    def compute(self, data, fill_value=np.nan, **kwargs):
+        fill_value = kwargs.get('fill_value', np.nan)
+        LOG.debug("Resampling %s", str(data.name))
+        x_idxs = self._cache.get('x_idxs', None)
+        y_idxs = self._cache.get('y_idxs', None)
+        res = bucket.resample_bucket_average(
+            data, fill_value=fill_value, x_idxs=x_idxs, y_idxs=y_idxs,
+            target_shape=self.target_geo_def.shape)
+
+        return res
+
+    def resample(self, data, **kwargs):
+        """Resample `data` by calling `precompute` and `compute` methods.
+
+        Args:
+            data (xarray.DataArray): Data to be resampled
+
+        Returns (xarray.DataArray): Data resampled to the target area
+
+        """
+        cache_id = self.precompute(**kwargs)
+        result = self.compute(data, **kwargs)
+        if data.ndim == 3 and data.dims[0] == 'bands':
+            dims = ('bands', 'y', 'x')
+        elif data.ndim == 2:
+            dims = ('y', 'x')
+        else:
+            dims = data.dims
+        result = xr.DataArray(result, dims=dims,
+                              attrs=data.attrs.copy())
+        return result
+
+
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
               "bilinear": BilinearResampler,
               "native": NativeResampler,
+              "bucket_avg": BucketResampler,
+              #"bucket_sum": BucketSum,
+              #"bucket_count": BucketCount,
+              #"bucket_fraction": BucketFraction,
               }
 
 
