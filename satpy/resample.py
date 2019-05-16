@@ -889,7 +889,7 @@ class BucketResampler(BaseResampler):
 
 
 class BucketSum(BucketResampler):
-    """Base class for bucket resampling which implements averaging."""
+    """Class for bucket resampling which implements accumulation (sum)."""
 
     def __init__(self, source_geo_def, target_geo_def):
         super(BucketSum, self).__init__(source_geo_def, target_geo_def)
@@ -923,7 +923,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "native": NativeResampler,
               "bucket_avg": BucketResampler,
               "bucket_sum": BucketSum,
-              #"bucket_count": BucketCount,
+              "bucket_count": BucketCount,
               #"bucket_fraction": BucketFraction,
               }
 
