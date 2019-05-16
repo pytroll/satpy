@@ -895,7 +895,7 @@ class BucketSum(BucketResampler):
         super(BucketSum, self).__init__(source_geo_def, target_geo_def)
         self._cache = {}
 
-    def compute(self, data, fill_value=np.nan, **kwargs):
+    def compute(self, data, **kwargs):
         """Call the resampling."""
         fill_value = kwargs.get('fill_value', np.nan)
         LOG.debug("Resampling %s", str(data.name))
