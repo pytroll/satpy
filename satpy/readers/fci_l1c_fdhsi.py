@@ -36,6 +36,8 @@ in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 
 import logging
 import numpy as np
+import dask.array as da
+import xarray as xr
 
 from pyresample import geometry
 from netCDF4 import default_fillvals
@@ -227,8 +229,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def _ir_calibrate(self, radiance, measured, root):
         """IR channel calibration."""
 
-        Lv = radiance * self[measured + "/radiance_unit_conversion_coefficient"]
-        vc = self[root + "/central_wavelength_actual"]
+        coef = self[measured + "/radiance_unit_conversion_coefficient"]
+        wl_c = self[root + "/central_wavelength_actual"]
 
         a = self[measured + "/radiance_to_bt_conversion_coefficient_a"]
         b = self[measured + "/radiance_to_bt_conversion_coefficient_b"]
@@ -236,6 +238,25 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         c1 = self[measured + "/radiance_to_bt_conversion_constant_c1"]
         c2 = self[measured + "/radiance_to_bt_conversion_constant_c2"]
 
+        for v in (coef, wl_c, a, b, c1, c2):
+            if v == v.attrs.get("FillValue",
+                                default_fillvals.get(v.dtype.str[1:])):
+                logging.error(
+                    "{:s} set to fill value, cannot produce "
+                    "brightness temperatures for {:s}.".format(
+                        v.attrs.get("long_name",
+                                    "at least one necessary coefficient"),
+                        root))
+                return xr.DataArray(
+                        da.full(shape=radiance.shape,
+                                chunks=radiance.chunks,
+                                fill_value=np.nan),
+                        dims=radiance.dims,
+                        coords=radiance.coords,
+                        attrs=radiance.attrs)
+
+        Lv = radiance * coef
+        vc = 1e6/wl_c  # from wl in um to wn in m^-1
         nom = c2 * vc
         denom = a * np.log(1 + (c1 * vc**3) / Lv)
 
@@ -248,7 +269,22 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # radiance to reflectance taken as in mipp/xrit/MSG.py
         # again FCI User Guide is not clear on how to do this
 
-        sirr = float(self[measured + "/channel_effective_solar_irradiance"])
+        cesilab = measured + "/channel_effective_solar_irradiance"
+        cesi = self[cesilab]
+        if cesi == cesi.attrs.get(
+                "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
+            logging.error(
+                "channel effective solar irradiance set to fill value, "
+                "cannot produce reflectance for {:s}.".format(measured))
+            return xr.DataArray(
+                    da.full(shape=radiance.shape,
+                            chunks=radiance.chunks,
+                            fill_value=np.nan),
+                    dims=radiance.dims,
+                    coords=radiance.coords,
+                    attrs=radiance.attrs)
+
+        sirr = float(cesi)
         res = radiance / sirr * 100
         res.attrs["units"] = "%"
         return res
