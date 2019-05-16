@@ -20,7 +20,6 @@
 """Unittesting the Vaisala GLD360 reader.
 """
 
-import sys
 from io import StringIO
 
 import numpy as np
