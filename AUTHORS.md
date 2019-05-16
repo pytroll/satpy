@@ -11,6 +11,7 @@ The following people have made contributions to this project:
 - [Adam Dybbroe (adybbroe)](https://github.com/adybbroe)
 - [Ulrik Egede (egede)](https://github.com/egede)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens)
+- [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
