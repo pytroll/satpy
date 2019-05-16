@@ -1,0 +1,34 @@
+reader:
+  description: MSG Bufr Reader
+  name: bufr_msg_toz_l2
+  sensors: [seviri]
+  default_channels: [toz]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  bufr_msg_toz_l2:
+    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
+    file_patterns: ['TOZBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
+         
+datasets:
+ toz:
+    name: toz
+    index: 15
+    key: '#1#totalOzone'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: dobson
+        units: dobson
+    file_type: bufr_msg_toz_l2
+
+
+
+
