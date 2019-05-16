@@ -7,7 +7,7 @@ reader:
 file_types:
   bufr_msg_toz_l2:
     file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
-    file_patterns: ['TOZBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']         
+    file_patterns: ['TOZBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
 datasets:
   toz:
     name: toz
@@ -26,7 +26,3 @@ datasets:
         standard_name: dobson
         units: dobson
     file_type: bufr_msg_toz_l2
-
-
-
-
