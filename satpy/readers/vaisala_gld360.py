@@ -71,7 +71,7 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
                                           chunks=CHUNK_SIZE), dims=["y"])
 
         # Add time, longitude, and latitude as non-dimensional y-coordinates
-        xarr['time'] = ('y', self.data['time'])
+        xarr['time'] = ('y', self.data['datetime'])
         xarr['longitude'] = ('y', self.data['longitude'])
         xarr['latitude'] = ('y', self.data['latitude'])
 
