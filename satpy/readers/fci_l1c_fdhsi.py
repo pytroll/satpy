@@ -34,6 +34,9 @@ in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 .. _EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci  # noqa: E501
 """
 
+from __future__ import (division, absolute_import, print_function,
+                        unicode_literals)
+
 import logging
 import numpy as np
 import dask.array as da
@@ -119,10 +122,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         attrs.pop("units")
 
         self.nlines, self.ncols = res.shape
-        res.attrs.update({
-                **key.to_dict(),
-                **info,
-                **attrs})
+        res.attrs.update(key.to_dict())
+        res.attrs.update(info)
+        res.attrs.update(attrs)
         return res
 
     def get_channel_dataset(self, channel):
