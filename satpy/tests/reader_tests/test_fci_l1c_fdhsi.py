@@ -131,16 +131,25 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 **self._get_test_content_areadef(),
                 }
 
+class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
+    """Mock bad data
+    """
+    def _get_test_calib_for_channel_ir(self, chroot, meas):
+        from netCDF4 import default_fillvals
+        v = xr.DataArray(default_fillvals["f4"])
+        data = {}
+        data[meas + "/radiance_unit_conversion_coefficient"] = v
+        data[chroot + "/central_wavelength_actual"] = v
+        data[meas + "/radiance_to_bt_conversion_coefficient_a"] = v
+        data[meas + "/radiance_to_bt_conversion_coefficient_b"] = v
+        data[meas + "/radiance_to_bt_conversion_constant_c1"] = v
+        data[meas + "/radiance_to_bt_conversion_constant_c2"] = v
+        return data
 
 class TestFCIL1CFDHSIReader(unittest.TestCase):
-    """Test FCI L1C FDHSI reader
-    """
     yaml_file = "fci_l1c_fdhsi.yaml"
 
-    # TODO:
-    # - test special case for extended range IR38
-    # - test geolocation
-
+    _alt_handler = FakeNetCDF4FileHandler2
     def setUp(self):
         """Wrap NetCDF4 FileHandler with our own fake handler
         """
@@ -154,7 +163,7 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
         self.p = mock.patch.object(
                 FCIFDHSIFileHandler,
                 "__bases__",
-                (FakeNetCDF4FileHandler2,))
+                (self._alt_handler,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -164,6 +173,15 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
         # implementation strongly inspired by test_viirs_l1b.py
         self.p.stop()
 
+class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
+    """Test FCI L1C FDHSI reader
+    """
+
+    # TODO:
+    # - test special case for extended range IR38
+    # - test geolocation
+
+    _alt_handler = FakeNetCDF4FileHandler2
     def test_file_pattern(self):
         """Test file pattern matching
         """
@@ -311,6 +329,32 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
                 res[ch],
                 181.917084)
 
+class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
+    _alt_handler = FakeNetCDF4FileHandler3
+
+    def test_handling_bad_data_ir(self):
+        """Test handling of bad data
+        """
+        from satpy import DatasetID
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(self.reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+        with self.assertLogs(
+                'satpy.readers.fci_l1c_fdhsi',
+                level="ERROR") as cm:
+            #from nose.tools import set_trace; set_trace()
+            res = reader.load([DatasetID(
+                    name="ir_123",
+                    calibration="brightness_temperature")])
+        self.assertRegex(cm.output[0], "cannot produce brightness temperatur")
 
 def suite():
     """The test suite

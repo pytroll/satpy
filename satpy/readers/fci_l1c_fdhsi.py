@@ -241,7 +241,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         for v in (coef, wl_c, a, b, c1, c2):
             if v == v.attrs.get("FillValue",
                                 default_fillvals.get(v.dtype.str[1:])):
-                logging.error(
+                logger.error(
                     "{:s} set to fill value, cannot produce "
                     "brightness temperatures for {:s}.".format(
                         v.attrs.get("long_name",
@@ -273,7 +273,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         cesi = self[cesilab]
         if cesi == cesi.attrs.get(
                 "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
-            logging.error(
+            logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
             return xr.DataArray(
