@@ -26,7 +26,6 @@ import logging
 import numpy as np
 import netCDF4
 from glob import glob
-from satpy.dataset import DatasetID
 from satpy.readers.hdf4_utils import HDF4FileHandler, SDS
 from pyresample import geometry
 
