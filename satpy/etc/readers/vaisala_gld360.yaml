@@ -22,6 +22,7 @@ datasets:
     resolution: 2000
     file_type: vaisala_gld360
     standard_name: latitude
+    units: degree
 
   longitude:
     name: longitude
@@ -29,6 +30,7 @@ datasets:
     resolution: 2000
     file_type: vaisala_gld360
     standard_name: longitude
+    units: degree
 
   power:
     name: power
@@ -38,3 +40,4 @@ datasets:
     coordinates:
       - longitude
       - latitude
+    units: kA
