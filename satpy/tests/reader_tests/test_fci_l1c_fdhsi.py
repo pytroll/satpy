@@ -135,6 +135,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         D.update(self._get_test_content_areadef())
         return D
 
+
 class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
     """Mock bad data
     """
@@ -254,7 +255,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             self.assertEqual(res[ch].dtype, np.uint16)
             self.assertEqual(res[ch].attrs["calibration"], "counts")
             self.assertEqual(res[ch].attrs["units"], "1")
-        numpy.testing.assert_array_equal(res[ch], 1)
+            numpy.testing.assert_array_equal(res[ch], 1)
 
     def test_load_radiance(self):
         """Test loading with radiance
@@ -280,7 +281,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             self.assertEqual(res[ch].dtype, np.float64)
             self.assertEqual(res[ch].attrs["calibration"], "radiance")
             self.assertEqual(res[ch].attrs["units"], 'mW.m-2.sr-1.(cm-1)-1')
-        numpy.testing.assert_array_equal(res[ch], 15)
+            numpy.testing.assert_array_equal(res[ch], 15)
 
     def test_load_reflectance(self):
         """Test loading with reflectance
@@ -306,7 +307,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             self.assertEqual(res[ch].dtype, np.float64)
             self.assertEqual(res[ch].attrs["calibration"], "reflectance")
             self.assertEqual(res[ch].attrs["units"], "%")
-        numpy.testing.assert_array_equal(res[ch], 15 / 50 * 100)
+            numpy.testing.assert_array_equal(res[ch], 15 / 50 * 100)
 
     def test_load_bt(self):
         """Test loading with bt
@@ -333,9 +334,9 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             self.assertEqual(res[ch].attrs["calibration"],
                              "brightness_temperature")
             self.assertEqual(res[ch].attrs["units"], "K")
-        numpy.testing.assert_array_almost_equal(
-                res[ch],
-                181.917084)
+            numpy.testing.assert_array_almost_equal(
+                    res[ch],
+                    181.917084)
 
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
