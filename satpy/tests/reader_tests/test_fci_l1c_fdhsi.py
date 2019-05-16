@@ -25,6 +25,7 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 import unittest
+import numpy.testing
 
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
@@ -36,21 +37,28 @@ except ImportError:
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     def _get_test_calib_for_channel_ir(self, chroot, meas):
+        from pyspectral.blackbody import (
+                H_PLANCK as h,
+                K_BOLTZMANN as k,
+                C_SPEED as c)
+        xrda = xr.DataArray
         data = {}
-        data[meas + "/radiance_unit_conversion_coefficient"] = 1
-        data[chroot + "/central_wavelength_actual"] = 1
-        for c in "ab":
-            data[meas + "/radiance_to_bt_conversion_coefficient_" + c] = 1
-        for c in "12":
-            data[meas + "/radiance_to_bt_conversion_constant_c" + c] = 1
+        data[meas + "/radiance_unit_conversion_coefficient"] = xrda(1)
+        data[chroot + "/central_wavelength_actual"] = xrda(10)
+        data[meas + "/radiance_to_bt_conversion_coefficient_a"] = xrda(1000)
+        data[meas + "/radiance_to_bt_conversion_coefficient_b"] = xrda(1)
+        data[meas + "/radiance_to_bt_conversion_constant_c1"] = xrda(2*h*c**2)
+        data[meas + "/radiance_to_bt_conversion_constant_c2"] = xrda(h*c/k)
         return data
 
     def _get_test_calib_for_channel_vis(self, chroot, meas):
+        xrda = xr.DataArray
         data = {}
-        data[meas + "/channel_effective_solar_irradiance"] = 42
+        data[meas + "/channel_effective_solar_irradiance"] = xrda(50)
         return data
 
     def _get_test_content_for_channel(self, pat, ch):
+        xrda = xr.DataArray
         nrows = 200
         ncols = 11136
         chroot = "data/{:s}"
@@ -66,16 +74,16 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 dims=("y", "x"),
                 attrs={
                     "valid_range": [0, 4095],
-                    "scale_factor": 1,
-                    "add_offset": 0,
+                    "scale_factor": 5,
+                    "add_offset": 10,
                     "units": "mW.m-2.sr-1.(cm-1)-1",
                     }
                 )
         data[ch_path] = d
-        data[pos.format(ch_str, "start", "row")] = 0
-        data[pos.format(ch_str, "start", "column")] = 0
-        data[pos.format(ch_str, "end", "row")] = nrows
-        data[pos.format(ch_str, "end", "column")] = ncols
+        data[pos.format(ch_str, "start", "row")] = xrda(0)
+        data[pos.format(ch_str, "start", "column")] = xrda(0)
+        data[pos.format(ch_str, "end", "row")] = xrda(nrows)
+        data[pos.format(ch_str, "end", "column")] = xrda(ncols)
         if pat.startswith("ir") or pat.startswith("wv"):
             data.update(self._get_test_calib_for_channel_ir(chroot.format(ch_str),
                         meas.format(ch_str)))
@@ -130,9 +138,6 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
     yaml_file = "fci_l1c_fdhsi.yaml"
 
     # TODO:
-    # - test actual return values for radiances
-    # - test actual return values for reflectances
-    # - test actual return values for BTs
     # - test special case for extended range IR38
     # - test geolocation
 
@@ -223,6 +228,7 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
             self.assertEqual(res[ch].dtype, np.uint16)
             self.assertEqual(res[ch].attrs["calibration"], "counts")
             self.assertEqual(res[ch].attrs["units"], "1")
+        numpy.testing.assert_array_equal(res[ch], 1)
 
     def test_load_radiance(self):
         """Test loading with radiance
@@ -248,6 +254,7 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
             self.assertEqual(res[ch].dtype, np.float64)
             self.assertEqual(res[ch].attrs["calibration"], "radiance")
             self.assertEqual(res[ch].attrs["units"], 'mW.m-2.sr-1.(cm-1)-1')
+        numpy.testing.assert_array_equal(res[ch], 15)
 
     def test_load_reflectance(self):
         """Test loading with reflectance
@@ -273,6 +280,7 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
             self.assertEqual(res[ch].dtype, np.float64)
             self.assertEqual(res[ch].attrs["calibration"], "reflectance")
             self.assertEqual(res[ch].attrs["units"], "%")
+        numpy.testing.assert_array_equal(res[ch], 15 / 50 * 100)
 
     def test_load_bt(self):
         """Test loading with bt
@@ -299,6 +307,9 @@ class TestFCIL1CFDHSIReader(unittest.TestCase):
             self.assertEqual(res[ch].attrs["calibration"],
                              "brightness_temperature")
             self.assertEqual(res[ch].attrs["units"], "K")
+        numpy.testing.assert_array_almost_equal(
+                res[ch],
+                181.917084)
 
 
 def suite():
