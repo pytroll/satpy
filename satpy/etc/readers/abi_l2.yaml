@@ -7,23 +7,23 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 
-#Datasets 
+#Datasets
 datasets:
   CMIP:                          # Cloud Moisture Image Products
-    name: CMI                   
+    name: CMI
     file_type: nc_abi_l2_cmip
 
   HT:                            #  Cloud Top Height
     name: HT                     #  variable name in the nc files
-    resolution: 2000               
-    file_type: nc_abi_l2_acha    
+    resolution: 2000
+    file_type: nc_abi_l2_acha
 
-  TEMP:                # Cloud Top Temperature 
+  TEMP:                # Cloud Top Temperature
     name: TEMP
     resolution: 2000
     file_type: nc_abi_l2_acht
 
-  BCM:                 #  clear sky mask 
+  BCM:                 #  clear sky mask
     name: BCM
     resolution: 2000
     file_type: nc_abi_l2_acm
@@ -44,84 +44,79 @@ datasets:
     file_type: nc_abi_l2_adp
 
   Smoke:               # Aerosol Detection: Smoke
-    name: Smoke           
+    name: Smoke
     resolution: 2000
     file_type: nc_abi_l2_adp
 
   Dust:                # Aerosol Detection: Dust
-    name: Dust       
+    name: Dust
     resolution: 2000
     file_type: nc_abi_l2_adp
 
   AOD:                # Aerosol Optical Depth
-    name: AOD           
+    name: AOD
     resolution: 2000
     file_type: nc_abi_l2_aod
 
   COD:                # Cloud Optical Depth at 640 nm
-    name: COD           
+    name: COD
     resolution: 2000
     file_type: nc_abi_l2_cod
 
   PSD:                # Cloud Particle Size
-    name: PSD           
+    name: PSD
     resolution: 2000
     file_type: nc_abi_l2_cps
 
   PRES:                # Cloud Top Pressure, 10 km at nadir
-    name: PRES           
+    name: PRES
     resolution: 10000
     file_type: nc_abi_l2_ctp
 
   CAPE:                # atmospheric stability indices, CAPE
-    name: CAPE           
+    name: CAPE
     resolution: 2000
     file_type: nc_abi_l2_dsi
 
   TT:                  # atmospheric stability indices, Total Totals Index
-    name: TT           
+    name: TT
     resolution: 2000
     file_type: nc_abi_l2_dsi
 
   LI:                  # atmospheric stability indices, Lifted Index
-    name: LI           
+    name: LI
     resolution: 2000
     file_type: nc_abi_l2_dsi
 
   SI:                  # atmospheric stability indices, Showalter Index
-    name: SI           
+    name: SI
     resolution: 2000
     file_type: nc_abi_l2_dsi
 
   KI:                  # atmospheric stability indices, K-index
-    name: KI           
+    name: KI
     resolution: 2000
     file_type: nc_abi_l2_dsi
 
   Area:                # Fire (Hot Spot Characterization): Fire Area
-    name: Area           
+    name: Area
     resolution: 2000
     file_type: nc_abi_l2_fdc
 
   Temp:                # Fire (Hot Spot Characterization): Temperature
-    name: Temp           
+    name: Temp
     resolution: 2000
     file_type: nc_abi_l2_fdc
 
   Power:                # Fire (Hot Spot Characterization): Radiative power
-    name: Power           
+    name: Power
     resolution: 2000
     file_type: nc_abi_l2_fdc
 
   Mask:                # Fire (Hot Spot Characterization): Mask
-    name: Mask           
+    name: Mask
     resolution: 2000
     file_type: nc_abi_l2_fdc  
-
-  LST:                 # Land Surface (Skin) Temperature
-    name: LST
-    resolution: 2000
-    file_type: nc_abi_l2_lst
 
   RSR:                 # Reflected Shortwave Radiation
     name: RSR
@@ -141,7 +136,7 @@ datasets:
   SST:                 #  Sea Surface (Skin) Temperature
     name: SST
     resolution: 2000
-    file_type: nc_abi_l2_sst  
+    file_type: nc_abi_l2_sst
 
   TPW:                # Total Pricipitalable Water
     name: TPW
