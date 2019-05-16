@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
+# Copyright (c) 2016--2019.
 
 # Author(s):
 
@@ -99,8 +99,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             nfv = fv
         else:
             nfv = np.nan
-        data = data.where(data > vr[0], nfv)
-        data = data.where(data < vr[1], nfv)
+        data = data.where(data >= vr[0], nfv)
+        data = data.where(data <= vr[1], nfv)
         if key.calibration == "counts":
             # from package description, this just means not applying add_offset
             # and scale_factor
@@ -186,7 +186,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         lon_0 = float(self["state/processor/projection_origin_longitude"])
         if h == default_fillvals[
                 self["state/processor/reference_altitude"].dtype.str[1:]]:
-            logger.warn(
+            logger.warning(
                     "Reference altitude in {:s} set to "
                     "fill value, using {:d}".format(
                         self.filename,
@@ -224,7 +224,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         elif key.calibration == 'reflectance':
             data = self._vis_calibrate(data, measured)
         else:
-            raise RuntimeError("Reached unreachable code!")
+            raise RuntimeError(
+                    "Received unknown calibration key.  Expected "
+                    "'brightness_temperature' or 'reflectance', got "
+                    + key.calibration)
 
         return data
 
