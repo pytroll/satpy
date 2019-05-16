@@ -367,5 +367,6 @@ def suite():
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFCIL1CFDHSIReader))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestFCIL1CFDHSIReaderGoodData))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestFCIL1CFDHSIReaderBadData))
     return mysuite
