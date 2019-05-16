@@ -69,6 +69,12 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         """
         xarr = xr.DataArray(da.from_array(self.data[dataset_id.name],
                                           chunks=CHUNK_SIZE), dims=["y"])
+
+        # Add time, longitude, and latitude as non-dimensional y-coordinates
+        xarr['time'] = ('y', self.data['time'])
+        xarr['longitude'] = ('y', self.data['longitude'])
+        xarr['latitude'] = ('y', self.data['latitude'])
+
         xarr.attrs.update(dataset_info)
 
         return xarr
