@@ -1,25 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017-2018 PyTroll Community
-
-# Author(s):
-
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Sauli Joro <sauli.joro@eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2019 Satpy developers.
+#
+#
+# This file is part of Satpy.
+#
+# Satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# Satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Unittesting the Vaisala GLD360 reader.
 """
@@ -29,18 +25,10 @@ from io import StringIO
 
 import numpy as np
 
-from satpy.readers.vaisala_gld360 import (
-    VaisalaGLD360TextFileHandler
-)
+from satpy.readers.vaisala_gld360 import VaisalaGLD360TextFileHandler
 from satpy.dataset import DatasetID
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-
-EXPECTED_POWER = np.array([12.3,  13.2, -31.])
+import unittest
 
 
 class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
@@ -49,7 +37,7 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
 
     def test_vaisala_gld360(self):
 
-        expected = EXPECTED_POWER
+        expected = np.array([12.3,  13.2, -31.])
 
         filename = StringIO(
             u'2017-06-20 00:00:00.007178  30.5342  -90.1152    12.3 kA\n'
@@ -72,7 +60,7 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_scene.
+    """The test suite for test_vaisala_gld360.
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
