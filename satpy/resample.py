@@ -857,11 +857,22 @@ class BucketResampler(BaseResampler):
         LOG.debug("Resampling %s", str(data.name))
         x_idxs = self._cache.get('x_idxs', None)
         y_idxs = self._cache.get('y_idxs', None)
-        res = bucket.resample_bucket_average(
-            data, fill_value=fill_value, x_idxs=x_idxs, y_idxs=y_idxs,
-            target_shape=self.target_geo_def.shape)
+        results = []
+        if data.ndim == 3:
+            for i in range(data.shape[0]):
+                res = bucket.resample_bucket_average(
+                    data[i, :, :], fill_value=fill_value,
+                    x_idxs=x_idxs, y_idxs=y_idxs,
+                    target_shape=self.target_geo_def.shape)
+                results.append(res)
+        else:
+            res = bucket.resample_bucket_average(
+                data, fill_value=fill_value,
+                x_idxs=x_idxs, y_idxs=y_idxs,
+                target_shape=self.target_geo_def.shape)
+            results.append(res)
 
-        return res
+        return da.stack(results)
 
     def resample(self, data, **kwargs):
         """Resample `data` by calling `precompute` and `compute` methods.
@@ -873,15 +884,18 @@ class BucketResampler(BaseResampler):
 
         """
         cache_id = self.precompute(**kwargs)
-        result = self.compute(data, **kwargs)
+        attrs = data.attrs.copy()
+        data_arr = data.data
         if data.ndim == 3 and data.dims[0] == 'bands':
             dims = ('bands', 'y', 'x')
         elif data.ndim == 2:
             dims = ('y', 'x')
         else:
             dims = data.dims
-        result = xr.DataArray(result, dims=dims,
-                              attrs=data.attrs.copy())
+
+        result = da.squeeze(self.compute(data_arr, **kwargs))
+        result = xr.DataArray(result, dims=dims, coords=data.coords,
+                              attrs=attrs)
         return result
 
 
