@@ -826,26 +826,14 @@ class NativeResampler(BaseResampler):
 
 
 class BucketResampler(BaseResampler):
-    """Base class for bucket resampling which implements averaging.
-
-    This resampler implements on-disk caching when the `cache_dir` argument
-    is provided to the `resample` method. This should provide significant
-    performance improvements on consecutive resampling of geostationary data.
-
-    Args:
-        cache_dir (str): Long term storage directory for intermediate
-                         results. By default only 10 different source/target
-                         combinations are cached to save space.
-
-    """
+    """Base class for bucket resampling which implements averaging."""
 
     def __init__(self, source_geo_def, target_geo_def):
         super(BucketResampler, self).__init__(source_geo_def, target_geo_def)
         self._cache = {}
 
     def precompute(self, **kwargs):
-        """Create a X and Y indices and store them for later use.
-        """
+        """Create X and Y indices and store them for later use."""
         LOG.debug("Computing resampling indices")
         lons, lats = self.source_geo_def.get_lonlats()
         x_idxs, y_idxs = bucket.get_bucket_indices(self.target_geo_def,
@@ -853,6 +841,7 @@ class BucketResampler(BaseResampler):
         self._cache = {'x_idxs': x_idxs, 'y_idxs': y_idxs}
 
     def compute(self, data, fill_value=np.nan, **kwargs):
+        """Call the resampling."""
         fill_value = kwargs.get('fill_value', np.nan)
         LOG.debug("Resampling %s", str(data.name))
         x_idxs = self._cache.get('x_idxs', None)
@@ -883,7 +872,7 @@ class BucketResampler(BaseResampler):
         Returns (xarray.DataArray): Data resampled to the target area
 
         """
-        cache_id = self.precompute(**kwargs)
+        self.precompute(**kwargs)
         attrs = data.attrs.copy()
         data_arr = data.data
         if data.ndim == 3 and data.dims[0] == 'bands':
@@ -899,13 +888,41 @@ class BucketResampler(BaseResampler):
         return result
 
 
+class BucketSum(BucketResampler):
+    """Base class for bucket resampling which implements averaging."""
+
+    def __init__(self, source_geo_def, target_geo_def):
+        super(BucketSum, self).__init__(source_geo_def, target_geo_def)
+        self._cache = {}
+
+    def compute(self, data, fill_value=np.nan, **kwargs):
+        """Call the resampling."""
+        fill_value = kwargs.get('fill_value', np.nan)
+        LOG.debug("Resampling %s", str(data.name))
+        x_idxs = self._cache.get('x_idxs', None)
+        y_idxs = self._cache.get('y_idxs', None)
+        results = []
+        if data.ndim == 3:
+            for i in range(data.shape[0]):
+                res = bucket.get_sum_from_bucket_indices(
+                    data[i, :, :], x_idxs, y_idxs,
+                    self.target_geo_def.shape)
+                results.append(res)
+        else:
+            res = bucket.get_sum_from_bucket_indices(
+                data, x_idxs, y_idxs, self.target_geo_def.shape)
+            results.append(res)
+
+        return da.stack(results)
+
+
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
               "bilinear": BilinearResampler,
               "native": NativeResampler,
               "bucket_avg": BucketResampler,
-              #"bucket_sum": BucketSum,
+              "bucket_sum": BucketSum,
               #"bucket_count": BucketCount,
               #"bucket_fraction": BucketFraction,
               }
