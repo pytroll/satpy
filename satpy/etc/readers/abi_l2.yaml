@@ -153,7 +153,6 @@ datasets:
     resolution: 2000
     file_type: nc_abi_l2_vaa
 
-    
 file_types:
   nc_abi_l2_acha:
         file_reader: !!python/name:satpy.readers.abi_l2.NC_ABI_L2
