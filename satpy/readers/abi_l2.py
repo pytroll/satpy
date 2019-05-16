@@ -111,12 +111,12 @@ class NC_ABI_L2(BaseFileHandler):
         variable.attrs.pop('valid_range', None)
         
         # add in information from the filename that may be useful to the user
-        for key in ('scan_mode', 'platform_shortname'):
-            variable.attrs[key] = self.filename_info[key]
+        for k in ('scan_mode', 'platform_shortname'):
+            variable.attrs[k] = self.filename_info[k]
 
         # copy global attributes to metadata
-        for key in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
-            variable.attrs[key] = self.nc.attrs.get(key)
+        for k in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
+            variable.attrs[k] = self.nc.attrs.get(k)
 
         return variable
 

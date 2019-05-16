@@ -116,7 +116,7 @@ datasets:
   Mask:                # Fire (Hot Spot Characterization): Mask
     name: Mask
     resolution: 2000
-    file_type: nc_abi_l2_fdc  
+    file_type: nc_abi_l2_fdc
 
   RSR:                 # Reflected Shortwave Radiation
     name: RSR
