@@ -942,7 +942,6 @@ class BucketCount(BucketResampler):
         return da.stack(results)
 
 
-
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
@@ -951,7 +950,6 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "bucket_avg": BucketResampler,
               "bucket_sum": BucketSum,
               "bucket_count": BucketCount,
-              #"bucket_fraction": BucketFraction,
               }
 
 
