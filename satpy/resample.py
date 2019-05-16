@@ -897,7 +897,6 @@ class BucketSum(BucketResampler):
 
     def compute(self, data, **kwargs):
         """Call the resampling."""
-        fill_value = kwargs.get('fill_value', np.nan)
         LOG.debug("Resampling %s", str(data.name))
         x_idxs = self._cache.get('x_idxs', None)
         y_idxs = self._cache.get('y_idxs', None)
@@ -914,6 +913,34 @@ class BucketSum(BucketResampler):
             results.append(res)
 
         return da.stack(results)
+
+
+class BucketCount(BucketResampler):
+    """Class for bucket resampling which implements hit-counting."""
+
+    def __init__(self, source_geo_def, target_geo_def):
+        super(BucketCount, self).__init__(source_geo_def, target_geo_def)
+        self._cache = {}
+
+    def compute(self, data, **kwargs):
+        """Call the resampling."""
+        LOG.debug("Resampling %s", str(data.name))
+        x_idxs = self._cache.get('x_idxs', None)
+        y_idxs = self._cache.get('y_idxs', None)
+        results = []
+        if data.ndim == 3:
+            for i in range(data.shape[0]):
+                res = bucket.get_count_from_bucket_indices(
+                    x_idxs, y_idxs,
+                    self.target_geo_def.shape)
+                results.append(res)
+        else:
+            res = bucket.get_count_from_bucket_indices(
+                x_idxs, y_idxs, self.target_geo_def.shape)
+            results.append(res)
+
+        return da.stack(results)
+
 
 
 RESAMPLERS = {"kd_tree": KDTreeResampler,
