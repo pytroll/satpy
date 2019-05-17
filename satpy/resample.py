@@ -830,35 +830,27 @@ class BucketResampler(BaseResampler):
 
     def __init__(self, source_geo_def, target_geo_def):
         super(BucketResampler, self).__init__(source_geo_def, target_geo_def)
-        self._cache = {}
+        self.resampler = None
 
     def precompute(self, **kwargs):
         """Create X and Y indices and store them for later use."""
-        LOG.debug("Computing resampling indices")
-        lons, lats = self.source_geo_def.get_lonlats()
-        x_idxs, y_idxs = bucket.get_bucket_indices(self.target_geo_def,
-                                                   lons, lats)
-        self._cache = {'x_idxs': x_idxs, 'y_idxs': y_idxs}
+        LOG.debug("Initializing bucket resampler.")
+        source_lons, source_lats = self.source_geo_def.get_lonlats()
+        self.resampler = bucket.BucketResampler(self.target_geo_def,
+                                                source_lons,
+                                                source_lats)
 
     def compute(self, data, fill_value=np.nan, **kwargs):
         """Call the resampling."""
         fill_value = kwargs.get('fill_value', np.nan)
-        LOG.debug("Resampling %s", str(data.name))
-        x_idxs = self._cache.get('x_idxs', None)
-        y_idxs = self._cache.get('y_idxs', None)
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
-                res = bucket.resample_bucket_average(
-                    data[i, :, :], fill_value=fill_value,
-                    x_idxs=x_idxs, y_idxs=y_idxs,
-                    target_shape=self.target_geo_def.shape)
+                res = self.resampler.get_average(data[i, :, :],
+                                                 fill_value=fill_value)
                 results.append(res)
         else:
-            res = bucket.resample_bucket_average(
-                data, fill_value=fill_value,
-                x_idxs=x_idxs, y_idxs=y_idxs,
-                target_shape=self.target_geo_def.shape)
+            res = self.resampler.get_average(data, fill_value=fill_value)
             results.append(res)
 
         return da.stack(results)
@@ -870,7 +862,6 @@ class BucketResampler(BaseResampler):
             data (xarray.DataArray): Data to be resampled
 
         Returns (xarray.DataArray): Data resampled to the target area
-
         """
         self.precompute(**kwargs)
         attrs = data.attrs.copy()
@@ -891,25 +882,16 @@ class BucketResampler(BaseResampler):
 class BucketSum(BucketResampler):
     """Class for bucket resampling which implements accumulation (sum)."""
 
-    def __init__(self, source_geo_def, target_geo_def):
-        super(BucketSum, self).__init__(source_geo_def, target_geo_def)
-        self._cache = {}
-
     def compute(self, data, **kwargs):
         """Call the resampling."""
         LOG.debug("Resampling %s", str(data.name))
-        x_idxs = self._cache.get('x_idxs', None)
-        y_idxs = self._cache.get('y_idxs', None)
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
-                res = bucket.get_sum_from_bucket_indices(
-                    data[i, :, :], x_idxs, y_idxs,
-                    self.target_geo_def.shape)
+                res = self.resampler.get_sum(data[i, :, :])
                 results.append(res)
         else:
-            res = bucket.get_sum_from_bucket_indices(
-                data, x_idxs, y_idxs, self.target_geo_def.shape)
+            res = self.resampler.get_sum(data)
             results.append(res)
 
         return da.stack(results)
@@ -918,25 +900,16 @@ class BucketSum(BucketResampler):
 class BucketCount(BucketResampler):
     """Class for bucket resampling which implements hit-counting."""
 
-    def __init__(self, source_geo_def, target_geo_def):
-        super(BucketCount, self).__init__(source_geo_def, target_geo_def)
-        self._cache = {}
-
     def compute(self, data, **kwargs):
         """Call the resampling."""
         LOG.debug("Resampling %s", str(data.name))
-        x_idxs = self._cache.get('x_idxs', None)
-        y_idxs = self._cache.get('y_idxs', None)
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
-                res = bucket.get_count_from_bucket_indices(
-                    x_idxs, y_idxs,
-                    self.target_geo_def.shape)
+                res = self.resampler.get_count()
                 results.append(res)
         else:
-            res = bucket.get_count_from_bucket_indices(
-                x_idxs, y_idxs, self.target_geo_def.shape)
+            res = self.resampler.get_count()
             results.append(res)
 
         return da.stack(results)
