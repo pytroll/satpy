@@ -1,6 +1,5 @@
-<!-- Please make the PR against the `master` branch. -->
-
 <!-- Describe what your PR does, and why -->
+<!-- For works in progress choose "Create draft pull request" from the drop-down green button. -->
 
  - [ ] Closes #xxxx <!-- remove if there is no corresponding issue, which should only be the case for minor changes -->
  - [ ] Tests added and test suite added to parent suite <!-- for all bug fixes or enhancements -->
