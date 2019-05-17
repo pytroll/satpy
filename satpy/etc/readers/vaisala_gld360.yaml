@@ -10,8 +10,8 @@ file_types:
     file_patterns: ['flashes_{start_time:%Y%m%d}.txt']
 
 datasets:
-  datetime:
-    name: datetime
+  time:
+    name: time
     sensor: vaisala_gld360
     resolution: 2000
     file_type: vaisala_gld360
@@ -22,7 +22,7 @@ datasets:
     resolution: 2000
     file_type: vaisala_gld360
     standard_name: latitude
-    units: degree
+    units: degree_north
 
   longitude:
     name: longitude
@@ -30,7 +30,7 @@ datasets:
     resolution: 2000
     file_type: vaisala_gld360
     standard_name: longitude
-    units: degree
+    units: degree_east
 
   power:
     name: power

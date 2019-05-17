@@ -59,8 +59,7 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_vaisala_gld360.
-    """
+    """The test suite for test_vaisala_gld360."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVaisalaGLD360TextFileHandler))
