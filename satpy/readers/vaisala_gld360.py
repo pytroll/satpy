@@ -42,8 +42,7 @@ logger = logging.getLogger(__name__)
 
 
 class VaisalaGLD360TextFileHandler(BaseFileHandler):
-    """ASCII reader for Vaisala GDL360 data.
-    """
+    """ASCII reader for Vaisala GDL360 data."""
 
     def __init__(self, filename, filename_info, filetype_info):
         super(VaisalaGLD360TextFileHandler, self).__init__(filename, filename_info, filetype_info)
@@ -51,10 +50,15 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         names = ['date', 'time', 'latitude', 'longitude', 'power', 'unit']
         types = ['str', 'str', 'float', 'float', 'float', 'str']
         dtypes = dict(zip(names, types))
+        # Combine 'date' and 'time' into a datetime object
         parse_dates = {'datetime': ['date', 'time']}
 
         self.data = pd.read_csv(filename, delim_whitespace=True, header=None,
                                 names=names, dtype=dtypes, parse_dates=parse_dates)
+
+        # Check unit uniformity in input file
+        if not (self.data.unit == 'kA').all():
+            raise ValueError('Inconsistent units found in file!')
 
     @property
     def start_time(self):
@@ -65,8 +69,7 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         return self.data['datetime'].iloc[-1]
 
     def get_dataset(self, dataset_id, dataset_info):
-        """Load a dataset
-        """
+        """Load a dataset."""
         xarr = xr.DataArray(da.from_array(self.data[dataset_id.name],
                                           chunks=CHUNK_SIZE), dims=["y"])
 
