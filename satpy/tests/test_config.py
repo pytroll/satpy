@@ -92,5 +92,6 @@ def suite():
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestCheckSatpy))
+    my_suite.addTest(loader.loadTestsFromTestCase(TestBuiltinAreas))
 
     return my_suite
