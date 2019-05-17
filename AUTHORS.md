@@ -35,4 +35,4 @@ The following people have made contributions to this project:
 - Marco Sassi - meteoswiss
 - [Rohan Daruwala (rdaruwala)](https://github.com/rdaruwala)
 - [Simon R. Proud (simonrp84)](https://github.com/simonrp84)
-- [Joleen Feltz (joleenf)] (https://github.com/joleenf)
+- [Joleen Feltz (joleenf)](https://github.com/joleenf)
