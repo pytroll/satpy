@@ -60,8 +60,8 @@ class TestBuiltinAreas(unittest.TestCase):
         import pyproj
         from pyresample import parse_area_file
         from satpy.resample import get_area_file
-        all_areas = parse_area_file(get_area_file())
 
+        all_areas = parse_area_file(get_area_file())
         for area_obj in all_areas:
             if getattr(area_obj, 'optimize_projection', False):
                 # the PROJ.4 is known to not be valid on this DynamicAreaDef
@@ -75,10 +75,12 @@ class TestBuiltinAreas(unittest.TestCase):
             from rasterio.crs import CRS
         except ImportError:
             return unittest.skip("Missing rasterio dependency")
+        if not hasattr(CRS, 'from_dict'):
+            return unittest.skip("RasterIO 1.0+ required")
+
         from pyresample import parse_area_file
         from satpy.resample import get_area_file
         all_areas = parse_area_file(get_area_file())
-
         for area_obj in all_areas:
             if getattr(area_obj, 'optimize_projection', False):
                 # the PROJ.4 is known to not be valid on this DynamicAreaDef
