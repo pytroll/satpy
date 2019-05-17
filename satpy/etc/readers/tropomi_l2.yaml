@@ -94,7 +94,6 @@ datasets:
   sulfurdioxide_total_vertical_column:
     name: sulfurdioxide_total_vertical_column
     sensor: tropomi
-    #coordinates: [lon_so2, lat_so2]
     coordinates: [longitude_so2, latitude_so2]
     file_type: so2
     standard_name: sulfurdioxide_total_vertical_column
@@ -103,7 +102,6 @@ datasets:
   ozone_total_vertical_column:
     name: ozone_total_vertical_column
     sensor: tropomi
-    #coordinates: [lon_o3, lat_o3]
     coordinates: [longitude_o3, latitude_o3]
     file_type: o3
     standard_name: ozone_total_vertical_column
@@ -112,38 +110,20 @@ datasets:
   nitrogendioxide_tropospheric_column:
     name: nitrogendioxide_tropospheric_column
     sensor: tropomi
-    #coordinates: [lon_no2, lat_no2]
     coordinates: [longitude_no2, latitude_no2]
     file_type: no2
     standard_name: nitrogendioxide_tropospheric_column
-    #units: molm^−2
 
   formaldehyde_tropospheric_vertical_column:
     name: formaldehyde_tropospheric_vertical_column
     sensor: tropomi
-    #coordinates: 
-    #  - name: longitude
-    #    file_type:
-    #      - ncho
-    #    standard_name: longitude
-    #    units: degree
-    #  - name: latitude
-    #    file_type:
-    #      - ncho
-    #    standard_name: latitude
-    #    units: degree 
-    #coordinates: [lon_ncho, lat_ncho]
     coordinates: [longitude_ncho, latitude_ncho]
     file_type: ncho
     standard_name: formaldehyde_tropospheric_vertical_column
-    #units: molm^−2
-
-  
 
   aerosol_index_354_388:
     name: aerosol_index_354_388
     sensor: tropomi
-    #coordinates: [lon_aer_ai, lat_aer_ai]
     coordinates: [longitude_aer_ai, latitude_aer_ai]
     file_type: aer_ai
     standard_name: aerosol_index_354_388
@@ -169,18 +149,7 @@ datasets:
     file_type: cloud
     standard_name: cloud_fraction
   
-  # cloud_fraction_precision
-  # cloud_top_pressure
-  # cloud_top_pressure_precision
-  # cloud_base_pressure
-  # cloud_base_pressure_precision
-  # cloud_top_height
-  # cloud_top_height_precision
-  # cloud_base_height
-  # cloud_base_height_precision
-  # cloud_optical_thickness
-  # cloud_optical_thickness_precision
-
+    
 file_types:
   so2:
     file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler ''
