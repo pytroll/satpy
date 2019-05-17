@@ -52,7 +52,7 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
 
         filename.close()
         dataset_id = DatasetID('power')
-        dataset_info = {}
+        dataset_info = {'units': 'kA'}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
 
         np.testing.assert_allclose(result, expected, rtol=1e-05)
