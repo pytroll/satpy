@@ -232,48 +232,32 @@ def make_time_bounds(dataarray, start_times, end_times):
                         dims=['time_bnds'], coords={'time_bnds': [0, 1]})
 
 
-def make_coords_unique(datas, pretty):
-    """Make coordinates unique among all datasets
+def make_coords_unique(datas, pretty=False):
+    """Make non-dimensional coordinates unique among all datasets.
 
-    In order to facilitate saving datasets with different dimensions in one file, rename the `x`/`y` and
-    `latitude`/`longitude` coordinates to something unique. The default is maximum consistency, i.e. the size of the
-    dimension is appended to its name. For example, `x` becomes `x_1234`, even if there is only one dataset to be saved.
-    This is not pretty but it makes sure the dimension names are independent of the number/set of datasets to be
-    written. Specifying `pretty=True` makes the file prettier (if possible), but possibly less consistent. If all
-    datasets have the same shape and `pretty=True`, the dimension names will not be modified.
+    Non-dimensional (or alternative) coordinates, such as scanline timestamps, may occur in multiple datasets with
+    the same name and dimension but different values. In order to avoid conflicts, prepend the dataset name to the
+    coordinate name. If a non-dimensional coordinate is unique among all datasets and `pretty=True`, its name will not
+    be modified.
 
-    Non-dimensional (or alternative) coordinates, such as scanline timestamps, may have the same dimensions but
-    different values. That is why the name of the corresponding dataset is prepended to those coordinates. If a
-    non-dimensional coordinate is unique among all datasets and `pretty=True`, its name will not be modified.
+    Since all datasets must have the same projection coordinates, this is not applied to latitude and longitude.
 
     Args:
-        datas (dict): Dictionary of (dataset name, dataset)
-        pretty (bool): Don't modify dimension names, if possible. Makes the file prettier, but possibly less consistent.
+        datas (dict):
+            Dictionary of (dataset name, dataset)
+        pretty (bool):
+            Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
 
     Returns:
         Dictionary holding the updated datasets
     """
     new_datas = datas.copy()
 
-    # Rename dimensions by appending the size to their names
-    unique_shapes = set([d.shape for d in datas.values() if d.shape != ()])
-    if not pretty or len(unique_shapes) > 1:
-        if pretty:
-            warnings.warn('Cannot pretty-format x/y coordinates because the given datasets have different shapes')
-        for ds_name, dataset in datas.items():
-            if dataset.shape != ():
-                ny, nx = dataset.shape
-                rename = {'x': 'x_{}'.format(ny), 'y': 'y_{}'.format(nx)}
-                if 'longitude' in dataset.coords:
-                    rename.update({'longitude': 'longitude_{}_{}'.format(ny, nx),
-                                   'latitude': 'latitude_{}_{}'.format(ny, nx)})
-                new_datas[ds_name] = dataset.rename(rename)
-
-    # Prepend dataset name to other non-dimensional (or alternative) coordinates
+    # Determine unique set of non-dimensional coordinates
     alt_coords = defaultdict(list)
     for dataset in datas.values():
         for coord_name in dataset.coords:
-            if coord_name not in dataset.dims and 'latitude' not in coord_name and 'longitude' not in coord_name:
+            if coord_name not in ('latitude', 'longitude') + dataset.dims:
                 alt_coords[coord_name].append(dataset[coord_name])
 
     alt_coords_unique = dict()
@@ -285,6 +269,7 @@ def make_coords_unique(datas, pretty):
                     alt_coords_unique[coord_name] = False
                     break
 
+    # Prepend dataset name, if not unique or no pretty-format desired
     for coord_name, unique in alt_coords_unique.items():
         if not pretty or not unique:
             if pretty:
@@ -458,14 +443,8 @@ class CFWriter(Writer):
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, latlon=False,
-                          pretty=False, **kwargs):
-        """
-        Collect and prepare datasets to be written
-
-        Args:
-            datasets (list): List of datasets
-            latlon (bool): Always include latitude and longitude coordinates, even for datasets with area definition
-        """
+                          pretty=False):
+        """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
@@ -487,21 +466,38 @@ class CFWriter(Writer):
 
         return datas, start_times, end_times
 
-    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', **kwargs):
-        """Save all datasets to one netCDF file
+    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', epoch=EPOCH,
+                      flatten_attrs=False, exclude_attrs=None, latlon=False, pretty=False, config_files=None,
+                      **to_netcdf_kwargs):
+        """Save the given datasets in one netCDF file.
+
+        Note that all datasets (if grouping: in one group) must have the same projection coordinates.
 
         Args:
-            datasets (list): Names of datasets to be saved
-            filename (str): Output file
-            groups (dict): Group datasets according to the given assignment:
-                `{'group_name': ['dataset1', 'dataset2', ...]}`. Group name `None` corresponds to the root of the file,
-                i.e. no group will be created. Warning: The results will not be fully CF compliant!
+            datasets (list):
+                Names of datasets to be saved
+            filename (str):
+                Output file
+            groups (dict):
+                Group datasets according to the given assignment: `{'group_name': ['dataset1', 'dataset2', ...]}`.
+                Group name `None` corresponds to the root of the file, i.e. no group will be created. Warning: The
+                results will not be fully CF compliant!
+            header_attrs:
+                Global attributes to be included
+            engine (str):
+                Module to be used for writing netCDF files
+            epoch (str):
+                Reference time for encoding of time coordinates
+            flatten_attrs (bool):
+                If True, flatten dict-type attributes
+            exclude_attrs (list):
+                List of dataset attributes to be excluded
+            latlon (bool):
+                Always include latitude and longitude coordinates, even for datasets with area definition
+            pretty (bool):
+                Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
         """
         logger.info('Saving datasets to NetCDF4/CF.')
-
-        to_netcdf_kwargs = {}
-        for key in ['format', 'encoding', 'unlimited_dims', 'compute']:
-            to_netcdf_kwargs[key] = kwargs.pop(key, None)
 
         if groups is None:
             # Write all datasets to the file root without creating a group
@@ -517,19 +513,25 @@ class CFWriter(Writer):
 
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
-        root = xr.Dataset({})
+
+        root = xr.Dataset({}, attrs={'history': 'Created by pytroll/satpy on {}'.format(datetime.utcnow())})
         if header_attrs is not None:
             root.attrs.update({k: v for k, v in header_attrs.items() if v})
-        root.attrs['history'] = ("Created by pytroll/satpy on {}".format(datetime.utcnow()))
         if groups is None:
+            # Groups are not CF-1.7 compliant
             root.attrs['Conventions'] = 'CF-1.7'
-        root.to_netcdf(filename, engine=engine, mode='w', **to_netcdf_kwargs)
+
+        init_nc_kwargs = to_netcdf_kwargs.copy()
+        init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
+        root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)
 
         # Write datasets to groups (appending to the file; group=None means no group)
         written = []
         for group_name, group_datasets in groups_.items():
             # XXX: Should we combine the info of all datasets?
-            datas, start_times, end_times = self._collect_datasets(group_datasets, **kwargs)
+            datas, start_times, end_times = self._collect_datasets(
+                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs, latlon=latlon,
+                pretty=pretty)
             dataset = xr.Dataset(datas)
             try:
                 dataset['time_bnds'] = make_time_bounds(dataset,
@@ -537,7 +539,8 @@ class CFWriter(Writer):
                                                         end_times)
                 dataset['time'].attrs['bounds'] = "time_bnds"
             except KeyError:
-                logger.warning('No time dimension in group {}, skipping time bounds creation.'.format(group_name))
+                grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
+                logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', **to_netcdf_kwargs)
             written.append(res)
