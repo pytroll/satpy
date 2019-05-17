@@ -448,7 +448,7 @@ class TestCFWriter(unittest.TestCase):
 
         # Collect datasets
         writer = CFWriter()
-        datas, start_times, end_times = writer._collect_datasets(datasets, latlon=True)
+        datas, start_times, end_times = writer._collect_datasets(datasets, include_lonlats=True)
 
         # Test results
         self.assertEqual(datas, 'unique_coords')
