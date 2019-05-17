@@ -1,11 +1,11 @@
 reader:
   description: MSG Bufr Reader
-  name: bufr_msg_toz_l2
+  name: seviri_l2_bufr_toz
   sensors: [seviri]
   default_channels: [toz]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 file_types:
-  bufr_msg_toz_l2:
+  seviri_l2_bufr_toz:
     file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
     file_patterns: ['TOZBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
 datasets:
@@ -25,4 +25,4 @@ datasets:
       counts:
         standard_name: dobson
         units: dobson
-    file_type: bufr_msg_toz_l2
+    file_type: seviri_l2_bufr_toz
