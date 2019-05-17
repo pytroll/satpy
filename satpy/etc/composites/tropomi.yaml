@@ -1,0 +1,51 @@
+sensor_name: tropomi
+
+composites:
+
+  aerosol_340_380:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - aerosol_index_340_380
+    standard_name: aerosol
+
+  aerosol_354_388:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - aerosol_index_354_388
+    standard_name: aerosol
+
+  so2:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - sulfurdioxide_total_vertical_column
+    standard_name: so2
+
+  cloud_fraction_blue:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - cloud_fraction
+    standard_name: cloud_fraction_blue
+
+  ozone:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - ozone_total_vertical_column
+    standard_name: ozone
+
+  no2:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - nitrogendioxide_tropospheric_column
+    standard_name: no2
+
+  co:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - carbonmonoxide_total_column
+    standard_name: co
+
+  ncho:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - formaldehyde_tropospheric_vertical_column
+    standard_name: ncho

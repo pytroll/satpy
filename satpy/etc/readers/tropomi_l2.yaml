@@ -1,0 +1,211 @@
+reader:
+  description: Sentinel-5p Tropomi NetCDF reader
+  name: tropomi_l2
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [tropomi]
+  default_datasets:
+
+datasets:
+  
+  longitude_so2:
+    name: longitude_so2
+    file_type: so2
+    standard_name: longitude
+    units: degree
+  
+  latitude_so2:
+    name: latitude_so2
+    file_type: so2
+    standard_name: latitude
+    units: degree
+
+  longitude_o3:
+    name: longitude_o3
+    file_type: o3
+    standard_name: longitude
+    units: degree
+  
+  latitude_o3:
+    name: latitude_o3
+    file_type: o3
+    standard_name: latitude
+    units: degree
+
+  longitude_no2:
+    name: longitude_no2
+    file_type: no2
+    standard_name: longitude
+    units: degree
+  
+  latitude_no2:
+    name: latitude_no2
+    file_type: no2
+    standard_name: latitude
+    units: degree
+
+  longitude_ncho:
+    name: longitude_ncho
+    file_type: ncho
+    standard_name: longitude
+    units: degree
+  
+  latitude_ncho:
+    name: latitude_ncho
+    file_type: ncho
+    standard_name: latitude
+    units: degree
+
+  longitude_aer_ai:
+    name: longitude_aer_ai
+    file_type: aer_ai
+    standard_name: longitude
+    units: degree
+  
+  latitude_aer_ai:
+    name: latitude_aer_ai
+    file_type: aer_ai
+    standard_name: latitude
+    units: degree
+
+  longitude_co:
+    name: longitude_co
+    file_type: co
+    standard_name: longitude
+    units: degree
+
+  latitude_co:
+    name: latitude_co
+    file_type: co
+    standard_name: latitude
+    units: degree
+  
+  longitude_cloud:
+    name: longitude_cloud
+    file_type: cloud
+    standard_name: longitude
+    units: degree
+
+  latitude_cloud:
+    name: latitude_cloud
+    file_type: cloud
+    standard_name: latitude
+    units: degree
+
+  sulfurdioxide_total_vertical_column:
+    name: sulfurdioxide_total_vertical_column
+    sensor: tropomi
+    #coordinates: [lon_so2, lat_so2]
+    coordinates: [longitude_so2, latitude_so2]
+    file_type: so2
+    standard_name: sulfurdioxide_total_vertical_column
+    units: molm^−2
+
+  ozone_total_vertical_column:
+    name: ozone_total_vertical_column
+    sensor: tropomi
+    #coordinates: [lon_o3, lat_o3]
+    coordinates: [longitude_o3, latitude_o3]
+    file_type: o3
+    standard_name: ozone_total_vertical_column
+    units: molm^−2
+
+  nitrogendioxide_tropospheric_column:
+    name: nitrogendioxide_tropospheric_column
+    sensor: tropomi
+    #coordinates: [lon_no2, lat_no2]
+    coordinates: [longitude_no2, latitude_no2]
+    file_type: no2
+    standard_name: nitrogendioxide_tropospheric_column
+    #units: molm^−2
+
+  formaldehyde_tropospheric_vertical_column:
+    name: formaldehyde_tropospheric_vertical_column
+    sensor: tropomi
+    #coordinates: 
+    #  - name: longitude
+    #    file_type:
+    #      - ncho
+    #    standard_name: longitude
+    #    units: degree
+    #  - name: latitude
+    #    file_type:
+    #      - ncho
+    #    standard_name: latitude
+    #    units: degree 
+    #coordinates: [lon_ncho, lat_ncho]
+    coordinates: [longitude_ncho, latitude_ncho]
+    file_type: ncho
+    standard_name: formaldehyde_tropospheric_vertical_column
+    #units: molm^−2
+
+  
+
+  aerosol_index_354_388:
+    name: aerosol_index_354_388
+    sensor: tropomi
+    #coordinates: [lon_aer_ai, lat_aer_ai]
+    coordinates: [longitude_aer_ai, latitude_aer_ai]
+    file_type: aer_ai
+    standard_name: aerosol_index_354_388
+    
+  aerosol_index_340_380:
+    name: aerosol_index_340_380
+    sensor: tropomi
+    coordinates: [longitude_aer_ai, latitude_aer_ai]
+    file_type: aer_ai
+    standard_name: aerosol_index_340_380
+
+  carbonmonoxide_total_column:
+    name: carbonmonoxide_total_column
+    sensor: tropomi
+    coordinates: [longitude_co, latitude_co]
+    file_type: co
+    standard_name: carbonmonoxide_total_column
+  
+  cloud_fraction:
+    name: cloud_fraction
+    sensor: tropomi
+    coordinates: [longitude_cloud, latitude_cloud]
+    file_type: cloud
+    standard_name: cloud_fraction
+  
+  # cloud_fraction_precision
+  # cloud_top_pressure
+  # cloud_top_pressure_precision
+  # cloud_base_pressure
+  # cloud_base_pressure_precision
+  # cloud_top_height
+  # cloud_top_height_precision
+  # cloud_base_height
+  # cloud_base_height_precision
+  # cloud_optical_thickness
+  # cloud_optical_thickness_precision
+
+file_types:
+  so2:
+    file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler ''
+    file_patterns: ['S5P_NRTI_L2__SO2____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit}_{collection}_{processor}_{processingtime:%Y%m%dT%H%M%S}.nc']
+  o3:
+    file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler ''
+    file_patterns: ['S5P_NRTI_L2__O3_____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit}_{collection}_{processor}_{processingtime:%Y%m%dT%H%M%S}.nc']
+  no2:
+    file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler ''
+    file_patterns: ['S5P_NRTI_L2__NO2____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit}_{collection}_{processor}_{processingtime:%Y%m%dT%H%M%S}.nc']
+
+  ncho:
+    file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler ''
+    file_patterns: ['S5P_NRTI_L2__HCHO___{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit}_{collection}_{processor}_{processingtime:%Y%m%dT%H%M%S}.nc']
+
+  aer_ai:
+    file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler ''
+    file_patterns: ['S5P_NRTI_L2__AER_AI_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit}_{collection}_{processor}_{processingtime:%Y%m%dT%H%M%S}.nc']
+
+  co:
+    file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler ''
+    file_patterns: ['S5P_NRTI_L2__CO_____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit}_{collection}_{processor}_{processingtime:%Y%m%dT%H%M%S}.nc']
+
+  cloud:
+    file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler ''
+    file_patterns: ['S5P_NRTI_L2__CLOUD__{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit}_{collection}_{processor}_{processingtime:%Y%m%dT%H%M%S}.nc']
+
+

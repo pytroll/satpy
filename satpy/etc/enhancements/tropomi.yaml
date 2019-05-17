@@ -1,0 +1,110 @@
+
+enhancements:
+
+  cloud_fraction_blue:
+    standard_name: cloud_fraction_blue
+    operations:
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert ''
+        args:
+          - [true]
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: blues, min_value: 0, max_value: 1}
+
+  so2:
+    standard_name: so2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 0.008923989915891394 } 
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert ''
+        args:
+          - [true]
+      - name: colorize #palettize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: spectral, min_value: 0, max_value: 1}
+
+  aerosol:
+    #http://www.tropomi.eu/data-products/uv-aerosol-index
+    standard_name: aerosol
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: -5, max_stretch: 5 }
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert ''
+        args:
+          - [true]
+      - name: colorize #palettize
+        method: !!python/name:satpy.enhancements.colorize 
+        kwargs:
+          palettes:
+            - {colors: spectral, min_value: 0, max_value: 1}
+
+  ozone:
+    #https://disc.gsfc.nasa.gov/datasets/S5P_L2__O3_TOT_V1/summary?keywords=S5P_L2__O3_TOT_1
+    standard_name: ozone
+    operations:
+      - name: colorize #palettize
+        method: !!python/name:satpy.enhancements.colorize 
+        kwargs:
+          palettes:
+            - {colors: spectral, min_value: 0, max_value: 0.2}
+
+  no2:
+    #http://www.tropomi.eu/data-products/nitrogen-dioxide
+    standard_name: no2
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 7.5e-5}
+      - name: inverse
+        method: &inversefun !!python/name:satpy.enhancements.invert ''
+        args:
+          - [true]
+      - name: colorize #palettize
+        method: !!python/name:satpy.enhancements.colorize 
+        kwargs:
+          palettes:
+            #- {colors: greys, min_value: 0, max_value: 1}
+            - {colors: spectral, min_value: 0, max_value: 1}
+
+  co:
+    #https://docserver.gesdisc.eosdis.nasa.gov/public/project/Images/S5P_OFFL_L2__CO_____1.png
+    standard_name: co
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 0.25 } 
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert ''
+        args:
+          - [true]
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: spectral, min_value: 0, max_value: 1}
+
+  ncho:
+    #https://docserver.gesdisc.eosdis.nasa.gov/public/project/Images/S5P_OFFL_L2__CO_____1.png
+    standard_name: ncho
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 0.004483456047185884}
+      - name: inverse
+        method: !!python/name:satpy.enhancements.invert ''
+        args:
+          - [true]
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+            - {colors: spectral, min_value: 0, max_value: 1}
