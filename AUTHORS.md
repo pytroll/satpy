@@ -17,6 +17,7 @@ The following people have made contributions to this project:
 - [JohannesSMHI (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Thomas Leppelt (m4sth0)](https://github.com/m4sth0)
+- [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
 - [Tom Parker (tparker-usgs)](https://github.com/tparker-usgs)
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
