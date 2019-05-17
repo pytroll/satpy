@@ -56,10 +56,6 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         self.data = pd.read_csv(filename, delim_whitespace=True, header=None,
                                 names=names, dtype=dtypes, parse_dates=parse_dates)
 
-        # Check unit uniformity in input file
-        if not (self.data.unit == 'kA').all():
-            raise ValueError('Inconsistent units found in file!')
-
     @property
     def start_time(self):
         return self.data['datetime'].iloc[0]
@@ -78,6 +74,11 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         xarr['longitude'] = ('y', self.data['longitude'])
         xarr['latitude'] = ('y', self.data['latitude'])
 
+        if dataset_id.name == 'power':
+            # Check that units in the file match the unit specified in the 
+            # reader yaml-file
+            if not (self.data.unit == dataset_info['units']).all():
+                raise ValueError('Inconsistent units found in file!')
         xarr.attrs.update(dataset_info)
 
         return xarr
