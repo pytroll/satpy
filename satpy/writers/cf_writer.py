@@ -251,8 +251,6 @@ def make_coords_unique(datas, pretty=False):
     Returns:
         Dictionary holding the updated datasets
     """
-    new_datas = datas.copy()
-
     # Determine unique set of non-dimensional coordinates
     alt_coords = defaultdict(list)
     for dataset in datas.values():
@@ -270,6 +268,7 @@ def make_coords_unique(datas, pretty=False):
                     break
 
     # Prepend dataset name, if not unique or no pretty-format desired
+    new_datas = datas.copy()
     for coord_name, unique in alt_coords_unique.items():
         if not pretty or not unique:
             if pretty:
@@ -523,10 +522,9 @@ class CFWriter(Writer):
 
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
-        root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)
+        written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
 
         # Write datasets to groups (appending to the file; group=None means no group)
-        written = []
         for group_name, group_datasets in groups_.items():
             # XXX: Should we combine the info of all datasets?
             datas, start_times, end_times = self._collect_datasets(
