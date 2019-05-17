@@ -25,6 +25,7 @@ from collections import OrderedDict
 import os
 import sys
 from datetime import datetime
+import tempfile
 from satpy import DatasetID
 
 import numpy as np
@@ -40,6 +41,18 @@ except ImportError:
     import mock
 
 
+class TempFile(object):
+    def __init__(self):
+        self.filename = None
+
+    def __enter__(self):
+        self.handle, self.filename = tempfile.mkstemp()
+        return self.handle, self.filename
+
+    def __exit__(self, *args):
+        os.remove(self.filename)
+
+
 class TestCFWriter(unittest.TestCase):
     def test_init(self):
         from satpy.writers.cf_writer import CFWriter
@@ -50,7 +63,6 @@ class TestCFWriter(unittest.TestCase):
     def test_save_array(self):
         from satpy import Scene
         import xarray as xr
-        import tempfile
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -58,8 +70,7 @@ class TestCFWriter(unittest.TestCase):
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
                                                     prerequisites=[DatasetID('hej')]))
-        try:
-            handle, filename = tempfile.mkstemp()
+        with TempFile() as (handle, filename):
             os.close(handle)
             scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
@@ -70,8 +81,61 @@ class TestCFWriter(unittest.TestCase):
                                    "calibration=None, level=None, modifiers=())")
                 self.assertEqual(f['test-array'].attrs['prerequisites'][0],
                                  expected_prereq)
-        finally:
-            os.remove(filename)
+
+    def test_groups(self):
+        import xarray as xr
+        from satpy import Scene
+
+        tstart = datetime(2019, 4, 1, 12, 0)
+        tend = datetime(2019, 4, 1, 12, 15)
+
+        data_visir = [[1, 2], [3, 4]]
+        y_visir = [1, 2]
+        x_visir = [1, 2]
+        time_vis006 = [1, 2]
+        time_ir_108 = [3, 4]
+
+        data_hrv = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]
+        y_hrv = [1, 2, 3]
+        x_hrv = [1, 2, 3]
+        time_hrv = [1, 2, 3]
+
+        scn = Scene()
+        scn['VIS006'] = xr.DataArray(data_visir,
+                                     dims=('y', 'x'),
+                                     coords={'y': y_visir, 'x': x_visir, 'acq_time': ('y', time_vis006)},
+                                     attrs={'name': 'VIS006', 'start_time': tstart, 'end_time': tend})
+        scn['IR_108'] = xr.DataArray(data_visir,
+                                     dims=('y', 'x'),
+                                     coords={'y': y_visir, 'x': x_visir, 'acq_time': ('y', time_ir_108)},
+                                     attrs={'name': 'IR_108', 'start_time': tstart, 'end_time': tend})
+        scn['HRV'] = xr.DataArray(data_hrv,
+                                  dims=('y', 'x'),
+                                  coords={'y': y_hrv, 'x': x_hrv, 'acq_time': ('y', time_hrv)},
+                                  attrs={'name': 'HRV', 'start_time': tstart, 'end_time': tend})
+
+        with TempFile() as (handle, filename):
+            os.close(handle)
+            scn.save_datasets(filename=filename, writer='cf', groups={'visir': ['IR_108', 'VIS006'], 'hrv': ['HRV']},
+                              pretty=True)
+
+            nc_root = xr.open_dataset(filename)
+            self.assertIn('history', nc_root.attrs)
+            self.assertSetEqual(set(nc_root.variables.keys()), set())
+
+            nc_visir = xr.open_dataset(filename, group='visir')
+            nc_hrv = xr.open_dataset(filename, group='hrv')
+            self.assertSetEqual(set(nc_visir.variables.keys()), {'VIS006', 'IR_108', 'y', 'x', 'VIS006_acq_time',
+                                                                 'IR_108_acq_time'})
+            self.assertSetEqual(set(nc_hrv.variables.keys()), {'HRV', 'y', 'x', 'acq_time'})
+            for tst, ref in zip([nc_visir['VIS006'], nc_visir['IR_108'], nc_hrv['HRV']],
+                                [scn['VIS006'], scn['IR_108'], scn['HRV']]):
+                self.assertTrue(np.all(tst.data == ref.data))
+
+        # Different projection coordinates in one group are not supported
+        with TempFile() as (handle, filename):
+            os.close(handle)
+            self.assertRaises(ValueError, scn.save_datasets, datasets=['VIS006', 'HRV'], filename=filename, writer='cf')
 
     def test_single_time_value(self):
         from satpy import Scene
@@ -419,9 +483,9 @@ class TestCFWriter(unittest.TestCase):
                     'var2': xr.DataArray(data=data,
                                          dims=('y', 'x'),
                                          coords={'y': y, 'x': x, 'acq_time': ('y', time2)})}
-        res = make_coords_unique(datasets)
 
         # Test that dataset names are prepended to alternative coordinates
+        res = make_coords_unique(datasets)
         self.assertTrue(np.all(res['var1']['var1_acq_time'] == time1))
         self.assertTrue(np.all(res['var2']['var2_acq_time'] == time2))
         self.assertNotIn('acq_time', res['var1'].coords)
@@ -432,6 +496,23 @@ class TestCFWriter(unittest.TestCase):
         self.assertTrue(np.all(res['var1']['y'] == y))
         self.assertTrue(np.all(res['var2']['x'] == x))
         self.assertTrue(np.all(res['var2']['y'] == y))
+
+        # Coords not unique -> Dataset names must be prepended, even if pretty=True
+        with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
+            res = make_coords_unique(datasets, pretty=True)
+            warn.assert_called()
+            self.assertTrue(np.all(res['var1']['var1_acq_time'] == time1))
+            self.assertTrue(np.all(res['var2']['var2_acq_time'] == time2))
+            self.assertNotIn('acq_time', res['var1'].coords)
+            self.assertNotIn('acq_time', res['var2'].coords)
+
+        # Coords unique and pretty=True -> Don't modify coordinate names
+        datasets['var2']['acq_time'] = ('y', time1)
+        res = make_coords_unique(datasets, pretty=True)
+        self.assertTrue(np.all(res['var1']['acq_time'] == time1))
+        self.assertTrue(np.all(res['var2']['acq_time'] == time1))
+        self.assertNotIn('var1_acq_time', res['var1'].coords)
+        self.assertNotIn('var2_acq_time', res['var2'].coords)
 
     @mock.patch('satpy.writers.cf_writer.area2lonlat')
     @mock.patch('satpy.writers.cf_writer.area2gridmapping')
@@ -532,6 +613,35 @@ class TestCFWriter(unittest.TestCase):
             warn.assert_called()
             self.assertEqual(res.attrs['grid_proj4'], proj_str)
             self.assertEqual(grid_mapping, cosmo_expected)
+
+    def test_area2lonlat(self):
+        import pyresample.geometry
+        import xarray as xr
+        from satpy.writers.cf_writer import area2lonlat
+
+        area = pyresample.geometry.AreaDefinition(
+            'seviri',
+            'Native SEVIRI grid',
+            'geos',
+            "+a=6378169.0 +h=35785831.0 +b=6356583.8 +lon_0=0 +proj=geos",
+            2, 2,
+            [-5570248.686685662, -5567248.28340708, 5567248.28340708, 5570248.686685662]
+        )
+        lons_ref, lats_ref = area.get_lonlats()
+        dataarray = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), attrs={'area': area})
+
+        res = area2lonlat(dataarray)
+
+        self.assertEqual(len(res), 1)
+        self.assertEqual(set(res[0].coords), {'longitude', 'latitude'})
+        lat = res[0]['latitude']
+        lon = res[0]['longitude']
+        self.assertTrue(np.all(lat.data == lats_ref))
+        self.assertTrue(np.all(lon.data == lons_ref))
+        self.assertDictContainsSubset({'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'},
+                                      lat.attrs)
+        self.assertDictContainsSubset({'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'},
+                                      lon.attrs)
 
 
 def suite():
