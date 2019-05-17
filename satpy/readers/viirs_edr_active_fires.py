@@ -23,7 +23,6 @@ ASCII files.
 
 from satpy.readers.netcdf_utils import NetCDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
-import os
 import dask.dataframe as dd
 import xarray as xr
 
