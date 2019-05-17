@@ -441,7 +441,7 @@ class CFWriter(Writer):
         """Save the *dataset* to a given *filename*."""
         return self.save_datasets([dataset], filename, **kwargs)
 
-    def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, latlon=False,
+    def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
                           pretty=False):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
@@ -453,7 +453,7 @@ class CFWriter(Writer):
         end_times = []
         for ds in ds_collection.values():
             try:
-                new_datasets = area2cf(ds, strict=latlon)
+                new_datasets = area2cf(ds, strict=include_lonlats)
             except KeyError:
                 new_datasets = [ds.copy(deep=True)]
             for new_ds in new_datasets:
@@ -466,7 +466,7 @@ class CFWriter(Writer):
         return datas, start_times, end_times
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', epoch=EPOCH,
-                      flatten_attrs=False, exclude_attrs=None, latlon=False, pretty=False, config_files=None,
+                      flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False, config_files=None,
                       **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
@@ -491,7 +491,7 @@ class CFWriter(Writer):
                 If True, flatten dict-type attributes
             exclude_attrs (list):
                 List of dataset attributes to be excluded
-            latlon (bool):
+            include_lonlats (bool):
                 Always include latitude and longitude coordinates, even for datasets with area definition
             pretty (bool):
                 Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
@@ -528,7 +528,7 @@ class CFWriter(Writer):
         for group_name, group_datasets in groups_.items():
             # XXX: Should we combine the info of all datasets?
             datas, start_times, end_times = self._collect_datasets(
-                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs, latlon=latlon,
+                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs, include_lonlats=include_lonlats,
                 pretty=pretty)
             dataset = xr.Dataset(datas)
             try:
