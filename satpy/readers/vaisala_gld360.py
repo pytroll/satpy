@@ -75,7 +75,7 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         xarr['latitude'] = ('y', self.data['latitude'])
 
         if dataset_id.name == 'power':
-            # Check that units in the file match the unit specified in the 
+            # Check that units in the file match the unit specified in the
             # reader yaml-file
             if not (self.data.unit == dataset_info['units']).all():
                 raise ValueError('Inconsistent units found in file!')
