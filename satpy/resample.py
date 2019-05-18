@@ -842,7 +842,6 @@ class BucketResampler(BaseResampler):
 
     def compute(self, data, fill_value=np.nan, **kwargs):
         """Call the resampling."""
-        fill_value = kwargs.get('fill_value', np.nan)
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
