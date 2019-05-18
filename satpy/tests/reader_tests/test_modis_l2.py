@@ -35,7 +35,7 @@ SCAN_WIDTH = 406
 SCAN_LEN = 270
 SCALE_FACTOR = 1
 TEST_DATA = {
-    'Latitude': {'data': np.zeros((SCAN_WIDTH, SCAN_LEN), dtype=np.float32),
+    'Latitude': {'data': np.ones((SCAN_WIDTH, SCAN_LEN), dtype=np.float32),
                  'type': SDC.FLOAT32,
                  'fill_value': -999,
                  'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
@@ -162,16 +162,19 @@ class TestModisL2(unittest.TestCase):
         from satpy import DatasetID
         scene = Scene(reader='modis_l2', filenames=[self.file_name])
         for dataset_name in ['longitude', 'latitude']:
+            expected_val = 0 if dataset_name == 'longitude' else 1
             # Default resolution should be the interpolated 1km
             scene.load([dataset_name])
             longitude_1km_id = DatasetID(name=dataset_name, resolution=1000)
             longitude_1km = scene[longitude_1km_id]
             self.assertEqual(longitude_1km.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
+            np.testing.assert_allclose(longitude_1km, expected_val)
             # Specify original 5km scale
-            longitude_5km = scene.load([dataset_name], resolution=5000)
+            scene.load([dataset_name], resolution=5000)
             longitude_5km_id = DatasetID(name=dataset_name, resolution=5000)
             longitude_5km = scene[longitude_5km_id]
             self.assertEqual(longitude_5km.shape, TEST_DATA[dataset_name.capitalize()]['data'].shape)
+            np.testing.assert_allclose(longitude_5km, expected_val)
 
     def test_load_quality_assurance(self):
         from satpy import DatasetID
