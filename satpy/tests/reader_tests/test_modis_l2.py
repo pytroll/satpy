@@ -34,12 +34,16 @@ from satpy import available_readers, Scene
 SCAN_WIDTH = 406
 SCAN_LEN = 270
 SCALE_FACTOR = 1
+TEST_LAT = np.repeat(np.linspace(35., 45., SCAN_WIDTH)[:, None], SCAN_LEN, 1)
+TEST_LAT *= np.linspace(0.9, 1.1, SCAN_LEN)
+TEST_LON = np.repeat(np.linspace(-45., -35., SCAN_LEN)[None, :], SCAN_WIDTH, 0)
+TEST_LON *= np.linspace(0.9, 1.1, SCAN_WIDTH)[:, None]
 TEST_DATA = {
-    'Latitude': {'data': np.random.rand(SCAN_WIDTH, SCAN_LEN).astype(np.float32) * 5.0 + 25.0,
+    'Latitude': {'data': TEST_LAT.astype(np.float32),
                  'type': SDC.FLOAT32,
                  'fill_value': -999,
                  'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
-    'Longitude': {'data': np.random.rand(SCAN_WIDTH, SCAN_LEN).astype(np.float32) * -5.0 - 25.0,
+    'Longitude': {'data': TEST_LON.astype(np.float32),
                   'type': SDC.FLOAT32,
                   'fill_value': -999,
                   'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
