@@ -31,10 +31,28 @@ format:
     >>> scn.save_datasets(writer='cf', datasets=['VIS006', 'IR_108'], filename='seviri_test.nc',
                           exclude_attrs=['raw_metadata'])
 
-You can select the netCDF backend using the ``engine`` keyword argument. Default is ``h5netcdf``, an alternative could
-be, for example, ``netCDF4``.
+You can select the netCDF backend using the ``engine`` keyword argument. Default is ``netcdf4``. For datasets with
+area definition you can exclude lat/lon coordinates by setting ``include_lonlats=False``.
 
-In the above example, raw metadata from the HRIT files has been excluded. If you want all attributes to be included,
+Grouping
+~~~~~~~~
+
+All datasets to be saved must have the same projection coordinates ``x`` and ``y``. If a scene holds datasets with
+different grids, the CF compliant workaround is to save the datasets to separate files. Alternatively, you can save
+datasets with common grids in separate netCDF groups as follows:
+
+    >>> scn.load(['VIS006', 'IR_108', 'HRV'])
+    >>> scn.save_datasets(writer='cf', datasets=['VIS006', 'IR_108', 'HRV'],
+                          filename='seviri_test.nc', exclude_attrs=['raw_metadata'],
+                          groups={'visir': ['VIS006', 'IR_108'], 'hrv': ['HRV']})
+
+Note that the resulting file will not be fully CF compliant.
+
+
+Attribute Encoding
+~~~~~~~~~~~~~~~~~~
+
+In the above examples, raw metadata from the HRIT files have been excluded. If you want all attributes to be included,
 just remove the ``exclude_attrs`` keyword argument. By default, dict-type dataset attributes, such as the raw metadata,
 are encoded as a string using json. Thus, you can use json to decode them afterwards:
 
@@ -51,7 +69,7 @@ are encoded as a string using json. Thus, you can use json to decode them afterw
 
 
 Alternatively it is possible to flatten dict-type attributes by setting ``flatten_attrs=True``. This is more human
-readable as it will create a separate nc-attribute for each item in every dictionary. Keys oare concatenated with
+readable as it will create a separate nc-attribute for each item in every dictionary. Keys are concatenated with
 underscore separators. The `CalSlope` attribute can then be accessed as follows:
 
     >>> scn.save_datasets(writer='cf', datasets=['VIS006', 'IR_108'], filename='seviri_test.nc',
@@ -71,6 +89,7 @@ This is what the corresponding ``ncdump`` output would look like in this case:
     IR_108:raw_metadata_RadiometricProcessing_Level15ImageCalibration_CalSlope = 0.021, ...;
     IR_108:raw_metadata_RadiometricProcessing_MPEFCalFeedback_AbsCalCoeff = 0.021, ...;
     ...
+
 
 .. _CF-compliant: http://cfconventions.org/
 """
@@ -248,7 +267,7 @@ def make_alt_coords_unique(datas, pretty=False):
 
     Non-dimensional (or alternative) coordinates, such as scanline timestamps, may occur in multiple datasets with
     the same name and dimension but different values. In order to avoid conflicts, prepend the dataset name to the
-    coordinate name. If a non-dimensional coordinate is unique among all datasets and `pretty=True`, its name will not
+    coordinate name. If a non-dimensional coordinate is unique among all datasets and ``pretty=True``, its name will not
     be modified.
 
     Since all datasets must have the same projection coordinates, this is not applied to latitude and longitude.
