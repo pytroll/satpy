@@ -3,10 +3,6 @@
 #
 # Copyright (c) 2017 David Hoese
 #
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
@@ -418,8 +414,9 @@ class TestCFWriter(unittest.TestCase):
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
     @mock.patch('satpy.writers.cf_writer.area2cf')
     @mock.patch('satpy.writers.cf_writer.CFWriter.da2cf')
-    @mock.patch('satpy.writers.cf_writer.make_coords_unique')
-    def test_collect_datasets(self, make_coords_unique, da2cf, area2cf, *mocks):
+    @mock.patch('satpy.writers.cf_writer.make_alt_coords_unique')
+    @mock.patch('satpy.writers.cf_writer.assert_xy_unique')
+    def test_collect_datasets(self, assert_xy_unique, make_alt_coords_unique, da2cf, area2cf, *mocks):
         from satpy.writers.cf_writer import CFWriter
         import xarray as xr
 
@@ -432,7 +429,7 @@ class TestCFWriter(unittest.TestCase):
 
         da2cf.side_effect = identity
         area2cf.side_effect = raise_key_error
-        make_coords_unique.return_value = 'unique_coords'
+        make_alt_coords_unique.return_value = 'unique_coords'
 
         # Define test datasets
         data = [[1, 2], [3, 4]]
@@ -456,22 +453,36 @@ class TestCFWriter(unittest.TestCase):
         self.assertListEqual(start_times, [tstart, None])
         self.assertListEqual(end_times, [tend, None])
 
-        # Test area2cf call
+        # Test method calls
         self.assertEqual(len(area2cf.call_args_list), 2)
         for call_args, ds in zip(area2cf.call_args_list, datasets):
             self.assertEqual(call_args, mock.call(ds, strict=True))
 
-        # Test make_coords_unique call
-        make_coords_unique.assert_called()
-        call_arg = make_coords_unique.call_args[0][0]
+        make_alt_coords_unique.assert_called()
+        call_arg = make_alt_coords_unique.call_args[0][0]
         self.assertIsInstance(call_arg, dict)
         self.assertSetEqual(set(call_arg.keys()), {'var1', 'var2'})
         for key, ds in expected.items():
             self.assertTrue(call_arg[key].identical(ds))
 
-    def test_make_coords_unique(self):
+        assert_xy_unique.assert_called()
+
+    def test_assert_xy_unique(self):
         import xarray as xr
-        from satpy.writers.cf_writer import make_coords_unique
+        from satpy.writers.cf_writer import assert_xy_unique
+
+        dummy = [[1, 2], [3, 4]]
+        datas = {'a': xr.DataArray(data=dummy, dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]}),
+                 'b': xr.DataArray(data=dummy, dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]}),
+                 'n': xr.DataArray(data=dummy, dims=('v', 'w'), coords={'v': [1, 2], 'w': [3, 4]})}
+        assert_xy_unique(datas)
+
+        datas['c'] = xr.DataArray(data=dummy, dims=('y', 'x'), coords={'y': [1, 3], 'x': [3, 4]})
+        self.assertRaises(ValueError, assert_xy_unique, datas)
+
+    def test_make_alt_coords_unique(self):
+        import xarray as xr
+        from satpy.writers.cf_writer import make_alt_coords_unique
 
         data = [[1, 2], [3, 4]]
         y = [1, 2]
@@ -486,7 +497,7 @@ class TestCFWriter(unittest.TestCase):
                                          coords={'y': y, 'x': x, 'acq_time': ('y', time2)})}
 
         # Test that dataset names are prepended to alternative coordinates
-        res = make_coords_unique(datasets)
+        res = make_alt_coords_unique(datasets)
         self.assertTrue(np.all(res['var1']['var1_acq_time'] == time1))
         self.assertTrue(np.all(res['var2']['var2_acq_time'] == time2))
         self.assertNotIn('acq_time', res['var1'].coords)
@@ -500,7 +511,7 @@ class TestCFWriter(unittest.TestCase):
 
         # Coords not unique -> Dataset names must be prepended, even if pretty=True
         with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
-            res = make_coords_unique(datasets, pretty=True)
+            res = make_alt_coords_unique(datasets, pretty=True)
             warn.assert_called()
             self.assertTrue(np.all(res['var1']['var1_acq_time'] == time1))
             self.assertTrue(np.all(res['var2']['var2_acq_time'] == time2))
@@ -509,7 +520,7 @@ class TestCFWriter(unittest.TestCase):
 
         # Coords unique and pretty=True -> Don't modify coordinate names
         datasets['var2']['acq_time'] = ('y', time1)
-        res = make_coords_unique(datasets, pretty=True)
+        res = make_alt_coords_unique(datasets, pretty=True)
         self.assertTrue(np.all(res['var1']['acq_time'] == time1))
         self.assertTrue(np.all(res['var2']['acq_time'] == time1))
         self.assertNotIn('var1_acq_time', res['var1'].coords)

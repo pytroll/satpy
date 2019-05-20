@@ -86,7 +86,7 @@ from datetime import datetime
 import json
 import warnings
 
-import dask.array as da
+from dask.base import tokenize
 import xarray as xr
 import numpy as np
 
@@ -232,7 +232,23 @@ def make_time_bounds(dataarray, start_times, end_times):
                         dims=['time_bnds'], coords={'time_bnds': [0, 1]})
 
 
-def make_coords_unique(datas, pretty=False):
+def assert_xy_unique(datas):
+    """Check that all datasets share the same projection coordinates x/y"""
+    unique_x = set()
+    unique_y = set()
+    for dataset in datas.values():
+        if 'y' in dataset.dims:
+            token_y = tokenize(dataset['y'].data)
+            unique_y.add(token_y)
+        if 'x' in dataset.dims:
+            token_x = tokenize(dataset['x'].data)
+            unique_x.add(token_x)
+    if len(unique_x) > 1 or len(unique_y) > 1:
+        raise ValueError('Datasets to be saved in one file (or one group) must have identical projection coordinates. '
+                         'Please group them by area or save them in separate files.')
+
+
+def make_alt_coords_unique(datas, pretty=False):
     """Make non-dimensional coordinates unique among all datasets.
 
     Non-dimensional (or alternative) coordinates, such as scanline timestamps, may occur in multiple datasets with
@@ -251,25 +267,17 @@ def make_coords_unique(datas, pretty=False):
     Returns:
         Dictionary holding the updated datasets
     """
-    # Determine unique set of non-dimensional coordinates
-    alt_coords = defaultdict(list)
+    # Determine which non-dimensional coordinates are unique
+    tokens = defaultdict(set)
     for dataset in datas.values():
         for coord_name in dataset.coords:
             if coord_name not in ('latitude', 'longitude') + dataset.dims:
-                alt_coords[coord_name].append(dataset[coord_name])
-
-    alt_coords_unique = dict()
-    for coord_name, coords in alt_coords.items():
-        alt_coords_unique[coord_name] = True
-        if len(coords) > 1:
-            for c in coords[1:]:
-                if c.shape != coords[0].shape or not np.all(c == coords[0]):
-                    alt_coords_unique[coord_name] = False
-                    break
+                tokens[coord_name].add(tokenize(dataset[coord_name].data))
+    coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
 
     # Prepend dataset name, if not unique or no pretty-format desired
     new_datas = datas.copy()
-    for coord_name, unique in alt_coords_unique.items():
+    for coord_name, unique in coords_unique.items():
         if not pretty or not unique:
             if pretty:
                 warnings.warn('Cannot pretty-format "{}" coordinates because they are not unique among the '
