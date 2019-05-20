@@ -63,11 +63,12 @@ Here is an example how to read the data in satpy:
     scn.load(['VIS006', 'IR_108'])
     print(scn['IR_108'])
 
+
 Output:
 
 .. code-block:: none
 
-    <xarray.DataArray 'reshape-5b8fc7364b289af7dec1f45b88ad2056' (y: 3712, x: 3712)>
+    <xarray.DataArray (y: 3712, x: 3712)>
     dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
     Coordinates:
         acq_time  (y) datetime64[ns] NaT NaT NaT NaT NaT NaT ... NaT NaT NaT NaT NaT
@@ -77,14 +78,15 @@ Output:
         satellite_longitude:      0.0
         satellite_latitude:       0.0
         satellite_altitude:       35785831.0
+        navigation:               {'satellite_nominal_longitude': 0.0, 'satellite...
+        platform_name:            Meteosat-11
         georef_offset_corrected:  True
+        standard_name:            brightness_temperature
+        raw_metadata:             {'file_type': 0, 'total_header_length': 6198, '...
         wavelength:               (9.8, 10.8, 11.8)
         units:                    K
-        standard_name:            brightness_temperature
         sensor:                   seviri
-        navigation:               {'satellite_nominal_longitude': 0.0, 'satellite...
         projection:               {'satellite_longitude': 0.0, 'satellite_latitud...
-        platform_name:            Meteosat-11
         start_time:               2019-03-01 12:00:09.716000
         end_time:                 2019-03-01 12:12:42.946000
         area:                     Area ID: some_area_name\\nDescription: On-the-fl...
@@ -103,6 +105,7 @@ Output:
   angles etc.
 * You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
   :class:`HRITMSGFileHandler`.
+* The ``raw_metadata`` attribute provides raw metadata from the prologue, epilogue and segment header.
 * The ``acq_time`` coordinate provides the acquisition time for each scanline. Use a ``MultiIndex`` to enable selection
   by acquisition time:
 
