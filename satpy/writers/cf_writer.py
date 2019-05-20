@@ -461,11 +461,12 @@ class CFWriter(Writer):
                 end_times.append(new_ds.attrs.get("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                                          exclude_attrs=exclude_attrs)
-        datas = make_coords_unique(datas, pretty=pretty)
+        assert_xy_unique(datas)
+        datas = make_alt_coords_unique(datas, pretty=pretty)
 
         return datas, start_times, end_times
 
-    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', epoch=EPOCH,
+    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='netcdf4', epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False, config_files=None,
                       **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
@@ -528,8 +529,8 @@ class CFWriter(Writer):
         for group_name, group_datasets in groups_.items():
             # XXX: Should we combine the info of all datasets?
             datas, start_times, end_times = self._collect_datasets(
-                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs, include_lonlats=include_lonlats,
-                pretty=pretty)
+                group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
+                include_lonlats=include_lonlats, pretty=pretty)
             dataset = xr.Dataset(datas)
             try:
                 dataset['time_bnds'] = make_time_bounds(dataset,
