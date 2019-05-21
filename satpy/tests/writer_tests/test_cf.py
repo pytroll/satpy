@@ -623,7 +623,8 @@ class TestCFWriter(unittest.TestCase):
         with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
             res, grid_mapping = area2gridmapping(ds)
             warn.assert_called()
-            self.assertEqual(res.attrs['grid_proj4'], proj_str)
+            self.assertDictEqual(dict(pyresample.geometry.proj4_str_to_dict(res.attrs['grid_proj4'])),
+                                 dict(pyresample.geometry.proj4_str_to_dict(proj_str)))
             self.assertEqual(grid_mapping, cosmo_expected)
 
     def test_area2lonlat(self):
