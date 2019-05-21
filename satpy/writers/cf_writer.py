@@ -488,7 +488,7 @@ class CFWriter(Writer):
 
         return datas, start_times, end_times
 
-    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='netcdf4', epoch=EPOCH,
+    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False, config_files=None,
                       **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
