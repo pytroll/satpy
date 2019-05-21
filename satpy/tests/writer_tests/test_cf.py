@@ -126,6 +126,7 @@ class TestCFWriter(unittest.TestCase):
             for tst, ref in zip([nc_visir['VIS006'], nc_visir['IR_108'], nc_hrv['HRV']],
                                 [scn['VIS006'], scn['IR_108'], scn['HRV']]):
                 self.assertTrue(np.all(tst.data == ref.data))
+            nc_root.close()
             nc_visir.close()
             nc_hrv.close()
 
