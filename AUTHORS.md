@@ -22,6 +22,7 @@ The following people have made contributions to this project:
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
 - [William Roberts (wroberts4)](https://github.com/wroberts4)
 - [RutgerK (RutgerK)](https://github.com/RutgerK)
+- [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [lorenzo clementi (loreclem)](https://github.com/loreclem)
 - [hazbottles (hazbottles)](https://github.com/hazbottles)
