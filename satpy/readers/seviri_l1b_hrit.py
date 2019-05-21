@@ -105,7 +105,9 @@ Output:
   angles etc.
 * You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
   :class:`HRITMSGFileHandler`.
-* The ``raw_metadata`` attribute provides raw metadata from the prologue, epilogue and segment header.
+* The ``raw_metadata`` attribute provides raw metadata from the prologue, epilogue and segment header. By default,
+  arrays with more than 100 elements are excluded in order to limit memory usage. This threshold can be adjusted,
+  see :class:`HRITMSGFileHandler`.
 * The ``acq_time`` coordinate provides the acquisition time for each scanline. Use a ``MultiIndex`` to enable selection
   by acquisition time:
 
@@ -216,7 +218,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
-                 ext_calib_coefs=None):
+                 ext_calib_coefs=None, mda_max_array_size=None):
         """Initialize the reader."""
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -334,10 +336,9 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
              earth_model['SouthPolarRadius']) / 2.0 * 1000
         return a, b
 
-    @property
-    def reduced(self):
+    def reduce(self, max_size):
         if self._reduced is None:
-            self._reduced = utils.reduce_mda(self.prologue)
+            self._reduced = utils.reduce_mda(self.prologue, max_size=max_size)
         return self._reduced
 
 
@@ -346,7 +347,7 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
-                 ext_calib_coefs=None):
+                 ext_calib_coefs=None, mda_max_array_size=None):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -371,15 +372,16 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
             data = np.fromfile(fp_, dtype=hrit_epilogue, count=1)
             self.epilogue.update(recarray2dict(data))
 
-    @property
-    def reduced(self):
+    def reduce(self, max_size):
         if self._reduced is None:
-            self._reduced = utils.reduce_mda(self.epilogue)
+            self._reduced = utils.reduce_mda(self.epilogue, max_size=max_size)
         return self._reduced
 
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     """SEVIRI HRIT format reader
+
+    **Calibration**
 
     It is possible to choose between two file-internal calibration coefficients for the conversion
     from counts to radiances:
@@ -426,9 +428,20 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                            'ext_calib_coefs': coefs})
         scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
 
+    **Raw Metadata**
+
+    By default, arrays with more than 100 elements are excluded from the raw reader metadata to
+    limit memory usage. This threshold can be adjusted using the `mda_max_array_size` keyword
+    argument:
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'mda_max_array_size': 1000})
+
     """
     def __init__(self, filename, filename_info, filetype_info,
-                 prologue, epilogue, calib_mode='nominal', ext_calib_coefs=None):
+                 prologue, epilogue, calib_mode='nominal',
+                 ext_calib_coefs=None, mda_max_array_size=100):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -442,6 +455,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.epilogue = epilogue.epilogue
         self._filename_info = filename_info
         self.ext_calib_coefs = ext_calib_coefs if ext_calib_coefs is not None else {}
+        self.mda_max_array_size = mda_max_array_size
         calib_mode_choices = ('NOMINAL', 'GSICS')
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
@@ -705,8 +719,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             raw_mda.pop(key, None)
 
         # Metadata from prologue and epilogue (large arrays removed)
-        raw_mda.update(self.prologue_.reduced)
-        raw_mda.update(self.epilogue_.reduced)
+        raw_mda.update(self.prologue_.reduce(self.mda_max_array_size))
+        raw_mda.update(self.epilogue_.reduce(self.mda_max_array_size))
 
         return raw_mda
 
