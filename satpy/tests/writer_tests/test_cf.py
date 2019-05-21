@@ -386,7 +386,8 @@ class TestCFWriter(unittest.TestCase):
     @mock.patch('satpy.writers.cf_writer.CFWriter.da2cf')
     @mock.patch('satpy.writers.cf_writer.make_alt_coords_unique')
     @mock.patch('satpy.writers.cf_writer.assert_xy_unique')
-    def test_collect_datasets(self, assert_xy_unique, make_alt_coords_unique, da2cf, area2cf, *mocks):
+    @mock.patch('satpy.writers.cf_writer.link_coords')
+    def test_collect_datasets(self, link_coords, assert_xy_unique, make_alt_coords_unique, da2cf, area2cf, *mocks):
         from satpy.writers.cf_writer import CFWriter
         import xarray as xr
 
@@ -428,14 +429,13 @@ class TestCFWriter(unittest.TestCase):
         for call_args, ds in zip(area2cf.call_args_list, datasets):
             self.assertEqual(call_args, mock.call(ds, strict=True))
 
-        make_alt_coords_unique.assert_called()
-        call_arg = make_alt_coords_unique.call_args[0][0]
-        self.assertIsInstance(call_arg, dict)
-        self.assertSetEqual(set(call_arg.keys()), {'var1', 'var2'})
-        for key, ds in expected.items():
-            self.assertTrue(call_arg[key].identical(ds))
-
-        assert_xy_unique.assert_called()
+        for func in (assert_xy_unique, link_coords, make_alt_coords_unique):
+            func.assert_called()
+            call_arg = func.call_args[0][0]
+            self.assertIsInstance(call_arg, dict)
+            self.assertSetEqual(set(call_arg.keys()), {'var1', 'var2'})
+            for key, ds in expected.items():
+                self.assertTrue(call_arg[key].identical(ds))
 
     def test_assert_xy_unique(self):
         import xarray as xr
@@ -449,6 +449,34 @@ class TestCFWriter(unittest.TestCase):
 
         datas['c'] = xr.DataArray(data=dummy, dims=('y', 'x'), coords={'y': [1, 3], 'x': [3, 4]})
         self.assertRaises(ValueError, assert_xy_unique, datas)
+
+    def test_link_coords(self):
+        import xarray as xr
+        from satpy.writers.cf_writer import link_coords
+        import numpy as np
+
+        data = [[1, 2], [3, 4]]
+        lon = np.zeros((2, 2))
+        lat = np.ones((2, 2))
+        datasets = {
+            'var1': xr.DataArray(data=data, dims=('y', 'x'), attrs={'coordinates': 'lon lat'}),
+            'var2': xr.DataArray(data=data, dims=('y', 'x')),
+            'lon': xr.DataArray(data=lon, dims=('y', 'x')),
+            'lat': xr.DataArray(data=lat, dims=('y', 'x'))
+        }
+
+        link_coords(datasets)
+
+        # Check that link has been established correctly and 'coordinate' atrribute has been dropped
+        self.assertIn('lon', datasets['var1'].coords)
+        self.assertIn('lat', datasets['var1'].coords)
+        self.assertTrue(np.all(datasets['var1']['lon'].data == lon))
+        self.assertTrue(np.all(datasets['var1']['lat'].data == lat))
+        self.assertNotIn('coordinates', datasets['var1'].attrs)
+
+        # There should be no link if there was no 'coordinate' attribute
+        self.assertNotIn('lon', datasets['var2'].coords)
+        self.assertNotIn('lat', datasets['var2'].coords)
 
     def test_make_alt_coords_unique(self):
         import xarray as xr
