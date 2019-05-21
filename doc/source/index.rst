@@ -2,24 +2,38 @@
 Satpy's Documentation
 =====================
 
-Satpy is a python library for reading and manipulating
-meteorological remote sensing data and writing it to various image and
-data file formats. Satpy comes with the ability to make various RGB
-composites directly from satellite instrument channel data or higher level
-processing output. The
-`pyresample <http://pyresample.readthedocs.io/en/latest/>`_ package is used
-to resample data to different uniform areas or grids. Various atmospheric
-corrections and visual enhancements are also provided, either directly in
-Satpy or from those in the
-`PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_ and
-`TrollImage <http://trollimage.readthedocs.io/en/latest/>`_ packages.
+Satpy is a python library for reading, manipulating, and writing data from
+remote-sensing earth-observing meteorological satellite instruments. Satpy
+provides users with readers that convert geophysical parameters from various
+file formats to the common Xarray :class:`~xarray.DataArray` and
+:class:`~xarray.Dataset` classes for easier interoperability with other
+scientific python libraries. Satpy also provides interfaces for creating
+RGB (Red/Green/Blue) images and other composite types by combining data
+from multiple instrument bands or products. Various atmospheric corrections
+and visual enhancements are provided for improving the usefulness and quality
+of output images. Output data can be written to
+multiple output file formats such as PNG, GeoTIFF, and CF standard NetCDF
+files. Satpy also allows users to resample data to geographic projected grids
+(areas). Satpy is maintained by the open source
+`Pytroll <http://pytroll.github.io/>`_ group.
 
-Go to the project_ page for source code and downloads.
+The Satpy library acts as a high-level abstraction layer on top of other
+libraries maintained by the Pytroll group including:
 
-It is designed to be easily extendable to support any meteorological satellite
-by the creation of plugins (readers, compositors, writers, etc). The table at
-the bottom of this page shows the input formats supported by the base Satpy
-installation.
+- `Pyresample <http://pyresample.readthedocs.io/en/latest/>`_
+- `PySpectral <https://pyspectral.readthedocs.io/en/develop/>`_
+- `Trollimage <http://trollimage.readthedocs.io/en/latest/>`_
+- `Pycoast <https://pycoast.readthedocs.io/en/latest/>`_
+- `Pydecorate <https://pydecorate.readthedocs.io/en/latest/>`_
+- `python-geotiepoints <https://python-geotiepoints.readthedocs.io/en/latest/>`_
+- `pyninjotiff <https://github.com/pytroll/pyninjotiff>`_
+
+Go to the Satpy project_ page for source code and downloads.
+
+Satpy is designed to be easily extendable to support any meteorological
+satellite by the creation of plugins (readers, compositors, writers, etc).
+The table at the bottom of this page shows the input formats supported by
+the base Satpy installation.
 
 .. note::
 
@@ -181,6 +195,9 @@ installation.
       - Beta
     * - VIRR data in HDF5 format
       - `virr_l1b`
+      - Beta
+    * - MERSI-2 L1B data in HDF5 format
+      - `mersi2_l1b`
       - Beta
 
 Indices and tables
