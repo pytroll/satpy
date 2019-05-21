@@ -68,7 +68,7 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time,
                                                     prerequisites=[DatasetID('hej')]))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
+            scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['test-array'][:] == [1, 2, 3]))
@@ -147,7 +147,7 @@ class TestCFWriter(unittest.TestCase):
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
+            scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
@@ -165,7 +165,7 @@ class TestCFWriter(unittest.TestCase):
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
+            scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
@@ -191,7 +191,7 @@ class TestCFWriter(unittest.TestCase):
                                           attrs=dict(start_time=start_timeB,
                                                      end_time=end_timeB))
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
+            scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
@@ -213,7 +213,7 @@ class TestCFWriter(unittest.TestCase):
                                           dims=['x', 'y', 'time'],
                                           coords={'time': [np.datetime64('2018-05-30T10:05:00')]})
         with TempFile() as filename:
-            scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
+            scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
@@ -232,7 +232,7 @@ class TestCFWriter(unittest.TestCase):
                                        'scale_factor': 0.1,
                                        'add_offset': 0.0,
                                        '_FillValue': 3}}
-            scn.save_datasets(filename=filename, encoding=encoding, writer='cf', engine='h5netcdf')
+            scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['test-array'][:] == [10, 20, 30]))
@@ -255,8 +255,7 @@ class TestCFWriter(unittest.TestCase):
                             'orbit': None}
             scn.save_datasets(filename=filename,
                               header_attrs=header_attrs,
-                              writer='cf',
-                              engine='h5netcdf')
+                              writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
