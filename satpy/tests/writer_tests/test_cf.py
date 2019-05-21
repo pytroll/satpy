@@ -43,7 +43,8 @@ class TempFile(object):
 
     def __enter__(self):
         self.handle, self.filename = tempfile.mkstemp()
-        return self.handle, self.filename
+        os.close(self.handle)
+        return self.filename
 
     def __exit__(self, *args):
         os.remove(self.filename)
@@ -66,8 +67,7 @@ class TestCFWriter(unittest.TestCase):
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
                                                     prerequisites=[DatasetID('hej')]))
-        with TempFile() as (handle, filename):
-            os.close(handle)
+        with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
@@ -110,8 +110,7 @@ class TestCFWriter(unittest.TestCase):
                                   coords={'y': y_hrv, 'x': x_hrv, 'acq_time': ('y', time_hrv)},
                                   attrs={'name': 'HRV', 'start_time': tstart, 'end_time': tend})
 
-        with TempFile() as (handle, filename):
-            os.close(handle)
+        with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', groups={'visir': ['IR_108', 'VIS006'], 'hrv': ['HRV']},
                               pretty=True)
 
@@ -129,14 +128,12 @@ class TestCFWriter(unittest.TestCase):
                 self.assertTrue(np.all(tst.data == ref.data))
 
         # Different projection coordinates in one group are not supported
-        with TempFile() as (handle, filename):
-            os.close(handle)
+        with TempFile() as filename:
             self.assertRaises(ValueError, scn.save_datasets, datasets=['VIS006', 'HRV'], filename=filename, writer='cf')
 
     def test_single_time_value(self):
         from satpy import Scene
         import xarray as xr
-        import tempfile
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -146,20 +143,15 @@ class TestCFWriter(unittest.TestCase):
                                          coords={'time': np.datetime64('2018-05-30T10:05:00')},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
-        try:
-            handle, filename = tempfile.mkstemp()
-            os.close(handle)
+        with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
-        finally:
-            os.remove(filename)
 
     def test_bounds(self):
         from satpy import Scene
         import xarray as xr
-        import tempfile
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
@@ -169,20 +161,15 @@ class TestCFWriter(unittest.TestCase):
                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
-        try:
-            handle, filename = tempfile.mkstemp()
-            os.close(handle)
+        with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
-        finally:
-            os.remove(filename)
 
     def test_bounds_minimum(self):
         from satpy import Scene
         import xarray as xr
-        import tempfile
         scn = Scene()
         start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
         end_timeA = datetime(2018, 5, 30, 10, 20)
@@ -200,20 +187,15 @@ class TestCFWriter(unittest.TestCase):
                                           coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
                                           attrs=dict(start_time=start_timeB,
                                                      end_time=end_timeB))
-        try:
-            handle, filename = tempfile.mkstemp()
-            os.close(handle)
+        with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
-        finally:
-            os.remove(filename)
 
     def test_bounds_missing_time_info(self):
         from satpy import Scene
         import xarray as xr
-        import tempfile
         scn = Scene()
         start_timeA = datetime(2018, 5, 30, 10, 0)
         end_timeA = datetime(2018, 5, 30, 10, 15)
@@ -227,29 +209,22 @@ class TestCFWriter(unittest.TestCase):
         scn['test-arrayB'] = xr.DataArray(test_arrayB,
                                           dims=['x', 'y', 'time'],
                                           coords={'time': [np.datetime64('2018-05-30T10:05:00')]})
-        try:
-            handle, filename = tempfile.mkstemp()
-            os.close(handle)
+        with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf', engine='h5netcdf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
-        finally:
-            os.remove(filename)
 
     def test_encoding_kwarg(self):
         from satpy import Scene
         import xarray as xr
-        import tempfile
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
         scn['test-array'] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
-        try:
-            handle, filename = tempfile.mkstemp()
-            os.close(handle)
+        with TempFile() as filename:
             encoding = {'test-array': {'dtype': 'int8',
                                        'scale_factor': 0.1,
                                        'add_offset': 0.0,
@@ -262,22 +237,17 @@ class TestCFWriter(unittest.TestCase):
                 self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
                 # check that dtype behave as int8
                 self.assertTrue(np.iinfo(f['test-array'][:].dtype).max == 127)
-        finally:
-            os.remove(filename)
 
     def test_header_attrs(self):
         from satpy import Scene
         import xarray as xr
-        import tempfile
         scn = Scene()
         start_time = datetime(2018, 5, 30, 10, 0)
         end_time = datetime(2018, 5, 30, 10, 15)
         scn['test-array'] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
-        try:
-            handle, filename = tempfile.mkstemp()
-            os.close(handle)
+        with TempFile() as filename:
             header_attrs = {'sensor': 'SEVIRI',
                             'orbit': None}
             scn.save_datasets(filename=filename,
@@ -289,8 +259,6 @@ class TestCFWriter(unittest.TestCase):
                 self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
                 self.assertTrue('sensor' in f.attrs.keys())
                 self.assertTrue('orbit' not in f.attrs.keys())
-        finally:
-            os.remove(filename)
 
     def get_test_attrs(self):
         """Create some dataset attributes for testing purpose
