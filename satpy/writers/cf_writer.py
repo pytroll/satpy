@@ -262,6 +262,29 @@ def assert_xy_unique(datas):
                          'Please group them by area or save them in separate files.')
 
 
+def link_coords(datas):
+    """Link datasets and coordinates
+
+    If the `coordinates` attribute of a data array links to other datasets in the scene, for example
+    `coordinates='lon lat'`, add them as coordinates to the data array and drop that attribute. In the final call to
+    `xr.Dataset.to_netcdf()` all coordinate relations will be resolved and the `coordinates` attributes be set
+    automatically.
+    """
+    for dataset in datas.values():
+        coords = dataset.attrs.get('coordinates', [])
+        if isinstance(coords, str):
+            coords = coords.split(' ')
+        for coord in coords:
+            if coord not in dataset.coords:
+                try:
+                    dataset[coord] = datas[coord]
+                except KeyError:
+                    continue
+
+        # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
+        dataset.attrs.pop('coordinates', None)
+
+
 def make_alt_coords_unique(datas, pretty=False):
     """Make non-dimensional coordinates unique among all datasets.
 
@@ -285,7 +308,7 @@ def make_alt_coords_unique(datas, pretty=False):
     tokens = defaultdict(set)
     for dataset in datas.values():
         for coord_name in dataset.coords:
-            if coord_name not in ('latitude', 'longitude') + dataset.dims:
+            if coord_name.lower() not in ('latitude', 'longitude', 'lat', 'lon') and coord_name not in dataset.dims:
                 tokens[coord_name].add(tokenize(dataset[coord_name].data))
     coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
 
@@ -416,7 +439,7 @@ class CFWriter(Writer):
 
         new_data = dataarray.copy()
 
-        # Remove the area as well as user-defined attributes
+        # Remove area as well as user-defined attributes
         for key in ['area'] + exclude_attrs:
             new_data.attrs.pop(key, None)
 
@@ -483,7 +506,10 @@ class CFWriter(Writer):
                 end_times.append(new_ds.attrs.get("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
                                                          exclude_attrs=exclude_attrs)
+
+        # Check and prepare coordinates
         assert_xy_unique(datas)
+        link_coords(datas)
         datas = make_alt_coords_unique(datas, pretty=pretty)
 
         return datas, start_times, end_times
