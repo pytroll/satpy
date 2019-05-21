@@ -1,3 +1,54 @@
+## Version 0.15.1 (2019/05/10)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 761](https://github.com/pytroll/satpy/pull/761) - Fix mersi2_l1b reader setting sensor as a set object
+
+In this release 1 pull request was closed.
+
+
+## Version 0.15.0 (2019/05/10)
+
+### Issues Closed
+
+* [Issue 758](https://github.com/pytroll/satpy/issues/758) - RuntimeError with NetCDF4FileHandler
+* [Issue 730](https://github.com/pytroll/satpy/issues/730) - Rewrite introduction paragraph in documentation ([PR 747](https://github.com/pytroll/satpy/pull/747))
+* [Issue 725](https://github.com/pytroll/satpy/issues/725) - Update 'viirs_edr_active_fires' reader to read newest algorithm output ([PR 733](https://github.com/pytroll/satpy/pull/733))
+* [Issue 706](https://github.com/pytroll/satpy/issues/706) - Add reader for FY3D MERSI2 L1B data ([PR 740](https://github.com/pytroll/satpy/pull/740))
+* [Issue 434](https://github.com/pytroll/satpy/issues/434) - Allow readers to filter the available datasets configured in YAML ([PR 739](https://github.com/pytroll/satpy/pull/739))
+
+In this release 5 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 757](https://github.com/pytroll/satpy/pull/757) - Fix MODIS L1B and L2 readers not reading geolocation properly
+* [PR 754](https://github.com/pytroll/satpy/pull/754) - Fix optional modifier dependencies being unloaded for delayed composites
+* [PR 750](https://github.com/pytroll/satpy/pull/750) - Add missing warnings import to geotiff writer
+
+#### Features added
+
+* [PR 752](https://github.com/pytroll/satpy/pull/752) - Add scanline timestamps to seviri_l1b_hrit
+* [PR 740](https://github.com/pytroll/satpy/pull/740) - Add FY-3D MERSI-2 L1B Reader (mersi2_l1b) ([706](https://github.com/pytroll/satpy/issues/706))
+* [PR 739](https://github.com/pytroll/satpy/pull/739) - Refactor available datasets logic to be more flexible ([434](https://github.com/pytroll/satpy/issues/434))
+* [PR 738](https://github.com/pytroll/satpy/pull/738) - Remove unused area slice-based filtering in the base reader
+* [PR 733](https://github.com/pytroll/satpy/pull/733) - Update VIIRS EDR Active Fires ([725](https://github.com/pytroll/satpy/issues/725))
+* [PR 728](https://github.com/pytroll/satpy/pull/728) - Add VIIRS Fire Temperature rgb
+* [PR 711](https://github.com/pytroll/satpy/pull/711) - Replace usage of deprecated get_proj_coords_dask
+* [PR 611](https://github.com/pytroll/satpy/pull/611) - Add MODIS L2 reader
+* [PR 580](https://github.com/pytroll/satpy/pull/580) - Allow colormaps to be saved with geotiff writer
+* [PR 532](https://github.com/pytroll/satpy/pull/532) - Add enhancement for VIIRS flood reader
+
+#### Documentation changes
+
+* [PR 747](https://github.com/pytroll/satpy/pull/747) - Update index page introduction ([730](https://github.com/pytroll/satpy/issues/730))
+
+In this release 14 pull requests were closed.
+
+
 ## Version 0.14.2 (2019/04/25)
 
 ### Issues Closed
