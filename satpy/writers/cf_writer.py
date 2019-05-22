@@ -31,8 +31,12 @@ format:
     >>> scn.save_datasets(writer='cf', datasets=['VIS006', 'IR_108'], filename='seviri_test.nc',
                           exclude_attrs=['raw_metadata'])
 
-You can select the netCDF backend using the ``engine`` keyword argument. Default is ``netcdf4``. For datasets with
-area definition you can exclude lat/lon coordinates by setting ``include_lonlats=False``.
+* You can select the netCDF backend using the ``engine`` keyword argument. Default is ``h5netcdf``.
+* For datasets with area definition you can exclude lat/lon coordinates by setting ``include_lonlats=False``.
+* By default the dataset name is prepended to non-dimensional coordinates such as scanline timestamps. This ensures
+  maximum consistency, i.e. the netCDF variable names are independent of the number/set of datasets to be written.
+  If a non-dimensional coordinate is identical for
+
 
 Grouping
 ~~~~~~~~
