@@ -124,6 +124,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['sensor'], set(['images']))
         self.assertEqual(scn.attrs['start_time'], None)
         self.assertEqual(scn.attrs['end_time'], None)
+        self.assertNotIn('area', scn['image'].attrs)
 
         fname = os.path.join(self.base_dir, '20180101_0000_test_la.png')
         scn = Scene(reader='generic_image', filenames=[fname])
@@ -133,6 +134,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['sensor'], set(['images']))
         self.assertEqual(scn.attrs['start_time'], self.date)
         self.assertEqual(scn.attrs['end_time'], self.date)
+        self.assertNotIn('area', scn['image'].attrs)
         self.assertEqual(np.sum(np.isnan(data)), 100)
 
     def test_geotiff_scene(self):

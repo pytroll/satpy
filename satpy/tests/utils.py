@@ -26,6 +26,54 @@ except ImportError:
     import mock
 
 
+def convert_file_content_to_data_array(file_content, attrs=tuple(),
+                                       dims=('z', 'y', 'x')):
+    """Helper for old reader tests that still use numpy arrays.
+
+    A lot of old reader tests still use numpy arrays and depend on the
+    "var_name/attr/attr_name" convention established before Satpy used xarray
+    and dask. While these conventions are still used and should be supported,
+    readers need to use xarray DataArrays instead.
+
+    If possible, new tests should be based on pure DataArray objects instead
+    of the "var_name/attr/attr_name" style syntax provided by the utility
+    file handlers.
+
+    Args:
+        file_content (dict): Dictionary of string file keys to fake file data.
+        attrs (iterable): Series of attributes to copy to DataArray object from
+            file content dictionary. Defaults to no attributes.
+        dims (iterable): Dimension names to use for resulting DataArrays.
+            The second to last dimension is used for 1D arrays, so for
+            dims of ``('z', 'y', 'x')`` this would use ``'y'``. Otherwise, the
+            dimensions are used starting with the last, so 2D arrays are
+            ``('y', 'x')``
+            Dimensions are used in reverse order so the last dimension
+            specified is used as the only dimension for 1D arrays and the
+            last dimension for other arrays.
+
+    """
+    from xarray import DataArray
+    import dask.array as da
+    import numpy as np
+    for key, val in file_content.items():
+        da_attrs = {}
+        for a in attrs:
+            if key + '/attr/' + a in file_content:
+                da_attrs[a] = file_content[key + '/attr/' + a]
+
+        if isinstance(val, np.ndarray):
+            val = da.from_array(val, chunks=4096)
+            if val.ndim == 1:
+                da_dims = dims[-2]
+            elif val.ndim > 1:
+                da_dims = tuple(dims[-val.ndim:])
+            else:
+                da_dims = None
+
+            file_content[key] = DataArray(val, dims=da_dims, attrs=da_attrs)
+
+
 def test_datasets():
     """Get list of various test datasets"""
     from satpy import DatasetID

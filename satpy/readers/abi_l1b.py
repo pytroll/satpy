@@ -82,8 +82,11 @@ class NC_ABI_L1B(BaseFileHandler):
         # handle coordinates (and recursive fun)
         new_coords = {}
         # 'time' dimension causes issues in other processing
-        if 'time' in data.coords:
-            del data.coords['time']
+        # 'x_image' and 'y_image' are confusing to some users and unnecessary
+        # 'x' and 'y' will be overwritten by base class AreaDefinition
+        for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
+            if coord_name in data.coords:
+                del data.coords[coord_name]
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():

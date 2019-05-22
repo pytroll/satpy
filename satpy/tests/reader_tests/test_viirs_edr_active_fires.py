@@ -28,6 +28,7 @@ import dask.dataframe as dd
 import pandas as pd
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -76,19 +77,10 @@ class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         file_content['Fire Pixels/attr/units'] = 'none'
         file_content['Fire Pixels/shape'] = DEFAULT_FILE_SHAPE
 
-        # convert to xarrays
-        from xarray import DataArray
-        for key, val in file_content.items():
-            if isinstance(val, np.ndarray):
-                attrs = {}
-                for a in ['FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence']:
-                    if key + '/attr/' + a in file_content:
-                        attrs[a] = file_content[key + '/attr/' + a]
-                if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
-                else:
-                    file_content[key] = DataArray(val, attrs=attrs)
-
+        attrs = ('FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence')
+        convert_file_content_to_data_array(
+            file_content, attrs=attrs,
+            dims=('z', 'fakeDim0', 'fakeDim1'))
         return file_content
 
 
@@ -107,19 +99,10 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         file_content['FP_T4'] = DEFAULT_M13_FILE_DATA
         file_content['FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
 
-        # convert to xarrays
-        from xarray import DataArray
-        for key, val in file_content.items():
-            if isinstance(val, np.ndarray):
-                attrs = {}
-                for a in ['FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence']:
-                    if key + '/attr/' + a in file_content:
-                        attrs[a] = file_content[key + '/attr/' + a]
-                if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
-                else:
-                    file_content[key] = DataArray(val, attrs=attrs)
-
+        attrs = ('FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence')
+        convert_file_content_to_data_array(
+            file_content, attrs=attrs,
+            dims=('z', 'fakeDim0', 'fakeDim1'))
         return file_content
 
 
