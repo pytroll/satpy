@@ -80,6 +80,8 @@ class GenericImageFileHandler(BaseFileHandler):
         self.file_content['image'] = data
 
     def get_area_def(self, dsid):
+        if self.area is None:
+            raise NotImplementedError("No CRS information available from image")
         return self.area
 
     def get_geotiff_area_def(self, crs):

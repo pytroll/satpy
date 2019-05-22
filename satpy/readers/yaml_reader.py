@@ -718,6 +718,37 @@ class FileYAMLReader(AbstractYAMLReader):
                 logger.debug("No coordinates found for %s", str(dsid))
             return area
 
+    def _add_crs_info_from_area(self, data_arr, area):
+        """Add :class:`pyproj.crs.CRS` to coordinates if possible.
+
+        Args:
+            data_arr (xarray.DataArray): DataArray to add the 'crs'
+                coordinate.
+            area (pyresample.geometry.AreaDefinition): Area to get CRS
+                information from.
+
+        """
+        if isinstance(area, SwathDefinition):
+            # add lon/lat arrays for swath definitions
+            lons, lats = area.get_lonlats(chunks=data_arr.data.chunks)
+            dims = ('y', 'x') if lons.ndim == 2 else ('y',)
+            if any(d not in data_arr.dims for d in dims):
+                # we don't know what to call the dimensions for
+                # the lon/lats
+                return data_arr
+            return data_arr.assign_coords(
+                lons=(dims, lons),
+                lats=(dims, lats))
+
+        try:
+            from pyproj import CRS
+        except ImportError:
+            logger.debug("Could not add 'crs' coordinate with pyproj<2.0")
+        else:
+            crs = CRS.from_string(area.proj_str)
+            return data_arr.assign_coords(crs=crs)
+        return data_arr
+
     def _load_dataset_with_area(self, dsid, coords):
         """Loads *dsid* and it's area if available."""
         file_handlers = self._get_file_handlers(dsid)
@@ -740,6 +771,9 @@ class FileYAMLReader(AbstractYAMLReader):
             elif calc_coords:
                 # older pyresample with dask-only method
                 ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNK_SIZE)
+
+            # add CRS object if pyproj 2.0+
+            ds = self._add_crs_info_from_area(ds, area)
         return ds
 
     def _load_ancillary_variables(self, datasets):
