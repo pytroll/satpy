@@ -274,7 +274,7 @@ def link_coords(datas):
     `xr.Dataset.to_netcdf()` all coordinate relations will be resolved and the `coordinates` attributes be set
     automatically.
     """
-    for dataset in datas.values():
+    for ds_name, dataset in datas.items():
         coords = dataset.attrs.get('coordinates', [])
         if isinstance(coords, str):
             coords = coords.split(' ')
@@ -283,6 +283,8 @@ def link_coords(datas):
                 try:
                     dataset[coord] = datas[coord]
                 except KeyError:
+                    warnings.warn('Coordinate "{}" referenced by dataset {} does not exist, dropping reference.'.format(
+                        coord, ds_name))
                     continue
 
         # Drop 'coordinates' attribute in any case to avoid conflicts in xr.Dataset.to_netcdf()
