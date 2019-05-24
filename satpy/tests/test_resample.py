@@ -480,7 +480,7 @@ class TestBilinearResampler(unittest.TestCase):
 
 
 class TestBucketResampler(unittest.TestCase):
-    """Test the bucket resamplers."""
+    """Test the bucket resampler."""
 
     def setUp(self):
         from satpy.resample import BucketResampler
@@ -570,6 +570,78 @@ class TestBucketResampler(unittest.TestCase):
         res = self.bucket.resample(data)
         self.assertEqual(res.shape, (3, 5, 5))
         self.assertEqual(res.dims, ('foo', 'bar', 'baz'))
+
+
+class TestBucketSum(unittest.TestCase):
+    """Test the sum bucket resampler."""
+
+    def setUp(self):
+        from satpy.resample import BucketSum
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketSum(self.source_geo_def, self.target_geo_def)
+
+    def test_compute(self):
+        """Test sum bucket resampler computation."""
+        import dask.array as da
+        # 1D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5,))
+        self.bucket.resampler.get_sum.return_value = data
+        res = self.bucket.compute(data)
+        self.bucket.resampler.get_sum.assert_called_once_with(data)
+        self.assertEqual(res.shape, (1, 5))
+        # 2D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5, 5))
+        self.bucket.resampler.get_sum.return_value = data
+        res = self.bucket.compute(data)
+        self.bucket.resampler.get_sum.assert_called_once_with(data)
+        self.assertEqual(res.shape, (1, 5, 5))
+        # 3D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((3, 5, 5))
+        self.bucket.resampler.get_sum.return_value = data[0, :, :]
+        res = self.bucket.compute(data)
+        self.assertEqual(res.shape, (3, 5, 5))
+
+
+class TestBucketCount(unittest.TestCase):
+    """Test the sum bucket resampler."""
+
+    def setUp(self):
+        from satpy.resample import BucketCount
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketCount(self.source_geo_def, self.target_geo_def)
+
+    def test_compute(self):
+        """Test sum bucket resampler computation."""
+        import dask.array as da
+        # 1D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5,))
+        self.bucket.resampler.get_count.return_value = data
+        res = self.bucket.compute(data)
+        self.bucket.resampler.get_count.assert_called_once_with()
+        self.assertEqual(res.shape, (1, 5))
+        # 2D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5, 5))
+        self.bucket.resampler.get_count.return_value = data
+        res = self.bucket.compute(data)
+        self.bucket.resampler.get_count.assert_called_once_with()
+        self.assertEqual(res.shape, (1, 5, 5))
+        # 3D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((3, 5, 5))
+        self.bucket.resampler.get_count.return_value = data[0, :, :]
+        res = self.bucket.compute(data)
+        self.assertEqual(res.shape, (3, 5, 5))
 
 
 def suite():
