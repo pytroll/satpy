@@ -867,12 +867,15 @@ class BucketResampler(BaseResampler):
         data_arr = data.data
         if data.ndim == 3 and data.dims[0] == 'bands':
             dims = ('bands', 'y', 'x')
-        elif data.ndim == 2:
+        # Both one and two dimensional input data results in 2D output
+        elif data.ndim in (1, 2):
             dims = ('y', 'x')
         else:
             dims = data.dims
 
-        result = da.squeeze(self.compute(data_arr, **kwargs))
+        result = self.compute(data_arr, **kwargs)
+        if result.ndim > len(dims):
+            result = da.squeeze(result)
         result = xr.DataArray(result, dims=dims, coords=data.coords,
                               attrs=attrs)
         return result
