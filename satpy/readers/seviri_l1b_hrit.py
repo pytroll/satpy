@@ -213,7 +213,21 @@ class NoValidNavigationCoefs(Exception):
     pass
 
 
-class HRITMSGPrologueFileHandler(HRITFileHandler):
+class HRITMSGPrologueEpilogueBase(HRITFileHandler):
+    def __init__(self, filename, filename_info, filetype_info, hdr_info):
+        super(HRITMSGPrologueEpilogueBase, self).__init__(filename, filename_info, filetype_info, hdr_info)
+        self._reduced = None
+
+    def _reduce(self, mda, max_size):
+        if self._reduced is None:
+            self._reduced = utils.reduce_mda(mda, max_size=max_size)
+        return self._reduced
+
+    def reduce(self, max_size):
+        raise NotImplementedError
+
+
+class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
     """SEVIRI HRIT prologue reader.
     """
 
@@ -228,7 +242,6 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         self.prologue = {}
         self.read_prologue()
         self.satpos = None
-        self._reduced = None
 
         service = filename_info['service']
         if service == '':
@@ -337,12 +350,10 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         return a, b
 
     def reduce(self, max_size):
-        if self._reduced is None:
-            self._reduced = utils.reduce_mda(self.prologue, max_size=max_size)
-        return self._reduced
+        return self._reduce(self.prologue, max_size=max_size)
 
 
-class HRITMSGEpilogueFileHandler(HRITFileHandler):
+class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
     """SEVIRI HRIT epilogue reader.
     """
 
@@ -356,7 +367,6 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
                                                           msg_text_headers))
         self.epilogue = {}
         self.read_epilogue()
-        self._reduced = None
 
         service = filename_info['service']
         if service == '':
@@ -373,9 +383,7 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
             self.epilogue.update(recarray2dict(data))
 
     def reduce(self, max_size):
-        if self._reduced is None:
-            self._reduced = utils.reduce_mda(self.epilogue, max_size=max_size)
-        return self._reduced
+        return self._reduce(self.epilogue, max_size=max_size)
 
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
