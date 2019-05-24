@@ -40,6 +40,9 @@ Resampling algorithms
     "ewa", "Elliptical Weighted Averaging", :class:`~satpy.resample.EWAResampler`
     "native", "Native", :class:`~satpy.resample.NativeResampler`
     "bilinear", "Bilinear", :class:`~satpy.resample.BilinearResampler`
+    "bucket_avg", "Average Bucket Resampling", :class:`~satpy.resample.BucketResampler`
+    "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.BucketSum`
+    "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.BucketCount`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
@@ -826,7 +829,11 @@ class NativeResampler(BaseResampler):
 
 
 class BucketResampler(BaseResampler):
-    """Base class for bucket resampling which implements averaging."""
+    """Base class for bucket resampling which implements averaging.
+
+    Bucket resampling calculates the average of all the values that
+    are closest to each bin and inside the target area.
+    """
 
     def __init__(self, source_geo_def, target_geo_def):
         super(BucketResampler, self).__init__(source_geo_def, target_geo_def)
@@ -882,7 +889,11 @@ class BucketResampler(BaseResampler):
 
 
 class BucketSum(BucketResampler):
-    """Class for bucket resampling which implements accumulation (sum)."""
+    """Class for bucket resampling which implements accumulation (sum).
+
+    This resampler calculates the cumulative sum of all the values
+    that are closest to each bin and inside the target area.
+    """
 
     def compute(self, data, **kwargs):
         """Call the resampling."""
@@ -900,7 +911,11 @@ class BucketSum(BucketResampler):
 
 
 class BucketCount(BucketResampler):
-    """Class for bucket resampling which implements hit-counting."""
+    """Class for bucket resampling which implements hit-counting.
+
+    This resampler calculates the number of occurences of the input
+    data closest to each bin and inside the target area.
+    """
 
     def compute(self, data, **kwargs):
         """Call the resampling."""
