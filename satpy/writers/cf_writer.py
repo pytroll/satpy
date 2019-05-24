@@ -362,10 +362,10 @@ class AttributeEncoder(json.JSONEncoder):
 
 
 def _encode_nc(obj):
-    """Encode an arbitrary object in a netcdf compatible datatype
+    """Try to encode `obj` as a netcdf compatible datatype which most closely resembles the object's nature.
 
     Raises:
-        ValueError if no netcdf compatible datatype could be found
+        ValueError if no such datatype could be found
     """
     if isinstance(obj, (bool, np.bool_)):
         # Bool has to be checked first, because it is a subclass of int
@@ -391,9 +391,10 @@ def _encode_nc(obj):
 
 
 def encode_nc(obj):
-    """Encode an arbitrary object in a netcdf compatible datatype
+    """Encode the given object as a netcdf compatible datatype.
 
-    Try to find the best matching datatype. If that fails, encode as a string. Plain lists are encoded recursively.
+    Try to find the datatype which most closely resembles the object's nature. If that fails, encode as a string.
+    Plain lists are encoded recursively.
     """
     if isinstance(obj, (list, tuple)) and all([not isinstance(item, (list, tuple)) for item in obj]):
         return [encode_nc(item) for item in obj]
