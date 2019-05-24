@@ -103,6 +103,7 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
         self.assertNotIn('_FillValue', res.attrs)
         self.assertEqual(res.attrs['standard_name'],
                          'toa_brightness_temperature')
+        self.assertEqual(res.attrs['long_name'], 'Brightness Temperature')
 
 
 class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
@@ -186,6 +187,8 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
         self.assertNotIn('_FillValue', res.attrs)
         self.assertEqual(res.attrs['standard_name'],
                          'toa_bidirectional_reflectance')
+        self.assertEqual(res.attrs['long_name'],
+                         'Bidirectional Reflectance')
 
 
 class Test_NC_ABI_L1B_area(unittest.TestCase):
