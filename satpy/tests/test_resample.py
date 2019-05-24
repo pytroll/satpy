@@ -654,6 +654,9 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestEWAResampler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestHLResample))
     mysuite.addTest(loader.loadTestsFromTestCase(TestBilinearResampler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketResampler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketSum))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketCount))
 
     return mysuite
 
