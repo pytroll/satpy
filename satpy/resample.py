@@ -833,6 +833,13 @@ class BucketResampler(BaseResampler):
 
     Bucket resampling calculates the average of all the values that
     are closest to each bin and inside the target area.
+
+    Parameters
+    ----------
+    fill_value : float (default: np.nan)
+        Fill value for missing data
+    mask_all_nans : boolean (default: False)
+        Mask all locations with all-NaN values
     """
 
     def __init__(self, source_geo_def, target_geo_def):
@@ -847,16 +854,18 @@ class BucketResampler(BaseResampler):
                                                 source_lons,
                                                 source_lats)
 
-    def compute(self, data, fill_value=np.nan, **kwargs):
+    def compute(self, data, fill_value=np.nan, mask_all_nan=False, **kwargs):
         """Call the resampling."""
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
                 res = self.resampler.get_average(data[i, :, :],
-                                                 fill_value=fill_value)
+                                                 fill_value=fill_value,
+                                                 mask_all_nan=mask_all_nan)
                 results.append(res)
         else:
-            res = self.resampler.get_average(data, fill_value=fill_value)
+            res = self.resampler.get_average(data, fill_value=fill_value,
+                                             mask_all_nan=mask_all_nan)
             results.append(res)
 
         return da.stack(results)
@@ -893,18 +902,26 @@ class BucketSum(BucketResampler):
 
     This resampler calculates the cumulative sum of all the values
     that are closest to each bin and inside the target area.
+
+    Parameters
+    ----------
+    fill_value : float (default: np.nan)
+        Fill value for missing data
+    mask_all_nans : boolean (default: False)
+        Mask all locations with all-NaN values
     """
 
-    def compute(self, data, **kwargs):
+    def compute(self, data, mask_all_nan=False, **kwargs):
         """Call the resampling."""
         LOG.debug("Resampling %s", str(data.name))
         results = []
         if data.ndim == 3:
             for i in range(data.shape[0]):
-                res = self.resampler.get_sum(data[i, :, :])
+                res = self.resampler.get_sum(data[i, :, :],
+                                             mask_all_nan=mask_all_nan)
                 results.append(res)
         else:
-            res = self.resampler.get_sum(data)
+            res = self.resampler.get_sum(data, mask_all_nan=mask_all_nan)
             results.append(res)
 
         return da.stack(results)
