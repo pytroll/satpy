@@ -193,6 +193,7 @@ class NC_ABI_L1B(BaseFileHandler):
         res = data * factor
         res.attrs = data.attrs
         res.attrs['units'] = '1'
+        res.attrs['long_name'] = 'Bidirectional Reflectance'
         res.attrs['standard_name'] = 'toa_bidirectional_reflectance'
         return res
 
@@ -206,6 +207,7 @@ class NC_ABI_L1B(BaseFileHandler):
         res = (fk2 / np.log(fk1 / data + 1) - bc1) / bc2
         res.attrs = data.attrs
         res.attrs['units'] = 'K'
+        res.attrs['long_name'] = 'Brightness Temperature'
         res.attrs['standard_name'] = 'toa_brightness_temperature'
         return res
 

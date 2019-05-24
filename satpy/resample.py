@@ -378,7 +378,7 @@ class KDTreeResampler(BaseResampler):
         if kwargs.get('mask') in self._index_caches:
             self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
         elif cache_dir:
-            cache = np.load(filename, mmap_mode='r')
+            cache = np.load(filename, mmap_mode='r', allow_pickle=True)
             # copy the dict so we can modify it's keys
             new_cache = dict(cache.items())
             cache.close()

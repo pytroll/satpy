@@ -1124,7 +1124,25 @@ class Scene(MetadataObject):
         return new_scn
 
     def show(self, dataset_id, overlay=None):
-        """Show the *dataset* on screen as an image."""
+        """Show the *dataset* on screen as an image.
+
+        Show dataset on screen as an image, possibly with an overlay.
+
+        Args:
+            dataset_id (DatasetID or str):
+                Either a DatasetID or a string representing a DatasetID, that
+                has been previously loaded using Scene.load.
+            overlay (dict, optional):
+                Add an overlay before showing the image.  The keys/values for
+                this dictionary are as the arguments for
+                :meth:`~satpy.writers.add_overlay`.  The dictionary should
+                contain at least the key ``"coast_dir"``, which should refer
+                to a top-level directory containing shapefiles.  See the
+                pycoast_ package documentation for coastline shapefile
+                installation instructions.
+
+        .. _pycoast: https://pycoast.readthedocs.io/
+        """
         from satpy.writers import get_enhanced_image
         from satpy.utils import in_ipynb
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
