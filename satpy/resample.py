@@ -40,7 +40,7 @@ Resampling algorithms
     "ewa", "Elliptical Weighted Averaging", :class:`~satpy.resample.EWAResampler`
     "native", "Native", :class:`~satpy.resample.NativeResampler`
     "bilinear", "Bilinear", :class:`~satpy.resample.BilinearResampler`
-    "bucket_avg", "Average Bucket Resampling", :class:`~satpy.resample.BucketResampler`
+    "bucket_avg", "Average Bucket Resampling", :class:`~satpy.resample.BucketAvg`
     "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.BucketSum`
     "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.BucketCount`
 
@@ -828,22 +828,12 @@ class NativeResampler(BaseResampler):
                             coords=coords or None)
 
 
-class BucketResampler(BaseResampler):
+class BucketResamplerBase(BaseResampler):
     """Base class for bucket resampling which implements averaging.
-
-    Bucket resampling calculates the average of all the values that
-    are closest to each bin and inside the target area.
-
-    Parameters
-    ----------
-    fill_value : float (default: np.nan)
-        Fill value for missing data
-    mask_all_nans : boolean (default: False)
-        Mask all locations with all-NaN values
     """
 
     def __init__(self, source_geo_def, target_geo_def):
-        super(BucketResampler, self).__init__(source_geo_def, target_geo_def)
+        super(BucketResamplerBase, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
 
     def precompute(self, **kwargs):
@@ -854,21 +844,9 @@ class BucketResampler(BaseResampler):
                                                 source_lons,
                                                 source_lats)
 
-    def compute(self, data, fill_value=np.nan, mask_all_nan=False, **kwargs):
+    def compute(self, data, **kwargs):
         """Call the resampling."""
-        results = []
-        if data.ndim == 3:
-            for i in range(data.shape[0]):
-                res = self.resampler.get_average(data[i, :, :],
-                                                 fill_value=fill_value,
-                                                 mask_all_nan=mask_all_nan)
-                results.append(res)
-        else:
-            res = self.resampler.get_average(data, fill_value=fill_value,
-                                             mask_all_nan=mask_all_nan)
-            results.append(res)
-
-        return da.stack(results)
+        raise NotImplementedError("Use the sub-classes")
 
     def resample(self, data, **kwargs):
         """Resample `data` by calling `precompute` and `compute` methods.
@@ -897,7 +875,38 @@ class BucketResampler(BaseResampler):
         return result
 
 
-class BucketSum(BucketResampler):
+class BucketAvg(BucketResamplerBase):
+    """Class for averaging bucket resampling.
+
+    Bucket resampling calculates the average of all the values that
+    are closest to each bin and inside the target area.
+
+    Parameters
+    ----------
+    fill_value : float (default: np.nan)
+        Fill value for missing data
+    mask_all_nans : boolean (default: False)
+        Mask all locations with all-NaN values
+    """
+
+    def compute(self, data, fill_value=np.nan, mask_all_nan=False, **kwargs):
+        """Call the resampling."""
+        results = []
+        if data.ndim == 3:
+            for i in range(data.shape[0]):
+                res = self.resampler.get_average(data[i, :, :],
+                                                 fill_value=fill_value,
+                                                 mask_all_nan=mask_all_nan)
+                results.append(res)
+        else:
+            res = self.resampler.get_average(data, fill_value=fill_value,
+                                             mask_all_nan=mask_all_nan)
+            results.append(res)
+
+        return da.stack(results)
+
+
+class BucketSum(BucketResamplerBase):
     """Class for bucket resampling which implements accumulation (sum).
 
     This resampler calculates the cumulative sum of all the values
@@ -927,7 +936,7 @@ class BucketSum(BucketResampler):
         return da.stack(results)
 
 
-class BucketCount(BucketResampler):
+class BucketCount(BucketResamplerBase):
     """Class for bucket resampling which implements hit-counting.
 
     This resampler calculates the number of occurences of the input
@@ -954,7 +963,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "ewa": EWAResampler,
               "bilinear": BilinearResampler,
               "native": NativeResampler,
-              "bucket_avg": BucketResampler,
+              "bucket_avg": BucketAvg,
               "bucket_sum": BucketSum,
               "bucket_count": BucketCount,
               }
