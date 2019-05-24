@@ -479,6 +479,99 @@ class TestBilinearResampler(unittest.TestCase):
             shutil.rmtree(the_dir)
 
 
+class TestBucketResampler(unittest.TestCase):
+    """Test the bucket resamplers."""
+
+    def setUp(self):
+        from satpy.resample import BucketResampler
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketResampler(self.source_geo_def, self.target_geo_def)
+
+    def test_init(self):
+        """Test bucket resampler initialization"""
+        self.assertIsNone(self.bucket.resampler)
+        self.assertTrue(self.bucket.source_geo_def == self.source_geo_def)
+        self.assertTrue(self.bucket.target_geo_def == self.target_geo_def)
+
+    @mock.patch('pyresample.bucket.BucketResampler')
+    def test_precompute(self, bucket):
+        """Test bucket resampler precomputation"""
+        bucket.return_value = True
+        self.bucket.precompute()
+        self.assertTrue(self.bucket.resampler)
+        bucket.assert_called_once_with(self.target_geo_def, 1, 2)
+
+    def test_compute(self):
+        """Test bucket resampler computation."""
+        import dask.array as da
+        # 1D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5,))
+        self.bucket.resampler.get_average.return_value = data
+        res = self.bucket.compute(data, fill_value=2)
+        self.bucket.resampler.get_average.assert_called_once_with(data,
+                                                                  fill_value=2)
+        self.assertEqual(res.shape, (1, 5))
+        # 2D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5, 5))
+        self.bucket.resampler.get_average.return_value = data
+        res = self.bucket.compute(data, fill_value=2)
+        self.bucket.resampler.get_average.assert_called_once_with(data,
+                                                                  fill_value=2)
+        self.assertEqual(res.shape, (1, 5, 5))
+        # 3D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((3, 5, 5))
+        self.bucket.resampler.get_average.return_value = data[0, :, :]
+        res = self.bucket.compute(data, fill_value=2)
+        self.assertEqual(res.shape, (3, 5, 5))
+
+    @mock.patch('pyresample.bucket.BucketResampler')
+    def test_resample(self, pyresample_bucket):
+        """Test bucket resamplers resample method."""
+        import xarray as xr
+        import dask.array as da
+        self.bucket.resampler = mock.MagicMock()
+        self.bucket.precompute = mock.MagicMock()
+        self.bucket.compute = mock.MagicMock()
+
+        # 1D input data
+        data = xr.DataArray(da.ones((5,)), dims=('foo'), attrs={'bar': 'baz'})
+        self.bucket.compute.return_value = da.ones((5, 5))
+        res = self.bucket.resample(data)
+        self.bucket.precompute.assert_called_once()
+        self.bucket.compute.assert_called_once()
+        self.assertEqual(res.shape, (5, 5))
+        self.assertEqual(res.dims, ('y', 'x'))
+        self.assertTrue('bar' in res.attrs)
+        self.assertEqual(res.attrs['bar'], 'baz')
+
+        # 2D input data
+        data = xr.DataArray(da.ones((5, 5)), dims=('foo', 'bar'))
+        self.bucket.compute.return_value = da.ones((5, 5))
+        res = self.bucket.resample(data)
+        self.assertEqual(res.shape, (5, 5))
+        self.assertEqual(res.dims, ('y', 'x'))
+
+        # 3D input data with 'bands' dim
+        data = xr.DataArray(da.ones((1, 5, 5)), dims=('bands', 'foo', 'bar'))
+        self.bucket.compute.return_value = da.ones((1, 5, 5))
+        res = self.bucket.resample(data)
+        self.assertEqual(res.shape, (1, 5, 5))
+        self.assertEqual(res.dims, ('bands', 'y', 'x'))
+
+        # 3D input data with misc dim names
+        data = xr.DataArray(da.ones((3, 5, 5)), dims=('foo', 'bar', 'baz'))
+        self.bucket.compute.return_value = da.ones((3, 5, 5))
+        res = self.bucket.resample(data)
+        self.assertEqual(res.shape, (3, 5, 5))
+        self.assertEqual(res.dims, ('foo', 'bar', 'baz'))
+
+
 def suite():
     """The test suite for test_scene.
     """
