@@ -479,16 +479,16 @@ class TestBilinearResampler(unittest.TestCase):
             shutil.rmtree(the_dir)
 
 
-class TestBucketResampler(unittest.TestCase):
+class TestBucketAvg(unittest.TestCase):
     """Test the bucket resampler."""
 
     def setUp(self):
-        from satpy.resample import BucketResampler
+        from satpy.resample import BucketAvg
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
         self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
         self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
-        self.bucket = BucketResampler(self.source_geo_def, self.target_geo_def)
+        self.bucket = BucketAvg(self.source_geo_def, self.target_geo_def)
 
     def test_init(self):
         """Test bucket resampler initialization"""
@@ -512,16 +512,20 @@ class TestBucketResampler(unittest.TestCase):
         data = da.ones((5,))
         self.bucket.resampler.get_average.return_value = data
         res = self.bucket.compute(data, fill_value=2)
-        self.bucket.resampler.get_average.assert_called_once_with(data,
-                                                                  fill_value=2)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
         self.assertEqual(res.shape, (1, 5))
         # 2D data
         self.bucket.resampler = mock.MagicMock()
         data = da.ones((5, 5))
         self.bucket.resampler.get_average.return_value = data
         res = self.bucket.compute(data, fill_value=2)
-        self.bucket.resampler.get_average.assert_called_once_with(data,
-                                                                  fill_value=2)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
         self.assertEqual(res.shape, (1, 5, 5))
         # 3D data
         self.bucket.resampler = mock.MagicMock()
@@ -591,14 +595,18 @@ class TestBucketSum(unittest.TestCase):
         data = da.ones((5,))
         self.bucket.resampler.get_sum.return_value = data
         res = self.bucket.compute(data)
-        self.bucket.resampler.get_sum.assert_called_once_with(data)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            mask_all_nan=False)
         self.assertEqual(res.shape, (1, 5))
         # 2D data
         self.bucket.resampler = mock.MagicMock()
         data = da.ones((5, 5))
         self.bucket.resampler.get_sum.return_value = data
         res = self.bucket.compute(data)
-        self.bucket.resampler.get_sum.assert_called_once_with(data)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            mask_all_nan=False)
         self.assertEqual(res.shape, (1, 5, 5))
         # 3D data
         self.bucket.resampler = mock.MagicMock()
@@ -654,7 +662,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestEWAResampler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestHLResample))
     mysuite.addTest(loader.loadTestsFromTestCase(TestBilinearResampler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketResampler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketAvg))
     mysuite.addTest(loader.loadTestsFromTestCase(TestBucketSum))
     mysuite.addTest(loader.loadTestsFromTestCase(TestBucketCount))
 
