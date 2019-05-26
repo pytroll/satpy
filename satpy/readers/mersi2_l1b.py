@@ -54,13 +54,13 @@ class MERSI2L1B(HDF5FileHandler):
         return self._strptime('/attr/Observing Ending Date', '/attr/Observing Ending Time')
 
     @property
-    def sensor_names(self):
+    def sensor_name(self):
         """Map sensor name to Satpy 'standard' sensor names."""
         file_sensor = self['/attr/Sensor Identification Code']
         sensor = {
             'MERSI': 'mersi2',
         }.get(file_sensor, file_sensor)
-        return {sensor}  # set
+        return sensor
 
     def _get_coefficients(self, cal_key, cal_index):
         coeffs = self[cal_key][cal_index]
@@ -96,11 +96,14 @@ class MERSI2L1B(HDF5FileHandler):
         if dataset_id.calibration == 'counts':
             # preserve integer type of counts if possible
             attrs['_FillValue'] = fill_value
+            new_fill = fill_value
+        else:
+            new_fill = np.nan
         if valid_range is not None:
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
             data = data.where((data >= valid_range[0]) &
-                              (data <= valid_range[1]), fill_value)
+                              (data <= valid_range[1]), new_fill)
 
         slope = attrs.pop('Slope', None)
         intercept = attrs.pop('Intercept', None)
@@ -158,7 +161,7 @@ class MERSI2L1B(HDF5FileHandler):
 
         data.attrs.update({
             'platform_name': self['/attr/Satellite Name'],
-            'sensor': self.sensor_names,
+            'sensor': self.sensor_name,
         })
 
         return data

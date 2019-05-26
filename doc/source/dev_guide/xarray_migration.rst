@@ -115,15 +115,13 @@ numpy arrays, with the exception that using an operator on two DataArrays
 requires both arrays to share the same dimensions, and coordinates if those
 are defined.
 
-For mathematical functions like cos or log, use the
-:ref:`ufuncs <xarray:api.ufuncs>` module:
+For mathematical functions like cos or log, you can use numpy functions
+directly and they will return a DataArray object:
 
 .. code-block:: python
 
-    import xarray.ufuncs as xu
-    cos_zen = xu.cos(zen_xarray)
-
-Note that the ``xu.something`` function also work on numpy arrays.
+    import numpy as np
+    cos_zen = np.cos(zen_xarray)
 
 Masking data
 ************

@@ -1,3 +1,97 @@
+## Version 0.15.2 (2019/05/22)
+
+### Issues Closed
+
+* [Issue 785](https://github.com/pytroll/satpy/issues/785) - Loading cache for resampling scene fails with numpy 1.16.3 ([PR 787](https://github.com/pytroll/satpy/pull/787))
+* [Issue 777](https://github.com/pytroll/satpy/issues/777) - Log warning and error messages are not printed to console ([PR 778](https://github.com/pytroll/satpy/pull/778))
+* [Issue 776](https://github.com/pytroll/satpy/issues/776) - africa projection yields CRSError when saving dataset ([PR 780](https://github.com/pytroll/satpy/pull/780))
+* [Issue 774](https://github.com/pytroll/satpy/issues/774) - ABI Level 1b long_name when reflectances and brightness temperatures are calculated
+* [Issue 766](https://github.com/pytroll/satpy/issues/766) - MODIS l1b reader seems to switch latitude and longitude for 500m data ([PR 781](https://github.com/pytroll/satpy/pull/781))
+* [Issue 742](https://github.com/pytroll/satpy/issues/742) - GOES16/17 netcdf reader fails with rasterio installed
+* [Issue 649](https://github.com/pytroll/satpy/issues/649) - Make MTG-I reader work ([PR 755](https://github.com/pytroll/satpy/pull/755))
+* [Issue 466](https://github.com/pytroll/satpy/issues/466) - Fix deprecation warnings with xarray, dask, and numpy
+* [Issue 449](https://github.com/pytroll/satpy/issues/449) - Adding coastlines to single channel not working
+
+In this release 9 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 787](https://github.com/pytroll/satpy/pull/787) - Loading resample cache with numpy 1.16.3 ([785](https://github.com/pytroll/satpy/issues/785))
+* [PR 781](https://github.com/pytroll/satpy/pull/781) - Fix longitude/latitude being swapped in modis readers ([766](https://github.com/pytroll/satpy/issues/766))
+* [PR 780](https://github.com/pytroll/satpy/pull/780) - Fix builtin areas to be compatible with rasterio ([776](https://github.com/pytroll/satpy/issues/776))
+* [PR 778](https://github.com/pytroll/satpy/pull/778) - Fix NullHandler not allowing warning/error logs to be printed to console ([777](https://github.com/pytroll/satpy/issues/777))
+* [PR 775](https://github.com/pytroll/satpy/pull/775) - Fix 'abi_l1b' reader not updating long_name when calibrating
+* [PR 770](https://github.com/pytroll/satpy/pull/770) - Fix typo for mersi2/abi/ahi using bidirection instead of bidirectional
+* [PR 763](https://github.com/pytroll/satpy/pull/763) - Fix AVHRR tests importing external mock on Python 3
+* [PR 760](https://github.com/pytroll/satpy/pull/760) - Avoid leaking file objects in NetCDF4FileHandler
+
+#### Features added
+
+* [PR 759](https://github.com/pytroll/satpy/pull/759) - Fix the avhrr_l1b_gaclac to support angles, units and avhrr variants
+* [PR 755](https://github.com/pytroll/satpy/pull/755) - Update MTG FCI FDHSI L1C reader for latest data format ([649](https://github.com/pytroll/satpy/issues/649))
+* [PR 470](https://github.com/pytroll/satpy/pull/470) - Switched `xarray.unfuncs` to `numpy`
+
+#### Documentation changes
+
+* [PR 773](https://github.com/pytroll/satpy/pull/773) - Improve Scene.show documentation
+* [PR 771](https://github.com/pytroll/satpy/pull/771) - Update pull request template to include AUTHORS and flake8 changes
+
+In this release 13 pull requests were closed.
+
+
+## Version 0.15.1 (2019/05/10)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 761](https://github.com/pytroll/satpy/pull/761) - Fix mersi2_l1b reader setting sensor as a set object
+
+In this release 1 pull request was closed.
+
+
+## Version 0.15.0 (2019/05/10)
+
+### Issues Closed
+
+* [Issue 758](https://github.com/pytroll/satpy/issues/758) - RuntimeError with NetCDF4FileHandler
+* [Issue 730](https://github.com/pytroll/satpy/issues/730) - Rewrite introduction paragraph in documentation ([PR 747](https://github.com/pytroll/satpy/pull/747))
+* [Issue 725](https://github.com/pytroll/satpy/issues/725) - Update 'viirs_edr_active_fires' reader to read newest algorithm output ([PR 733](https://github.com/pytroll/satpy/pull/733))
+* [Issue 706](https://github.com/pytroll/satpy/issues/706) - Add reader for FY3D MERSI2 L1B data ([PR 740](https://github.com/pytroll/satpy/pull/740))
+* [Issue 434](https://github.com/pytroll/satpy/issues/434) - Allow readers to filter the available datasets configured in YAML ([PR 739](https://github.com/pytroll/satpy/pull/739))
+
+In this release 5 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 757](https://github.com/pytroll/satpy/pull/757) - Fix MODIS L1B and L2 readers not reading geolocation properly
+* [PR 754](https://github.com/pytroll/satpy/pull/754) - Fix optional modifier dependencies being unloaded for delayed composites
+* [PR 750](https://github.com/pytroll/satpy/pull/750) - Add missing warnings import to geotiff writer
+
+#### Features added
+
+* [PR 752](https://github.com/pytroll/satpy/pull/752) - Add scanline timestamps to seviri_l1b_hrit
+* [PR 740](https://github.com/pytroll/satpy/pull/740) - Add FY-3D MERSI-2 L1B Reader (mersi2_l1b) ([706](https://github.com/pytroll/satpy/issues/706))
+* [PR 739](https://github.com/pytroll/satpy/pull/739) - Refactor available datasets logic to be more flexible ([434](https://github.com/pytroll/satpy/issues/434))
+* [PR 738](https://github.com/pytroll/satpy/pull/738) - Remove unused area slice-based filtering in the base reader
+* [PR 733](https://github.com/pytroll/satpy/pull/733) - Update VIIRS EDR Active Fires ([725](https://github.com/pytroll/satpy/issues/725))
+* [PR 728](https://github.com/pytroll/satpy/pull/728) - Add VIIRS Fire Temperature rgb
+* [PR 711](https://github.com/pytroll/satpy/pull/711) - Replace usage of deprecated get_proj_coords_dask
+* [PR 611](https://github.com/pytroll/satpy/pull/611) - Add MODIS L2 reader
+* [PR 580](https://github.com/pytroll/satpy/pull/580) - Allow colormaps to be saved with geotiff writer
+* [PR 532](https://github.com/pytroll/satpy/pull/532) - Add enhancement for VIIRS flood reader
+
+#### Documentation changes
+
+* [PR 747](https://github.com/pytroll/satpy/pull/747) - Update index page introduction ([730](https://github.com/pytroll/satpy/issues/730))
+
+In this release 14 pull requests were closed.
+
+
 ## Version 0.14.2 (2019/04/25)
 
 ### Issues Closed
