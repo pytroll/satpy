@@ -71,8 +71,14 @@ class HDF_AGRI_L1(HDF5FileHandler):
             logger.debug("Calibrating to reflectances")
             # using the corresponding SCALE and OFFSET
             cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
-            slope = self.get(cal_coef)[:, 0][int(file_key[-2:])-1].values
-            offset = self.get(cal_coef)[:, 1][int(file_key[-2:])-1].values
+            num_channel = self.get(cal_coef).shape[0]
+            if num_channel == 1:
+                # only channel_2, resolution = 500 m
+                slope = self.get(cal_coef)[:, 0].values
+                offset = self.get(cal_coef)[:, 1].values
+            else:
+                slope = self.get(cal_coef)[:, 0][int(file_key[-2:])-1].values
+                offset = self.get(cal_coef)[:, 1][int(file_key[-2:])-1].values
             data = self.dn2reflectance(data, slope, offset)
             ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset) * 100
 
