@@ -44,7 +44,7 @@ import warnings
 from pyresample import geometry
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import get_geostationary_mask, np2str
+from satpy.readers.utils import get_geostationary_mask, np2str, get_earth_radius
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -116,8 +116,8 @@ _NAV_INFO_TYPE = np.dtype([("hblock_number", "u1"),
                            ("SSP_longitude", "f8"),
                            ("SSP_latitude", "f8"),
                            ("distance_earth_center_to_satellite", "f8"),
-                           ("nadir_latitude", "f8"),
                            ("nadir_longitude", "f8"),
+                           ("nadir_latitude", "f8"),
                            ("sun_position", "f8", (3,)),
                            ("moon_position", "f8", (3,)),
                            ("spare", "S40"),
@@ -505,22 +505,37 @@ class AHIHSDFileHandler(BaseFileHandler):
         # Calibrate
         res = self.calibrate(res, key.calibration)
 
+        # Get navigation info. For altitude use the ellipsoid radius at the actual SSP.
+        actual_lon = float(self.nav_info['SSP_longitude'])
+        actual_lat = float(self.nav_info['SSP_latitude'])
+        re = get_earth_radius(lon=actual_lon, lat=actual_lat,
+                              a=float(self.proj_info['earth_equatorial_radius'] * 1000),
+                              b=float(self.proj_info['earth_polar_radius'] * 1000))
+        actual_alt = float(self.nav_info['distance_earth_center_to_satellite']) * 1000 - re
+
         # Update metadata
-        new_info = dict(units=info['units'],
-                        standard_name=info['standard_name'],
-                        wavelength=info['wavelength'],
-                        resolution='resolution',
-                        id=key,
-                        name=key.name,
-                        scheduled_time=self.scheduled_time,
-                        platform_name=self.platform_name,
-                        sensor=self.sensor,
-                        satellite_longitude=float(
-                            self.nav_info['SSP_longitude']),
-                        satellite_latitude=float(
-                            self.nav_info['SSP_latitude']),
-                        satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
-                                                 self.proj_info['earth_equatorial_radius']) * 1000)
+        new_info = dict(
+            units=info['units'],
+            standard_name=info['standard_name'],
+            wavelength=info['wavelength'],
+            resolution='resolution',
+            id=key,
+            name=key.name,
+            scheduled_time=self.scheduled_time,
+            platform_name=self.platform_name,
+            sensor=self.sensor,
+            satellite_longitude=float(self.nav_info['SSP_longitude']),
+            satellite_latitude=float(self.nav_info['SSP_latitude']),
+            satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
+                                     self.proj_info['earth_equatorial_radius']) * 1000,
+            projection={'satellite_longitude': float(self.proj_info['sub_lon']),
+                        'satellite_latitude': 0.,
+                        'satellite_altitude': float(self.proj_info['distance_from_earth_center'] -
+                                                    self.proj_info['earth_equatorial_radius']) * 1000},
+            navigation={'satellite_actual_longitude': actual_lon,
+                        'satellite_actual_latitude': actual_lat,
+                        'satellite_actual_altitude': actual_alt}
+        )
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
 
         # Mask space pixels
