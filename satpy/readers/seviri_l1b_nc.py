@@ -20,7 +20,12 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI netcdf format reader. """
+"""SEVIRI netcdf format reader.
+
+References:
+    MSG Level 1.5 Image Data Format Description
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+"""
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
@@ -183,6 +188,9 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         column_step = self.nc.attrs['vis_ir_column_dir_grid_step'] * 1000.0
 
         line_step = self.nc.attrs['vis_ir_line_dir_grid_step'] * 1000.0
+
+        # check for Earth model as this affects the north-south and
+        # west-east offsets
         # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
         earth_model = int(self.nc.attrs['type_of_earth_model'], 16)
         if earth_model == 2:
