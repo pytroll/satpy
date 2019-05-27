@@ -97,6 +97,19 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                                       'satellite_longitude',
                                       'satellite_latitude',
                                       'satellite_altitude'))
+        navs = [info.get('navigation', {}) for info in all_infos]
+        projs = [info.get('projection', {}) for info in all_infos]
+        new_dict['navigation'] = self._combine(navs, np.mean,
+                                               'satellite_actual_longitude',
+                                               'satellite_actual_latitude',
+                                               'satellite_actual_altitude',
+                                               'satellite_nominal_longitude',
+                                               'satellite_nominal_latitude',
+                                               'satellite_nominal_altitude')
+        new_dict['projection'] = self._combine(projs, np.mean,
+                                               'satellite_longitude',
+                                               'satellite_latitude',
+                                               'satellite_altitude')
 
         try:
             area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
