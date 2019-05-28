@@ -82,7 +82,7 @@ class HDF5FileHandler(BaseFileHandler):
             dset_data = da.from_array(dset, chunks=CHUNK_SIZE)
             if dset.ndim == 2:
                 return xr.DataArray(dset_data, dims=['y', 'x'], attrs=dset.attrs)
-            return xr.DataArray(dset_data)
+            return xr.DataArray(dset_data, attrs=dset.attrs)
 
         return val
 
