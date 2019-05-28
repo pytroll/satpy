@@ -864,7 +864,7 @@ class BucketResamplerBase(BaseResampler):
             dims = data.dims
         coords = {}
         if 'bands' in data.coords:
-                coords['bands'] = data.coords['bands']
+            coords['bands'] = data.coords['bands']
         result = self.compute(data_arr, **kwargs)
         if result.ndim > len(dims):
             result = da.squeeze(result)
