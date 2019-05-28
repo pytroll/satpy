@@ -876,11 +876,18 @@ class BucketResamplerBase(BaseResampler):
             result = da.stack(new_result)
         if result.ndim > len(dims):
             result = da.squeeze(result)
-        attrs['units'] = None
-        attrs['standard_name'] = 'area_fraction'
-        attrs['calibration'] = None
+
+        # Adjust some attributes
+        if "BucketFraction" in str(self):
+            attrs['units'] = None
+            attrs['calibration'] = None
+            attrs['standard_name'] = 'area_fraction'
+        elif "BucketCount" in str(self):
+            attrs['units'] = None
+            attrs['calibration'] = None
+            attrs['standard_name'] = 'number_of_observations'
         attrs['projection'] = self.target_geo_def
-        attrs['navigation'] = None
+
         result = xr.DataArray(result, dims=dims, coords=coords,
                               attrs=attrs)
 
