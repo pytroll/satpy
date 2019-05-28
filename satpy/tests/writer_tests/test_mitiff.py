@@ -242,6 +242,68 @@ class TestMITIFFWriter(unittest.TestCase):
                            dims=data.dims, coords=data.coords)
         return ds1
 
+    def _get_test_dataset_calibration_one_dataset(self, bands=1):
+        """Helper function to create a single test dataset."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        from satpy import DatasetID
+        from satpy.scene import Scene
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        d = [DatasetID(name='4', calibration='brightness_temperature')]
+        scene = Scene()
+        scene["4"] = xr.DataArray(da.zeros((100, 200), chunks=50),
+                                  dims=('y', 'x'),
+                                  attrs={'calibration': 'brightness_temperature'})
+
+        # data = xr.concat(scene, 'bands', coords='minimal')
+        data = xr.concat(scene, 'bands', coords='minimal')
+        #bands = []
+        calibration = []
+        for p in scene:
+            calibration.append(p.attrs['calibration'])
+            #bands.append(p.attrs['name'])
+        #data['bands'] = list(bands)
+        new_attrs = {'name': 'datasets',
+                     'start_time': datetime.utcnow(),
+                     'platform_name': "TEST_PLATFORM_NAME",
+                     'sensor': 'test-sensor',
+                     'area': area_def,
+                     'prerequisites': d,
+                     'metadata_requirements': {
+                         'order': ['4'],
+                         'config': {
+                             '4': {'alias': '4-IR10.8',
+                                   'calibration': 'brightness_temperature',
+                                   'min-val': '-150',
+                                   'max-val': '50'},
+                         },
+                         'translate': {'1': '1',
+                                       '2': '2',
+                                       '3': '3',
+                                       '4': '4',
+                                       '5': '5',
+                                       '6': '6'
+                                       },
+                         'file_pattern': 'test-dataset-{start_time:%Y%m%d%H%M%S}.mitiff'
+                     }
+                     }
+        ds1 = xr.DataArray(data=data.data, attrs=new_attrs,
+                           dims=data.dims, coords=data.coords)
+        return ds1
+
     def test_init(self):
         """Test creating the writer with no arguments."""
         from satpy.writers.mitiff import MITIFFWriter
@@ -272,6 +334,13 @@ class TestMITIFFWriter(unittest.TestCase):
         """Test basic writer operation."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset_calibration()
+        w = MITIFFWriter(filename=dataset.attrs['metadata_requirements']['file_pattern'], base_dir=self.base_dir)
+        w.save_dataset(dataset)
+
+    def test_save_dataset_with_calibration_one_dataset(self):
+        """Test saving if mitiff as dataset with only one channel."""
+        from satpy.writers.mitiff import MITIFFWriter
+        dataset = self._get_test_dataset_calibration_one_dataset()
         w = MITIFFWriter(filename=dataset.attrs['metadata_requirements']['file_pattern'], base_dir=self.base_dir)
         w.save_dataset(dataset)
 
