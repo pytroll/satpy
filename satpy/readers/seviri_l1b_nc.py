@@ -126,6 +126,10 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         dataset.attrs.update(dataset_info)
         dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
         dataset.attrs['sensor'] = 'seviri'
+        dataset.attrs['projection'] = {'satellite_longitude': self.mda['projection_parameters']['ssp_longitude'],
+                                       'satellite_latitude': 0.,
+                                       'satellite_altitude': self.mda['projection_parameters']['h']}
+        dataset.attrs['navigation'] = {}
         return dataset
 
     def get_area_def(self, dataset_id):
