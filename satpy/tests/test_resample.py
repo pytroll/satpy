@@ -689,8 +689,7 @@ class TestBucketFraction(unittest.TestCase):
         # Too many dimensions
         data = da.ones((3, 5, 5))
         with self.assertRaises(ValueError):
-            res = self.bucket.compute(data)
-
+            _ = self.bucket.compute(data)
 
     @mock.patch('pyresample.bucket.BucketResampler')
     def test_resample(self, pyresample_bucket):
