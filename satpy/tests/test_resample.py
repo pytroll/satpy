@@ -674,13 +674,13 @@ class TestBucketFraction(unittest.TestCase):
         data = da.ones((3, 3))
 
         # No kwargs given
-        res = self.bucket.compute(data)
+        _ = self.bucket.compute(data)
         self.bucket.resampler.get_fractions.assert_called_with(
             data,
             categories=None,
             fill_value=np.nan)
-        # Custo kwargs
-        res = self.bucket.compute(data, categories=[1, 2], fill_value=0)
+        # Custom kwargs
+        _ = self.bucket.compute(data, categories=[1, 2], fill_value=0)
         self.bucket.resampler.get_fractions.assert_called_with(
             data,
             categories=[1, 2],
