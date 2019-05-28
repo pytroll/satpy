@@ -106,6 +106,17 @@ class TestBaseFileHandler(unittest.TestCase):
         self.assertTupleEqual(sdef.call_args[1]['lats'].shape, (2, 5))
         self.assertEqual(sdef.return_value.name, 'area1_area2')
 
+    def test_combine_projection_navigation(self):
+        """Combine projection and navigation attributes."""
+        info1 = {'projection': {'a': 1, 'b': 2, 'drop': 999},
+                 'navigation': {'c': 1, 'd': 2, 'drop': 999}}
+        info2 = {'projection': {'a': 2, 'b': 1},
+                 'navigation': {'c': 2, 'd': True}}
+        exp = {'projection': {'a': 1.5, 'b': 1.5},
+               'navigation': {'c': 1.5, 'd': 1.5}}
+        res = self.fh.combine_info([info1, info2])
+        self.assertDictEqual(res, exp)
+
     def tearDown(self):
         """Tear down the test."""
         BaseFileHandler.__abstractmethods__ = self._old_set
