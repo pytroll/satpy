@@ -321,7 +321,16 @@ class CompositeBase(MetadataObject):
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
 
-        return data_arrays
+        # Drop non-dimensional coordinates
+        new_arrays = []
+        for ds in data_arrays:
+            non_dimensional = [coord for coord in ds.coords if coord not in ds.dims]
+            if non_dimensional:
+                new_arrays.append(ds.drop(non_dimensional))
+            else:
+                new_arrays.append(ds)
+
+        return new_arrays
 
 
 class SunZenithCorrectorBase(CompositeBase):
