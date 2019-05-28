@@ -279,6 +279,28 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     def test_get_dataset_counts(self):
         """Test whether counts returned by get_dataset() are correct"""
+        from satpy.readers.goes_imager_nc import ALTITUDE, UNKNOWN_SECTOR
+
+        self.reader.meta.update({'lon0': -75.0,
+                                 'lat0': 0.0,
+                                 'sector': UNKNOWN_SECTOR,
+                                 'nadir_row': 1,
+                                 'nadir_col': 2,
+                                 'area_def_uni': 'some_area'})
+        attrs_exp = {'projection': {'satellite_longitude': -75.0,
+                                    'satellite_latitude': 0.0,
+                                    'satellite_altitude': ALTITUDE},
+                     'navigation': {'yaw_flip': True},
+                     'satellite_longitude': -75.0,
+                     'satellite_latitude': 0.0,
+                     'satellite_altitude': ALTITUDE,
+                     'platform_name': 'GOES-15',
+                     'sensor': 'goes_imager',
+                     'sector': UNKNOWN_SECTOR,
+                     'nadir_row': 1,
+                     'nadir_col': 2,
+                     'area_def_uniform_sampling': 'some_area'}
+
         for ch in self.channels:
             counts = self.reader.get_dataset(
                 key=DatasetID(name=ch, calibration='counts'), info={})
@@ -286,6 +308,9 @@ class GOESNCFileHandlerTest(unittest.TestCase):
             self.assertTrue(np.all(self.counts/32. == counts.to_masked_array()),
                             msg='get_dataset() returns invalid counts for '
                                 'channel {}'.format(ch))
+
+            # Check attributes
+            self.assertDictEqual(counts.attrs, attrs_exp)
 
     def test_get_dataset_masks(self):
         """Test whether data and coordinates are masked consistently"""
