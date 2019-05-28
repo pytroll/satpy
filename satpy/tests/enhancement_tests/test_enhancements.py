@@ -23,6 +23,7 @@
 """Unit testing the enhancements functions, e.g. cira_stretch
 """
 
+import os
 import unittest
 import numpy as np
 import xarray as xr
@@ -142,12 +143,178 @@ class TestEnhancementStretch(unittest.TestCase):
         pass
 
 
+class TestColormap(unittest.TestCase):
+    """Test utilities used with colormaps."""
+
+    def test_cmap_from_file_rgb(self):
+        """Test that colormaps can be loaded from a binary file."""
+        from satpy.enhancements import create_colormap
+        from tempfile import NamedTemporaryFile
+        # create the colormap file on disk
+        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
+            cmap_filename = tmp_cmap.name
+            np.save(cmap_filename, np.array([
+                [255, 0, 0],
+                [255, 255, 0],
+                [255, 255, 255],
+                [0, 0, 255],
+            ]))
+
+        try:
+            cmap = create_colormap({'filename': cmap_filename})
+            self.assertEqual(cmap.colors.shape[0], 4)
+            self.assertEqual(cmap.values.shape[0], 4)
+            self.assertEqual(cmap.values[0], 0)
+            self.assertEqual(cmap.values[-1], 0.75)
+
+            cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
+            self.assertEqual(cmap.colors.shape[0], 4)
+            self.assertEqual(cmap.values.shape[0], 4)
+            self.assertEqual(cmap.values[0], 50)
+            self.assertEqual(cmap.values[-1], 100)
+        finally:
+            os.remove(cmap_filename)
+
+    def test_cmap_from_file_vrgb(self):
+        """Test that colormaps can be loaded from a binary file with values."""
+        from satpy.enhancements import create_colormap
+        from tempfile import NamedTemporaryFile
+        # create the colormap file on disk
+        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
+            cmap_filename = tmp_cmap.name
+            np.save(cmap_filename, np.array([
+                [128, 255, 0, 0],
+                [130, 255, 255, 0],
+                [132, 255, 255, 255],
+                [134, 0, 0, 255],
+            ]))
+
+        try:
+            # default mode of VRGB
+            cmap = create_colormap({'filename': cmap_filename})
+            self.assertEqual(cmap.colors.shape[0], 4)
+            self.assertEqual(cmap.values.shape[0], 4)
+            self.assertEqual(cmap.values[0], 128)
+            self.assertEqual(cmap.values[-1], 134)
+
+            cmap = create_colormap({'filename': cmap_filename, 'colormap_mode': 'RGBA'})
+            self.assertEqual(cmap.colors.shape[0], 4)
+            self.assertEqual(cmap.colors.shape[1], 4)  # RGBA
+            self.assertEqual(cmap.values.shape[0], 4)
+            self.assertEqual(cmap.values[0], 0)
+            self.assertEqual(cmap.values[-1], 0.75)
+
+            cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
+            self.assertEqual(cmap.colors.shape[0], 4)
+            self.assertEqual(cmap.values.shape[0], 4)
+            self.assertEqual(cmap.values[0], 50)
+            self.assertEqual(cmap.values[-1], 100)
+
+            self.assertRaises(ValueError, create_colormap,
+                              {'filename': cmap_filename, 'colormap_mode': 'RGB',
+                               'min_value': 50, 'max_value': 100})
+        finally:
+            os.remove(cmap_filename)
+
+    def test_cmap_from_file_vrgba(self):
+        """Test that colormaps can be loaded RGBA colors and values."""
+        from satpy.enhancements import create_colormap
+        from tempfile import NamedTemporaryFile
+        # create the colormap file on disk
+        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
+            cmap_filename = tmp_cmap.name
+            np.save(cmap_filename, np.array([
+                [128, 128, 255, 0, 0],  # value, R, G, B, A
+                [130, 130, 255, 255, 0],
+                [132, 132, 255, 255, 255],
+                [134, 134, 0, 0, 255],
+            ]))
+
+        try:
+            # default mode of VRGBA
+            cmap = create_colormap({'filename': cmap_filename})
+            self.assertEqual(cmap.colors.shape[0], 4)
+            self.assertEqual(cmap.colors.shape[1], 4)  # RGBA
+            self.assertEqual(cmap.values.shape[0], 4)
+            self.assertEqual(cmap.values[0], 128)
+            self.assertEqual(cmap.values[-1], 134)
+
+            self.assertRaises(ValueError, create_colormap,
+                              {'filename': cmap_filename, 'colormap_mode': 'RGBA'})
+
+            cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
+            self.assertEqual(cmap.colors.shape[0], 4)
+            self.assertEqual(cmap.colors.shape[1], 4)
+            self.assertEqual(cmap.values.shape[0], 4)
+            self.assertEqual(cmap.values[0], 50)
+            self.assertEqual(cmap.values[-1], 100)
+        finally:
+            os.remove(cmap_filename)
+
+    def test_cmap_from_file_bad_shape(self):
+        """Test that unknown array shape causes an error."""
+        from satpy.enhancements import create_colormap
+        from tempfile import NamedTemporaryFile
+        # create the colormap file on disk
+        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
+            cmap_filename = tmp_cmap.name
+            np.save(cmap_filename, np.array([
+                [0],
+                [64],
+                [128],
+                [255],
+            ]))
+
+        try:
+            self.assertRaises(ValueError, create_colormap,
+                              {'filename': cmap_filename})
+        finally:
+            os.remove(cmap_filename)
+
+    def test_cmap_from_trollimage(self):
+        """Test that colormaps in trollimage can be loaded."""
+        from satpy.enhancements import create_colormap
+        cmap = create_colormap({'colors': 'pubu'})
+        from trollimage.colormap import pubu
+        np.testing.assert_equal(cmap.colors, pubu.colors)
+        np.testing.assert_equal(cmap.values, pubu.values)
+
+    def test_cmap_no_colormap(self):
+        """Test that being unable to create a colormap raises an error."""
+        from satpy.enhancements import create_colormap
+        self.assertRaises(ValueError, create_colormap, {})
+
+    def test_cmap_list(self):
+        """Test that colors can be a list/tuple."""
+        from satpy.enhancements import create_colormap
+        colors = [
+            [0, 0, 1],
+            [1, 0, 1],
+            [0, 1, 1],
+            [1, 1, 1],
+        ]
+        values = [2, 4, 6, 8]
+        cmap = create_colormap({'colors': colors})
+        self.assertEqual(cmap.colors.shape[0], 4)
+        self.assertEqual(cmap.values.shape[0], 4)
+        self.assertEqual(cmap.values[0], 0)
+        # self.assertEqual(cmap.values[-1], 0.75)
+        self.assertEqual(cmap.values[-1], 1.0)
+
+        cmap = create_colormap({'colors': colors, 'values': values})
+        self.assertEqual(cmap.colors.shape[0], 4)
+        self.assertEqual(cmap.values.shape[0], 4)
+        self.assertEqual(cmap.values[0], 2)
+        self.assertEqual(cmap.values[-1], 8)
+
+
 def suite():
     """The test suite for test_satin_helpers.
     """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestEnhancementStretch))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestColormap))
 
     return mysuite
 
