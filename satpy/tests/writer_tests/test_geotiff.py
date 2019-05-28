@@ -97,6 +97,19 @@ class TestGeoTIFFWriter(unittest.TestCase):
             if hasattr(target, 'close'):
                 target.close()
 
+    def test_colormap_write(self):
+        """Test writing an image with a colormap."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        from trollimage.xrimage import XRImage
+        from trollimage.colormap import spectral
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir)
+        # we'd have to customize enhancements to test this through
+        # save_datasets. We'll use `save_image` as a workaround.
+        img = XRImage(datasets[0])
+        img.palettize(spectral)
+        w.save_image(img, keep_palette=True)
+
     def test_float_write(self):
         """Test that geotiffs can be written as floats.
 

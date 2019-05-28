@@ -28,7 +28,6 @@ from datetime import datetime
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 
 from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
@@ -194,6 +193,7 @@ class NC_ABI_L1B(BaseFileHandler):
         res = data * factor
         res.attrs = data.attrs
         res.attrs['units'] = '1'
+        res.attrs['long_name'] = 'Bidirectional Reflectance'
         res.attrs['standard_name'] = 'toa_bidirectional_reflectance'
         return res
 
@@ -204,9 +204,10 @@ class NC_ABI_L1B(BaseFileHandler):
         bc1 = float(self["planck_bc1"])
         bc2 = float(self["planck_bc2"])
 
-        res = (fk2 / xu.log(fk1 / data + 1) - bc1) / bc2
+        res = (fk2 / np.log(fk1 / data + 1) - bc1) / bc2
         res.attrs = data.attrs
         res.attrs['units'] = 'K'
+        res.attrs['long_name'] = 'Brightness Temperature'
         res.attrs['standard_name'] = 'toa_brightness_temperature'
         return res
 

@@ -26,7 +26,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     - wavelength: 0.85
       modifiers: [sunz_corrected]
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
