@@ -123,7 +123,7 @@ composites:
   cloudtop:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 3.9
+    - 3.75
     - 10.8
     - 12.0
     standard_name: cloudtop
@@ -137,7 +137,7 @@ composites:
         - 7.3
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-        - 3.9
+        - 3.75
         - 10.8
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
@@ -152,7 +152,7 @@ composites:
       modifiers: [sunz_corrected]
     - wavelength: 1.63
       modifiers: [sunz_corrected]
-    - wavelength: 3.9
+    - wavelength: 3.75
       modifiers: [nir_reflectance]
     standard_name: snow
 
@@ -161,7 +161,7 @@ composites:
     prerequisites:
     - wavelength: 0.85
       modifiers: [sunz_corrected]
-    - wavelength: 3.9
+    - wavelength: 3.75
       modifiers: [nir_reflectance]
     - 10.8
     standard_name: day_microphysics
@@ -231,7 +231,7 @@ composites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
       - 10.8
-      - 3.9
+      - 3.75
     - 10.8
     standard_name: night_fog
 
@@ -373,7 +373,7 @@ composites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
       - 10.8
-      - 3.9
+      - 3.75
     - 10.8
     standard_name: night_microphysics
 
