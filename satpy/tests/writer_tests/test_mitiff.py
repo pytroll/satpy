@@ -268,14 +268,10 @@ class TestMITIFFWriter(unittest.TestCase):
                                   dims=('y', 'x'),
                                   attrs={'calibration': 'brightness_temperature'})
 
-        # data = xr.concat(scene, 'bands', coords='minimal')
-        data = xr.concat(scene, 'bands', coords='minimal')
-        #bands = []
+        data = scene['4']
         calibration = []
         for p in scene:
             calibration.append(p.attrs['calibration'])
-            #bands.append(p.attrs['name'])
-        #data['bands'] = list(bands)
         new_attrs = {'name': 'datasets',
                      'start_time': datetime.utcnow(),
                      'platform_name': "TEST_PLATFORM_NAME",
@@ -339,10 +335,21 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def test_save_dataset_with_calibration_one_dataset(self):
         """Test saving if mitiff as dataset with only one channel."""
+        import os
+        import numpy as np
+        from libtiff import TIFF
         from satpy.writers.mitiff import MITIFFWriter
+
+        expected = np.full((100, 200), 255)
+
         dataset = self._get_test_dataset_calibration_one_dataset()
         w = MITIFFWriter(filename=dataset.attrs['metadata_requirements']['file_pattern'], base_dir=self.base_dir)
         w.save_dataset(dataset)
+        filename = (dataset.attrs['metadata_requirements']['file_pattern']).format(
+            start_time=dataset.attrs['start_time'])
+        tif = TIFF.open(os.path.join(self.base_dir, filename))
+        for image in tif.iter_images():
+            np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
     def test_save_dataset_with_bad_value(self):
         """Test basic writer operation."""
