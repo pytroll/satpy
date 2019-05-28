@@ -314,7 +314,11 @@ class MITIFFWriter(ImageWriter):
         _table_calibration = ""
         found_calibration = False
         skip_calibration = False
-        for i, ds in enumerate(datasets):
+        ds_list = datasets
+        if not isinstance(datasets, list):
+            ds_list = [datasets]
+
+        for i, ds in enumerate(ds_list):
             if 'prerequisites' in ds.attrs and isinstance(ds.attrs['prerequisites'][i], DatasetID):
                 if ds.attrs['prerequisites'][i][0] == ch:
                     if ds.attrs['prerequisites'][i][4] == 'RADIANCE':
@@ -580,28 +584,48 @@ class MITIFFWriter(ImageWriter):
                         break
         elif 'dataset' in datasets.attrs['name']:
             LOG.debug("Saving %s as a dataset.", datasets.attrs['name'])
-            for _cn in self.channel_order[kwargs['sensor']]:
-                for i, band in enumerate(datasets['bands']):
-                    if band == _cn:
-                        chn = datasets.sel(bands=band)
-                        reverse_offset = 0.
-                        reverse_scale = 1.
-                        if chn.attrs['prerequisites'][i][4] == 'brightness_temperature':
-                            reverse_offset = 255.
-                            reverse_scale = -1.
-                            chn.data += KELVIN_TO_CELSIUS
+            if not isinstance(datasets, list):
+                # Special case with only one channel ie. no bands
+                reverse_offset = 0.
+                reverse_scale = 1.
+                if datasets.attrs['prerequisites'][0][4] == 'brightness_temperature':
+                    reverse_offset = 255.
+                    reverse_scale = -1.
+                    datasets.data += KELVIN_TO_CELSIUS
 
-                        # Need to possible translate channels names from satpy to mitiff
-                        cn = cns.get(chn.attrs['prerequisites'][i][0],
-                                     chn.attrs['prerequisites'][i][0])
-                        _data = reverse_offset + reverse_scale * (((chn.data - float(self.mitiff_config[
-                            kwargs['sensor']][cn]['min-val'])) /
-                            (float(self.mitiff_config[kwargs['sensor']][cn]['max-val']) -
-                             float(self.mitiff_config[kwargs['sensor']][cn]['min-val']))) * 255.)
-                        data = _data.clip(0, 255)
+                    # Need to possible translate channels names from satpy to mitiff
+                    cn = cns.get(datasets.attrs['prerequisites'][0][0],
+                                 datasets.attrs['prerequisites'][0][0])
+                    _data = reverse_offset + reverse_scale * (((datasets.data - float(self.mitiff_config[
+                        kwargs['sensor']][cn]['min-val'])) /
+                        (float(self.mitiff_config[kwargs['sensor']][cn]['max-val']) -
+                         float(self.mitiff_config[kwargs['sensor']][cn]['min-val']))) * 255.)
+                    data = _data.clip(0, 255)
 
-                        tif.write_image(data.astype(np.uint8), compression='deflate')
-                        break
+                    tif.write_image(data.astype(np.uint8), compression='deflate')
+            else:
+                for _cn in self.channel_order[kwargs['sensor']]:
+                    for i, band in enumerate(datasets['bands']):
+                        if band == _cn:
+                            chn = datasets.sel(bands=band)
+                            reverse_offset = 0.
+                            reverse_scale = 1.
+                            if chn.attrs['prerequisites'][i][4] == 'brightness_temperature':
+                                reverse_offset = 255.
+                                reverse_scale = -1.
+                                chn.data += KELVIN_TO_CELSIUS
+
+                            # Need to possible translate channels names from satpy to mitiff
+                            cn = cns.get(chn.attrs['prerequisites'][i][0],
+                                         chn.attrs['prerequisites'][i][0])
+                            _data = reverse_offset + reverse_scale * (((chn.data - float(self.mitiff_config[
+                                kwargs['sensor']][cn]['min-val'])) /
+                                (float(self.mitiff_config[kwargs['sensor']][cn]['max-val']) -
+                                 float(self.mitiff_config[kwargs['sensor']][cn]['min-val']))) * 255.)
+                            data = _data.clip(0, 255)
+
+                            tif.write_image(data.astype(np.uint8), compression='deflate')
+                            break
 
         else:
             LOG.debug("Saving datasets as enhanced image")
