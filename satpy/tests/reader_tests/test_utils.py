@@ -416,7 +416,7 @@ class TestHelpers(unittest.TestCase):
             self.assertEqual(hf.get_earth_radius(lon=lon, lat=0., a=a, b=b), a)
         for lat in (90, -90):
             self.assertEqual(hf.get_earth_radius(lon=0., lat=lat, a=a, b=b), b)
-        self.assertEqual(hf.get_earth_radius(lon=123, lat=45., a=a, b=b), re(45.))
+        self.assertTrue(np.isclose(hf.get_earth_radius(lon=123, lat=45., a=a, b=b), re(45.)))
 
 
 def suite():
