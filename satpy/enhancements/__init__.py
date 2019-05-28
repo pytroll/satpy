@@ -191,8 +191,6 @@ def _merge_colormaps(kwargs):
     else:
         for itm in palette:
             cmap = create_colormap(itm)
-            if 'min_value' in itm:
-                cmap.set_range(itm["min_value"], itm["max_value"])
             if full_cmap is None:
                 full_cmap = cmap
             else:
@@ -205,17 +203,21 @@ def create_colormap(palette):
     """Create colormap of the given numpy file, color vector or colormap."""
     from trollimage.colormap import Colormap
     fname = palette.get('filename', None)
+    colors = palette.get('colors', None)
     if fname:
         data = np.load(fname)
-        mode = palette.get('colormap_mode', 'VRGB')
-        cols = data.shape[1]
         num = 1.0 * data.shape[0]
-
-        # Hardwire mode for r,g,b and v,r,g,b,a
-        if cols == 3:
-            mode = 'RGB'
-        if cols == 5:
-            mode = 'VRGBA'
+        cols = data.shape[1]
+        default_modes = {
+            3: 'RGB',
+            4: 'VRGB',
+            5: 'VRGBA'
+        }
+        default_mode = default_modes.get(cols)
+        mode = palette.setdefault('colormap_mode', default_mode)
+        if mode is None or len(mode) != cols:
+            raise ValueError(
+                "Unexpected colormap shape for mode '{}'".format(mode))
 
         cmap = []
         for i, ls in enumerate(data):
@@ -223,14 +225,12 @@ def create_colormap(palette):
                 value = ls[0]
                 colors = [v/255.0 for v in ls[1:]]
             else:
+                # FIXME: This produces different results than when loaded from a list
                 value = i/num
                 colors = [v/255.0 for v in ls]
             cmap.append((value, tuple(colors)))
-
-        return Colormap(*cmap)
-
-    colors = palette.get('colors', None)
-    if isinstance(colors, (tuple, list)):
+        cmap = Colormap(*cmap)
+    elif isinstance(colors, (tuple, list)):
         cmap = []
         values = palette.get('values', None)
         for idx, color in enumerate(colors):
@@ -239,14 +239,18 @@ def create_colormap(palette):
             else:
                 value = idx / float(len(colors) - 1)
             cmap.append((value, tuple(color)))
-        return Colormap(*cmap)
-
-    if isinstance(colors, str):
+        cmap = Colormap(*cmap)
+    elif isinstance(colors, str):
         from trollimage import colormap
         import copy
-        return copy.copy(getattr(colormap, colors))
+        cmap = copy.copy(getattr(colormap, colors))
+    else:
+        raise ValueError("Unknown colormap format: {}".format(palette))
 
-    return None
+    if 'min_value' in palette:
+        cmap.set_range(palette["min_value"], palette["max_value"])
+
+    return cmap
 
 
 def _three_d_effect_delayed(band_data, kernel, mode):
