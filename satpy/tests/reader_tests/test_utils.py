@@ -419,8 +419,6 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(hf.get_earth_radius(lon=123, lat=45., a=a, b=b), re(45.))
 
 
-
-
 def suite():
     """The test suite for test_satin_helpers.
     """
