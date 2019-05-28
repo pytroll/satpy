@@ -22,7 +22,6 @@
 
 from abc import ABCMeta
 
-import itertools
 import numpy as np
 import six
 
