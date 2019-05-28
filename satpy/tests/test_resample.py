@@ -562,11 +562,13 @@ class TestBucketAvg(unittest.TestCase):
         self.assertEqual(res.dims, ('y', 'x'))
 
         # 3D input data with 'bands' dim
-        data = xr.DataArray(da.ones((1, 5, 5)), dims=('bands', 'foo', 'bar'))
+        data = xr.DataArray(da.ones((1, 5, 5)), dims=('bands', 'foo', 'bar'),
+                            coords={'bands': ['L']})
         self.bucket.compute.return_value = da.ones((1, 5, 5))
         res = self.bucket.resample(data)
         self.assertEqual(res.shape, (1, 5, 5))
         self.assertEqual(res.dims, ('bands', 'y', 'x'))
+        self.assertEqual(res.coords['bands'], ['L'])
 
         # 3D input data with misc dim names
         data = xr.DataArray(da.ones((3, 5, 5)), dims=('foo', 'bar', 'baz'))
@@ -617,7 +619,7 @@ class TestBucketSum(unittest.TestCase):
 
 
 class TestBucketCount(unittest.TestCase):
-    """Test the sum bucket resampler."""
+    """Test the count bucket resampler."""
 
     def setUp(self):
         from satpy.resample import BucketCount
@@ -628,7 +630,7 @@ class TestBucketCount(unittest.TestCase):
         self.bucket = BucketCount(self.source_geo_def, self.target_geo_def)
 
     def test_compute(self):
-        """Test sum bucket resampler computation."""
+        """Test count bucket resampler computation."""
         import dask.array as da
         # 1D data
         self.bucket.resampler = mock.MagicMock()
@@ -650,6 +652,65 @@ class TestBucketCount(unittest.TestCase):
         self.bucket.resampler.get_count.return_value = data[0, :, :]
         res = self.bucket.compute(data)
         self.assertEqual(res.shape, (3, 5, 5))
+
+
+class TestBucketFraction(unittest.TestCase):
+    """Test the fraction bucket resampler."""
+
+    def setUp(self):
+        from satpy.resample import BucketFraction
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketFraction(self.source_geo_def, self.target_geo_def)
+
+    def test_compute(self):
+        """Test fraction bucket resampler computation."""
+        import dask.array as da
+        import numpy as np
+
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((3, 3))
+
+        # No kwargs given
+        res = self.bucket.compute(data)
+        self.bucket.resampler.get_fractions.assert_called_with(
+            data,
+            categories=None,
+            fill_value=np.nan)
+        # Custo kwargs
+        res = self.bucket.compute(data, categories=[1, 2], fill_value=0)
+        self.bucket.resampler.get_fractions.assert_called_with(
+            data,
+            categories=[1, 2],
+            fill_value=0)
+
+        # Too many dimensions
+        data = da.ones((3, 5, 5))
+        with self.assertRaises(ValueError):
+            res = self.bucket.compute(data)
+
+
+    @mock.patch('pyresample.bucket.BucketResampler')
+    def test_resample(self, pyresample_bucket):
+        """Test fraction bucket resamplers resample method."""
+        import xarray as xr
+        import dask.array as da
+        import numpy as np
+
+        self.bucket.resampler = mock.MagicMock()
+        self.bucket.precompute = mock.MagicMock()
+        self.bucket.compute = mock.MagicMock()
+
+        # Fractions return a dict
+        data = xr.DataArray(da.ones((1, 5, 5)), dims=('bands', 'y', 'x'))
+        arr = da.ones((5, 5))
+        self.bucket.compute.return_value = {0: arr, 1: arr, 2: arr}
+        res = self.bucket.resample(data)
+        self.assertTrue('categories' in res.coords)
+        self.assertTrue('categories' in res.dims)
+        self.assertTrue(np.all(res.coords['categories'] == np.array([0, 1, 2])))
 
 
 def suite():

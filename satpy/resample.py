@@ -862,10 +862,18 @@ class BucketResamplerBase(BaseResampler):
             dims = ('y', 'x')
         else:
             dims = data.dims
+        result = self.compute(data_arr, **kwargs)
         coords = {}
         if 'bands' in data.coords:
             coords['bands'] = data.coords['bands']
-        result = self.compute(data_arr, **kwargs)
+        # Fractions are returned in a dict
+        elif isinstance(result, dict):
+            coords['categories'] = sorted(result.keys())
+            dims = ('categories', 'y', 'x')
+            new_result = []
+            for cat in coords['categories']:
+                new_result.append(result[cat])
+            result = da.stack(new_result)
         if result.ndim > len(dims):
             result = da.squeeze(result)
         result = xr.DataArray(result, dims=dims, coords=coords,
@@ -956,6 +964,25 @@ class BucketCount(BucketResamplerBase):
         return da.stack(results)
 
 
+class BucketFraction(BucketResamplerBase):
+    """Class for bucket resampling to compute category fractions
+
+    This resampler calculates the fraction of occurences of the input
+    data per category.
+    """
+
+    def compute(self, data, fill_value=np.nan, categories=None, **kwargs):
+        """Call the resampling."""
+        LOG.debug("Resampling %s", str(data.name))
+        if data.ndim > 2:
+            raise ValueError("BucketFraction not implemented for 3D datasets")
+
+        result = self.resampler.get_fractions(data, categories=categories,
+                                              fill_value=fill_value)
+
+        return result
+
+
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
@@ -964,6 +991,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               "bucket_avg": BucketAvg,
               "bucket_sum": BucketSum,
               "bucket_count": BucketCount,
+              "bucket_fraction": BucketFraction,
               }
 
 
