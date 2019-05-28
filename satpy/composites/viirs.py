@@ -30,7 +30,6 @@ import numpy as np
 import dask
 import dask.array as da
 import xarray as xr
-import xarray.ufuncs as xu
 
 from satpy.composites import CompositeBase, GenericCompositor
 from satpy.config import get_environ_ancpath
@@ -205,6 +204,10 @@ class HistogramDNB(CompositeBase):
             sza_data (ndarray): Solar Zenith Angle data array
 
         """
+        # convert dask arrays to DataArray objects
+        dnb_data = xr.DataArray(dnb_data, dims=('y', 'x'))
+        sza_data = xr.DataArray(sza_data, dims=('y', 'x'))
+
         good_mask = ~(dnb_data.isnull() | sza_data.isnull())
         output_dataset = dnb_data.where(good_mask)
         # we only need the numpy array
@@ -228,21 +231,17 @@ class HistogramDNB(CompositeBase):
             for mask in mixed_mask:
                 if mask.any():
                     LOG.debug("Histogram equalizing DNB mixed data...")
-                    histogram_equalization(dnb_data,
-                                           mask,
-                                           out=output_dataset)
+                    histogram_equalization(dnb_data, mask, out=output_dataset)
                     did_equalize = True
         if night_mask.any():
             LOG.debug("Histogram equalizing DNB night data...")
-            histogram_equalization(dnb_data,
-                                   night_mask,
-                                   out=output_dataset)
+            histogram_equalization(dnb_data, night_mask, out=output_dataset)
             did_equalize = True
 
         if not did_equalize:
             raise RuntimeError("No valid data found to histogram equalize")
 
-        return dnb_data
+        return output_dataset
 
     def __call__(self, datasets, **info):
         """Create the composite by scaling the DNB data using a histogram equalization method.
@@ -255,7 +254,7 @@ class HistogramDNB(CompositeBase):
 
         dnb_data = datasets[0]
         sza_data = datasets[1]
-        delayed = dask.delayed(self._run_dnb_normalization)(dnb_data, sza_data)
+        delayed = dask.delayed(self._run_dnb_normalization)(dnb_data.data, sza_data.data)
         output_dataset = dnb_data.copy()
         output_data = da.from_delayed(delayed, dnb_data.shape, dnb_data.dtype)
         output_dataset.data = output_data.rechunk(dnb_data.data.chunks)
@@ -309,6 +308,10 @@ class AdaptiveDNB(HistogramDNB):
             sza_data (ndarray): Solar Zenith Angle data array
 
         """
+        # convert dask arrays to DataArray objects
+        dnb_data = xr.DataArray(dnb_data, dims=('y', 'x'))
+        sza_data = xr.DataArray(sza_data, dims=('y', 'x'))
+
         good_mask = ~(dnb_data.isnull() | sza_data.isnull())
         # good_mask = ~(dnb_data.mask | sza_data.mask)
         output_dataset = dnb_data.where(good_mask)
@@ -424,8 +427,7 @@ class ERFDNB(CompositeBase):
         dnb_data = datasets[0]
         sza_data = datasets[1]
         lza_data = datasets[2]
-        output_dataset = dnb_data.where(
-            ~(dnb_data.isnull() | sza_data.isnull()))
+        output_dataset = dnb_data.where(~(dnb_data.isnull() | sza_data.isnull()))
         # this algorithm assumes units of "W cm-2 sr-1" so if there are other
         # units we need to adjust for that
         if dnb_data.attrs.get("units", "W m-2 sr-1") == "W m-2 sr-1":
@@ -471,19 +473,14 @@ class ERFDNB(CompositeBase):
         # Update from Curtis Seaman, increase max radiance curve until less
         # than 0.5% is saturated
         if self.saturation_correction:
-            delayed = dask.delayed(self._saturation_correction)(
-                output_dataset.data, unit_factor,
-                min_val, max_val)
-            output_dataset.data = da.from_delayed(delayed,
-                                                  output_dataset.shape,
-                                                  output_dataset.dtype)
-            output_dataset.data = output_dataset.data.rechunk(
-                dnb_data.data.chunks)
+            delayed = dask.delayed(self._saturation_correction)(output_dataset.data, unit_factor, min_val, max_val)
+            output_dataset.data = da.from_delayed(delayed, output_dataset.shape, output_dataset.dtype)
+            output_dataset.data = output_dataset.data.rechunk(dnb_data.data.chunks)
         else:
             inner_sqrt = (output_dataset - min_val) / (max_val - min_val)
             # clip negative values to 0 before the sqrt
             inner_sqrt = inner_sqrt.where(inner_sqrt > 0, 0)
-            output_dataset.data = xu.sqrt(inner_sqrt).data
+            output_dataset.data = np.sqrt(inner_sqrt).data
 
         info = dnb_data.attrs.copy()
         info.update(self.attrs)
@@ -511,8 +508,7 @@ def make_day_night_masks(solarZenithAngle,
     given, the whole terminator region will be one mask)
     """
     # if the caller passes None, we're only doing one step
-    stepsDegrees = highAngleCutoff - \
-        lowAngleCutoff if stepsDegrees is None else stepsDegrees
+    stepsDegrees = highAngleCutoff - lowAngleCutoff if stepsDegrees is None else stepsDegrees
 
     night_mask = (solarZenithAngle > highAngleCutoff) & good_mask
     day_mask = (solarZenithAngle <= lowAngleCutoff) & good_mask
@@ -637,9 +633,9 @@ def local_histogram_equalization(data, mask_to_equalize, valid_data_mask=None, n
     total_cols = data.shape[1]
     tile_size = int((local_radius_px * 2.0) + 1.0)
     row_tiles = int(total_rows / tile_size) if (
-        total_rows % tile_size is 0) else int(total_rows / tile_size) + 1
+        (total_rows % tile_size) == 0) else int(total_rows / tile_size) + 1
     col_tiles = int(total_cols / tile_size) if (
-        total_cols % tile_size is 0) else int(total_cols / tile_size) + 1
+        (total_cols % tile_size) == 0) else int(total_cols / tile_size) + 1
 
     # an array of our distribution functions for equalization
     all_cumulative_dist_functions = [[]]
@@ -1007,7 +1003,7 @@ def _linear_normalization_from_0to1(
     """
 
     LOG.debug(message)
-    if theoretical_min is not 0:
+    if theoretical_min != 0:
         data[mask] = data[mask] - theoretical_min
         theoretical_max = theoretical_max - theoretical_min
     data[mask] = data[mask] / theoretical_max
@@ -1042,7 +1038,7 @@ class NCCZinke(CompositeBase):
         dnb_data = dnb_data.copy() / unit_factor
 
         # convert to decimal instead of %
-        moon_illum_fraction = da.mean(datasets[3]) * 0.01
+        moon_illum_fraction = da.mean(datasets[3].data) * 0.01
 
         phi = da.rad2deg(da.arccos(2. * moon_illum_fraction - 1))
 

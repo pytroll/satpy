@@ -23,15 +23,22 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""SatPy Configuration directory and file handling
+"""Satpy Configuration directory and file handling
 """
+from __future__ import print_function
 import glob
 import logging
 import os
 from collections import Mapping, OrderedDict
 
-from six.moves import configparser
 import yaml
+from six.moves import configparser
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
+from yaml import BaseLoader
 
 LOG = logging.getLogger(__name__)
 
@@ -134,48 +141,77 @@ def recursive_dict_update(d, u):
     return d
 
 
-def check_yaml_configs(configs, key, hdr_len):
+def check_yaml_configs(configs, key):
     """Get a diagnostic for the yaml *configs*.
 
     *key* is the section to look for to get a name for the config at hand.
-    *hdr_len* is the number of lines that can be safely read from the config to
-    get a name.
     """
     diagnostic = {}
     for i in configs:
         for fname in i:
             with open(fname) as stream:
                 try:
-                    res = yaml.load(stream)
-                    try:
-                        diagnostic[res[key]['name']] = 'ok'
-                    except Exception:
-                        continue
+                    res = yaml.load(stream, Loader=UnsafeLoader)
+                    msg = 'ok'
                 except yaml.YAMLError as err:
                     stream.seek(0)
-                    lines = ''.join(stream.readline() for line in range(hdr_len))
-                    res = yaml.load(lines)
+                    res = yaml.load(stream, Loader=BaseLoader)
                     if err.context == 'while constructing a Python object':
-                        problem = err.problem
+                        msg = err.problem
                     else:
-                        problem = 'error'
+                        msg = 'error'
+                finally:
                     try:
-                        diagnostic[res[key]['name']] = problem
-                    except Exception:
-                        continue
+                        diagnostic[res[key]['name']] = msg
+                    except (KeyError, TypeError):
+                        # this object doesn't have a 'name'
+                        pass
     return diagnostic
 
 
-def check_satpy():
-    """Check the satpy readers and writers for correct installation."""
+def _check_import(module_names):
+    """Import the specified modules and provide status."""
+    diagnostics = {}
+    for module_name in module_names:
+        try:
+            __import__(module_name)
+            res = 'ok'
+        except ImportError as err:
+            res = str(err)
+        diagnostics[module_name] = res
+    return diagnostics
+
+
+def check_satpy(readers=None, writers=None, extras=None):
+    """Check the satpy readers and writers for correct installation.
+
+    Args:
+        readers (list or None): Limit readers checked to those specified
+        writers (list or None): Limit writers checked to those specified
+        extras (list or None): Limit extras checked to those specified
+
+    Returns: bool
+        True if all specified features were successfully loaded.
+
+    """
     from satpy.readers import configs_for_reader
     from satpy.writers import configs_for_writer
+
     print('Readers')
     print('=======')
-    for reader, res in sorted(check_yaml_configs(configs_for_reader(), 'reader', 5).items()):
-        print(reader + ': ' + res)
+    for reader, res in sorted(check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
+        print(reader + ': ', res)
     print()
+
     print('Writers')
     print('=======')
-    for writer, res in sorted(check_yaml_configs(configs_for_writer(), 'writer', 3).items()):
-        print(writer + ': ' + res)
+    for writer, res in sorted(check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
+        print(writer + ': ', res)
+    print()
+
+    print('Extras')
+    print('======')
+    module_names = extras if extras is not None else ('cartopy', 'geoviews')
+    for module_name, res in sorted(_check_import(module_names).items()):
+        print(module_name + ': ', res)
+    print()

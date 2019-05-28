@@ -5,7 +5,7 @@ Installation Instructions
 Pip-based Installation
 ======================
 
-SatPy is available from the Python Packaging Index (PyPI). A sandbox
+Satpy is available from the Python Packaging Index (PyPI). A sandbox
 environment for `satpy` can be created using
 `Virtualenv <http://pypi.python.org/pypi/virtualenv>`_.
 
@@ -34,7 +34,7 @@ dependencies:
 Conda-based Installation
 ========================
 
-Starting with version 0.9, SatPy is available from the conda-forge channel. If
+Starting with version 0.9, Satpy is available from the conda-forge channel. If
 you have not configured your conda environment to search conda-forge already
 then do:
 
@@ -42,7 +42,7 @@ then do:
 
     $ conda config --add channels conda-forge
 
-Then to install SatPy in to your current environment run:
+Then to install Satpy in to your current environment run:
 
 .. code-block:: bash
 
@@ -50,18 +50,18 @@ Then to install SatPy in to your current environment run:
 
 .. note::
 
-    SatPy only automatically installs the dependencies needed to process the
+    Satpy only automatically installs the dependencies needed to process the
     most common use cases. Additional dependencies may need to be installed
     with conda or pip if import errors are encountered.
 
 Ubuntu System Python Installation
 =================================
 
-To install SatPy on an Ubuntu system we recommend using virtual environments
-to separate SatPy and its dependencies from the rest of the system. Note that
+To install Satpy on an Ubuntu system we recommend using virtual environments
+to separate Satpy and its dependencies from the rest of the system. Note that
 these instructions require using "sudo" privileges which may not be available
 to all users and can be very dangerous. The following instructions attempt
-to install some SatPy dependencies using the Ubuntu `apt` package manager to
+to install some Satpy dependencies using the Ubuntu `apt` package manager to
 ease installation. Replace `/path/to/pytroll-env` with the environment to be
 created.
 

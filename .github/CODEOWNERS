@@ -1,0 +1,103 @@
+*       @djhoese @mraspaud
+satpy/readers/seviri_l1b_hrit.py @sfinkens @mraspaud
+doc/source/api/satpy.composites.rst @pnuu @djhoese @mraspaud
+doc/source/composites.rst @pnuu @djhoese @mraspaud
+satpy/composites/abi.py @djhoese
+satpy/composites/cloud_products.py @adybbroe @mraspaud
+satpy/composites/crefl_utils.py @djhoese @mraspaud @adybbroe
+satpy/composites/sar.py @mraspaud
+satpy/demo/__init__.py @djhoese
+satpy/demo/google_cloud_platform.py @djhoese
+satpy/etc/composites/abi.yaml @djhoese
+satpy/etc/composites/avhrr-3.yaml @adybbroe @pnuu
+satpy/etc/composites/msi.yaml @mraspaud
+satpy/etc/composites/msu-gs.yaml @mraspaud
+satpy/etc/composites/olci.yaml @mraspaud
+satpy/etc/composites/sar-c.yaml @mraspaud
+satpy/etc/composites/sar.yaml @mraspaud
+satpy/etc/composites/seviri.yaml @mraspaud @pnuu @adybbroe
+satpy/etc/composites/slstr.yaml @mraspaud
+satpy/etc/composites/viirs.yaml @djhoese @mraspaud @adybbroe
+satpy/etc/composites/visir.yaml @djhoese @mraspaud @adybbroe @pnuu
+satpy/etc/readers/abi_l1b.yaml @djhoese
+satpy/etc/readers/abi_l1b_scmi.yaml @djhoese
+satpy/etc/readers/acspo.yaml @djhoese
+satpy/etc/readers/ahi_hrit.yaml @sfinkens @mraspaud
+satpy/etc/readers/ahi_hsd.yaml @sfinkens @djhoese @mraspaud
+satpy/etc/readers/avhrr_l1b_aapp.yaml @pnuu @mraspaud @adybbroe
+satpy/etc/readers/avhrr_l1b_eps.yaml @pnuu @mraspaud @adybbroe
+satpy/etc/readers/avhrr_l1b_gaclac.yaml @mraspaud @sfinkens
+satpy/etc/readers/avhrr_l1b_hrpt.yaml @mraspaud
+satpy/etc/readers/clavrx.yaml @djhoese
+satpy/etc/readers/electrol_hrit.yaml @sfinkens @mraspaud
+satpy/etc/readers/fci_l1c_fdhsi.yaml @mraspaud
+satpy/etc/readers/geocat.yaml @djhoese
+satpy/etc/readers/goes-imager_hrit.yaml @sfinkens @mraspaud
+satpy/etc/readers/goes-imager_nc.yaml @sfinkens @mraspaud
+satpy/etc/readers/iasi_l2.yaml @pnuu
+satpy/etc/readers/jami_hrit.yaml @sfinkens @mraspaud
+satpy/etc/readers/li_l2.yaml @sjoro
+satpy/etc/readers/maia.yaml @adybbroe
+satpy/etc/readers/msi_safe.yaml @mraspaud
+satpy/etc/readers/mtsat2-imager_hrit.yaml @sfinkens @mraspaud
+satpy/etc/readers/nucaps.yaml @djhoese
+satpy/etc/readers/nwcsaf-geo.yaml @adybbroe @pnuu
+satpy/etc/readers/nwcsaf-pps_nc.yaml @adybbroe @mraspaud
+satpy/etc/readers/olci_l1b.yaml @mraspaud
+satpy/etc/readers/olci_l2.yaml @mraspaud
+satpy/etc/readers/omps_edr.yaml @djhoese
+satpy/etc/readers/sar-c_safe.yaml @mraspaud
+satpy/etc/readers/seviri_l1b_hrit.yaml @sfinkens @sjoro @mraspaud
+satpy/etc/readers/seviri_l1b_native.yaml @sfinkens @sjoro @mraspaud
+satpy/etc/readers/seviri_l1b_nc.yaml @sjoro @sfinkens
+satpy/etc/readers/slstr_l1b.yaml @mraspaud
+satpy/etc/readers/viirs_compact.yaml @mraspaud
+satpy/etc/readers/viirs_edr_active_fires.yaml @adybbroe @djhoese
+satpy/etc/readers/viirs_edr_flood.yaml @djhoese
+satpy/etc/readers/viirs_l1b.yaml @djhoese
+satpy/etc/readers/virr_l1b.yaml @djhoese @adybbroe
+satpy/etc/writers/cf.yaml @mraspaud
+satpy/etc/writers/ninjotiff.yaml @mraspaud
+satpy/etc/writers/scmi.yaml @djhoese
+satpy/readers/aapp_l1b.py @pnuu @mraspaud @adybbroe
+satpy/readers/abi_l1b.py @djhoese
+satpy/readers/acspo.py @djhoese
+satpy/readers/ahi_hsd.py @sfinkens @djhoese @mraspaud
+satpy/readers/avhrr_l1b_gaclac.py @mraspaud @sfinkens
+satpy/readers/clavrx.py @djhoese
+satpy/readers/electrol_hrit.py @sfinkens @mraspaud
+satpy/readers/eps_l1b.py @mraspaud @pnuu @adybbroe
+satpy/readers/eum_base.py @sjoro @sfinkens @adybbroe
+satpy/readers/fci_l1c_fdhsi.py @mraspaud
+satpy/readers/geocat.py @djhoese
+satpy/readers/goes_imager_hrit.py @sfinkens @mraspaud
+satpy/readers/goes_imager_nc.py @sfinkens @mraspaud
+satpy/readers/hrit_base.py @sfinkens @sjoro @mraspaud
+satpy/readers/hrit_jma.py @sfinkens @mraspaud
+satpy/readers/hrpt.py @mraspaud
+satpy/readers/iasi_l2.py @pnuu
+satpy/readers/li_l2.py @sjoro
+satpy/readers/maia.py @adybbroe
+satpy/readers/msi_safe.py @mraspaud
+satpy/readers/nucaps.py @djhoese
+satpy/readers/nwcsaf_nc.py @adybbroe @mraspaud
+satpy/readers/olci_nc.py @mraspaud
+satpy/readers/omps_edr.py @djhoese
+satpy/readers/sar_c_safe.py @mraspaud
+satpy/readers/scmi.py @djhoese
+satpy/readers/seviri_base.py @sfinkens @sjoro @mraspaud @adybbroe
+satpy/readers/seviri_l1b_hrit.py @sfinkens @sjoro @mraspaud
+satpy/readers/seviri_l1b_native.py @sjoro @sfinkens @mraspaud
+satpy/readers/seviri_l1b_native_hdr.py @sjoro @sfinkens @adybbroe
+satpy/readers/seviri_l1b_nc.py @sjoro @sfinkens @mraspaud
+satpy/readers/slstr_l1b.py @mraspaud
+satpy/readers/viirs_compact.py @mraspaud
+satpy/readers/viirs_edr_active_fires.py @adybbroe @djhoese
+satpy/readers/viirs_edr_flood.py @djhoese
+satpy/readers/viirs_l1b.py @djhoese
+satpy/readers/xmlformat.py @mraspaud
+satpy/resample.py @pnuu @djhoese @mraspaud
+satpy/writers/cf_writer.py @mraspaud
+satpy/writers/scmi.py @djhoese
+utils/coord2area_def.py @mraspaud @adybbroe
+utils/fetch_avhrr_calcoeffs.py @pnuu
