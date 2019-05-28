@@ -181,7 +181,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
         """
         # append nan to the end of lut for fillvalue
         lut = np.append(lut, np.nan)
-        data.data = da.where(data.data == data.attrs['FillValue'], lut.shape[0] - 1, data.data)
+        data.data = da.where(data.data > lut.shape[0], lut.shape[0] - 1, data.data)
         res = data.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
         res = xr.DataArray(res, dims=data.dims,
                            attrs=data.attrs, coords=data.coords)
