@@ -22,6 +22,7 @@
 
 from abc import ABCMeta
 
+import itertools
 import numpy as np
 import six
 
@@ -97,19 +98,17 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                                       'satellite_longitude',
                                       'satellite_latitude',
                                       'satellite_altitude'))
+
+        # Navigation and projection
         navs = [info.get('navigation', {}) for info in all_infos]
         projs = [info.get('projection', {}) for info in all_infos]
-        new_dict['navigation'] = self._combine(navs, np.mean,
-                                               'satellite_actual_longitude',
-                                               'satellite_actual_latitude',
-                                               'satellite_actual_altitude',
-                                               'satellite_nominal_longitude',
-                                               'satellite_nominal_latitude',
-                                               'satellite_nominal_altitude')
-        new_dict['projection'] = self._combine(projs, np.mean,
-                                               'satellite_longitude',
-                                               'satellite_latitude',
-                                               'satellite_altitude')
+        for attr_name, attrs_list in zip(('navigation', 'projection'), (navs, projs)):
+            if all(attrs_list):
+                keys_list = [attrs.keys() for attrs in attrs_list]
+                common_keys = set(keys_list[0])
+                for keys in keys_list[1:]:
+                    common_keys = common_keys.intersection(keys)
+                new_dict[attr_name] = self._combine(attrs_list, np.mean, *common_keys)
 
         try:
             area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
