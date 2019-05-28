@@ -27,26 +27,23 @@ import logging
 
 import dask
 import numpy as np
-from osgeo import gdal, osr
 
 from satpy.utils import ensure_dir
 from satpy.writers import ImageWriter
 
+try:
+    import rasterio
+    gdal = osr = None
+except ImportError as r_exc:
+    try:
+        # fallback to legacy gdal writer
+        from osgeo import gdal, osr
+        rasterio = None
+    except ImportError:
+        # raise the original rasterio exception
+        raise r_exc
+
 LOG = logging.getLogger(__name__)
-
-
-# Map numpy data types to GDAL data types
-NP2GDAL = {
-    np.float32: gdal.GDT_Float32,
-    np.float64: gdal.GDT_Float64,
-    np.uint8: gdal.GDT_Byte,
-    np.uint16: gdal.GDT_UInt16,
-    np.uint32: gdal.GDT_UInt32,
-    np.int16: gdal.GDT_Int16,
-    np.int32: gdal.GDT_Int32,
-    np.complex64: gdal.GDT_CFloat32,
-    np.complex128: gdal.GDT_CFloat64,
-}
 
 
 class GeoTIFFWriter(ImageWriter):
@@ -59,6 +56,9 @@ class GeoTIFFWriter(ImageWriter):
     Un-enhanced float geotiff with NaN for fill values:
 
         scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
+
+    For performance tips on creating geotiffs quickly and making them smaller
+    see the :doc:`faq`.
 
     """
 
@@ -83,7 +83,7 @@ class GeoTIFFWriter(ImageWriter):
                     "profile",
                     "bigtiff",
                     "pixeltype",
-                    "copy_src_overviews", )
+                    "copy_src_overviews",)
 
     def __init__(self, dtype=None, tags=None, **kwargs):
         super(GeoTIFFWriter, self).__init__(default_config_filename="writers/geotiff.yaml", **kwargs)
@@ -157,7 +157,7 @@ class GeoTIFFWriter(ImageWriter):
 
             # Create raster GeoTransform based on upper left corner and pixel
             # resolution ... if not overwritten by argument geotransform.
-            if "area" is None:
+            if area is None:
                 LOG.warning("No 'area' metadata found in image")
             else:
                 self._gdal_write_geo(dst_ds, area)
@@ -176,7 +176,8 @@ class GeoTIFFWriter(ImageWriter):
         return delayed
 
     def save_image(self, img, filename=None, dtype=None, fill_value=None,
-                   floating_point=None, compute=True, **kwargs):
+                   floating_point=None, compute=True, keep_palette=False,
+                   cmap=None, **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note for faster output and reduced memory usage the ``rasterio``
@@ -206,6 +207,21 @@ class GeoTIFFWriter(ImageWriter):
                 them multiple times. Defaults to ``True`` in the writer by
                 itself, but is typically passed as ``False`` by callers where
                 calculations can be combined.
+            keep_palette (bool): Save palette/color table to geotiff.
+                To be used with images that were palettized with the
+                "palettize" enhancement. Setting this to ``True`` will cause
+                the colormap of the image to be written as a "color table" in
+                the output geotiff and the image data values will represent
+                the index values in to that color table. By default, this will
+                use the colormap used in the "palettize" operation.
+                See the ``cmap`` option for other options. This option defaults
+                to ``False`` and palettized images will be converted to RGB/A.
+            cmap (trollimage.colormap.Colormap or None): Colormap to save
+                as a color table in the output geotiff. See ``keep_palette``
+                for more information. Defaults to the palette of the provided
+                ``img`` object. The colormap's range should be set to match
+                the index range of the palette
+                (ex. `cmap.set_range(0, len(colors))`).
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
@@ -243,19 +259,40 @@ class GeoTIFFWriter(ImageWriter):
                 LOG.debug("Alpha band not supported for float geotiffs, "
                           "setting fill value to 'NaN'")
                 fill_value = np.nan
+        if keep_palette and cmap is None and img.palette is not None:
+            from satpy.enhancements import create_colormap
+            cmap = create_colormap({'colors': img.palette})
+            cmap.set_range(0, len(img.palette) - 1)
 
         try:
             import rasterio  # noqa
             # we can use the faster rasterio-based save
             return img.save(filename, fformat='tif', fill_value=fill_value,
-                            dtype=dtype, compute=compute, **gdal_options)
+                            dtype=dtype, compute=compute,
+                            keep_palette=keep_palette, cmap=cmap,
+                            **gdal_options)
         except ImportError:
             LOG.warning("Using legacy/slower geotiff save method, install "
                         "'rasterio' for faster saving.")
+            import warnings
             warnings.warn("Using legacy/slower geotiff save method with 'gdal'."
                           "This will be deprecated in the future. Install "
                           "'rasterio' for faster saving and future "
                           "compatibility.", PendingDeprecationWarning)
+
+            # Map numpy data types to GDAL data types
+            NP2GDAL = {
+                np.float32: gdal.GDT_Float32,
+                np.float64: gdal.GDT_Float64,
+                np.uint8: gdal.GDT_Byte,
+                np.uint16: gdal.GDT_UInt16,
+                np.uint32: gdal.GDT_UInt32,
+                np.int16: gdal.GDT_Int16,
+                np.int32: gdal.GDT_Int32,
+                np.complex64: gdal.GDT_CFloat32,
+                np.complex128: gdal.GDT_CFloat64,
+            }
+
             # force to numpy dtype object
             dtype = np.dtype(dtype)
             gformat = NP2GDAL[dtype.type]

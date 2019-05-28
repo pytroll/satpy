@@ -2,8 +2,8 @@
 Quickstart
 ==========
 
-Loading data
-============
+Loading and accessing data
+==========================
 
 .. testsetup:: *
     >>> import sys
@@ -11,11 +11,11 @@ Loading data
     >>> sys.setdefaultencoding('utf8')
 
 To work with weather satellite data you must create a
-:class:`~satpy.scene.Scene` object. SatPy does not currently provide an
+:class:`~satpy.scene.Scene` object. Satpy does not currently provide an
 interface to download satellite data, it assumes that the data is on a
-local hard disk already. In order for SatPy to get access to the data the
+local hard disk already. In order for Satpy to get access to the data the
 Scene must be told what files to read and what
-:ref:`SatPy Reader <reader_table>` should read them:
+:ref:`Satpy Reader <reader_table>` should read them:
 
     >>> from satpy import Scene
     >>> from glob import glob
@@ -101,12 +101,12 @@ method. Printing the Scene object will list each of the
         modifiers:            ()
         ancillary_variables:  []
 
-SatPy allows loading file data by wavelengths in micrometers (shown above) or by channel name::
+Satpy allows loading file data by wavelengths in micrometers (shown above) or by channel name::
 
     >>> global_scene.load(["VIS006", "VIS008", "IR_108"])
 
 To have a look at the available channels for loading from your :class:`~satpy.scene.Scene` object use the
-:meth:`available_datasets <satpy.scene.Scene.available_dataset_names>` method:
+:meth:`~satpy.scene.Scene.available_dataset_names` method:
 
     >>> global_scene.available_dataset_names()
     ['HRV',
@@ -127,11 +127,32 @@ To access the loaded data use the wavelength or name:
 
     >>> print(global_scene[0.6])
 
-To visualize loaded data in a pop-up window:
+Visualizing data                                                                                    
+================                                                                                    
 
-    >>> global_scene.show(0.6)
+To visualize loaded data in a pop-up window:                                                        
+                                                                                                    
+    >>> global_scene.show(0.6)                                                                      
+                                                                                                    
+Alternatively if working in a Jupyter notebook the scene can be converted to
+a `geoviews <http://geo.holoviews.org/index.html>`_ object using the
+:meth:`~satpy.scene.Scene.to_geoviews` method. The geoviews package is not a
+requirement of the base satpy install so in order to use this feature the user
+needs to install the geoviews package himself.
+                                                                                                    
+    >>> import holoviews as hv                                                                      
+    >>> import geoviews as gv                                                                       
+    >>> import geoviews.feature as gf                                                               
+    >>> gv.extension("bokeh", "matplotlib")                                                         
+    >>> %opts QuadMesh Image [width=600 height=400 colorbar=True] Feature [apply_ranges=False]      
+    >>> %opts Image QuadMesh (cmap='RdBu_r')                                                        
+    >>> gview = global_scene.to_geoviews(vdims=[0.6])
+    >>> gview[::5,::5] * gf.coastline * gf.borders                                                  
+                                                                                                     
+Creating new datasets                                                                               
+=====================                                                                               
 
-To make combine datasets and make a new dataset:
+Calculations based on loaded datasets/channels can easily be assigned to a new dataset:
 
     >>> global_scene["ndvi"] = (global_scene[0.8] - global_scene[0.6]) / (global_scene[0.8] + global_scene[0.6])
     >>> global_scene.show("ndvi")
@@ -142,7 +163,7 @@ advanced loading methods see the :doc:`readers` documentation.
 Generating composites
 =====================
 
-SatPy comes with many composite recipes built-in and makes them loadable like any other dataset:
+Satpy comes with many composite recipes built-in and makes them loadable like any other dataset:
 
     >>> global_scene.load(['overview'])
 
@@ -183,7 +204,7 @@ to a uniform grid, limiting input data to an area of interest, changing from
 one projection to another, or for preparing datasets to be combined in a
 composite (see above). For more details on resampling, different resampling
 algorithms, and creating your own area of interest see the
-:doc:`resample` documentation. To resample a SatPy Scene:
+:doc:`resample` documentation. To resample a Satpy Scene:
 
     >>> local_scene = global_scene.resample("eurol")
 
@@ -229,10 +250,10 @@ function called `check_satpy` can be used:
   >>> from satpy.config import check_satpy
   >>> check_satpy()
 
-Due to the way SatPy works, producing as many datasets as possible, there are
+Due to the way Satpy works, producing as many datasets as possible, there are
 times that behavior can be unexpected but with no exceptions raised. To help
 troubleshoot these situations log messages can be turned on. To do this run
-the following code before running any other SatPy code:
+the following code before running any other Satpy code:
 
     >>> from satpy.utils import debug_on
     >>> debug_on()

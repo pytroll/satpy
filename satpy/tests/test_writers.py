@@ -43,7 +43,7 @@ def mkdir_p(path):
 
     # Use for python 2.7 compatibility
     # When python 2.7 support is dropped just use
-    # `os.makedirs(path, exist_ok=True)`
+    # `os._makedirs(path, exist_ok=True)`
     try:
         os.makedirs(path)
     except OSError as exc:  # Python >2.5

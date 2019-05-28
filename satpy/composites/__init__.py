@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2015-2018 PyTroll developers
+# Copyright (c) 2015-2019 PyTroll developers
 
 # Author(s):
 
@@ -30,12 +30,16 @@ import time
 import warnings
 from weakref import WeakValueDictionary
 
+import dask.array as da
 import numpy as np
 import six
 import xarray as xr
-import xarray.ufuncs as xu
-import dask.array as da
 import yaml
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
@@ -43,6 +47,16 @@ from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
 from satpy.writers import get_enhanced_image
 from satpy import CHUNK_SIZE
+
+try:
+    from pyspectral.near_infrared_reflectance import Calculator
+except ImportError:
+    Calculator = None
+try:
+    from pyorbital.astronomy import sun_zenith_angle
+except ImportError:
+    sun_zenith_angle = None
+
 
 LOG = logging.getLogger(__name__)
 
@@ -183,7 +197,7 @@ class CompositorLoader(object):
         conf = {}
         for composite_config in composite_configs:
             with open(composite_config) as conf_file:
-                conf = recursive_dict_update(conf, yaml.load(conf_file))
+                conf = recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
         try:
             sensor_name = conf['sensor_name']
         except KeyError:
@@ -338,19 +352,24 @@ class SunZenithCorrectorBase(CompositeBase):
         key = (vis.attrs["start_time"], area_name)
         tic = time.time()
         LOG.debug("Applying sun zen correction")
-        if len(projectables) == 1:
-            coszen = self.coszen.get(key)
-            if coszen is None:
-                from pyorbital.astronomy import cos_zen
-                LOG.debug("Computing sun zenith angles.")
-                lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
+        coszen = self.coszen.get(key)
+        if coszen is None and len(projectables) == 1:
+            # we were not given SZA, generate SZA then calculate cos(SZA)
+            from pyorbital.astronomy import cos_zen
+            LOG.debug("Computing sun zenith angles.")
+            lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
 
-                coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
-                                      dims=['y', 'x'], coords=[vis['y'], vis['x']])
-                if self.max_sza is not None:
-                    coszen = coszen.where(coszen >= self.max_sza_cos)
-                self.coszen[key] = coszen
-        else:
+            coords = {}
+            if 'y' in vis.coords and 'x' in vis.coords:
+                coords['y'] = vis['y']
+                coords['x'] = vis['x']
+            coszen = xr.DataArray(cos_zen(vis.attrs["start_time"], lons, lats),
+                                  dims=['y', 'x'], coords=coords)
+            if self.max_sza is not None:
+                coszen = coszen.where(coszen >= self.max_sza_cos)
+            self.coszen[key] = coszen
+        elif coszen is None:
+            # we were given the SZA, calculate the cos(SZA)
             coszen = np.cos(np.deg2rad(projectables[1]))
             self.coszen[key] = coszen
 
@@ -461,7 +480,7 @@ class PSPRayleighReflectance(CompositeBase):
             chunks=vis.data.chunks)
 
         sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
-        suna = xu.rad2deg(suna)
+        suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
         sata, satel = get_observer_look(
             vis.attrs['satellite_longitude'],
@@ -540,7 +559,7 @@ class NIRReflectance(CompositeBase):
         self._init_refl3x(projectables)
         _nir, _ = projectables
         refl = self._get_reflectance(projectables, optional_datasets) * 100
-        proj = xr.DataArray(refl.filled(np.nan), dims=_nir.dims,
+        proj = xr.DataArray(refl, dims=_nir.dims,
                             coords=_nir.coords, attrs=_nir.attrs)
 
         proj.attrs['units'] = '%'
@@ -550,12 +569,9 @@ class NIRReflectance(CompositeBase):
 
     def _init_refl3x(self, projectables):
         """Initiate the 3.x reflectance derivations."""
-        try:
-            from pyspectral.near_infrared_reflectance import Calculator
-        except ImportError:
+        if not Calculator:
             LOG.info("Couldn't load pyspectral")
-            raise
-
+            raise ImportError("No module named pyspectral.near_infrared_reflectance")
         _nir, _tb11 = projectables
         self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'])
 
@@ -578,9 +594,10 @@ class NIRReflectance(CompositeBase):
 
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
-            from pyorbital.astronomy import sun_zenith_angle as sza
+            if sun_zenith_angle is None:
+                raise ImportError("No module named pyorbital.astronomy")
             lons, lats = _nir.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
-            sun_zenith = sza(_nir.attrs['start_time'], lons, lats)
+            sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
 
         return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
 
@@ -600,7 +617,6 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         # needs to be derived first in order to get the emissive part.
         _ = self._get_reflectance(projectables, optional_datasets)
         _nir, _ = projectables
-        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
         proj = xr.DataArray(self._refl3x.emissive_part_3x(), attrs=_nir.attrs,
                             dims=_nir.dims, coords=_nir.coords)
 
@@ -693,9 +709,17 @@ class GenericCompositor(CompositeBase):
 
     modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
-    def _concat_datasets(self, projectables, mode):
-        projectables = self.check_areas(projectables)
+    def __init__(self, name, common_channel_mask=True, **kwargs):
+        """Collect custom configuration values.
 
+        Args:
+            common_channel_mask (bool): If True, mask all the channels with
+                a mask that combines all the invalid areas of the given data.
+        """
+        self.common_channel_mask = common_channel_mask
+        super(GenericCompositor, self).__init__(name, **kwargs)
+
+    def _concat_datasets(self, projectables, mode):
         try:
             data = xr.concat(projectables, 'bands', coords='minimal')
             data['bands'] = list(mode)
@@ -728,7 +752,11 @@ class GenericCompositor(CompositeBase):
             # num may not be in `self.modes` so only check if we need to
             mode = self.modes[num]
         if len(projectables) > 1:
+            projectables = self.check_areas(projectables)
             data = self._concat_datasets(projectables, mode)
+            # Skip masking if user wants it or a specific alpha channel is given.
+            if self.common_channel_mask and mode[-1] != 'A':
+                data = data.where(data.notnull().all(dim='bands'))
         else:
             data = projectables[0]
 
@@ -880,7 +908,7 @@ class PaletteCompositor(ColormapCompositor):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, lim_low=85., lim_high=95., **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=95., **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -891,7 +919,7 @@ class DayNightCompositor(GenericCompositor):
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
-        super(DayNightCompositor, self).__init__(**kwargs)
+        super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
         projectables = self.check_areas(projectables)
@@ -988,7 +1016,7 @@ def add_bands(data, bands):
 
 def zero_missing_data(data1, data2):
     """Replace NaN values with zeros in data1 if the data is valid in data2."""
-    nans = xu.logical_and(xu.isnan(data1), xu.logical_not(xu.isnan(data2)))
+    nans = np.logical_and(np.isnan(data1), np.logical_not(np.isnan(data2)))
     return data1.where(~nans, 0)
 
 
@@ -1110,7 +1138,7 @@ class RealisticColors(GenericCompositor):
 
 class CloudCompositor(GenericCompositor):
 
-    def __init__(self, transition_min=258.15, transition_max=298.15,
+    def __init__(self, name, transition_min=258.15, transition_max=298.15,
                  transition_gamma=3.0, **kwargs):
         """Collect custom configuration values.
 
@@ -1125,7 +1153,7 @@ class CloudCompositor(GenericCompositor):
         self.transition_min = transition_min
         self.transition_max = transition_max
         self.transition_gamma = transition_gamma
-        super(CloudCompositor, self).__init__(**kwargs)
+        super(CloudCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
 
@@ -1181,6 +1209,7 @@ class RatioSharpenedRGB(GenericCompositor):
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
                              "be one of ['red', 'green', 'blue', None]. Not "
                              "'{}'".format(self.high_resolution_band))
+        kwargs.setdefault('common_channel_mask', False)
         super(RatioSharpenedRGB, self).__init__(*args, **kwargs)
 
     def _get_band(self, high_res, low_res, color, ratio):
@@ -1251,6 +1280,32 @@ class RatioSharpenedRGB(GenericCompositor):
         return super(RatioSharpenedRGB, self).__call__((r, g, b), **info)
 
 
+def _mean4(data, offset=(0, 0), block_id=None):
+    rows, cols = data.shape
+    # we assume that the chunks except the first ones are aligned
+    if block_id[0] == 0:
+        row_offset = offset[0] % 2
+    else:
+        row_offset = 0
+    if block_id[1] == 0:
+        col_offset = offset[1] % 2
+    else:
+        col_offset = 0
+    row_after = (row_offset + rows) % 2
+    col_after = (col_offset + cols) % 2
+    pad = ((row_offset, row_after), (col_offset, col_after))
+
+    rows2 = rows + row_offset + row_after
+    cols2 = cols + col_offset + col_after
+
+    av_data = np.pad(data, pad, 'edge')
+    new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
+    data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
+    data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
+    data_mean = data_mean[row_offset:row_offset + rows, col_offset:col_offset + cols]
+    return data_mean
+
+
 class SelfSharpenedRGB(RatioSharpenedRGB):
     """Sharpen RGB with ratio of a band with a strided-version of itself.
 
@@ -1265,38 +1320,11 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         new_G = G * ratio
         new_B = B * ratio
 
-
     """
 
     @staticmethod
     def four_element_average_dask(d):
         """Average every 4 elements (2x2) in a 2D array"""
-        def _mean4(data, offset=(0, 0), block_id=None):
-            rows, cols = data.shape
-            # we assume that the chunks except the first ones are aligned
-            if block_id[0] == 0:
-                row_offset = offset[0] % 2
-            else:
-                row_offset = 0
-            if block_id[1] == 0:
-                col_offset = offset[1] % 2
-            else:
-                col_offset = 0
-            row_after = (row_offset + rows) % 2
-            col_after = (col_offset + cols) % 2
-            pad = ((row_offset, row_after), (col_offset, col_after))
-
-            rows2 = rows + row_offset + row_after
-            cols2 = cols + col_offset + col_after
-
-            av_data = np.pad(data, pad, 'edge')
-            new_shape = (int(rows2 / 2.), 2, int(cols2 / 2.), 2)
-            data_mean = np.nanmean(av_data.reshape(new_shape), axis=(1, 3))
-            data_mean = np.repeat(np.repeat(data_mean, 2, axis=0), 2, axis=1)
-            data_mean = data_mean[row_offset:row_offset + rows,
-                                  col_offset:col_offset + cols]
-            return data_mean
-
         try:
             offset = d.attrs['area'].crop_offset
         except (KeyError, AttributeError):
