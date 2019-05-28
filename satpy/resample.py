@@ -862,12 +862,10 @@ class BucketResamplerBase(BaseResampler):
             dims = ('y', 'x')
         else:
             dims = data.dims
-
         result = self.compute(data_arr, **kwargs)
         if result.ndim > len(dims):
             result = da.squeeze(result)
-        result = xr.DataArray(result, dims=dims, coords=data.coords,
-                              attrs=attrs)
+        result = xr.DataArray(result, dims=dims, attrs=attrs)
         return result
 
 
