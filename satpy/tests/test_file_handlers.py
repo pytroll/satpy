@@ -117,6 +117,14 @@ class TestBaseFileHandler(unittest.TestCase):
         res = self.fh.combine_info([info1, info2])
         self.assertDictEqual(res, exp)
 
+        # Identity
+        info3 = {'projection': {'a': 1},
+                 'navigation': {'c': 1}}
+        self.assertEqual(self.fh.combine_info([info3]), info3)
+
+        # Empty
+        self.fh.combine_info([{}])
+
     def tearDown(self):
         """Tear down the test."""
         BaseFileHandler.__abstractmethods__ = self._old_set
