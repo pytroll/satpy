@@ -56,7 +56,7 @@ class VIRR_L1B(HDF5FileHandler):
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         # Prevents an error for kwargs being passed to readers.
         if kwargs:
-            logger.warning("kwargs provided to VIRR_L1B, but kwargs aren't used: '{}'".format(kwargs))
+            LOG.warning("kwargs provided to VIRR_L1B, but kwargs aren't used: '{}'".format(kwargs))
         super(VIRR_L1B, self).__init__(filename, filename_info, filetype_info)
         LOG.debug('day/night flag for {0}: {1}'.format(filename, self['/attr/Day Or Night Flag']))
         self.geolocation_prefix = filetype_info['geolocation_prefix']
