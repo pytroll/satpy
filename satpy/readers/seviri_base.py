@@ -24,11 +24,9 @@
 """Utilities and eventually also base classes for MSG HRIT/Native data reading
 """
 
-from datetime import datetime, timedelta
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
-import xarray.ufuncs as xu
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
@@ -193,11 +191,30 @@ CALIB[324] = {'HRV': {'F': 79.0035 / np.pi},
 
 
 def get_cds_time(days, msecs):
-    """Get the datetime object of the time since epoch given in days and
-    milliseconds of day
+    """Compute timestamp given the days since epoch and milliseconds of the day
+
+    1958-01-01 00:00 is interpreted as fill value and will be replaced by NaT (Not a Time).
+
+    Args:
+        days (int, either scalar or numpy.ndarray):
+            Days since 1958-01-01
+        msecs (int, either scalar or numpy.ndarray):
+            Milliseconds of the day
+
+    Returns:
+        numpy.datetime64: Timestamp(s)
     """
-    return datetime(1958, 1, 1) + timedelta(days=float(days),
-                                            milliseconds=float(msecs))
+    if np.isscalar(days):
+        days = np.array([days], dtype='int64')
+        msecs = np.array([msecs], dtype='int64')
+
+    time = np.datetime64('1958-01-01').astype('datetime64[ms]') + \
+        days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]')
+    time[time == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
+
+    if len(time) == 1:
+        return time[0]
+    return time
 
 
 def dec10216(inbuf):
@@ -283,7 +300,7 @@ class SEVIRICalibrationHandler(object):
         """Compute the L15 temperature."""
 
         return ((C2 * wavenumber) /
-                xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
+                np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
     def _vis_calibrate(self, data, solar_irradiance):
         """Calibrate to reflectance."""
