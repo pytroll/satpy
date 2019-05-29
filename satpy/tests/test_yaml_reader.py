@@ -429,15 +429,15 @@ class TestFileFileYAMLReader(unittest.TestCase):
         )
         new_data_arr = self.reader._add_crs_info_from_area(data_arr, area_def)
         self.assertIn('y', new_data_arr.coords)
-        self.assertIn('units', new_data_arr.coords['y'].attrs)
-        self.assertEqual(
-            new_data_arr.coords['y'].attrs['units'], 'meter')
         self.assertIn('x', new_data_arr.coords)
-        self.assertIn('units', new_data_arr.coords['x'].attrs)
-        self.assertEqual(
-            new_data_arr.coords['x'].attrs['units'], 'meter')
 
         if CRS is not None:
+            self.assertIn('units', new_data_arr.coords['y'].attrs)
+            self.assertEqual(
+                new_data_arr.coords['y'].attrs['units'], 'meter')
+            self.assertIn('units', new_data_arr.coords['x'].attrs)
+            self.assertEqual(
+                new_data_arr.coords['x'].attrs['units'], 'meter')
             self.assertIn('crs', new_data_arr.coords)
             self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
 
@@ -471,15 +471,15 @@ class TestFileFileYAMLReader(unittest.TestCase):
         )
         new_data_arr = self.reader._add_crs_info_from_area(data_arr, area_def)
         self.assertIn('y', new_data_arr.coords)
-        self.assertIn('units', new_data_arr.coords['y'].attrs)
-        self.assertEqual(
-            new_data_arr.coords['y'].attrs['units'], 'degrees_north')
         self.assertIn('x', new_data_arr.coords)
-        self.assertIn('units', new_data_arr.coords['x'].attrs)
-        self.assertEqual(
-            new_data_arr.coords['x'].attrs['units'], 'degrees_east')
 
         if CRS is not None:
+            self.assertIn('units', new_data_arr.coords['y'].attrs)
+            self.assertEqual(
+                new_data_arr.coords['y'].attrs['units'], 'degrees_north')
+            self.assertIn('units', new_data_arr.coords['x'].attrs)
+            self.assertEqual(
+                new_data_arr.coords['x'].attrs['units'], 'degrees_east')
             self.assertIn('crs', new_data_arr.coords)
             self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
 
