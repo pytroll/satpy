@@ -53,7 +53,10 @@ LOG = logging.getLogger(__name__)
 class VIRR_L1B(HDF5FileHandler):
     """VIRR_L1B reader."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        # Prevents an error for kwargs being passed to readers.
+        if kwargs:
+            logger.warning("kwargs provided to VIRR_L1B, but kwargs aren't used: '{}'".format(kwargs))
         super(VIRR_L1B, self).__init__(filename, filename_info, filetype_info)
         LOG.debug('day/night flag for {0}: {1}'.format(filename, self['/attr/Day Or Night Flag']))
         self.geolocation_prefix = filetype_info['geolocation_prefix']
@@ -69,7 +72,11 @@ class VIRR_L1B(HDF5FileHandler):
         file_key = self.geolocation_prefix + ds_info.get('file_key', dataset_id.name)
         if self.platform_id == 'FY3B':
             file_key = file_key.replace('Data/', '')
-        data = self[file_key]
+        try:
+            data = self[file_key]
+        except KeyError:
+            LOG.error('File key "{0}" could not be found in file {1}'.format(file_key, self.filename))
+            raise
         band_index = ds_info.get('band_index')
         if band_index is not None:
             data = data[band_index]
