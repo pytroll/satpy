@@ -886,7 +886,6 @@ class BucketResamplerBase(BaseResampler):
             attrs['units'] = None
             attrs['calibration'] = None
             attrs['standard_name'] = 'number_of_observations'
-        attrs['projection'] = self.target_geo_def
 
         result = xr.DataArray(result, dims=dims, coords=coords,
                               attrs=attrs)
