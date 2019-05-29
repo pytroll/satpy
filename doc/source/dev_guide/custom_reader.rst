@@ -1,5 +1,5 @@
 =================================
- Adding a Custom Reader to SatPy
+ Adding a Custom Reader to Satpy
 =================================
 
 In order to add a reader to satpy, you will need to create two files:
@@ -14,7 +14,7 @@ format for SEVIRI data
 Naming your reader
 ------------------
 
-SatPy tries to follow a standard scheme for naming its readers. These names
+Satpy tries to follow a standard scheme for naming its readers. These names
 are used in filenames, but are also used by users so it is important that
 the name be recognizable and clear. Although some
 special cases exist, most fit in to the following naming scheme:
@@ -57,7 +57,7 @@ if needed (ex. goes-imager).
 
 The existing :ref:`reader's table <reader_table>` can be used for reference.
 When in doubt, reader names can be discussed in the github pull
-request when this reader is added to SatPy or a github issue.
+request when this reader is added to Satpy or a github issue.
 
 The YAML file
 -------------
@@ -363,7 +363,7 @@ needs to implement a few methods:
    - the filename info (dict) that we get by parsing the filename using the pattern defined in the yaml file
    - the filetype info that we get from the filetype definition in the yaml file
 
-  This method can also recieve other file handler instances as parameter
+  This method can also receive other file handler instances as parameter
   if the filetype at hand has requirements. (See the explanation in the
   YAML file filetype section above)
 
@@ -399,7 +399,7 @@ On top of that, two attributes need to be defined: ``start_time`` and
 
         def get_dataset(self, dataset_id, dataset_info):
             if dataset_id.calibration != 'radiance':
-                # TODO: implement calibration to relfectance or brightness temperature
+                # TODO: implement calibration to reflectance or brightness temperature
                 return
             if self.nc is None:
                 self.nc = xr.open_dataset(self.filename,

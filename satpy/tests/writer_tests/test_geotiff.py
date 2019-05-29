@@ -29,6 +29,11 @@ if sys.version_info < (2, 7):
 else:
     import unittest
 
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
 
 class TestGeoTIFFWriter(unittest.TestCase):
     """Test the GeoTIFF Writer class."""
@@ -92,6 +97,19 @@ class TestGeoTIFFWriter(unittest.TestCase):
             if hasattr(target, 'close'):
                 target.close()
 
+    def test_colormap_write(self):
+        """Test writing an image with a colormap."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        from trollimage.xrimage import XRImage
+        from trollimage.colormap import spectral
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir)
+        # we'd have to customize enhancements to test this through
+        # save_datasets. We'll use `save_image` as a workaround.
+        img = XRImage(datasets[0])
+        img.palettize(spectral)
+        w.save_image(img, keep_palette=True)
+
     def test_float_write(self):
         """Test that geotiffs can be written as floats.
 
@@ -104,6 +122,17 @@ class TestGeoTIFFWriter(unittest.TestCase):
                           enhancement_config=False,
                           dtype=np.float32)
         w.save_datasets(datasets)
+
+    def test_fill_value_from_config(self):
+        """Test fill_value coming from the writer config."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(base_dir=self.base_dir)
+        w.info['fill_value'] = 128
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, compute=False)
+            self.assertEqual(save_method.call_args[1]['fill_value'], 128)
 
 
 def suite():
