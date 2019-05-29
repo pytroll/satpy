@@ -761,8 +761,8 @@ enhancements:
         method: &colorizefun !!python/name:satpy.enhancements.colorize ''
         kwargs:
           palettes:
-            - {colors: spectral, min_value: 203.15, max_value: 243.149999}
-            - {colors: greys, min_value: 243.15, max_value: 303.15}
+            - {colors: spectral, min_value: 193.15, max_value: 253.149999}
+            - {colors: greys, min_value: 253.15, max_value: 303.15}
 
   vis_sharpened_ir:
     standard_name: vis_sharpened_ir
