@@ -79,6 +79,60 @@ enhancements:
     - name: gamma
       method: *gammafun
       kwargs: {gamma: 1.8}
+
+  fire_temperature:
+    standard_name: fire_temperature
+    name: fire_temperature
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [3.5, 35., 85.]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: [1.0, 1.0, 1.0]}
+  fire_temperature_awips:
+    standard_name: fire_temperature
+    name: fire_temperature_awips
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [273.0, 0, 0]
+        max_stretch: [333.0, 100., 75.]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: [0.4, 1.0, 1.0]}
+  fire_temperature_eumetsat:
+    standard_name: fire_temperature
+    name: fire_temperature_eumetsat
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [273.0, 0, 0]
+        max_stretch: [350.0, 60., 60.]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: [1.0, 1.0, 1.0]}
+  fire_temperature_39refl:
+    standard_name: fire_temperature
+    name: fire_temperature_39refl
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [50., 100., 75.]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: [1.0, 1.0, 1.0]}
+
   airmass_default:
     standard_name: airmass
     operations:
@@ -88,6 +142,7 @@ enhancements:
         stretch: crude
         min_stretch: [-25, -40, 243]
         max_stretch: [0, 5, 208]
+
   airmass_abi:
     standard_name: airmass
     sensor: abi
@@ -706,8 +761,8 @@ enhancements:
         method: &colorizefun !!python/name:satpy.enhancements.colorize ''
         kwargs:
           palettes:
-            - {colors: spectral, min_value: 203.15, max_value: 243.149999}
-            - {colors: greys, min_value: 243.15, max_value: 303.15}
+            - {colors: spectral, min_value: 193.15, max_value: 253.149999}
+            - {colors: greys, min_value: 253.15, max_value: 303.15}
 
   vis_sharpened_ir:
     standard_name: vis_sharpened_ir
