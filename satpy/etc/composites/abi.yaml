@@ -36,7 +36,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected_crefl]
     - name: C03
       modifiers: [sunz_corrected, rayleigh_corrected_crefl]
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   green_raw:
     compositor: !!python/name:satpy.composites.abi.SimulatedGreen
@@ -50,7 +50,7 @@ composites:
       modifiers: [sunz_corrected]
     - name: C03
       modifiers: [sunz_corrected]
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   green:
     compositor: !!python/name:satpy.composites.abi.SimulatedGreen
@@ -64,7 +64,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     - name: C03
       modifiers: [sunz_corrected]
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
 
   true_color_crefl:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
