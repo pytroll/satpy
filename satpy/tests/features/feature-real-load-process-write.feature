@@ -205,3 +205,7 @@ Feature: Loading real data in many formats with the same command
         | viirs_sdr      | ash                | eurol   |
         | viirs_sdr      | natural_sun_lowres | eurol   |
         | viirs_sdr      | snow_age           | eurol   |
+        | viirs_sdr      | fire_temperature   | eurol   |
+        | viirs_sdr      | fire_temperature_awips      | eurol   |
+        | viirs_sdr      | fire_temperature_eumetsat   | eurol   |
+        | viirs_sdr      | fire_temperature_39refl     | eurol   |

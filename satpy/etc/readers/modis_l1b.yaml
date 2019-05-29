@@ -405,32 +405,33 @@ datasets:
     - 14.235
     - 14.385
 
-  longitude1k:
-    file_type: hdf_eos_geo
+  longitude:
     name: longitude
-    resolution: [1000, 500, 250]
+    resolution:
+      5000:
+        # For EUM reduced (thinned) files
+        file_type: hdf_eos_data_1000m
+      1000:
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+      500:
+        file_type: hdf_eos_geo
+      250:
+        file_type: hdf_eos_geo
     standard_name: longitude
     units: degree
 
-  latitude1k:
-    file_type: hdf_eos_geo
+  latitude:
     name: latitude
-    resolution: [1000, 500, 250]
-    standard_name: latitude
-    units: degree
-
-  # For EUM reduced (thinned) files
-  longitude5k:
-    file_type: hdf_eos_data_1000m
-    name: longitude
-    resolution: [5000, 1000]
-    standard_name: longitude
-    units: degree
-
-  latitude5k:
-    file_type: hdf_eos_data_1000m
-    name: latitude
-    resolution: [5000, 1000]
+    resolution:
+      5000:
+        # For EUM reduced (thinned) files
+        file_type: hdf_eos_data_1000m
+      1000:
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+      500:
+        file_type: hdf_eos_geo
+      250:
+        file_type: hdf_eos_geo
     standard_name: latitude
     units: degree
 
@@ -497,4 +498,4 @@ file_types:
     - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
     - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
     - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
-    file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSGeoReader ''
+    file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSGeoReader

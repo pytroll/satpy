@@ -30,7 +30,7 @@ import dask.array as da
 
 
 class TestEnhancementStretch(unittest.TestCase):
-    """Class for testing enhancements in satpy.enhancements."""
+    """Class for testing enhancements in satpy.enhancements"""
 
     def setUp(self):
         """Setup the test"""
@@ -96,14 +96,14 @@ class TestEnhancementStretch(unittest.TestCase):
              4.35952940e-06, 4.35952940e-06],
             [4.35952940e-06, 4.35952940e-06, 4.35952940e-06,
              4.35952940e-06, 4.35952940e-06]],
-           [[np.nan, 1.88249866e-01, 1.88249866e-01,
-             2.35302110e-01, 2.35302110e-01],
-            [2.35302110e-01, 2.35302110e-01, 2.35302110e-01,
-             2.35302110e-01, 2.35302110e-01]],
-           [[np.nan, 1.96102817e-02, 1.96102817e-02,
-             1.88238767e-01, 1.88238767e-01],
-            [1.88238767e-01, 1.88238767e-01, 1.88238767e-01,
-             1.88238767e-01, 1.88238767e-01]]])
+            [[np.nan, 1.88249866e-01, 1.88249866e-01,
+              2.35302110e-01, 2.35302110e-01],
+             [2.35302110e-01, 2.35302110e-01, 2.35302110e-01,
+              2.35302110e-01, 2.35302110e-01]],
+            [[np.nan, 1.96102817e-02, 1.96102817e-02,
+              1.88238767e-01, 1.88238767e-01],
+             [1.88238767e-01, 1.88238767e-01, 1.88238767e-01,
+              1.88238767e-01, 1.88238767e-01]]])
         self._test_enhancement(colorize, self.ch1, expected, palettes=brbg)
 
     def test_palettize(self):
