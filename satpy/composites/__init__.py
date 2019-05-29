@@ -59,7 +59,6 @@ except ImportError:
 
 
 LOG = logging.getLogger(__name__)
-warnings.simplefilter('always', DeprecationWarning)
 
 
 class IncompatibleAreas(Exception):
@@ -791,7 +790,7 @@ class NotRecommendedCompositor(GenericCompositor):
 
     def __call__(self, *args, **kwargs):
         warnings.warn("The composite <%s> is NOT recommended - there are more suitable RGB recipes available!" %
-                      self.attrs['name'], DeprecationWarning)
+                      self.attrs['name'], UserWarning)
         return super(NotRecommendedCompositor, self).__call__(*args, **kwargs)
 
 
