@@ -143,7 +143,7 @@ class TestEnhancementStretch(unittest.TestCase):
         pass
 
 
-class TestColormap(unittest.TestCase):
+class TestColormapLoading(unittest.TestCase):
     """Test utilities used with colormaps."""
 
     def test_cmap_from_file_rgb(self):
@@ -165,7 +165,7 @@ class TestColormap(unittest.TestCase):
             self.assertEqual(cmap.colors.shape[0], 4)
             self.assertEqual(cmap.values.shape[0], 4)
             self.assertEqual(cmap.values[0], 0)
-            self.assertEqual(cmap.values[-1], 0.75)
+            self.assertEqual(cmap.values[-1], 1.0)
 
             cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
             self.assertEqual(cmap.colors.shape[0], 4)
@@ -202,7 +202,7 @@ class TestColormap(unittest.TestCase):
             self.assertEqual(cmap.colors.shape[1], 4)  # RGBA
             self.assertEqual(cmap.values.shape[0], 4)
             self.assertEqual(cmap.values[0], 0)
-            self.assertEqual(cmap.values[-1], 0.75)
+            self.assertEqual(cmap.values[-1], 1.0)
 
             cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
             self.assertEqual(cmap.colors.shape[0], 4)
@@ -298,7 +298,6 @@ class TestColormap(unittest.TestCase):
         self.assertEqual(cmap.colors.shape[0], 4)
         self.assertEqual(cmap.values.shape[0], 4)
         self.assertEqual(cmap.values[0], 0)
-        # self.assertEqual(cmap.values[-1], 0.75)
         self.assertEqual(cmap.values[-1], 1.0)
 
         cmap = create_colormap({'colors': colors, 'values': values})
@@ -314,7 +313,7 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestEnhancementStretch))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestColormap))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestColormapLoading))
 
     return mysuite
 
