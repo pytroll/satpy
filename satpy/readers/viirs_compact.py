@@ -25,7 +25,6 @@ from datetime import datetime, timedelta
 import h5py
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -250,7 +249,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                     lambda_c = h5attrs['CentralWaveLength']
                     rads *= 1e6
                     rads = (h * c) / (k * lambda_c *
-                                      xu.log(1 +
+                                      np.log(1 +
                                              (2 * h * c ** 2) /
                                              ((lambda_c ** 5) * rads)))
                     rads *= a_ir

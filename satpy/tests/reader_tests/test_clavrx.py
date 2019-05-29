@@ -127,6 +127,72 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
+    def test_available_datasets(self):
+        """Test available_datasets with fake variables from YAML."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
+        ])
+        self.assertTrue(len(loadables), 1)
+        r.create_filehandlers(loadables)
+        # make sure we have some files
+        self.assertTrue(r.file_handlers)
+
+        # mimic the YAML file being configured for more datasets
+        fake_dataset_info = [
+            (None, {'name': 'variable1', 'resolution': None, 'file_type': ['level2']}),
+            (True, {'name': 'variable2', 'resolution': 742, 'file_type': ['level2']}),
+            (True, {'name': 'variable2', 'resolution': 1, 'file_type': ['level2']}),
+            (None, {'name': 'variable2', 'resolution': 1, 'file_type': ['level2']}),
+            (None, {'name': '_fake1', 'file_type': ['level2']}),
+            (None, {'name': 'variable1', 'file_type': ['level_fake']}),
+            (True, {'name': 'variable3', 'file_type': ['level2']}),
+        ]
+        new_ds_infos = list(r.file_handlers['level2'][0].available_datasets(
+            fake_dataset_info))
+        self.assertEqual(len(new_ds_infos), 9)
+
+        # we have this and can provide the resolution
+        self.assertTrue(new_ds_infos[0][0])
+        self.assertEqual(new_ds_infos[0][1]['resolution'], 742)  # hardcoded
+
+        # we have this, but previous file handler said it knew about it
+        # and it is producing the same resolution as what we have
+        self.assertTrue(new_ds_infos[1][0])
+        self.assertEqual(new_ds_infos[1][1]['resolution'], 742)
+
+        # we have this, but don't want to change the resolution
+        # because a previous handler said it has it
+        self.assertTrue(new_ds_infos[2][0])
+        self.assertEqual(new_ds_infos[2][1]['resolution'], 1)
+
+        # even though the previous one was known we can still
+        # produce it at our new resolution
+        self.assertTrue(new_ds_infos[3][0])
+        self.assertEqual(new_ds_infos[3][1]['resolution'], 742)
+
+        # we have this and can update the resolution since
+        # no one else has claimed it
+        self.assertTrue(new_ds_infos[4][0])
+        self.assertEqual(new_ds_infos[4][1]['resolution'], 742)
+
+        # we don't have this variable, don't change it
+        self.assertFalse(new_ds_infos[5][0])
+        self.assertIsNone(new_ds_infos[5][1].get('resolution'))
+
+        # we have this, but it isn't supposed to come from our file type
+        self.assertIsNone(new_ds_infos[6][0])
+        self.assertIsNone(new_ds_infos[6][1].get('resolution'))
+
+        # we could have loaded this but some other file handler said it has this
+        self.assertTrue(new_ds_infos[7][0])
+        self.assertIsNone(new_ds_infos[7][1].get('resolution'))
+
+        # we can add resolution to the previous dataset, so we do
+        self.assertTrue(new_ds_infos[8][0])
+        self.assertEqual(new_ds_infos[8][1]['resolution'], 742)
+
     def test_load_all(self):
         """Test loading all test datasets"""
         from satpy.readers import load_reader
