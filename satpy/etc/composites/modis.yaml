@@ -80,6 +80,25 @@ composites:
     - wavelength: 6.7
     standard_name: airmass
 
+  airmass_limb:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.7
+        modifiers: [limb_correction]
+      - wavelength: 7.3
+        modifiers: [limb_correction]
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 9.7
+          modifiers: [limb_correction]
+        - wavelength: 10.8
+          modifiers: [limb_correction]
+    - wavelength: 6.7
+      modifiers: [limb_correction]
+    standard_name: airmass
+
   ocean_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:

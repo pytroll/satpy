@@ -468,6 +468,90 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
         return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
 
 
+class LimbCoolingCorrection(CompositeBase):
+
+    # _rayleigh_cache = WeakValueDictionary()
+
+    def get_angles(self, tb_):
+        from pyorbital.orbital import get_observer_look
+
+        lons, lats = tb_.attrs['area'].get_lonlats_dask(chunks=tb_.data.chunks)
+
+        sata, satel = get_observer_look(
+            tb_.attrs['satellite_longitude'],
+            tb_.attrs['satellite_latitude'],
+            tb_.attrs['satellite_altitude'],
+            tb_.attrs['start_time'],
+            lons, lats, 0)
+        satz = 90 - satel
+        del sata
+        return satz
+
+    def __call__(self, projectables, optional_datasets=None, **info):
+        """Get the corrected brightness temperature when removing the limb cooling effect.
+
+        FIXME: Should perhaps be implemented in and use pyspectral in the future.
+        """
+
+        if not optional_datasets or len(optional_datasets) != 1:
+            tb_, tb11 = self.check_areas(projectables)
+            satz = self.get_angles(tb_)
+            tb11.data = da.rechunk(tb11.data, tb_.data.chunks)
+        else:
+            tb_, tb11, satz = self.check_areas(projectables + optional_datasets)
+            satz = optional_datasets[0]
+            # get the dask array underneath
+            satz = satz.data
+
+        tb_cor_band = get_limb_cooling_correction(satz, tb_.attrs['name'], tb11.data)
+
+        #
+        proj = tb_ - tb_cor_band
+        proj.attrs = tb_.attrs
+        self.apply_modifier_info(tb_, proj)
+        return proj
+
+
+def get_limb_cooling_correction(sat_zenith, name, tb11_data):
+    """From sat-zenith angles, get the limb-cooling correction"""
+    from dask.array import clip
+
+    # Get the wate vapour from the temperature:
+    a, b = 15.40695791, -86.66840063
+    wv_ = da.exp(da.log(tb11_data) * a + b)
+
+    channelname2filename = {'WV_062': 'tabell_ch5', '27': 'tabell_ch5',
+                            'WV_073': 'tabell_ch6', '28': 'tabell_ch6',
+                            'IR_087': 'tabell_ch7', '29': 'tabell_ch7',
+                            'IR_097': 'tabell_ch8', '30': 'tabell_ch8',
+                            'IR_108': 'tabell_ch9', '31': 'tabell_ch9'}
+    filename = "/home/a000680/Satsa/limb_correction/%s.txt" % channelname2filename.get(name)
+    table = np.genfromtxt(filename, skip_header=1, usecols=range(1, 10), usemask=True, missing_values=np.nan)
+
+    # w_int = np.arange(1, 17)*0.5
+    # t_int = np.arange(230, 320, 10)
+    idx_w = clip((wv_ / 0.5 - 1).astype('int'), 0, 14)
+    idx_t = clip(((tb11_data - 230) / 10.0).astype('int'), 0, 7)
+
+    wvl1 = idx_w * 0.5 + 0.5
+    wvl2 = (idx_w + 1) * 0.5 + 0.5
+    fac1 = (wvl2 - wv_) / (wvl2 - wvl1)
+    tvl1 = idx_t * 10.0 + 230
+    tvl2 = (idx_t + 1) * 10.0 + 230
+    fac2 = (tvl2 - tb11_data) / (tvl2 - tvl1)
+
+    wv_val1 = fac1 * table[idx_w, idx_t] + (1 - fac1) * table[idx_w + 1, idx_t]
+    wv_val2 = fac1 * table[idx_w, idx_t + 1] + (1 - fac1) * table[idx_w + 1, idx_t + 1]
+    wv_val = fac2 * wv_val1 + (1 - fac2) * wv_val2
+
+    nans = da.logical_and(da.isnan(wv_val), da.logical_not(da.isnan(tb11_data)))
+    wv_val = da.where(nans, 0, wv_val)
+
+    corr = (1./np.cos(np.deg2rad(sat_zenith)) - 1) * wv_val
+
+    return corr
+
+
 class PSPRayleighReflectance(CompositeBase):
 
     _rayleigh_cache = WeakValueDictionary()
@@ -643,11 +727,11 @@ class PSPAtmosphericalCorrection(CompositeBase):
             try:
                 dummy, satel = get_observer_look(band.attrs['satellite_longitude'],
                                                  band.attrs[
-                                                     'satellite_latitude'],
-                                                 band.attrs[
-                                                     'satellite_altitude'],
-                                                 band.attrs['start_time'],
-                                                 lons, lats, 0)
+                    'satellite_latitude'],
+                    band.attrs[
+                    'satellite_altitude'],
+                    band.attrs['start_time'],
+                    lons, lats, 0)
             except KeyError:
                 raise KeyError(
                     'Band info is missing some meta data!')
