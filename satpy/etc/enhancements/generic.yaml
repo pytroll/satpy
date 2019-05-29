@@ -206,8 +206,9 @@ enhancements:
         stretch: crude
         min_stretch: [-4, 0, 243]
         max_stretch: [2, 6, 283]
-  night_fog_default:
-    standard_name: night_fog
+        
+  night_microphysics_default:
+    standard_name: night_microphysics
     operations:
     - name: stretch
       method: *stretchfun
@@ -219,7 +220,7 @@ enhancements:
       method: *gammafun
       kwargs:
         gamma: [1, 2, 1]
-
+                
   snow_default:
     standard_name: snow
     operations:
@@ -706,15 +707,6 @@ enhancements:
                          [252, 254, 254], [253, 254, 254], [253, 254, 254], [
                              253, 254, 254], [253, 254, 254],
                          [254, 254, 254], [254, 254, 254], [254, 254, 254], [254, 254, 254], [255, 255, 255]]
-  night_microphysics_default:
-    standard_name: night_microphysics
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs:
-        stretch: crude
-        min_stretch: [-4, 0, 243]
-        max_stretch: [2, 10, 293]
   ir_overview_default:
     standard_name: ir_overview
     operations:

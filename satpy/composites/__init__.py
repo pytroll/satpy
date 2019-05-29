@@ -59,6 +59,7 @@ except ImportError:
 
 
 LOG = logging.getLogger(__name__)
+warnings.simplefilter('always', DeprecationWarning)
 
 
 class IncompatibleAreas(Exception):
@@ -784,6 +785,14 @@ class GenericCompositor(CompositeBase):
 
         return xr.DataArray(data=data.data, attrs=new_attrs,
                             dims=data.dims, coords=data.coords)
+
+
+class NotRecommendedCompositor(GenericCompositor):
+
+    def __call__(self, *args, **kwargs):
+        warnings.warn("The composite <%s> is NOT recommended - there are more suitable RGB recipes available!" %
+                      self.attrs['name'], DeprecationWarning)
+        return super(NotRecommendedCompositor, self).__call__(*args, **kwargs)
 
 
 class FillingCompositor(GenericCompositor):

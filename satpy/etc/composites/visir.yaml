@@ -121,7 +121,7 @@ composites:
     standard_name: ash
 
   cloudtop:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.NotRecommendedCompositor
     prerequisites:
     - 3.75
     - 10.8
@@ -220,20 +220,6 @@ composites:
     - wavelength: 0.635
       modifiers: [sunz_corrected]
     standard_name: natural_color
-
-  night_fog:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
-      prerequisites:
-      - 12.0
-      - 10.8
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
-      prerequisites:
-      - 10.8
-      - 3.75
-    - 10.8
-    standard_name: night_fog
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -363,7 +349,7 @@ composites:
     - cpp_lwp_pal
     standard_name: liquid_water_path
 
-  night_microphysics:
+  night_microphysics: &night_microphysics
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -376,6 +362,9 @@ composites:
       - 3.75
     - 10.8
     standard_name: night_microphysics
+
+  night_fog:
+    *night_microphysics
 
   ir108_3d:
     compositor: !!python/name:satpy.composites.GenericCompositor
