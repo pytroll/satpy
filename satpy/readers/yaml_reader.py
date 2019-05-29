@@ -747,14 +747,20 @@ class FileYAMLReader(AbstractYAMLReader):
             return data_arr
 
         # convert to DataArrays
-        attrs = {}
+        y_attrs = {}
+        x_attrs = {}
         if crs is not None:
             units = crs.axis_info[0].unit_name
             # fix udunits/CF standard units
             units = units.replace('metre', 'meter')
-            attrs['units'] = units
-        y = xr.DataArray(y, dims=('y',), attrs=attrs)
-        x = xr.DataArray(x, dims=('x',), attrs=attrs)
+            if units == 'degree':
+                y_attrs['units'] = 'degrees_north'
+                x_attrs['units'] = 'degrees_east'
+            else:
+                y_attrs['units'] = units
+                x_attrs['units'] = units
+        y = xr.DataArray(y, dims=('y',), attrs=y_attrs)
+        x = xr.DataArray(x, dims=('x',), attrs=x_attrs)
         return data_arr.assign_coords(y=y, x=x)
 
     def _add_crs_info_from_area(self, data_arr, area):
