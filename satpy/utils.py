@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2018 PyTroll developers
-#
-# Author(s):
-#
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   Esben S. Nielsen <esn@dmi.dk>
-#   Panu Lahtinen <pnuu+git@iki.fi>
+# Copyright (c) 2009-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -23,12 +16,12 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Module defining various utilities.
 """
 
 import logging
 import os
+import sys
 import re
 
 import numpy as np
@@ -136,7 +129,7 @@ def get_logger(name):
         logging.Logger.trace = trace
 
     log = logging.getLogger(name)
-    if not log.handlers:
+    if not log.handlers and sys.version_info[0] < 3:
         log.addHandler(logging.NullHandler())
     return log
 

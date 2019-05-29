@@ -55,7 +55,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -81,7 +81,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -107,7 +107,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -133,7 +133,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -154,7 +154,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -174,7 +174,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -194,7 +194,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -214,7 +214,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -234,7 +234,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -254,7 +254,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -274,7 +274,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -294,7 +294,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -314,7 +314,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -334,7 +334,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -354,7 +354,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -374,7 +374,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -394,7 +394,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -414,7 +414,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -434,7 +434,7 @@ datasets:
     calibration:
       reflectance:
         units: "%"
-        standard_name: toa_bidirection_reflectance
+        standard_name: toa_bidirectional_reflectance
       radiance:
         units: 'mW/ (m2 cm-1 sr)'
         standard_name: toa_outgoing_radiance_per_unit_wavelength
