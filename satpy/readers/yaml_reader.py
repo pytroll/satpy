@@ -718,6 +718,45 @@ class FileYAMLReader(AbstractYAMLReader):
                 logger.debug("No coordinates found for %s", str(dsid))
             return area
 
+    @staticmethod
+    def _area_def_coords(data_arr, area, crs=None):
+        """Assign x/y coordinates to DataArray from provided area.
+
+        If 'x' and 'y' coordinates already exist then they will not be added.
+
+        Args:
+            data_arr (xarray.DataArray): data object to add x/y coordinates to
+            area (pyresample.geometry.AreaDefinition): area providing the
+                coordinate data.
+            crs (pyproj.crs.CRS or None): CRS providing additional information
+                about the area's coordinate reference system if available.
+                Requires pyproj 2.0+.
+
+        Returns (xarray.DataArray): Updated DataArray object
+
+        """
+        if 'x' in data_arr.coords and 'y' in data_arr.coords:
+            return data_arr
+
+        if hasattr(area, 'get_proj_vectors'):
+            x, y = area.get_proj_vectors()
+        elif hasattr(area, 'get_proj_vectors_dask'):
+            # older pyresample with dask-only method
+            x, y = area.get_proj_vectors_dask(CHUNK_SIZE)
+        else:
+            return data_arr
+
+        # convert to DataArrays
+        attrs = {}
+        if crs is not None:
+            units = crs.axis_info[0].unit_name
+            # fix udunits/CF standard units
+            units = units.replace('metre', 'meter')
+            attrs['units'] = units
+        y = xr.DataArray(y, dims=('y',), attrs=attrs)
+        x = xr.DataArray(x, dims=('x',), attrs=attrs)
+        return data_arr.assign_coords(y=y, x=x)
+
     def _add_crs_info_from_area(self, data_arr, area):
         """Add :class:`pyproj.crs.CRS` to coordinates if possible.
 
@@ -730,23 +769,27 @@ class FileYAMLReader(AbstractYAMLReader):
         """
         if isinstance(area, SwathDefinition):
             # add lon/lat arrays for swath definitions
-            lons, lats = area.get_lonlats(chunks=data_arr.data.chunks)
-            dims = ('y', 'x') if lons.ndim == 2 else ('y',)
-            if any(d not in data_arr.dims for d in dims):
-                # we don't know what to call the dimensions for
-                # the lon/lats
-                return data_arr
-            return data_arr.assign_coords(
-                lons=(dims, lons),
-                lats=(dims, lats))
+            # SwathDefinitions created by Satpy should be assigning DataArray
+            # objects as the lons/lats attributes so use those directly to
+            # maintain original .attrs metadata (instead of converting to dask
+            # array).
+            lons = area.lons
+            lats = area.lats
+            return data_arr.assign_coords(lons=lons, lats=lats)
 
+        # Gridded data (AreaDefinition/StackedAreaDefinition)
+        # add CRS object if pyproj 2.0+
         try:
             from pyproj import CRS
         except ImportError:
             logger.debug("Could not add 'crs' coordinate with pyproj<2.0")
+            crs = None
         else:
             crs = CRS.from_string(area.proj_str)
-            return data_arr.assign_coords(crs=crs)
+            data_arr = data_arr.assign_coords(crs=crs)
+
+        # Add x/y coordinates if possible
+        data_arr = self._area_def_coords(data_arr, area, crs=crs)
         return data_arr
 
     def _load_dataset_with_area(self, dsid, coords):
@@ -765,14 +808,6 @@ class FileYAMLReader(AbstractYAMLReader):
 
         if area is not None:
             ds.attrs['area'] = area
-            calc_coords = (('x' not in ds.coords) or('y' not in ds.coords)) and hasattr(area, 'get_proj_vectors_dask')
-            if calc_coords and hasattr(area, 'get_proj_vectors'):
-                ds['x'], ds['y'] = area.get_proj_vectors()
-            elif calc_coords:
-                # older pyresample with dask-only method
-                ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNK_SIZE)
-
-            # add CRS object if pyproj 2.0+
             ds = self._add_crs_info_from_area(ds, area)
         return ds
 

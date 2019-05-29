@@ -14,6 +14,7 @@ datasets:
     file_key: All_Data/{dataset_group}_All/Longitude
     units: "degrees"
     standard_name: longitude
+    coordinates: [i_longitude, i_latitude]
   i_lat:
     name: i_latitude
     resolution: 371
@@ -22,6 +23,7 @@ datasets:
     file_key: All_Data/{dataset_group}_All/Latitude
     units: "degrees"
     standard_name: latitude
+    coordinates: [i_longitude, i_latitude]
   m_lon:
     name: m_longitude
     resolution: 742
@@ -30,6 +32,7 @@ datasets:
     file_key: All_Data/{dataset_group}_All/Longitude
     units: "degrees"
     standard_name: longitude
+    coordinates: [m_longitude, m_latitude]
   m_lat:
     name: m_latitude
     resolution: 742
@@ -38,6 +41,7 @@ datasets:
     file_key: All_Data/{dataset_group}_All/Latitude
     units: "degrees"
     standard_name: latitude
+    coordinates: [m_longitude, m_latitude]
   dnb_lon:
     name: dnb_longitude
     resolution: 743
@@ -46,6 +50,7 @@ datasets:
     file_key: All_Data/{dataset_group}_All/Longitude
     units: "degrees"
     standard_name: longitude
+    coordinates: [dnb_longitude, dnb_latitude]
   dnb_lat:
     name: dnb_latitude
     resolution: 743
@@ -54,6 +59,7 @@ datasets:
     file_key: All_Data/{dataset_group}_All/Latitude
     units: "degrees"
     standard_name: latitude
+    coordinates: [dnb_longitude, dnb_latitude]
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
