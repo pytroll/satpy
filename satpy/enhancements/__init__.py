@@ -206,7 +206,6 @@ def create_colormap(palette):
     colors = palette.get('colors', None)
     if fname:
         data = np.load(fname)
-        num = 1.0 * data.shape[0]
         cols = data.shape[1]
         default_modes = {
             3: 'RGB',
@@ -219,17 +218,14 @@ def create_colormap(palette):
             raise ValueError(
                 "Unexpected colormap shape for mode '{}'".format(mode))
 
-        cmap = []
-        for i, ls in enumerate(data):
-            if mode[0] == 'V':
-                value = ls[0]
-                colors = [v/255.0 for v in ls[1:]]
-            else:
-                # FIXME: This produces different results than when loaded from a list
-                value = i/num
-                colors = [v/255.0 for v in ls]
-            cmap.append((value, tuple(colors)))
-        cmap = Colormap(*cmap)
+        rows = data.shape[0]
+        if mode[0] == 'V':
+            colors = data[:, 1:] / 255.0
+            values = data[:, 0]
+        else:
+            colors = data / 255.0
+            values = np.arange(rows) / float(rows - 1)
+        cmap = Colormap(*zip(values, colors))
     elif isinstance(colors, (tuple, list)):
         cmap = []
         values = palette.get('values', None)
