@@ -617,10 +617,11 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['satellite_latitude'] = self.mda[
             'projection_parameters']['SSP_latitude']
         res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
-        res.attrs['projection'] = {'satellite_longitude': self.mda['projection_parameters']['SSP_longitude'],
-                                   'satellite_latitude': self.mda['projection_parameters']['SSP_latitude'],
-                                   'satellite_altitude': self.mda['projection_parameters']['h']}
-        res.attrs['navigation'] = self.mda['navigation_parameters'].copy()
+        res.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+            'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
+            'projection_altitude': self.mda['projection_parameters']['h']}
+        res.attrs['orbital_parameters'].update(self.mda['navigation_parameters'])
         res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
 
         # Add scanline timestamps as additional y-coordinate

@@ -85,6 +85,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
          - satellite_altitude
          - satellite_latitude
          - satellite_longitude
+         - orbital_parameters
 
          Also, concatenate the areas.
 
@@ -98,16 +99,14 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                                       'satellite_latitude',
                                       'satellite_altitude'))
 
-        # Navigation and projection
-        navs = [info.get('navigation', {}) for info in all_infos]
-        projs = [info.get('projection', {}) for info in all_infos]
-        for attr_name, attrs_list in zip(('navigation', 'projection'), (navs, projs)):
-            if all(attrs_list):
-                keys_list = [attrs.keys() for attrs in attrs_list]
-                common_keys = set(keys_list[0])
-                for keys in keys_list[1:]:
-                    common_keys = common_keys.intersection(keys)
-                new_dict[attr_name] = self._combine(attrs_list, np.mean, *common_keys)
+        # Average orbital parameters
+        orb_params = [info.get('orbital_parameters', {}) for info in all_infos]
+        keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
+                'satellite_nominal_longitude', 'satellite_nominal_latitude',
+                'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
+                'nadir_longitude', 'nadir_latitude']
+        if any(orb_params):
+            new_dict['orbital_parameters'] = self._combine(orb_params, np.mean, *keys)
 
         try:
             area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
