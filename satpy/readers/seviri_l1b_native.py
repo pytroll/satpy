@@ -412,10 +412,10 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset.attrs['standard_name'] = info['standard_name']
             dataset.attrs['platform_name'] = self.mda['platform_name']
             dataset.attrs['sensor'] = 'seviri'
-            dataset.attrs['projection'] = {'satellite_longitude': self.mda['projection_parameters']['ssp_longitude'],
-                                           'satellite_latitude': 0.,
-                                           'satellite_altitude': self.mda['projection_parameters']['h']}
-            dataset.attrs['navigation'] = {}
+            dataset.attrs['orbital_parameters'] = {
+                'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
+                'projection_latitude': 0.,
+                'projection_altitude': self.mda['projection_parameters']['h']}
 
         return dataset
 

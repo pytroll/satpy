@@ -263,10 +263,9 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         self.assertEqual(res.attrs['satellite_longitude'], 140.7)
         self.assertEqual(res.attrs['satellite_latitude'], 0.)
         self.assertEqual(res.attrs['satellite_altitude'], 35785831.0)
-        self.assertDictEqual(res.attrs['projection'], {'satellite_longitude': 140.7,
-                                                       'satellite_latitude': 0.,
-                                                       'satellite_altitude': 35785831.0})
-        self.assertDictEqual(res.attrs['navigation'], {})
+        self.assertDictEqual(res.attrs['orbital_parameters'], {'projection_longitude': 140.7,
+                                                               'projection_latitude': 0.,
+                                                               'projection_altitude': 35785831.0})
 
         # Check called methods
         with mock.patch.object(reader, '_mask_space') as mask_space:

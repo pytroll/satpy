@@ -505,7 +505,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         # Calibrate
         res = self.calibrate(res, key.calibration)
 
-        # Get navigation info. For altitude use the ellipsoid radius at the actual SSP.
+        # Get actual satellite position. For altitude use the ellipsoid radius at the SSP.
         actual_lon = float(self.nav_info['SSP_longitude'])
         actual_lat = float(self.nav_info['SSP_latitude'])
         re = get_earth_radius(lon=actual_lon, lat=actual_lat,
@@ -528,13 +528,16 @@ class AHIHSDFileHandler(BaseFileHandler):
             satellite_latitude=float(self.nav_info['SSP_latitude']),
             satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
                                      self.proj_info['earth_equatorial_radius']) * 1000,
-            projection={'satellite_longitude': float(self.proj_info['sub_lon']),
-                        'satellite_latitude': 0.,
-                        'satellite_altitude': float(self.proj_info['distance_from_earth_center'] -
-                                                    self.proj_info['earth_equatorial_radius']) * 1000},
-            navigation={'satellite_actual_longitude': actual_lon,
-                        'satellite_actual_latitude': actual_lat,
-                        'satellite_actual_altitude': actual_alt}
+            orbital_parameters={
+                'projection_longitude': float(self.proj_info['sub_lon']),
+                'projection_latitude': 0.,
+                'projection_altitude': float(self.proj_info['distance_from_earth_center'] -
+                                             self.proj_info['earth_equatorial_radius']) * 1000,
+                'satellite_actual_longitude': actual_lon,
+                'satellite_actual_latitude': actual_lat,
+                'satellite_actual_altitude': actual_alt,
+                'nadir_longitude': float(self.nav_info['nadir_longitude']),
+                'nadir_latitude': float(self.nav_info['nadir_latitude'])}
         )
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
 

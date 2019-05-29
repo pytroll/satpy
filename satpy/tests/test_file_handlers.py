@@ -106,21 +106,43 @@ class TestBaseFileHandler(unittest.TestCase):
         self.assertTupleEqual(sdef.call_args[1]['lats'].shape, (2, 5))
         self.assertEqual(sdef.return_value.name, 'area1_area2')
 
-    def test_combine_projection_navigation(self):
-        """Combine projection and navigation attributes."""
-        info1 = {'projection': {'a': 1, 'b': 2, 'drop': 999},
-                 'navigation': {'c': 1, 'd': 2, 'drop': 999}}
-        info2 = {'projection': {'a': 2, 'b': 1},
-                 'navigation': {'c': 2, 'd': True}}
-        exp = {'projection': {'a': 1.5, 'b': 1.5},
-               'navigation': {'c': 1.5, 'd': 1.5}}
+    def test_combine_orbital_parameters(self):
+        """Combine orbital parameters."""
+        info1 = {'orbital_parameters': {'projection_longitude': 1,
+                                        'projection_latitude': 1,
+                                        'projection_altitude': 1,
+                                        'satellite_nominal_longitude': 1,
+                                        'satellite_nominal_latitude': 1,
+                                        'satellite_actual_longitude': 1,
+                                        'satellite_actual_latitude': 1,
+                                        'satellite_actual_altitude': 1,
+                                        'nadir_longitude': 1,
+                                        'nadir_latitude': 1}}
+        info2 = {'orbital_parameters': {'projection_longitude': 2,
+                                        'projection_latitude': 2,
+                                        'projection_altitude': 2,
+                                        'satellite_nominal_longitude': 2,
+                                        'satellite_nominal_latitude': 2,
+                                        'satellite_actual_longitude': 2,
+                                        'satellite_actual_latitude': 2,
+                                        'satellite_actual_altitude': 2,
+                                        'nadir_longitude': 2,
+                                        'nadir_latitude': 2}}
+        exp = {'orbital_parameters': {'projection_longitude': 1.5,
+                                      'projection_latitude': 1.5,
+                                      'projection_altitude': 1.5,
+                                      'satellite_nominal_longitude': 1.5,
+                                      'satellite_nominal_latitude': 1.5,
+                                      'satellite_actual_longitude': 1.5,
+                                      'satellite_actual_latitude': 1.5,
+                                      'satellite_actual_altitude': 1.5,
+                                      'nadir_longitude': 1.5,
+                                      'nadir_latitude': 1.5}}
         res = self.fh.combine_info([info1, info2])
         self.assertDictEqual(res, exp)
 
         # Identity
-        info3 = {'projection': {'a': 1},
-                 'navigation': {'c': 1}}
-        self.assertEqual(self.fh.combine_info([info3]), info3)
+        self.assertEqual(self.fh.combine_info([info1]), info1)
 
         # Empty
         self.fh.combine_info([{}])

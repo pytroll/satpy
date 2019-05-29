@@ -76,6 +76,7 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
                     'scale_factor': 0.5,
                     'add_offset': -1.,
                     '_FillValue': 1002,
+                    'units': 'W m-2 um-1 sr-1'
                 }
             )
         rad['time'] = time
@@ -143,6 +144,37 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                          datetime(2017, 9, 20, 17, 41, 17, 500000))
         self.assertEqual(self.reader.get_shape(DatasetID(name='C05'), {}),
                          (2, 5))
+
+    def test_get_dataset(self):
+        from satpy import DatasetID
+        key = DatasetID(name='Rad', calibration='radiance')
+        res = self.reader.get_dataset(key, {'info': 'info'})
+        exp = {'calibration': 'radiance',
+               'instrument_ID': None,
+               'modifiers': (),
+               'name': 'Rad',
+               'observation_type': 'Rad',
+               'orbital_parameters': {'projection_altitude': 1.0,
+                                      'projection_latitude': 0.0,
+                                      'projection_longitude': -90.0,
+                                      'satellite_nominal_altitude': 35786.02,
+                                      'satellite_nominal_latitude': 0.0,
+                                      'satellite_nominal_longitude': -89.5,
+                                      'yaw_flip': True},
+               'orbital_slot': None,
+               'platform_name': 'GOES-16',
+               'platform_shortname': 'G16',
+               'production_site': None,
+               'satellite_altitude': 35786.02,
+               'satellite_latitude': 0.0,
+               'satellite_longitude': -89.5,
+               'scan_mode': 'M3',
+               'scene_abbr': 'C',
+               'scene_id': None,
+               'sensor': 'abi',
+               'timeline_ID': None,
+               'units': 'W m-2 um-1 sr-1'}
+        self.assertDictEqual(res.attrs, exp)
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""

@@ -156,7 +156,9 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             'sub_lon': 140.7}
             fh.nav_info = {'SSP_longitude': 140.66,
                            'SSP_latitude': 0.03,
-                           'distance_earth_center_to_satellite': 42165.04}
+                           'distance_earth_center_to_satellite': 42165.04,
+                           'nadir_longitude': 140.67,
+                           'nadir_latitude': 0.04}
             fh.data_info = {'blocklength': 50,
                             'compression_flag_for_data': 0,
                             'hblock_number': 2,
@@ -280,13 +282,15 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             self.assertTrue(np.all(mask == ref_mask))
 
             # Test attributes
-            proj_exp = {'satellite_longitude': 140.7,
-                        'satellite_latitude': 0.,
-                        'satellite_altitude': 35785863.0}
-            self.assertDictEqual(im.attrs['projection'], proj_exp)
-            self.assertEqual(im.attrs['navigation']['satellite_actual_longitude'], 140.66)
-            self.assertEqual(im.attrs['navigation']['satellite_actual_latitude'], 0.03)
-            self.assertTrue(np.isclose(im.attrs['navigation']['satellite_actual_altitude'], 35786903.00581372))
+            orb_params_exp = {'projection_longitude': 140.7,
+                              'projection_latitude': 0.,
+                              'projection_altitude': 35785863.0,
+                              'satellite_actual_longitude': 140.66,
+                              'satellite_actual_latitude': 0.03,
+                              'nadir_longitude': 140.67,
+                              'nadir_latitude': 0.04}
+            self.assertDictContainsSubset(orb_params_exp, im.attrs['orbital_parameters'])
+            self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
 
             # Test if masking space pixels disables with appropriate flag
             self.fh.mask_space = False
