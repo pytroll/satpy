@@ -512,9 +512,12 @@ class TestFileFileYAMLReader(unittest.TestCase):
             new_data_arr.coords['lats'].attrs['units'], 'degrees_north')
         self.assertIsInstance(new_data_arr.coords['lats'].data, da.Array)
 
-        # if CRS is not None:
-        #     self.assertIn('crs', new_data_arr.coords)
-        #     self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+        if CRS is not None:
+            self.assertIn('crs', new_data_arr.coords)
+            crs = new_data_arr.coords['crs'].item()
+            self.assertIsInstance(crs, CRS)
+            self.assertIn('latlong', crs.to_proj4())
+            self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
 
     def test_preferred_filetype(self):
         """Test finding the preferred filetype."""

@@ -740,9 +740,6 @@ class FileYAMLReader(AbstractYAMLReader):
 
         if hasattr(area, 'get_proj_vectors'):
             x, y = area.get_proj_vectors()
-        elif hasattr(area, 'get_proj_vectors_dask'):
-            # older pyresample with dask-only method
-            x, y = area.get_proj_vectors_dask(CHUNK_SIZE)
         else:
             return data_arr
 
@@ -773,6 +770,21 @@ class FileYAMLReader(AbstractYAMLReader):
                 information from.
 
         """
+        # add CRS object if pyproj 2.0+
+        try:
+            from pyproj import CRS
+        except ImportError:
+            logger.debug("Could not add 'crs' coordinate with pyproj<2.0")
+            crs = None
+        else:
+            # default lat/lon projection
+            latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
+            # otherwise get it from the area definition
+            proj_str = getattr(area, 'proj_str', latlon_proj)
+            crs = CRS.from_string(proj_str)
+            data_arr = data_arr.assign_coords(crs=crs)
+
+        # Add x/y coordinates if possible
         if isinstance(area, SwathDefinition):
             # add lon/lat arrays for swath definitions
             # SwathDefinitions created by Satpy should be assigning DataArray
@@ -781,21 +793,10 @@ class FileYAMLReader(AbstractYAMLReader):
             # array).
             lons = area.lons
             lats = area.lats
-            return data_arr.assign_coords(lons=lons, lats=lats)
-
-        # Gridded data (AreaDefinition/StackedAreaDefinition)
-        # add CRS object if pyproj 2.0+
-        try:
-            from pyproj import CRS
-        except ImportError:
-            logger.debug("Could not add 'crs' coordinate with pyproj<2.0")
-            crs = None
+            data_arr = data_arr.assign_coords(lons=lons, lats=lats)
         else:
-            crs = CRS.from_string(area.proj_str)
-            data_arr = data_arr.assign_coords(crs=crs)
-
-        # Add x/y coordinates if possible
-        data_arr = self._area_def_coords(data_arr, area, crs=crs)
+            # Gridded data (AreaDefinition/StackedAreaDefinition)
+            data_arr = self._area_def_coords(data_arr, area, crs=crs)
         return data_arr
 
     def _load_dataset_with_area(self, dsid, coords):
