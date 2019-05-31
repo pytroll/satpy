@@ -26,10 +26,11 @@
 
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SatPy Package initializer.
+"""Satpy Package initializer.
 """
 
 import os
+from .version import get_versions
 
 CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 
@@ -39,6 +40,9 @@ DEFAULT_CALIBRATION_ORDER = [
     'reflectance',
     'radiance',
     'counts',
+    'gamma',
+    'sigma_nought',
+    'beta_nought',
 ]
 CALIBRATION_ORDER = os.getenv('PYTROLL_CALIBRATION_ORDER', None)
 if CALIBRATION_ORDER is None:
@@ -48,7 +52,6 @@ else:
 # convert to a dictionary of priority for faster access (0 higher priority)
 CALIBRATION_ORDER = {cal: idx for idx, cal in enumerate(CALIBRATION_ORDER)}
 
-from satpy.version import __version__  # noqa
 from satpy.utils import get_logger  # noqa
 from satpy.dataset import DatasetID, DATASET_KEYS  # noqa
 from satpy.readers import (DatasetDict, find_files_and_readers,  # noqa
@@ -58,3 +61,6 @@ from satpy.scene import Scene  # noqa
 from satpy.multiscene import MultiScene  # noqa
 
 log = get_logger('satpy')
+
+__version__ = get_versions()['version']
+del get_versions

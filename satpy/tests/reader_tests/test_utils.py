@@ -22,7 +22,6 @@
 """Testing of helper functions."""
 
 
-import random
 import unittest
 
 try:
@@ -31,17 +30,16 @@ except ImportError:
     import mock
 
 import numpy as np
+import pyresample.geometry
 
 from satpy.readers import utils as hf
 
 
 class TestSatinHelpers(unittest.TestCase):
-    '''Class for testing satpy.satin'''
+    """Class for testing satpy.satin."""
 
     def test_boundaries_to_extent(self):
-        '''Test conversion of area boundaries to area extent.
-        '''
-
+        """Test conversion of area boundaries to area extent."""
         from satpy.satin.helper_functions import boundaries_to_extent
 
         # MSG3 proj4 string from
@@ -318,6 +316,47 @@ class TestHelpers(unittest.TestCase):
 
         np.testing.assert_allclose(expected,
                                    hf.get_geostationary_angle_extent(geos_area))
+
+    def test_geostationary_mask(self):
+        """Test geostationary mask"""
+        # Compute mask of a very elliptical earth
+        area = pyresample.geometry.AreaDefinition(
+            'FLDK',
+            'Full Disk',
+            'geos',
+            {'a': '6378169.0',
+             'b': '3000000.0',
+             'h': '35785831.0',
+             'lon_0': '145.0',
+             'proj': 'geos',
+             'units': 'm'},
+            101,
+            101,
+            (-6498000.088960204, -6498000.088960204,
+             6502000.089024927, 6502000.089024927))
+
+        mask = hf.get_geostationary_mask(area).astype(np.int).compute()
+
+        # Check results along a couple of lines
+        # a) Horizontal
+        self.assertTrue(np.all(mask[50, :8] == 0))
+        self.assertTrue(np.all(mask[50, 8:93] == 1))
+        self.assertTrue(np.all(mask[50, 93:] == 0))
+
+        # b) Vertical
+        self.assertTrue(np.all(mask[:31, 50] == 0))
+        self.assertTrue(np.all(mask[31:70, 50] == 1))
+        self.assertTrue(np.all(mask[70:, 50] == 0))
+
+        # c) Top left to bottom right
+        self.assertTrue(np.all(mask[range(33), range(33)] == 0))
+        self.assertTrue(np.all(mask[range(33, 68), range(33, 68)] == 1))
+        self.assertTrue(np.all(mask[range(68, 101), range(68, 101)] == 0))
+
+        # d) Bottom left to top right
+        self.assertTrue(np.all(mask[range(101-1, 68-1, -1), range(33)] == 0))
+        self.assertTrue(np.all(mask[range(68-1, 33-1, -1), range(33, 68)] == 1))
+        self.assertTrue(np.all(mask[range(33-1, -1, -1), range(68, 101)] == 0))
 
     @mock.patch('satpy.readers.utils.AreaDefinition')
     def test_sub_area(self, adef):

@@ -1,0 +1,292 @@
+reader:
+  description: Generic FCI FDSHI Data Reader
+  name: fci_l1c_fdhsi
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [fci]
+  default_datasets:
+
+datasets:
+
+  vis_04:
+    name: vis_04
+    sensor: fci
+    wavelength: [0.384, 0.444, 0.504]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  vis_05:
+    name: vis_05
+    sensor: fci
+    wavelength: [0.470, 0.510, 0.550]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  vis_06:
+    name: vis_06
+    sensor: fci
+    wavelength: [0.590, 0.640, 0.690]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  vis_08:
+    name: vis_08
+    sensor: fci
+    wavelength: [0.815, 0.865, 0.915]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  vis_09:
+    name: vis_09
+    sensor: fci
+    wavelength: [0.894, 0.914, 0.934]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  nir_13:
+    name: nir_13
+    sensor: fci
+    wavelength: [1.350, 1.380, 1.410]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  nir_16:
+    name: nir_16
+    sensor: fci
+    wavelength: [1.560, 1.610, 1.660]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  nir_22:
+    name: nir_22
+    sensor: fci
+    wavelength: [2.200, 2.250, 2.300]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  ir_38:
+    name: ir_38
+    sensor: fci
+    wavelength: [3.400, 3.800, 4.200]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+
+  wv_63:
+    name: wv_63
+    sensor: fci
+    wavelength: [5.300, 6.300, 7.300]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  wv_73:
+    name: wv_73
+    sensor: fci
+    wavelength: [6.850, 7.350, 7.850]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  ir_87:
+    name: ir_87
+    sensor: fci
+    wavelength: [8.300, 8.700, 9.100]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  ir_97:
+    name: ir_97
+    sensor: fci
+    wavelength: [9.360, 9.660, 9.960]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  ir_105:
+    name: ir_105
+    sensor: fci
+    wavelength: [9.800, 10.500, 11.200]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+
+  ir_123:
+    name: ir_123
+    sensor: fci
+    wavelength: [11.800, 12.300, 12.800]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+  ir_133:
+    name: ir_133
+    sensor: fci
+    wavelength: [12.700, 13.300, 13.900]
+    resolution: 2000
+    calibration:
+      counts:
+        standard_name: counts
+        units: "count"
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+    file_type: fci_l1c_fdhsi
+
+
+# Source: FCI L1 Dataset User Guide [FCIL1DUG]
+# ftp://ftp.eumetsat.int/pub/OPS/out/test-data/FCI_L1C_Format_Familiarisation/FCI_L1_Dataset_User_Guide_[FCIL1DUG].pdf
+# and Example Products for Pytroll Workshop Package Description,
+# EUM/MTG/DOC/19/1079228
+file_types:
+  fci_l1c_fdhsi:
+    file_reader: !!python/name:satpy.readers.fci_l1c_fdhsi.FCIFDHSIFileHandler ''
+    file_patterns: ['{pflag}_{location_indicator},{data_designator},MTI{spacecraft_id:1d}+{data_source}-{processing_level}-{type}-{subtype}-{coverage}-{subsetting}-{component1}-BODY-{component3}-{purpose}-{format}_{oflag}_{originator}_{processing_time:%Y%m%d%H%M%S}_{facility}_{environment}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_{processing_mode}_{special_compression}_{disposition_mode}_{repeat_cycle_in_day:>04d}_{count_in_repeat_cycle:>04d}.nc']

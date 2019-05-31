@@ -50,7 +50,7 @@ class GenericImageFileHandler(BaseFileHandler):
             self.finfo['end_time'] = self.finfo['start_time']
         except KeyError:
             pass
-        self.finfo['filename'] = filename
+        self.finfo['filename'] = self.filename
         self.file_content = {}
         self.area = None
         self.read()
@@ -64,7 +64,7 @@ class GenericImageFileHandler(BaseFileHandler):
         if hasattr(data, 'crs'):
             self.area = self.get_geotiff_area_def(data.crs)
 
-        # Rename to SatPy convention
+        # Rename to Satpy convention
         data = data.rename({'band': 'bands'})
 
         # Rename bands to [R, G, B, A], or a subset of those

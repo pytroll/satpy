@@ -1,0 +1,17 @@
+reader:
+    description: VIIRS flood HDF4 reader
+    name: viirs_edr_flood
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [viirs]
+
+file_types:
+    viirs_edr:
+        file_reader: !!python/name:satpy.readers.viirs_edr_flood.VIIRSEDRFlood
+        file_patterns:
+            - 'WATER_VIIRS_Prj_SVI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_{source:8s}_{dim0}_{dim1}_01.hdf'
+            - 'WATER_VIIRS_Prj_SVI_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_{source:8s}_{aoi:3s}_{dim0}_{dim1}_01.hdf'
+
+datasets:
+    water_detection:
+        name: 'WaterDetection'
+        file_type: viirs_edr

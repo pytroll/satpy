@@ -3,11 +3,11 @@
 
 # SMHI,
 # Folkborgsvägen 1,
-# Norrköping, 
+# Norrköping,
 # Sweden
 
 # Author(s):
- 
+
 #   Martin Raspaud <martin.raspaud@smhi.se>
 
 # This file is part of satpy.
@@ -29,13 +29,13 @@
 
 import numpy as np
 
+
 def get_lat_lon(*args, **kwargs):
-    """Dummy get_lat_lon function.
-    """
+    """Dummy get_lat_lon function."""
     del args, kwargs
-    return (np.zeros((3, 3)), np.zeros((3, 3)))
+    return np.zeros((3, 3)), np.zeros((3, 3))
+
 
 def load(satscene):
-    """Dummy load function.
-    """
+    """Dummy load function."""
     pass

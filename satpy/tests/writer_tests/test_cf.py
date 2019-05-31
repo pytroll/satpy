@@ -24,6 +24,7 @@
 import os
 import sys
 from datetime import datetime
+from satpy import DatasetID
 
 import numpy as np
 
@@ -49,7 +50,8 @@ class TestCFWriter(unittest.TestCase):
         end_time = datetime(2018, 5, 30, 10, 15)
         scn['test-array'] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
-                                                    end_time=end_time))
+                                                    end_time=end_time,
+                                                    prerequisites=[DatasetID('hej')]))
         try:
             handle, filename = tempfile.mkstemp()
             os.close(handle)
@@ -57,6 +59,34 @@ class TestCFWriter(unittest.TestCase):
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['test-array'][:] == [1, 2, 3]))
+                expected_prereq = ("DatasetID(name='hej', wavelength=None, "
+                                   "resolution=None, polarization=None, "
+                                   "calibration=None, level=None, modifiers=())")
+                self.assertEqual(f['test-array'].attrs['prerequisites'][0],
+                                 np.string_(expected_prereq))
+        finally:
+            os.remove(filename)
+
+    def test_single_time_value(self):
+        from satpy import Scene
+        import xarray as xr
+        import tempfile
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        test_array = np.array([[1, 2], [3, 4]])
+        scn['test-array'] = xr.DataArray(test_array,
+                                         dims=['x', 'y'],
+                                         coords={'time': np.datetime64('2018-05-30T10:05:00')},
+                                         attrs=dict(start_time=start_time,
+                                                    end_time=end_time))
+        try:
+            handle, filename = tempfile.mkstemp()
+            os.close(handle)
+            scn.save_datasets(filename=filename, writer='cf')
+            import h5netcdf as nc4
+            with nc4.File(filename) as f:
+                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
         finally:
             os.remove(filename)
 
@@ -73,6 +103,64 @@ class TestCFWriter(unittest.TestCase):
                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time))
+        try:
+            handle, filename = tempfile.mkstemp()
+            os.close(handle)
+            scn.save_datasets(filename=filename, writer='cf')
+            import h5netcdf as nc4
+            with nc4.File(filename) as f:
+                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
+        finally:
+            os.remove(filename)
+
+    def test_bounds_minimum(self):
+        from satpy import Scene
+        import xarray as xr
+        import tempfile
+        scn = Scene()
+        start_timeA = datetime(2018, 5, 30, 10, 0)  # expected to be used
+        end_timeA = datetime(2018, 5, 30, 10, 20)
+        start_timeB = datetime(2018, 5, 30, 10, 3)
+        end_timeB = datetime(2018, 5, 30, 10, 15)  # expected to be used
+        test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
+        test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
+        scn['test-arrayA'] = xr.DataArray(test_arrayA,
+                                          dims=['x', 'y', 'time'],
+                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
+                                          attrs=dict(start_time=start_timeA,
+                                                     end_time=end_timeA))
+        scn['test-arrayB'] = xr.DataArray(test_arrayB,
+                                          dims=['x', 'y', 'time'],
+                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
+                                          attrs=dict(start_time=start_timeB,
+                                                     end_time=end_timeB))
+        try:
+            handle, filename = tempfile.mkstemp()
+            os.close(handle)
+            scn.save_datasets(filename=filename, writer='cf')
+            import h5netcdf as nc4
+            with nc4.File(filename) as f:
+                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
+        finally:
+            os.remove(filename)
+
+    def test_bounds_missing_time_info(self):
+        from satpy import Scene
+        import xarray as xr
+        import tempfile
+        scn = Scene()
+        start_timeA = datetime(2018, 5, 30, 10, 0)
+        end_timeA = datetime(2018, 5, 30, 10, 15)
+        test_arrayA = np.array([[1, 2], [3, 4]]).reshape(2, 2, 1)
+        test_arrayB = np.array([[1, 2], [3, 5]]).reshape(2, 2, 1)
+        scn['test-arrayA'] = xr.DataArray(test_arrayA,
+                                          dims=['x', 'y', 'time'],
+                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]},
+                                          attrs=dict(start_time=start_timeA,
+                                                     end_time=end_timeA))
+        scn['test-arrayB'] = xr.DataArray(test_arrayB,
+                                          dims=['x', 'y', 'time'],
+                                          coords={'time': [np.datetime64('2018-05-30T10:05:00')]})
         try:
             handle, filename = tempfile.mkstemp()
             os.close(handle)
