@@ -21,9 +21,7 @@
 
 """
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
-from pyresample import geometry
 import logging
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -53,13 +51,12 @@ class TROPOMIL2(NetCDF4FileHandler):
                 lat_shape = self[var_name + "/shape"]
                 break
 
-        coordinates = ('longitude', 'latitude')
         handled_variables = set()
 
         # update previously configured datasets
         logger.debug("Starting previously configured variables loop...")
         for is_avail, ds_info in (configured_datasets or []):
-            this_coords = ds_info.get('coordinates')
+
             # some other file handler knows how to load this
             if is_avail is not None:
                 yield is_avail, ds_info
@@ -87,26 +84,26 @@ class TROPOMIL2(NetCDF4FileHandler):
         for var_name, val in self.file_content.items():
             # Only evaluate variables
             if isinstance(val, netCDF4.Variable):
-               logger.debug("Evaluating new variable: %s", var_name)
-               var_shape = self[var_name + "/shape"]
-               logger.debug("Dims:{}".format(var_shape))
-               if (var_shape == lat_shape):
-                   logger.debug("TJJ Found valid additional dataset: %s", var_name)
-                   # Skip anything we have already configured
-                   if (var_name in handled_variables):
-                       logger.debug("TJJ Already handled, skipping: %s", var_name)
-                       continue
-                   handled_variables.add(var_name)
-                   last_index_separator = var_name.rindex('/')
-                   last_index_separator = last_index_separator + 1
-                   var_name_no_path = var_name[last_index_separator:]
-                   logger.debug("Using short name of: %s", var_name_no_path)
-                   # Create new ds_info object
-                   new_info = ds_info.copy()  # don't mess up the above yielded
-                   new_info['name'] = var_name_no_path
-                   new_info['file_key'] = var_name
-                   new_info['coordinates'] = ['longitude', 'latitude']
-                   yield True, new_info
+                logger.debug("Evaluating new variable: %s", var_name)
+                var_shape = self[var_name + "/shape"]
+                logger.debug("Dims:{}".format(var_shape))
+                if (var_shape == lat_shape):
+                    logger.debug("TJJ Found valid additional dataset: %s", var_name)
+                    # Skip anything we have already configured
+                    if (var_name in handled_variables):
+                        logger.debug("TJJ Already handled, skipping: %s", var_name)
+                        continue
+                    handled_variables.add(var_name)
+                    last_index_separator = var_name.rindex('/')
+                    last_index_separator = last_index_separator + 1
+                    var_name_no_path = var_name[last_index_separator:]
+                    logger.debug("Using short name of: %s", var_name_no_path)
+                    # Create new ds_info object
+                    new_info = ds_info.copy()  # don't mess up the above yielded
+                    new_info['name'] = var_name_no_path
+                    new_info['file_key'] = var_name
+                    new_info['coordinates'] = ['longitude', 'latitude']
+                    yield True, new_info
 
     def get_metadata(self, data, ds_info):
         metadata = {}
