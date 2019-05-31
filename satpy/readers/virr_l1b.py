@@ -83,7 +83,10 @@ class VIRR_L1B(HDF5FileHandler):
                 slope = self[self.l1b_prefix + 'Emissive_Radiance_Scales'].data[:, band_index][:, np.newaxis]
                 # 0 slope is invalid.
                 slope_mask = slope == 0
-                slope[slope_mask] = 1
+                if isinstance(slope_mask, bool):
+                    slope = 1 if slope_mask else slope
+                else:
+                    slope[slope_mask] = 1
                 intercept = self[self.l1b_prefix + 'Emissive_Radiance_Offsets'].data[:, band_index][:, np.newaxis]
                 # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
                 # to SI units m^-1, mW*m^-3*str^-1.
@@ -100,14 +103,20 @@ class VIRR_L1B(HDF5FileHandler):
                 slope = self['/attr/RefSB_Cal_Coefficients'][0::2]
                 # 0 slope is invalid.
                 slope_mask = slope == 0
-                slope[slope_mask] = 1
+                if isinstance(slope_mask, bool):
+                    slope = 1 if slope_mask else slope
+                else:
+                    slope[slope_mask] = 1
                 intercept = self['/attr/RefSB_Cal_Coefficients'][1::2]
                 data = data * slope[band_index] + intercept[band_index]
         else:
             slope = self[file_key + '/attr/Slope']
             # 0 slope is invalid.
             slope_mask = slope == 0
-            slope[slope_mask] = 1
+            if isinstance(slope_mask, bool):
+                slope = 1 if slope_mask else slope
+            else:
+                slope[slope_mask] = 1
             intercept = self[file_key + '/attr/Intercept']
             data = data.where((data >= self[file_key + '/attr/valid_range'][0]) &
                               (data <= self[file_key + '/attr/valid_range'][1]))
