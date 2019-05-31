@@ -1409,6 +1409,7 @@ class StaticImageCompositor(GenericCompositor):
         if fname is None:
             raise ValueError("No image configured for static image compositor")
         self.fname = fname
+        self.area = None
         if area is not None:
             from satpy.resample import get_area_def
             self.area = get_area_def(area)
@@ -1427,7 +1428,7 @@ class StaticImageCompositor(GenericCompositor):
         except IndexError:
             if self.area is None:
                 raise AttributeError("Area definition needs to be configured")
-            img.area = self.area
+            img.attrs['area'] = self.area
         img.attrs['sensor'] = None
         img.attrs['mode'] = ''.join(img.bands.data)
         img.attrs.pop('modifiers', None)
