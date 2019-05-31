@@ -1415,7 +1415,7 @@ class StaticImageCompositor(GenericCompositor):
 
         super(StaticImageCompositor, self).__init__(name, **kwargs)
 
-    def __call__(self, projectables, **kwargs):
+    def __call__(self, *args, **kwargs):
         from satpy import Scene
         scn = Scene(reader='generic_image', filenames=[self.fname])
         scn.load('image')
