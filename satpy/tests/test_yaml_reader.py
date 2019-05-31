@@ -36,11 +36,6 @@ try:
 except ImportError:
     from mock import MagicMock, patch
 
-try:
-    from pyproj import CRS
-except ImportError:
-    CRS = None
-
 
 class FakeFH(BaseFileHandler):
 
@@ -411,113 +406,6 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         args, kwargs = sad.call_args
         self.assertEqual(len(args), items)
-
-    def test_area_def_coordinates(self):
-        """Test coordinates being added with an AreaDefinition."""
-        import numpy as np
-        import dask.array as da
-        import xarray as xr
-        from pyresample.geometry import AreaDefinition
-        area_def = AreaDefinition(
-            'test', 'test', 'test', {'proj': 'lcc', 'lat_1': 25, 'lat_0': 25},
-            100, 200, [-100, -100, 100, 100]
-        )
-        data_arr = xr.DataArray(
-            da.zeros((200, 100), chunks=50),
-            attrs={'area': area_def},
-            dims=('y', 'x'),
-        )
-        new_data_arr = self.reader._add_crs_info_from_area(data_arr, area_def)
-        self.assertIn('y', new_data_arr.coords)
-        self.assertIn('x', new_data_arr.coords)
-
-        if CRS is not None:
-            self.assertIn('units', new_data_arr.coords['y'].attrs)
-            self.assertEqual(
-                new_data_arr.coords['y'].attrs['units'], 'meter')
-            self.assertIn('units', new_data_arr.coords['x'].attrs)
-            self.assertEqual(
-                new_data_arr.coords['x'].attrs['units'], 'meter')
-            self.assertIn('crs', new_data_arr.coords)
-            self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
-
-        # already has coords
-        data_arr = xr.DataArray(
-            da.zeros((200, 100), chunks=50),
-            attrs={'area': area_def},
-            dims=('y', 'x'),
-            coords={'y': np.arange(2, 202), 'x': np.arange(100)}
-        )
-        new_data_arr = self.reader._add_crs_info_from_area(data_arr, area_def)
-        self.assertIn('y', new_data_arr.coords)
-        self.assertNotIn('units', new_data_arr.coords['y'].attrs)
-        self.assertIn('x', new_data_arr.coords)
-        self.assertNotIn('units', new_data_arr.coords['x'].attrs)
-        np.testing.assert_equal(new_data_arr.coords['y'], np.arange(2, 202))
-
-        if CRS is not None:
-            self.assertIn('crs', new_data_arr.coords)
-            self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
-
-        # lat/lon area
-        area_def = AreaDefinition(
-            'test', 'test', 'test', {'proj': 'latlong'},
-            100, 200, [-100, -100, 100, 100]
-        )
-        data_arr = xr.DataArray(
-            da.zeros((200, 100), chunks=50),
-            attrs={'area': area_def},
-            dims=('y', 'x'),
-        )
-        new_data_arr = self.reader._add_crs_info_from_area(data_arr, area_def)
-        self.assertIn('y', new_data_arr.coords)
-        self.assertIn('x', new_data_arr.coords)
-
-        if CRS is not None:
-            self.assertIn('units', new_data_arr.coords['y'].attrs)
-            self.assertEqual(
-                new_data_arr.coords['y'].attrs['units'], 'degrees_north')
-            self.assertIn('units', new_data_arr.coords['x'].attrs)
-            self.assertEqual(
-                new_data_arr.coords['x'].attrs['units'], 'degrees_east')
-            self.assertIn('crs', new_data_arr.coords)
-            self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
-
-    def test_swath_def_coordinates(self):
-        """Test coordinates being added with an SwathDefinition."""
-        import dask.array as da
-        import xarray as xr
-        from pyresample.geometry import SwathDefinition
-        lons_data = da.random.random((200, 100), chunks=50)
-        lats_data = da.random.random((200, 100), chunks=50)
-        lons = xr.DataArray(lons_data, attrs={'units': 'degrees_east'},
-                            dims=('y', 'x'))
-        lats = xr.DataArray(lats_data, attrs={'units': 'degrees_north'},
-                            dims=('y', 'x'))
-        area_def = SwathDefinition(lons, lats)
-        data_arr = xr.DataArray(
-            da.zeros((200, 100), chunks=50),
-            attrs={'area': area_def},
-            dims=('y', 'x'),
-        )
-        new_data_arr = self.reader._add_crs_info_from_area(data_arr, area_def)
-        self.assertIn('lons', new_data_arr.coords)
-        self.assertIn('units', new_data_arr.coords['lons'].attrs)
-        self.assertEqual(
-            new_data_arr.coords['lons'].attrs['units'], 'degrees_east')
-        self.assertIsInstance(new_data_arr.coords['lons'].data, da.Array)
-        self.assertIn('lats', new_data_arr.coords)
-        self.assertIn('units', new_data_arr.coords['lats'].attrs)
-        self.assertEqual(
-            new_data_arr.coords['lats'].attrs['units'], 'degrees_north')
-        self.assertIsInstance(new_data_arr.coords['lats'].data, da.Array)
-
-        if CRS is not None:
-            self.assertIn('crs', new_data_arr.coords)
-            crs = new_data_arr.coords['crs'].item()
-            self.assertIsInstance(crs, CRS)
-            self.assertIn('latlong', crs.to_proj4())
-            self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
 
     def test_preferred_filetype(self):
         """Test finding the preferred filetype."""
