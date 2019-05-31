@@ -1418,7 +1418,7 @@ class StaticImageCompositor(GenericCompositor):
     def __call__(self, *args, **kwargs):
         from satpy import Scene
         scn = Scene(reader='generic_image', filenames=[self.fname])
-        scn.load('image')
+        scn.load(['image'])
         img = scn['image']
         # Check for proper area definition.  Non-georeferenced images
         # will raise IndexError
