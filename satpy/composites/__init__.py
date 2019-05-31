@@ -1393,3 +1393,44 @@ class SandwichCompositor(GenericCompositor):
         rgb_img = enhance2dataset(projectables[1])
         rgb_img *= luminance
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
+
+
+class StaticImageCompositor(GenericCompositor):
+    """A compositor that loads a static image from disk."""
+
+    def __init__(self, name, fname=None, area=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            fname (str): Filename of the image to load
+            area (str): Name of area definition for the image.  Optional
+                        for images with built-in area definitions (geotiff)
+        """
+        if fname is None:
+            raise ValueError("No image configured for static image compositor")
+        self.fname = fname
+        if area is not None:
+            from satpy.resample import get_area_def
+            self.area = get_area_def(area)
+
+        super(StaticImageCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, projectables, **kwargs):
+        from satpy import Scene
+        scn = Scene(reader='generic_image', filenames=[self.fname])
+        scn.load('image')
+        img = scn['image']
+        # Check for proper area definition.  Non-georeferenced images
+        # will raise IndexError
+        try:
+            _ = img.area.size
+        except IndexError:
+            if self.area is None:
+                raise AttributeError("Area definition needs to be configured")
+            img.area = self.area
+        img.attrs['sensor'] = None
+        img.attrs['mode'] = ''.join(img.bands.data)
+        img.attrs.pop('modifiers', None)
+        img.attrs.pop('calibration', None)
+
+        return img
