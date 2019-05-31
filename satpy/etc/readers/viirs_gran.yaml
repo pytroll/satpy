@@ -17,35 +17,67 @@ file_types:
   jrradp:
     file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
     file_patterns:
-    - 'JRR-ADP_v1r2_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+    - 'JRR-ADP_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
   jrraod:
     file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
     file_patterns:
-    - 'JRR-AOD_v1r2_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+    - 'JRR-AOD_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
   jrrvol:
     file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
     file_patterns:
-    - 'JRR-VolcanicAsh_v1r2_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+    - 'JRR-VolcanicAsh_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
   jrriceage:
     file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
     file_patterns:
-    - 'JRR-IceAge_v1r2_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+    - 'JRR-IceAge_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
   jrriceconcentration:
     file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
     file_patterns:
-    - 'JRR-IceConcentration_v1r2_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+    - 'JRR-IceConcentration_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
   jrrsnowcover:
     file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
     file_patterns:
-    - 'JRR-SnowCover_v1r2_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+    - 'JRR-SnowCover_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
   surfrefl:
     file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
     file_patterns:
-    - 'SurfRefl_v1r0_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+    - 'SurfRefl_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
   jrrcloudheight:
     file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
     file_patterns:
-    - 'JRR-CloudHeight_v1r2_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+    - 'JRR-CloudHeight_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  activefires:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'AF_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrclouddcomp:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudDCOMP_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrcloudbase:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudBase_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrcloudmask:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudMask_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrcloudphase:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudPhase_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrcloudncomp:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudNCOMP_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrsurfalb:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-SURFALB_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrlst:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-LST_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
 
 datasets:
   jrradp_lon:
