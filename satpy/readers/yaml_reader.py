@@ -47,8 +47,8 @@ from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
+from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
-from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -718,87 +718,6 @@ class FileYAMLReader(AbstractYAMLReader):
                 logger.debug("No coordinates found for %s", str(dsid))
             return area
 
-    @staticmethod
-    def _area_def_coords(data_arr, area, crs=None):
-        """Assign x/y coordinates to DataArray from provided area.
-
-        If 'x' and 'y' coordinates already exist then they will not be added.
-
-        Args:
-            data_arr (xarray.DataArray): data object to add x/y coordinates to
-            area (pyresample.geometry.AreaDefinition): area providing the
-                coordinate data.
-            crs (pyproj.crs.CRS or None): CRS providing additional information
-                about the area's coordinate reference system if available.
-                Requires pyproj 2.0+.
-
-        Returns (xarray.DataArray): Updated DataArray object
-
-        """
-        if 'x' in data_arr.coords and 'y' in data_arr.coords:
-            return data_arr
-
-        if hasattr(area, 'get_proj_vectors'):
-            x, y = area.get_proj_vectors()
-        else:
-            return data_arr
-
-        # convert to DataArrays
-        y_attrs = {}
-        x_attrs = {}
-        if crs is not None:
-            units = crs.axis_info[0].unit_name
-            # fix udunits/CF standard units
-            units = units.replace('metre', 'meter')
-            if units == 'degree':
-                y_attrs['units'] = 'degrees_north'
-                x_attrs['units'] = 'degrees_east'
-            else:
-                y_attrs['units'] = units
-                x_attrs['units'] = units
-        y = xr.DataArray(y, dims=('y',), attrs=y_attrs)
-        x = xr.DataArray(x, dims=('x',), attrs=x_attrs)
-        return data_arr.assign_coords(y=y, x=x)
-
-    def _add_crs_info_from_area(self, data_arr, area):
-        """Add :class:`pyproj.crs.CRS` to coordinates if possible.
-
-        Args:
-            data_arr (xarray.DataArray): DataArray to add the 'crs'
-                coordinate.
-            area (pyresample.geometry.AreaDefinition): Area to get CRS
-                information from.
-
-        """
-        # add CRS object if pyproj 2.0+
-        try:
-            from pyproj import CRS
-        except ImportError:
-            logger.debug("Could not add 'crs' coordinate with pyproj<2.0")
-            crs = None
-        else:
-            # default lat/lon projection
-            latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
-            # otherwise get it from the area definition
-            proj_str = getattr(area, 'proj_str', latlon_proj)
-            crs = CRS.from_string(proj_str)
-            data_arr = data_arr.assign_coords(crs=crs)
-
-        # Add x/y coordinates if possible
-        if isinstance(area, SwathDefinition):
-            # add lon/lat arrays for swath definitions
-            # SwathDefinitions created by Satpy should be assigning DataArray
-            # objects as the lons/lats attributes so use those directly to
-            # maintain original .attrs metadata (instead of converting to dask
-            # array).
-            lons = area.lons
-            lats = area.lats
-            data_arr = data_arr.assign_coords(lons=lons, lats=lats)
-        else:
-            # Gridded data (AreaDefinition/StackedAreaDefinition)
-            data_arr = self._area_def_coords(data_arr, area, crs=crs)
-        return data_arr
-
     def _load_dataset_with_area(self, dsid, coords):
         """Loads *dsid* and it's area if available."""
         file_handlers = self._get_file_handlers(dsid)
@@ -815,7 +734,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         if area is not None:
             ds.attrs['area'] = area
-            ds = self._add_crs_info_from_area(ds, area)
+            ds = add_crs_xy_coords(ds, area)
         return ds
 
     def _load_ancillary_variables(self, datasets):
