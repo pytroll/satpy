@@ -81,6 +81,9 @@ class VIRR_L1B(HDF5FileHandler):
                               (data <= self[file_key + '/attr/valid_range'][1]))
             if 'E' in dataset_id.name:
                 slope = self[self.l1b_prefix + 'Emissive_Radiance_Scales'].data[:, band_index][:, np.newaxis]
+                # 0 slope is invalid.
+                slope_mask = slope == 0
+                slope[slope_mask] = 1
                 intercept = self[self.l1b_prefix + 'Emissive_Radiance_Offsets'].data[:, band_index][:, np.newaxis]
                 # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
                 # to SI units m^-1, mW*m^-3*str^-1.
@@ -95,12 +98,20 @@ class VIRR_L1B(HDF5FileHandler):
                     data.data = bt_data
             elif 'R' in dataset_id.name:
                 slope = self['/attr/RefSB_Cal_Coefficients'][0::2]
+                # 0 slope is invalid.
+                slope_mask = slope == 0
+                slope[slope_mask] = 1
                 intercept = self['/attr/RefSB_Cal_Coefficients'][1::2]
                 data = data * slope[band_index] + intercept[band_index]
         else:
+            slope = self[file_key + '/attr/Slope']
+            # 0 slope is invalid.
+            slope_mask = slope == 0
+            slope[slope_mask] = 1
+            intercept = self[file_key + '/attr/Intercept']
             data = data.where((data >= self[file_key + '/attr/valid_range'][0]) &
                               (data <= self[file_key + '/attr/valid_range'][1]))
-            data = self[file_key + '/attr/Intercept'] + self[file_key + '/attr/Slope'] * data
+            data = slope * data + intercept
         new_dims = {old: new for old, new in zip(data.dims, ('y', 'x'))}
         data = data.rename(new_dims)
         data.attrs.update({'platform_name': self['/attr/Satellite Name'],
