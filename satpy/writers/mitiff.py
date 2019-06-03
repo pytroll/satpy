@@ -116,7 +116,7 @@ class MITIFFWriter(ImageWriter):
             LOG.debug("create_opts: %s", create_opts)
             try:
                 if 'platform_name' not in kwargs:
-                    kwargs['platform_name'] = datasets.attrs['platform_name']
+                    kwargs['platform_name'] = datasets[0].attrs['platform_name']
                 if 'name' not in kwargs:
                     kwargs['name'] = datasets[0].attrs['name']
                 if 'start_time' not in kwargs:
@@ -125,10 +125,11 @@ class MITIFFWriter(ImageWriter):
                     kwargs['sensor'] = datasets[0].attrs['sensor']
 
                 try:
-                    self.mitiff_config[kwargs['sensor']] = datasets['metadata_requirements']['config']
-                    self.translate_channel_name[kwargs['sensor']] = datasets['metadata_requirements']['translate']
-                    self.channel_order[kwargs['sensor']] = datasets['metadata_requirements']['order']
-                    self.file_pattern = datasets['metadata_requirements']['file_pattern']
+                    self.mitiff_config[kwargs['sensor']] = datasets[0].attrs['metadata_requirements']['config']
+                    translate = datasets[0].attrs['metadata_requirements']['translate']
+                    self.translate_channel_name[kwargs['sensor']] = translate
+                    self.channel_order[kwargs['sensor']] = datasets[0].attrs['metadata_requirements']['order']
+                    self.file_pattern = datasets[0].attrs['metadata_requirements']['file_pattern']
                 except KeyError:
                     # For some mitiff products this info is needed, for others not.
                     # If needed you should know how to fix this
@@ -561,7 +562,6 @@ class MITIFFWriter(ImageWriter):
         cns = self.translate_channel_name.get(kwargs['sensor'], {})
         if isinstance(datasets, list):
             LOG.debug("Saving datasets as list")
-
             for _cn in self.channel_order[kwargs['sensor']]:
                 for dataset in datasets:
                     if dataset.attrs['name'] == _cn:
@@ -584,7 +584,7 @@ class MITIFFWriter(ImageWriter):
                         break
         elif 'dataset' in datasets.attrs['name']:
             LOG.debug("Saving %s as a dataset.", datasets.attrs['name'])
-            if not isinstance(datasets, list):
+            if len(datasets.dims) == 2 and (all('bands' not in i for i in datasets.dims)):
                 # Special case with only one channel ie. no bands
                 reverse_offset = 0.
                 reverse_scale = 1.
@@ -603,7 +603,7 @@ class MITIFFWriter(ImageWriter):
                     data = _data.clip(0, 255)
 
                     tif.write_image(data.astype(np.uint8), compression='deflate')
-            else:
+            elif len(datasets.dims) == 3 and (any('bands' not in i for i in datasets.dims)):
                 for _cn in self.channel_order[kwargs['sensor']]:
                     for i, band in enumerate(datasets['bands']):
                         if band == _cn:
@@ -626,7 +626,9 @@ class MITIFFWriter(ImageWriter):
 
                             tif.write_image(data.astype(np.uint8), compression='deflate')
                             break
-
+            else:
+                LOG.warning("Not 2 dimensions and no 'bands' dimension "
+                            "or not 3 dimensions with 'bands' dimension. Dont know how to handle this.")
         else:
             LOG.debug("Saving datasets as enhanced image")
             img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
