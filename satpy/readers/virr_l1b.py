@@ -45,7 +45,6 @@ from satpy.readers.hdf5_utils import HDF5FileHandler
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 import numpy as np
 import dask.array as da
-from xarray import DataArray
 import logging
 
 LOG = logging.getLogger(__name__)
@@ -78,7 +77,7 @@ class VIRR_L1B(HDF5FileHandler):
                               (data <= self[file_key + '/attr/valid_range'][1]))
             if 'E' in dataset_id.name:
                 slope = self._correct_slope(self[self.l1b_prefix + 'Emissive_Radiance_Scales'].
-                                            data[:, band_index][:,np.newaxis])
+                                            data[:, band_index][:, np.newaxis])
                 intercept = self[self.l1b_prefix + 'Emissive_Radiance_Offsets'].data[:, band_index][:, np.newaxis]
                 # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
                 # to SI units m^-1, mW*m^-3*str^-1.
@@ -117,8 +116,7 @@ class VIRR_L1B(HDF5FileHandler):
 
     def _correct_slope(self, slope):
         # 0 slope is invalid. Note: slope can be a scalar or array.
-        slope = DataArray(slope)
-        return slope.where(slope != 0, 1)
+        return np.where(slope == 0, 1, slope)
 
     @property
     def start_time(self):
