@@ -520,11 +520,11 @@ def get_limb_cooling_correction(sat_zenith, name, tb11_data):
     a, b = 15.40695791, -86.66840063
     wv_ = da.exp(da.log(tb11_data) * a + b)
 
-    channelname2filename = {'WV_062': 'tabell_ch5', '27': 'tabell_ch5',
-                            'WV_073': 'tabell_ch6', '28': 'tabell_ch6',
-                            'IR_087': 'tabell_ch7', '29': 'tabell_ch7',
-                            'IR_097': 'tabell_ch8', '30': 'tabell_ch8',
-                            'IR_108': 'tabell_ch9', '31': 'tabell_ch9'}
+    channelname2filename = {'WV_062': 'tabell_ch5', '27': 'tabell_MODIS_ch27',
+                            'WV_073': 'tabell_ch6', '28': 'tabell_MODIS_ch28',
+                            'IR_087': 'tabell_ch7', '29': 'tabell_MODIS_ch29',
+                            'IR_097': 'tabell_ch8', '30': 'tabell_MODIS_ch30',
+                            'IR_108': 'tabell_ch9', '31': 'tabell_MODIS_ch31'}
     filename = "/home/a000680/Satsa/limb_correction/%s.txt" % channelname2filename.get(name)
     table = np.genfromtxt(filename, skip_header=1, usecols=range(1, 10), usemask=True, missing_values=np.nan)
 
