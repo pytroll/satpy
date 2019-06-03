@@ -38,6 +38,7 @@ Resampling algorithms
     "bucket_avg", "Average Bucket Resampling", :class:`~satpy.resample.BucketAvg`
     "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.BucketSum`
     "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.BucketCount`
+    "bucket_fraction", "Fraction Bucket Resampling", :class:`~satpy.resample.BucketFraction`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
