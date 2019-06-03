@@ -600,7 +600,7 @@ class MITIFFWriter(ImageWriter):
                                             self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 
                 tif.write_image(data.astype(np.uint8), compression='deflate')
-            elif len(datasets.dims) == 3 and (any('bands' not in i for i in datasets.dims)):
+            else:
                 for _cn in self.channel_order[kwargs['sensor']]:
                     for i, band in enumerate(datasets['bands']):
                         if band == _cn:
@@ -615,9 +615,6 @@ class MITIFFWriter(ImageWriter):
 
                             tif.write_image(data.astype(np.uint8), compression='deflate')
                             break
-            else:
-                LOG.warning("Not 2 dimensions and no 'bands' dimension "
-                            "or not 3 dimensions with 'bands' dimension. Dont know how to handle this.")
         else:
             LOG.debug("Saving datasets as enhanced image")
             img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
