@@ -880,12 +880,12 @@ class BucketResamplerBase(BaseResampler):
 
         # Adjust some attributes
         if "BucketFraction" in str(self):
-            attrs['units'] = None
-            attrs['calibration'] = None
+            attrs['units'] = ''
+            attrs['calibration'] = ''
             attrs['standard_name'] = 'area_fraction'
         elif "BucketCount" in str(self):
-            attrs['units'] = None
-            attrs['calibration'] = None
+            attrs['units'] = ''
+            attrs['calibration'] = ''
             attrs['standard_name'] = 'number_of_observations'
 
         result = xr.DataArray(result, dims=dims, coords=coords,
