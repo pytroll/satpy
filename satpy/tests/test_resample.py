@@ -725,6 +725,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestBucketAvg))
     mysuite.addTest(loader.loadTestsFromTestCase(TestBucketSum))
     mysuite.addTest(loader.loadTestsFromTestCase(TestBucketCount))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketFraction))
 
     return mysuite
 
