@@ -82,8 +82,7 @@ class VIRR_L1B(HDF5FileHandler):
                 # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
                 # to SI units m^-1, mW*m^-3*str^-1.
                 wave_number = self['/attr/' + self.wave_number][band_index] * 100
-                bt_data = rad2temp(wave_number,
-                                   (data.data * slope + intercept) * 1e-5)
+                bt_data = rad2temp(wave_number, (data.data * slope + intercept) * 1e-5)
                 if isinstance(bt_data, np.ndarray):
                     # old versions of pyspectral produce numpy arrays
                     data.data = da.from_array(bt_data, chunks=data.data.chunks)
@@ -99,7 +98,7 @@ class VIRR_L1B(HDF5FileHandler):
             intercept = self[file_key + '/attr/Intercept']
             data = data.where((data >= self[file_key + '/attr/valid_range'][0]) &
                               (data <= self[file_key + '/attr/valid_range'][1]))
-            data = slope * data + intercept
+            data = data * slope + intercept
         new_dims = {old: new for old, new in zip(data.dims, ('y', 'x'))}
         data = data.rename(new_dims)
         data.attrs.update({'platform_name': self['/attr/Satellite Name'],
@@ -116,7 +115,7 @@ class VIRR_L1B(HDF5FileHandler):
 
     def _correct_slope(self, slope):
         # 0 slope is invalid. Note: slope can be a scalar or array.
-        return np.where(slope == 0, 1, slope)
+        return da.where(slope == 0, 1, slope)
 
     @property
     def start_time(self):
