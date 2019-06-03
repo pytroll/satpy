@@ -38,6 +38,14 @@ modifiers:
     optional_prerequisites:
     - satellite_zenith_angle
 
+  limb_correction:
+    compositor: !!python/name:satpy.composites.LimbCoolingCorrection
+    prerequisites:
+    - wavelength: 10.8
+    optional_prerequisites:
+    - satellite_zenith_angle
+
+
   rayleigh_corrected:
     compositor: !!python/name:satpy.composites.PSPRayleighReflectance
     atmosphere: us-standard
@@ -104,6 +112,25 @@ composites:
         - wavelength: 9.7
         - wavelength: 10.8
     - wavelength: 6.2
+    standard_name: airmass
+
+  airmass_limb:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 6.2
+        modifiers: [limb_correction]
+      - wavelength: 7.3
+        modifiers: [limb_correction]
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - wavelength: 9.7
+          modifiers: [limb_correction]
+        - wavelength: 10.8
+          modifiers: [limb_correction]
+    - wavelength: 6.2
+      modifiers: [limb_correction]
     standard_name: airmass
 
   ash:
