@@ -45,6 +45,7 @@ from satpy.readers.hdf5_utils import HDF5FileHandler
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 import numpy as np
 import dask.array as da
+from xarray import DataArray
 import logging
 
 LOG = logging.getLogger(__name__)
@@ -69,24 +70,15 @@ class VIRR_L1B(HDF5FileHandler):
         file_key = self.geolocation_prefix + ds_info.get('file_key', dataset_id.name)
         if self.platform_id == 'FY3B':
             file_key = file_key.replace('Data/', '')
-        try:
-            data = self[file_key]
-        except KeyError:
-            LOG.error('File key "{0}" could not be found in file {1}'.format(file_key, self.filename))
-            raise
+        data = self[file_key]
         band_index = ds_info.get('band_index')
         if band_index is not None:
             data = data[band_index]
             data = data.where((data >= self[file_key + '/attr/valid_range'][0]) &
                               (data <= self[file_key + '/attr/valid_range'][1]))
             if 'E' in dataset_id.name:
-                slope = self[self.l1b_prefix + 'Emissive_Radiance_Scales'].data[:, band_index][:, np.newaxis]
-                # 0 slope is invalid.
-                slope_mask = slope == 0
-                if isinstance(slope_mask, bool):
-                    slope = 1 if slope_mask else slope
-                else:
-                    slope[slope_mask] = 1
+                slope = self._correct_slope(self[self.l1b_prefix + 'Emissive_Radiance_Scales'].
+                                            data[:, band_index][:,np.newaxis])
                 intercept = self[self.l1b_prefix + 'Emissive_Radiance_Offsets'].data[:, band_index][:, np.newaxis]
                 # Converts cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
                 # to SI units m^-1, mW*m^-3*str^-1.
@@ -100,23 +92,11 @@ class VIRR_L1B(HDF5FileHandler):
                     # new versions of pyspectral can do dask arrays
                     data.data = bt_data
             elif 'R' in dataset_id.name:
-                slope = self['/attr/RefSB_Cal_Coefficients'][0::2]
-                # 0 slope is invalid.
-                slope_mask = slope == 0
-                if isinstance(slope_mask, bool):
-                    slope = 1 if slope_mask else slope
-                else:
-                    slope[slope_mask] = 1
+                slope = self._correct_slope(self['/attr/RefSB_Cal_Coefficients'][0::2])
                 intercept = self['/attr/RefSB_Cal_Coefficients'][1::2]
                 data = data * slope[band_index] + intercept[band_index]
         else:
-            slope = self[file_key + '/attr/Slope']
-            # 0 slope is invalid.
-            slope_mask = slope == 0
-            if isinstance(slope_mask, bool):
-                slope = 1 if slope_mask else slope
-            else:
-                slope[slope_mask] = 1
+            slope = self._correct_slope(self[file_key + '/attr/Slope'])
             intercept = self[file_key + '/attr/Intercept']
             data = data.where((data >= self[file_key + '/attr/valid_range'][0]) &
                               (data <= self[file_key + '/attr/valid_range'][1]))
@@ -134,6 +114,11 @@ class VIRR_L1B(HDF5FileHandler):
         else:
             data.attrs.update({'units': '1'})
         return data
+
+    def _correct_slope(self, slope):
+        # 0 slope is invalid. Note: slope can be a scalar or array.
+        slope = DataArray(slope)
+        return slope.where(slope != 0, 1)
 
     @property
     def start_time(self):
