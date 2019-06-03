@@ -46,6 +46,70 @@ class TestMITIFFWriter(unittest.TestCase):
         except OSError:
             pass
 
+    def _get_test_datasets(self):
+        """Helper function to create a datasets list."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow(),
+                   'platform_name': "TEST_PLATFORM_NAME",
+                   'sensor': 'TEST_SENSOR_NAME',
+                   'area': area_def,
+                   'prerequisites': ['1'],
+                   'metadata_requirements': {
+                       'order': ['1'],
+                       'config': {
+                           '1': {'alias': '1-VIS0.63',
+                                 'calibration': 'reflectance',
+                                 'min-val': '0',
+                                 'max-val': '100'},
+                       },
+                       'translate': {'1': '1',
+                                     },
+                       'file_pattern': 'test-dataset-{start_time:%Y%m%d%H%M%S}.mitiff'
+                   }}
+        )
+        ds2 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow(),
+                   'platform_name': "TEST_PLATFORM_NAME",
+                   'sensor': 'TEST_SENSOR_NAME',
+                   'area': area_def,
+                   'prerequisites': ['2'],
+                   'metadata_requirements': {
+                       'order': ['2'],
+                       'config': {
+                           '2': {'alias': '1-VIS0.63',
+                                 'calibration': 'reflectance',
+                                 'min-val': '0',
+                                 'max-val': '100'},
+                       },
+                       'translate': {'2': '2',
+                                     },
+                       'file_pattern': 'test-dataset-{start_time:%Y%m%d%H%M%S}.mitiff'}
+                   }
+        )
+        return [ds1, ds2]
+
     def _get_test_dataset(self, bands=3):
         """Helper function to create a single test dataset."""
         import xarray as xr
@@ -315,7 +379,7 @@ class TestMITIFFWriter(unittest.TestCase):
     def test_save_datasets(self):
         """Test basic writer operation."""
         from satpy.writers.mitiff import MITIFFWriter
-        dataset = self._get_test_dataset()
+        dataset = self._get_test_datasets()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_datasets(dataset)
 
@@ -328,10 +392,22 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def test_save_dataset_with_calibration(self):
         """Test basic writer operation."""
+        import os
+        import numpy as np
+        from libtiff import TIFF
         from satpy.writers.mitiff import MITIFFWriter
+
+        expected_ir = np.full((100, 200), 255)
+        expected_vis = np.full((100, 200), 0)
+        expected = np.stack([expected_vis, expected_vis, expected_ir, expected_ir, expected_ir, expected_vis])
         dataset = self._get_test_dataset_calibration()
         w = MITIFFWriter(filename=dataset.attrs['metadata_requirements']['file_pattern'], base_dir=self.base_dir)
         w.save_dataset(dataset)
+        filename = (dataset.attrs['metadata_requirements']['file_pattern']).format(
+            start_time=dataset.attrs['start_time'])
+        tif = TIFF.open(os.path.join(self.base_dir, filename))
+        for i, image in enumerate(tif.iter_images()):
+            np.testing.assert_allclose(image, expected[i], atol=1.e-6, rtol=0)
 
     def test_save_dataset_with_calibration_one_dataset(self):
         """Test saving if mitiff as dataset with only one channel."""
