@@ -1,0 +1,60 @@
+reader:
+  description: Generic CLASS VIIRS L2 Reader
+  name: viirs_l2
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [viirs]
+  default_datasets:
+
+navigations:
+  aodm:
+      description: 'VIIRS L2+ M-Band navigation'
+      file_type: aodm
+      latitude_key: golcation_data/Latitude
+      longitude_key: geolocation_data/Longitude
+      nadir_resolution: [750]
+
+file_types:
+  aodm:
+    file_reader: !!python/name:satpy.readers.viirs_l2.VIIRSL2BFileHandler
+    file_patterns:
+    - 'JRR-AOD_v2r0_{platform_shortname}_s{start_time:%Y%m%d_t%H%M%S}_e{end_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
+    - 'JRR-ADP_v2r0_{platform_shortname}_s{start_time:%Y%m%d_t%H%M%S}_e{end_time:%Y%m%d_t%H%M%S}_c{creation_time:%Y%m%d%H%M%S}.nc'
+
+datasets:
+  # i_lon:
+  #   name: i_lon
+  #   resolution: 371
+  #   file_type: vgeoi
+  #   file_key: geolocation_data/longitude
+  #   units: degrees
+  #   standard_name: longitude
+  # i_lat:
+  #   name: i_lat
+  #   resolution: 371
+  #   file_type: vgeoi
+  #   file_key: geolocation_data/latitude
+  #   units: degrees
+  #   standard_name: latitude
+  m_lon:
+    name: m_lon
+    resolution: 750
+    file_type: vgeom
+    file_key: geolocation_data/Longitude
+    units: degrees
+    standard_name: longitude
+  m_lat:
+    name: m_lat
+    resolution: 750
+    file_type: vgeom
+    file_key: geolocation_data/Latitude
+    units: degrees
+    standard_name: latitude
+    #----------------------------------------------- VIIRS AOD -----------------
+  AOD550:
+    name: AOD550
+    standard_name: Aerosol_Optical_Depth_550nm
+    resolution: 750
+    units: -
+    coordinates: [m_lon, m_lat]
+    file_type: aodm
+    file_key: AOD550
