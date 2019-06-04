@@ -26,6 +26,8 @@ from satpy.readers import TooManyResults
 from satpy.utils import get_logger
 
 LOG = get_logger(__name__)
+# Empty leaf used for marking composites with no prerequisites
+EMPTY_LEAF_NAME = "__EMPTY_LEAF_SENTINEL__"
 
 
 class Node(object):
@@ -98,7 +100,9 @@ class Node(object):
 
     def leaves(self, unique=True):
         """Get the leaves of the tree starting at this root."""
-        if not self.children:
+        if self.name is EMPTY_LEAF_NAME:
+            return []
+        elif not self.children:
             return [self]
         else:
             res = list()
@@ -113,7 +117,7 @@ class Node(object):
         # uniqueness is not correct in `trunk` yet
         unique = False
         res = []
-        if self.children:
+        if self.children and self.name is not EMPTY_LEAF_NAME:
             if self.name is not None:
                 res.append(self)
             for child in self.children:
@@ -154,6 +158,8 @@ class DependencyTree(Node):
         # keep a flat dictionary of nodes contained in the tree for better
         # __contains__
         self._all_nodes = DatasetDict()
+        # simplify future logic by only having one "sentinel" empty node
+        self.empty_node = Node(EMPTY_LEAF_NAME)
 
     def leaves(self, nodes=None, unique=True):
         """Get the leaves of the tree starting at this root.
@@ -205,6 +211,9 @@ class DependencyTree(Node):
         #               but they should all map to the same Node object.
         if self.contains(child.name):
             assert self._all_nodes[child.name] is child
+        if child is self.empty_node:
+            # No need to store "empty" nodes
+            return
         self._all_nodes[child.name] = child
 
     def add_leaf(self, ds_id, parent=None):
@@ -330,6 +339,10 @@ class DependencyTree(Node):
         """
         prereq_ids = []
         unknowns = set()
+        if not prereq_names and not skip:
+            # this composite has no required prerequisites
+            prereq_names = [None]
+
         for prereq in prereq_names:
             n, u = self._find_dependencies(prereq, **dfilter)
             if u:
@@ -418,6 +431,10 @@ class DependencyTree(Node):
                               `satpy.readers.get_key` for more details.
 
         """
+        # Special case: No required dependencies for this composite
+        if dataset_key is None:
+            return self.empty_node, set()
+
         # 0 check if the *exact* dataset is already loaded
         try:
             node = self.getitem(dataset_key)

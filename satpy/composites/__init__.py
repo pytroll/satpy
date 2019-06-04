@@ -1421,6 +1421,9 @@ class StaticImageCompositor(GenericCompositor):
         scn = Scene(reader='generic_image', filenames=[self.fname])
         scn.load(['image'])
         img = scn['image']
+        # use compositor parameters as extra metadata
+        # most important: set 'name' of the image
+        img.attrs.update(self.attrs)
         # Check for proper area definition.  Non-georeferenced images
         # will raise IndexError
         try:
