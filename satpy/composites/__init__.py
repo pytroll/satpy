@@ -1459,7 +1459,6 @@ class BackgroundCompositor(GenericCompositor):
         background = add_bands(background, foreground['bands'])
 
         # Stack the images
-        #data = xr.where(foreground.isnull(), background, foreground)
         data = xr.where(foreground.isnull(), background, foreground)
 
         # Get merged metadata
