@@ -26,7 +26,6 @@ import logging
 import numpy as np
 import netCDF4
 from glob import glob
-from satpy.dataset import DatasetID
 from satpy.readers.hdf4_utils import HDF4FileHandler, SDS
 from pyresample import geometry
 
@@ -242,7 +241,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
         glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
         LOG.debug("searching for {0}".format(glob_pat))
         l1b_filenames = list(glob(glob_pat))
-        if len(l1b_filenames) == 0:
+        if not l1b_filenames:
             raise IOError("Could not find navigation donor for {0}"
                           " in same directory as CLAVR-x data".format(l1b_base))
         LOG.debug('Candidate nav donors: {0}'.format(repr(l1b_filenames)))

@@ -30,6 +30,7 @@ except ImportError:
     import mock
 
 import numpy as np
+import numpy.testing
 import pyresample.geometry
 
 from satpy.readers import utils as hf
@@ -396,6 +397,30 @@ class TestHelpers(unittest.TestCase):
 
         # non-array
         self.assertRaises(ValueError, hf.np2str, 5)
+
+    def test_reduce_mda(self):
+        """Test metadata size reduction"""
+        mda = {'a': 1,
+               'b': np.array([1, 2, 3]),
+               'c': np.array([1, 2, 3, 4]),
+               'd': {'a': 1,
+                     'b': np.array([1, 2, 3]),
+                     'c': np.array([1, 2, 3, 4]),
+                     'd': {'a': 1,
+                           'b': np.array([1, 2, 3]),
+                           'c': np.array([1, 2, 3, 4])}}}
+        exp = {'a': 1,
+               'b': np.array([1, 2, 3]),
+               'd': {'a': 1,
+                     'b': np.array([1, 2, 3]),
+                     'd': {'a': 1,
+                           'b': np.array([1, 2, 3])}}}
+        numpy.testing.assert_equal(hf.reduce_mda(mda, max_size=3), exp)
+
+        # Make sure, reduce_mda() doesn't modify the original dictionary
+        self.assertIn('c', mda)
+        self.assertIn('c', mda['d'])
+        self.assertIn('c', mda['d']['d'])
 
 
 def suite():

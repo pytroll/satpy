@@ -11,6 +11,7 @@ satpy.writers.cf\_writer module
     :members:
     :undoc-members:
     :show-inheritance:
+    :exclude-members: AttributeEncoder
 
 satpy.writers.geotiff module
 ----------------------------

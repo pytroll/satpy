@@ -5,12 +5,9 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    nc_seviri_l1b:
+    seviri_l1b_nc:
         file_reader: !!python/name:satpy.readers.seviri_l1b_nc.NCSEVIRIFileHandler
-        file_patterns: ['W_XX-EUMETSAT-Darmstadt,VIS+IR+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
-    nc_seviri_l1b_hrv:
-        file_reader: !!python/name:satpy.readers.seviri_l1b_nc.NCSEVIRIHRVFileHandler
-        file_patterns: ['W_XX-EUMETSAT-Darmstadt,HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
+        file_patterns: ['W_XX-EUMETSAT-Darmstadt,VIS+IR+HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
 
 datasets:
   HRV:
@@ -27,7 +24,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b_hrv
+    file_type: seviri_l1b_nc
     nc_key: 'ch12'
 
   IR_016:
@@ -44,7 +41,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch3'
 
   IR_039:
@@ -61,7 +58,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch4'
 
   IR_087:
@@ -78,7 +75,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch5'
 
   IR_097:
@@ -95,7 +92,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch8'
 
   IR_108:
@@ -112,7 +109,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch9'
 
   IR_120:
@@ -129,7 +126,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch10'
 
   IR_134:
@@ -146,7 +143,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch11'
 
   VIS006:
@@ -163,7 +160,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch1'
 
 
@@ -181,7 +178,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch2'
 
   WV_062:
@@ -198,7 +195,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch6'
 
   WV_073:
@@ -215,7 +212,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: nc_seviri_l1b
+    file_type: seviri_l1b_nc
     nc_key: 'ch7'
 
 
