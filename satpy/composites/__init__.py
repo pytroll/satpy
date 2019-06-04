@@ -1449,7 +1449,7 @@ class BackgroundCompositor(GenericCompositor):
 
         # Get enhanced images out of the composites
         foreground = get_enhanced_image(projectables[0])
-        background = get_enhance_image(projectables[1])
+        background = get_enhanced_image(projectables[1])
 
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
