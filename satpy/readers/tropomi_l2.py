@@ -99,10 +99,13 @@ class TROPOMIL2(NetCDF4FileHandler):
                     var_name_no_path = var_name[last_index_separator:]
                     logger.debug("Using short name of: %s", var_name_no_path)
                     # Create new ds_info object
-                    new_info = ds_info.copy()  # don't mess up the above yielded
-                    new_info['name'] = var_name_no_path
-                    new_info['file_key'] = var_name
-                    new_info['coordinates'] = ['longitude', 'latitude']
+                    new_info = {
+                        'name': var_name_no_path,
+                        'file_key': var_name,
+                        'coordinates': ['longitude', 'latitude'],
+                        'file_type': self.filetype_info['file_type'],
+                        'resolution': None,
+                    }
                     yield True, new_info
 
     def get_metadata(self, data, ds_info):
