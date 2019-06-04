@@ -1,3 +1,46 @@
+## Version 0.15.2 (2019/05/22)
+
+### Issues Closed
+
+* [Issue 785](https://github.com/pytroll/satpy/issues/785) - Loading cache for resampling scene fails with numpy 1.16.3 ([PR 787](https://github.com/pytroll/satpy/pull/787))
+* [Issue 777](https://github.com/pytroll/satpy/issues/777) - Log warning and error messages are not printed to console ([PR 778](https://github.com/pytroll/satpy/pull/778))
+* [Issue 776](https://github.com/pytroll/satpy/issues/776) - africa projection yields CRSError when saving dataset ([PR 780](https://github.com/pytroll/satpy/pull/780))
+* [Issue 774](https://github.com/pytroll/satpy/issues/774) - ABI Level 1b long_name when reflectances and brightness temperatures are calculated
+* [Issue 766](https://github.com/pytroll/satpy/issues/766) - MODIS l1b reader seems to switch latitude and longitude for 500m data ([PR 781](https://github.com/pytroll/satpy/pull/781))
+* [Issue 742](https://github.com/pytroll/satpy/issues/742) - GOES16/17 netcdf reader fails with rasterio installed
+* [Issue 649](https://github.com/pytroll/satpy/issues/649) - Make MTG-I reader work ([PR 755](https://github.com/pytroll/satpy/pull/755))
+* [Issue 466](https://github.com/pytroll/satpy/issues/466) - Fix deprecation warnings with xarray, dask, and numpy
+* [Issue 449](https://github.com/pytroll/satpy/issues/449) - Adding coastlines to single channel not working
+
+In this release 9 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 787](https://github.com/pytroll/satpy/pull/787) - Loading resample cache with numpy 1.16.3 ([785](https://github.com/pytroll/satpy/issues/785))
+* [PR 781](https://github.com/pytroll/satpy/pull/781) - Fix longitude/latitude being swapped in modis readers ([766](https://github.com/pytroll/satpy/issues/766))
+* [PR 780](https://github.com/pytroll/satpy/pull/780) - Fix builtin areas to be compatible with rasterio ([776](https://github.com/pytroll/satpy/issues/776))
+* [PR 778](https://github.com/pytroll/satpy/pull/778) - Fix NullHandler not allowing warning/error logs to be printed to console ([777](https://github.com/pytroll/satpy/issues/777))
+* [PR 775](https://github.com/pytroll/satpy/pull/775) - Fix 'abi_l1b' reader not updating long_name when calibrating
+* [PR 770](https://github.com/pytroll/satpy/pull/770) - Fix typo for mersi2/abi/ahi using bidirection instead of bidirectional
+* [PR 763](https://github.com/pytroll/satpy/pull/763) - Fix AVHRR tests importing external mock on Python 3
+* [PR 760](https://github.com/pytroll/satpy/pull/760) - Avoid leaking file objects in NetCDF4FileHandler
+
+#### Features added
+
+* [PR 759](https://github.com/pytroll/satpy/pull/759) - Fix the avhrr_l1b_gaclac to support angles, units and avhrr variants
+* [PR 755](https://github.com/pytroll/satpy/pull/755) - Update MTG FCI FDHSI L1C reader for latest data format ([649](https://github.com/pytroll/satpy/issues/649))
+* [PR 470](https://github.com/pytroll/satpy/pull/470) - Switched `xarray.unfuncs` to `numpy`
+
+#### Documentation changes
+
+* [PR 773](https://github.com/pytroll/satpy/pull/773) - Improve Scene.show documentation
+* [PR 771](https://github.com/pytroll/satpy/pull/771) - Update pull request template to include AUTHORS and flake8 changes
+
+In this release 13 pull requests were closed.
+
+
 ## Version 0.15.1 (2019/05/10)
 
 ### Pull Requests Merged
