@@ -1463,6 +1463,7 @@ class BackgroundCompositor(GenericCompositor):
 
         # Get merged metadata
         attrs = combine_metadata
+        background.attrs = attrs
 
         # Split to separate bands so the mode is correct
         data = [background.sel(bands=b) for b in background['bands']]
