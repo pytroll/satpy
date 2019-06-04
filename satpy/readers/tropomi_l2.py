@@ -88,10 +88,10 @@ class TROPOMIL2(NetCDF4FileHandler):
                 var_shape = self[var_name + "/shape"]
                 logger.debug("Dims:{}".format(var_shape))
                 if (var_shape == lat_shape):
-                    logger.debug("TJJ Found valid additional dataset: %s", var_name)
+                    logger.debug("Found valid additional dataset: %s", var_name)
                     # Skip anything we have already configured
                     if (var_name in handled_variables):
-                        logger.debug("TJJ Already handled, skipping: %s", var_name)
+                        logger.debug("Already handled, skipping: %s", var_name)
                         continue
                     handled_variables.add(var_name)
                     last_index_separator = var_name.rindex('/')
@@ -118,7 +118,7 @@ class TROPOMIL2(NetCDF4FileHandler):
         return metadata
 
     def get_dataset(self, ds_id, ds_info):
-        logger.debug("XXX getting data for: %s", ds_id.name)
+        logger.debug("Getting data for: %s", ds_id.name)
         file_key = ds_info.get('file_key', ds_id.name)
         data = self[file_key]
         data.attrs = self.get_metadata(data, ds_info)
