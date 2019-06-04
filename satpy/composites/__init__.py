@@ -1439,3 +1439,32 @@ class StaticImageCompositor(GenericCompositor):
             img.attrs['start_time'] = dt.datetime.utcnow()
 
         return img
+
+
+class BackgroundCompositor(GenericCompositor):
+    """A compositor that overlays one composite on top of another."""
+
+    def __call__(self, projectables, *args, **kwargs):
+        projectables = self.check_areas(projectables)
+
+        # Get enhanced images out of the composites
+        foreground = get_enhanced_image(projectables[0])
+        background = get_enhance_image(projectables[1])
+
+        # Adjust bands so that they match
+        # L/RGB -> RGB/RGB
+        # LA/RGB -> RGBA/RGBA
+        # RGB/RGBA -> RGBA/RGBA
+        foreground = add_bands(foreground, background['bands'])
+        background = add_bands(background, foreground['bands'])
+
+        # Stack the images
+        background.stack(foreground)
+
+        # Get merged metadata
+        attrs = combine_metadata
+
+        # Split to separate bands so the mode is correct
+        data = [background.sel(bands=b) for b in background['bands']]
+
+        return super(BackgroundCompositor, self).__call__(data, **kwargs)
