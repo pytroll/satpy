@@ -252,8 +252,8 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             interpolated_dataset = {}
             sensor_zenith = self._load_ds_by_name(dataset_name)
             if dataset_name in ['longitude', 'latitude']:
-                latitude = self._load_ds_by_name('longitude')
-                longitude = self._load_ds_by_name('latitude')
+                longitude = self._load_ds_by_name('longitude')
+                latitude = self._load_ds_by_name('latitude')
                 longitude, latitude = interpolate(
                     longitude, latitude, sensor_zenith,
                     self.geo_resolution, resolution
