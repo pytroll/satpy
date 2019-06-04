@@ -1447,9 +1447,9 @@ class BackgroundCompositor(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         projectables = self.check_areas(projectables)
 
-        # Get enhanced images out of the composites
-        foreground = get_enhanced_image(projectables[0])
-        background = get_enhanced_image(projectables[1])
+        # Get enhanced datasets
+        foreground = enhance2dataset(projectables[0])
+        background = enhance2dataset(projectables[1])
 
         # Adjust bands so that they match
         # L/RGB -> RGB/RGB
@@ -1459,13 +1459,14 @@ class BackgroundCompositor(GenericCompositor):
         background = add_bands(background, foreground['bands'])
 
         # Stack the images
-        background.stack(foreground)
+        #data = xr.where(foreground.isnull(), background, foreground)
+        data = xr.where(foreground.isnull(), background, foreground)
 
         # Get merged metadata
-        attrs = combine_metadata
-        background.attrs = attrs
+        attrs = combine_metadata(foreground, background)
+        data.attrs = attrs
 
         # Split to separate bands so the mode is correct
-        data = [background.sel(bands=b) for b in background['bands']]
+        data = [data.sel(bands=b) for b in data['bands']]
 
         return super(BackgroundCompositor, self).__call__(data, **kwargs)
