@@ -34,7 +34,6 @@ import dask.array as da
 import numpy as np
 import six
 import xarray as xr
-import xarray.ufuncs as xu
 import yaml
 
 try:
@@ -481,7 +480,7 @@ class PSPRayleighReflectance(CompositeBase):
             chunks=vis.data.chunks)
 
         sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
-        suna = xu.rad2deg(suna)
+        suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
         sata, satel = get_observer_look(
             vis.attrs['satellite_longitude'],
@@ -1017,7 +1016,7 @@ def add_bands(data, bands):
 
 def zero_missing_data(data1, data2):
     """Replace NaN values with zeros in data1 if the data is valid in data2."""
-    nans = xu.logical_and(xu.isnan(data1), xu.logical_not(xu.isnan(data2)))
+    nans = np.logical_and(np.isnan(data1), np.logical_not(np.isnan(data2)))
     return data1.where(~nans, 0)
 
 
