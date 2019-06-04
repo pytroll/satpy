@@ -164,8 +164,9 @@ class TestMITIFFWriter(unittest.TestCase):
             attrs={'name': 'test',
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
-                   'sensor': 'TEST_SENSOR_NAME',
-                   'area': area_def}
+                   'sensor': 'avhrr',
+                   'area': area_def,
+                   'prerequisites': [10.8]}
         )
         return ds1
 
@@ -377,21 +378,29 @@ class TestMITIFFWriter(unittest.TestCase):
         w.save_dataset(dataset)
 
     def test_save_datasets(self):
-        """Test basic writer operation."""
+        """Test basic writer operation save_datasets."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_datasets()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_datasets(dataset)
 
     def test_save_one_dataset(self):
-        """Test basic writer operation."""
+        """Test basic writer operation with one dataset ie. no bands."""
+        import os
+        from libtiff import TIFF
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_one_dataset()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
+        tif = TIFF.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
+        IMAGEDESCRIPTION = 270
+        imgdesc = str(tif.GetField(IMAGEDESCRIPTION)).split('\\n')
+        for key in imgdesc:
+            if 'In this file' in key:
+                self.assertEqual(key, ' Channels: 1 In this file: 1')
 
     def test_save_dataset_with_calibration(self):
-        """Test basic writer operation."""
+        """Test writer operation with calibration."""
         import os
         import numpy as np
         from libtiff import TIFF
@@ -428,7 +437,7 @@ class TestMITIFFWriter(unittest.TestCase):
             np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
     def test_save_dataset_with_bad_value(self):
-        """Test basic writer operation."""
+        """Test writer operation with bad values."""
         import os
         import numpy as np
         from libtiff import TIFF
@@ -445,6 +454,52 @@ class TestMITIFFWriter(unittest.TestCase):
         tif = TIFF.open(os.path.join(self.base_dir, filename))
         for image in tif.iter_images():
             np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
+
+    def test_convert_proj4_string(self):
+        import xarray as xr
+        import dask.array as da
+        from satpy.writers.mitiff import MITIFFWriter
+        from pyresample.geometry import AreaDefinition
+        checks = [{'epsg': '+init=EPSG:32631',
+                   'proj4': (' Proj string: +proj=etmerc +lat_0=0 +lon_0=3 +k=0.9996 '
+                             '+ellps=WGS84 +datum=WGS84 +units=km +x_0=501020.000000 '
+                             '+y_0=1515.000000\n')},
+                  {'epsg': '+init=EPSG:32632',
+                   'proj4': (' Proj string: +proj=etmerc +lat_0=0 +lon_0=9 +k=0.9996 '
+                             '+ellps=WGS84 +datum=WGS84 +units=km +x_0=501020.000000 '
+                             '+y_0=1515.000000\n')},
+                  {'epsg': '+init=EPSG:32633',
+                   'proj4': (' Proj string: +proj=etmerc +lat_0=0 +lon_0=15 +k=0.9996 '
+                             '+ellps=WGS84 +datum=WGS84 +units=km +x_0=501020.000000 '
+                             '+y_0=1515.000000\n')},
+                  {'epsg': '+init=EPSG:32634',
+                   'proj4': (' Proj string: +proj=etmerc +lat_0=0 +lon_0=21 +k=0.9996 '
+                             '+ellps=WGS84 +datum=WGS84 +units=km +x_0=501020.000000 '
+                             '+y_0=1515.000000\n')},
+                  {'epsg': '+init=EPSG:32635',
+                   'proj4': (' Proj string: +proj=etmerc +lat_0=0 +lon_0=27 +k=0.9996 '
+                             '+ellps=WGS84 +datum=WGS84 +units=km +x_0=501020.000000 '
+                             '+y_0=1515.000000\n')}]
+        for check in checks:
+            area_def = AreaDefinition(
+                'test',
+                'test',
+                'test',
+                check['epsg'],
+                100,
+                200,
+                (-1000., -1500., 1000., 1500.),
+            )
+
+            ds1 = xr.DataArray(
+                da.zeros((10, 20), chunks=20),
+                dims=('y', 'x'),
+                attrs={'area': area_def}
+            )
+
+            w = MITIFFWriter(filename='dummy.tif', base_dir=self.base_dir)
+            proj4_string = w._add_proj4_string(ds1, ds1)
+            self.assertEqual(proj4_string, check['proj4'])
 
 
 def suite():
