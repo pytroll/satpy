@@ -618,6 +618,11 @@ class MITIFFWriter(ImageWriter):
         else:
             LOG.debug("Saving datasets as enhanced image")
             img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
+            if 'bands' in img.data.sizes and 'bands' not in datasets.sizes:
+                LOG.debug("Datasets without 'bands' become image with 'bands' due to enhancement.")
+                LOG.debug("Needs to regenerate mitiff image description")
+                image_description = self._make_image_description(img.data, **kwargs)
+                tif.SetField(IMAGEDESCRIPTION, (image_description).encode('utf-8'))
             for i, band in enumerate(img.data['bands']):
                 chn = img.data.sel(bands=band)
                 data = chn.values.clip(0, 1) * 254. + 1
