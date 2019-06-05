@@ -863,6 +863,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestGenericCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNIRReflectance))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPrecipCloudsCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestAddBands))
 
     return mysuite
 
