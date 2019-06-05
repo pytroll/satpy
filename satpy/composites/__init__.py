@@ -994,9 +994,19 @@ def add_bands(data, bands):
     # Add R, G and B bands, remove L band
     if 'L' in data['bands'].data and 'R' in bands.data:
         lum = data.sel(bands='L')
-        new_data = xr.concat((lum, lum, lum), dim='bands')
-        new_data['bands'] = ['R', 'G', 'B']
-        data = new_data
+        # Keep 'A' if it was present
+        if 'A' in data['bands']:
+            alpha = data.sel(bands='A')
+            new_data = (lum, lum, lum, alpha)
+            new_bands = ['R', 'G', 'B', 'A']
+            mode = 'RGBA'
+        else:
+            new_data = (lum, lum, lum)
+            new_bands = ['R', 'G', 'B']
+            mode = 'RGB'
+        data = xr.concat(new_data, dim='bands', coords={'bands': new_bands})
+        data['bands'] = new_bands
+        data.attrs['mode'] = mode
     # Add alpha band
     if 'A' not in data['bands'].data and 'A' in bands.data:
         new_data = [data.sel(bands=band) for band in data['bands'].data]
@@ -1009,6 +1019,7 @@ def add_bands(data, bands):
         alpha['bands'] = 'A'
         new_data.append(alpha)
         new_data = xr.concat(new_data, dim='bands')
+        new_data.attrs['mode'] = data.attrs['mode'] + 'A'
         data = new_data
 
     return data
