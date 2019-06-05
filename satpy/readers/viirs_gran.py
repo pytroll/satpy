@@ -34,7 +34,8 @@ from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 
 class VIIRSGRANFileHandler(NetCDF4FileHandler):
-    """JPSS_GRAN reader
+    """
+    JPSS_GRAN reader
     """
 
     def _parse_datetime(self, datestr):
@@ -214,12 +215,14 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
                     # Create new ds_info object. Copy over some attributes,
                     # tune others or set from values in file.
                     new_info = ds_info.copy()
-                    new_info['name'] = var_name.lower()
-                    new_info['resolution'] = 742
-                    new_info['units'] = self[var_name].units
-                    new_info['long_name'] = var_name
-                    new_info['file_key'] = var_name
-                    new_info['coordinates'] = ['longitude', 'latitude']
+                    new_info.update({
+                        'name': var_name.lower(),
+                        'resolution': 742,
+                        'units': self[var_name].units,
+                        'long_name': var_name,
+                        'file_key': var_name,
+                        'coordinates': ['longitude', 'latitude'],
+                    })
                     yield True, new_info
 
     def get_dataset(self, dataset_id, ds_info):
