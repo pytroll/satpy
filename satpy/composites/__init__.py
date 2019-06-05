@@ -1475,14 +1475,23 @@ class BackgroundCompositor(GenericCompositor):
         foreground = add_bands(foreground, background['bands'])
         background = add_bands(background, foreground['bands'])
 
-        # Stack the images
-        data = xr.where(foreground.isnull(), background, foreground)
-
         # Get merged metadata
         attrs = combine_metadata(foreground, background)
-        data.attrs = attrs
 
-        # Split to separate bands so the mode is correct
-        data = [data.sel(bands=b) for b in data['bands']]
+        # Stack the images
+        if 'A' in foreground.mode:
+            # Use alpha channel as weight and blend the two composites
+            alpha = foreground.sel(bands='A')
+            data = []
+            for band in foreground.mode[:-1]:
+                fg_band = foreground.sel(bands=band)
+                bg_band = background.sel(bands=band)
+                chan = (fg_band * alpha + bg_band * (1 - alpha))
+                chan = xr.where(chan.isnull(), bg_band, chan)
+                data.append(chan)
+        else:
+            data = xr.where(foreground.isnull(), background, foreground)
+            # Split to separate bands so the mode is correct
+            data = [data.sel(bands=b) for b in data['bands']]
 
         return super(BackgroundCompositor, self).__call__(data, **kwargs)
