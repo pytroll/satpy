@@ -841,6 +841,54 @@ class TestAddBands(unittest.TestCase):
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
 
 
+class TestStaticImageCompositor(unittest.TestCase):
+
+    @mock.patch('satpy.resample.get_area_def')
+    def test_init(self, get_area_def):
+        from satpy.composites import StaticImageCompositor
+
+        # No filename given raises ValueError
+        with self.assertRaises(ValueError):
+            comp = StaticImageCompositor("name")
+
+        # No area defined
+        comp = StaticImageCompositor("name", fname="foo.tif")
+        self.assertEqual(comp.fname, "foo.tif")
+        self.assertIsNone(comp.area)
+
+        # Area defined
+        get_area_def.return_value = "bar"
+        comp = StaticImageCompositor("name", fname="foo.tif", area="euro4")
+        self.assertEqual(comp.fname, "foo.tif")
+        self.assertEqual(comp.area, "bar")
+        get_area_def.assert_called_once_with("euro4")
+
+    @mock.patch('satpy.Scene')
+    def test_call(self, Scene):
+        from satpy.composites import StaticImageCompositor
+
+        class mock_scene(dict):
+            def load(self, arg):
+                pass
+
+        img = mock.MagicMock()
+        img.attrs = {}
+        scn = mock_scene()
+        scn['image'] = img
+        Scene.return_value = scn
+        comp = StaticImageCompositor("name", fname="foo.tif")
+        res = comp()
+        Scene.assert_called_once_with(reader='generic_image',
+                                      filenames=[comp.fname])
+        self.assertTrue("start_time" in res.attrs)
+        self.assertTrue("end_time" in res.attrs)
+
+        # TODO: mock a case when img.area.size raises IndexError and
+        # `area` kwarg is None
+        # TODO: mock a case when img.area.size raises IndexError and
+        # `area` kwarg is given
+
+
 def suite():
     """Test suite for all reader tests."""
     loader = unittest.TestLoader()
