@@ -25,8 +25,8 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Interface to JPSS_GRAN (JPSS VIIRS Products (Granule)) format
-
+"""
+Interface to JPSS_GRAN (JPSS VIIRS Products (Granule)) format
 """
 from datetime import datetime
 import numpy as np
@@ -300,4 +300,6 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
         if factors[0] != 1 or factors[1] != 0:
             data *= factors[0]
             data += factors[1]
+        if 'Rows' in data.dims:
+            data = data.rename({'Rows': 'y', 'Columns': 'x'})
         return data
