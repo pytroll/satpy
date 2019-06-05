@@ -1494,4 +1494,7 @@ class BackgroundCompositor(GenericCompositor):
             # Split to separate bands so the mode is correct
             data = [data.sel(bands=b) for b in data['bands']]
 
-        return super(BackgroundCompositor, self).__call__(data, **kwargs)
+        res = super(BackgroundCompositor, self).__call__(data, **kwargs)
+        res.attrs['area'] = attrs['area']
+
+        return res
