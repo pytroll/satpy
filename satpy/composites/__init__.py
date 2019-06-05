@@ -1451,6 +1451,9 @@ class StaticImageCompositor(GenericCompositor):
         if 'start_time' not in img.attrs or not img.attrs['start_time']:
             import datetime as dt
             img.attrs['start_time'] = dt.datetime.utcnow()
+        if 'end_time' not in img.attrs or not img.attrs['end_time']:
+            import datetime as dt
+            img.attrs['end_time'] = dt.datetime.utcnow()
 
         return img
 
