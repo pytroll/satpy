@@ -787,6 +787,60 @@ class TestGenericCompositor(unittest.TestCase):
         self.assertEqual(res.attrs['mode'], 'LA')
 
 
+class TestAddBands(unittest.TestCase):
+
+    def test_add_bands(self):
+        from satpy.composites import add_bands
+        import dask.array as da
+        import numpy as np
+        import xarray as xr
+
+        # L + RGB -> RGB
+        data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
+                            coords={'bands': ['L']})
+        new_bands = xr.DataArray(da.array(['R', 'G', 'B']), dims=('bands'),
+                                 coords={'bands': ['R', 'G', 'B']})
+        res = add_bands(data, new_bands)
+        res_bands = ['R', 'G', 'B']
+        self.assertEqual(res.mode, ''.join(res_bands))
+        np.testing.assert_array_equal(res.bands, res_bands)
+        np.testing.assert_array_equal(res.coords['bands'], res_bands)
+
+        # L + RGBA -> RGBA
+        data = xr.DataArray(da.ones((1, 3, 3)), dims=('bands', 'y', 'x'),
+                            coords={'bands': ['L']}, attrs={'mode': 'L'})
+        new_bands = xr.DataArray(da.array(['R', 'G', 'B', 'A']), dims=('bands'),
+                                 coords={'bands': ['R', 'G', 'B', 'A']})
+        res = add_bands(data, new_bands)
+        res_bands = ['R', 'G', 'B', 'A']
+        self.assertEqual(res.mode, ''.join(res_bands))
+        np.testing.assert_array_equal(res.bands, res_bands)
+        np.testing.assert_array_equal(res.coords['bands'], res_bands)
+
+        # LA + RGB -> RGBA
+        data = xr.DataArray(da.ones((2, 3, 3)), dims=('bands', 'y', 'x'),
+                            coords={'bands': ['L', 'A']}, attrs={'mode': 'LA'})
+        new_bands = xr.DataArray(da.array(['R', 'G', 'B']), dims=('bands'),
+                                 coords={'bands': ['R', 'G', 'B']})
+        res = add_bands(data, new_bands)
+        res_bands = ['R', 'G', 'B', 'A']
+        self.assertEqual(res.mode, ''.join(res_bands))
+        np.testing.assert_array_equal(res.bands, res_bands)
+        np.testing.assert_array_equal(res.coords['bands'], res_bands)
+
+        # RGB + RGBA -> RGBA
+        data = xr.DataArray(da.ones((3, 3, 3)), dims=('bands', 'y', 'x'),
+                            coords={'bands': ['R', 'G', 'B']},
+                            attrs={'mode': 'RGB'})
+        new_bands = xr.DataArray(da.array(['R', 'G', 'B', 'A']), dims=('bands'),
+                                 coords={'bands': ['R', 'G', 'B', 'A']})
+        res = add_bands(data, new_bands)
+        res_bands = ['R', 'G', 'B', 'A']
+        self.assertEqual(res.mode, ''.join(res_bands))
+        np.testing.assert_array_equal(res.bands, res_bands)
+        np.testing.assert_array_equal(res.coords['bands'], res_bands)
+
+
 def suite():
     """Test suite for all reader tests."""
     loader = unittest.TestLoader()
