@@ -607,9 +607,9 @@ class MITIFFWriter(ImageWriter):
                             chn = datasets.sel(bands=band)
                             # Need to possible translate channels names from satpy to mitiff
                             # Note the last index is a tuple index.
-                            cn = cns.get(chn.attrs['prerequisites'][i][0],
-                                         chn.attrs['prerequisites'][i][0])
-                            data = self._calibrate_data(chn, chn.attrs['prerequisites'][i][4],
+                            cn = cns.get(chn.attrs['prerequisites'][int(_cn) - 1][0],
+                                         chn.attrs['prerequisites'][int(_cn) - 1][0])
+                            data = self._calibrate_data(chn, chn.attrs['prerequisites'][int(_cn) - 1][4],
                                                         self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                         self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 
