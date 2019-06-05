@@ -127,8 +127,7 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
             if file_units == "none":
                 file_units = "1"
 
-        if (dataset_id.calibration == 'radiance' and
-                ds_info['units'] == 'W m-2 um-1 sr-1'):
+        if (ds_info['units'] == 'W m-2 um-1 sr-1'):
             rad_units_path = var_path + '/attr/radiance_units'
             if rad_units_path in self:
                 if file_units is None:
@@ -143,42 +142,10 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
         return file_units
 
     def _get_dataset_valid_range(self, dataset_id, ds_info, var_path):
-        if (dataset_id.calibration == 'radiance' and
-                ds_info['units'] == 'W m-2 um-1 sr-1'):
-            rad_units_path = var_path + '/attr/radiance_units'
-            if rad_units_path in self:
-                # given reflectance band, but want the radiance values
-                # special scaling parameters
-                scale_factor = self[var_path + '/attr/radiance_scale_factor']
-                scale_offset = self[var_path + '/attr/radiance_add_offset']
-            else:
-                # we are getting a btemp band but we want the radiance values
-                # these are stored directly in the primary variable
-                scale_factor = self[var_path + '/attr/scale_factor']
-                scale_offset = self[var_path + '/attr/add_offset']
-            valid_min = self[var_path + '/attr/valid_min']
-            valid_max = self[var_path + '/attr/valid_max']
-        elif ds_info.get('units') == '%':
-            # normal reflectance
-            valid_min = self[var_path + '/attr/valid_min']
-            valid_max = self[var_path + '/attr/valid_max']
-            scale_factor = self[var_path + '/attr/scale_factor']
-            scale_offset = self[var_path + '/attr/add_offset']
-        elif ds_info.get('units') == 'K':
-            # normal brightness temperature
-            # use a special LUT to get the actual values
-            lut_var_path = ds_info.get(
-                'lut', var_path + '_brightness_temperature_lut')
-            # obtain BT values from lookup table using scaled radiance integers
-            valid_min = self[lut_var_path + '/attr/valid_min']
-            valid_max = self[lut_var_path + '/attr/valid_max']
-            scale_factor = scale_offset = None
-        else:
-            valid_min = self.get(var_path + '/attr/valid_min')
-            valid_max = self.get(var_path + '/attr/valid_max')
-            scale_factor = self.get(var_path + '/attr/scale_factor')
-            scale_offset = self.get(var_path + '/attr/add_offset')
-
+        valid_min = self[var_path].valid_range[0]
+        valid_max = self[var_path].valid_range[1]
+        scale_factor = None
+        scale_offset = None
         return valid_min, valid_max, scale_factor, scale_offset
 
     def get_metadata(self, dataset_id, ds_info):
@@ -258,31 +225,10 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
     def get_dataset(self, dataset_id, ds_info):
         var_path = ds_info.get('file_key', dataset_id.name)
         metadata = self.get_metadata(dataset_id, ds_info)
-        shape = metadata['shape']
 
         valid_min, valid_max, scale_factor, scale_offset = \
             self._get_dataset_valid_range(dataset_id, ds_info, var_path)
-        if (dataset_id.calibration == 'radiance'
-                and ds_info['units'] == 'W m-2 um-1 sr-1'):
-            data = self[var_path]
-        elif ds_info.get('units') == '%':
-            data = self[var_path]
-        elif ds_info.get('units') == 'K':
-            # normal brightness temperature
-            # use a special LUT to get the actual values
-            lut_var_path = ds_info.get(
-                'lut', var_path + '_brightness_temperature_lut')
-            data = self[var_path]
-            # obtain BT values from lookup table using scaled radiance integers
-            index_arr = data.data.astype(np.int)
-            coords = data.coords
-            data.data = self[lut_var_path].data[index_arr.ravel()].reshape(
-                data.shape)
-            data = data.assign_coords(**coords)
-        elif shape == 1:
-            data = self[var_path]
-        else:
-            data = self[var_path]
+        data = self[var_path]
         data.attrs.update(metadata)
 
         if valid_min is not None and valid_max is not None:
@@ -300,6 +246,7 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
         if factors[0] != 1 or factors[1] != 0:
             data *= factors[0]
             data += factors[1]
+
         if 'Rows' in data.dims:
             data = data.rename({'Rows': 'y', 'Columns': 'x'})
         return data
