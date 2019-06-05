@@ -405,7 +405,7 @@ class TestMITIFFWriter(unittest.TestCase):
         w.save_dataset(dataset)
         tif = TIFF.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
         IMAGEDESCRIPTION = 270
-        imgdesc = str(tif.GetField(IMAGEDESCRIPTION)).split('\\n')
+        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
         for key in imgdesc:
             if 'In this file' in key:
                 self.assertEqual(key, ' Channels: 1 In this file: 1')
