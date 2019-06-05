@@ -67,12 +67,13 @@ class TestMITIFFWriter(unittest.TestCase):
         ds1 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
-            attrs={'name': 'test',
+            attrs={'name': '1',
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
                    'sensor': 'TEST_SENSOR_NAME',
                    'area': area_def,
                    'prerequisites': ['1'],
+                   'calibration': 'reflectance',
                    'metadata_requirements': {
                        'order': ['1'],
                        'config': {
@@ -83,29 +84,30 @@ class TestMITIFFWriter(unittest.TestCase):
                        },
                        'translate': {'1': '1',
                                      },
-                       'file_pattern': 'test-dataset-{start_time:%Y%m%d%H%M%S}.mitiff'
+                       'file_pattern': '1_{start_time:%Y%m%d_%H%M%S}.mitiff'
                    }}
         )
         ds2 = xr.DataArray(
             da.zeros((100, 200), chunks=50),
             dims=('y', 'x'),
-            attrs={'name': 'test',
+            attrs={'name': '4',
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
                    'sensor': 'TEST_SENSOR_NAME',
                    'area': area_def,
-                   'prerequisites': ['2'],
+                   'prerequisites': ['4'],
+                   'calibration': 'brightness_temperature',
                    'metadata_requirements': {
-                       'order': ['2'],
+                       'order': ['4'],
                        'config': {
-                           '2': {'alias': '1-VIS0.63',
-                                 'calibration': 'reflectance',
-                                 'min-val': '0',
-                                 'max-val': '100'},
+                           '4': {'alias': '4-IR10.8',
+                                 'calibration': 'brightness_temperature',
+                                 'min-val': '-150',
+                                 'max-val': '50'},
                        },
-                       'translate': {'2': '2',
+                       'translate': {'4': '4',
                                      },
-                       'file_pattern': 'test-dataset-{start_time:%Y%m%d%H%M%S}.mitiff'}
+                       'file_pattern': '4_{start_time:%Y%m%d_%H%M%S}.mitiff'}
                    }
         )
         return [ds1, ds2]
@@ -379,10 +381,19 @@ class TestMITIFFWriter(unittest.TestCase):
 
     def test_save_datasets(self):
         """Test basic writer operation save_datasets."""
+        import os
+        import numpy as np
+        from libtiff import TIFF
         from satpy.writers.mitiff import MITIFFWriter
+        expected = np.full((100, 200), 0)
         dataset = self._get_test_datasets()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_datasets(dataset)
+        filename = (dataset[0].attrs['metadata_requirements']['file_pattern']).format(
+            start_time=dataset[0].attrs['start_time'])
+        tif = TIFF.open(os.path.join(self.base_dir, filename))
+        for image in tif.iter_images():
+            np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
     def test_save_one_dataset(self):
         """Test basic writer operation with one dataset ie. no bands."""
