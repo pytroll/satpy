@@ -18,11 +18,13 @@ The following people have made contributions to this project:
 - [JohannesSMHI (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Thomas Leppelt (m4sth0)](https://github.com/m4sth0)
+- [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
 - [Tom Parker (tparker-usgs)](https://github.com/tparker-usgs)
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
 - [William Roberts (wroberts4)](https://github.com/wroberts4)
 - [RutgerK (RutgerK)](https://github.com/RutgerK)
+- [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [lorenzo clementi (loreclem)](https://github.com/loreclem)
 - [hazbottles (hazbottles)](https://github.com/hazbottles)
@@ -31,7 +33,7 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [ralphk11 (ralphk11)](https://github.com/ralphk11)
 - [roquetp (roquetp)](https://github.com/roquetp)
-- [sjoro (sjoro)](https://github.com/sjoro)
+- [Sauli Joro (sjoro)](https://github.com/sjoro)
 - Guido della Bruna - meteoswiss
 - Marco Sassi - meteoswiss
 - [Rohan Daruwala (rdaruwala)](https://github.com/rdaruwala)

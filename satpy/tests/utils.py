@@ -26,6 +26,22 @@ except ImportError:
     import mock
 
 
+def spy_decorator(method_to_decorate):
+    """Fancy decorate to wrap an object while still calling it.
+
+    See https://stackoverflow.com/a/41599695/433202
+
+    """
+    tmp_mock = mock.MagicMock()
+
+    def wrapper(self, *args, **kwargs):
+        tmp_mock(*args, **kwargs)
+        return method_to_decorate(self, *args, **kwargs)
+
+    wrapper.mock = tmp_mock
+    return wrapper
+
+
 def convert_file_content_to_data_array(file_content, attrs=tuple(),
                                        dims=('z', 'y', 'x')):
     """Helper for old reader tests that still use numpy arrays.
