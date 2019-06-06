@@ -889,6 +889,110 @@ class TestStaticImageCompositor(unittest.TestCase):
         # `area` kwarg is given
 
 
+class TestBackgroundCompositor(unittest.TestCase):
+
+    @mock.patch('satpy.composites.combine_metadata')
+    @mock.patch('satpy.composites.add_bands')
+    @mock.patch('satpy.composites.enhance2dataset')
+    @mock.patch('satpy.composites.BackgroundCompositor.check_areas')
+    def test_call(self, check_areas, e2d, add_bands, combine_metadata):
+        from satpy.composites import BackgroundCompositor
+        import numpy as np
+
+        def check_areas_side_effect(projectables):
+            return projectables
+
+        check_areas.side_effect = check_areas_side_effect
+        comp = BackgroundCompositor("name")
+
+        # L mode images
+        attrs = {'mode': 'L', 'area': 'foo'}
+        combine_metadata.return_value = attrs
+
+        foreground = xr.DataArray(np.array([[[1., 0.5],
+                                             [0., np.nan]]]),
+                                  dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+        background = xr.DataArray(np.ones((1, 2, 2)), dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+        add_bands.side_effect = [foreground, background]
+        res = comp([0, 1])
+        self.assertEqual(res.attrs['area'], 'foo')
+        self.assertTrue(np.all(res == np.array([[1., 0.5], [0., 1.]])))
+        self.assertEqual(res.mode, 'L')
+
+        # LA mode images
+        attrs = {'mode': 'LA', 'area': 'foo'}
+        combine_metadata.return_value = attrs
+
+        foreground = xr.DataArray(np.array([[[1., 0.5],
+                                             [0., np.nan]],
+                                            [[0.5, 0.5],
+                                             [0.5, 0.5]]]),
+                                  dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+        background = xr.DataArray(np.ones((2, 2, 2)), dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+        add_bands.side_effect = [foreground, background]
+        res = comp([0, 1])
+        self.assertTrue(np.all(res == np.array([[1., 0.75], [0.5, 1.]])))
+        self.assertEqual(res.mode, 'L')
+
+        # RGB mode images
+        attrs = {'mode': 'RGB', 'area': 'foo'}
+        combine_metadata.return_value = attrs
+
+        foreground = xr.DataArray(np.array([[[1., 0.5],
+                                             [0., np.nan]],
+                                            [[1., 0.5],
+                                             [0., np.nan]],
+                                            [[1., 0.5],
+                                             [0., np.nan]]]),
+                                  dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+        background = xr.DataArray(np.ones((3, 2, 2)), dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+
+        add_bands.side_effect = [foreground, background]
+        res = comp([0, 1])
+        self.assertTrue(np.all(res == np.array([[[1., 0.5], [0., 1.]],
+                                                [[1., 0.5], [0., 1.]],
+                                                [[1., 0.5], [0., 1.]]])))
+        self.assertEqual(res.mode, 'RGB')
+
+        # RGBA mode images
+        attrs = {'mode': 'RGBA', 'area': 'foo'}
+        combine_metadata.return_value = attrs
+
+        foreground = xr.DataArray(np.array([[[1., 0.5],
+                                             [0., np.nan]],
+                                            [[1., 0.5],
+                                             [0., np.nan]],
+                                            [[1., 0.5],
+                                             [0., np.nan]],
+                                            [[0.5, 0.5],
+                                             [0.5, 0.5]]]),
+                                  dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+        background = xr.DataArray(np.ones((4, 2, 2)), dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs)
+
+        add_bands.side_effect = [foreground, background]
+        res = comp([0, 1])
+        self.assertTrue(np.all(res == np.array([[[1., 0.75], [0.5, 1.]],
+                                                [[1., 0.75], [0.5, 1.]],
+                                                [[1., 0.75], [0.5, 1.]]])))
+        self.assertEqual(res.mode, 'RGB')
+
+
 def suite():
     """Test suite for all reader tests."""
     loader = unittest.TestLoader()
