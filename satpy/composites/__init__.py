@@ -1483,6 +1483,8 @@ class BackgroundCompositor(GenericCompositor):
             # Use alpha channel as weight and blend the two composites
             alpha = foreground.sel(bands='A')
             data = []
+            # NOTE: there's no alpha band in the output image, it will
+            # be added by the data writer
             for band in foreground.mode[:-1]:
                 fg_band = foreground.sel(bands=band)
                 bg_band = background.sel(bands=band)
