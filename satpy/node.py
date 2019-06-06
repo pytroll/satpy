@@ -104,13 +104,13 @@ class Node(object):
             return []
         elif not self.children:
             return [self]
-        else:
-            res = list()
-            for child in self.children:
-                for sub_child in child.leaves(unique=unique):
-                    if not unique or sub_child not in res:
-                        res.append(sub_child)
-            return res
+
+        res = list()
+        for child in self.children:
+            for sub_child in child.leaves(unique=unique):
+                if not unique or sub_child not in res:
+                    res.append(sub_child)
+        return res
 
     def trunk(self, unique=True):
         """Get the trunk of the tree starting at this root."""
