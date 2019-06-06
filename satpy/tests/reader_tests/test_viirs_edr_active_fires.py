@@ -260,7 +260,9 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         datasets = r.load(['confidence_cat'])
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], '[7,8,9]->[lo,med,hi]')
+            self.assertEqual(v.attrs['units'], '1')
+            self.assertEqual(v.attrs['flag_meanings'], ['low', 'medium', 'high'])
+            self.assertEqual(v.attrs['flag_values'], [7, 8, 9])
 
         datasets = r.load(['T4'])
         self.assertEqual(len(datasets), 1)
@@ -370,7 +372,9 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         datasets = r.load(['confidence_cat'])
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], '[7,8,9]->[lo,med,hi]')
+            self.assertEqual(v.attrs['units'], '1')
+            self.assertEqual(v.attrs['flag_meanings'], ['low', 'medium', 'high'])
+            self.assertEqual(v.attrs['flag_values'], [7, 8, 9])
 
         datasets = r.load(['T4'])
         self.assertEqual(len(datasets), 1)
