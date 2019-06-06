@@ -1978,6 +1978,30 @@ class TestSceneSaving(unittest.TestCase):
         self.assertTrue(os.path.isfile(
             os.path.join(self.base_dir, 'test_20180101_000000.tif')))
 
+    def test_save_datasets_by_ext(self):
+        """Save a dataset using 'save_datasets' with 'filename'."""
+        from satpy.scene import Scene
+        from satpy.tests.utils import spy_decorator
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        scn = Scene()
+        scn['test'] = ds1
+
+        from satpy.writers.simple_image import PillowWriter
+        save_image_mock = spy_decorator(PillowWriter.save_image)
+        with mock.patch.object(PillowWriter, 'save_image', save_image_mock):
+            scn.save_datasets(base_dir=self.base_dir, filename='{name}.png')
+        save_image_mock.mock.assert_called_once()
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.base_dir, 'test.png')))
+
     def test_save_datasets_bad_writer(self):
         """Save a dataset using 'save_datasets' and a bad writer."""
         from satpy.scene import Scene

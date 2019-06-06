@@ -26,7 +26,8 @@ import sys
 
 from satpy.tests.writer_tests import (test_cf, test_geotiff,
                                       test_simple_image,
-                                      test_scmi, test_mitiff)
+                                      test_scmi, test_mitiff,
+                                      test_utils)
 # FIXME: pyninjotiff is not xarray/dask friendly
 from satpy.tests.writer_tests import test_ninjotiff  # noqa
 
@@ -45,4 +46,5 @@ def suite():
     mysuite.addTests(test_simple_image.suite())
     mysuite.addTests(test_scmi.suite())
     mysuite.addTests(test_mitiff.suite())
+    mysuite.addTests(test_utils.suite())
     return mysuite
