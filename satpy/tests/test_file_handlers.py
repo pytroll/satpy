@@ -117,7 +117,8 @@ class TestBaseFileHandler(unittest.TestCase):
                                         'satellite_actual_latitude': 1,
                                         'satellite_actual_altitude': 1,
                                         'nadir_longitude': 1,
-                                        'nadir_latitude': 1}}
+                                        'nadir_latitude': 1,
+                                        'only_in_1': False}}
         info2 = {'orbital_parameters': {'projection_longitude': 2,
                                         'projection_latitude': 2,
                                         'projection_altitude': 2,
@@ -127,7 +128,8 @@ class TestBaseFileHandler(unittest.TestCase):
                                         'satellite_actual_latitude': 2,
                                         'satellite_actual_altitude': 2,
                                         'nadir_longitude': 2,
-                                        'nadir_latitude': 2}}
+                                        'nadir_latitude': 2,
+                                        'only_in_2': True}}
         exp = {'orbital_parameters': {'projection_longitude': 1.5,
                                       'projection_latitude': 1.5,
                                       'projection_altitude': 1.5,
@@ -137,7 +139,9 @@ class TestBaseFileHandler(unittest.TestCase):
                                       'satellite_actual_latitude': 1.5,
                                       'satellite_actual_altitude': 1.5,
                                       'nadir_longitude': 1.5,
-                                      'nadir_latitude': 1.5}}
+                                      'nadir_latitude': 1.5,
+                                      'only_in_1': False,
+                                      'only_in_2': True}}
         res = self.fh.combine_info([info1, info2])
         self.assertDictEqual(res, exp)
 
