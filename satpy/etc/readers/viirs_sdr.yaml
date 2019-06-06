@@ -12,7 +12,7 @@ datasets:
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: All_Data/{dataset_group}_All/Longitude
-    units: "degrees"
+    units: "degrees_east"
     standard_name: longitude
     coordinates: [i_longitude, i_latitude]
   i_lat:
@@ -21,7 +21,7 @@ datasets:
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: All_Data/{dataset_group}_All/Latitude
-    units: "degrees"
+    units: "degrees_north"
     standard_name: latitude
     coordinates: [i_longitude, i_latitude]
   m_lon:
@@ -30,7 +30,7 @@ datasets:
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: All_Data/{dataset_group}_All/Longitude
-    units: "degrees"
+    units: "degrees_east"
     standard_name: longitude
     coordinates: [m_longitude, m_latitude]
   m_lat:
@@ -39,7 +39,7 @@ datasets:
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: All_Data/{dataset_group}_All/Latitude
-    units: "degrees"
+    units: "degrees_north"
     standard_name: latitude
     coordinates: [m_longitude, m_latitude]
   dnb_lon:
@@ -48,7 +48,7 @@ datasets:
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: All_Data/{dataset_group}_All/Longitude
-    units: "degrees"
+    units: "degrees_east"
     standard_name: longitude
     coordinates: [dnb_longitude, dnb_latitude]
   dnb_lat:
@@ -57,7 +57,7 @@ datasets:
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: All_Data/{dataset_group}_All/Latitude
-    units: "degrees"
+    units: "degrees_north"
     standard_name: latitude
     coordinates: [dnb_longitude, dnb_latitude]
   I01:
