@@ -101,12 +101,19 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
 
         # Average orbital parameters
         orb_params = [info.get('orbital_parameters', {}) for info in all_infos]
-        keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
-                'satellite_nominal_longitude', 'satellite_nominal_latitude',
-                'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
-                'nadir_longitude', 'nadir_latitude']
-        if any(orb_params):
-            new_dict['orbital_parameters'] = self._combine(orb_params, np.mean, *keys)
+        if all(orb_params):
+            # Collect all available keys
+            orb_params_comb = {}
+            for d in orb_params:
+                orb_params_comb.update(d)
+
+            # Average known keys
+            keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
+                    'satellite_nominal_longitude', 'satellite_nominal_latitude',
+                    'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
+                    'nadir_longitude', 'nadir_latitude']
+            orb_params_comb.update(self._combine(orb_params, np.mean, *keys))
+            new_dict['orbital_parameters'] = orb_params_comb
 
         try:
             area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
