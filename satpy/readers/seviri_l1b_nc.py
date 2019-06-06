@@ -20,16 +20,18 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI netcdf format reader. """
+"""SEVIRI netcdf format reader.
+
+References:
+    MSG Level 1.5 Image Data Format Description
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+"""
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM)
 import xarray as xr
-# Needed for xarray netcdf workaround
-from netCDF4 import Dataset as tmpDataset
 
-from satpy import CHUNK_SIZE
 from pyresample import geometry
 
 import datetime
@@ -57,10 +59,7 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=False,
-                                      chunks={'num_columns_vis_ir': CHUNK_SIZE,
-                                              'num_rows_vis_ir': CHUNK_SIZE})
-
-            self.nc = self.nc.rename({'num_columns_vis_ir': 'x', 'num_rows_vis_ir': 'y'})
+                                      chunks={})
 
         # Obtain some area definition attributes
         equatorial_radius = (self.nc.attrs['equatorial_radius'] * 1000.)
@@ -71,8 +70,11 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                                              'h': 35785831.00,
                                              'ssp_longitude': ssp_lon}
 
-        self.mda['number_of_lines'] = int(self.nc.dims['y'])
-        self.mda['number_of_columns'] = int(self.nc.dims['x'])
+        self.mda['number_of_lines'] = int(self.nc.dims['num_rows_vis_ir'])
+        self.mda['number_of_columns'] = int(self.nc.dims['num_columns_vis_ir'])
+
+        self.mda['hrv_number_of_lines'] = int(self.nc.dims['num_rows_hrv'])
+        self.mda['hrv_number_of_columns'] = int(self.nc.dims['num_columns_hrv'])
 
         self.deltaSt = self.reference + datetime.timedelta(
             days=int(self.nc.attrs['true_repeat_cycle_start_day']),
@@ -82,18 +84,27 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             days=int(self.nc.attrs['planned_repeat_cycle_end_day']),
             milliseconds=int(self.nc.attrs['planned_repeat_cycle_end_mi_sec']))
 
-        # Netcdf xrray dimensions workaround - these 4 dimensions not found in the dataset
-        # but ncdump confirms they are there
-        tmp = tmpDataset(self.filename)
-        self.north = int(tmp.dimensions['north_most_line'].size)
-        self.east = int(tmp.dimensions['east_most_pixel'].size)
-        self.west = int(tmp.dimensions['west_most_pixel'].size)
-        self.south = int(tmp.dimensions['south_most_line'].size)
+        self.north = int(self.nc.attrs['north_most_line'])
+        self.east = int(self.nc.attrs['east_most_pixel'])
+        self.west = int(self.nc.attrs['west_most_pixel'])
+        self.south = int(self.nc.attrs['south_most_line'])
 
     def get_dataset(self, dataset_id, dataset_info):
 
         channel = dataset_id.name
         i = list(CHANNEL_NAMES.values()).index(channel)
+
+        if (channel == 'HRV'):
+            self.nc = self.nc.rename({'num_columns_hrv': 'x', 'num_rows_hrv': 'y'})
+        else:
+            # the first channel of a composite will rename the dimension variable
+            # but the later channels will raise a value error as its already been renamed
+            # we can just ignore these exceptions
+            try:
+                self.nc = self.nc.rename({'num_columns_vis_ir': 'x', 'num_rows_vis_ir': 'y'})
+            except ValueError:
+                pass
+
         dataset = self.nc[dataset_info['nc_key']]
 
         dataset.attrs.update(dataset_info)
@@ -147,6 +158,7 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         else:
             nlines = self.mda['number_of_lines']
             ncols = self.mda['number_of_columns']
+
         area = geometry.AreaDefinition(
              'some_area_name',
              "On-the-fly area",
@@ -159,49 +171,47 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return area
 
     def get_area_extent(self, dsid):
-        if dsid.name != 'HRV':
 
-            # following calculations assume grid origin is south-east corner
-            # section 7.2.4 of MSG Level 1.5 Image Data Format Description
-            origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
-            grid_origin = self.nc.attrs['vis_ir_grid_origin']
-            grid_origin = int(grid_origin, 16)
-            if grid_origin != 2:
-                raise NotImplementedError(
-                    'Grid origin not supported number: {}, {} corner'
-                    .format(grid_origin, origins[grid_origin])
-                )
+        # following calculations assume grid origin is south-east corner
+        # section 7.2.4 of MSG Level 1.5 Image Data Format Description
+        origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
+        grid_origin = self.nc.attrs['vis_ir_grid_origin']
+        grid_origin = int(grid_origin, 16)
+        if grid_origin != 2:
+            raise NotImplementedError(
+                'Grid origin not supported number: {}, {} corner'
+                .format(grid_origin, origins[grid_origin])
+            )
 
-            center_point = 3712/2
+        center_point = 3712/2
 
-            column_step = self.nc.attrs['vis_ir_column_dir_grid_step'] * 1000.0
+        column_step = self.nc.attrs['vis_ir_column_dir_grid_step'] * 1000.0
 
-            line_step = self.nc.attrs['vis_ir_line_dir_grid_step'] * 1000.0
-            # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
-            earth_model = int(self.nc.attrs['type_of_earth_model'], 16)
-            if earth_model == 2:
-                ns_offset = 0  # north +ve
-                we_offset = 0  # west +ve
-            elif earth_model == 1:
-                ns_offset = -0.5  # north +ve
-                we_offset = 0.5  # west +ve
-            else:
-                raise NotImplementedError(
-                    'unrecognised earth model: {}'.format(earth_model)
-                )
-            # section 3.1.5 of MSG Level 1.5 Image Data Format Description
-            ll_c = (center_point - self.west - 0.5 + we_offset) * column_step
-            ll_l = (self.south - center_point - 0.5 + ns_offset) * line_step
-            ur_c = (center_point - self.east + 0.5 + we_offset) * column_step
-            ur_l = (self.north - center_point + 0.5 + ns_offset) * line_step
-            area_extent = (ll_c, ll_l, ur_c, ur_l)
+        line_step = self.nc.attrs['vis_ir_line_dir_grid_step'] * 1000.0
 
+        # check for Earth model as this affects the north-south and
+        # west-east offsets
+        # section 3.1.4.2 of MSG Level 1.5 Image Data Format Description
+        earth_model = int(self.nc.attrs['type_of_earth_model'], 16)
+        if earth_model == 2:
+            ns_offset = 0  # north +ve
+            we_offset = 0  # west +ve
+        elif earth_model == 1:
+            ns_offset = -0.5  # north +ve
+            we_offset = 0.5  # west +ve
         else:
-
-            raise NotImplementedError('HRV not supported!')
+            raise NotImplementedError(
+                'unrecognised earth model: {}'.format(earth_model)
+            )
+        # section 3.1.5 of MSG Level 1.5 Image Data Format Description
+        ll_c = (center_point - self.west - 0.5 + we_offset) * column_step
+        ll_l = (self.south - center_point - 0.5 + ns_offset) * line_step
+        ur_c = (center_point - self.east + 0.5 + we_offset) * column_step
+        ur_l = (self.north - center_point + 0.5 + ns_offset) * line_step
+        area_extent = (ll_c, ll_l, ur_c, ur_l)
 
         return area_extent
 
 
-class NCSEVIRIHRVFileHandler():
+class NCSEVIRIHRVFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     pass
