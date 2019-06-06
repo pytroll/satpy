@@ -389,6 +389,9 @@ class HRITGOESFileHandler(HRITFileHandler):
         res.attrs = new_attrs
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'goes_imager'
+        res.attrs['orbital_parameters'] = {'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+                                           'projection_latitude': 0.0,
+                                           'projection_altitude': ALTITUDE}
         return res
 
     def _get_calibration_params(self):
@@ -437,7 +440,7 @@ class HRITGOESFileHandler(HRITFileHandler):
                            dims=data.dims, attrs=data.attrs,
                            coords=data.coords)
         res = res.clip(min=0)
-        units = {'percent': '%'}
+        units = {b'percent': '%', b'degree Kelvin': 'K'}
         unit = self.mda['calibration_parameters'][b'_UNIT']
         res.attrs['units'] = units.get(unit, unit)
         return res
