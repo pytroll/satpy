@@ -843,16 +843,6 @@ class TestAddBands(unittest.TestCase):
 
 class TestStaticImageCompositor(unittest.TestCase):
 
-    composite = """
-        sensor_name: visir/seviri
-          composites:
-            background_day:
-              compositor: !!python/name:satpy.composites.StaticImageCompositor
-              standard_name: background_day
-              fname: /path/to/image.tif
-              area: euro4
-    """
-
     @mock.patch('satpy.resample.get_area_def')
     def test_init(self, get_area_def):
         from satpy.composites import StaticImageCompositor
@@ -897,22 +887,6 @@ class TestStaticImageCompositor(unittest.TestCase):
         # `area` kwarg is None
         # TODO: mock a case when img.area.size raises IndexError and
         # `area` kwarg is given
-
-    @mock.patch('satpy.scene.Scene._compute_metadata_from_readers')
-    @mock.patch('satpy.scene.load_readers')
-    def test_scene(self, load_readers, compute_metadata_from_readers):
-        """Test usage through satpy.Scene()"""
-        from satpy import Scene
-        import os.path
-
-        # load_readers.return_value =
-        path = os.path.dirname(os.path.realpath(__file__))
-        compute_metadata_from_readers.return_value = {'sensor': ['seviri']}
-        scn = Scene(reader='seviri_l1b_hrit', filenames=['filename'],
-                    ppp_config_dir=path)
-
-        # TODO: figure out what to mock to get real results from
-        # scn.available_*() without real files
 
 
 class TestBackgroundCompositor(unittest.TestCase):
@@ -1042,6 +1016,8 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestNIRReflectance))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPrecipCloudsCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestAddBands))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestBackgroundCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestStaticImageCompositor))
 
     return mysuite
 

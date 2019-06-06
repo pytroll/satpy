@@ -158,6 +158,7 @@ def test_composites(sensor_name):
         DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
         DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
         DatasetID(name='comp23'): ([0.8], []),
+        DatasetID(name='static_image'): ([], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
