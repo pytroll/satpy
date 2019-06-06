@@ -1680,7 +1680,8 @@ class TestSceneLoading(unittest.TestCase):
         from satpy import DatasetID
         datasets = [DatasetID(name='duplicate1', wavelength=(0.1, 0.2, 0.3)),
                     DatasetID(name='duplicate2', wavelength=(0.1, 0.2, 0.3))]
-        reader = FakeReader('fake_reader', 'fake_sensor', datasets=datasets)
+        reader = FakeReader('fake_reader', 'fake_sensor', datasets=datasets,
+                            filter_datasets=False)
         cri.return_value = {'fake_reader': reader}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
