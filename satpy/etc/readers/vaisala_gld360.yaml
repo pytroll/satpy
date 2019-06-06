@@ -1,0 +1,43 @@
+reader:
+  description: Vaisala Global Lightning Dataset 360 reader
+  name: vaisala_gld360
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [vaisala_gld360]
+
+file_types:
+  vaisala_gld360:
+    file_reader: !!python/name:satpy.readers.vaisala_gld360.VaisalaGLD360TextFileHandler ''
+    file_patterns: ['flashes_{start_time:%Y%m%d}.txt']
+
+datasets:
+  time:
+    name: time
+    sensor: vaisala_gld360
+    resolution: 2000
+    file_type: vaisala_gld360
+
+  latitude:
+    name: latitude
+    sensor: vaisala_gld360
+    resolution: 2000
+    file_type: vaisala_gld360
+    standard_name: latitude
+    units: degree_north
+
+  longitude:
+    name: longitude
+    sensor: vaisala_gld360
+    resolution: 2000
+    file_type: vaisala_gld360
+    standard_name: longitude
+    units: degree_east
+
+  power:
+    name: power
+    sensor: vaisala_gld360
+    resolution: 2000
+    file_type: vaisala_gld360
+    coordinates:
+      - longitude
+      - latitude
+    units: kA
