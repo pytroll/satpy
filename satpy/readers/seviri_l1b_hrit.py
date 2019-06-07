@@ -77,13 +77,12 @@ Output:
         satellite_longitude:      0.0
         satellite_latitude:       0.0
         satellite_altitude:       35785831.0
+        orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
         georef_offset_corrected:  True
         wavelength:               (9.8, 10.8, 11.8)
         units:                    K
         standard_name:            brightness_temperature
         sensor:                   seviri
-        navigation:               {'satellite_nominal_longitude': 0.0, 'satellite...
-        projection:               {'satellite_longitude': 0.0, 'satellite_latitud...
         platform_name:            Meteosat-11
         start_time:               2019-03-01 12:00:09.716000
         end_time:                 2019-03-01 12:12:42.946000
@@ -97,10 +96,8 @@ Output:
         ancillary_variables:      []
 
 
-* The ``projection`` attribute specifies the projection parameters which are used to, for example, compute lat/lon
-  coordinates.
-* The ``navigation`` attribute holds the actual position of the satellite required for computing viewing
-  angles etc.
+* The ``orbital_parameters`` attribute provides the nominal and actual satellite position, as well as the projection
+  centre.
 * You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
   :class:`HRITMSGFileHandler`.
 * The ``acq_time`` coordinate provides the acquisition time for each scanline. Use a ``MultiIndex`` to enable selection
