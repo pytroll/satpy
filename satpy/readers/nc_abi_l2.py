@@ -37,7 +37,7 @@ class NC_ABI_L2(NC_ABI_BASE):
     def get_dataset(self, key, info):
         """Load a dataset.
         """
-        var = filename_info['file_key']
+        var = info['file_key']
         LOG.debug('Reading in get_dataset %s.', var)
         variable = self.nc[var]
 
