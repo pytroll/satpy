@@ -39,3 +39,4 @@ The following people have made contributions to this project:
 - [Rohan Daruwala (rdaruwala)](https://github.com/rdaruwala)
 - [Simon R. Proud (simonrp84)](https://github.com/simonrp84)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
+- [Daniel Hueholt (dhueholt)](https://github.com/dhueholt)
