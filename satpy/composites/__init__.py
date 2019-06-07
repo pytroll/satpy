@@ -1409,17 +1409,17 @@ class SandwichCompositor(GenericCompositor):
 class StaticImageCompositor(GenericCompositor):
     """A compositor that loads a static image from disk."""
 
-    def __init__(self, name, fname=None, area=None, **kwargs):
+    def __init__(self, name, filename=None, area=None, **kwargs):
         """Collect custom configuration values.
 
         Args:
-            fname (str): Filename of the image to load
+            filename (str): Filename of the image to load
             area (str): Name of area definition for the image.  Optional
                         for images with built-in area definitions (geotiff)
         """
-        if fname is None:
+        if filename is None:
             raise ValueError("No image configured for static image compositor")
-        self.fname = fname
+        self.filename = filename
         self.area = None
         if area is not None:
             from satpy.resample import get_area_def
@@ -1429,7 +1429,7 @@ class StaticImageCompositor(GenericCompositor):
 
     def __call__(self, *args, **kwargs):
         from satpy import Scene
-        scn = Scene(reader='generic_image', filenames=[self.fname])
+        scn = Scene(reader='generic_image', filenames=[self.filename])
         scn.load(['image'])
         img = scn['image']
         # use compositor parameters as extra metadata
