@@ -882,11 +882,19 @@ class TestStaticImageCompositor(unittest.TestCase):
                                       filenames=[comp.fname])
         self.assertTrue("start_time" in res.attrs)
         self.assertTrue("end_time" in res.attrs)
+        self.assertIsNone(res.attrs['sensor'])
+        self.assertTrue('modifiers' not in res.attrs)
+        self.assertTrue('calibration' not in res.attrs)
 
-        # TODO: mock a case when img.area.size raises IndexError and
-        # `area` kwarg is None
-        # TODO: mock a case when img.area.size raises IndexError and
-        # `area` kwarg is given
+        # Non-georeferenced image, no area given
+        img.area.ndim = None
+        with self.assertRaises(AttributeError):
+            res = comp()
+
+        # Non-georeferenced image, area given
+        comp = StaticImageCompositor("name", fname="foo.tif", area='euro4')
+        res = comp()
+        self.assertEqual(res.attrs['area'].area_id, 'euro4')
 
 
 class TestBackgroundCompositor(unittest.TestCase):
