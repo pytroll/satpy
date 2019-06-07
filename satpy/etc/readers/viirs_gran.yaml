@@ -6,7 +6,7 @@ reader:
   default_datasets:
 
 file_types:
-  general:
+  viirs_edr_generic:
     file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
     file_patterns:
       - '{opener:s}{divider:1s}{product:s}_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
@@ -15,7 +15,7 @@ datasets:
     latitude:
       name: 'latitude'
       resolution: 742
-      file_type: general
+      file_type: viirs_edr_generic
       file_key: 'Latitude'
       units: degrees
       coordinates: [longitude, latitude]
@@ -23,7 +23,7 @@ datasets:
     longitude:
       name: 'longitude'
       resolution: 742
-      file_type: general
+      file_type: viirs_edr_generic
       file_key: 'Longitude'
       units: degrees
       coordinates: [longitude, latitude]
