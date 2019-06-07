@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""The abi_l2 reader tests package.
+"""The nc_abi_l2 reader tests package.
 """
 
 import sys
@@ -56,10 +56,10 @@ class FakeDataset(object):
 class Test_NC_ABI_L2_area_fixedgrid(unittest.TestCase):
     """Test the NC_ABI_L2 reader."""
 
-    @mock.patch('satpy.readers.abi_l2.xr')
+    @mock.patch('satpy.readers.nc_abi_l2.xr')
     def setUp(self, xr_):
         """Setup for test."""
-        from satpy.readers.abi_l2 import NC_ABI_L2
+        from satpy.readers.nc_abi_l2 import NC_ABI_L2
         proj = xr.DataArray(
             [],
             attrs={
@@ -94,7 +94,7 @@ class Test_NC_ABI_L2_area_fixedgrid(unittest.TestCase):
                                 {'filetype': 'info'})
 
 
-    @mock.patch('satpy.readers.abi_l2.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.nc_abi_l2.geometry.AreaDefinition')
     def test_get_area_def_fixedgrid(self, adef):
         """Test the area generation."""
         self.reader.get_area_def(None)
@@ -110,10 +110,10 @@ class Test_NC_ABI_L2_area_fixedgrid(unittest.TestCase):
 class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
     """Test the NC_ABI_L2 reader."""
 
-    @mock.patch('satpy.readers.abi_l2.xr')
+    @mock.patch('satpy.readers.nc_abi_l2.xr')
     def setUp(self, xr_):
         """Setup for test."""
-        from satpy.readers.abi_l2 import NC_ABI_L2
+        from satpy.readers.nc_abi_l2 import NC_ABI_L2
         proj = xr.DataArray(
             [],
             attrs={
@@ -155,7 +155,7 @@ class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
                                   'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
 
-    @mock.patch('satpy.readers.abi_l2.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.nc_abi_l2.geometry.AreaDefinition')
     def test_get_area_def_latlon(self, adef):
         """Test the area generation."""
         self.reader.get_area_def(None)
