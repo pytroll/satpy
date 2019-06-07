@@ -9,6 +9,7 @@ The following people have made contributions to this project:
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
 - [Andrew Brooks (howff)](https://github.com/howff)
+- [Barry Baker (bbakernoaa)](https://github.com/bbakernoaa)
 - Guido della Bruna - meteoswiss
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
 - [Colin Duff (ColinDuff)](https://github.com/ColinDuff)
@@ -23,6 +24,7 @@ The following people have made contributions to this project:
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
+- [Daniel Hueholt (dhueholt)](https://github.com/dhueholt)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [JohannesSMHI (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
