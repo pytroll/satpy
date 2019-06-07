@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2013, 2014, 2015.
+# Copyright (c) 2019 Satpy developers
 
 # Author(s):
 
@@ -35,7 +35,7 @@ from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 class VIIRSGRANFileHandler(NetCDF4FileHandler):
     """
-    JPSS_GRAN reader
+    VIIRS GRAN reader
     """
 
     def _parse_datetime(self, datestr):
@@ -76,7 +76,7 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
 
     @property
     def sensor_name(self):
-        """ Retrieves the starting orbit number from the file """
+        """ Retrieves the sensor name from the file """
         res = self['/attr/instrument_name']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
@@ -124,7 +124,7 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
         file_units = ds_info.get('file_units')
         if file_units is None:
             file_units = self.get(var_path + '/attr/units')
-            # they were almost completely CF compliant...
+            # They were almost completely CF compliant...
             if file_units == "none":
                 file_units = "1"
 
@@ -136,8 +136,6 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
                 if file_units == 'Watts/meter^2/steradian/micrometer':
                     file_units = 'W m-2 um-1 sr-1'
         elif ds_info.get('units') == '%' and file_units is None:
-            # v1.1 and above of level 1 processing removed 'units' attribute
-            # for all reflectance channels
             file_units = "1"
 
         return file_units
@@ -238,7 +236,7 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
             data = data.where((data >= valid_min) & (data <= valid_max))
         if data.attrs.get('units') in ['%', 'K', '1', 'W m-2 um-1 sr-1'] and \
                 'flag_meanings' in data.attrs:
-            # flag meanings don't mean anything anymore for these variables
+            # Flag meanings don't mean anything anymore for these variables
             # these aren't category products
             data.attrs.pop('flag_meanings', None)
             data.attrs.pop('flag_values', None)
