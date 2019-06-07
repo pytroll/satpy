@@ -392,7 +392,7 @@ To ensure that the images aren't auto-stretched and possibly altered,
 the following should be added to enhancement config (assuming 8-bit
 image) for both of the static images::
 
-      static_day:
+    static_day:
       standard_name: static_day
       operations:
       - name: stretch
