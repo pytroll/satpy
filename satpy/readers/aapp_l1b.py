@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2012, 2013, 2014, 2015, 2016, 2017
+# Copyright (c) 2012 - 2019, Pytroll
 
 # Author(s):
 
@@ -81,6 +81,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self._data = None
         self._header = None
         self._is3b = None
+        self._is3a = None
         self._shape = None
         self.lons = None
         self.lats = None
@@ -237,10 +238,11 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         if dataset_id.name in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
-            is3b = np.expand_dims(
-                np.bitwise_and(
-                    np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
+            is3b = np.expand_dims(np.bitwise_and(self._data['scnlinbit'], 3) == 1, 1)
             self._is3b = np.repeat(is3b,
+                                   self._data['hrpt'][0].shape[0], axis=1)
+            is3a = np.expand_dims(np.bitwise_and(self._data['scnlinbit'], 3) == 0, 1)
+            self._is3a = np.repeat(is3a,
                                    self._data['hrpt'][0].shape[0], axis=1)
 
         try:
@@ -258,7 +260,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                                dataset_id.calibration,
                                pre_launch_coeffs,
                                coeffs,
-                               mask=(dataset_id.name == '3a' and self._is3b)))
+                               mask=(dataset_id.name == '3a' and np.logical_not(self._is3a))))
         else:
             ds = create_xarray(
                 _ir_calibrate(self._header,
