@@ -262,7 +262,8 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         parent_get_dataset.assert_called_with(key, info)
         calibrate.assert_called_with(parent_get_dataset(), key.calibration)
 
-        # Test attributes
+        # Test attributes (just check if raw metadata is there and then remove it before checking the remaining
+        # attributes)
         attrs_exp = info.copy()
         attrs_exp.update({
             'platform_name': self.reader.platform_name,
@@ -276,11 +277,24 @@ class TestHRITMSGFileHandler(unittest.TestCase):
             'navigation': self.reader.mda['navigation_parameters'],
             'georef_offset_corrected': self.reader.mda['offset_corrected']
         })
+        self.assertIn('raw_metadata', res.attrs)
+        res.attrs.pop('raw_metadata')
         self.assertDictEqual(attrs_exp, res.attrs)
 
         # Test timestamps
         self.assertTrue(np.all(res['acq_time'] == timestamps))
         self.assertEqual(res['acq_time'].attrs['long_name'], 'Mean scanline acquisition time')
+
+    def test_get_raw_mda(self):
+        """Test provision of raw metadata"""
+        self.reader.mda = {'segment': 1, 'loff': 123}
+        self.reader.prologue_.reduce = lambda max_size: {'prologue': 1}
+        self.reader.epilogue_.reduce = lambda max_size: {'epilogue': 1}
+        expected = {'prologue': 1, 'epilogue': 1, 'segment': 1}
+        self.assertDictEqual(self.reader._get_raw_mda(), expected)
+
+        # Make sure _get_raw_mda() doesn't modify the original dictionary
+        self.assertIn('loff', self.reader.mda)
 
     def test_get_timestamps(self):
         tline = self.reader._get_timestamps()
@@ -343,11 +357,12 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
                 }
             }
         }
+        self.reader._reduced = None
 
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler.read_prologue')
     @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', autospec=True)
-    def test_calibrate(self, init, *mocks):
-        """Test whether the prologue file handler accepts extra calibration keywords"""
+    def test_extra_kwargs(self, init, *mocks):
+        """Test whether the prologue file handler accepts extra keyword arguments"""
         def init_patched(self, *args, **kwargs):
             self.mda = {}
         init.side_effect = init_patched
@@ -356,6 +371,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
                                    filename_info={'service': ''},
                                    filetype_info=None,
                                    ext_calib_coefs={},
+                                   mda_max_array_size=123,
                                    calib_mode='nominal')
 
     def test_find_navigation_coefs(self):
@@ -403,14 +419,42 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
         self.assertEqual(a, 2000)
         self.assertEqual(b, 1500)
 
+    @mock.patch('satpy.readers.seviri_l1b_hrit.utils.reduce_mda')
+    def test_reduce(self, reduce_mda):
+        """Test metadata reduction"""
+        reduce_mda.return_value = 'reduced'
+
+        # Set buffer
+        self.assertEqual(self.reader.reduce(123), 'reduced')
+        reduce_mda.assert_called()
+
+        # Read buffer
+        reduce_mda.reset_mock()
+        self.reader._reduced = 'red'
+        self.assertEqual(self.reader.reduce(123), 'red')
+        reduce_mda.assert_not_called()
+
 
 class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
     """Test the HRIT epilogue file handler."""
 
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue')
     @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', autospec=True)
-    def test_calibrate(self, init, *mocks):
-        """Test whether the epilogue file handler accepts extra calibration keywords"""
+    def setUp(self, init, *mocks):
+        def init_patched(self, *args, **kwargs):
+            self.mda = {}
+
+        init.side_effect = init_patched
+
+        self.reader = HRITMSGEpilogueFileHandler(filename=None,
+                                                 filename_info={'service': ''},
+                                                 filetype_info=None,
+                                                 calib_mode='nominal')
+
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGEpilogueFileHandler.read_epilogue')
+    @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', autospec=True)
+    def test_extra_kwargs(self, init, *mocks):
+        """Test whether the epilogue file handler accepts extra keyword arguments"""
 
         def init_patched(self, *args, **kwargs):
             self.mda = {}
@@ -421,7 +465,23 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
                                    filename_info={'service': ''},
                                    filetype_info=None,
                                    ext_calib_coefs={},
+                                   mda_max_array_size=123,
                                    calib_mode='nominal')
+
+    @mock.patch('satpy.readers.seviri_l1b_hrit.utils.reduce_mda')
+    def test_reduce(self, reduce_mda):
+        """Test metadata reduction"""
+        reduce_mda.return_value = 'reduced'
+
+        # Set buffer
+        self.assertEqual(self.reader.reduce(123), 'reduced')
+        reduce_mda.assert_called()
+
+        # Read buffer
+        reduce_mda.reset_mock()
+        self.reader._reduced = 'red'
+        self.assertEqual(self.reader.reduce(123), 'red')
+        reduce_mda.assert_not_called()
 
 
 def suite():
