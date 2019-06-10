@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Author(s):
-#
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# Copyright (c) 2015-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -18,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Testing the yaml_reader module."""
 
 import os
