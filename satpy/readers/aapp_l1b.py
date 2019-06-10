@@ -42,6 +42,7 @@ import numpy as np
 import xarray as xr
 
 import dask.array as da
+from dask import delayed
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
@@ -65,14 +66,17 @@ PLATFORM_NAMES = {4: 'NOAA-15',
 
 
 def create_xarray(arr):
+    """Create an `xarray.DataArray`."""
     res = da.from_array(arr, chunks=(CHUNK_SIZE, CHUNK_SIZE))
     res = xr.DataArray(res, dims=['y', 'x'])
     return res
 
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
+    """The AVHRR AAPP L1B file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the file handler."""
         super(AVHRRAAPPL1BFile, self).__init__(filename, filename_info,
                                                filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
@@ -98,23 +102,20 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][0]) - 1,
             milliseconds=int(self._data['scnlintime'][0]))
 
     @property
     def end_time(self):
+        """Get the end time."""
         return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][-1]) - 1,
             milliseconds=int(self._data['scnlintime'][-1]))
 
-    def shape(self):
-        # return self._data.shape
-        return self._shape
-
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
-
         if key.name in CHANNEL_NAMES:
             dataset = self.calibrate(key)
         elif key.name in ['longitude', 'latitude']:
@@ -144,8 +145,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         return dataset
 
     def read(self):
-        """Read the data.
-        """
+        """Read the data."""
         tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             header = np.memmap(fp_, dtype=_HEADERTYPE, mode="r", shape=(1, ))
@@ -157,8 +157,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self._data = data
 
     def get_angles(self, angle_id):
-        """Get sun-satellite viewing angles"""
-
+        """Get sun-satellite viewing angles."""
         tic = datetime.now()
 
         sunz40km = self._data["ang"][:, :, 0] * 1e-2
@@ -184,7 +183,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             satint = Interpolator(
                 [sunz40km, satz40km, azidiff40km], (rows40km, cols40km),
                 (rows1km, cols1km), along_track_order, cross_track_order)
-            self.sunz, self.satz, self.azidiff = satint.interpolate()
+            self.sunz, self.satz, self.azidiff = delayed(satint.interpolate, nout=3)()
+            self.sunz = da.from_delayed(self.sunz, (lines, 2048), sunz40km.dtype)
+            self.satz = da.from_delayed(self.satz, (lines, 2048), satz40km.dtype)
+            self.azidiff = da.from_delayed(self.azidiff, (lines, 2048), azidiff40km.dtype)
 
             logger.debug("Interpolate sun-sat angles: time %s",
                          str(datetime.now() - tic))
@@ -192,8 +194,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         return create_xarray(getattr(self, ANGLES[angle_id]))
 
     def navigate(self):
-        """Return the longitudes and latitudes of the scene.
-        """
+        """Return the longitudes and latitudes of the scene."""
         tic = datetime.now()
         lons40km = self._data["pos"][:, :, 1] * 1e-4
         lats40km = self._data["pos"][:, :, 0] * 1e-4
@@ -217,15 +218,17 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             satint = SatelliteInterpolator(
                 (lons40km, lats40km), (rows40km, cols40km), (rows1km, cols1km),
                 along_track_order, cross_track_order)
-            self.lons, self.lats = satint.interpolate()
+            self.lons, self.lats = delayed(satint.interpolate, nout=2)()
+            self.lons = da.from_delayed(self.lons, (lines, 2048), lons40km.dtype)
+            self.lats = da.from_delayed(self.lats, (lines, 2048), lats40km.dtype)
+
             logger.debug("Navigation time %s", str(datetime.now() - tic))
 
     def calibrate(self,
                   dataset_id,
                   pre_launch_coeffs=False,
                   calib_coeffs=None):
-        """Calibrate the data
-        """
+        """Calibrate the data."""
         tic = datetime.now()
 
         if calib_coeffs is None:
@@ -503,7 +506,6 @@ def _vis_calibrate(data,
 
     if calib_coeffs is not None:
         logger.info("Updating from external calibration coefficients.")
-        # intersection = np.expand_dims
         slope1 = np.expand_dims(calib_coeffs[0], 1)
         intercept1 = np.expand_dims(calib_coeffs[1], 1)
         slope2 = np.expand_dims(calib_coeffs[2], 1)
@@ -534,10 +536,10 @@ def _vis_calibrate(data,
 
 
 def _ir_calibrate(header, data, irchn, calib_type, mask=False):
-    """IR calibration
+    """Calibrate IR.
+
     *calib_type* in brightness_temperature, radiance, count
     """
-
     count = data["hrpt"][:, :, irchn + 2].astype(np.float)
 
     if calib_type == 0:
