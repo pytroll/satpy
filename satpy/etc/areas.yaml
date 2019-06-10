@@ -1362,3 +1362,24 @@ robinson:
   area_extent:
     lower_left_xy: [-2049911.5256036147, 5326895.725982913]
     upper_right_xy: [2049911.5256036168, 8625155.12857459]
+us_test:
+  description: us_test
+  projection:
+    proj: merc
+    lat_0: 0.0
+    lon_0: -90.0
+    ellps: WGS84
+  shape:
+    height: 200
+    width: 200
+  area_extent:
+    lower_left_xy: [-1000000, 1000000]
+    upper_right_xy: [4500000, 6500000]
+conus_dynamic:
+  projection:
+    proj: lcc
+    lon_0: -95.0
+    lat_0: 25.0
+    lat_1: 25.0
+    ellps: WGS84
+  resolution: [1000, 1000]
