@@ -199,6 +199,10 @@ the base Satpy installation.
     * - MERSI-2 L1B data in HDF5 format
       - `mersi2_l1b`
       - Beta
+    * - Vaisala Global Lightning Dataset GLD360 data in ASCII format
+      - `vaisala_gld360`
+      - Beta
+
 
 Indices and tables
 ==================

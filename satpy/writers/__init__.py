@@ -658,8 +658,8 @@ class Writer(Plugin):
                                  save using this writer.
             compute (bool): If `True` (default), compute all of the saves to
                             disk. If `False` then the return value is either
-                            a `dask.delayed.Delayed` object or two lists to
-                            be passed to a `dask.array.store` call.
+                            a :doc:`dask:delayed` object or two lists to
+                            be passed to a :func:`dask.array.store` call.
                             See return values below for more details.
             **kwargs: Keyword arguments to pass to `save_dataset`. See that
                       documentation for more details.
@@ -667,11 +667,11 @@ class Writer(Plugin):
         Returns:
             Value returned depends on `compute` keyword argument. If
             `compute` is `True` the value is the result of a either a
-            `dask.array.store` operation or a `dask.delayed.Delayed` compute,
-            typically this is `None`. If `compute` is `False` then the
-            result is either a `dask.delayed.Delayed` object that can be
+            :func:`dask.array.store` operation or a :doc:`dask:delayed`
+            compute, typically this is `None`. If `compute` is `False` then
+            the result is either a :doc:`dask:delayed` object that can be
             computed with `delayed.compute()` or a two element tuple of
-            sources and targets to be passed to `dask.array.store`. If
+            sources and targets to be passed to :func:`dask.array.store`. If
             `targets` is provided then it is the caller's responsibility to
             close any objects that have a "close" method.
 
@@ -707,7 +707,7 @@ class Writer(Plugin):
                                        with this fill value if applicable to
                                        this writer.
             compute (bool): If `True` (default), compute and save the dataset.
-                            If `False` return either a `dask.delayed.Delayed`
+                            If `False` return either a :doc:`dask:delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
             **kwargs: Other keyword arguments for this particular writer.
@@ -715,13 +715,13 @@ class Writer(Plugin):
         Returns:
             Value returned depends on `compute`. If `compute` is `True` then
             the return value is the result of computing a
-            `dask.delayed.Delayed` object or running `dask.array.store`. If
-            `compute` is `False` then the returned value is either a
-            `dask.delayed.Delayed` object that can be computed using
+            :doc:`dask:delayed` object or running :func:`dask.array.store`.
+            If `compute` is `False` then the returned value is either a
+            :doc:`dask:delayed` object that can be computed using
             `delayed.compute()` or a tuple of (source, target) that should be
-            passed to `dask.array.store`. If target is provided the the caller
-            is responsible for calling `target.close()` if the target has
-            this method.
+            passed to :func:`dask.array.store`. If target is provided the the
+            caller is responsible for calling `target.close()` if the target
+            has this method.
 
         """
         raise NotImplementedError(
@@ -802,9 +802,9 @@ class ImageWriter(Writer):
                      overlay=None, decorate=None, compute=True, **kwargs):
         """Saves the ``dataset`` to a given ``filename``.
 
-        This method creates an enhanced image using `get_enhanced_image`. The
-        image is then passed to `save_image`. See both of these functions for
-        more details on the arguments passed to this method.
+        This method creates an enhanced image using :func:`get_enhanced_image`.
+        The image is then passed to :meth:`save_image`. See both of these
+        functions for more details on the arguments passed to this method.
 
         """
         img = get_enhanced_image(dataset.squeeze(), enhance=self.enhancer, overlay=overlay,
@@ -821,7 +821,7 @@ class ImageWriter(Writer):
                             patterns that will be filled in by dataset
                             attributes.
             compute (bool): If `True` (default), compute and save the dataset.
-                            If `False` return either a `dask.delayed.Delayed`
+                            If `False` return either a :doc:`dask:delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
             **kwargs: Other keyword arguments to pass to this writer.
@@ -829,13 +829,13 @@ class ImageWriter(Writer):
         Returns:
             Value returned depends on `compute`. If `compute` is `True` then
             the return value is the result of computing a
-            `dask.delayed.Delayed` object or running `dask.array.store`. If
-            `compute` is `False` then the returned value is either a
-            `dask.delayed.Delayed` object that can be computed using
+            :doc:`dask:delayed` object or running :func:`dask.array.store`.
+            If `compute` is `False` then the returned value is either a
+            :doc:`dask:delayed` object that can be computed using
             `delayed.compute()` or a tuple of (source, target) that should be
-            passed to `dask.array.store`. If target is provided the the caller
-            is responsible for calling `target.close()` if the target has
-            this method.
+            passed to :func:`dask.array.store`. If target is provided the the
+            caller is responsible for calling `target.close()` if the target
+            has this method.
 
         """
         raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
