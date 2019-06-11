@@ -249,3 +249,15 @@ def get_earth_radius(lon, lat, a, b):
     latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
     x, y, z = pyproj.transform(latlong, geocent, lon, lat, 0.)
     return np.sqrt(x**2 + y**2 + z**2)
+
+
+def reduce_mda(mda, max_size=100):
+    """Recursively remove arrays with more than `max_size` elements from the given metadata dictionary"""
+    reduced = {}
+    for key, val in mda.items():
+        if isinstance(val, dict):
+            reduced[key] = reduce_mda(val, max_size)
+        elif not (isinstance(val, np.ndarray) and val.size > max_size):
+            reduced[key] = val
+    return reduced
+
