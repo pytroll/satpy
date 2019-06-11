@@ -175,7 +175,10 @@ class GeoTIFFWriter(ImageWriter):
             cmap = create_colormap({'colors': img.palette})
             cmap.set_range(0, len(img.palette) - 1)
 
+        tags = kwargs.get('tags', {})
+        tags.update(self.tags)
         return img.save(filename, fformat='tif', fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
+                        tags=tags,
                         **gdal_options)

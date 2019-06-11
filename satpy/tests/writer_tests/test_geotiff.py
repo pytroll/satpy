@@ -130,6 +130,18 @@ class TestGeoTIFFWriter(unittest.TestCase):
             w.save_datasets(datasets, compute=False)
             self.assertEqual(save_method.call_args[1]['fill_value'], 128)
 
+    def test_tags(self):
+        """Test tags being added."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=self.base_dir)
+        w.info['fill_value'] = 128
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, tags={'test2': 2}, compute=False)
+            called_tags = save_method.call_args[1]['tags']
+            self.assertDictEqual(called_tags, {'test1': 1, 'test2': 2})
+
 
 def suite():
     """The test suite for this writer's tests."""
