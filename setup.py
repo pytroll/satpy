@@ -62,6 +62,7 @@ extras_require = {
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
     # Writers:
+    'cf': ['h5netcdf >= 0.7.3'],
     'scmi': ['netCDF4 >= 1.1.8'],
     'geotiff': ['gdal', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
