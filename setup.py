@@ -64,7 +64,7 @@ extras_require = {
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'scmi': ['netCDF4 >= 1.1.8'],
-    'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     # MultiScene:
     'animations': ['imageio'],
