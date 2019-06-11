@@ -193,10 +193,3 @@ datasets:
     file_key: Cloud_Water_Path
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
-
-  cloud_water_path:
-    name: cloud_water_path
-    resolution: 1000
-    file_key: Cloud_Water_Path
-    file_type: mod06_hdf
-    coordinates: [longitude, latitude]
