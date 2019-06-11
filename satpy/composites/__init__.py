@@ -59,6 +59,9 @@ except ImportError:
 
 LOG = logging.getLogger(__name__)
 
+NEGLIBLE_COORDS = ['time']
+"""Non-dimensional coordinates to be ignored for composite generation."""
+
 
 class IncompatibleAreas(Exception):
     """Error raised upon compositing things of different shapes."""
@@ -334,12 +337,13 @@ class CompositeBase(MetadataObject):
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
 
-        # Drop non-dimensional coordinates
+        # Drop neglible non-dimensional coordinates (understood to be "close-enough" for most operations)
         new_arrays = []
         for ds in data_arrays:
-            non_dimensional = [coord for coord in ds.coords if coord not in ds.dims]
-            if non_dimensional:
-                new_arrays.append(ds.drop(non_dimensional))
+            drop = [coord for coord in ds.coords
+                    if coord not in ds.dims and any([neglible in coord for neglible in NEGLIBLE_COORDS])]
+            if drop:
+                new_arrays.append(ds.drop(drop))
             else:
                 new_arrays.append(ds)
 
