@@ -60,7 +60,7 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 NEGLIBLE_COORDS = ['time']
-"""Non-dimensional coordinates to be ignored for composite generation."""
+"""Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
 
 
 class IncompatibleAreas(Exception):
@@ -313,7 +313,7 @@ class CompositeBase(MetadataObject):
                     d[k] = o[k]
 
     def check_areas(self, data_arrays):
-        """Check that the areas of the *data_arrays* are compatible."""
+        """Check that the areas of the *data_arrays* are compatible and drop neglible non-dimensional coordinates."""
         if len(data_arrays) == 1:
             return data_arrays
 
