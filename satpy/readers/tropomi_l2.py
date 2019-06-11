@@ -26,7 +26,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class TROPOMIL2(NetCDF4FileHandler):
+class TROPOMIL2FileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         return self.filename_info['start_time']
