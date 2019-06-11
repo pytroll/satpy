@@ -28,7 +28,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
-                                           NoValidNavigationCoefs)
+                                           NoValidOrbitParams)
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
 from satpy.dataset import DatasetID
 
@@ -51,7 +51,7 @@ def new_get_hd(instance, hdr_info):
                                              'b': 6356583.80,
                                              'h': 35785831.00,
                                              'SSP_longitude': 0.0}
-    instance.mda['navigation_parameters'] = {}
+    instance.mda['orbital_parameters'] = {}
     instance.mda['total_header_length'] = 12
 
 
@@ -105,12 +105,12 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                     self.reader.mda['projection_parameters']['h'] = 35785831.0
                     self.reader.mda['projection_parameters']['SSP_longitude'] = 44
                     self.reader.mda['projection_parameters']['SSP_latitude'] = 0.0
-                    self.reader.mda['navigation_parameters'] = {}
-                    self.reader.mda['navigation_parameters']['satellite_nominal_longitude'] = 47
-                    self.reader.mda['navigation_parameters']['satellite_nominal_latitude'] = 0.0
-                    self.reader.mda['navigation_parameters']['satellite_actual_longitude'] = 47.5
-                    self.reader.mda['navigation_parameters']['satellite_actual_latitude'] = -0.5
-                    self.reader.mda['navigation_parameters']['satellite_actual_altitude'] = 35783328
+                    self.reader.mda['orbital_parameters'] = {}
+                    self.reader.mda['orbital_parameters']['satellite_nominal_longitude'] = 47
+                    self.reader.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
+                    self.reader.mda['orbital_parameters']['satellite_actual_longitude'] = 47.5
+                    self.reader.mda['orbital_parameters']['satellite_actual_latitude'] = -0.5
+                    self.reader.mda['orbital_parameters']['satellite_actual_altitude'] = 35783328
 
                     tline = np.zeros(nlines, dtype=[('days', '>u2'), ('milliseconds', '>u4')])
                     tline['days'][1:-1] = 21246 * np.ones(nlines-2)  # 2016-03-03
@@ -378,20 +378,20 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
                                    mda_max_array_size=123,
                                    calib_mode='nominal')
 
-    def test_find_navigation_coefs(self):
-        """Test identification of navigation coefficients"""
+    def test_find_orbit_coefs(self):
+        """Test identification of orbit coefficients"""
 
-        self.assertEqual(self.reader._find_navigation_coefs(), 1)
+        self.assertEqual(self.reader._find_orbit_coefs(), 1)
 
         # No interval enclosing the given timestamp
         self.reader.prologue['ImageAcquisition']['PlannedAcquisitionTime'][
             'TrueRepeatCycleStart'] = datetime(2000, 1, 1)
-        self.assertRaises(NoValidNavigationCoefs, self.reader._find_navigation_coefs)
+        self.assertRaises(NoValidOrbitParams, self.reader._find_orbit_coefs)
 
-    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler._find_navigation_coefs')
-    def test_get_satpos_cart(self, find_navigation_coefs):
+    @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler._find_orbit_coefs')
+    def test_get_satpos_cart(self, find_orbit_coefs):
         """Test satellite position in cartesian coordinates"""
-        find_navigation_coefs.return_value = 1
+        find_orbit_coefs.return_value = 1
         x, y, z = self.reader._get_satpos_cart()
         self.assertTrue(np.allclose([x, y, z], [42078421.37095518, -2611352.744615312, -419828.9699940758]))
 
@@ -408,7 +408,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
 
         # No valid coefficients
         self.reader.satpos = None  # reset cache
-        get_satpos_cart.side_effect = NoValidNavigationCoefs
+        get_satpos_cart.side_effect = NoValidOrbitParams
         self.reader.prologue['ImageAcquisition']['PlannedAcquisitionTime'][
             'TrueRepeatCycleStart'] = datetime(2000, 1, 1)
         self.assertTupleEqual(self.reader.get_satpos(), (None, None, None))
