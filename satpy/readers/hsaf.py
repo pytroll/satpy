@@ -67,7 +67,7 @@ class HSAFFileHandler(BaseFileHandler):
 
     @staticmethod
     def _get_datetime(msg):
-        dtstr = str(msg.dataDate) + str(msg.dataTime).zfill(4)
+        dtstr = str(msg['dataDate']) + str(msg['dataTime']).zfill(4)
         return datetime.strptime(dtstr, "%Y%m%d%H%M")
 
     @property
@@ -79,18 +79,18 @@ class HSAFFileHandler(BaseFileHandler):
 
     def get_metadata(self, msg):
         try:
-            center_description = msg.centreDescription
+            center_description = msg['centreDescription']
         except (RuntimeError, KeyError):
             center_description = None
         ds_info = {
             'filename': self.filename,
-            'shortName': msg.shortName,
-            'long_name': msg.name,
-            'units': msg.units,
+            'shortName': msg['shortName'],
+            'long_name': msg['name'],
+            'units': msg['units'],
             'centreDescription': center_description,
             'data_time': self._analysis_time,
-            'nx': msg.Nx,
-            'ny': msg.Ny,
+            'nx': msg['Nx'],
+            'ny': msg['Ny'],
             'projparams': msg.projparams
         }
         return ds_info
@@ -112,13 +112,13 @@ class HSAFFileHandler(BaseFileHandler):
 
         proj_param = msg.projparams.copy()
 
-        Rx = 2 * np.arcsin(1. / msg.NrInRadiusOfEarth) / msg.dx
-        Ry = 2 * np.arcsin(1. / msg.NrInRadiusOfEarth) / msg.dy
+        Rx = 2 * np.arcsin(1. / msg['NrInRadiusOfEarth']) / msg['dx']
+        Ry = 2 * np.arcsin(1. / msg['NrInRadiusOfEarth']) / msg['dy']
 
-        x_0 = - msg.XpInGridLengths
-        x_1 = msg.Nx - msg.XpInGridLengths
-        y_0 = (msg.Ny - msg.YpInGridLengths) * -1
-        y_1 = msg.YpInGridLengths
+        x_0 = - msg['XpInGridLengths']
+        x_1 = msg['Nx'] - msg['XpInGridLengths']
+        y_0 = (msg['Ny'] - msg['YpInGridLengths']) * -1
+        y_1 = msg['YpInGridLengths']
 
         min_x = (x_0 * Rx) * proj_param['h']
         max_x = (x_1 * Rx) * proj_param['h']
@@ -132,15 +132,15 @@ class HSAFFileHandler(BaseFileHandler):
                                        'A region from H-SAF',
                                        'geos',
                                        proj_param,
-                                       msg.Nx,
-                                       msg.Ny,
+                                       msg['Nx'],
+                                       msg['Ny'],
                                        area_extent)
 
         return area
 
     def _get_message(self, idx):
         with pygrib.open(self.filename) as grib_file:
-            msg = grib_file[idx]
+            msg = grib_file.message(idx)
             return msg
 
     def get_dataset(self, ds_id, ds_info):
@@ -160,7 +160,7 @@ class HSAFFileHandler(BaseFileHandler):
                                      timedelta(hours=int(timedelt)))
         else:
             ds_info['start_time'] = ds_info['end_time']
-        fill = msg.missingValue
+        fill = msg['missingValue']
         data = msg.values.astype(np.float32)
         if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
             data = data[::-1]
