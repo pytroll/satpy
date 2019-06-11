@@ -269,6 +269,8 @@ class HRITGOMSFileHandler(HRITFileHandler):
         sublon = self.epilogue['GeometricProcessing']['TGeomNormInfo']['SubLon']
         sublon = sublon[self.chid]
         self.mda['projection_parameters']['SSP_longitude'] = np.rad2deg(sublon)
+        self.mda['orbital_parameters']['satellite_nominal_longitude'] = np.rad2deg(
+            self.prologue['SatelliteStatus']['NominalLongitude'])
         satellite_id = self.prologue['SatelliteStatus']['SatelliteID']
         self.platform_name = SPACECRAFTS[satellite_id]
 
@@ -285,6 +287,13 @@ class HRITGOMSFileHandler(HRITFileHandler):
         res.attrs['satellite_longitude'] = self.mda['projection_parameters']['SSP_longitude']
         res.attrs['satellite_latitude'] = 0
         res.attrs['satellite_altitude'] = 35785831.00
+        res.attrs['orbital_parameters'] = {
+            'satellite_nominal_longitude': self.mda['orbital_parameters']['satellite_nominal_longitude'],
+            'satellite_nominal_latitude': 0.,
+            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+            'projection_latitude': 0.,
+            'projection_altitude': 35785831.00
+        }
 
         return res
 
