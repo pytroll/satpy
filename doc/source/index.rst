@@ -203,7 +203,7 @@ the base Satpy installation.
       - `vaisala_gld360`
       - Beta
     * - TROPOMI L2 data in NetCDF4 format
-      - `tropomi_lb`
+      - `tropomi_l2`
       - Beta
 
 
