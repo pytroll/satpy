@@ -16,19 +16,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
-Advance Baseline Imager NOAA Level 2+ products reader 
+Advance Baseline Imager NOAA Level 2+ products reader
 The files read by this reader are described in the official PUG document:
     https://www.goes-r.gov/products/docs/PUG-L2+-vol5.pdf
 """
 
 import logging
 
-from pyresample import geometry
 from satpy.readers.abi_base import NC_ABI_BASE
 
 LOG = logging.getLogger(__name__)
 
 class NC_ABI_L2(NC_ABI_BASE):
+    """reader class for NOAA ABI l2+ products in netCDF format
+    """
 
     def __init__(self, filename, filename_info, filetype_info):
         super(NC_ABI_L2, self).__init__(filename, filename_info, filetype_info)
@@ -73,7 +74,7 @@ class NC_ABI_L2(NC_ABI_BASE):
         variable.attrs.pop('scale_factor', None)
         variable.attrs.pop('add_offset', None)
         variable.attrs.pop('valid_range', None)
-        
+
         # add in information from the filename that may be useful to the user
         for key in ('scan_mode', 'platform_shortname'):
             variable.attrs[key] = self.filename_info[key]
@@ -83,4 +84,3 @@ class NC_ABI_L2(NC_ABI_BASE):
             variable.attrs[key] = self.nc.attrs.get(key)
 
         return variable
-

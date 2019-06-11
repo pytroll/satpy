@@ -42,12 +42,12 @@ class NC_ABI_BASE(BaseFileHandler):
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
         # xarray's default netcdf4 engine
         try:
-            self.nc = xr.open_dataset(self.filename, 
+            self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=False,
                                       chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE},)
         except ValueError:
-            self.nc = xr.open_dataset(self.filename, 
+            self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=False,
                                       chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE},)
@@ -64,7 +64,7 @@ class NC_ABI_BASE(BaseFileHandler):
             self.nlines = self.nc['lat'].size
             self.ncols = self.nc['lon'].size
             self.nc = self.nc.rename({'lon': 'x', 'lat': 'y'})
-            
+
         self.coords = {}
 
     def __getitem__(self, item):
@@ -116,12 +116,10 @@ class NC_ABI_BASE(BaseFileHandler):
             return self._get_areadef_latlon(key)
         else:
             raise ValueError('Unsupported projection found in the dataset')
-            
+
     def _get_areadef_latlon(self, key):
         """Get the area definition of the data at hand.
         """
-        from pyproj import Proj
-
         projection = self.nc["goes_lat_lon_projection"]
 
         a = projection.attrs['semi_major_axis']

@@ -27,7 +27,6 @@ import logging
 
 import numpy as np
 
-from pyresample import geometry
 from satpy.readers.abi_base import NC_ABI_BASE
 
 logger = logging.getLogger(__name__)
@@ -108,4 +107,3 @@ class NC_ABI_L1B(NC_ABI_BASE):
         res.attrs['units'] = 'K'
         res.attrs['standard_name'] = 'toa_brightness_temperature'
         return res
-
