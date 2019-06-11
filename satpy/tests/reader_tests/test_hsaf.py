@@ -3,12 +3,9 @@
 """Module for testing the satpy.readers.grib module.
 """
 
-import os
 import sys
 import numpy as np
-import xarray as xr
 from datetime import datetime
-import numpy as np
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -19,7 +16,8 @@ try:
     from unittest import mock
 except ImportError:
     import mock
-    
+
+
 class FakeMessage(object):
     """Fake message returned by pygrib.open().message(x)."""
     def __init__(self, values, proj_params=None, latlons=None, **attrs):
@@ -28,13 +26,16 @@ class FakeMessage(object):
         self.values = values
         if proj_params is None:
             proj_params = {'a': 6378140.0, 'b': 6356755.0, 'lat_0': 0.0,
-                           'lon_0': 0.0, 'proj': 'geos', 'h':35785830.098}
+                           'lon_0': 0.0, 'proj': 'geos', 'h': 35785830.098}
         self.projparams = proj_params
         self._latlons = latlons
+
     def latlons(self):
         return self._latlons
+
     def __getitem__(self, item):
         return self.attrs[item]
+
     def valid_key(self, key):
         return True
 
@@ -73,20 +74,26 @@ class FakeGRIB(object):
                 )
             ]
         self.messages = len(self._messages)
+
     def message(self, msg_num):
         return self._messages[msg_num - 1]
+
     def seek(self, loc):
         return
+
     def __iter__(self):
         return iter(self._messages)
+
     def __enter__(self):
         return self
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         pass
 
+
 class TestHSAFFileHandler(unittest.TestCase):
     """Test HSAF Reader"""
-    
+
     def setUp(self):
         """Wrap pygrib to read fake data"""
         try:
@@ -99,7 +106,7 @@ class TestHSAFFileHandler(unittest.TestCase):
     def tearDown(self):
         """Re-enable pygrib import."""
         sys.modules['pygrib'] = self.orig_pygrib
-        
+
     @mock.patch('satpy.readers.hsaf.pygrib.open', return_value=FakeGRIB())
     def test_init(self, pg):
         """
@@ -114,7 +121,7 @@ class TestHSAFFileHandler(unittest.TestCase):
         self.assertEqual(fh.metadata['projparams']['lat_0'], 0.0)
         self.assertEqual(fh.metadata['shortName'], 'irrate')
         self.assertEqual(fh.metadata['nx'], 3712)
-        
+
     @mock.patch('satpy.readers.hsaf.pygrib.open', return_value=FakeGRIB())
     def test_get_area_def(self, pg):
         """
@@ -127,7 +134,7 @@ class TestHSAFFileHandler(unittest.TestCase):
         self.assertEqual(area_def.x_size, 3712)
         self.assertAlmostEqual(area_def.area_extent[0], -5569209.3026, places=3)
         self.assertAlmostEqual(area_def.area_extent[3], 5587721.9097, places=3)
-             
+
     @mock.patch('satpy.readers.hsaf.pygrib.open', return_value=FakeGRIB())
     def test_get_dataset(self, pg):
         """
@@ -141,7 +148,8 @@ class TestHSAFFileHandler(unittest.TestCase):
         ds_id.name = 'H03B'
         data = fh.get_dataset(ds_id, mock.Mock())
         np.testing.assert_array_equal(data.values, np.arange(25.).reshape((5, 5)))
-    
+
+
 def suite():
     """The test suite for test_grib."""
     loader = unittest.TestLoader()
@@ -149,7 +157,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestHSAFFileHandler))
 
     return mysuite
-    
+
 
 if __name__ == '__main__':
     unittest.main()
