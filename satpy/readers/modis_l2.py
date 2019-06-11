@@ -1,8 +1,31 @@
-"""Reader for MODIS L2 products written with HDF4 files.
+"""Modis level 2 hdf-eos format reader
+=======================================
 
-Documentation about the format
-https://modis-atmos.gsfc.nasa.gov/products
+Introduction
+------------
 
+The ``modis_l2`` reader reads and calibrates Modis L2 image data in hdf-eos format.
+Since there are a multitude of different level 2 datasets not all of theses are implemented (yet).
+
+
+Currently the reader supports:
+    - m[o/y]d35_l2: cloud_mask dataset
+    - some datasets in m[o/y]d06 files
+
+To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`readers`.
+
+
+Geolocation files
+-----------------
+
+Similar to the ``modis_l1b` reader the geolocation files (mod03) for the 1km data are optional and if not
+given 1km geolocations will be interpolated from the 5km geolocation contained within the file.
+
+For the 500m and 250m data geolocation files are needed.
+
+
+References:
+    - Documentation about the format: https://modis-atmos.gsfc.nasa.gov/products
 """
 import logging
 
