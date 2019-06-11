@@ -10,6 +10,10 @@ file_types:
     file_patterns:
     - 'M{platform_indicator:1s}D35_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
+  mod06_hdf:
+    file_patterns:
+    - 'M{platform_indicator:1s}D06_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   hdf_eos_geo:
     file_patterns:
       - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
@@ -47,7 +51,7 @@ datasets:
     name: longitude
     resolution:
       5000:
-        file_type: mod35_hdf
+        file_type: [mod35_hdf, mod06_hdf]
       1000:
         file_type: [hdf_eos_geo, mod35_hdf]
       500:
@@ -62,7 +66,7 @@ datasets:
     resolution:
       5000:
         # For EUM reduced (thinned) files
-        file_type: mod35_hdf
+        file_type: [mod35_hdf, mod06_hdf]
       1000:
         file_type: [hdf_eos_geo, mod35_hdf]
       500:
@@ -84,5 +88,14 @@ datasets:
     bit_count: 1
     file_key: Quality_Assurance
     file_type: mod35_hdf
+    coordinates: [longitude, latitude]
+
+  cloud_fraction:
+    # byte Cloud_Mask(Byte_Segment, Cell_Along_Swath_1km, Cell_Across_Swath_1km)
+    name: cloud_fraction
+    resolution: 5000
+    # The dimension of the dataset where the byte information is stored
+    file_key: Cloud_Fraction
+    file_type: mod06_hdf
     coordinates: [longitude, latitude]
 

@@ -124,7 +124,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
 
         # No byte manipulation required
         else:
-            dataset = self.load_dataset(dataset_name)
+            dataset = self.load_dataset(dataset_name_in_file)
 
         return dataset
 
