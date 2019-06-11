@@ -17,7 +17,16 @@
 # You should have received a copy of the GNU General Public License along with
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Interface to TROPOMI L2 format
+"""Interface to TROPOMI L2 Reader
+
+The TROPOspheric Monitoring Instrument (TROPOMI) is the satellite instrument
+on board the Copernicus Sentinel-5 Precursor satellite. It measures key
+atmospheric trace gasses, such as ozone, nitrogen oxides, sulfur dioxide,
+carbon monoxide, methane, and formaldehyde.
+
+Level 2 data products are available via the Copernicus Open Access Hub.
+For more information visit the following URL:
+http://www.tropomi.eu/data-products/level-2-products
 
 """
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
