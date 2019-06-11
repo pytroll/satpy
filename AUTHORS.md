@@ -33,7 +33,7 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [ralphk11 (ralphk11)](https://github.com/ralphk11)
 - [roquetp (roquetp)](https://github.com/roquetp)
-- [sjoro (sjoro)](https://github.com/sjoro)
+- [Sauli Joro (sjoro)](https://github.com/sjoro)
 - Guido della Bruna - meteoswiss
 - Marco Sassi - meteoswiss
 - [Rohan Daruwala (rdaruwala)](https://github.com/rdaruwala)
