@@ -113,6 +113,14 @@ class TestCheckArea(unittest.TestCase):
         comp = CompositeBase('test_comp')
         self.assertRaises(IncompatibleAreas, comp.check_areas, (ds1, ds2))
 
+    def test_nondimensional_coords(self):
+        from satpy.composites import CompositeBase
+        ds = self._get_test_ds(shape=(2, 2))
+        ds['acq_time'] = ('y', [0, 1])
+        comp = CompositeBase('test_comp')
+        ret_datasets = comp.check_areas([ds, ds])
+        self.assertNotIn('acq_time', ret_datasets[0].coords)
+
 
 class TestRatioSharpenedCompositors(unittest.TestCase):
     """Test RatioSharpenedRGB and SelfSharpendRGB compositors."""
