@@ -1,0 +1,8 @@
+sensor_name: hsaf
+
+composites:
+  instantaneous_rainrate:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h03B
+    standard_name: instantaneous_rainrate
