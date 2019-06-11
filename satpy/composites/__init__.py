@@ -1,28 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2015-2019 PyTroll developers
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Base classes for composite objects.
-"""
+# Copyright (c) 2015-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Base classes for composite objects."""
 
 import logging
 import os
@@ -63,11 +56,13 @@ LOG = logging.getLogger(__name__)
 
 class IncompatibleAreas(Exception):
     """Error raised upon compositing things of different shapes."""
+
     pass
 
 
 class IncompatibleTimes(Exception):
     """Error raised upon compositing things from different times."""
+
     pass
 
 
@@ -75,6 +70,7 @@ class CompositorLoader(object):
     """Read composites using the configuration files on disk."""
 
     def __init__(self, ppp_config_dir=None):
+        """Initialize the compositor loader."""
         if ppp_config_dir is None:
             ppp_config_dir = CONFIG_PATH
         self.modifiers = {}
@@ -95,6 +91,7 @@ class CompositorLoader(object):
         self._load_config(composite_configs)
 
     def get_compositor(self, key, sensor_names):
+        """Get the modifier for *sensor_names*."""
         for sensor_name in sensor_names:
             try:
                 return self.compositors[sensor_name][key]
@@ -103,6 +100,7 @@ class CompositorLoader(object):
         raise KeyError("Could not find compositor '{}'".format(key))
 
     def get_modifier(self, key, sensor_names):
+        """Get the modifier for *sensor_names*."""
         for sensor_name in sensor_names:
             try:
                 return self.modifiers[sensor_name][key]
@@ -129,6 +127,7 @@ class CompositorLoader(object):
 
                 Note that these dictionaries are copies of those cached in
                 this object.
+
         """
         comps = {}
         mods = {}
@@ -228,6 +227,7 @@ class CompositorLoader(object):
 
 
 def check_times(projectables):
+    """Check that *projectables* have compatible times."""
     times = []
     for proj in projectables:
         try:
@@ -256,9 +256,9 @@ def check_times(projectables):
 def sub_arrays(proj1, proj2):
     """Substract two DataArrays and combine their attrs."""
     attrs = combine_metadata(proj1.attrs, proj2.attrs)
-    if (attrs.get('area') is None and
-            proj1.attrs.get('area') is not None and
-            proj2.attrs.get('area') is not None):
+    if (attrs.get('area') is None
+            and proj1.attrs.get('area') is not None
+            and proj2.attrs.get('area') is not None):
         raise IncompatibleAreas
     res = proj1 - proj2
     res.attrs = attrs
@@ -266,8 +266,10 @@ def sub_arrays(proj1, proj2):
 
 
 class CompositeBase(MetadataObject):
+    """Base class for all compositors and modifiers."""
 
     def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
+        """Initialise the compositor."""
         # Required info
         kwargs["name"] = name
         kwargs["prerequisites"] = prerequisites or []
@@ -275,17 +277,21 @@ class CompositeBase(MetadataObject):
         super(CompositeBase, self).__init__(**kwargs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
+        """Generate a composite."""
         raise NotImplementedError()
 
     def __str__(self):
+        """Stringify the object."""
         from pprint import pformat
         return pformat(self.attrs)
 
     def __repr__(self):
+        """Represent the object."""
         from pprint import pformat
         return pformat(self.attrs)
 
     def apply_modifier_info(self, origin, destination):
+        """Apply the modifier info from *origin* to *destination*."""
         o = getattr(origin, 'attrs', origin)
         d = getattr(destination, 'attrs', destination)
         for k in DATASET_KEYS:
@@ -298,6 +304,7 @@ class CompositeBase(MetadataObject):
                     d[k] = o[k]
 
     def check_areas(self, data_arrays):
+        """Check that the areas of the *data_arrays* are compatible."""
         if len(data_arrays) == 1:
             return data_arrays
 
@@ -342,6 +349,7 @@ class SunZenithCorrectorBase(CompositeBase):
         super(SunZenithCorrectorBase, self).__init__(**kwargs)
 
     def __call__(self, projectables, **info):
+        """Generate the composite."""
         projectables = self.check_areas(projectables)
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
@@ -469,10 +477,12 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
 
 
 class PSPRayleighReflectance(CompositeBase):
+    """Pyspectral-based rayleigh corrector for visible channels."""
 
     _rayleigh_cache = WeakValueDictionary()
 
     def get_angles(self, vis):
+        """Get the sun and satellite angles fro the current dataarray."""
         from pyorbital.astronomy import get_alt_az, sun_zenith_angle
         from pyorbital.orbital import get_observer_look
 
@@ -549,6 +559,7 @@ class PSPRayleighReflectance(CompositeBase):
 
 
 class NIRReflectance(CompositeBase):
+    """Get the reflective part of NIR bands."""
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the reflectance part of an NIR channel.
@@ -568,7 +579,7 @@ class NIRReflectance(CompositeBase):
         return proj
 
     def _init_refl3x(self, projectables):
-        """Initiate the 3.x reflectance derivations."""
+        """Initialize the 3.x reflectance derivations."""
         if not Calculator:
             LOG.info("Couldn't load pyspectral")
             raise ImportError("No module named pyspectral.near_infrared_reflectance")
@@ -603,6 +614,7 @@ class NIRReflectance(CompositeBase):
 
 
 class NIREmissivePartFromReflectance(NIRReflectance):
+    """Get the emissive par of NIR bands."""
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the emissive part an NIR channel after having derived the reflectance.
@@ -627,9 +639,13 @@ class NIREmissivePartFromReflectance(NIRReflectance):
 
 
 class PSPAtmosphericalCorrection(CompositeBase):
+    """Correct for atmospheric effects."""
 
     def __call__(self, projectables, optional_datasets=None, **info):
-        """Get the atmospherical correction. Uses pyspectral."""
+        """Get the atmospherical correction.
+
+        Uses pyspectral.
+        """
         from pyspectral.atm_correction_ir import AtmosphericalCorrection
 
         band = projectables[0]
@@ -667,6 +683,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
 
 
 class CO2Corrector(CompositeBase):
+    """Correct for CO2."""
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """CO2 correction of the brightness temperature of the MSG 3.9um channel.
@@ -692,8 +709,10 @@ class CO2Corrector(CompositeBase):
 
 
 class DifferenceCompositor(CompositeBase):
+    """Make the difference of two data arrays."""
 
     def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.check_areas(projectables)
@@ -706,6 +725,7 @@ class DifferenceCompositor(CompositeBase):
 
 
 class GenericCompositor(CompositeBase):
+    """Basic colored composite builder."""
 
     modes = {1: 'L', 2: 'LA', 3: 'RGB', 4: 'RGBA'}
 
@@ -790,26 +810,31 @@ class FillingCompositor(GenericCompositor):
     """Make a regular RGB, filling the RGB bands with the first provided dataset's values."""
 
     def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
         projectables[1] = projectables[1].fillna(projectables[0])
         projectables[2] = projectables[2].fillna(projectables[0])
         projectables[3] = projectables[3].fillna(projectables[0])
         return super(FillingCompositor, self).__call__(projectables[1:], **info)
 
 
-class RGBCompositor(GenericCompositor):
+class Filler(GenericCompositor):
+    """Fix holes in projectable 1 with data from projectable 2."""
 
     def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
+        projectables[0] = projectables[0].fillna(projectables[1])
+        return super(Filler, self).__call__([projectables[0]], **info)
+
+
+class RGBCompositor(GenericCompositor):
+    """Make a composite from three color bands (deprecated)."""
+
+    def __call__(self, projectables, nonprojectables=None, **info):
+        """Generate the composite."""
         warnings.warn("RGBCompositor is deprecated, use GenericCompositor instead.", DeprecationWarning)
         if len(projectables) != 3:
             raise ValueError("Expected 3 datasets, got %d" % (len(projectables),))
         return super(RGBCompositor, self).__call__(projectables, **info)
-
-
-class BWCompositor(GenericCompositor):
-
-    def __call__(self, projectables, nonprojectables=None, **info):
-        warnings.warn("BWCompositor is deprecated, use GenericCompositor instead.", DeprecationWarning)
-        return super(BWCompositor, self).__call__(projectables, **info)
 
 
 class ColormapCompositor(GenericCompositor):
@@ -847,6 +872,7 @@ class ColorizeCompositor(ColormapCompositor):
     """A compositor colorizing the data, interpolating the palette colors when needed."""
 
     def __call__(self, projectables, **info):
+        """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
@@ -874,6 +900,7 @@ class PaletteCompositor(ColormapCompositor):
     """A compositor colorizing the data, not interpolating the palette colors."""
 
     def __call__(self, projectables, **info):
+        """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
 
@@ -922,6 +949,7 @@ class DayNightCompositor(GenericCompositor):
         super(DayNightCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
+        """Generate the composite."""
         projectables = self.check_areas(projectables)
 
         day_data = projectables[0]
@@ -978,8 +1006,7 @@ class DayNightCompositor(GenericCompositor):
 
 
 def enhance2dataset(dset):
-    """Apply enhancements to dataset *dset* and return the resulting data
-    array of the image."""
+    """Return the enhancemened to dataset *dset* as an array."""
     attrs = dset.attrs
     img = get_enhanced_image(dset)
     # Clip image data to interval [0.0, 1.0]
@@ -990,7 +1017,7 @@ def enhance2dataset(dset):
 
 
 def add_bands(data, bands):
-    """Add bands so that they match *bands*"""
+    """Add bands so that they match *bands*."""
     # Add R, G and B bands, remove L band
     if 'L' in data['bands'].data and 'R' in bands.data:
         lum = data.sel(bands='L')
@@ -1020,98 +1047,11 @@ def zero_missing_data(data1, data2):
     return data1.where(~nans, 0)
 
 
-class Airmass(GenericCompositor):
-
-    def __call__(self, projectables, *args, **kwargs):
-        """Make an airmass RGB image composite.
-
-        +--------------------+--------------------+--------------------+
-        | Channels           | Temp               | Gamma              |
-        +====================+====================+====================+
-        | WV6.2 - WV7.3      |     -25 to 0 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        | IR9.7 - IR10.8     |     -40 to 5 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        | WV6.2              |   243 to 208 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        """
-        warnings.warn("Airmass compositor is deprecated, use GenericCompositor "
-                      "with DifferenceCompositor instead.", DeprecationWarning)
-        ch1 = sub_arrays(projectables[0], projectables[1])
-        ch2 = sub_arrays(projectables[2], projectables[3])
-        res = super(Airmass, self).__call__((ch1, ch2,
-                                             projectables[0]),
-                                            *args, **kwargs)
-        return res
-
-
-class Convection(GenericCompositor):
-
-    def __call__(self, projectables, *args, **kwargs):
-        """Make a Severe Convection RGB image composite.
-
-        +--------------------+--------------------+--------------------+
-        | Channels           | Span               | Gamma              |
-        +====================+====================+====================+
-        | WV6.2 - WV7.3      |     -30 to 0 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        | IR3.9 - IR10.8     |      0 to 55 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        | IR1.6 - VIS0.6     |    -70 to 20 %     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        """
-        warnings.warn("Convection ompositor is deprecated, use GenericCompositor "
-                      "with DifferenceCompositor instead.", DeprecationWarning)
-
-        ch1 = sub_arrays(projectables[3], projectables[4])
-        ch2 = sub_arrays(projectables[2], projectables[5])
-        ch3 = sub_arrays(projectables[1], projectables[0])
-        res = super(Convection, self).__call__((ch1, ch2, ch3),
-                                               *args, **kwargs)
-        return res
-
-
-class Dust(GenericCompositor):
-
-    def __call__(self, projectables, *args, **kwargs):
-        """Make a dust (or fog or night_fog) RGB image composite.
-
-        Fog:
-        +--------------------+--------------------+--------------------+
-        | Channels           | Temp               | Gamma              |
-        +====================+====================+====================+
-        | IR12.0 - IR10.8    |     -4 to 2 K      | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        | IR10.8 - IR8.7     |      0 to 6 K      | gamma 2.0          |
-        +--------------------+--------------------+--------------------+
-        | IR10.8             |   243 to 283 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-
-        Dust:
-        +--------------------+--------------------+--------------------+
-        | Channels           | Temp               | Gamma              |
-        +====================+====================+====================+
-        | IR12.0 - IR10.8    |     -4 to 2 K      | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        | IR10.8 - IR8.7     |     0 to 15 K      | gamma 2.5          |
-        +--------------------+--------------------+--------------------+
-        | IR10.8             |   261 to 289 K     | gamma 1            |
-        +--------------------+--------------------+--------------------+
-        """
-        warnings.warn("Dust compositor is deprecated, use GenericCompositor "
-                      "with DifferenceCompositor instead.", DeprecationWarning)
-
-        ch1 = sub_arrays(projectables[2], projectables[1])
-        ch2 = sub_arrays(projectables[1], projectables[0])
-        res = super(Dust, self).__call__((ch1, ch2,
-                                          projectables[1]),
-                                         *args, **kwargs)
-        return res
-
-
 class RealisticColors(GenericCompositor):
+    """Create a realistic colours composite for SEVIRI."""
 
     def __call__(self, projectables, *args, **kwargs):
+        """Generate the composite."""
         projectables = self.check_areas(projectables)
         vis06 = projectables[0]
         vis08 = projectables[1]
@@ -1137,6 +1077,7 @@ class RealisticColors(GenericCompositor):
 
 
 class CloudCompositor(GenericCompositor):
+    """Detect clouds based on thresholding and use it as a mask for compositing."""
 
     def __init__(self, name, transition_min=258.15, transition_max=298.15,
                  transition_gamma=3.0, **kwargs):
@@ -1156,7 +1097,7 @@ class CloudCompositor(GenericCompositor):
         super(CloudCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, **kwargs):
-
+        """Generate the composite."""
         data = projectables[0]
 
         # Default to rough IR thresholds
@@ -1204,6 +1145,7 @@ class RatioSharpenedRGB(GenericCompositor):
     """
 
     def __init__(self, *args, **kwargs):
+        """Instanciate the ration sharpener."""
         self.high_resolution_band = kwargs.pop("high_resolution_band", "red")
         if self.high_resolution_band not in ['red', 'green', 'blue', None]:
             raise ValueError("RatioSharpenedRGB.high_resolution_band must "
@@ -1324,7 +1266,7 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
     @staticmethod
     def four_element_average_dask(d):
-        """Average every 4 elements (2x2) in a 2D array"""
+        """Average every 4 elements (2x2) in a 2D array."""
         try:
             offset = d.attrs['area'].crop_offset
         except (KeyError, AttributeError):
@@ -1334,6 +1276,7 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
         return xr.DataArray(res, attrs=d.attrs, dims=d.dims, coords=d.coords)
 
     def __call__(self, datasets, optional_datasets=None, **attrs):
+        """Generate the composite."""
         colors = ['red', 'green', 'blue']
         if self.high_resolution_band not in colors:
             raise ValueError("SelfSharpenedRGB requires at least one high resolution band, not "
@@ -1348,8 +1291,13 @@ class SelfSharpenedRGB(RatioSharpenedRGB):
 
 
 class LuminanceSharpeningCompositor(GenericCompositor):
+    """Create a high resolution composite by sharpening a low resolution using high resolution luminance.
+
+    This is done by converting to YCbCr colorspace, replacing Y, and convertin back to RGB.
+    """
 
     def __call__(self, projectables, *args, **kwargs):
+        """Generate the composite."""
         from trollimage.image import rgb2ycbcr, ycbcr2rgb
         projectables = self.check_areas(projectables)
         luminance = projectables[0].copy()
@@ -1381,8 +1329,10 @@ class LuminanceSharpeningCompositor(GenericCompositor):
 
 
 class SandwichCompositor(GenericCompositor):
+    """Make a sandwich product."""
 
     def __call__(self, projectables, *args, **kwargs):
+        """Generate the composite."""
         projectables = self.check_areas(projectables)
         luminance = projectables[0]
         luminance /= 100.
