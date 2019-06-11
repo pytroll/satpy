@@ -260,4 +260,3 @@ def reduce_mda(mda, max_size=100):
         elif not (isinstance(val, np.ndarray) and val.size > max_size):
             reduced[key] = val
     return reduced
-
