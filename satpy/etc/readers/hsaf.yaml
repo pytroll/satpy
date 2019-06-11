@@ -1,20 +1,23 @@
-reader:
-  description: Reader for Hydrology SAF products
-  name: hsaf
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-  sensors: [hsaf]
+sensor_name: hsaf
 
-file_types:
-  hsafgrib:
-    file_reader: !!python/name:satpy.readers.hsaf.HSAFFileHandler
-    file_patterns: ['{product_type:4s}_{sensing_time:%Y%m%d_%H%M}_{region:3s}.grb']
-    
-datasets:
-  h03B:
-    name: h03B
-    msg_name: irrate
-    sensor: hsaf
-    resolution: 3000
-    standard_name: instantaneous_rainfall_rate
-    units: kg m-2 s-1
-    file_type: hsafgrib
+composites:
+  instantaneous_rainrate_3:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h03
+    standard_name: instantaneous_rainrate_3
+  instantaneous_rainrate_3b:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h03B
+    standard_name: instantaneous_rainrate_3b
+  accum_rainrate_5:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h05
+    standard_name: accum_rainrate_5
+  accum_rainrate_5b:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h05B
+    standard_name: accum_rainrate_5b

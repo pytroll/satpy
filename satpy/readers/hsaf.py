@@ -31,7 +31,7 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 from pyresample import geometry
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -111,15 +111,20 @@ class HSAFFileHandler(BaseFileHandler):
         """
 
         proj_param = msg.projparams.copy()
-        area_extent = 0
 
         Rx = 2 * np.arcsin(1. / msg.NrInRadiusOfEarth) / msg.dx
         Ry = 2 * np.arcsin(1. / msg.NrInRadiusOfEarth) / msg.dy
 
-        max_x = ((msg.Nx / 2.0) * Rx) * proj_param['h']
-        min_x = ((msg.Nx / 2.0) * Rx * -1.) * proj_param['h']
-        max_y = ((msg.Ny / 2.0) * Ry) * proj_param['h']
-        min_y = ((msg.Ny / 2.0) * Ry * -1.) * proj_param['h']
+        x_0 = - msg.XpInGridLengths
+        x_1 = msg.Nx - msg.XpInGridLengths
+        y_0 = (msg.Ny - msg.YpInGridLengths) * -1
+        y_1 = msg.YpInGridLengths
+
+        min_x = (x_0 * Rx) * proj_param['h']
+        max_x = (x_1 * Rx) * proj_param['h']
+
+        min_y = (y_0 * Ry) * proj_param['h']
+        max_y = (y_1 * Ry) * proj_param['h']
 
         area_extent = (min_x, min_y, max_x, max_y)
 
@@ -146,6 +151,15 @@ class HSAFFileHandler(BaseFileHandler):
         msg = self._get_message(1)
 
         ds_info = self.get_metadata(msg)
+        ds_info['end_time'] = ds_info['data_time']
+
+        if (ds_id.name == 'h05' or ds_id.name == 'h05B'):
+            flen = len(self.filename)
+            timedelt = self.filename[flen-10:flen-8]
+            ds_info['start_time'] = (ds_info['end_time'] -
+                                     timedelta(hours=int(timedelt)))
+        else:
+            ds_info['start_time'] = ds_info['end_time']
         fill = msg.missingValue
         data = msg.values.astype(np.float32)
         if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
