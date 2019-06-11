@@ -118,13 +118,13 @@ class NC_ABI_L1B(BaseFileHandler):
             res *= 100
             res.attrs['units'] = '%'
 
-        # Add projection & navigation info
         res.attrs.update({'platform_name': self.platform_name,
                           'sensor': self.sensor,
                           'satellite_latitude': float(self['nominal_satellite_subpoint_lat']),
                           'satellite_longitude': float(self['nominal_satellite_subpoint_lon']),
                           'satellite_altitude': float(self['nominal_satellite_height'])})
 
+        # Add orbital parameters
         projection = self.nc["goes_imager_projection"]
         res.attrs['orbital_parameters'] = {
             'projection_longitude': float(projection.attrs['longitude_of_projection_origin']),
