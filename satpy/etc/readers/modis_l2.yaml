@@ -30,7 +30,7 @@ datasets:
       5000:
         file_type: [mod35_hdf, mod06_hdf]
       1000:
-        file_type: [hdf_eos_geo, mod35_hdf]
+        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf]
       500:
         file_type: hdf_eos_geo
       250:
@@ -45,7 +45,7 @@ datasets:
         # For EUM reduced (thinned) files
         file_type: [mod35_hdf, mod06_hdf]
       1000:
-        file_type: [hdf_eos_geo, mod35_hdf]
+        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf]
       500:
         file_type: hdf_eos_geo
       250:
