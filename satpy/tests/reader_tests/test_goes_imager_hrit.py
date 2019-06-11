@@ -129,9 +129,10 @@ class TestHRITGOESFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.__init__')
     def setUp(self, new_fh_init):
         """Setup the hrit file handler for testing."""
+        blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
         mda = {'projection_parameters': {'SSP_longitude': -123.0},
                'spectral_channel_id': 1,
-               'image_data_function': '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()}
+               'image_data_function': blob}
         HRITGOESFileHandler.filename = 'filename'
         HRITGOESFileHandler.mda = mda
         self.prologue = mock.MagicMock()
@@ -139,10 +140,10 @@ class TestHRITGOESFileHandler(unittest.TestCase):
         self.reader = HRITGOESFileHandler('filename', {}, {}, self.prologue)
 
     def test_init(self):
-
+        blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
         mda = {'spectral_channel_id': 1,
                'projection_parameters': {'SSP_longitude': 100.1640625},
-               'image_data_function': '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()}
+               'image_data_function': blob}
         self.assertEqual(self.reader.mda, mda)
 
     @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset')
