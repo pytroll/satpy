@@ -8,7 +8,6 @@ import sys
 from datetime import datetime
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-from satpy.readers.netcdf_utils import netCDF4
 import xarray as xr
 
 if sys.version_info < (2, 7):
