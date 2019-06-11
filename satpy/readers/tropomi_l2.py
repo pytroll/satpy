@@ -22,6 +22,7 @@
 """
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 import logging
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +39,14 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
     @property
     def platform_shortname(self):
         return self.filename_info['platform_shortname']
+
+    @property
+    def sensor(self):
+        """ Retrieves the sensor name from the file """
+        res = self['/attr/sensor']
+        if isinstance(res, np.ndarray):
+            return str(res.astype(str))
+        return res
 
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file"""
@@ -114,6 +123,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         metadata.update(ds_info)
         metadata.update({
             'platform_shortname': self.platform_shortname,
+            'sensor': self.sensor,
             'start_time': self.start_time,
             'end_time': self.end_time,
         })

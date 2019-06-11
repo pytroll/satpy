@@ -40,6 +40,7 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
                 '/attr/time_coverage_start': dt_s.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
                 '/attr/time_coverage_end': dt_e.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
                 '/attr/platform_shortname': 'S5P',
+                '/attr/sensor': 'TROPOMI',
             }
 
             file_content['PRODUCT/latitude'] = DEFAULT_FILE_DATA
@@ -118,6 +119,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
         self.assertEqual(len(ds), 1)
         for d in ds.values():
             self.assertEqual(d.attrs['platform_shortname'], 'S5P')
+            self.assertEqual(d.attrs['sensor'], 'TROPOMI')
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
 
