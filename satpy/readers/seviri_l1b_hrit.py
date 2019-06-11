@@ -207,7 +207,7 @@ cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
 
 
-class NoValidNavigationCoefs(Exception):
+class NoValidOrbitParams(Exception):
     pass
 
 
@@ -278,7 +278,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                 a, b = self.get_earth_radii()
                 latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
                 lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
-            except NoValidNavigationCoefs as err:
+            except NoValidOrbitParams as err:
                 logger.warning(err)
                 lon = lat = alt = None
 
@@ -299,7 +299,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
 
         # Find Chebyshev coefficients for the given time
-        coef_idx = self._find_navigation_coefs()
+        coef_idx = self._find_orbit_coefs()
         tstart = orbit_polynomial['StartTime'][0, coef_idx]
         tend = orbit_polynomial['EndTime'][0, coef_idx]
 
@@ -315,10 +315,10 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
         return x*1000, y*1000, z*1000  # km -> m
 
-    def _find_navigation_coefs(self):
-        """Find navigation coefficients for the current time
+    def _find_orbit_coefs(self):
+        """Find orbit coefficients for the current time
 
-        The navigation Chebyshev coefficients are only valid for a certain time interval. The header entry
+        The orbital Chebyshev coefficients are only valid for a certain time interval. The header entry
         SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients for multiple time intervals. Find the
         coefficients which are valid for the nominal timestamp of the scan.
 
@@ -333,7 +333,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         try:
             return np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0][0]
         except IndexError:
-            raise NoValidNavigationCoefs('Unable to find navigation coefficients valid for {}'.format(time))
+            raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
 
     def get_earth_radii(self):
         """Get earth radii from prologue
@@ -485,14 +485,14 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.mda['projection_parameters']['SSP_longitude'] = ssp
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
 
-        # Navigation
+        # Orbital parameters
         actual_lon, actual_lat, actual_alt = self.prologue_.get_satpos()
-        self.mda['navigation_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
+        self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
-        self.mda['navigation_parameters']['satellite_nominal_latitude'] = 0.0
-        self.mda['navigation_parameters']['satellite_actual_longitude'] = actual_lon
-        self.mda['navigation_parameters']['satellite_actual_latitude'] = actual_lat
-        self.mda['navigation_parameters']['satellite_actual_altitude'] = actual_alt
+        self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
+        self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
+        self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
+        self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
 
         # Misc
         self.platform_id = self.prologue["SatelliteStatus"][
@@ -662,7 +662,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
             'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
             'projection_altitude': self.mda['projection_parameters']['h']}
-        res.attrs['orbital_parameters'].update(self.mda['navigation_parameters'])
+        res.attrs['orbital_parameters'].update(self.mda['orbital_parameters'])
         res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
         res.attrs['raw_metadata'] = self._get_raw_mda()
 
