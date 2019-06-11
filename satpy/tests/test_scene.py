@@ -1,24 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2014, 2015.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2010-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for scene.py.
 """
 
@@ -1977,6 +1973,30 @@ class TestSceneSaving(unittest.TestCase):
         scn.save_datasets(base_dir=self.base_dir)
         self.assertTrue(os.path.isfile(
             os.path.join(self.base_dir, 'test_20180101_000000.tif')))
+
+    def test_save_datasets_by_ext(self):
+        """Save a dataset using 'save_datasets' with 'filename'."""
+        from satpy.scene import Scene
+        from satpy.tests.utils import spy_decorator
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        scn = Scene()
+        scn['test'] = ds1
+
+        from satpy.writers.simple_image import PillowWriter
+        save_image_mock = spy_decorator(PillowWriter.save_image)
+        with mock.patch.object(PillowWriter, 'save_image', save_image_mock):
+            scn.save_datasets(base_dir=self.base_dir, filename='{name}.png')
+        save_image_mock.mock.assert_called_once()
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.base_dir, 'test.png')))
 
     def test_save_datasets_bad_writer(self):
         """Save a dataset using 'save_datasets' and a bad writer."""
