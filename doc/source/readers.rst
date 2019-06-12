@@ -121,10 +121,10 @@ following attributes are standardized across all readers:
 * ``end_time``: Right boundary of the time interval covered by the dataset.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
 
-  * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the time of observation in
-    geodetic coordinates (i.e. altitude is normal to the surface).
-  * For geostationary satellites there are more parameters related to the satellite position:
+  * For *geostationary* satellites it is described using the following scalar attributes:
 
+    * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the time of observation in
+      geodetic coordinates (i.e. altitude is normal to the surface).
     * ``satellite_nominal_longitude/latitude/altitude``: Centre of the station keeping box (a confined area in which
       the satellite is actively maintained in using maneuvres). Inbetween major maneuvres, when the satellite
       is permanently moved, the nominal position is constant.
@@ -135,9 +135,9 @@ following attributes are standardized across all readers:
       compute lat/lon coordinates. Note that the projection centre can differ considerably from the actual satellite
       position. For example MSG-1 was at times positioned at 3.4 degrees west, while the image data was re-projected
       to 0 degrees.
+    * [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at the time of observation
+      in geodetic coordinates.
 
-* [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at the time of observation
-  in geodetic coordinates.
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
 
 Note that the above attributes are not necessarily available for each dataset.
