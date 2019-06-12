@@ -222,6 +222,7 @@ def test_composites(sensor_name):
         DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
         DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
         DatasetID(name='comp23'): ([0.8], []),
+        DatasetID(name='static_image'): ([], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -258,8 +259,15 @@ class FakeReader(FileYAMLReader):
     """Fake reader to make testing basic Scene/reader functionality easier."""
 
     def __init__(self, name, sensor_name='fake_sensor', datasets=None,
-                 available_datasets=None, start_time=None, end_time=None):
-        """Initialize reader and mock necessary properties and methods."""
+                 available_datasets=None, start_time=None, end_time=None,
+                 filter_datasets=True):
+        """Initialize reader and mock necessary properties and methods.
+
+        By default any 'datasets' provided will be filtered by what datasets
+        are configured at the top of this module in 'test_datasets'. This can
+        be disabled by specifying `filter_datasets=False`.
+
+        """
         with mock.patch('satpy.readers.yaml_reader.recursive_dict_update') as rdu, \
                 mock.patch('satpy.readers.yaml_reader.open'), \
                 mock.patch('satpy.readers.yaml_reader.yaml.load'):
@@ -275,8 +283,10 @@ class FakeReader(FileYAMLReader):
         self._sensor_name = set([sensor_name])
 
         all_ds = test_datasets()
-        if datasets is not None:
+        if datasets is not None and filter_datasets:
             all_ds = list(_filter_datasets(all_ds, datasets))
+        elif datasets:
+            all_ds = datasets
         if available_datasets is not None:
             available_datasets = list(_filter_datasets(all_ds, available_datasets))
         else:
