@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017-2018 PyTroll Community
-
-# Author(s):
-
-#   Sauli Joro <sauli.joro@eumetsat.int>
-#   Colin Duff <colin.duff@external.eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2017-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI netcdf format reader.
 
 References:
@@ -137,6 +132,10 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         dataset.attrs.update(dataset_info)
         dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
         dataset.attrs['sensor'] = 'seviri'
+        dataset.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
+            'projection_latitude': 0.,
+            'projection_altitude': self.mda['projection_parameters']['h']}
         return dataset
 
     def get_area_def(self, dataset_id):
