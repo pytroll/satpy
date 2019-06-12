@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2014-2018 PyTroll developers
-#
-# Author(s):
-#
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# Copyright (c) 2014-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -20,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Helper functions for area extent calculations."""
 
 import logging

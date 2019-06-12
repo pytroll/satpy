@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Author(s):
-#
-#   Panu Lahtinen <panu.lahtinen@fmi.fi
+# Copyright (c) 2019 Satpy developers
 #
 # This file is part of satpy.
 #
