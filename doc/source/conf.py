@@ -252,4 +252,5 @@ intersphinx_mapping = {
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
     'pydecorate': ('https://pydecorate.readthedocs.io/en/stable', None),
     'geoviews': ('http://geo.holoviews.org', None),
+    'pyproj': ('https://pyproj4.github.io/pyproj/v2.2.0rel', None)
 }

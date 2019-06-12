@@ -265,7 +265,13 @@ def add_crs_xy_coords(data_arr, area):
         # array).
         lons = area.lons
         lats = area.lats
-        data_arr = data_arr.assign_coords(lons=lons, lats=lats)
+        lons.attrs.setdefault('standard_name', 'longitude')
+        lons.attrs.setdefault('long_name', 'longitude')
+        lons.attrs.setdefault('units', 'degrees_east')
+        lats.attrs.setdefault('standard_name', 'latitude')
+        lats.attrs.setdefault('long_name', 'latitude')
+        lats.attrs.setdefault('units', 'degrees_north')
+        data_arr = data_arr.assign_coords(longitude=lons, latitude=lats)
     else:
         # Gridded data (AreaDefinition/StackedAreaDefinition)
         data_arr = add_xy_coords(data_arr, area, crs=crs)
