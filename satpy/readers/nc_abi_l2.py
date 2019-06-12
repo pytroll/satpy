@@ -27,13 +27,13 @@ from satpy.readers.abi_base import NC_ABI_BASE
 
 LOG = logging.getLogger(__name__)
 
+
 class NC_ABI_L2(NC_ABI_BASE):
     """reader class for NOAA ABI l2+ products in netCDF format
     """
 
     def __init__(self, filename, filename_info, filetype_info):
         super(NC_ABI_L2, self).__init__(filename, filename_info, filetype_info)
-
 
     def get_dataset(self, key, info):
         """Load a dataset.
