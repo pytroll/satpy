@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""The abi_l2 reader tests package.
+"""The nc_abi_l2 reader tests package.
 """
 
 import sys
@@ -49,17 +49,18 @@ class FakeDataset(object):
 
     def keys(self):
         return self.info.keys()
-    
+
     def close(self):
         return
+
 
 class Test_NC_ABI_L2_area_fixedgrid(unittest.TestCase):
     """Test the NC_ABI_L2 reader."""
 
-    @mock.patch('satpy.readers.abi_l2.xr')
+    @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Setup for test."""
-        from satpy.readers.abi_l2 import NC_ABI_L2
+        from satpy.readers.nc_abi_l2 import NC_ABI_L2
         proj = xr.DataArray(
             [],
             attrs={
@@ -82,58 +83,56 @@ class Test_NC_ABI_L2_area_fixedgrid(unittest.TestCase):
             'goes_imager_projection': proj,
             'x': x__,
             'y': y__,
-            'HT': np.ones((2, 2))}, 
-            {   "time_coverage_start": "2017-09-20T17:30:40.8Z",
-                "time_coverage_end": "2017-09-20T17:41:17.5Z",
-            }
+            'HT': np.ones((2, 2))},
+            {"time_coverage_start": "2017-09-20T17:30:40.8Z",
+             "time_coverage_end": "2017-09-20T17:41:17.5Z",
+             }
         )
-        
+
         self.reader = NC_ABI_L2('filename',
                                 {'platform_shortname': 'G16', 'observation_type': 'HT',
                                  'scene_abbr': 'C', 'scan_mode': 'M3'},
                                 {'filetype': 'info'})
 
-
-    @mock.patch('satpy.readers.abi_l2.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_fixedgrid(self, adef):
         """Test the area generation."""
         self.reader.get_area_def(None)
 
         self.assertEqual(adef.call_count, 1)
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {'a': 1.0, 'b': 1.0, 'h': 1.0, 'lon_0': -90.0, 
+        self.assertDictEqual(call_args[3], {'a': 1.0, 'b': 1.0, 'h': 1.0, 'lon_0': -90.0,
                                             'proj': 'geos', 'sweep': 'x', 'units': 'm'})
         self.assertEqual(call_args[4], self.reader.ncols)
         self.assertEqual(call_args[5], self.reader.nlines)
         np.testing.assert_allclose(call_args[6], (-0.5,  1.5,  1.5, -0.5))
 
+
 class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
     """Test the NC_ABI_L2 reader."""
 
-    @mock.patch('satpy.readers.abi_l2.xr')
+    @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Setup for test."""
-        from satpy.readers.abi_l2 import NC_ABI_L2
+        from satpy.readers.nc_abi_l2 import NC_ABI_L2
         proj = xr.DataArray(
             [],
-            attrs={
-                'semi_major_axis': 1.,
-                'semi_minor_axis': 1.,
-                'inverse_flattening': 1.,
-                'longitude_of_prime_meridian': 0.0,
-            }
+            attrs={'semi_major_axis': 1.,
+                   'semi_minor_axis': 1.,
+                   'inverse_flattening': 1.,
+                   'longitude_of_prime_meridian': 0.0,
+                   }
         )
 
         proj_ext = xr.DataArray(
             [],
-            attrs={
-                'geospatial_westbound_longitude': -85.0,
-                'geospatial_eastbound_longitude': -65.0,
-                'geospatial_northbound_latitude': 20.0,
-                'geospatial_southbound_latitude': -20.0,
-                'geospatial_lat_center': 0.0,
-                'geospatial_lon_center': -75.0,
-                })
+            attrs={'geospatial_westbound_longitude': -85.0,
+                   'geospatial_eastbound_longitude': -65.0,
+                   'geospatial_northbound_latitude': 20.0,
+                   'geospatial_southbound_latitude': -20.0,
+                   'geospatial_lat_center': 0.0,
+                   'geospatial_lon_center': -75.0,
+                   })
 
         x__ = xr.DataArray(
             [0, 1],
@@ -151,22 +150,23 @@ class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
             'RSR': np.ones((2, 2))}, {})
 
         self.reader = NC_ABI_L2('filename',
-                                 {'platform_shortname': 'G16', 'observation_type': 'RSR',
-                                  'scene_abbr': 'C', 'scan_mode': 'M3'},
-                                 {'filetype': 'info'})
+                                {'platform_shortname': 'G16', 'observation_type': 'RSR',
+                                 'scene_abbr': 'C', 'scan_mode': 'M3'},
+                                {'filetype': 'info'})
 
-    @mock.patch('satpy.readers.abi_l2.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_latlon(self, adef):
         """Test the area generation."""
         self.reader.get_area_def(None)
 
         self.assertEqual(adef.call_count, 1)
         call_args = tuple(adef.call_args)[0]
-        self.assertDictEqual(call_args[3], {'proj': 'latlong', 'a': 1.0, 'b': 1.0, 'fi': 1.0, 'pm': 0.0, 
-            'lon_0': -75.0, 'lat_0': 0.0})
+        self.assertDictEqual(call_args[3], {'proj': 'latlong', 'a': 1.0, 'b': 1.0, 'fi': 1.0, 'pm': 0.0,
+                                            'lon_0': -75.0, 'lat_0': 0.0})
         self.assertEqual(call_args[4], self.reader.ncols)
         self.assertEqual(call_args[5], self.reader.nlines)
         np.testing.assert_allclose(call_args[6], (-85.0, -20.0, -65.0, 20))
+
 
 def suite():
     """The test suite for test_scene."""
@@ -175,30 +175,30 @@ def suite():
 
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L2_area_latlon))
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L2_area_fixedgrid))
-    
+
     return mysuite
 
 
 if __name__ == '__main__':
-   runner = unittest.TextTestRunner()
-   test_suite = suite()
-   result = runner.run (test_suite)
+    runner = unittest.TextTestRunner()
+    test_suite = suite()
+    result = runner.run(test_suite)
 
-   print "---- START OF TEST RESULTS"
-   print result
+    print "---- START OF TEST RESULTS"
+    print result
 
-   print "result::errors"
-   print result.errors
+    print "result::errors"
+    print result.errors
 
-   print "result::failures"
-   print result.failures
+    print "result::failures"
+    print result.failures
 
-   print "result::skipped"
-   print result.skipped
+    print "result::skipped"
+    print result.skipped
 
-   print "result::successful"
-   print result.wasSuccessful()
-   
-   print "result::test-run"
-   print result.testsRun
-   print "---- END OF TEST RESULTS"
+    print "result::successful"
+    print result.wasSuccessful()
+
+    print "result::test-run"
+    print result.testsRun
+    print "---- END OF TEST RESULTS"
