@@ -183,7 +183,6 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
         fh.platform_name = 'Electro'
         fh.mda = {'projection_parameters': {'SSP_longitude': 0.0},
                   'orbital_parameters': {'satellite_nominal_longitude': 0.5}}
-        key = 0
         info = {'units': 'm', 'standard_name': 'electro', 'wavelength': 5.0}
         output = fh.get_dataset(resser(), info)
 
