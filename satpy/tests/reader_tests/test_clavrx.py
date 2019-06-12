@@ -21,6 +21,7 @@
 import os
 import sys
 import numpy as np
+import dask.array as da
 import xarray as xr
 from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 from pyresample.geometry import AreaDefinition
@@ -56,7 +57,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
         }
 
         file_content['longitude'] = xr.DataArray(
-            DEFAULT_LON_DATA,
+            da.from_array(DEFAULT_LON_DATA, chunks=4096),
             attrs={
                 '_FillValue': np.nan,
                 'scale_factor': 1.,
@@ -66,7 +67,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
         file_content['longitude/shape'] = DEFAULT_FILE_SHAPE
 
         file_content['latitude'] = xr.DataArray(
-            DEFAULT_LAT_DATA,
+            da.from_array(DEFAULT_LAT_DATA, chunks=4096),
             attrs={
                 '_FillValue': np.nan,
                 'scale_factor': 1.,
@@ -76,7 +77,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
         file_content['latitude/shape'] = DEFAULT_FILE_SHAPE
 
         file_content['variable1'] = xr.DataArray(
-            DEFAULT_FILE_DATA.astype(np.float32),
+            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
             attrs={
                 '_FillValue': -1,
                 'scale_factor': 1.,
@@ -87,7 +88,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
 
         # data with fill values
         file_content['variable2'] = xr.DataArray(
-            DEFAULT_FILE_DATA.astype(np.float32),
+            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
             attrs={
                 '_FillValue': -1,
                 'scale_factor': 1.,
@@ -100,7 +101,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
 
         # category
         file_content['variable3'] = xr.DataArray(
-            DEFAULT_FILE_DATA.astype(np.byte),
+            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.byte),
             attrs={
                 '_FillValue': -128,
                 'flag_meanings': 'clear water supercooled mixed ice unknown',
