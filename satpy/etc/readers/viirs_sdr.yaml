@@ -3,7 +3,9 @@ reader:
   description: VIIRS SDR Reader
   reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader
   sensors: [viirs]
-  default_channels:
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  # by default, don't use start_time group files (only orbit and platform)
+  group_keys: ['orbit', 'platform_shortname']
 
 datasets:
   i_lon:
