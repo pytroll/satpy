@@ -355,6 +355,12 @@ class CompositeBase(MetadataObject):
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
 
+    def check_areas(self, data_arrays):
+        """Check that the areas of the *data_arrays* are compatible."""
+        warnings.warn('satpy.composites.CompositeBase.check_areas is deprecated, use '
+                      'satpy.composites.CompositeBase.match_data_arrays instead')
+        return self.match_data_arrays(data_arrays)
+
 
 class SunZenithCorrectorBase(CompositeBase):
     """Base class for sun zenith correction."""
