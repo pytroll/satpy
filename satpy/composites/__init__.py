@@ -53,6 +53,9 @@ except ImportError:
 
 LOG = logging.getLogger(__name__)
 
+NEGLIBLE_COORDS = ['time']
+"""Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
+
 
 class IncompatibleAreas(Exception):
     """Error raised upon compositing things of different shapes."""
@@ -303,10 +306,28 @@ class CompositeBase(MetadataObject):
                 elif o.get(k) is not None:
                     d[k] = o[k]
 
-    def check_areas(self, data_arrays):
-        """Check that the areas of the *data_arrays* are compatible."""
+    def match_data_arrays(self, data_arrays):
+        """Match data arrays so that they can be used together in a composite."""
+        self.check_geolocation(data_arrays)
+        return self.drop_coordinates(data_arrays)
+
+    def drop_coordinates(self, data_arrays):
+        """Drop neglible non-dimensional coordinates."""
+        new_arrays = []
+        for ds in data_arrays:
+            drop = [coord for coord in ds.coords
+                    if coord not in ds.dims and any([neglible in coord for neglible in NEGLIBLE_COORDS])]
+            if drop:
+                new_arrays.append(ds.drop(drop))
+            else:
+                new_arrays.append(ds)
+
+        return new_arrays
+
+    def check_geolocation(self, data_arrays):
+        """Check that the geolocations of the *data_arrays* are compatible."""
         if len(data_arrays) == 1:
-            return data_arrays
+            return
 
         if 'x' in data_arrays[0].dims and \
                 not all(x.sizes['x'] == data_arrays[0].sizes['x']
@@ -319,7 +340,7 @@ class CompositeBase(MetadataObject):
 
         areas = [ds.attrs.get('area') for ds in data_arrays]
         if all(a is None for a in areas):
-            return data_arrays
+            return
         elif any(a is None for a in areas):
             raise ValueError("Missing 'area' attribute")
 
@@ -328,7 +349,11 @@ class CompositeBase(MetadataObject):
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
 
-        return data_arrays
+    def check_areas(self, data_arrays):
+        """Check that the areas of the *data_arrays* are compatible."""
+        warnings.warn('satpy.composites.CompositeBase.check_areas is deprecated, use '
+                      'satpy.composites.CompositeBase.match_data_arrays instead')
+        return self.match_data_arrays(data_arrays)
 
 
 class SunZenithCorrectorBase(CompositeBase):
@@ -350,7 +375,7 @@ class SunZenithCorrectorBase(CompositeBase):
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
@@ -510,11 +535,11 @@ class PSPRayleighReflectance(CompositeBase):
         """
         from pyspectral.rayleigh import Rayleigh
         if not optional_datasets or len(optional_datasets) != 4:
-            vis, red = self.check_areas(projectables)
+            vis, red = self.match_data_arrays(projectables)
             sata, satz, suna, sunz = self.get_angles(vis)
             red.data = da.rechunk(red.data, vis.data.chunks)
         else:
-            vis, red, sata, satz, suna, sunz = self.check_areas(
+            vis, red, sata, satz, suna, sunz = self.match_data_arrays(
                 projectables + optional_datasets)
             sata, satz, suna, sunz = optional_datasets
             # get the dask array underneath
@@ -715,7 +740,7 @@ class DifferenceCompositor(CompositeBase):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
 
@@ -772,7 +797,7 @@ class GenericCompositor(CompositeBase):
             # num may not be in `self.modes` so only check if we need to
             mode = self.modes[num]
         if len(projectables) > 1:
-            projectables = self.check_areas(projectables)
+            projectables = self.match_data_arrays(projectables)
             data = self._concat_datasets(projectables, mode)
             # Skip masking if user wants it or a specific alpha channel is given.
             if self.common_channel_mask and mode[-1] != 'A':
@@ -950,7 +975,7 @@ class DayNightCompositor(GenericCompositor):
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite."""
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
 
         day_data = projectables[0]
         night_data = projectables[1]
@@ -1063,7 +1088,7 @@ class RealisticColors(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Generate the composite."""
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         vis06 = projectables[0]
         vis08 = projectables[1]
         hrv = projectables[2]
@@ -1186,7 +1211,7 @@ class RatioSharpenedRGB(GenericCompositor):
 
         new_attrs = {}
         if optional_datasets:
-            datasets = self.check_areas(datasets + optional_datasets)
+            datasets = self.match_data_arrays(datasets + optional_datasets)
             high_res = datasets[-1]
             p1, p2, p3 = datasets[:3]
             if 'rows_per_scan' in high_res.attrs:
@@ -1212,7 +1237,7 @@ class RatioSharpenedRGB(GenericCompositor):
             g = self._get_band(high_res, p2, 'green', ratio)
             b = self._get_band(high_res, p3, 'blue', ratio)
         else:
-            datasets = self.check_areas(datasets)
+            datasets = self.match_data_arrays(datasets)
             r, g, b = datasets[:3]
 
         # combine the masks
@@ -1310,7 +1335,7 @@ class LuminanceSharpeningCompositor(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Generate the composite."""
         from trollimage.image import rgb2ycbcr, ycbcr2rgb
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         luminance = projectables[0].copy()
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
@@ -1344,7 +1369,7 @@ class SandwichCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Generate the composite."""
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         luminance = projectables[0]
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
