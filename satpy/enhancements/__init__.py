@@ -25,6 +25,11 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
+def noop(img, **kwargs):
+    """Do nothing and return the original image."""
+    return img
+
+
 def stretch(img, **kwargs):
     """Perform stretch."""
     return img.stretch(**kwargs)
