@@ -78,7 +78,7 @@ class PrecipCloudsRGB(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Make an RGB image out of the three probability categories of the NWCSAF precip product."""
 
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         light = projectables[0]
         moderate = projectables[1]
         intense = projectables[2]
