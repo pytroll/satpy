@@ -37,7 +37,7 @@ except ImportError:
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
 from satpy.readers import DatasetDict
-from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
+from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
 from satpy import CHUNK_SIZE
 
@@ -492,10 +492,12 @@ class PSPRayleighReflectance(CompositeBase):
         sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
         suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+
+        sat_lon, sat_lat, sat_alt = get_satpos(vis)
         sata, satel = get_observer_look(
-            vis.attrs['satellite_longitude'],
-            vis.attrs['satellite_latitude'],
-            vis.attrs['satellite_altitude'],
+            sat_lon,
+            sat_lat,
+            sat_alt,
             vis.attrs['start_time'],
             lons, lats, 0)
         satz = 90 - satel
@@ -655,13 +657,11 @@ class PSPAtmosphericalCorrection(CompositeBase):
         else:
             from pyorbital.orbital import get_observer_look
             lons, lats = band.attrs['area'].get_lonlats_dask(CHUNK_SIZE)
-
+            sat_lon, sat_lat, sat_alt = get_satpos(band)
             try:
-                dummy, satel = get_observer_look(band.attrs['satellite_longitude'],
-                                                 band.attrs[
-                                                     'satellite_latitude'],
-                                                 band.attrs[
-                                                     'satellite_altitude'],
+                dummy, satel = get_observer_look(sat_lon,
+                                                 sat_lat,
+                                                 sat_alt,
                                                  band.attrs['start_time'],
                                                  lons, lats, 0)
             except KeyError:

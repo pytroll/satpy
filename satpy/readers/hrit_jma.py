@@ -287,6 +287,10 @@ class HRITJMAFileHandler(HRITFileHandler):
         res.attrs['satellite_longitude'] = float(self.mda['projection_parameters']['SSP_longitude'])
         res.attrs['satellite_latitude'] = 0.
         res.attrs['satellite_altitude'] = float(self.mda['projection_parameters']['h'])
+        res.attrs['orbital_parameters'] = {
+            'projection_longitude': float(self.mda['projection_parameters']['SSP_longitude']),
+            'projection_latitude': 0.,
+            'projection_altitude': float(self.mda['projection_parameters']['h'])}
 
         return res
 

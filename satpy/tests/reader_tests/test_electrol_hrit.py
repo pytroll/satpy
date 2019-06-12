@@ -49,9 +49,7 @@ u32_t = np.uint32
 
 
 class Testrecarray2dict(unittest.TestCase):
-    ''' Test the function that converts numpy record arrays into
-        dicts for use within SatPy.
-    '''
+    """Test the function that converts numpy record arrays into dicts for use within SatPy."""
     def test_fun(self):
         inner_st = np.dtype([('test_str', '<S20'), ('test_int', 'i4')])
         outer_st = np.dtype([('test_sec', inner_st), ('test_flt', 'f4')])
@@ -183,7 +181,8 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
     def test_get_dataset(self, *mocks):
         fh = HRITGOMSFileHandler()
         fh.platform_name = 'Electro'
-        fh.mda = {'projection_parameters': {'SSP_longitude': 0.0}}
+        fh.mda = {'projection_parameters': {'SSP_longitude': 0.0},
+                  'orbital_parameters': {'satellite_nominal_longitude': 0.5}}
         key = 0
         info = {'units': 'm', 'standard_name': 'electro', 'wavelength': 5.0}
         output = fh.get_dataset(resser(), info)
@@ -192,8 +191,15 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
         mocks[1].assert_called()
 
         # Check that the correct attributes are returned
-        for key in info:
-            self.assertEqual(output.attrs[key], info[key])
+        attrs_exp = info.copy()
+        attrs_exp.update({'orbital_parameters': {'satellite_nominal_longitude': 0.5,
+                                                 'satellite_nominal_latitude': 0.0,
+                                                 'projection_longitude': 0.0,
+                                                 'projection_latitude': 0.0,
+                                                 'projection_altitude': 35785831.00},
+                          'platform_name': 'Electro',
+                          'sensor': 'msu-gs'})
+        self.assertDictContainsSubset(attrs_exp, output.attrs)
 
     def test_calibrate(self, *mocks):
         lut = np.linspace(1e6, 1.6e6, num=1024).astype(np.int32)
