@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-""""""Modis level 2 hdf-eos format reader
+"""Modis level 2 hdf-eos format reader
 =========================================
 
 Introduction
