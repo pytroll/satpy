@@ -178,6 +178,7 @@ def suite():
 
     return mysuite
 
+
 """
 if __name__ == '__main__':
     runner = unittest.TextTestRunner()
