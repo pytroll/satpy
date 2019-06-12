@@ -273,7 +273,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_area))
     return mysuite
 
-
+"""
 if __name__ == '__main__':
     runner = unittest.TextTestRunner()
     test_suite = suite()
@@ -297,3 +297,4 @@ if __name__ == '__main__':
     print "result::test-run"
     print result.testsRun
     print "---- END OF TEST RESULTS"
+"""
