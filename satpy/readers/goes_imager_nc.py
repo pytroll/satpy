@@ -932,12 +932,12 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         if 'file_type' in data.attrs:
             data.attrs.pop('file_type')
 
-        # Metadata discovered from the file
+        # Metadata discovered from the file.
         data.attrs.update(
             {'platform_name': self.platform_name,
              'sensor': self.sensor,
              'sector': self.sector,
-             'yaw_flip': self.meta['yaw_flip']}
+             'orbital_parameters': {'yaw_flip': self.meta['yaw_flip']}}
         )
         if self.meta['lon0'] is not None:
             # Attributes only available for full disc images. YAML reader
@@ -949,6 +949,11 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                  'nadir_row': self.meta['nadir_row'],
                  'nadir_col': self.meta['nadir_col'],
                  'area_def_uniform_sampling': self.meta['area_def_uni']}
+            )
+            data.attrs['orbital_parameters'].update(
+                {'projection_longitude': self.meta['lon0'],
+                 'projection_latitude': self.meta['lat0'],
+                 'projection_altitude': ALTITUDE}
             )
 
     def __del__(self):

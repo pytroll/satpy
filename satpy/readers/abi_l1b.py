@@ -123,6 +123,19 @@ class NC_ABI_L1B(BaseFileHandler):
                           'satellite_latitude': float(self['nominal_satellite_subpoint_lat']),
                           'satellite_longitude': float(self['nominal_satellite_subpoint_lon']),
                           'satellite_altitude': float(self['nominal_satellite_height'])})
+
+        # Add orbital parameters
+        projection = self.nc["goes_imager_projection"]
+        res.attrs['orbital_parameters'] = {
+            'projection_longitude': float(projection.attrs['longitude_of_projection_origin']),
+            'projection_latitude': float(projection.attrs['latitude_of_projection_origin']),
+            'projection_altitude': float(projection.attrs['perspective_point_height']),
+            'satellite_nominal_latitude': float(self['nominal_satellite_subpoint_lat']),
+            'satellite_nominal_longitude': float(self['nominal_satellite_subpoint_lon']),
+            'satellite_nominal_altitude': float(self['nominal_satellite_height']),
+            'yaw_flip': bool(self['yaw_flip_flag']),
+        }
+
         res.attrs.update(key.to_dict())
         # remove attributes that could be confusing later
         res.attrs.pop('_FillValue', None)
