@@ -144,8 +144,7 @@ class NC_ABI_BASE(BaseFileHandler):
                      'a': float(a),
                      'b': float(b),
                      'fi': float(fi),
-                     'pm': float(pm),
-                    }
+                     'pm': float(pm)}
 
         ll_area_def = geometry.AreaDefinition(
             self.nc.attrs.get('orbital_slot', 'GOES-R'),

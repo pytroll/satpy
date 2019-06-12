@@ -109,8 +109,7 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
             "nominal_satellite_subpoint_lon": np.array(-89.5),
             "nominal_satellite_height": np.array(35786.02),
             "earth_sun_distance_anomaly_in_AU": np.array(0.99),
-            "goes_imager_projection":proj
-            },{})
+            "goes_imager_projection": proj}, {})
 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16', 'observation_type': 'Rad',
@@ -160,6 +159,7 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
                 'y_image': y_image,
             }
         )
+
         xr_.open_dataset.return_value = FakeDataset({
             'band_id': np.array(5),
             'Rad': rad,
@@ -272,6 +272,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_vis_cal))
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_area))
     return mysuite
+
 
 if __name__ == '__main__':
     runner = unittest.TextTestRunner()
