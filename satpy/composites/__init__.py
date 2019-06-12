@@ -314,7 +314,7 @@ class CompositeBase(MetadataObject):
 
     def match_data_arrays(self, data_arrays):
         """Match data arrays so that they can be used together in a composite."""
-        self.check_areas(data_arrays)
+        self.check_geolocation(data_arrays)
         return self.drop_coordinates(data_arrays)
 
     def drop_coordinates(self, data_arrays):
@@ -330,8 +330,8 @@ class CompositeBase(MetadataObject):
 
         return new_arrays
 
-    def check_areas(self, data_arrays):
-        """Check that the areas of the *data_arrays* are compatible."""
+    def check_geolocation(self, data_arrays):
+        """Check that the geolocations of the *data_arrays* are compatible."""
         if len(data_arrays) == 1:
             return
 
