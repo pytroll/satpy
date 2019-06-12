@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Author(s):
-#
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# Copyright (c) 2019 Satpy developers
 #
 # This file is part of satpy.
 #
