@@ -37,7 +37,7 @@ class GreenCorrector(GenericCompositor):
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Boost vegetation effect thanks to NIR (0.8µm) band."""
 
-        green, nir = self.check_areas(projectables)
+        green, nir = self.match_data_arrays(projectables)
         LOG.info('Boosting vegetation on green band')
 
         new_green = green * 0.85 + nir * 0.15

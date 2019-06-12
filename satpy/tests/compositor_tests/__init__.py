@@ -33,8 +33,8 @@ except ImportError:
 import unittest
 
 
-class TestCheckArea(unittest.TestCase):
-    """Test the utility method 'check_areas'."""
+class TestMatchDataArrays(unittest.TestCase):
+    """Test the utility method 'match_data_arrays'."""
 
     def _get_test_ds(self, shape=(50, 100), dims=('y', 'x')):
         """Helper method to get a fake DataArray."""
@@ -54,7 +54,7 @@ class TestCheckArea(unittest.TestCase):
         from satpy.composites import CompositeBase
         ds1 = self._get_test_ds()
         comp = CompositeBase('test_comp')
-        ret_datasets = comp.check_areas((ds1,))
+        ret_datasets = comp.match_data_arrays((ds1,))
         self.assertIs(ret_datasets[0], ds1)
 
     def test_mult_ds_area(self):
@@ -63,7 +63,7 @@ class TestCheckArea(unittest.TestCase):
         ds1 = self._get_test_ds()
         ds2 = self._get_test_ds()
         comp = CompositeBase('test_comp')
-        ret_datasets = comp.check_areas((ds1, ds2))
+        ret_datasets = comp.match_data_arrays((ds1, ds2))
         self.assertIs(ret_datasets[0], ds1)
         self.assertIs(ret_datasets[1], ds2)
 
@@ -74,7 +74,7 @@ class TestCheckArea(unittest.TestCase):
         ds2 = self._get_test_ds()
         del ds2.attrs['area']
         comp = CompositeBase('test_comp')
-        self.assertRaises(ValueError, comp.check_areas, (ds1, ds2))
+        self.assertRaises(ValueError, comp.match_data_arrays, (ds1, ds2))
 
     def test_mult_ds_diff_area(self):
         """Test that datasets with different areas fail."""
@@ -89,7 +89,7 @@ class TestCheckArea(unittest.TestCase):
             100, 50,
             (-30037508.34, -20018754.17, 10037508.34, 18754.17))
         comp = CompositeBase('test_comp')
-        self.assertRaises(IncompatibleAreas, comp.check_areas, (ds1, ds2))
+        self.assertRaises(IncompatibleAreas, comp.match_data_arrays, (ds1, ds2))
 
     def test_mult_ds_diff_dims(self):
         """Test that datasets with different dimensions still pass."""
@@ -99,7 +99,7 @@ class TestCheckArea(unittest.TestCase):
         ds1 = self._get_test_ds(shape=(50, 100), dims=('y', 'x'))
         ds2 = self._get_test_ds(shape=(3, 100, 50), dims=('bands', 'x', 'y'))
         comp = CompositeBase('test_comp')
-        ret_datasets = comp.check_areas((ds1, ds2))
+        ret_datasets = comp.match_data_arrays((ds1, ds2))
         self.assertIs(ret_datasets[0], ds1)
         self.assertIs(ret_datasets[1], ds2)
 
@@ -111,14 +111,14 @@ class TestCheckArea(unittest.TestCase):
         ds1 = self._get_test_ds(shape=(50, 100), dims=('x', 'y'))
         ds2 = self._get_test_ds(shape=(3, 50, 100), dims=('bands', 'y', 'x'))
         comp = CompositeBase('test_comp')
-        self.assertRaises(IncompatibleAreas, comp.check_areas, (ds1, ds2))
+        self.assertRaises(IncompatibleAreas, comp.match_data_arrays, (ds1, ds2))
 
     def test_nondimensional_coords(self):
         from satpy.composites import CompositeBase
         ds = self._get_test_ds(shape=(2, 2))
         ds['acq_time'] = ('y', [0, 1])
         comp = CompositeBase('test_comp')
-        ret_datasets = comp.check_areas([ds, ds])
+        ret_datasets = comp.match_data_arrays([ds, ds])
         self.assertNotIn('acq_time', ret_datasets[0].coords)
 
 
@@ -174,7 +174,7 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
         from satpy.composites import RatioSharpenedRGB
         self.assertRaises(ValueError, RatioSharpenedRGB, name='true_color', high_resolution_band='bad')
 
-    def test_check_areas(self):
+    def test_match_data_arrays(self):
         """Test that all of the areas have to be the same resolution."""
         from satpy.composites import RatioSharpenedRGB, IncompatibleAreas
         comp = RatioSharpenedRGB(name='true_color')
@@ -747,8 +747,8 @@ class TestGenericCompositor(unittest.TestCase):
     @mock.patch('satpy.composites.GenericCompositor._get_sensors')
     @mock.patch('satpy.composites.combine_metadata')
     @mock.patch('satpy.composites.check_times')
-    @mock.patch('satpy.composites.GenericCompositor.check_areas')
-    def test_call_with_mock(self, check_areas, check_times, combine_metadata, get_sensors):
+    @mock.patch('satpy.composites.GenericCompositor.match_data_arrays')
+    def test_call_with_mock(self, match_data_arrays, check_times, combine_metadata, get_sensors):
         """Test calling generic compositor"""
         from satpy.composites import IncompatibleAreas
         combine_metadata.return_value = dict()
@@ -757,25 +757,25 @@ class TestGenericCompositor(unittest.TestCase):
         res = self.comp([self.all_valid])
         self.assertEqual(res.shape[0], 1)
         self.assertEqual(res.attrs['mode'], 'L')
-        check_areas.assert_not_called()
+        match_data_arrays.assert_not_called()
         # This compositor has been initialized without common masking, so the
         # masking shouldn't have been called
         projectables = [self.all_valid, self.first_invalid, self.second_invalid]
-        check_areas.return_value = projectables
+        match_data_arrays.return_value = projectables
         res = self.comp2(projectables)
-        check_areas.assert_called_once()
-        check_areas.reset_mock()
+        match_data_arrays.assert_called_once()
+        match_data_arrays.reset_mock()
         # Dataset for alpha given, so shouldn't be masked
         projectables = [self.all_valid, self.all_valid]
-        check_areas.return_value = projectables
+        match_data_arrays.return_value = projectables
         res = self.comp(projectables)
-        check_areas.assert_called_once()
-        check_areas.reset_mock()
+        match_data_arrays.assert_called_once()
+        match_data_arrays.reset_mock()
         # When areas are incompatible, masking shouldn't happen
-        check_areas.side_effect = IncompatibleAreas()
+        match_data_arrays.side_effect = IncompatibleAreas()
         self.assertRaises(IncompatibleAreas,
                           self.comp, [self.all_valid, self.wrong_shape])
-        check_areas.assert_called_once()
+        match_data_arrays.assert_called_once()
 
     def test_call(self):
         """Test calling generic compositor"""
@@ -802,7 +802,7 @@ def suite():
     mysuite.addTests(test_abi.suite())
     mysuite.addTests(test_ahi.suite())
     mysuite.addTests(test_viirs.suite())
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCheckArea))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestMatchDataArrays))
     mysuite.addTest(loader.loadTestsFromTestCase(TestRatioSharpenedCompositors))
     mysuite.addTest(loader.loadTestsFromTestCase(TestSunZenithCorrector))
     mysuite.addTest(loader.loadTestsFromTestCase(TestDifferenceCompositor))
