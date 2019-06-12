@@ -1021,9 +1021,19 @@ def add_bands(data, bands):
     # Add R, G and B bands, remove L band
     if 'L' in data['bands'].data and 'R' in bands.data:
         lum = data.sel(bands='L')
-        new_data = xr.concat((lum, lum, lum), dim='bands')
-        new_data['bands'] = ['R', 'G', 'B']
-        data = new_data
+        # Keep 'A' if it was present
+        if 'A' in data['bands']:
+            alpha = data.sel(bands='A')
+            new_data = (lum, lum, lum, alpha)
+            new_bands = ['R', 'G', 'B', 'A']
+            mode = 'RGBA'
+        else:
+            new_data = (lum, lum, lum)
+            new_bands = ['R', 'G', 'B']
+            mode = 'RGB'
+        data = xr.concat(new_data, dim='bands', coords={'bands': new_bands})
+        data['bands'] = new_bands
+        data.attrs['mode'] = mode
     # Add alpha band
     if 'A' not in data['bands'].data and 'A' in bands.data:
         new_data = [data.sel(bands=band) for band in data['bands'].data]
@@ -1036,6 +1046,7 @@ def add_bands(data, bands):
         alpha['bands'] = 'A'
         new_data.append(alpha)
         new_data = xr.concat(new_data, dim='bands')
+        new_data.attrs['mode'] = data.attrs['mode'] + 'A'
         data = new_data
 
     return data
@@ -1343,3 +1354,97 @@ class SandwichCompositor(GenericCompositor):
         rgb_img = enhance2dataset(projectables[1])
         rgb_img *= luminance
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
+
+
+class StaticImageCompositor(GenericCompositor):
+    """A compositor that loads a static image from disk."""
+
+    def __init__(self, name, filename=None, area=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            filename (str): Filename of the image to load
+            area (str): Name of area definition for the image.  Optional
+                        for images with built-in area definitions (geotiff)
+        """
+        if filename is None:
+            raise ValueError("No image configured for static image compositor")
+        self.filename = filename
+        self.area = None
+        if area is not None:
+            from satpy.resample import get_area_def
+            self.area = get_area_def(area)
+
+        super(StaticImageCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        from satpy import Scene
+        scn = Scene(reader='generic_image', filenames=[self.filename])
+        scn.load(['image'])
+        img = scn['image']
+        # use compositor parameters as extra metadata
+        # most important: set 'name' of the image
+        img.attrs.update(self.attrs)
+        # Check for proper area definition.  Non-georeferenced images
+        # have None as .ndim
+        if img.area.ndim is None:
+            if self.area is None:
+                raise AttributeError("Area definition needs to be configured")
+            img.attrs['area'] = self.area
+        img.attrs['sensor'] = None
+        img.attrs['mode'] = ''.join(img.bands.data)
+        img.attrs.pop('modifiers', None)
+        img.attrs.pop('calibration', None)
+        # Add start time if not present in the filename
+        if 'start_time' not in img.attrs or not img.attrs['start_time']:
+            import datetime as dt
+            img.attrs['start_time'] = dt.datetime.utcnow()
+        if 'end_time' not in img.attrs or not img.attrs['end_time']:
+            import datetime as dt
+            img.attrs['end_time'] = dt.datetime.utcnow()
+
+        return img
+
+
+class BackgroundCompositor(GenericCompositor):
+    """A compositor that overlays one composite on top of another."""
+
+    def __call__(self, projectables, *args, **kwargs):
+        projectables = self.check_areas(projectables)
+
+        # Get enhanced datasets
+        foreground = enhance2dataset(projectables[0])
+        background = enhance2dataset(projectables[1])
+
+        # Adjust bands so that they match
+        # L/RGB -> RGB/RGB
+        # LA/RGB -> RGBA/RGBA
+        # RGB/RGBA -> RGBA/RGBA
+        foreground = add_bands(foreground, background['bands'])
+        background = add_bands(background, foreground['bands'])
+
+        # Get merged metadata
+        attrs = combine_metadata(foreground, background)
+
+        # Stack the images
+        if 'A' in foreground.mode:
+            # Use alpha channel as weight and blend the two composites
+            alpha = foreground.sel(bands='A')
+            data = []
+            # NOTE: there's no alpha band in the output image, it will
+            # be added by the data writer
+            for band in foreground.mode[:-1]:
+                fg_band = foreground.sel(bands=band)
+                bg_band = background.sel(bands=band)
+                chan = (fg_band * alpha + bg_band * (1 - alpha))
+                chan = xr.where(chan.isnull(), bg_band, chan)
+                data.append(chan)
+        else:
+            data = xr.where(foreground.isnull(), background, foreground)
+            # Split to separate bands so the mode is correct
+            data = [data.sel(bands=b) for b in data['bands']]
+
+        res = super(BackgroundCompositor, self).__call__(data, **kwargs)
+        res.attrs['area'] = attrs['area']
+
+        return res
