@@ -97,9 +97,11 @@ class TestGACLACFile(TestCase):
 
             GACPODReader.return_value.get_angles.return_value = (angle_ones, ) * 5
             GACPODReader.return_value.get_times.return_value = acq_ones
+            GACPODReader.return_value.get_tle_lines.return_value = 'tle1', 'tle2'
             res = fh.get_dataset(key, info)
             np.testing.assert_allclose(res.data, angle_ones)
             self.assertIs(res.coords['acq_time'].data, acq_ones)
+            self.assertDictEqual(res.attrs['orbital_parameters'], {'tle': ('tle1', 'tle2')})
 
         key = DatasetID('longitude')
         info = {'name': 'longitude', 'unit': 'degrees_east'}
