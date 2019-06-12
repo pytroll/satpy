@@ -444,6 +444,11 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
         if dataset.attrs.get("sensor", None):
             enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
 
+        attrs = dataset.attrs.copy()
+        # turn DataArray of characters in to string
+        default_mode = "".join(str(band.values) for band in
+                               dataset.coords.get('bands', []))
+        attrs.setdefault('mode', default_mode or None)
         enhancer.apply(img, **dataset.attrs)
 
     if overlay is not None:
@@ -914,7 +919,8 @@ class EnhancementDecisionTree(DecisionTree):
                                      "platform_name",
                                      "sensor",
                                      "standard_name",
-                                     "units",))
+                                     "units",
+                                     "mode",))
         self.prefix = kwargs.pop("config_section", "enhancements")
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, attrs, **kwargs)

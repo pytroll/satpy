@@ -6,6 +6,12 @@ enhancements:
     - name: stretch
       method: &stretchfun !!python/name:satpy.enhancements.stretch
       kwargs: {stretch: linear}
+  rgb_default:
+    mode: RGB
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: crude, min_stretch: [0.0, 0.0, 0.0], max_stretch: [1.0, 1.0, 1.0]}
   reflectance_default:
     standard_name: toa_bidirectional_reflectance
     operations:
