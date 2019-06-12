@@ -141,6 +141,11 @@ following attributes are standardized across all readers:
     * [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at the time of observation
       in geodetic coordinates.
 
+  * For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of the swath as
+    ancillary datasets. Additional metadata related to the satellite position include:
+
+      * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
+
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
 
 Note that the above attributes are not necessarily available for each dataset.
