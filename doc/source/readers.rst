@@ -119,6 +119,9 @@ following attributes are standardized across all readers:
   :class:`satpy.dataset.DatasetID`.
 * ``start_time``: Left boundary of the time interval covered by the dataset.
 * ``end_time``: Right boundary of the time interval covered by the dataset.
+* ``area``: :class:`~pyresample.geometry.AreaDefinition` or :class:`~pyresample.geometry.SwathDefinition` if
+  if data is geolocated. Areas are used for gridded projected data and Swaths when data must be
+  described by individual longitude/latitude coordinates. See the Coordinates section below.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
 
   * For *geostationary* satellites it is described using the following scalar attributes:
@@ -141,6 +144,29 @@ following attributes are standardized across all readers:
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
 
 Note that the above attributes are not necessarily available for each dataset.
+
+Coordinates
+===========
+
+Each :class:`~xarray.DataArray` produced by Satpy has several Xarray
+coordinate variables added to them.
+
+* ``x`` and ``y``: Projection coordinates for gridded and projected data.
+  By default `y` and `x` are the preferred **dimensions** for all 2D data, but
+  these **coordinates** are only added for gridded (non-swath) data. For 1D
+  data only the ``y`` dimension may be specified.
+* ``crs``: A :class:`~pyproj.crs.CRS` object defined the Coordinate Reference
+  System for the data. Requires pyproj 2.0 or later to be installed. This is
+  stored as a scalar array by Xarray so it must be accessed by doing
+  ``crs = my_data_arr.attrs['crs'].item()``. For swath data this defaults
+  to a ``longlat`` CRS using the WGS84 datum.
+* ``longitude``: Array of longitude coordinates for swath data.
+* ``latitude``: Array of latitude coordinates for swath data.
+
+Readers are free to define any coordinates in addition to the ones above that
+are automatically added. Other possible coordinates you may see:
+
+* ``acq_time``: Instrument data acquisition time per scan or row of data.
 
 Adding a Reader to Satpy
 ========================
