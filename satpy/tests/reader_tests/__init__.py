@@ -38,7 +38,8 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_hdfeos_base, test_modis_l2,
                                       test_electrol_hrit, test_mersi2_l1b,
                                       test_avhrr_l1b_gaclac, test_vaisala_gld360,
-                                      test_fci_l1c_fdhsi, test_tropomi_l2)
+                                      test_fci_l1c_fdhsi, test_tropomi_l2,
+                                      test_hsaf_grib)
 
 
 if sys.version_info < (2, 7):
@@ -92,5 +93,6 @@ def suite():
     mysuite.addTests(test_vaisala_gld360.suite())
     mysuite.addTests(test_fci_l1c_fdhsi.suite())
     mysuite.addTests(test_tropomi_l2.suite())
+    mysuite.addTests(test_hsaf_grib.suite())
 
     return mysuite
