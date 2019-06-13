@@ -34,9 +34,6 @@ logger = logging.getLogger(__name__)
 
 class NC_ABI_L1B(NC_ABI_BASE):
 
-    def __init__(self, filename, filename_info, filetype_info):
-        super(NC_ABI_L1B, self).__init__(filename, filename_info, filetype_info)
-
     def get_dataset(self, key, info):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key.name)
