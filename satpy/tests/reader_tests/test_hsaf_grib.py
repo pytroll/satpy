@@ -107,7 +107,7 @@ class TestHSAFFileHandler(unittest.TestCase):
         """Re-enable pygrib import."""
         sys.modules['pygrib'] = self.orig_pygrib
 
-    @mock.patch('satpy.readers.hsaf.pygrib.open', return_value=FakeGRIB())
+    @mock.patch('satpy.readers.hsaf_grib.pygrib.open', return_value=FakeGRIB())
     def test_init(self, pg):
         """
         Test the init function, ensure that the correct dates and metadata
@@ -115,37 +115,46 @@ class TestHSAFFileHandler(unittest.TestCase):
         """
         pg.open.return_value = FakeGRIB()
         correct_dt = datetime(2019, 6, 3, 16, 45, 0)
-        from satpy.readers.hsaf import HSAFFileHandler
+        from satpy.readers.hsaf_grib import HSAFFileHandler
         fh = HSAFFileHandler('filename', mock.MagicMock(), mock.MagicMock())
         self.assertEqual(fh._analysis_time, correct_dt)
         self.assertEqual(fh.metadata['projparams']['lat_0'], 0.0)
         self.assertEqual(fh.metadata['shortName'], 'irrate')
         self.assertEqual(fh.metadata['nx'], 3712)
 
-    @mock.patch('satpy.readers.hsaf.pygrib.open', return_value=FakeGRIB())
+    @mock.patch('satpy.readers.hsaf_grib.pygrib.open', return_value=FakeGRIB())
     def test_get_area_def(self, pg):
         """
         Test the area definition setup, checks the size and extent
         """
         pg.open.return_value = FakeGRIB()
-        from satpy.readers.hsaf import HSAFFileHandler
+        from satpy.readers.hsaf_grib import HSAFFileHandler
         fh = HSAFFileHandler('filename', mock.MagicMock(), mock.MagicMock())
         area_def = HSAFFileHandler.get_area_def(fh, 'H03B')
         self.assertEqual(area_def.x_size, 3712)
         self.assertAlmostEqual(area_def.area_extent[0], -5569209.3026, places=3)
         self.assertAlmostEqual(area_def.area_extent[3], 5587721.9097, places=3)
 
-    @mock.patch('satpy.readers.hsaf.pygrib.open', return_value=FakeGRIB())
+    @mock.patch('satpy.readers.hsaf_grib.pygrib.open', return_value=FakeGRIB())
     def test_get_dataset(self, pg):
         """
         Test reading the actual datasets from a grib file
         """
         pg.open.return_value = FakeGRIB()
-        from satpy.readers.hsaf import HSAFFileHandler
+        from satpy.readers.hsaf_grib import HSAFFileHandler
+        # Instantaneous precipitation
         fh = HSAFFileHandler('filename', mock.MagicMock(), mock.MagicMock())
         fh.filename = "H03B"
         ds_id = mock.Mock()
         ds_id.name = 'H03B'
+        data = fh.get_dataset(ds_id, mock.Mock())
+        np.testing.assert_array_equal(data.values, np.arange(25.).reshape((5, 5)))
+        
+        # Accumulated precipitation
+        fh = HSAFFileHandler('filename', mock.MagicMock(), mock.MagicMock())
+        fh.filename = "H05B"
+        ds_id = mock.Mock()
+        ds_id.name = 'H05B'
         data = fh.get_dataset(ds_id, mock.Mock())
         np.testing.assert_array_equal(data.values, np.arange(25.).reshape((5, 5)))
 
