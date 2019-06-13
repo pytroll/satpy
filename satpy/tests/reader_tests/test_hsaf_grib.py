@@ -149,7 +149,7 @@ class TestHSAFFileHandler(unittest.TestCase):
         ds_id.name = 'H03B'
         data = fh.get_dataset(ds_id, mock.Mock())
         np.testing.assert_array_equal(data.values, np.arange(25.).reshape((5, 5)))
-        
+
         # Accumulated precipitation
         fh = HSAFFileHandler('filename', mock.MagicMock(), mock.MagicMock())
         fh.filename = "H05B"
