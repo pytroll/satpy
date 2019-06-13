@@ -23,6 +23,7 @@ import sys
 from datetime import datetime, timedelta
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -136,15 +137,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             file_content[k + '/attr/scale_factor'] = 1.1
             file_content[k + '/attr/add_offset'] = 0.1
 
-        # convert to xarrays
-        from xarray import DataArray
-        for key, val in file_content.items():
-            if isinstance(val, np.ndarray):
-                if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('y', 'x'))
-                else:
-                    file_content[key] = DataArray(val)
-
+        convert_file_content_to_data_array(file_content)
         return file_content
 
 

@@ -476,6 +476,9 @@ class CFWriter(Writer):
             new_data['y'].attrs['standard_name'] = 'projection_y_coordinate'
             new_data['y'].attrs['units'] = 'm'
 
+        if 'crs' in new_data.coords:
+            new_data = new_data.drop('crs')
+
         new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
         if 'prerequisites' in new_data.attrs:
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]

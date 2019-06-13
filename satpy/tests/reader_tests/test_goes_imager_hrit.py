@@ -24,7 +24,7 @@ import numpy as np
 from xarray import DataArray
 from satpy.readers.goes_imager_hrit import (make_gvar_float, make_sgs_time,
                                             HRITGOESPrologueFileHandler, sgs_time,
-                                            HRITGOESFileHandler)
+                                            HRITGOESFileHandler, ALTITUDE)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -126,9 +126,10 @@ class TestHRITGOESFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.__init__')
     def setUp(self, new_fh_init):
         """Setup the hrit file handler for testing."""
-        mda = {'projection_parameters': {},
+        blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
+        mda = {'projection_parameters': {'SSP_longitude': -123.0},
                'spectral_channel_id': 1,
-               'image_data_function': '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'}
+               'image_data_function': blob}
         HRITGOESFileHandler.filename = 'filename'
         HRITGOESFileHandler.mda = mda
         self.prologue = mock.MagicMock()
@@ -136,10 +137,10 @@ class TestHRITGOESFileHandler(unittest.TestCase):
         self.reader = HRITGOESFileHandler('filename', {}, {}, self.prologue)
 
     def test_init(self):
-
+        blob = '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'.encode()
         mda = {'spectral_channel_id': 1,
                'projection_parameters': {'SSP_longitude': 100.1640625},
-               'image_data_function': '$HALFTONE:=10\r\n_NAME:=albedo\r\n_UNIT:=percent\r\n0:=0.0\r\n1023:=100.0\r\n'}
+               'image_data_function': blob}
         self.assertEqual(self.reader.mda, mda)
 
     @mock.patch('satpy.readers.goes_imager_hrit.HRITFileHandler.get_dataset')
@@ -148,14 +149,18 @@ class TestHRITGOESFileHandler(unittest.TestCase):
         key.calibration = 'reflectance'
         base_get_dataset.return_value = DataArray(np.arange(25).reshape(5, 5))
         res = self.reader.get_dataset(key, {})
-        expected = np.array([[0., 0.097752, 0.195503, 0.293255, 0.391007],
+        expected = np.array([[np.nan, 0.097752, 0.195503, 0.293255, 0.391007],
                              [0.488759, 0.58651, 0.684262, 0.782014, 0.879765],
                              [0.977517, 1.075269, 1.173021, 1.270772, 1.368524],
                              [1.466276, 1.564027, 1.661779, 1.759531, 1.857283],
                              [1.955034, 2.052786, 2.150538, 2.248289, 2.346041]])
 
-        self.assertTrue(np.allclose(res.values, expected))
+        self.assertTrue(np.allclose(res.values, expected, equal_nan=True))
         self.assertEqual(res.attrs['units'], '%')
+        self.assertDictEqual(res.attrs['orbital_parameters'],
+                             {'projection_longitude': self.reader.mda['projection_parameters']['SSP_longitude'],
+                              'projection_latitude': 0.0,
+                              'projection_altitude': ALTITUDE})
 
 
 def suite():
@@ -164,6 +169,7 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOESPrologueFileHandler))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOESFileHandler))
     mysuite.addTest(loader.loadTestsFromTestCase(TestGVARFloat))
     mysuite.addTest(loader.loadTestsFromTestCase(TestMakeSGSTime))
     return mysuite

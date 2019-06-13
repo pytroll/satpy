@@ -715,8 +715,8 @@ class TestScene(unittest.TestCase):
         id_list = scene.available_dataset_ids()
         self.assertEqual(len(id_list), 1)
         id_list = scene.available_dataset_ids(composites=True)
-        # ds1, comp1, comp14, comp16
-        self.assertEqual(len(id_list), 4)
+        # ds1, comp1, comp14, comp16, static_image
+        self.assertEqual(len(id_list), 5)
 
     def test_available_composite_ids_bad_available(self):
         from satpy import Scene
@@ -1676,7 +1676,8 @@ class TestSceneLoading(unittest.TestCase):
         from satpy import DatasetID
         datasets = [DatasetID(name='duplicate1', wavelength=(0.1, 0.2, 0.3)),
                     DatasetID(name='duplicate2', wavelength=(0.1, 0.2, 0.3))]
-        reader = FakeReader('fake_reader', 'fake_sensor', datasets=datasets)
+        reader = FakeReader('fake_reader', 'fake_sensor', datasets=datasets,
+                            filter_datasets=False)
         cri.return_value = {'fake_reader': reader}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1685,6 +1686,39 @@ class TestSceneLoading(unittest.TestCase):
         avail_comps = scene.available_composite_ids()
         self.assertEqual(len(avail_comps), 0)
         self.assertRaises(KeyError, scene.load, [0.21])
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_available_comps_no_deps(self, cri, cl):
+        """Test Scene available composites when composites don't have a dependency."""
+        from satpy.tests.utils import FakeReader, test_composites
+        import satpy.scene
+        from satpy.readers import DatasetDict
+        from satpy import DatasetID
+
+        def _test(self, sensor_names):
+            if not self.compositors:
+                self.compositors = comps
+                self.modifiers = mods
+            new_comps = {}
+            new_mods = {}
+            for sn in sensor_names:
+                new_comps[sn] = DatasetDict(
+                    self.compositors[sn].copy())
+                new_mods[sn] = self.modifiers[sn].copy()
+            return new_comps, new_mods
+
+        # fancy magic to make sure the CompositorLoader thinks it has comps
+        cl.side_effect = _test
+
+        reader = FakeReader('fake_reader', 'fake_sensor')
+        cri.return_value = {'fake_reader': reader}
+        comps, mods = test_composites('fake_sensor')
+        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+        all_comp_ids = scene.available_composite_ids()
+        self.assertIn(DatasetID(name='static_image'), all_comp_ids)
+        available_comp_ids = scene.available_composite_ids()
+        self.assertIn(DatasetID(name='static_image'), available_comp_ids)
 
 
 class TestSceneResampling(unittest.TestCase):

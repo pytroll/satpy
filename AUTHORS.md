@@ -25,6 +25,7 @@ The following people have made contributions to this project:
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [JohannesSMHI (JohannesSMHI)](https://github.com/JohannesSMHI)
+- [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
