@@ -42,26 +42,6 @@ class NC_ABI_L2(NC_ABI_BASE):
         LOG.debug('Reading in get_dataset %s.', var)
         variable = self.nc[var]
 
-        """
-        # handle coordinates (and recursive fun)
-        new_coords = {}
-        # 'time' dimension causes issues in other processing
-        # 'x_image' and 'y_image' are confusing to some users and unnecessary
-        # 'x' and 'y' will be overwritten by base class AreaDefinition
-        for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
-            if coord_name in data.coords:
-                del data.coords[coord_name]
-
-        if var in variable.coords:
-            self.coords[var] = variable
-
-        for coord_name in variable.coords.keys():
-            if coord_name not in self.coords:
-                self.coords[coord_name] = self.nc[coord_name]
-            new_coords[coord_name] = self.coords[coord_name]
-
-        variable.coords.update(new_coords)
-        """
         _units = variable.attrs['units'] if 'units' in variable.attrs else None
 
         variable.attrs.update({'platform_name': self.platform_name,
