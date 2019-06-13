@@ -92,8 +92,11 @@ class NC_ABI_BASE(BaseFileHandler):
         # handle coordinates (and recursive fun)
         new_coords = {}
         # 'time' dimension causes issues in other processing
-        if 'time' in data.coords:
-            del data.coords['time']
+        # 'x_image' and 'y_image' are confusing to some users and unnecessary
+        # 'x' and 'y' will be overwritten by base class AreaDefinition
+        for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
+            if coord_name in data.coords:
+                del data.coords[coord_name]
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():
@@ -101,11 +104,12 @@ class NC_ABI_BASE(BaseFileHandler):
                 self.coords[coord_name] = self[coord_name]
             new_coords[coord_name] = self.coords[coord_name]
         data.coords.update(new_coords)
+
         return data
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        raise NotImplementedError("Writer {} has not implemented get_dataset".format(self.name))
+        raise NotImplementedError("Reader {} has not implemented get_dataset".format(self.name))
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand.
@@ -147,9 +151,9 @@ class NC_ABI_BASE(BaseFileHandler):
                      'pm': float(pm)}
 
         ll_area_def = geometry.AreaDefinition(
-            self.nc.attrs.get('orbital_slot', 'GOES-R'),
-            self.nc.attrs.get('spatial_resolution', 'ABI L2+ file area'),
-            'abi_l2+_latlon',
+            self.nc.attrs.get('orbital_slot', 'abi_geos'),
+            self.nc.attrs.get('spatial_resolution', 'ABI file area'),
+            'abi_latlon',
             proj_dict,
             self.ncols,
             self.nlines,
@@ -192,8 +196,8 @@ class NC_ABI_BASE(BaseFileHandler):
                      'sweep': sweep_axis}
 
         fg_area_def = geometry.AreaDefinition(
-            self.nc.attrs.get('orbital_slot', 'GOES-R'),  # "GOES-East", "GOES-West"
-            self.nc.attrs.get('spatial_resolution', 'ABI L2+ file area'),
+            self.nc.attrs.get('orbital_slot', 'abi_geos'),
+            self.nc.attrs.get('spatial_resolution', 'ABI file area'),
             'abi_fixed_grid',
             proj_dict,
             self.ncols,

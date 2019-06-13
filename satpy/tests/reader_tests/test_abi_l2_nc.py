@@ -14,7 +14,7 @@
 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""The nc_abi_l2 reader tests package.
+"""The abi_l2_nc reader tests package.
 """
 
 import sys
@@ -60,7 +60,7 @@ class Test_NC_ABI_L2_area_fixedgrid(unittest.TestCase):
     @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Setup for test."""
-        from satpy.readers.nc_abi_l2 import NC_ABI_L2
+        from satpy.readers.abi_l2_nc import NC_ABI_L2
         proj = xr.DataArray(
             [],
             attrs={
@@ -114,7 +114,7 @@ class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
     @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Setup for test."""
-        from satpy.readers.nc_abi_l2 import NC_ABI_L2
+        from satpy.readers.abi_l2_nc import NC_ABI_L2
         proj = xr.DataArray(
             [],
             attrs={'semi_major_axis': 1.,
@@ -179,28 +179,5 @@ def suite():
     return mysuite
 
 
-"""
 if __name__ == '__main__':
-    runner = unittest.TextTestRunner()
-    test_suite = suite()
-    result = runner.run(test_suite)
-
-    print "---- START OF TEST RESULTS"
-    print result
-
-    print "result::errors"
-    print result.errors
-
-    print "result::failures"
-    print result.failures
-
-    print "result::skipped"
-    print result.skipped
-
-    print "result::successful"
-    print result.wasSuccessful()
-
-    print "result::test-run"
-    print result.testsRun
-    print "---- END OF TEST RESULTS"
-"""
+    unittest.main()
