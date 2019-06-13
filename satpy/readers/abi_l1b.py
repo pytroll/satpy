@@ -82,8 +82,11 @@ class NC_ABI_L1B(BaseFileHandler):
         # handle coordinates (and recursive fun)
         new_coords = {}
         # 'time' dimension causes issues in other processing
-        if 'time' in data.coords:
-            del data.coords['time']
+        # 'x_image' and 'y_image' are confusing to some users and unnecessary
+        # 'x' and 'y' will be overwritten by base class AreaDefinition
+        for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
+            if coord_name in data.coords:
+                del data.coords[coord_name]
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():
@@ -123,6 +126,19 @@ class NC_ABI_L1B(BaseFileHandler):
                           'satellite_latitude': float(self['nominal_satellite_subpoint_lat']),
                           'satellite_longitude': float(self['nominal_satellite_subpoint_lon']),
                           'satellite_altitude': float(self['nominal_satellite_height'])})
+
+        # Add orbital parameters
+        projection = self.nc["goes_imager_projection"]
+        res.attrs['orbital_parameters'] = {
+            'projection_longitude': float(projection.attrs['longitude_of_projection_origin']),
+            'projection_latitude': float(projection.attrs['latitude_of_projection_origin']),
+            'projection_altitude': float(projection.attrs['perspective_point_height']),
+            'satellite_nominal_latitude': float(self['nominal_satellite_subpoint_lat']),
+            'satellite_nominal_longitude': float(self['nominal_satellite_subpoint_lon']),
+            'satellite_nominal_altitude': float(self['nominal_satellite_height']),
+            'yaw_flip': bool(self['yaw_flip_flag']),
+        }
+
         res.attrs.update(key.to_dict())
         # remove attributes that could be confusing later
         res.attrs.pop('_FillValue', None)
