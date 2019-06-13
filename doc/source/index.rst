@@ -99,7 +99,7 @@ the base Satpy installation.
       - `abi_l1b`
       - Nominal
     * - NOAA GOES-R ABI L2+ products in netcdf format
-      - `nc_abi_l2`
+      - `abi_l2_nc`
       - Beta
     * - GOES 11 to 15 imager data in HRIT format
       - `goes-imager_hrit`
