@@ -202,6 +202,9 @@ the base Satpy installation.
     * - Vaisala Global Lightning Dataset GLD360 data in ASCII format
       - `vaisala_gld360`
       - Beta
+    * - TROPOMI L2 data in NetCDF4 format
+      - `tropomi_l2`
+      - Beta
 
 
 Indices and tables

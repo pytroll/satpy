@@ -394,6 +394,27 @@ class TestHelpers(unittest.TestCase):
         # non-array
         self.assertRaises(ValueError, hf.np2str, 5)
 
+    def test_get_earth_radius(self):
+        """Test earth radius computation"""
+        a = 2.
+        b = 1.
+
+        def re(lat):
+            """Compute ellipsoid radius at the given geodetic latitude.
+
+            Reference: Capderou, M.: Handbook of Satellite Orbits, Equation (2.20).
+            """
+            lat = np.deg2rad(lat)
+            e2 = 1 - b ** 2 / a ** 2
+            n = a / np.sqrt(1 - e2*np.sin(lat)**2)
+            return n * np.sqrt((1 - e2)**2 * np.sin(lat)**2 + np.cos(lat)**2)
+
+        for lon in (0, 180, 270):
+            self.assertEqual(hf.get_earth_radius(lon=lon, lat=0., a=a, b=b), a)
+        for lat in (90, -90):
+            self.assertEqual(hf.get_earth_radius(lon=0., lat=lat, a=a, b=b), b)
+        self.assertTrue(np.isclose(hf.get_earth_radius(lon=123, lat=45., a=a, b=b), re(45.)))
+
     def test_reduce_mda(self):
         """Test metadata size reduction"""
         mda = {'a': 1,

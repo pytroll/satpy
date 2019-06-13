@@ -151,7 +151,11 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             'rpol2_req2': 0.993305616,
                             'spare': '',
                             'sub_lon': 140.7}
-
+            fh.nav_info = {'SSP_longitude': 140.66,
+                           'SSP_latitude': 0.03,
+                           'distance_earth_center_to_satellite': 42165.04,
+                           'nadir_longitude': 140.67,
+                           'nadir_latitude': 0.04}
             fh.data_info = {'blocklength': 50,
                             'compression_flag_for_data': 0,
                             'hblock_number': 2,
@@ -273,6 +277,17 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             mask = im.to_masked_array().mask
             ref_mask = np.logical_not(get_geostationary_mask(self.fh.area).compute())
             self.assertTrue(np.all(mask == ref_mask))
+
+            # Test attributes
+            orb_params_exp = {'projection_longitude': 140.7,
+                              'projection_latitude': 0.,
+                              'projection_altitude': 35785863.0,
+                              'satellite_actual_longitude': 140.66,
+                              'satellite_actual_latitude': 0.03,
+                              'nadir_longitude': 140.67,
+                              'nadir_latitude': 0.04}
+            self.assertDictContainsSubset(orb_params_exp, im.attrs['orbital_parameters'])
+            self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
 
             # Test if masking space pixels disables with appropriate flag
             self.fh.mask_space = False

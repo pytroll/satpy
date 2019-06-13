@@ -29,7 +29,7 @@ class SimulatedGreen(GenericCompositor):
     """A single-band dataset resembles a Green (0.55 µm)."""
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
-        c01, c02, c03 = self.check_areas(projectables)
+        c01, c02, c03 = self.match_data_arrays(projectables)
 
         # Kaba:
         # res = (c01 + c02) * 0.45 + 0.1 * c03

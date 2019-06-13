@@ -101,6 +101,51 @@ class TestBaseFileHandler(unittest.TestCase):
         self.assertTupleEqual(sdef.call_args[1]['lats'].shape, (2, 5))
         self.assertEqual(sdef.return_value.name, 'area1_area2')
 
+    def test_combine_orbital_parameters(self):
+        """Combine orbital parameters."""
+        info1 = {'orbital_parameters': {'projection_longitude': 1,
+                                        'projection_latitude': 1,
+                                        'projection_altitude': 1,
+                                        'satellite_nominal_longitude': 1,
+                                        'satellite_nominal_latitude': 1,
+                                        'satellite_actual_longitude': 1,
+                                        'satellite_actual_latitude': 1,
+                                        'satellite_actual_altitude': 1,
+                                        'nadir_longitude': 1,
+                                        'nadir_latitude': 1,
+                                        'only_in_1': False}}
+        info2 = {'orbital_parameters': {'projection_longitude': 2,
+                                        'projection_latitude': 2,
+                                        'projection_altitude': 2,
+                                        'satellite_nominal_longitude': 2,
+                                        'satellite_nominal_latitude': 2,
+                                        'satellite_actual_longitude': 2,
+                                        'satellite_actual_latitude': 2,
+                                        'satellite_actual_altitude': 2,
+                                        'nadir_longitude': 2,
+                                        'nadir_latitude': 2,
+                                        'only_in_2': True}}
+        exp = {'orbital_parameters': {'projection_longitude': 1.5,
+                                      'projection_latitude': 1.5,
+                                      'projection_altitude': 1.5,
+                                      'satellite_nominal_longitude': 1.5,
+                                      'satellite_nominal_latitude': 1.5,
+                                      'satellite_actual_longitude': 1.5,
+                                      'satellite_actual_latitude': 1.5,
+                                      'satellite_actual_altitude': 1.5,
+                                      'nadir_longitude': 1.5,
+                                      'nadir_latitude': 1.5,
+                                      'only_in_1': False,
+                                      'only_in_2': True}}
+        res = self.fh.combine_info([info1, info2])
+        self.assertDictEqual(res, exp)
+
+        # Identity
+        self.assertEqual(self.fh.combine_info([info1]), info1)
+
+        # Empty
+        self.fh.combine_info([{}])
+
     def tearDown(self):
         """Tear down the test."""
         BaseFileHandler.__abstractmethods__ = self._old_set
