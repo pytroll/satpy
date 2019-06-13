@@ -71,7 +71,7 @@ Output:
         satellite_longitude:      0.0
         satellite_latitude:       0.0
         satellite_altitude:       35785831.0
-        navigation:               {'satellite_nominal_longitude': 0.0, 'satellite...
+        orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
         platform_name:            Meteosat-11
         georef_offset_corrected:  True
         standard_name:            brightness_temperature
@@ -79,7 +79,7 @@ Output:
         wavelength:               (9.8, 10.8, 11.8)
         units:                    K
         sensor:                   seviri
-        projection:               {'satellite_longitude': 0.0, 'satellite_latitud...
+        platform_name:            Meteosat-11
         start_time:               2019-03-01 12:00:09.716000
         end_time:                 2019-03-01 12:12:42.946000
         area:                     Area ID: some_area_name\\nDescription: On-the-fl...
@@ -92,10 +92,8 @@ Output:
         ancillary_variables:      []
 
 
-* The ``projection`` attribute specifies the projection parameters which are used to, for example, compute lat/lon
-  coordinates.
-* The ``navigation`` attribute holds the actual position of the satellite required for computing viewing
-  angles etc.
+* The ``orbital_parameters`` attribute provides the nominal and actual satellite position, as well as the projection
+  centre.
 * You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
   :class:`HRITMSGFileHandler`.
 * The ``raw_metadata`` attribute provides raw metadata from the prologue, epilogue and segment header. By default,
@@ -202,7 +200,7 @@ cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
 
 
-class NoValidNavigationCoefs(Exception):
+class NoValidOrbitParams(Exception):
     pass
 
 
@@ -273,7 +271,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                 a, b = self.get_earth_radii()
                 latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
                 lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
-            except NoValidNavigationCoefs as err:
+            except NoValidOrbitParams as err:
                 logger.warning(err)
                 lon = lat = alt = None
 
@@ -294,7 +292,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
 
         # Find Chebyshev coefficients for the given time
-        coef_idx = self._find_navigation_coefs()
+        coef_idx = self._find_orbit_coefs()
         tstart = orbit_polynomial['StartTime'][0, coef_idx]
         tend = orbit_polynomial['EndTime'][0, coef_idx]
 
@@ -310,10 +308,10 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
         return x*1000, y*1000, z*1000  # km -> m
 
-    def _find_navigation_coefs(self):
-        """Find navigation coefficients for the current time
+    def _find_orbit_coefs(self):
+        """Find orbit coefficients for the current time
 
-        The navigation Chebyshev coefficients are only valid for a certain time interval. The header entry
+        The orbital Chebyshev coefficients are only valid for a certain time interval. The header entry
         SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients for multiple time intervals. Find the
         coefficients which are valid for the nominal timestamp of the scan.
 
@@ -328,7 +326,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         try:
             return np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0][0]
         except IndexError:
-            raise NoValidNavigationCoefs('Unable to find navigation coefficients valid for {}'.format(time))
+            raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
 
     def get_earth_radii(self):
         """Get earth radii from prologue
@@ -480,14 +478,14 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.mda['projection_parameters']['SSP_longitude'] = ssp
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
 
-        # Navigation
+        # Orbital parameters
         actual_lon, actual_lat, actual_alt = self.prologue_.get_satpos()
-        self.mda['navigation_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
+        self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
-        self.mda['navigation_parameters']['satellite_nominal_latitude'] = 0.0
-        self.mda['navigation_parameters']['satellite_actual_longitude'] = actual_lon
-        self.mda['navigation_parameters']['satellite_actual_latitude'] = actual_lat
-        self.mda['navigation_parameters']['satellite_actual_altitude'] = actual_alt
+        self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
+        self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
+        self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
+        self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
 
         # Misc
         self.platform_id = self.prologue["SatelliteStatus"][
@@ -653,10 +651,11 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['satellite_latitude'] = self.mda[
             'projection_parameters']['SSP_latitude']
         res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
-        res.attrs['projection'] = {'satellite_longitude': self.mda['projection_parameters']['SSP_longitude'],
-                                   'satellite_latitude': self.mda['projection_parameters']['SSP_latitude'],
-                                   'satellite_altitude': self.mda['projection_parameters']['h']}
-        res.attrs['navigation'] = self.mda['navigation_parameters'].copy()
+        res.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+            'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
+            'projection_altitude': self.mda['projection_parameters']['h']}
+        res.attrs['orbital_parameters'].update(self.mda['orbital_parameters'])
         res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
         res.attrs['raw_metadata'] = self._get_raw_mda()
 

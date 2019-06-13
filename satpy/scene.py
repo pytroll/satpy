@@ -746,7 +746,10 @@ class Scene(MetadataObject):
                     and not prereq_node.is_leaf:
                 self._generate_composite(prereq_node, keepables)
 
-            if prereq_id in self.datasets:
+            if prereq_node is self.dep_tree.empty_node:
+                # empty sentinel node - no need to load it
+                continue
+            elif prereq_id in self.datasets:
                 prereq_datasets.append(self.datasets[prereq_id])
             elif not prereq_node.is_leaf and prereq_id in keepables:
                 delayed_gen = True

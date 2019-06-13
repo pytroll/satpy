@@ -24,6 +24,7 @@ import tempfile
 import bz2
 import os
 import numpy as np
+import pyproj
 from pyresample.geometry import AreaDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 
@@ -224,6 +225,24 @@ def bbox(img):
     cmin, cmax = np.where(cols)[0][[0, -1]]
 
     return rmin, rmax, cmin, cmax
+
+
+def get_earth_radius(lon, lat, a, b):
+    """Compute radius of the earth ellipsoid at the given longitude and latitude.
+
+    Args:
+        lon: Geodetic longitude (degrees)
+        lat: Geodetic latitude (degrees)
+        a: Semi-major axis of the ellipsoid (meters)
+        b: Semi-minor axis of the ellipsoid (meters)
+
+    Returns:
+        Earth Radius (meters)
+    """
+    geocent = pyproj.Proj(proj='geocent', a=a, b=b, units='m')
+    latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
+    x, y, z = pyproj.transform(latlong, geocent, lon, lat, 0.)
+    return np.sqrt(x**2 + y**2 + z**2)
 
 
 def reduce_mda(mda, max_size=100):

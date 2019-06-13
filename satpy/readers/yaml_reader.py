@@ -41,8 +41,8 @@ from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
+from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
-from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -728,12 +728,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         if area is not None:
             ds.attrs['area'] = area
-            calc_coords = (('x' not in ds.coords) or('y' not in ds.coords)) and hasattr(area, 'get_proj_vectors_dask')
-            if calc_coords and hasattr(area, 'get_proj_vectors'):
-                ds['x'], ds['y'] = area.get_proj_vectors()
-            elif calc_coords:
-                # older pyresample with dask-only method
-                ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNK_SIZE)
+            ds = add_crs_xy_coords(ds, area)
         return ds
 
     def _load_ancillary_variables(self, datasets):

@@ -37,7 +37,7 @@ except ImportError:
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
 from satpy.readers import DatasetDict
-from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction
+from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
 from satpy import CHUNK_SIZE
 
@@ -52,6 +52,9 @@ except ImportError:
 
 
 LOG = logging.getLogger(__name__)
+
+NEGLIBLE_COORDS = ['time']
+"""Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
 
 
 class IncompatibleAreas(Exception):
@@ -303,10 +306,28 @@ class CompositeBase(MetadataObject):
                 elif o.get(k) is not None:
                     d[k] = o[k]
 
-    def check_areas(self, data_arrays):
-        """Check that the areas of the *data_arrays* are compatible."""
+    def match_data_arrays(self, data_arrays):
+        """Match data arrays so that they can be used together in a composite."""
+        self.check_geolocation(data_arrays)
+        return self.drop_coordinates(data_arrays)
+
+    def drop_coordinates(self, data_arrays):
+        """Drop neglible non-dimensional coordinates."""
+        new_arrays = []
+        for ds in data_arrays:
+            drop = [coord for coord in ds.coords
+                    if coord not in ds.dims and any([neglible in coord for neglible in NEGLIBLE_COORDS])]
+            if drop:
+                new_arrays.append(ds.drop(drop))
+            else:
+                new_arrays.append(ds)
+
+        return new_arrays
+
+    def check_geolocation(self, data_arrays):
+        """Check that the geolocations of the *data_arrays* are compatible."""
         if len(data_arrays) == 1:
-            return data_arrays
+            return
 
         if 'x' in data_arrays[0].dims and \
                 not all(x.sizes['x'] == data_arrays[0].sizes['x']
@@ -319,7 +340,7 @@ class CompositeBase(MetadataObject):
 
         areas = [ds.attrs.get('area') for ds in data_arrays]
         if all(a is None for a in areas):
-            return data_arrays
+            return
         elif any(a is None for a in areas):
             raise ValueError("Missing 'area' attribute")
 
@@ -328,7 +349,11 @@ class CompositeBase(MetadataObject):
                       "'{}'".format(self.attrs['name']))
             raise IncompatibleAreas("Areas are different")
 
-        return data_arrays
+    def check_areas(self, data_arrays):
+        """Check that the areas of the *data_arrays* are compatible."""
+        warnings.warn('satpy.composites.CompositeBase.check_areas is deprecated, use '
+                      'satpy.composites.CompositeBase.match_data_arrays instead')
+        return self.match_data_arrays(data_arrays)
 
 
 class SunZenithCorrectorBase(CompositeBase):
@@ -350,7 +375,7 @@ class SunZenithCorrectorBase(CompositeBase):
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
@@ -492,10 +517,12 @@ class PSPRayleighReflectance(CompositeBase):
         sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
         suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+
+        sat_lon, sat_lat, sat_alt = get_satpos(vis)
         sata, satel = get_observer_look(
-            vis.attrs['satellite_longitude'],
-            vis.attrs['satellite_latitude'],
-            vis.attrs['satellite_altitude'],
+            sat_lon,
+            sat_lat,
+            sat_alt,
             vis.attrs['start_time'],
             lons, lats, 0)
         satz = 90 - satel
@@ -508,11 +535,11 @@ class PSPRayleighReflectance(CompositeBase):
         """
         from pyspectral.rayleigh import Rayleigh
         if not optional_datasets or len(optional_datasets) != 4:
-            vis, red = self.check_areas(projectables)
+            vis, red = self.match_data_arrays(projectables)
             sata, satz, suna, sunz = self.get_angles(vis)
             red.data = da.rechunk(red.data, vis.data.chunks)
         else:
-            vis, red, sata, satz, suna, sunz = self.check_areas(
+            vis, red, sata, satz, suna, sunz = self.match_data_arrays(
                 projectables + optional_datasets)
             sata, satz, suna, sunz = optional_datasets
             # get the dask array underneath
@@ -655,13 +682,11 @@ class PSPAtmosphericalCorrection(CompositeBase):
         else:
             from pyorbital.orbital import get_observer_look
             lons, lats = band.attrs['area'].get_lonlats_dask(CHUNK_SIZE)
-
+            sat_lon, sat_lat, sat_alt = get_satpos(band)
             try:
-                dummy, satel = get_observer_look(band.attrs['satellite_longitude'],
-                                                 band.attrs[
-                                                     'satellite_latitude'],
-                                                 band.attrs[
-                                                     'satellite_altitude'],
+                dummy, satel = get_observer_look(sat_lon,
+                                                 sat_lat,
+                                                 sat_alt,
                                                  band.attrs['start_time'],
                                                  lons, lats, 0)
             except KeyError:
@@ -715,7 +740,7 @@ class DifferenceCompositor(CompositeBase):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         info = combine_metadata(*projectables)
         info['name'] = self.attrs['name']
 
@@ -772,7 +797,7 @@ class GenericCompositor(CompositeBase):
             # num may not be in `self.modes` so only check if we need to
             mode = self.modes[num]
         if len(projectables) > 1:
-            projectables = self.check_areas(projectables)
+            projectables = self.match_data_arrays(projectables)
             data = self._concat_datasets(projectables, mode)
             # Skip masking if user wants it or a specific alpha channel is given.
             if self.common_channel_mask and mode[-1] != 'A':
@@ -950,7 +975,7 @@ class DayNightCompositor(GenericCompositor):
 
     def __call__(self, projectables, **kwargs):
         """Generate the composite."""
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
 
         day_data = projectables[0]
         night_data = projectables[1]
@@ -1021,9 +1046,19 @@ def add_bands(data, bands):
     # Add R, G and B bands, remove L band
     if 'L' in data['bands'].data and 'R' in bands.data:
         lum = data.sel(bands='L')
-        new_data = xr.concat((lum, lum, lum), dim='bands')
-        new_data['bands'] = ['R', 'G', 'B']
-        data = new_data
+        # Keep 'A' if it was present
+        if 'A' in data['bands']:
+            alpha = data.sel(bands='A')
+            new_data = (lum, lum, lum, alpha)
+            new_bands = ['R', 'G', 'B', 'A']
+            mode = 'RGBA'
+        else:
+            new_data = (lum, lum, lum)
+            new_bands = ['R', 'G', 'B']
+            mode = 'RGB'
+        data = xr.concat(new_data, dim='bands', coords={'bands': new_bands})
+        data['bands'] = new_bands
+        data.attrs['mode'] = mode
     # Add alpha band
     if 'A' not in data['bands'].data and 'A' in bands.data:
         new_data = [data.sel(bands=band) for band in data['bands'].data]
@@ -1036,6 +1071,7 @@ def add_bands(data, bands):
         alpha['bands'] = 'A'
         new_data.append(alpha)
         new_data = xr.concat(new_data, dim='bands')
+        new_data.attrs['mode'] = data.attrs['mode'] + 'A'
         data = new_data
 
     return data
@@ -1052,7 +1088,7 @@ class RealisticColors(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Generate the composite."""
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         vis06 = projectables[0]
         vis08 = projectables[1]
         hrv = projectables[2]
@@ -1175,7 +1211,7 @@ class RatioSharpenedRGB(GenericCompositor):
 
         new_attrs = {}
         if optional_datasets:
-            datasets = self.check_areas(datasets + optional_datasets)
+            datasets = self.match_data_arrays(datasets + optional_datasets)
             high_res = datasets[-1]
             p1, p2, p3 = datasets[:3]
             if 'rows_per_scan' in high_res.attrs:
@@ -1201,7 +1237,7 @@ class RatioSharpenedRGB(GenericCompositor):
             g = self._get_band(high_res, p2, 'green', ratio)
             b = self._get_band(high_res, p3, 'blue', ratio)
         else:
-            datasets = self.check_areas(datasets)
+            datasets = self.match_data_arrays(datasets)
             r, g, b = datasets[:3]
 
         # combine the masks
@@ -1299,7 +1335,7 @@ class LuminanceSharpeningCompositor(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Generate the composite."""
         from trollimage.image import rgb2ycbcr, ycbcr2rgb
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         luminance = projectables[0].copy()
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
@@ -1333,7 +1369,7 @@ class SandwichCompositor(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Generate the composite."""
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         luminance = projectables[0]
         luminance /= 100.
         # Limit between min(luminance) ... 1.0
@@ -1343,3 +1379,97 @@ class SandwichCompositor(GenericCompositor):
         rgb_img = enhance2dataset(projectables[1])
         rgb_img *= luminance
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
+
+
+class StaticImageCompositor(GenericCompositor):
+    """A compositor that loads a static image from disk."""
+
+    def __init__(self, name, filename=None, area=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            filename (str): Filename of the image to load
+            area (str): Name of area definition for the image.  Optional
+                        for images with built-in area definitions (geotiff)
+        """
+        if filename is None:
+            raise ValueError("No image configured for static image compositor")
+        self.filename = filename
+        self.area = None
+        if area is not None:
+            from satpy.resample import get_area_def
+            self.area = get_area_def(area)
+
+        super(StaticImageCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, *args, **kwargs):
+        from satpy import Scene
+        scn = Scene(reader='generic_image', filenames=[self.filename])
+        scn.load(['image'])
+        img = scn['image']
+        # use compositor parameters as extra metadata
+        # most important: set 'name' of the image
+        img.attrs.update(self.attrs)
+        # Check for proper area definition.  Non-georeferenced images
+        # have None as .ndim
+        if img.area.ndim is None:
+            if self.area is None:
+                raise AttributeError("Area definition needs to be configured")
+            img.attrs['area'] = self.area
+        img.attrs['sensor'] = None
+        img.attrs['mode'] = ''.join(img.bands.data)
+        img.attrs.pop('modifiers', None)
+        img.attrs.pop('calibration', None)
+        # Add start time if not present in the filename
+        if 'start_time' not in img.attrs or not img.attrs['start_time']:
+            import datetime as dt
+            img.attrs['start_time'] = dt.datetime.utcnow()
+        if 'end_time' not in img.attrs or not img.attrs['end_time']:
+            import datetime as dt
+            img.attrs['end_time'] = dt.datetime.utcnow()
+
+        return img
+
+
+class BackgroundCompositor(GenericCompositor):
+    """A compositor that overlays one composite on top of another."""
+
+    def __call__(self, projectables, *args, **kwargs):
+        projectables = self.check_areas(projectables)
+
+        # Get enhanced datasets
+        foreground = enhance2dataset(projectables[0])
+        background = enhance2dataset(projectables[1])
+
+        # Adjust bands so that they match
+        # L/RGB -> RGB/RGB
+        # LA/RGB -> RGBA/RGBA
+        # RGB/RGBA -> RGBA/RGBA
+        foreground = add_bands(foreground, background['bands'])
+        background = add_bands(background, foreground['bands'])
+
+        # Get merged metadata
+        attrs = combine_metadata(foreground, background)
+
+        # Stack the images
+        if 'A' in foreground.mode:
+            # Use alpha channel as weight and blend the two composites
+            alpha = foreground.sel(bands='A')
+            data = []
+            # NOTE: there's no alpha band in the output image, it will
+            # be added by the data writer
+            for band in foreground.mode[:-1]:
+                fg_band = foreground.sel(bands=band)
+                bg_band = background.sel(bands=band)
+                chan = (fg_band * alpha + bg_band * (1 - alpha))
+                chan = xr.where(chan.isnull(), bg_band, chan)
+                data.append(chan)
+        else:
+            data = xr.where(foreground.isnull(), background, foreground)
+            # Split to separate bands so the mode is correct
+            data = [data.sel(bands=b) for b in data['bands']]
+
+        res = super(BackgroundCompositor, self).__call__(data, **kwargs)
+        res.attrs['area'] = attrs['area']
+
+        return res
