@@ -95,9 +95,12 @@ the base Satpy installation.
     * - MTSAT-2 Imager data in JMA HRIT format
       - `mtsat2-imager_hrit`
       - Beta
-    * - GOES 16 imager data in netcdf format
+    * - GOES-R imager data in netcdf format
       - `abi_l1b`
       - Nominal
+    * - NOAA GOES-R ABI L2+ products in netcdf format
+      - `abi_l2_nc`
+      - Beta
     * - GOES 11 to 15 imager data in HRIT format
       - `goes-imager_hrit`
       - Nominal
