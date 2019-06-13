@@ -1,6 +1,6 @@
 reader:
   description: Reader for Hydrology SAF products
-  name: hsaf
+  name: hsaf_grib
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [hsaf]
 
