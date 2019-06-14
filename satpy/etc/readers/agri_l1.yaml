@@ -27,7 +27,7 @@ datasets:
   C01:
     name: C01
     wavelength: [0.45, 0.47, 0.49]
-    resolution: 
+    resolution:
         1000: {file_type: agri_l1_1000m}
         2000: {file_type: agri_l1_2000m}
         4000: {file_type: agri_l1_4000m}
@@ -45,7 +45,7 @@ datasets:
   C02:
     name: C02
     wavelength: [0.55, 0.65, 0.75]
-    resolution: 
+    resolution:
         500: {file_type: agri_l1_0500m}
         1000: {file_type: agri_l1_1000m}
         2000: {file_type: agri_l1_2000m}
@@ -64,7 +64,7 @@ datasets:
   C03:
     name: C03
     wavelength: [0.75, 0.83, 0.90]
-    resolution: 
+    resolution:
         1000: {file_type: agri_l1_1000m}
         2000: {file_type: agri_l1_2000m}
         4000: {file_type: agri_l1_4000m}
@@ -82,7 +82,7 @@ datasets:
   C04:
     name: C04
     wavelength: [1.36, 1.37, 1.39]
-    resolution: 
+    resolution:
         2000: {file_type: agri_l1_2000m}
         4000: {file_type: agri_l1_4000m}
     calibration:
@@ -99,7 +99,7 @@ datasets:
   C05:
     name: C05
     wavelength: [1.58, 1.61, 1.64]
-    resolution: 
+    resolution:
         2000: {file_type: agri_l1_2000m}
         4000: {file_type: agri_l1_4000m}
     calibration:
@@ -116,7 +116,7 @@ datasets:
   C06:
     name: C06
     wavelength: [2.10, 2.22, 2.35]
-    resolution: 
+    resolution:
         2000: {file_type: agri_l1_2000m}
         4000: {file_type: agri_l1_4000m}
     calibration:
