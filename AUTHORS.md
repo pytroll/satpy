@@ -8,13 +8,8 @@ The following people have made contributions to this project:
 <!--- See https://gist.github.com/djhoese/52220272ec73b12eb8f4a29709be110d for auto-generating parts of this list --->
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
-<<<<<<< HEAD
 - [Andrew Brooks (howff)](https://github.com/howff)
 - [Barry Baker (bbakernoaa)](https://github.com/bbakernoaa)
-=======
-- [Barry Baker] (bbakernoaa)(https://github.com/bbakernoaa)
-- [Andrew Brooks (howff)](https://github.com/howff)
->>>>>>> Merge remote-tracking branch 'upstream/master'
 - Guido della Bruna - meteoswiss
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
 - [Colin Duff (ColinDuff)](https://github.com/ColinDuff)
@@ -56,9 +51,3 @@ The following people have made contributions to this project:
 - [hazbottles (hazbottles)](https://github.com/hazbottles)
 - [oananicola (oananicola)](https://github.com/oananicola)
 - [praerien (praerien)](https://github.com/praerien)
-<<<<<<< HEAD
-=======
-- [ralphk11 (ralphk11)](https://github.com/ralphk11)
-- [roquetp (roquetp)](https://github.com/roquetp)
-- [sjoro (sjoro)](https://github.com/sjoro)
->>>>>>> Merge remote-tracking branch 'upstream/master'

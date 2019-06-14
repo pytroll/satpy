@@ -1,33 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#
 # Copyright (c) 2019 Satpy developers
-
-# Author(s):
-
 #
-#   Barry Baker @bbakernoaa GitHub
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Daniel Hueholt <daniel.hueholt@noaa.gov>
-#   Tommy Jasmin <tommy.jasmin@ssec.wisc.edu>
+# This file is part of Satpy.
 #
-
-# This file is part of satpy.
-
-# satpy is free software: you can redistribute it and/or modify it under the
+# Satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+#
+# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
+# Satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""
-Interface to JPSS_GRAN (JPSS VIIRS Products (Granule)) format
-"""
+""" Interface to JPSS_GRAN (JPSS VIIRS Products (Granule)) format """
 import os
 import sys
 from datetime import datetime, timedelta
@@ -143,17 +133,13 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler):
             file_content['Smoke_Mask'].attrs['valid_range'] = [0, 3]
             file_content['Smoke_Mask/shape'] = (768, 3200)
         else:
-            print('filetype_info is: ', filetype_info)
-            print('filetype is: ', filetype_info['file_type'])
             assert False
 
         return file_content
 
 
 class TestVIIRSGRANReader(unittest.TestCase):
-    """
-    Test VIIRS GRAN reader
-    """
+    """ Test VIIRS GRAN reader """
     yaml_file = 'viirs_gran.yaml'
 
     def setUp(self):
