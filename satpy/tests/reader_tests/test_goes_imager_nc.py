@@ -1,32 +1,27 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2018 Pytroll Developers
-
-# Author(s):
-
+# Copyright (c) 2018 Satpy developers
 #
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 import datetime
 import sys
-
 
 import numpy as np
 import xarray as xr
 
 from satpy import DatasetID
-
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -279,6 +274,28 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     def test_get_dataset_counts(self):
         """Test whether counts returned by get_dataset() are correct"""
+        from satpy.readers.goes_imager_nc import ALTITUDE, UNKNOWN_SECTOR
+
+        self.reader.meta.update({'lon0': -75.0,
+                                 'lat0': 0.0,
+                                 'sector': UNKNOWN_SECTOR,
+                                 'nadir_row': 1,
+                                 'nadir_col': 2,
+                                 'area_def_uni': 'some_area'})
+        attrs_exp = {'orbital_parameters': {'projection_longitude': -75.0,
+                                            'projection_latitude': 0.0,
+                                            'projection_altitude': ALTITUDE,
+                                            'yaw_flip': True},
+                     'satellite_longitude': -75.0,
+                     'satellite_latitude': 0.0,
+                     'satellite_altitude': ALTITUDE,
+                     'platform_name': 'GOES-15',
+                     'sensor': 'goes_imager',
+                     'sector': UNKNOWN_SECTOR,
+                     'nadir_row': 1,
+                     'nadir_col': 2,
+                     'area_def_uniform_sampling': 'some_area'}
+
         for ch in self.channels:
             counts = self.reader.get_dataset(
                 key=DatasetID(name=ch, calibration='counts'), info={})
@@ -286,6 +303,9 @@ class GOESNCFileHandlerTest(unittest.TestCase):
             self.assertTrue(np.all(self.counts/32. == counts.to_masked_array()),
                             msg='get_dataset() returns invalid counts for '
                                 'channel {}'.format(ch))
+
+            # Check attributes
+            self.assertDictEqual(counts.attrs, attrs_exp)
 
     def test_get_dataset_masks(self):
         """Test whether data and coordinates are masked consistently"""
