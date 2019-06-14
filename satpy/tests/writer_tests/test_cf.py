@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright (c) 2017-2019 Satpy developers
-
-# This file is part of Satpy.
-
-# Satpy is free software: you can redistribute it and/or modify it under the
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
-# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
 # You should have received a copy of the GNU General Public License along with
-# Satpy. If not, see <http://www.gnu.org/licenses/>.
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the CF writer.
 """
 from collections import OrderedDict
@@ -35,6 +35,11 @@ try:
     from unittest import mock
 except ImportError:
     import mock
+
+try:
+    from pyproj import CRS
+except ImportError:
+    CRS = None
 
 
 class TempFile(object):
@@ -72,6 +77,43 @@ class TestCFWriter(unittest.TestCase):
             import h5netcdf as nc4
             with nc4.File(filename) as f:
                 self.assertTrue(all(f['test-array'][:] == [1, 2, 3]))
+                expected_prereq = ("DatasetID(name='hej', wavelength=None, "
+                                   "resolution=None, polarization=None, "
+                                   "calibration=None, level=None, modifiers=())")
+                self.assertEqual(f['test-array'].attrs['prerequisites'][0],
+                                 expected_prereq)
+
+    def test_save_array_coords(self):
+        """Test saving array with coordinates."""
+        from satpy import Scene
+        import xarray as xr
+        import numpy as np
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        coords = {
+            'x': np.arange(3),
+            'y': np.arange(1),
+        }
+        if CRS is not None:
+            proj_str = ('+proj=geos +lon_0=-95.0 +h=35786023.0 '
+                        '+a=6378137.0 +b=6356752.31414 +sweep=x '
+                        '+units=m +no_defs')
+            coords['crs'] = CRS.from_string(proj_str)
+        scn['test-array'] = xr.DataArray([[1, 2, 3]],
+                                         dims=('y', 'x'),
+                                         coords=coords,
+                                         attrs=dict(start_time=start_time,
+                                                    end_time=end_time,
+                                                    prerequisites=[DatasetID('hej')]))
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf')
+            import h5netcdf as nc4
+            with nc4.File(filename) as f:
+                self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
+                self.assertTrue(np.all(f['x'][:] == [0, 1, 2]))
+                self.assertTrue(np.all(f['y'][:] == [0]))
+                self.assertNotIn('crs', f)
                 expected_prereq = ("DatasetID(name='hej', wavelength=None, "
                                    "resolution=None, polarization=None, "
                                    "calibration=None, level=None, modifiers=())")

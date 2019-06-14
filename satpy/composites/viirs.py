@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2015-2018 PyTroll developers
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2015-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Composite classes for the VIIRS instrument.
 """
 
@@ -92,10 +87,10 @@ class ReflectanceCorrector(CompositeBase):
 
     def __call__(self, datasets, optional_datasets, **info):
         if not optional_datasets or len(optional_datasets) != 4:
-            vis = self.check_areas([datasets[0]])[0]
+            vis = self.match_data_arrays([datasets[0]])[0]
             sensor_aa, sensor_za, solar_aa, solar_za = self.get_angles(vis)
         else:
-            vis, sensor_aa, sensor_za, solar_aa, solar_za = self.check_areas(
+            vis, sensor_aa, sensor_za, solar_aa, solar_za = self.match_data_arrays(
                 datasets + optional_datasets)
             # get the dask array underneath
             sensor_aa = sensor_aa.data
