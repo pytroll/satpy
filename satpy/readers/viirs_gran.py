@@ -1,32 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#
 # Copyright (c) 2019 Satpy developers
-
-# Author(s):
-
 #
-#   Barry Baker @bbakernoaa GitHub
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Daniel Hueholt <daniel.hueholt@noaa.gov>
-#   Tommy Jasmin <tommy.jasmin@ssec.wisc.edu>
+# This file is part of Satpy.
 #
-
-# This file is part of satpy.
-
-# satpy is free software: you can redistribute it and/or modify it under the
+# Satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+#
+# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
+# Satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """
-Interface to JPSS_GRAN (JPSS VIIRS Products (Granule)) format
+Interface to JPSS_GRAN (JPSS VIIRS Products (Granule)) format. This reader
+works for all Environmental Data Records available through NOAA CLASS, except
+for Active Fires products, which have a unique format. viirs_edr_active_fires
+exists for those.
 """
 from datetime import datetime
 import numpy as np
@@ -34,9 +29,7 @@ from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 
 class VIIRSGRANFileHandler(NetCDF4FileHandler):
-    """
-    VIIRS GRAN reader
-    """
+    """ VIIRS GRAN reader """
 
     def _parse_datetime(self, datestr):
         """ Parses datetimes in file """

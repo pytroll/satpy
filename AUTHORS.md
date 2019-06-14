@@ -8,7 +8,7 @@ The following people have made contributions to this project:
 <!--- See https://gist.github.com/djhoese/52220272ec73b12eb8f4a29709be110d for auto-generating parts of this list --->
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
-- [Barry Baker] (bbakernoaa)(https://github.com/bbakernoaa)
+- [Barry Baker (bbakernoaa)](https://github.com/bbakernoaa)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
