@@ -15,21 +15,25 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Nowcasting SAF common PPS&MSG NetCDF/CF format reader
+"""Nowcasting SAF common PPS&MSG NetCDF/CF format reader.
+
+References:
+   - The NWCSAF GEO 2018 products documentation: http://www.nwcsaf.org/web/guest/archive
+
 """
 
 import logging
-from datetime import datetime
 import os
+from datetime import datetime
+
+import dask.array as da
+import xarray as xr
 
 import numpy as np
-import xarray as xr
-import dask.array as da
-
 from pyresample.utils import get_area_def
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
-from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +56,6 @@ PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
 
 
 class NcNWCSAF(BaseFileHandler):
-
     """NWCSAF PPS&MSG NetCDF reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
@@ -89,7 +92,7 @@ class NcNWCSAF(BaseFileHandler):
         self.sensor = SENSOR.get(self.platform_name, 'seviri')
 
     def remove_timedim(self, var):
-        """Remove time dimension from dataset"""
+        """Remove time dimension from dataset."""
         if self.pps and var.dims[0] == 'time':
             data = var[0, :, :]
             data.attrs = var.attrs
@@ -99,7 +102,6 @@ class NcNWCSAF(BaseFileHandler):
 
     def get_dataset(self, dsid, info):
         """Load a dataset."""
-
         dsid_name = dsid.name
         if dsid_name in self.cache:
             logger.debug('Get the data set from cache: %s.', dsid_name)
@@ -121,8 +123,7 @@ class NcNWCSAF(BaseFileHandler):
         return variable
 
     def scale_dataset(self, dsid, variable, info):
-        """Scale the data set, applying the attributes from the netCDF file"""
-
+        """Scale the data set, applying the attributes from the netCDF file."""
         variable = remove_empties(variable)
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
@@ -181,7 +182,7 @@ class NcNWCSAF(BaseFileHandler):
         return variable
 
     def upsample_geolocation(self, dsid, info):
-        """Upsample the geolocation (lon,lat) from the tiepoint grid"""
+        """Upsample the geolocation (lon,lat) from the tiepoint grid."""
         from geotiepoints import SatelliteInterpolator
         # Read the fields needed:
         col_indices = self.nc['nx_reduced'].values
@@ -231,6 +232,7 @@ class NcNWCSAF(BaseFileHandler):
         return area
 
     def __del__(self):
+        """Delete the instance."""
         if self._unzipped:
             try:
                 os.remove(self._unzipped)
@@ -270,7 +272,7 @@ class NcNWCSAF(BaseFileHandler):
                                      '%Y%m%dT%H%M%S%fZ')
 
     def _get_projection(self):
-        """Get projection from the NetCDF4 attributes"""
+        """Get projection from the NetCDF4 attributes."""
         try:
             proj_str = self.nc.attrs['gdal_projection']
         except TypeError:
