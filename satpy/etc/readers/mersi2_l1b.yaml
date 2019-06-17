@@ -560,7 +560,7 @@ datasets:
 
   longitude:
     name: longitude
-    units: degree_east
+    units: degrees_east
     standard_name: longitude
     resolution:
       1000:
@@ -571,7 +571,7 @@ datasets:
         file_key: Longitude
   latitude:
     name: latitude
-    units: degree_north
+    units: degrees_north
     standard_name: latitude
     resolution:
       1000:
