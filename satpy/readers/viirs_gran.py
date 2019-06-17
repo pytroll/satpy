@@ -5,7 +5,10 @@
 # Author(s):
 
 #
+#   Barry Baker @bbakernoaa GitHub
 #   David Hoese <david.hoese@ssec.wisc.edu>
+#   Daniel Hueholt <daniel.hueholt@noaa.gov>
+#   Tommy Jasmin <tommy.jasmin@ssec.wisc.edu>
 #
 
 # This file is part of satpy.
@@ -21,26 +24,26 @@
 
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to VIIRS L1B format
+
+"""Interface to JPSS_GRAN (JPSS VIIRS Products (Granule)) format
 
 """
-import logging
 from datetime import datetime
 import numpy as np
-from satpy.readers.netcdf_utils import NetCDF4FileHandler
-
-LOG = logging.getLogger(__name__)
+from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 
 class VIIRSGRANFileHandler(NetCDF4FileHandler):
-    """VIIRS L1B File Reader
+    """JPSS_GRAN reader
     """
 
     def _parse_datetime(self, datestr):
+        """ Parses datetimes in file """
         return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%SZ")
 
     @property
     def start_orbit_number(self):
+        """ Retrieves the starting orbit number from the file """
         try:
             return int(self['/attr/start_orbit_number'])
         except KeyError:
@@ -48,6 +51,7 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
 
     @property
     def end_orbit_number(self):
+        """ Retrieves the ending orbit number from the file """
         try:
             return int(self['/attr/end_orbit_number'])
         except KeyError:
@@ -55,6 +59,7 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
 
     @property
     def platform_name(self):
+        """ Retrieves the satellite name from the file """
         try:
             res = self.get('/attr/satellite_name',
                            self.filename_info['platform_shortname'])
@@ -70,41 +75,38 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
 
     @property
     def sensor_name(self):
+        """ Retrieves the starting orbit number from the file """
         res = self['/attr/instrument_name']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
-        else:
-            return res
+        return res
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
+        """ Adjusts factors to make sure that units always match between
+        the data and the output
+        """
         if factors is None or factors[0] is None:
             factors = [1, 0]
         if file_units == output_units:
-            LOG.debug("File units and output units are the same (%s)",
-                      file_units)
             return factors
         factors = np.array(factors)
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
-                      file_units, output_units)
             factors[::2] = np.where(factors[::2] != -999,
                                     factors[::2] * 10000.0, -999)
             factors[1::2] = np.where(factors[1::2] != -999,
                                      factors[1::2] * 10000.0, -999)
             return factors
-        elif file_units == "1" and output_units == "%":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
-                      file_units, output_units)
+        if file_units == "1" and output_units == "%":
             factors[::2] = np.where(factors[::2] != -999, factors[::2] * 100.0,
                                     -999)
             factors[1::2] = np.where(factors[1::2] != -999,
                                      factors[1::2] * 100.0, -999)
             return factors
-        else:
-            return factors
+        return factors
 
     def get_shape(self, ds_id, ds_info):
+        """ Retrieves shape of the dataset """
         var_path = ds_info.get('file_key',
                                'observation_data/{}'.format(ds_id.name))
         return self.get(var_path + '/shape', 1)
@@ -125,7 +127,8 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
             if file_units == "none":
                 file_units = "1"
 
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if (dataset_id.calibration == 'radiance' and
+                ds_info['units'] == 'W m-2 um-1 sr-1'):
             rad_units_path = var_path + '/attr/radiance_units'
             if rad_units_path in self:
                 if file_units is None:
@@ -140,10 +143,11 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
         return file_units
 
     def _get_dataset_valid_range(self, dataset_id, ds_info, var_path):
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if (dataset_id.calibration == 'radiance' and
+                ds_info['units'] == 'W m-2 um-1 sr-1'):
             rad_units_path = var_path + '/attr/radiance_units'
             if rad_units_path in self:
-                # we are getting a reflectance band but we want the radiance values
+                # given reflectance band, but want the radiance values
                 # special scaling parameters
                 scale_factor = self[var_path + '/attr/radiance_scale_factor']
                 scale_offset = self[var_path + '/attr/radiance_add_offset']
@@ -165,7 +169,7 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
             # use a special LUT to get the actual values
             lut_var_path = ds_info.get(
                 'lut', var_path + '_brightness_temperature_lut')
-            # we get the BT values from a look up table using the scaled radiance integers
+            # obtain BT values from lookup table using scaled radiance integers
             valid_min = self[lut_var_path + '/attr/valid_min']
             valid_max = self[lut_var_path + '/attr/valid_max']
             scale_factor = scale_offset = None
@@ -204,15 +208,62 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
         i.update(dataset_id.to_dict())
         return i
 
+    def available_datasets(self, configured_datasets=None):
+        """Automatically determine datasets provided by this file"""
+        # Determine shape of the geolocation data (lat/lon)
+        lat_shape = None
+        for var_name, val in self.file_content.items():
+            # Could probably avoid this hardcoding, will think on it
+            if var_name == 'Latitude':
+                lat_shape = self[var_name + "/shape"]
+                break
+        handled_variables = set()
+
+        # Update previously configured datasets
+        # Only geolocation variables, others generated dynamically
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                yield is_avail, ds_info
+            var_name = ds_info.get('file_key', ds_info['name'])
+            matches = self.file_type_matches(ds_info['file_type'])
+            # Can provide this dataset and more info
+            if matches and var_name in self:
+                handled_variables.add(var_name)
+                new_info = ds_info.copy()
+                yield True, new_info
+            elif is_avail is None:
+                yield is_avail, ds_info
+
+        # Sift through groups and variables for data matching lat/lon shape
+        for var_name, val in self.file_content.items():
+            # Only evaluate variables
+            if isinstance(val, netCDF4.Variable):
+                var_shape = self[var_name + "/shape"]
+                if var_shape == lat_shape:
+                    # Skip anything we have already configured
+                    if var_name in handled_variables:
+                        continue
+                    handled_variables.add(var_name)
+                    # Create new ds_info object. Copy over some attributes,
+                    # tune others or set from values in file.
+                    new_info = ds_info.copy()
+                    new_info['name'] = var_name.lower()
+                    new_info['resolution'] = 742
+                    new_info['units'] = self[var_name].units
+                    new_info['long_name'] = var_name
+                    new_info['file_key'] = var_name
+                    new_info['coordinates'] = ['longitude', 'latitude']
+                    yield True, new_info
+
     def get_dataset(self, dataset_id, ds_info):
-        var_path = ds_info.get('file_key',
-                               'observation_data/{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', dataset_id.name)
         metadata = self.get_metadata(dataset_id, ds_info)
         shape = metadata['shape']
 
-        valid_min, valid_max, scale_factor, scale_offset = self._get_dataset_valid_range(
-            dataset_id, ds_info, var_path)
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        valid_min, valid_max, scale_factor, scale_offset = \
+            self._get_dataset_valid_range(dataset_id, ds_info, var_path)
+        if (dataset_id.calibration == 'radiance'
+                and ds_info['units'] == 'W m-2 um-1 sr-1'):
             data = self[var_path]
         elif ds_info.get('units') == '%':
             data = self[var_path]
@@ -222,7 +273,7 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
             lut_var_path = ds_info.get(
                 'lut', var_path + '_brightness_temperature_lut')
             data = self[var_path]
-            # we get the BT values from a look up table using the scaled radiance integers
+            # obtain BT values from lookup table using scaled radiance integers
             index_arr = data.data.astype(np.int)
             coords = data.coords
             data.data = self[lut_var_path].data[index_arr.ravel()].reshape(
