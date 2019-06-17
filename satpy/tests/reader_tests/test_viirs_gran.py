@@ -17,7 +17,7 @@
 # You should have received a copy of the GNU General Public License along with
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-""" Interface to JPSS_GRAN (JPSS VIIRS Products (Granule)) format """
+""" Tests for the viirs_gran Satpy reader """
 import os
 import sys
 from datetime import datetime, timedelta
@@ -46,7 +46,7 @@ DEFAULT_LON_DATA = \
 DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
-class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler):
+class FakeNetCDF4FileHandlerGRAN(FakeNetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler"""
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content"""
@@ -143,22 +143,22 @@ class TestVIIRSGRANReader(unittest.TestCase):
     yaml_file = 'viirs_gran.yaml'
 
     def setUp(self):
-        ''' Wrap the netCDF4 file handler with the fake handler '''
+        """ Wrap the netCDF4 file handler with the fake handler """
         from satpy.config import config_search_paths
         from satpy.readers.viirs_gran import VIIRSGRANFileHandler
         self.reader_configs = config_search_paths(
             os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(
-            VIIRSGRANFileHandler, '__bases__', (FakeNetCDF4FileHandler3,))
+            VIIRSGRANFileHandler, '__bases__', (FakeNetCDF4FileHandlerGRAN,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
     def tearDown(self):
-        ''' Unwrap the netCDF4 file handler '''
+        """ Unwrap the netCDF4 file handler """
         self.p.stop()
 
     def test_init(self):
-        ''' Test basic initialization of the reader '''
+        """ Test basic initialization of the reader """
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -169,54 +169,17 @@ class TestVIIRSGRANReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 
-    def test_load_available_datasets(self):
-        """ Test loading datasets """
+    def test_load_example_dataset(self):
+        """ Test loading a dataset """
         from satpy.readers import load_reader
-        from satpy import DatasetID
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'JRR-CloudMask_v2r0_npp_s201903060621591'
             '_e201903060623233_c201903060804490.nc',
-            ])
+        ])
         r.create_filehandlers(loadables)
-        lat_shape = None
-        for var_name, val in self.file_content.items():
-            if var_name == 'Latitude':
-                lat_shape = self[var_name + "/shape"]
-                break
-        handled_variables = set()
-
-        for is_avail, ds_info in (configured_datasets or []):
-            if is_avail is not None:
-                yield is_avail, ds_info
-            var_name = ds_info.get('file_key', ds_info['name'])
-            matches = self.file_type_matches(ds_info['file_type'])
-            if matches and var_name in self:
-                handled_variables.add(var_name)
-                new_info = ds_info.copy()
-                yield True, new_info
-            elif is_avail is None:
-                yield is_avail, ds_info
-
-        for var_name, val in self.file_content.items():
-            if isinstance(val, netCDF4.Variable):
-                var_shape = self[var_name + "/shape"]
-                if var_shape == lat_shape:
-                    if var_name in handled_variables:
-                        continue
-                    handled_variables.add(var_name)
-                    new_info = ds_info.copy()
-                    new_info.update({
-                        'name': var_name.lower(),
-                        'resolution': 742,
-                        'units': self[var_name].units,
-                        'long_name': var_name,
-                        'file_key': var_name,
-                        'coordinates': ['longitude', 'latitude'],
-                    })
-                    datasets = r.load([DatasetID(new_info)])
-
-        self.assertEqual(len(datasets), 7)
+        example_dataset = r.load(['latitude'])
+        self.assertEqual(len(example_dataset), 1)
 
 
 def suite():
