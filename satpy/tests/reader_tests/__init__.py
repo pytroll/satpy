@@ -1,20 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
 #
-# This file is part of satpy.
+# Copyright (c) 2019 Satpy developers
 #
-# satpy is free software: you can redistribute it and/or modify it under the
+# This file is part of Satpy.
+#
+# Satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
 #
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
+# Satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The reader tests package.
 """
 
@@ -37,9 +38,8 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
                                       test_safe_sar_l2_ocn, test_viirs_edr_active_fires,
                                       test_hdfeos_base, test_modis_l2,
                                       test_electrol_hrit, test_mersi2_l1b,
-                                      test_avhrr_l1b_gaclac, test_vaisala_gld360,
-                                      test_fci_l1c_fdhsi, test_tropomi_l2,
-                                      test_hsaf_grib, test_viirs_gran)
+                                      test_avhrr_l1b_gaclac, test_fci_l1c_fdhsi,
+                                      test_viirs_gran)
 
 
 if sys.version_info < (2, 7):
@@ -90,10 +90,7 @@ def suite():
     mysuite.addTests(test_electrol_hrit.suite())
     mysuite.addTests(test_mersi2_l1b.suite())
     mysuite.addTests(test_avhrr_l1b_gaclac.suite())
-    mysuite.addTests(test_vaisala_gld360.suite())
     mysuite.addTests(test_fci_l1c_fdhsi.suite())
-    mysuite.addTests(test_tropomi_l2.suite())
-    mysuite.addTests(test_hsaf_grib.suite())
     mysuite.addTests(test_viirs_gran.suite())
 
     return mysuite
