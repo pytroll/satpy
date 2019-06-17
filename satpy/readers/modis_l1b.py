@@ -43,12 +43,6 @@ For the 500m and 250m data geolocation files are needed.
 References:
     - Modis gelocation description: http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
 """
-
-#following link is broken
-#- http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
-#3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&vie\
-#w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
-
 import logging
 
 import numpy as np
