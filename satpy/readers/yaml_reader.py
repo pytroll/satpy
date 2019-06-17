@@ -259,8 +259,6 @@ class FileYAMLReader(AbstractYAMLReader):
         self.available_ids = {}
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
-        if kwargs:
-            logger.warning("Unrecognized/unused reader keyword argument(s) '{}'".format(kwargs))
         self.coords_cache = WeakValueDictionary()
 
     @property
