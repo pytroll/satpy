@@ -34,11 +34,16 @@ class GeoTIFFWriter(ImageWriter):
 
     Basic example from Scene:
 
-        scn.save_datasets(writer='geotiff')
+        >>> scn.save_datasets(writer='geotiff')
 
     Un-enhanced float geotiff with NaN for fill values:
 
-        scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
+        >>> scn.save_datasets(writer='geotiff', dtype=np.float32, enhance=False)
+
+    To add custom metadata use `tags`:
+
+        >>> scn.save_dataset(dataset_name, writer='geotiff',
+        ...                  tags={'offset': 291.8, 'scale': -0.35})
 
     For performance tips on creating geotiffs quickly and making them smaller
     see the :doc:`faq`.
@@ -139,6 +144,7 @@ class GeoTIFFWriter(ImageWriter):
                 ``img`` object. The colormap's range should be set to match
                 the index range of the palette
                 (ex. `cmap.set_range(0, len(colors))`).
+            tags (dict): Extra metadata to store in geotiff.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
