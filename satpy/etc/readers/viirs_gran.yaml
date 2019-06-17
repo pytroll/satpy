@@ -1,0 +1,1164 @@
+reader:
+  description: Generic NASA VIIRS L1B Reader
+  name: viirs_gran
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [viirs]
+  default_datasets:
+
+navigations:
+  jrradp:
+      description: VIIRS Granual M-band Navigation
+      file_type: jrradp
+      latitude_key: Latitude
+      longitude_key: Longitude
+      nadir_resolution: [742]
+
+file_types:
+  jrradp:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-ADP_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrraod:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-AOD_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrvol:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-VolcanicAsh_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrriceage:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-IceAge_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrriceconcentration:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-IceConcentration_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrsnowcover:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-SnowCover_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  surfrefl:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'SurfRefl_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrcloudheight:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudHeight_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  activefires:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'AF_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrclouddcomp:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudDCOMP_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrcloudbase:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudBase_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrcloudmask:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudMask_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrcloudphase:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudPhase_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrcloudncomp:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-CloudNCOMP_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrsurfalb:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-SURFALB_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+  jrrlst:
+    file_reader: !!python/name:satpy.readers.viirs_gran.VIIRSGRANFileHandler
+    file_patterns:
+    - 'JRR-LST_v{version_number:%f}r{release_number:%f}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+
+datasets:
+  jrradp_lon:
+    name: jrradp_lon
+    resolution: 742
+    file_type: jrradp
+    file_key: Longitude
+    units: degrees
+    standard_name: longitude
+  jrradp_lat:
+    name: jrradp_lat
+    resolution: 742
+    file_type: jrradp
+    file_key: Latitude
+    units: degrees
+    standard_name: latitude
+  jrraod_lat:
+    name: jrraod_lat
+    standard_name: latitude
+    resolution: 742
+    units: degrees_north
+    file_type: jrraod
+    long_name: 'Latitude'
+    file_key: Latitude
+  jrraod_lon:
+    name: jrraod_lon
+    standard_name: longitude
+    resolution: 742
+    units: degrees_east
+    file_type: jrraod
+    long_name: 'Longitude'
+    file_key: Longitude
+  jrrvol_lon:
+    name: jrrvol_lon
+    resolution: 742
+    file_type: jrrvol
+    file_key: Longitude
+    units: degrees
+    standard_name: longitude
+  jrrvol_lat:
+    name: jrrvol_lat
+    resolution: 742
+    file_type: jrrvol
+    file_key: Latitude
+    units: degrees
+    standard_name: latitude
+  ## -------------- JRR-APD ---------------
+  dust:
+    name: dust
+    standard_name: dust_flag
+    resolution: 742
+    units: 1
+    coordinates: [jrradp_lon, jrradp_lat]
+    file_type: jrradp
+    file_key: Dust
+  cloud:
+    name: cloud
+    standard_name: cloud_flag
+    resolution: 742
+    units: 1
+    coordinates: [jrradp_lon, jrradp_lat]
+    file_type: jrradp
+    file_key: Cloud
+  ash:
+    name: ash
+    standard_name: volcanic_ash_flag
+    resolution: 742
+    units: 1
+    coordinates: [jrradp_lon, jrradp_lat]
+    file_type: jrradp
+    file_key: Ash
+  smoke:
+    name: smoke
+    standard_name: smoke_flag
+    resolution: 742
+    units: 1
+    coordinates: [jrradp_lon, jrradp_lat]
+    file_type: jrradp
+    file_key: Smoke
+  nuc:
+    name: nuc
+    standard_name: none_unknown_clearsky_flag
+    resolution: 742
+    units: 1
+    coordinates: [jrradp_lon, jrradp_lat]
+    file_type: jrradp
+    file_key: NUC
+  snowice:
+    name: snowice
+    standard_name: snow_ice_flag
+    resolution: 742
+    units: 1
+    coordinates: [jrradp_lon, jrradp_lat]
+    long_name: 'Snow Ice Flag: 1 Yes, 0 No'
+    file_type: jrradp
+    file_key: SnowIce
+  qc_flag:
+    name: qc_flag
+    standard_name: qc_flag
+    long_name: 'Quality Flag for Ash, Smoke, Dust and NUC (see Table 3 in ATBD)'
+    resolution: 742
+    units: 1
+    coordinates: [jrradp_lon, jrradp_lat]
+    file_type: jrradp
+    file_key: QC_Flag
+  ## ----------------- Volcanic Ash ------------------
+  ash_confidence:
+    name: ash_confidence
+    standard_name: dust_flag
+    resolution: 742
+    units:
+    long_name:  Ash Confidence
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshConfidence
+  ash_confidence_multi:
+    name: AshConfidenceMulti
+    standard_name: cloud_flag
+    resolution: 742
+    units:
+    long_name:  Ash Confidence Multi
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshConfidenceMulti
+  ash_qpi:
+    name: ash_qpi
+    standard_name: ash_qpi
+    resolution: 742
+    units:
+    long_name: Ash Detection Product Quality Information
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    valid_range: [-128  127]
+    file_type: jrrvol
+    file_key: Ash
+  ash_qf:
+    name: ashqf
+    standard_name: ash_quality_flag
+    resolution: 742
+    long_name: "Ash Detection Quality Flag"
+    units:
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    valid_range:  [-128  127]
+    file_type: jrrvol
+    file_key: AshDetectionQF
+  cldb1122_totlrc:
+    name: cldb1122_totlrc
+    standard_name: cldb1122_totlrc
+    resolution: 742
+    units:
+    long_name:  Beta (12/11 um) for single layered clouds at LRC
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: CldB1112_TotLRC
+  cldb1122_tot:
+    name: cldb1122_tot
+    standard_name: cldb1122_tot
+    resolution: 742
+    units:
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    long_name: Beta (12/11 um) for single layered clouds
+    file_type: jrrvol
+    file_key: CldB1112_Tot
+  cldb8511_totlrc:
+    name: cldb8511_totlrc
+    standard_name: cldb8511_totlrc
+    long_name: Beta (8.5/11 um) for single layered clouds at LRC
+    resolution: 742
+    units:
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: CldB8511_TotLRC
+  clcldb8511_tot:
+    name: clcldb8511_tot
+    standard_name: clcldb8511_tot
+    long_name:  Beta (8.5/11 um) for single layered clouds
+    resolution: 742
+    units:
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: CldB8511_Tot
+  emisseh14_tot:
+    name: emisseh14_tot
+    long_name:  11 um cloud emissivity array for single layered clouds
+    standard_name: emisseh14_tot
+    resolution: 742
+    units:
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: EmissCh14_Tot
+  emissch11_tot:
+    name: emissch11_tot
+    standard_name: emissch11_tot
+    long_name:  8.5 um cloud emissivity array for single layered clouds
+    resolution: 742
+    units:
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: EmissCh11_Tot
+  ashtoptemp:
+    name: ash_top_temp
+    standard_name: Ash Top Temperature
+    resolution: 742
+    units: K
+    valid_range:  [180., 340.]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshTopTemp
+  ashtemperr:
+    name: ash_temp_error
+    standard_name:  Estimated error in ash temperature
+    resolution: 742
+    units: K
+    valid_range:  [180., 340.]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshTempErr
+  ashtoppres:
+    name: ash_top_pres
+    standard_name: Ash Top Pressure
+    resolution: 742
+    units: hPa
+    valid_range:  [0., 110.]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshTopPress
+  ashpresserr:
+    name: ash_pressure_error
+    standard_name: Estimated error in ash pressure
+    resolution: 742
+    units: hPa
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshPressErr
+  ashtopheight:
+    name: ashtopheight
+    standard_name: ashtopheight
+    resolution: 742
+    units: m
+    valid_range: [ 0., 30000.]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshTopHeight
+  ashemis:
+    name: ash_emis
+    standard_name: Ash Emissivity at 11um
+    resolution: 742
+    units:
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshEmiss
+  asheffrad:
+    name: ash_eff_rad
+    standard_name: Ash Effective Particle Size
+    resolution: 742
+    units: microns
+    valid_range:  [0., 20.]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshEffRad
+  ashod_vis:
+    name: ash_aod_vis
+    standard_name: Ash visible optical depth
+    resolution: 742
+    units:
+    valid_range: [ 0., 100.]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshOD_VIS
+  ashod_ir:
+    name: ash_aod_ir
+    standard_name: Ash infrared optical depth
+    resolution: 742
+    units:
+    valid_range: [ 0., 100.]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshOD_IR
+  ash_beta:
+    name: ash_beta
+    standard_name: Ash Beta value for 11 and 12 microns
+    resolution: 742
+    units:
+    valid_range: [ 0., 100.]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshBeta
+  ash_mass:
+    name: ash_mass_loading
+    standard_name: Ash Mass Loading
+    resolution: 742
+    units: tons/km^2
+    valid_range: [ 0., 70.]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: AshMassLoading
+  ash_qf_vol:
+    name: ash_qf_vol
+    standard_name: Ash Retrieval Quality Flag
+    resolution: 742
+    units:
+    valid_range:  [-128 , 127]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: Ash_QF
+  ash_pqi:
+    name: ash_pqi
+    standard_name: Ash Retrieval Product Quality Information
+    resolution: 742
+    units:
+    valid_range:  [-128 , 127]
+    coordinates: [jrrvol_lon, jrrvol_lat]
+    file_type: jrrvol
+    file_key: Ash_QF
+  ## --------------------------------- AOD ------------------------------------
+  qcextn:
+    name: qcextn
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'External flags from input masks: bit 0&1: cloud (0-confClr/1-probClr/2-probCld/3-confCld); bit 2: snow (0-No/1-Yes); bit 3: cloud shadow; bit 4: fire; bit 5: sun glint; bit 6: Heavy aerosol'
+    valid_range: [-128  127]
+    file_key: QCExtn
+  qctest:
+    name: qctest
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Flags for internal tests (0-No/1-Yes): bit 0: cloudy; bit 1: cirrus; bit 2: thin cirrus; bit 3: inhomogeneous; bit 4: snow/ice; bit 5: ephemeral water; bit 6: shallow water; bit 7: heavy aerosol'
+    valid_range: [-128  127]
+    file_key: QCTest
+  qcinput:
+    name: qcinput
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Flags for input data (0-valid/1-invalid): bit 0: geolocation;  bit 1: geometry; bit 2: ancillary model data; bit 3: reflectance'
+    valid_range: [ 0 15]
+    file_key: QCInput
+  qcpath:
+    name: qcpath
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Flags for retrieval path (0-No/1-Yes): bit 0: retrieval over water; bit 1: over bright land; bit 2: over glint water; bit 3: retrieval with SW scheme over land; bit 4: retrieval with SWIR scheme over land; bit 5: retrieval over bright-land algorithm'
+    valid_range: [ 0 31]
+    file_key: QCPath
+  qcret:
+    name: qcret
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Flags for retrieval (0-No/1-Yes): bit 0: retrieval failed; bit 1: low sun; bit 2: dark barren land surface type; bit 3: extrapolation involved; bit 4: retrieval residula out of range; bit 5: dark land NDVI out of range; bit 6: dark land redness ratio out of range; bit 7: adjacent to cloud or snow'
+    valid_range: [-128  127]
+    file_key: QCRet
+  qcall:
+    name: qcall
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Retrieval quality:  0: high; 1: medium; 2: low; 3: no retrieval'
+    valid_range: [0 3]
+    file_key: QCAll
+  finemdlidx:
+    name: finemdlidx
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Retrieved fine aerosol model index over ocean'
+    valid_range: [1 4]
+    file_key: FineMdlIdx
+  coarsemdlidx:
+    name: coarsemdlidx
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Retrieved coarse aerosol model index over ocean'
+    valid_range: [1 5]
+    file_key: CoarseMdlIdx
+  finemodwgt:
+    name: finemodwgt
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Retrieved ratio of fine mode optical depth at 0.55 micron over ocean'
+    valid_range: [0. 1.]
+    file_key: FineModWgt
+  aermdl:
+    name: aermdl
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Aerosol model: 0-oceanic, 1-dust, 2-generic, 3-urban, 4-heavy smoke'
+    valid_range: [0 4]
+    file_key: AerMdl
+  aod550:
+    name: aod550
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Aerosol optical depth at 550 nm'
+    valid_range: [-0.05  5.  ]
+    file_key: AOD550
+  aod_channel:
+    name: aod_channel
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Aerosol optical depth in selected channels'
+    valid_range: [ 0. 12.]
+    file_key: AOD_channel
+  angsexp1:
+    name: angsexp1
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Angstrom exponent for M4 vs M7 over ocean'
+    valid_range: [-1.  3.]
+    file_key: AngsExp1
+  angsexp2:
+    name: angsexp2
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Angstrom exponent for M7 vs M10 over ocean'
+    valid_range: [-1.  3.]
+    file_key: AngsExp2
+  sfcrefl:
+    name: sfcrefl
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'surface reflectance in selected channels'
+    valid_range: [0. 1.]
+    file_key: SfcRefl
+  spastddev:
+    name: spastddev
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Inhomogeneity TOA reflectance standard deviation: M1 over land, M11 over ocean'
+    valid_range: [0. 1.]
+    file_key: SpaStddev
+  residual:
+    name: residual
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Retrieval residual of the best solution'
+    valid_range: [  0. 999.]
+    file_key: Residual
+  aod550lndmdl:
+    name: aod550lndmdl
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Retrieval AOD550 for each land aerosol model: dust, generic, urban, smoke'
+    valid_range: [-0.05  5.  ]
+    file_key: AOD550LndMdl
+  reslndmdl:
+    name: reslndmdl
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrraod_lon, jrraod_lat]
+    file_type: jrraod
+    long_name: 'Retrieval residual for each land aerosol model: dust, generic, urban, smoke'
+    valid_range: [  0. 999.]
+    file_key: ResLndMdl
+  ## ------------ ICE AGE ------------------------------------------------------
+  jrriceage_lat:
+    name: jrriceage_lat
+    standard_name: latitude
+    resolution: 742
+    units: degrees_north
+    file_type: jrriceage
+    long_name: 'Latitude'
+    file_key: Latitude
+  jrriceage_lon:
+    name: jrriceage_lon
+    standard_name: longitude
+    resolution: 742
+    units: degrees_east
+    file_type: jrriceage
+    long_name: 'Longitude'
+    file_key: Longitude
+  iceage:
+    name: iceage
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrriceage_lon, jrriceage_lat]
+    file_type: jrriceage
+    long_name: 'Ice Age classification numbers(1-8)'
+    valid_range: [0 8]
+    file_key: IceAge
+  icethickness:
+    name: icethickness
+    standard_name:
+    resolution: 742
+    units: meter
+    coordinates: [jrriceage_lon, jrriceage_lat]
+    file_type: jrriceage
+    long_name: 'Ice thickness'
+    valid_range: [   0. 9999.]
+    file_key: IceThickness
+  qcflags:
+    name: qcflags
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrriceage_lon, jrriceage_lat]
+    file_type: jrriceage
+    long_name: 'QC Flags'
+    file_key: QCFlags
+  prodqualinfo:
+    name: prodqualinfo
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrriceage_lon, jrriceage_lat]
+    file_type: jrriceage
+    long_name: 'Product qualiity information'
+    file_key: ProdQualInfo
+  ## ------------------------ Ice Concentration --------------------------------
+  jrriceconcentration_lat:
+    name: jrriceconcentration_lat
+    standard_name: latitude
+    resolution: 742
+    units: degrees_north
+    file_type: jrriceconcentration
+    long_name: 'Latitude'
+    file_key: Latitude
+  jrriceconcentration_lon:
+    name: jrriceconcentration_lon
+    standard_name: longitude
+    resolution: 742
+    units: degrees_east
+    file_type: jrriceconcentration
+    long_name: 'Longitude'
+    file_key: Longitude
+  icemap:
+    name: icemap
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrriceconcentration_lon, jrriceconcentration_lat]
+    file_type: jrriceconcentration
+    long_name: 'Ice Cover map codes'
+    valid_range: [-2  2]
+    file_key: IceMap
+  iceconc:
+    name: iceconc
+    standard_name:
+    resolution: 742
+    units: '%'
+    coordinates: [jrriceconcentration_lon, jrriceconcentration_lat]
+    file_type: jrriceconcentration
+    long_name: 'Ice Concentration'
+    valid_range: [  0. 100.]
+    file_key: IceConc
+  icesrftemp:
+    name: icesrftemp
+    standard_name:
+    resolution: 742
+    units: Kelvin(K)
+    coordinates: [jrriceconcentration_lon, jrriceconcentration_lat]
+    file_type: jrriceconcentration
+    long_name: 'Ice Surface Temp'
+    valid_range: [100. 390.]
+    file_key: IceSrfTemp
+  icon_qcflags:
+    name: qcflags
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrriceconcentration_lon, jrriceconcentration_lat]
+    file_type: jrriceconcentration
+    long_name: 'QCFlags'
+    file_key: QCFlags
+  ## ------------------- SNOW COVER --------------------------------------------
+  jrrsnowcover_lat:
+    name: jrrsnowcover_lat
+    standard_name: latitude
+    resolution: 742
+    units: degrees_north
+    file_type: jrrsnowcover
+    long_name: 'Latitude'
+    file_key: Latitude
+  jrrsnowcover_lon:
+    name: jrrsnowcover_lon
+    standard_name: longitude
+    resolution: 742
+    units: degrees_east
+    file_type: jrrsnowcover
+    long_name: 'Longitude'
+    file_key: Longitude
+  snowmask:
+    name: snowmask
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrsnowcover_lon, jrrsnowcover_lat]
+    file_type: jrrsnowcover
+    long_name: 'Snow Mask'
+    file_key: SnowMask
+  snowmaskquality:
+    name: snowmaskquality
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrsnowcover_lon, jrrsnowcover_lat]
+    file_type: jrrsnowcover
+    long_name: 'Snow Mask Quality'
+    file_key: SnowMaskQuality
+  snowfraction:
+    name: snowfraction
+    standard_name:
+    resolution: 742
+    units: '%'
+    coordinates: [jrrsnowcover_lon, jrrsnowcover_lat]
+    file_type: jrrsnowcover
+    long_name: 'Reflectance-based Snow Fraction, primary'
+    file_key: SnowFraction
+  snowfractionquality:
+    name: snowfractionquality
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrsnowcover_lon, jrrsnowcover_lat]
+    file_type: jrrsnowcover
+    long_name: 'Reflectance-based Snow Fraction Quality, primary'
+    file_key: SnowFractionQuality
+  ndsisnowfraction:
+    name: ndsisnowfraction
+    standard_name:
+    resolution: 742
+    units: '%'
+    coordinates: [jrrsnowcover_lon, jrrsnowcover_lat]
+    file_type: jrrsnowcover
+    long_name: 'NDSI-based Snow Fraction, secondary'
+    file_key: NDSISnowFraction
+  ndsisnowfractionquality:
+    name: ndsisnowfractionquality
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrsnowcover_lon, jrrsnowcover_lat]
+    file_type: jrrsnowcover
+    long_name: 'NDSI-based Snow Fraction Quality, secondary'
+    file_key: NDSISnowFractionQuality
+  ## --------------------- SURFACE Reflectance ---------------------------------
+  sr_i1:
+    name: sr_i1
+    standard_name:
+    resolution: 371
+    units: unitless
+    coordinates: [sr_i_lon, sr_i_lat]
+    file_type: surfrefl
+    file_key: 375m Surface Reflectance Band I1
+  sr_i2:
+    name: sr_i2
+    standard_name:
+    resolution: 371
+    units: unitless
+    coordinates: [sr_i_lon, sr_i_lat]
+    file_type: surfrefl
+    file_key: 375m Surface Reflectance Band I2
+  sr_i3:
+    name: sr_i3
+    standard_name:
+    resolution: 371
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 375m Surface Reflectance Band I3
+  sr_m1:
+    name: sr_m1
+    standard_name:
+    resolution: 742
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 750m Surface Reflectance Band M1
+  sr_m10:
+    name: sr_m10
+    standard_name:
+    resolution: 742
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 750m Surface Reflectance Band M10
+  sr_m11:
+    name: sr_m11
+    standard_name: sr_m11
+    resolution: 742
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 750m Surface Reflectance Band M11
+  sr_m2:
+    name: sr_m2
+    standard_name: sr_m2
+    resolution: 742
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 750m Surface Reflectance Band M2
+  sr_m3:
+    name: sr_m3
+    standard_name: sr_m3
+    resolution: 742
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 750m Surface Reflectance Band M3
+  sr_m4:
+    name: sr_m4
+    standard_name: sr_m4
+    resolution: 742
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 750m Surface Reflectance Band M4
+  sr_m5:
+    name: sr_m5
+    standard_name: sr_m5
+    resolution: 742
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 750m Surface Reflectance Band M5
+  sr_m7:
+    name: sr_m7
+    standard_name: sr_m7
+    resolution: 742
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 750m Surface Reflectance Band M7
+  sr_m8:
+    name: sr_m8
+    standard_name: sr_m8
+    resolution: 742
+    units: unitless
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: 750m Surface Reflectance Band M8
+  sr_qf1:
+    name: sr_qf1
+    standard_name: sr_qf1
+    resolution: 742
+    units:
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: QF1 Surface Reflectance
+  sr_qf2:
+    name: sr_qf2
+    standard_name: sr_qf2
+    resolution: 742
+    units:
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: QF2 Surface Reflectance
+  sr_qf3:
+    name: sr_qf3
+    standard_name: sr_qf3
+    resolution: 742
+    units:
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: QF3 Surface Reflectance
+  sr_qf4:
+    name: sr_qf4
+    standard_name:
+    resolution: 742
+    units:
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: QF4 Surface Reflectance
+  sr_qf5:
+    name: sr_qf5
+    standard_name: sr_qf5
+    resolution: 742
+    units:
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: QF5 Surface Reflectance
+  sr_qf6:
+    name: sr_qf6
+    standard_name: sr_qf6
+    resolution: 742
+    units:
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: QF6 Surface Reflectance
+  sr_qf7:
+    name: sr_qf7
+    standard_name:
+    resolution: 742
+    units:
+    coordinates: [sr_m_lon, sr_m_lat]
+    file_type: surfrefl
+    file_key: QF7 Surface Reflectance
+  sr_i_lat:
+    name: sr_i_lat
+    standard_name: latitude
+    resolution: 371
+    units: degrees_north
+    file_type: surfrefl
+    file_key: Latitude_at_375m_resolution
+  sr_i_lon:
+    name: sr_i_lon
+    standard_name: longitude
+    resolution: 371
+    units: degrees_east
+    file_type: surfrefl
+    file_key: Longitude_at_375m_resolution
+  sr_m_lat:
+    name: sr_m_lat
+    standard_name: latitude
+    resolution: 742
+    units: degrees_north
+    file_type: surfrefl
+    file_key: Latitude_at_750m_resolution
+  sr_m_lon:
+    name: sr_m_lon
+    standard_name: longitude
+    resolution: 742
+    units: degrees_east
+    file_type: surfrefl
+    file_key: Longitude_at_750m_resolution
+## ------------------------------ Cloud height ---------------------------------
+  jrrcloudheight_lat:
+    name: jrrcloudheight_lat
+    standard_name: latitude
+    resolution: 742
+    units: degrees_north
+    file_type: jrrcloudheight
+    long_name: 'Latitude'
+    file_key: Latitude
+  jrrcloudheight_lon:
+    name: jrrcloudheight_lon
+    standard_name: longitude
+    resolution: 742
+    units: degrees_east
+    file_type: jrrcloudheight
+    long_name: 'Longitude'
+    file_key: Longitude
+  cldtoptemp:
+    name: cldtoptemp
+    standard_name:
+    resolution: 742
+    units: Kelvin
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cloud Top Temperature'
+    valid_range: [180. 340.]
+    file_key: CldTopTemp
+  cldtoppres:
+    name: cldtoppres
+    standard_name:
+    resolution: 742
+    units: hPa
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cloud Top Presssure'
+    valid_range: [   0. 1100.]
+    file_key: CldTopPres
+  cldtophght:
+    name: cldtophght
+    standard_name:
+    resolution: 742
+    units: Meter
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cloud Top Height'
+    valid_range: [ -300. 20000.]
+    file_key: CldTopHght
+  cldhgtflag:
+    name: cldhgtflag
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cloud Height Processing Flag'
+    valid_range: [0 6]
+    file_key: CldHgtFlag
+  cldpackedflag:
+    name: cldpackedflag
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cloud Height Diagnostic Flag'
+    valid_range: [-128  127]
+    file_key: CldPackedFlag
+  cldtopemss:
+    name: cldtopemss
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cloud Top Emissivity'
+    valid_range: [0. 1.]
+    file_key: CldTopEmss
+  cldoptdpth:
+    name: cldoptdpth
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: ''
+    valid_range: [  0. 150.]
+    file_key: CldOptDpth
+  cloudhgtqf:
+    name: cloudhgtqf
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cloud Height Quality Flag'
+    valid_range: [0 6]
+    file_key: CloudHgtQF
+  cloudlayer:
+    name: cloudlayer
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cloud Layer'
+    valid_range: [0 3]
+    file_key: CloudLayer
+  layer_frac:
+    name: layer_frac
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cloud Layer 5 Layers'
+    valid_range: [0. 1.]
+    file_key: Layer_Frac
+  inverflag:
+    name: inverflag
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Inversion Flag'
+    valid_range: [0 1]
+    file_key: InverFlag
+  tcerror:
+    name: tcerror
+    standard_name:
+    resolution: 742
+    units: Kelvin
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Tc Error'
+    valid_range: [  0. 100.]
+    file_key: TcError
+  pcerror:
+    name: pcerror
+    standard_name:
+    resolution: 742
+    units: hPa
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Pc Error'
+    valid_range: [   0. 1000.]
+    file_key: PcError
+  zcerror:
+    name: zcerror
+    standard_name:
+    resolution: 742
+    units: Meter
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Zc Error'
+    valid_range: [    0. 10000.]
+    file_key: ZcError
+  cost:
+    name: cost
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Cost'
+    valid_range: [   0. 1000.]
+    file_key: Cost
+  total_cloud_fraction_uncer:
+    name: total_cloud_fraction_uncer
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Total Cloud Fraction Uncertainty'
+    valid_range: [0. 1.]
+    file_key: Total_Cloud_Fraction_Uncer
+  total_cloud_fraction:
+    name: total_cloud_fraction
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Total Cloud Fraction'
+    valid_range: [0. 1.]
+    file_key: Total_Cloud_Fraction
+  shadow_mask:
+    name: shadow_mask
+    standard_name:
+    resolution: 742
+    units: 1
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Shadow Mask'
+    valid_range: [0 1]
+    file_key: Shadow_Mask
+  sc_cld_prob:
+    name: sc_cld_prob
+    standard_name:
+    resolution: 742
+    units: '%'
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Supercooled Cld Prob'
+    valid_range: [0. 1.]
+    file_key: SC_Cld_Prob
+  conv_cld_prob:
+    name: conv_cld_prob
+    standard_name:
+    resolution: 742
+    units: '%'
+    coordinates: [jrrcloudheight_lon, jrrcloudheight_lat]
+    file_type: jrrcloudheight
+    long_name: 'Convective Cld Prob'
+    valid_range: [0. 1.]
+    file_key: Conv_Cld_Prob
