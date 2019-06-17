@@ -34,9 +34,7 @@ from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 
 class VIIRSGRANFileHandler(NetCDF4FileHandler):
-    """
-    VIIRS GRAN reader
-    """
+    """ VIIRS GRAN reader """
 
     def _parse_datetime(self, datestr):
         """ Parses datetimes in file """

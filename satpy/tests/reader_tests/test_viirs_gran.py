@@ -186,6 +186,6 @@ def suite():
     """ The test suite for test_viirs_gran """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.AddTest(loader.loadTestsFromTestCase(TestVIIRSGRANReader))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSGRANReader))
 
     return mysuite
