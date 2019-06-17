@@ -531,8 +531,12 @@ class TestFindFilesAndReaders(unittest.TestCase):
 
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
-        from satpy.readers import configs_for_reader
-        self.assertRaises(ValueError, list, configs_for_reader('hrit_jma'))
+        from satpy.readers import configs_for_reader, OLD_READER_NAMES
+        if not OLD_READER_NAMES:
+            return unittest.skip("Skipping deprecated reader tests because "
+                                 "no deprecated readers.")
+        test_reader = sorted(OLD_READER_NAMES.keys())[0]
+        self.assertRaises(ValueError, list, configs_for_reader(test_reader))
 
 
 class TestYAMLFiles(unittest.TestCase):
