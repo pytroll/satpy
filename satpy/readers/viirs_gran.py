@@ -208,17 +208,15 @@ class VIIRSGRANFileHandler(NetCDF4FileHandler):
                     if var_name in handled_variables:
                         continue
                     handled_variables.add(var_name)
-                    # Create new ds_info object. Copy over some attributes,
-                    # tune others or set from values in file.
-                    new_info = ds_info.copy()
-                    new_info.update({
+                    new_info = {
                         'name': var_name.lower(),
                         'resolution': 742,
                         'units': self[var_name].units,
                         'long_name': var_name,
                         'file_key': var_name,
+                        'file_type': self.filetype_info['file_type'],
                         'coordinates': ['longitude', 'latitude'],
-                    })
+                    }
                     yield True, new_info
 
     def get_dataset(self, dataset_id, ds_info):
