@@ -135,7 +135,7 @@ import dask
 import dask.array as da
 
 from pyresample.ewa import fornav, ll2cr
-from pyresample.geometry import SwathDefinition, AreaDefinition
+from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import XArrayResamplerNN
 from pyresample.bilinear.xarr import XArrayResamplerBilinear
 from satpy import CHUNK_SIZE
