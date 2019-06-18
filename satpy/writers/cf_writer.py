@@ -209,6 +209,7 @@ def area2lonlat(dataarray):
 
 
 def area2gridmapping(dataarray):
+    """Convert an area to at CF grid mapping."""
     area = dataarray.attrs['area']
     attrs = create_grid_mapping(area)
     if attrs is not None and 'name' in attrs.keys() and attrs['name'] != "proj4":
@@ -223,6 +224,7 @@ def area2gridmapping(dataarray):
 
 
 def area2cf(dataarray, strict=False):
+    """Convert an area to at CF grid mapping or lon and lats."""
     res = []
     dataarray = dataarray.copy(deep=True)
     if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
@@ -235,6 +237,7 @@ def area2cf(dataarray, strict=False):
 
 
 def make_time_bounds(dataarray, start_times, end_times):
+    """Create time bounds for the current *dataarray*."""
     import numpy as np
     start_time = min(start_time for start_time in start_times
                      if start_time is not None)
@@ -246,12 +249,12 @@ def make_time_bounds(dataarray, start_times, end_times):
         dtnp64 = dataarray['time'].data
     time_bnds = [(np.datetime64(start_time) - dtnp64),
                  (np.datetime64(end_time) - dtnp64)]
-    return xr.DataArray(np.array(time_bnds) / np.timedelta64(1, 's'),
-                        dims=['time_bnds'], coords={'time_bnds': [0, 1]})
+    return xr.DataArray(np.array(time_bnds)[None, :] / np.timedelta64(1, 's'),
+                        dims=['time', 'bnds_1d'], coords={'bnds_1d': [0, 1]})
 
 
 def assert_xy_unique(datas):
-    """Check that all datasets share the same projection coordinates x/y"""
+    """Check that all datasets share the same projection coordinates x/y."""
     unique_x = set()
     unique_y = set()
     for dataset in datas.values():
@@ -267,12 +270,13 @@ def assert_xy_unique(datas):
 
 
 def link_coords(datas):
-    """Link datasets and coordinates
+    """Link datasets and coordinates.
 
     If the `coordinates` attribute of a data array links to other datasets in the scene, for example
     `coordinates='lon lat'`, add them as coordinates to the data array and drop that attribute. In the final call to
     `xr.Dataset.to_netcdf()` all coordinate relations will be resolved and the `coordinates` attributes be set
     automatically.
+
     """
     for ds_name, dataset in datas.items():
         coords = dataset.attrs.get('coordinates', [])
@@ -309,6 +313,7 @@ def make_alt_coords_unique(datas, pretty=False):
 
     Returns:
         Dictionary holding the updated datasets
+
     """
     # Determine which non-dimensional coordinates are unique
     tokens = defaultdict(set)
@@ -334,9 +339,10 @@ def make_alt_coords_unique(datas, pretty=False):
 
 
 class AttributeEncoder(json.JSONEncoder):
-    """JSON encoder for dataset attributes"""
+    """JSON encoder for dataset attributes."""
+
     def default(self, obj):
-        """Returns a json-serializable object for 'obj'
+        """Return a json-serializable object for *obj*.
 
         In order to facilitate decoding, elements in dictionaries, lists/tuples and multi-dimensional arrays are
         encoded recursively.
@@ -354,7 +360,8 @@ class AttributeEncoder(json.JSONEncoder):
         """Encode the given object as a json-serializable datatype.
 
         Use the netcdf encoder as it covers most of the datatypes appearing in dataset attributes. If that fails,
-        return the string representation of the object."""
+        return the string representation of the object.
+        """
         try:
             return _encode_nc(obj)
         except ValueError:
@@ -366,6 +373,7 @@ def _encode_nc(obj):
 
     Raises:
         ValueError if no such datatype could be found
+
     """
     if isinstance(obj, (bool, np.bool_)):
         # Bool has to be checked first, because it is a subclass of int
@@ -385,7 +393,8 @@ def _encode_nc(obj):
         if not obj.dtype.fields and len(obj.shape) <= 1:
             # Multi-dimensional nc attributes are not supported, so we have to skip record arrays and multi-dimensional
             # arrays here
-            return obj.tolist()
+            # return obj.tolist()
+            return obj
 
     raise ValueError('Unable to encode')
 
@@ -410,7 +419,7 @@ def encode_nc(obj):
 
 
 def encode_attrs_nc(attrs):
-    """Encode dataset attributes in a netcdf compatible datatype
+    """Encode dataset attributes in a netcdf compatible datatype.
 
     Args:
         attrs (dict):
@@ -458,6 +467,8 @@ class CFWriter(Writer):
         # new_data.attrs['area'] = str(new_data.attrs.get('area'))
         for key, val in new_data.attrs.copy().items():
             if val is None:
+                new_data.attrs.pop(key)
+            if key == 'ancillary_variables' and val == []:
                 new_data.attrs.pop(key)
         new_data.attrs.pop('_last_resampler', None)
 
@@ -595,6 +606,7 @@ class CFWriter(Writer):
                                                         start_times,
                                                         end_times)
                 dataset['time'].attrs['bounds'] = "time_bnds"
+                dataset['time'].attrs['standard_name'] = "time"
             except KeyError:
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
