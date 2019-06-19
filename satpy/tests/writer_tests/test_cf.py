@@ -76,7 +76,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
-                self.assertTrue(all(f['test-array'][:] == [1, 2, 3]))
+                self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
                 expected_prereq = ("DatasetID(name='hej', wavelength=None, "
                                    "resolution=None, polarization=None, "
                                    "calibration=None, level=None, modifiers=())")
@@ -192,7 +192,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
-                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
+                self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_bounds(self):
         from satpy import Scene
@@ -210,7 +210,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
-                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
+                self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_bounds_minimum(self):
         from satpy import Scene
@@ -236,7 +236,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
-                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
+                self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_bounds_missing_time_info(self):
         from satpy import Scene
@@ -258,7 +258,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
-                self.assertTrue(all(f['time_bnds'][:] == np.array([-300.,  600.])))
+                self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_encoding_kwarg(self):
         from satpy import Scene
@@ -277,7 +277,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
             import h5netcdf as nc4
             with nc4.File(filename) as f:
-                self.assertTrue(all(f['test-array'][:] == [10, 20, 30]))
+                self.assertTrue(np.all(f['test-array'][:] == [10, 20, 30]))
                 self.assertTrue(f['test-array'].attrs['scale_factor'] == 0.1)
                 self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
                 # check that dtype behave as int8
@@ -318,16 +318,16 @@ class TestCFWriter(unittest.TestCase):
                  'list': [1, 2, np.float64(3)],
                  'nested_list': ["1", ["2", [3]]],
                  'bool': True,
-                 'array': np.array([1, 2, 3]),
+                 'array': np.array([1, 2, 3], dtype='uint8'),
                  'array_bool': np.array([True, False, True]),
                  'array_2d': np.array([[1, 2], [3, 4]]),
                  'array_3d': np.array([[[1, 2], [3, 4]], [[1, 2], [3, 4]]]),
                  'dict': {'a': 1, 'b': 2},
-                 'nested_dict': {'l1': {'l2': {'l3': np.array([1, 2, 3])}}},
+                 'nested_dict': {'l1': {'l2': {'l3': np.array([1, 2, 3], dtype='uint8')}}},
                  'raw_metadata': OrderedDict([
                       ('recarray', np.zeros(3, dtype=[('x', 'i4'), ('y', 'u1')])),
                       ('flag', np.bool_(True)),
-                      ('dict', OrderedDict([('a', 1), ('b', np.array([1, 2, 3]))]))
+                      ('dict', OrderedDict([('a', 1), ('b', np.array([1, 2, 3], dtype='uint8'))]))
                  ])}
         encoded = {'name': 'IR_108',
                    'start_time': '2018-01-01 00:00:00',
@@ -337,7 +337,7 @@ class TestCFWriter(unittest.TestCase):
                    'list': [1, 2, 3.0],
                    'nested_list': '["1", ["2", [3]]]',
                    'bool': 'True',
-                   'array': [1, 2, 3],
+                   'array': np.array([1, 2, 3], dtype='uint8'),
                    'array_bool': ['True', 'False', 'True'],
                    'array_2d': '[[1, 2], [3, 4]]',
                    'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
@@ -353,18 +353,28 @@ class TestCFWriter(unittest.TestCase):
                         'list': [1, 2, 3.0],
                         'nested_list': '["1", ["2", [3]]]',
                         'bool': 'True',
-                        'array': [1, 2, 3],
+                        'array': np.array([1, 2, 3], dtype='uint8'),
                         'array_bool': ['True', 'False', 'True'],
                         'array_2d': '[[1, 2], [3, 4]]',
                         'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
                         'dict_a': 1,
                         'dict_b': 2,
-                        'nested_dict_l1_l2_l3': [1, 2, 3],
+                        'nested_dict_l1_l2_l3': np.array([1, 2, 3], dtype='uint8'),
                         'raw_metadata_recarray': '[[0, 0], [0, 0], [0, 0]]',
                         'raw_metadata_flag': 'True',
                         'raw_metadata_dict_a': 1,
-                        'raw_metadata_dict_b': [1, 2, 3]}
+                        'raw_metadata_dict_b': np.array([1, 2, 3], dtype='uint8')}
         return attrs, encoded, encoded_flat
+
+    def assertDictWithArraysEqual(self, d1, d2):
+        self.assertSetEqual(set(d1.keys()), set(d2.keys()))
+        for key, val1 in d1.items():
+            val2 = d2[key]
+            if isinstance(val1, np.ndarray):
+                self.assertTrue(np.all(val1 == val2))
+                self.assertEqual(val1.dtype, val2.dtype)
+            else:
+                self.assertEqual(val1, val2)
 
     def test_encode_attrs_nc(self):
         from satpy.writers.cf_writer import encode_attrs_nc
@@ -374,7 +384,7 @@ class TestCFWriter(unittest.TestCase):
 
         # Test encoding
         encoded = encode_attrs_nc(attrs)
-        self.assertDictEqual(encoded, expected)
+        self.assertDictWithArraysEqual(encoded, expected)
 
         # Test decoding of json-encoded attributes
         raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],
@@ -416,12 +426,12 @@ class TestCFWriter(unittest.TestCase):
         self.assertTrue(np.all(res['acq_time'] == arr['acq_time']))
         self.assertDictEqual(res['x'].attrs, {'units': 'm', 'standard_name': 'projection_x_coordinate'})
         self.assertDictEqual(res['y'].attrs, {'units': 'm', 'standard_name': 'projection_y_coordinate'})
-        self.assertDictEqual(res.attrs, attrs_expected)
+        self.assertDictWithArraysEqual(res.attrs, attrs_expected)
 
         # Test attribute kwargs
         res_flat = CFWriter.da2cf(arr, flatten_attrs=True, exclude_attrs=['int'])
         attrs_expected_flat.pop('int')
-        self.assertDictEqual(res_flat.attrs, attrs_expected_flat)
+        self.assertDictWithArraysEqual(res_flat.attrs, attrs_expected_flat)
 
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
     @mock.patch('satpy.writers.cf_writer.area2cf')

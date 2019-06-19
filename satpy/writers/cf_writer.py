@@ -117,6 +117,15 @@ logger = logging.getLogger(__name__)
 
 EPOCH = u"seconds since 1970-01-01 00:00:00"
 
+NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
+              np.dtype('int16'), np.dtype('uint16'),
+              np.dtype('int32'), np.dtype('uint32'),
+              np.dtype('int64'), np.dtype('uint64'),
+              np.dtype('float32'), np.dtype('float64'),
+              np.string_]
+"""Numpy datatypes compatible with all netCDF4 backends. np.unicode_ is excluded because h5py (and thus h5netcdf) 
+has problems with unicode, see https://github.com/h5py/h5py/issues/624."""
+
 
 def omerc2cf(area):
     """Return the cf grid mapping for the omerc projection."""
@@ -395,11 +404,14 @@ def _encode_nc(obj):
         if not obj.dtype.fields and obj.dtype == np.bool_:
             # Convert array of booleans to array of strings
             obj = obj.astype(str)
-        if not obj.dtype.fields and len(obj.shape) <= 1:
-            # Multi-dimensional nc attributes are not supported, so we have to skip record arrays and multi-dimensional
-            # arrays here
-            # return obj.tolist()
-            return obj
+
+        # Multi-dimensional nc attributes are not supported, so we have to skip record arrays and multi-dimensional
+        # arrays here
+        is_plain_1d = not obj.dtype.fields and len(obj.shape) <= 1
+        if is_plain_1d:
+            if obj.dtype in NC4_DTYPES:
+                return obj
+            return obj.tolist()
 
     raise ValueError('Unable to encode')
 
