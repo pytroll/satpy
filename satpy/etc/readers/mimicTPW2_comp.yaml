@@ -8,20 +8,28 @@ file_types:
     mimicTPW2_comp:
         file_reader:  !!python/name:satpy.readers.mimic_TPW2_nc.MIMIC_TPW2FileHandler
         file_patterns: ['comp{start_time:%Y%m%d.%H%M%S}.nc']
+        sensor: ['mimic']
         platform_name: ['microwave']
 
 datasets:
     latArr:
-        name:  'latArr'
+        name:  latArr
         units:  degrees
-        file_key:  'Latitude'
+        file_key:  latArr
         standard_name:  latitude
-        coordinates:  [ latitude ]
+        coordinates:  [ latArr ]
         file_type: mimicTPW2_comp
     lonArr:
-        name: 'lonArr'
+        name: lonArr
         units: degrees
-        file_key:  'Longitude'
+        file_key:  lonArr
         standard_name:  longitude
-        coordinates:  [ longitude ]
+        coordinates:  [ lonArr ]
+        file_type: mimicTPW2_comp
+    tpwGrid:
+        name: tpwGrid
+        units: mm
+        file_key:  tpwGrid
+        standard_name:  Total_Precipitable_Water
+        coordinates:  [ latArr, lonArr ]
         file_type: mimicTPW2_comp
