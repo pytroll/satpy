@@ -114,6 +114,8 @@ class TestCFWriter(unittest.TestCase):
                 self.assertTrue(np.all(f['x'][:] == [0, 1, 2]))
                 self.assertTrue(np.all(f['y'][:] == [0]))
                 self.assertNotIn('crs', f)
+                self.assertNotIn('_FillValue', f['x'].attrs)
+                self.assertNotIn('_FillValue', f['y'].attrs)
                 expected_prereq = ("DatasetID(name='hej', wavelength=None, "
                                    "resolution=None, polarization=None, "
                                    "calibration=None, level=None, modifiers=())")
