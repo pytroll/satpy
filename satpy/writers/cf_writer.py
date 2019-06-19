@@ -552,6 +552,22 @@ class CFWriter(Writer):
 
         return datas, start_times, end_times
 
+    def update_encoding(self, datasets, to_netcdf_kwargs):
+        """Update encoding.
+
+        Avoid _FillValue attribute being added to coordinate variables (https://github.com/pydata/xarray/issues/1865).
+        """
+        other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
+        encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
+        coord_vars = []
+        for data_array in datasets:
+            coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
+        for coord_var in coord_vars:
+            encoding.setdefault(coord_var, {})
+            encoding[coord_var].update({'_FillValue': None})
+
+        return encoding, other_to_netcdf_kwargs
+
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False, config_files=None,
                       **to_netcdf_kwargs):
@@ -628,18 +644,8 @@ class CFWriter(Writer):
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
-            # Update encoding: Avoid _FillValue attribute being added to coordinate variables
-            # (https://github.com/pydata/xarray/issues/1865).
-            to_netcdf_kwargs_ = to_netcdf_kwargs.copy()
-            encoding = to_netcdf_kwargs_.pop('encoding', {}).copy()
-            if 'x' in dataset:
-                encoding.setdefault('x', {})
-                encoding['x'].update({'_FillValue': None})
-            if 'y' in dataset:
-                encoding.setdefault('y', {})
-                encoding['y'].update({'_FillValue': None})
-
+            encoding, other_to_netcdf_kwargs = self.update_encoding(datasets, to_netcdf_kwargs)
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
-                                    **to_netcdf_kwargs_)
+                                    **other_to_netcdf_kwargs)
             written.append(res)
         return written
