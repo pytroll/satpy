@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2016-2018 Satpy developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -15,10 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""
-Advance Baseline Imager NOAA Level 2+ products reader 
-The files read by this reader are described in the official PUG document:
-    https://www.goes-r.gov/products/docs/PUG-L2+-vol5.pdf
+"""Advance Baseline Imager reader base class for the Level 1b and l2+ reader
 """
 
 import logging
@@ -31,25 +28,31 @@ from pyresample import geometry
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
-PLATFORM_NAMES = {'G16': 'GOES-16', 
-                  'G17': 'GOES-17'}
+PLATFORM_NAMES = {
+    'G16': 'GOES-16',
+    'G17': 'GOES-17',
+}
 
 
-class NC_ABI_L2(BaseFileHandler):
+class NC_ABI_BASE(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
-        super(NC_ABI_L2, self).__init__(filename, filename_info, filetype_info)
+        super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
+        # xarray's default netcdf4 engine
         try:
-            self.nc = xr.open_dataset(filename, decode_cf=True,
+            self.nc = xr.open_dataset(self.filename,
+                                      decode_cf=True,
+                                      mask_and_scale=False,
                                       chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE},)
         except ValueError:
-            self.nc = xr.open_dataset(filename, decode_cf=True,
+            self.nc = xr.open_dataset(self.filename,
+                                      decode_cf=True,
+                                      mask_and_scale=False,
                                       chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE},)
 
         self.nc = self.nc.rename({'t': 'time'})
-
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'abi'
@@ -64,62 +67,49 @@ class NC_ABI_L2(BaseFileHandler):
 
         self.coords = {}
 
+    def __getitem__(self, item):
+        """Wrapper around `self.nc[item]`.
 
-    def get_shape(self, key, info):
-        """Get the shape of the data.
+        Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
+        variables which causes inaccurate unscaled data values. This method
+        forces the scale factor to a 64-bit float first.
+
         """
-        return self.nlines, self.ncols
-
-
-    def get_dataset(self, key, info):
-        """Load a dataset.
-        """
-        LOG.debug('Reading in get_dataset %s.', key.name)
-        variable = self.nc[key.name]
+        data = self.nc[item]
+        attrs = data.attrs
+        factor = data.attrs.get('scale_factor')
+        offset = data.attrs.get('add_offset')
+        fill = data.attrs.get('_FillValue')
+        if fill is not None:
+            data = data.where(data != fill)
+        if factor is not None:
+            # make sure the factor is a 64-bit float
+            # can't do this in place since data is most likely uint16
+            # and we are making it a 64-bit float
+            data = data * float(factor) + offset
+        data.attrs = attrs
 
         # handle coordinates (and recursive fun)
         new_coords = {}
         # 'time' dimension causes issues in other processing
-        if 'time' in variable.coords:
-            del variable.coords['time']
-
-        if key.name in variable.coords:
-            self.coords[key.name] = variable
-
-        for coord_name in variable.coords.keys():
+        # 'x_image' and 'y_image' are confusing to some users and unnecessary
+        # 'x' and 'y' will be overwritten by base class AreaDefinition
+        for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
+            if coord_name in data.coords:
+                del data.coords[coord_name]
+        if item in data.coords:
+            self.coords[item] = data
+        for coord_name in data.coords.keys():
             if coord_name not in self.coords:
-                self.coords[coord_name] = self.nc[coord_name]
+                self.coords[coord_name] = self[coord_name]
             new_coords[coord_name] = self.coords[coord_name]
+        data.coords.update(new_coords)
 
-        variable.coords.update(new_coords)
+        return data
 
-        _units = variable.attrs['units'] if 'units' in variable.attrs else None
-
-        variable.attrs.update({'platform_name': self.platform_name,
-                               'sensor': self.sensor,
-                               'units': _units,
-                               'satellite_latitude': float(self.nc['nominal_satellite_subpoint_lat']),
-                               'satellite_longitude': float(self.nc['nominal_satellite_subpoint_lon']),
-                               'satellite_altitude': float(self.nc['nominal_satellite_height'])})
-
-        variable.attrs.update(key.to_dict())
-
-        # remove attributes that could be confusing later
-        variable.attrs.pop('_FillValue', None)
-        variable.attrs.pop('scale_factor', None)
-        variable.attrs.pop('add_offset', None)
-        variable.attrs.pop('valid_range', None)
-        
-        # add in information from the filename that may be useful to the user
-        for k in ('scan_mode', 'platform_shortname'):
-            variable.attrs[k] = self.filename_info[k]
-
-        # copy global attributes to metadata
-        for k in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
-            variable.attrs[k] = self.nc.attrs.get(k)
-
-        return variable
-
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        raise NotImplementedError("Reader {} has not implemented get_dataset".format(self.name))
 
     def get_area_def(self, key):
         """Get the area definition of the data at hand.
@@ -128,13 +118,12 @@ class NC_ABI_L2(BaseFileHandler):
             return self._get_areadef_fixedgrid(key)
         elif 'goes_lat_lon_projection' in self.nc.keys():
             return self._get_areadef_latlon(key)
-
+        else:
+            raise ValueError('Unsupported projection found in the dataset')
 
     def _get_areadef_latlon(self, key):
         """Get the area definition of the data at hand.
         """
-        from pyproj import Proj
-
         projection = self.nc["goes_lat_lon_projection"]
 
         a = projection.attrs['semi_major_axis']
@@ -159,20 +148,18 @@ class NC_ABI_L2(BaseFileHandler):
                      'a': float(a),
                      'b': float(b),
                      'fi': float(fi),
-                     'pm': float(pm),
-                    }
+                     'pm': float(pm)}
 
         ll_area_def = geometry.AreaDefinition(
-            self.nc.attrs.get('orbital_slot', 'GOES-R'),
-            self.nc.attrs.get('spatial_resolution', 'ABI L2+ file area'),
-            'abi_l2+_latlon',
+            self.nc.attrs.get('orbital_slot', 'abi_geos'),
+            self.nc.attrs.get('spatial_resolution', 'ABI file area'),
+            'abi_latlon',
             proj_dict,
             self.ncols,
             self.nlines,
             np.asarray(area_extent))
 
         return ll_area_def
-
 
     def _get_areadef_fixedgrid(self, key):
         """Get the area definition of the data at hand.
@@ -209,8 +196,8 @@ class NC_ABI_L2(BaseFileHandler):
                      'sweep': sweep_axis}
 
         fg_area_def = geometry.AreaDefinition(
-            self.nc.attrs.get('orbital_slot', 'GOES-R'),  # "GOES-East", "GOES-West"
-            self.nc.attrs.get('spatial_resolution', 'ABI L2+ file area'),
+            self.nc.attrs.get('orbital_slot', 'abi_geos'),
+            self.nc.attrs.get('spatial_resolution', 'ABI file area'),
             'abi_fixed_grid',
             proj_dict,
             self.ncols,
@@ -230,5 +217,5 @@ class NC_ABI_L2(BaseFileHandler):
     def __del__(self):
         try:
             self.nc.close()
-        except (IOError, OSError):
+        except (IOError, OSError, AttributeError):
             pass

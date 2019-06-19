@@ -50,6 +50,9 @@ class FakeDataset(object):
     def rename(self, *args, **kwargs):
         return self
 
+    def keys(self):
+        return self.info.keys()
+
     def close(self):
         return
 
@@ -57,7 +60,7 @@ class FakeDataset(object):
 class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
 
-    @mock.patch('satpy.readers.abi_l1b.xr')
+    @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Setup for test."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
@@ -71,9 +74,32 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
                 'add_offset': -1.,
                 '_FillValue': 1002.,
             })
+
+        proj = xr.DataArray(
+            [],
+            attrs={
+                'semi_major_axis': 1.,
+                'semi_minor_axis': 1.,
+                'perspective_point_height': 1.,
+                'longitude_of_projection_origin': -90.,
+                'sweep_angle_axis': u'x'
+            }
+        )
+
+        x__ = xr.DataArray(
+            [0, 1],
+            attrs={'scale_factor': 2., 'add_offset': -1.},
+        )
+        y__ = xr.DataArray(
+            [0, 1],
+            attrs={'scale_factor': -2., 'add_offset': 1.},
+        )
+
         xr_.open_dataset.return_value = FakeDataset({
             'band_id': np.array(8),
             'Rad': rad,
+            'x': x__,
+            'y': y__,
             "planck_fk1": np.array(13432.1),
             "planck_fk2": np.array(1497.61),
             "planck_bc1": np.array(0.09102),
@@ -82,7 +108,8 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
             "nominal_satellite_subpoint_lat": np.array(0.0),
             "nominal_satellite_subpoint_lon": np.array(-89.5),
             "nominal_satellite_height": np.array(35786.02),
-            "earth_sun_distance_anomaly_in_AU": np.array(0.99)}, {})
+            "earth_sun_distance_anomaly_in_AU": np.array(0.99),
+            "goes_imager_projection": proj}, {})
 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16', 'observation_type': 'Rad',
@@ -109,7 +136,7 @@ class Test_NC_ABI_L1B_ir_cal(unittest.TestCase):
 class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
 
-    @mock.patch('satpy.readers.abi_l1b.xr')
+    @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Setup for test."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
@@ -133,6 +160,7 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
                 'y_image': y_image,
             }
         )
+
         xr_.open_dataset.return_value = FakeDataset({
             'band_id': np.array(5),
             'Rad': rad,
@@ -171,8 +199,6 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
                          datetime(2017, 9, 20, 17, 30, 40, 800000))
         self.assertEqual(self.reader.end_time,
                          datetime(2017, 9, 20, 17, 41, 17, 500000))
-        self.assertEqual(self.reader.get_shape(DatasetID(name='C05'), {}),
-                         (2, 5))
 
     def test_vis_calibrate(self):
         """Test VIS calibration."""
@@ -194,7 +220,7 @@ class Test_NC_ABI_L1B_vis_cal(unittest.TestCase):
 class Test_NC_ABI_L1B_area(unittest.TestCase):
     """Test the NC_ABI_L1B reader."""
 
-    @mock.patch('satpy.readers.abi_l1b.xr')
+    @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Setup for test."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
@@ -227,7 +253,7 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
                                   'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def(self, adef):
         """Test the area generation."""
         self.reader.get_area_def(None)
@@ -238,7 +264,7 @@ class Test_NC_ABI_L1B_area(unittest.TestCase):
                                             'sweep': 'x', 'units': 'm'})
         self.assertEqual(call_args[4], self.reader.ncols)
         self.assertEqual(call_args[5], self.reader.nlines)
-        np.testing.assert_allclose(call_args[6], (-2, -2, 2, 2))
+        np.testing.assert_allclose(call_args[6], (-0.5,  1.5,  1.5, -0.5))
 
 
 def suite():
@@ -249,3 +275,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_vis_cal))
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_area))
     return mysuite
+
+
+if __name__ == '__main__':
+    unittest.main()
