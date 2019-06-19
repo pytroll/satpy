@@ -136,7 +136,7 @@ def omerc2cf(area):
                 longitude_of_projection_origin=proj_dict.get('lonc'),
                 grid_mapping_name='oblique_mercator',
                 reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
-                prime_meridian_name=proj_dict.get('pm', 'Greenwitch'),
+                prime_meridian_name=proj_dict.get('pm', 'Greenwich'),
                 horizontal_datum_name=proj_dict.get('datum', 'unknown'),
                 geographic_crs_name='unknown',
                 false_easting=0.,
