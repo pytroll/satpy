@@ -628,6 +628,18 @@ class CFWriter(Writer):
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
-            res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', **to_netcdf_kwargs)
+            # Update encoding: Avoid _FillValue attribute being added to coordinate variables
+            # (https://github.com/pydata/xarray/issues/1865).
+            to_netcdf_kwargs_ = to_netcdf_kwargs.copy()
+            encoding = to_netcdf_kwargs_.pop('encoding', {}).copy()
+            if 'x' in dataset:
+                encoding.setdefault('x', {})
+                encoding['x'].update({'_FillValue': None})
+            if 'y' in dataset:
+                encoding.setdefault('y', {})
+                encoding['y'].update({'_FillValue': None})
+
+            res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
+                                    **to_netcdf_kwargs_)
             written.append(res)
         return written
