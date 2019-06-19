@@ -127,6 +127,9 @@ def omerc2cf(area):
                 longitude_of_projection_origin=proj_dict.get('lonc'),
                 grid_mapping_name='oblique_mercator',
                 reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
+                prime_meridian_name=proj_dict.get('pm', 'Greenwitch'),
+                horizontal_datum_name=proj_dict.get('datum', 'unknown'),
+                geographic_crs_name='unknown',
                 false_easting=0.,
                 false_northing=0.
                 )
@@ -249,8 +252,10 @@ def make_time_bounds(dataarray, start_times, end_times):
         dtnp64 = dataarray['time'].data
     time_bnds = [(np.datetime64(start_time) - dtnp64),
                  (np.datetime64(end_time) - dtnp64)]
-    return xr.DataArray(np.array(time_bnds)[None, :] / np.timedelta64(1, 's'),
-                        dims=['time', 'bnds_1d'], coords={'bnds_1d': [0, 1]})
+    data = xr.DataArray(np.array(time_bnds)[None, :] / np.timedelta64(1, 's'),
+                        dims=['time', 'bnds_1d'])
+    data.encoding['_FillValue'] = None
+    return data
 
 
 def assert_xy_unique(datas):
