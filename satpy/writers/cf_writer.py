@@ -123,7 +123,7 @@ NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
               np.dtype('int64'), np.dtype('uint64'),
               np.dtype('float32'), np.dtype('float64'),
               np.string_]
-"""Numpy datatypes compatible with all netCDF4 backends. np.unicode_ is excluded because h5py (and thus h5netcdf) 
+"""Numpy datatypes compatible with all netCDF4 backends. np.unicode_ is excluded because h5py (and thus h5netcdf)
 has problems with unicode, see https://github.com/h5py/h5py/issues/624."""
 
 
