@@ -454,7 +454,7 @@ class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None):
+    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -488,6 +488,8 @@ class CFWriter(Writer):
             if key == 'ancillary_variables' and val == []:
                 new_data.attrs.pop(key)
         new_data.attrs.pop('_last_resampler', None)
+        if compression is not None:
+            new_data.encoding.update(compression)
 
         if 'time' in new_data.coords:
             new_data['time'].encoding['units'] = epoch
@@ -525,7 +527,7 @@ class CFWriter(Writer):
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False):
+                          pretty=False, compression=None):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -543,7 +545,7 @@ class CFWriter(Writer):
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
-                                                         exclude_attrs=exclude_attrs)
+                                                         exclude_attrs=exclude_attrs, compression=compression)
 
         # Check and prepare coordinates
         assert_xy_unique(datas)
@@ -569,8 +571,8 @@ class CFWriter(Writer):
         return encoding, other_to_netcdf_kwargs
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', epoch=EPOCH,
-                      flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False, config_files=None,
-                      **to_netcdf_kwargs):
+                      flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
+                      compression=None, **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
@@ -598,6 +600,10 @@ class CFWriter(Writer):
                 Always include latitude and longitude coordinates, even for datasets with area definition
             pretty (bool):
                 Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
+            compression (dict):
+                Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
+                This is in turn passed the xarray's `to_netcdf` method:
+                http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
         """
         logger.info('Saving datasets to NetCDF4/CF.')
 
@@ -623,6 +629,11 @@ class CFWriter(Writer):
             # Groups are not CF-1.7 compliant
             root.attrs['Conventions'] = 'CF-1.7'
 
+        # Remove satpy-specific kwargs
+        satpy_kwargs = ['overlay', 'decorate', 'config_files']
+        for kwarg in satpy_kwargs:
+            to_netcdf_kwargs.pop(kwarg, None)
+
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
         written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
@@ -632,7 +643,7 @@ class CFWriter(Writer):
             # XXX: Should we combine the info of all datasets?
             datas, start_times, end_times = self._collect_datasets(
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty)
+                include_lonlats=include_lonlats, pretty=pretty, compression=compression)
             dataset = xr.Dataset(datas)
             try:
                 dataset['time_bnds'] = make_time_bounds(dataset,
