@@ -61,9 +61,11 @@ extras_require = {
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
+    'hsaf_grib': ['pygrib'],
     # Writers:
+    'cf': ['h5netcdf >= 0.7.3'],
     'scmi': ['netCDF4 >= 1.1.8'],
-    'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     # MultiScene:
     'animations': ['imageio'],

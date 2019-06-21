@@ -3,7 +3,9 @@ reader:
   description: VIIRS SDR Reader
   reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader
   sensors: [viirs]
-  default_channels:
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  # by default, don't use start_time group files (only orbit and platform)
+  group_keys: ['orbit', 'platform_shortname']
 
 datasets:
   i_lon:
@@ -12,48 +14,54 @@ datasets:
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: All_Data/{dataset_group}_All/Longitude
-    units: "degrees"
+    units: "degrees_east"
     standard_name: longitude
+    coordinates: [i_longitude, i_latitude]
   i_lat:
     name: i_latitude
     resolution: 371
     file_type: generic_file
     dataset_groups: [GITCO, GIMGO]
     file_key: All_Data/{dataset_group}_All/Latitude
-    units: "degrees"
+    units: "degrees_north"
     standard_name: latitude
+    coordinates: [i_longitude, i_latitude]
   m_lon:
     name: m_longitude
     resolution: 742
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: All_Data/{dataset_group}_All/Longitude
-    units: "degrees"
+    units: "degrees_east"
     standard_name: longitude
+    coordinates: [m_longitude, m_latitude]
   m_lat:
     name: m_latitude
     resolution: 742
     file_type: generic_file
     dataset_groups: [GMTCO, GMODO]
     file_key: All_Data/{dataset_group}_All/Latitude
-    units: "degrees"
+    units: "degrees_north"
     standard_name: latitude
+    coordinates: [m_longitude, m_latitude]
   dnb_lon:
     name: dnb_longitude
     resolution: 743
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: All_Data/{dataset_group}_All/Longitude
-    units: "degrees"
+    units: "degrees_east"
     standard_name: longitude
+    coordinates: [dnb_longitude, dnb_latitude]
   dnb_lat:
     name: dnb_latitude
     resolution: 743
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: All_Data/{dataset_group}_All/Latitude
-    units: "degrees"
+    units: "degrees_north"
     standard_name: latitude
+    coordinates: [dnb_longitude, dnb_latitude]
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]

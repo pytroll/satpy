@@ -1,24 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2016
+# Copyright (c) 2016-2019 Satpy developers
 #
-# Author(s):
+# This file is part of satpy.
 #
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Nodes to build trees."""
 
 from satpy import DatasetDict, DatasetID, DATASET_KEYS
@@ -26,6 +22,8 @@ from satpy.readers import TooManyResults
 from satpy.utils import get_logger
 
 LOG = get_logger(__name__)
+# Empty leaf used for marking composites with no prerequisites
+EMPTY_LEAF_NAME = "__EMPTY_LEAF_SENTINEL__"
 
 
 class Node(object):
@@ -98,22 +96,24 @@ class Node(object):
 
     def leaves(self, unique=True):
         """Get the leaves of the tree starting at this root."""
-        if not self.children:
+        if self.name is EMPTY_LEAF_NAME:
+            return []
+        elif not self.children:
             return [self]
-        else:
-            res = list()
-            for child in self.children:
-                for sub_child in child.leaves(unique=unique):
-                    if not unique or sub_child not in res:
-                        res.append(sub_child)
-            return res
+
+        res = list()
+        for child in self.children:
+            for sub_child in child.leaves(unique=unique):
+                if not unique or sub_child not in res:
+                    res.append(sub_child)
+        return res
 
     def trunk(self, unique=True):
         """Get the trunk of the tree starting at this root."""
         # uniqueness is not correct in `trunk` yet
         unique = False
         res = []
-        if self.children:
+        if self.children and self.name is not EMPTY_LEAF_NAME:
             if self.name is not None:
                 res.append(self)
             for child in self.children:
@@ -154,6 +154,8 @@ class DependencyTree(Node):
         # keep a flat dictionary of nodes contained in the tree for better
         # __contains__
         self._all_nodes = DatasetDict()
+        # simplify future logic by only having one "sentinel" empty node
+        self.empty_node = Node(EMPTY_LEAF_NAME)
 
     def leaves(self, nodes=None, unique=True):
         """Get the leaves of the tree starting at this root.
@@ -205,6 +207,9 @@ class DependencyTree(Node):
         #               but they should all map to the same Node object.
         if self.contains(child.name):
             assert self._all_nodes[child.name] is child
+        if child is self.empty_node:
+            # No need to store "empty" nodes
+            return
         self._all_nodes[child.name] = child
 
     def add_leaf(self, ds_id, parent=None):
@@ -330,6 +335,10 @@ class DependencyTree(Node):
         """
         prereq_ids = []
         unknowns = set()
+        if not prereq_names and not skip:
+            # this composite has no required prerequisites
+            prereq_names = [None]
+
         for prereq in prereq_names:
             n, u = self._find_dependencies(prereq, **dfilter)
             if u:
@@ -418,6 +427,10 @@ class DependencyTree(Node):
                               `satpy.readers.get_key` for more details.
 
         """
+        # Special case: No required dependencies for this composite
+        if dataset_key is None:
+            return self.empty_node, set()
+
         # 0 check if the *exact* dataset is already loaded
         try:
             node = self.getitem(dataset_key)
