@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Author(s):
-#
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# Copyright (c) 2014-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -30,6 +26,7 @@ except ImportError:
     import mock
 
 import numpy as np
+import numpy.testing
 import pyresample.geometry
 
 from satpy.readers import utils as hf
@@ -396,6 +393,51 @@ class TestHelpers(unittest.TestCase):
 
         # non-array
         self.assertRaises(ValueError, hf.np2str, 5)
+
+    def test_get_earth_radius(self):
+        """Test earth radius computation"""
+        a = 2.
+        b = 1.
+
+        def re(lat):
+            """Compute ellipsoid radius at the given geodetic latitude.
+
+            Reference: Capderou, M.: Handbook of Satellite Orbits, Equation (2.20).
+            """
+            lat = np.deg2rad(lat)
+            e2 = 1 - b ** 2 / a ** 2
+            n = a / np.sqrt(1 - e2*np.sin(lat)**2)
+            return n * np.sqrt((1 - e2)**2 * np.sin(lat)**2 + np.cos(lat)**2)
+
+        for lon in (0, 180, 270):
+            self.assertEqual(hf.get_earth_radius(lon=lon, lat=0., a=a, b=b), a)
+        for lat in (90, -90):
+            self.assertEqual(hf.get_earth_radius(lon=0., lat=lat, a=a, b=b), b)
+        self.assertTrue(np.isclose(hf.get_earth_radius(lon=123, lat=45., a=a, b=b), re(45.)))
+
+    def test_reduce_mda(self):
+        """Test metadata size reduction"""
+        mda = {'a': 1,
+               'b': np.array([1, 2, 3]),
+               'c': np.array([1, 2, 3, 4]),
+               'd': {'a': 1,
+                     'b': np.array([1, 2, 3]),
+                     'c': np.array([1, 2, 3, 4]),
+                     'd': {'a': 1,
+                           'b': np.array([1, 2, 3]),
+                           'c': np.array([1, 2, 3, 4])}}}
+        exp = {'a': 1,
+               'b': np.array([1, 2, 3]),
+               'd': {'a': 1,
+                     'b': np.array([1, 2, 3]),
+                     'd': {'a': 1,
+                           'b': np.array([1, 2, 3])}}}
+        numpy.testing.assert_equal(hf.reduce_mda(mda, max_size=3), exp)
+
+        # Make sure, reduce_mda() doesn't modify the original dictionary
+        self.assertIn('c', mda)
+        self.assertIn('c', mda['d'])
+        self.assertIn('c', mda['d']['d'])
 
 
 def suite():

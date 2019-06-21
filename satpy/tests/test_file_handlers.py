@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# Copyright (c) 2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """test file handler baseclass.
 """
 
@@ -105,6 +100,51 @@ class TestBaseFileHandler(unittest.TestCase):
         self.assertTupleEqual(sdef.call_args[1]['lons'].shape, (2, 5))
         self.assertTupleEqual(sdef.call_args[1]['lats'].shape, (2, 5))
         self.assertEqual(sdef.return_value.name, 'area1_area2')
+
+    def test_combine_orbital_parameters(self):
+        """Combine orbital parameters."""
+        info1 = {'orbital_parameters': {'projection_longitude': 1,
+                                        'projection_latitude': 1,
+                                        'projection_altitude': 1,
+                                        'satellite_nominal_longitude': 1,
+                                        'satellite_nominal_latitude': 1,
+                                        'satellite_actual_longitude': 1,
+                                        'satellite_actual_latitude': 1,
+                                        'satellite_actual_altitude': 1,
+                                        'nadir_longitude': 1,
+                                        'nadir_latitude': 1,
+                                        'only_in_1': False}}
+        info2 = {'orbital_parameters': {'projection_longitude': 2,
+                                        'projection_latitude': 2,
+                                        'projection_altitude': 2,
+                                        'satellite_nominal_longitude': 2,
+                                        'satellite_nominal_latitude': 2,
+                                        'satellite_actual_longitude': 2,
+                                        'satellite_actual_latitude': 2,
+                                        'satellite_actual_altitude': 2,
+                                        'nadir_longitude': 2,
+                                        'nadir_latitude': 2,
+                                        'only_in_2': True}}
+        exp = {'orbital_parameters': {'projection_longitude': 1.5,
+                                      'projection_latitude': 1.5,
+                                      'projection_altitude': 1.5,
+                                      'satellite_nominal_longitude': 1.5,
+                                      'satellite_nominal_latitude': 1.5,
+                                      'satellite_actual_longitude': 1.5,
+                                      'satellite_actual_latitude': 1.5,
+                                      'satellite_actual_altitude': 1.5,
+                                      'nadir_longitude': 1.5,
+                                      'nadir_latitude': 1.5,
+                                      'only_in_1': False,
+                                      'only_in_2': True}}
+        res = self.fh.combine_info([info1, info2])
+        self.assertDictEqual(res, exp)
+
+        # Identity
+        self.assertEqual(self.fh.combine_info([info1]), info1)
+
+        # Empty
+        self.fh.combine_info([{}])
 
     def tearDown(self):
         """Tear down the test."""
