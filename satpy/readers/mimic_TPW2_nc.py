@@ -31,21 +31,19 @@ This module implements readers for MIMIC_TPW2
 netcdf files.
 """
 
-import xarray as xr
 import numpy as np
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 from pyresample.geometry import AreaDefinition
-
 import logging
+
 logger = logging.getLogger(__name__)
 
-class MIMIC_TPW2FileHandler(NetCDF4FileHandler):
+
+class MimicTPW2FileHandler(NetCDF4FileHandler):
     """NetCDF4 reader for MIMC TPW 2.0
     """
-    def __init__(self, filename, filename_info, filetype_info,
-                 auto_maskandscale=False, xarray_kwargs=None):
-        super(MIMIC_TPW2FileHandler, self).__init__(
-            filename, filename_info, filetype_info)
+    def __init__(self, filename, filename_info, filetype_info):
+        super(MimicTPW2FileHandler, self).__init__(filename, filename_info, filetype_info)
 
     def get_dataset(self, ds_id, info):
         logger.debug("Getting data for: %s", ds_id.name)
@@ -53,23 +51,29 @@ class MIMIC_TPW2FileHandler(NetCDF4FileHandler):
         data = self[file_key]
         data.attrs = self.get_metadata(data, info)
 
+        if 'lon' in data.dims:
+            data.rename({'lon': 'x'})
+        if 'lat' in data.dims:
+            data.rename({'lat': 'y'})
         return data
 
-    def get_area_def(self,dsid):
-        latlon=np.meshgrid(self['lonArr'], self['latArr'])
-        width=self['lonArr/shape'][0]
-        height=self['latArr/shape'][0]
-        lower_left_y = latlon[1][0, width-1]
-        lower_left_x = latlon[0][0, width-1]
+    def get_area_def(self, dsid):
+        latlon = np.meshgrid(self['lonArr'], self['latArr'])
 
-        upper_right_x = latlon[0][height-1, 0]
-        upper_right_y = latlon[1][height-1, 0]
+        width = self['lonArr/shape'][0]
+        height = self['latArr/shape'][0]
 
-        area_extent=(lower_left_x, lower_left_y, upper_right_x, upper_right_y)
+        lower_left_x = latlon[0][height-1][0]
+        lower_left_y = latlon[1][height-1][0]
+
+        upper_right_y = latlon[1][0][width-1]
+        upper_right_x = latlon[0][0][width-1]
+
+        area_extent = (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
         description = "MIMIC TPW2 Mercator Projection"
         area_id = 'mimic'
         proj_id = 'mimic'
-        proj_dict = {'proj': 'merc', 'resolution': self._calc_area_resolution(), 'units': 'degrees'}
+        proj_dict = {'proj': 'longlat', 'datum': 'WGS84', 'ellps': 'WGS84'}
         area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent)
         return area_def
 
@@ -87,18 +91,18 @@ class MIMIC_TPW2FileHandler(NetCDF4FileHandler):
         return metadata
 
     def _calc_area_resolution(self):
-        #y_res = abs(self['latArr'][0] - self['latArr'][1])
+        # y_res = abs(self['latArr'][0] - self['latArr'][1])
         x_res = abs(self['lonArr'][0] - self['lonArr'][1])
 
         return x_res
 
     def available_datasets(self, configured_datasets=None):
-        """Automatically determine datasets provided by this file"""
-        # Determine shape of the geolocation data (lat/lon)
+        """Automatically determine datasets provided by this file
+           Determine shape of the geolocation data (lat/lon)"""
         lat_shape = self.file_content.get('latArr/shape')
         lon_shape = self.file_content.get('lonArr/shape')
         res = self._calc_area_resolution()
-        #Read the lat/lon variables?
+        # Read the lat/lon variables?
         handled_variables = set()
 
         # update previously configured datasets
@@ -124,13 +128,6 @@ class MIMIC_TPW2FileHandler(NetCDF4FileHandler):
                 # then we should keep it going down the chain
                 yield is_avail, ds_info
 
-            if matches and var_name in self.file_content.items():
-                handled_variables.add(var_name)
-                new_info = ds_info.copy()
-                yield True, new_info
-            elif is_avail is None:
-                yield is_avail, ds_info
-
         # Iterate over dataset contents
         for var_name, val in self.file_content.items():
             # Only evaluate variables
@@ -142,7 +139,7 @@ class MIMIC_TPW2FileHandler(NetCDF4FileHandler):
                 if var_shape == (lat_shape[0], lon_shape[0]):
                     logger.debug("Found valid additional dataset: %s", var_name)
                     # Skip anything we have already configured
-                    if (var_name in handled_variables):
+                    if var_name in handled_variables:
                         logger.debug("Already handled, skipping: %s", var_name)
                         continue
                     handled_variables.add(var_name)
@@ -155,6 +152,7 @@ class MIMIC_TPW2FileHandler(NetCDF4FileHandler):
                         'resolution': res,
                     }
                     yield True, new_info
+
     @property
     def start_time(self):
         return self.filename_info['start_time']
