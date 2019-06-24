@@ -38,11 +38,11 @@ class Node(object):
 
     @property
     def is_leaf(self):
+        """Check if the node is a leaf."""
         return not self.children
 
     def flatten(self, d=None):
         """Flatten tree structure to a one level dictionary.
-
 
         Args:
             d (dict, optional): output dictionary to update
@@ -50,6 +50,7 @@ class Node(object):
         Returns:
             dict: Node.name -> Node. The returned dictionary includes the
                   current Node and all its children.
+
         """
         if d is None:
             d = {}
@@ -60,6 +61,7 @@ class Node(object):
         return d
 
     def copy(self, node_cache=None):
+        """Make a copy of the node."""
         if node_cache and self.name in node_cache:
             return node_cache[self.name]
 
@@ -79,12 +81,15 @@ class Node(object):
         return self.display()
 
     def __repr__(self):
+        """Generate a representation of the node."""
         return "<Node ({})>".format(repr(self.name))
 
     def __eq__(self, other):
+        """Check equality."""
         return self.name == other.name
 
     def __hash__(self):
+        """Generate the hash of the node."""
         return hash(self.name)
 
     def display(self, previous=0, include_data=False):
@@ -124,13 +129,17 @@ class Node(object):
 
 
 class DependencyTree(Node):
-    """Structure to discover and store `Dataset` dependencies
+    """Structure to discover and store `Dataset` dependencies.
 
     Used primarily by the `Scene` object to organize dependency finding.
     Dependencies are stored used a series of `Node` objects which this
     class is a subclass of.
 
     """
+
+    # simplify future logic by only having one "sentinel" empty node
+    # making it a class attribute ensures it is the same across instances
+    empty_node = Node(EMPTY_LEAF_NAME)
 
     def __init__(self, readers, compositors, modifiers):
         """Collect Dataset generating information.
@@ -154,8 +163,6 @@ class DependencyTree(Node):
         # keep a flat dictionary of nodes contained in the tree for better
         # __contains__
         self._all_nodes = DatasetDict()
-        # simplify future logic by only having one "sentinel" empty node
-        self.empty_node = Node(EMPTY_LEAF_NAME)
 
     def leaves(self, nodes=None, unique=True):
         """Get the leaves of the tree starting at this root.
@@ -201,6 +208,7 @@ class DependencyTree(Node):
         return res
 
     def add_child(self, parent, child):
+        """Add a child to the tree."""
         Node.add_child(parent, child)
         # Sanity check: Node objects should be unique. They can be added
         #               multiple times if more than one Node depends on them
@@ -213,6 +221,7 @@ class DependencyTree(Node):
         self._all_nodes[child.name] = child
 
     def add_leaf(self, ds_id, parent=None):
+        """Add a leaf to the tree."""
         if parent is None:
             parent = self
         try:
@@ -222,7 +231,7 @@ class DependencyTree(Node):
         self.add_child(parent, node)
 
     def copy(self):
-        """Copy the this node tree
+        """Copy this node tree.
 
         Note all references to readers are removed. This is meant to avoid
         tree copies accessing readers that would return incompatible (Area)
@@ -237,9 +246,11 @@ class DependencyTree(Node):
         return new_tree
 
     def __contains__(self, item):
+        """Check if a item is in the tree."""
         return item in self._all_nodes
 
     def __getitem__(self, item):
+        """Get an item of the tree."""
         return self._all_nodes[item]
 
     def contains(self, item):
@@ -251,6 +262,7 @@ class DependencyTree(Node):
         return super(DatasetDict, self._all_nodes).__getitem__(item)
 
     def get_compositor(self, key):
+        """Get a compositor."""
         for sensor_name in self.compositors.keys():
             try:
                 return self.compositors[sensor_name][key]
@@ -264,6 +276,7 @@ class DependencyTree(Node):
         raise KeyError("Could not find compositor '{}'".format(key))
 
     def get_modifier(self, comp_id):
+        """Get a modifer."""
         # create a DatasetID for the compositor we are generating
         modifier = comp_id.modifiers[-1]
         for sensor_name in self.modifiers.keys():
