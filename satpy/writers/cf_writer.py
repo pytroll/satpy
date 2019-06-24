@@ -619,6 +619,9 @@ class CFWriter(Writer):
                         groups_[group_name].append(dataset)
                         break
 
+        if compression is None:
+            compression = {'zlib': True}
+
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
 
