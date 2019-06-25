@@ -1,38 +1,129 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2010-2018 PyTroll Community
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Bybbroe <adam.dybbroe@smhi.se>
-#   Sauli Joro <sauli.joro@eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# Copyright (c) 2010-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI HRIT format reader
-******************************
+============================
+
+Introduction
+------------
+
+The ``seviri_l1b_hrit`` reader reads and calibrates MSG-SEVIRI L1.5 image data in HRIT format. The format is explained
+in the `MSG Level 1.5 Image Format Description`_. The files are usually named as
+follows:
+
+.. code-block:: none
+
+    H-000-MSG4__-MSG4________-_________-PRO______-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000001___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000002___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000003___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000004___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000005___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000006___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000007___-201903011200-__
+    H-000-MSG4__-MSG4________-IR_108___-000008___-201903011200-__
+    H-000-MSG4__-MSG4________-_________-EPI______-201903011200-__
+
+Each image is decomposed into 24 segments (files) for the high-resolution-visible (HRV) channel and 8 segments for other
+visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
+which contain global metadata valid for all channels.
+
+Example
+-------
+Here is an example how to read the data in satpy:
+
+.. code-block:: python
+
+    from satpy import Scene
+    import glob
+
+    filenames = glob.glob('data/H-000-MSG4__-MSG4________-*201903011200*')
+    scn = Scene(filenames=filenames, reader='seviri_l1b_hrit')
+    scn.load(['VIS006', 'IR_108'])
+    print(scn['IR_108'])
+
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray (y: 3712, x: 3712)>
+    dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
+    Coordinates:
+        acq_time  (y) datetime64[ns] NaT NaT NaT NaT NaT NaT ... NaT NaT NaT NaT NaT
+      * x         (x) float64 5.566e+06 5.563e+06 5.56e+06 ... -5.566e+06 -5.569e+06
+      * y         (y) float64 -5.566e+06 -5.563e+06 ... 5.566e+06 5.569e+06
+    Attributes:
+        satellite_longitude:      0.0
+        satellite_latitude:       0.0
+        satellite_altitude:       35785831.0
+        orbital_parameters:       {'projection_longitude': 0.0, 'projection_latit...
+        platform_name:            Meteosat-11
+        georef_offset_corrected:  True
+        standard_name:            brightness_temperature
+        raw_metadata:             {'file_type': 0, 'total_header_length': 6198, '...
+        wavelength:               (9.8, 10.8, 11.8)
+        units:                    K
+        sensor:                   seviri
+        platform_name:            Meteosat-11
+        start_time:               2019-03-01 12:00:09.716000
+        end_time:                 2019-03-01 12:12:42.946000
+        area:                     Area ID: some_area_name\\nDescription: On-the-fl...
+        name:                     IR_108
+        resolution:               3000.403165817
+        calibration:              brightness_temperature
+        polarization:             None
+        level:                    None
+        modifiers:                ()
+        ancillary_variables:      []
+
+
+* The ``orbital_parameters`` attribute provides the nominal and actual satellite position, as well as the projection
+  centre.
+* You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
+  :class:`HRITMSGFileHandler`.
+* The ``raw_metadata`` attribute provides raw metadata from the prologue, epilogue and segment header. By default,
+  arrays with more than 100 elements are excluded in order to limit memory usage. This threshold can be adjusted,
+  see :class:`HRITMSGFileHandler`.
+* The ``acq_time`` coordinate provides the acquisition time for each scanline. Use a ``MultiIndex`` to enable selection
+  by acquisition time:
+
+  .. code-block:: python
+
+      import pandas as pd
+      mi = pd.MultiIndex.from_arrays([scn['IR_108']['y'].data, scn['IR_108']['acq_time'].data],
+                                     names=('y_coord', 'time'))
+      scn['IR_108']['y'] = mi
+      scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
+
 
 References:
-    - MSG Level 1.5 Image Data Format Description
-    - Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent
-      Spectral Blackbody Radiance
+    - `MSG Level 1.5 Image Format Description`_
+    - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
 
+.. _MSG Level 1.5 Image Format Description: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=
+    PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
 
+.. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
+    RevisionSelectionMethod=LatestReleased&Rendition=Web
 """
 
+import copy
 import logging
 from datetime import datetime
 
@@ -47,11 +138,13 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
 
-from satpy.readers.seviri_base import SEVIRICalibrationHandler, chebyshev
+from satpy.readers.seviri_base import SEVIRICalibrationHandler, chebyshev, get_cds_time
 from satpy.readers.seviri_base import (CHANNEL_NAMES, VIS_CHANNELS, CALIB, SATNUM)
 
 from satpy.readers.seviri_l1b_native_hdr import (hrit_prologue, hrit_epilogue,
                                                  impf_configuration)
+import satpy.readers.utils as utils
+
 
 logger = logging.getLogger('hrit_msg')
 
@@ -107,16 +200,30 @@ cuc_time = np.dtype([('coarse', 'u1', (4, )),
                      ('fine', 'u1', (3, ))])
 
 
-class NoValidNavigationCoefs(Exception):
+class NoValidOrbitParams(Exception):
     pass
 
 
-class HRITMSGPrologueFileHandler(HRITFileHandler):
+class HRITMSGPrologueEpilogueBase(HRITFileHandler):
+    def __init__(self, filename, filename_info, filetype_info, hdr_info):
+        super(HRITMSGPrologueEpilogueBase, self).__init__(filename, filename_info, filetype_info, hdr_info)
+        self._reduced = None
+
+    def _reduce(self, mda, max_size):
+        if self._reduced is None:
+            self._reduced = utils.reduce_mda(mda, max_size=max_size)
+        return self._reduced
+
+    def reduce(self, max_size):
+        raise NotImplementedError
+
+
+class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
     """SEVIRI HRIT prologue reader.
     """
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
-                 ext_calib_coefs=None):
+                 ext_calib_coefs=None, mda_max_array_size=None):
         """Initialize the reader."""
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -164,7 +271,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
                 a, b = self.get_earth_radii()
                 latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
                 lon, lat, alt = pyproj.transform(geocent, latlong, x, y, z)
-            except NoValidNavigationCoefs as err:
+            except NoValidOrbitParams as err:
                 logger.warning(err)
                 lon = lat = alt = None
 
@@ -185,7 +292,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
 
         # Find Chebyshev coefficients for the given time
-        coef_idx = self._find_navigation_coefs()
+        coef_idx = self._find_orbit_coefs()
         tstart = orbit_polynomial['StartTime'][0, coef_idx]
         tend = orbit_polynomial['EndTime'][0, coef_idx]
 
@@ -201,10 +308,10 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
 
         return x*1000, y*1000, z*1000  # km -> m
 
-    def _find_navigation_coefs(self):
-        """Find navigation coefficients for the current time
+    def _find_orbit_coefs(self):
+        """Find orbit coefficients for the current time
 
-        The navigation Chebyshev coefficients are only valid for a certain time interval. The header entry
+        The orbital Chebyshev coefficients are only valid for a certain time interval. The header entry
         SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients for multiple time intervals. Find the
         coefficients which are valid for the nominal timestamp of the scan.
 
@@ -219,7 +326,7 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
         try:
             return np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0][0]
         except IndexError:
-            raise NoValidNavigationCoefs('Unable to find navigation coefficients valid for {}'.format(time))
+            raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
 
     def get_earth_radii(self):
         """Get earth radii from prologue
@@ -233,13 +340,16 @@ class HRITMSGPrologueFileHandler(HRITFileHandler):
              earth_model['SouthPolarRadius']) / 2.0 * 1000
         return a, b
 
+    def reduce(self, max_size):
+        return self._reduce(self.prologue, max_size=max_size)
 
-class HRITMSGEpilogueFileHandler(HRITFileHandler):
+
+class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
     """SEVIRI HRIT epilogue reader.
     """
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
-                 ext_calib_coefs=None):
+                 ext_calib_coefs=None, mda_max_array_size=None):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -263,9 +373,14 @@ class HRITMSGEpilogueFileHandler(HRITFileHandler):
             data = np.fromfile(fp_, dtype=hrit_epilogue, count=1)
             self.epilogue.update(recarray2dict(data))
 
+    def reduce(self, max_size):
+        return self._reduce(self.epilogue, max_size=max_size)
+
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     """SEVIRI HRIT format reader
+
+    **Calibration**
 
     It is possible to choose between two file-internal calibration coefficients for the conversion
     from counts to radiances:
@@ -312,9 +427,20 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                            'ext_calib_coefs': coefs})
         scene.load(['VIS006', 'VIS008', 'IR_108', 'IR_120'])
 
+    **Raw Metadata**
+
+    By default, arrays with more than 100 elements are excluded from the raw reader metadata to
+    limit memory usage. This threshold can be adjusted using the `mda_max_array_size` keyword
+    argument:
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'mda_max_array_size': 1000})
+
     """
     def __init__(self, filename, filename_info, filetype_info,
-                 prologue, epilogue, calib_mode='nominal', ext_calib_coefs=None):
+                 prologue, epilogue, calib_mode='nominal',
+                 ext_calib_coefs=None, mda_max_array_size=100):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -323,10 +449,12 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                                                   msg_text_headers))
 
         self.prologue_ = prologue
+        self.epilogue_ = epilogue
         self.prologue = prologue.prologue
         self.epilogue = epilogue.epilogue
         self._filename_info = filename_info
         self.ext_calib_coefs = ext_calib_coefs if ext_calib_coefs is not None else {}
+        self.mda_max_array_size = mda_max_array_size
         calib_mode_choices = ('NOMINAL', 'GSICS')
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
@@ -350,14 +478,14 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.mda['projection_parameters']['SSP_longitude'] = ssp
         self.mda['projection_parameters']['SSP_latitude'] = 0.0
 
-        # Navigation
+        # Orbital parameters
         actual_lon, actual_lat, actual_alt = self.prologue_.get_satpos()
-        self.mda['navigation_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
+        self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
-        self.mda['navigation_parameters']['satellite_nominal_latitude'] = 0.0
-        self.mda['navigation_parameters']['satellite_actual_longitude'] = actual_lon
-        self.mda['navigation_parameters']['satellite_actual_latitude'] = actual_lat
-        self.mda['navigation_parameters']['satellite_actual_altitude'] = actual_alt
+        self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
+        self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
+        self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
+        self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
 
         # Misc
         self.platform_id = self.prologue["SatelliteStatus"][
@@ -523,11 +651,17 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['satellite_latitude'] = self.mda[
             'projection_parameters']['SSP_latitude']
         res.attrs['satellite_altitude'] = self.mda['projection_parameters']['h']
-        res.attrs['projection'] = {'satellite_longitude': self.mda['projection_parameters']['SSP_longitude'],
-                                   'satellite_latitude': self.mda['projection_parameters']['SSP_latitude'],
-                                   'satellite_altitude': self.mda['projection_parameters']['h']}
-        res.attrs['navigation'] = self.mda['navigation_parameters'].copy()
+        res.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+            'projection_latitude': self.mda['projection_parameters']['SSP_latitude'],
+            'projection_altitude': self.mda['projection_parameters']['h']}
+        res.attrs['orbital_parameters'].update(self.mda['orbital_parameters'])
         res.attrs['georef_offset_corrected'] = self.mda['offset_corrected']
+        res.attrs['raw_metadata'] = self._get_raw_mda()
+
+        # Add scanline timestamps as additional y-coordinate
+        res['acq_time'] = ('y', self._get_timestamps())
+        res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
 
         return res
 
@@ -576,6 +710,24 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
+
+    def _get_raw_mda(self):
+        """Compile raw metadata to be included in the dataset attributes"""
+        # Metadata from segment header (excluding items which vary among the different segments)
+        raw_mda = copy.deepcopy(self.mda)
+        for key in ('image_segment_line_quality', 'segment_sequence_number', 'annotation_header', 'loff'):
+            raw_mda.pop(key, None)
+
+        # Metadata from prologue and epilogue (large arrays removed)
+        raw_mda.update(self.prologue_.reduce(self.mda_max_array_size))
+        raw_mda.update(self.epilogue_.reduce(self.mda_max_array_size))
+
+        return raw_mda
+
+    def _get_timestamps(self):
+        """Read scanline timestamps from the segment header"""
+        tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
+        return get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
 
 
 def show(data, negate=False):

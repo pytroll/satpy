@@ -1,30 +1,23 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
+# Copyright (c) 2017 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Enhancements."""
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 import dask
 import dask.array as da
 import logging
@@ -139,7 +132,7 @@ def cira_stretch(img, **kwargs):
         denom = (1.0 - log_root) * 0.75
         band_data *= 0.01
         band_data = band_data.clip(np.finfo(float).eps)
-        band_data = xu.log10(band_data)
+        band_data = np.log10(band_data)
         band_data -= log_root
         band_data /= denom
         return band_data
@@ -215,11 +208,11 @@ def create_colormap(palette):
         return Colormap(*cmap)
 
     colors = palette.get('colors', None)
-    if isinstance(colors, list):
+    if isinstance(colors, (tuple, list)):
         cmap = []
         values = palette.get('values', None)
         for idx, color in enumerate(colors):
-            if values:
+            if values is not None:
                 value = values[idx]
             else:
                 value = idx / float(len(colors) - 1)

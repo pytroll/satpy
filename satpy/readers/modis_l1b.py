@@ -1,32 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2014, 2017.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping,
-# Sweden
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Ronald Scheirer <ronald.scheirer@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-
+# Copyright (c) 2010-2017 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Interface to Modis level 1b format.
 http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
 http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
@@ -35,200 +23,18 @@ w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
 """
 
 import logging
-from datetime import datetime
 
 import numpy as np
-from pyhdf.error import HDF4Error
-from pyhdf.SD import SD
 
-import xarray.ufuncs as xu
 import xarray as xr
-from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
 from satpy import CHUNK_SIZE
-from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.hdfeos_base import HDFEOSBaseFileReader, HDFEOSGeoReader
 from satpy.readers.hdf4_utils import from_sds
 
 logger = logging.getLogger(__name__)
 
 
-class HDFEOSFileReader(BaseFileHandler):
-    """Base file handler for EOS level 1 data."""
-
-    def __init__(self, filename, filename_info, filetype_info):
-        super(HDFEOSFileReader, self).__init__(filename, filename_info, filetype_info)
-        try:
-            self.sd = SD(self.filename)
-        except HDF4Error as err:
-            raise ValueError("Could not load data from " + self.filename
-                             + ": " + str(err))
-        self.metadata = self.read_mda(self.sd.attributes()['CoreMetadata.0'])
-        self.metadata.update(self.read_mda(
-            self.sd.attributes()['StructMetadata.0']))
-        self.metadata.update(self.read_mda(
-            self.sd.attributes()['ArchiveMetadata.0']))
-
-    @property
-    def start_time(self):
-        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' '
-                + self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
-        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
-
-    @property
-    def end_time(self):
-        date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' '
-                + self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
-        return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
-
-    @staticmethod
-    def read_mda(attribute):
-        """Read HDFEOS metadata and return a dict with all the key/value pairs."""
-        lines = attribute.split('\n')
-        mda = {}
-        current_dict = mda
-        path = []
-        prev_line = None
-        for line in lines:
-            if not line:
-                continue
-            if line == 'END':
-                break
-            if prev_line:
-                line = prev_line + line
-            key, val = line.split('=')
-            key = key.strip()
-            val = val.strip()
-            try:
-                val = eval(val)
-            except NameError:
-                pass
-            except SyntaxError:
-                prev_line = line
-                continue
-            prev_line = None
-            if key in ['GROUP', 'OBJECT']:
-                new_dict = {}
-                path.append(val)
-                current_dict[val] = new_dict
-                current_dict = new_dict
-            elif key in ['END_GROUP', 'END_OBJECT']:
-                if val != path[-1]:
-                    raise SyntaxError
-                path = path[:-1]
-                current_dict = mda
-                for item in path:
-                    current_dict = current_dict[item]
-            elif key in ['CLASS', 'NUM_VAL']:
-                pass
-            else:
-                current_dict[key] = val
-        return mda
-
-
-class HDFEOSGeoReader(HDFEOSFileReader):
-    """Handler for the geographical files."""
-
-    def __init__(self, filename, filename_info, filetype_info):
-        HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
-
-        ds = self.metadata['INVENTORYMETADATA'][
-            'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
-        if ds.endswith('D03'):
-            self.georesolution = 1000
-        else:
-            self.georesolution = 5000
-        self.cache = {}
-
-    def get_dataset(self, key, info):
-        """Get the dataset designated by *key*."""
-        if key.name == 'solar_zenith_angle':
-            data = self.load('SolarZenith')
-        elif key.name == 'solar_azimuth_angle':
-            data = self.load('SolarAzimuth')
-        elif key.name == 'satellite_zenith_angle':
-            data = self.load('SensorZenith')
-        elif key.name == 'satellite_azimuth_angle':
-            data = self.load('SensorAzimuth')
-        elif key.name == 'longitude':
-            data = self.load('Longitude')
-        elif key.name == 'latitude':
-            data = self.load('Latitude')
-        else:
-            return
-        if key.resolution != self.georesolution:
-            # let's see if we have something in the cache
-            try:
-                data = self.cache[key.resolution][key.name]
-                data.attrs.update(info)
-                data.attrs['standard_name'] = data.attrs['name']
-                return data
-            except KeyError:
-                self.cache.setdefault(key.resolution, {})
-
-            # too bad, now we need to interpolate
-            satz = self.load('SensorZenith')
-            if key.name in ['longitude', 'latitude']:
-                data_a = self.load('Longitude')
-                data_b = self.load('Latitude')
-            elif key.name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
-                data_a = self.load('SensorAzimuth')
-                data_b = self.load('SensorZenith') - 90
-            elif key.name in ['solar_azimuth_angle', 'solar_zenith_angle']:
-                data_a = self.load('SolarAzimuth')
-                data_b = self.load('SolarZenith') - 90
-
-            data_a, data_b = self._interpolate(data_a, data_b, satz,
-                                               self.georesolution, key.resolution)
-
-            if key.name in ['longitude', 'latitude']:
-                self.cache[key.resolution]['longitude'] = data_a
-                self.cache[key.resolution]['latitude'] = data_b
-            elif key.name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
-                self.cache[key.resolution]['satellite_azimuth_angle'] = data_a
-                self.cache[key.resolution]['satellite_zenith_angle'] = data_b + 90
-            elif key.name in ['solar_azimuth_angle', 'solar_zenith_angle']:
-                self.cache[key.resolution]['solar_azimuth_angle'] = data_a
-                self.cache[key.resolution]['solar_zenith_angle'] = data_b + 90
-
-            data = self.cache[key.resolution][key.name]
-
-        data.attrs.update(info)
-        data.attrs['standard_name'] = data.attrs['name']
-        return data
-
-    def load(self, file_key):
-        """Load the data."""
-        var = self.sd.select(file_key)
-        data = xr.DataArray(from_sds(var, chunks=CHUNK_SIZE),
-                            dims=['y', 'x']).astype(np.float32)
-        data = data.where(data != var._FillValue)
-        try:
-            data = data * np.float32(var.scale_factor)
-        except AttributeError:
-            pass
-        return data
-
-    @staticmethod
-    def _interpolate(clons, clats, csatz, coarse_resolution, resolution):
-        if resolution == coarse_resolution:
-            return clons, clats
-
-        funs = {(5000, 1000): modis_5km_to_1km,
-                (1000, 500): modis_1km_to_500m,
-                (1000, 250): modis_1km_to_250m}
-
-        try:
-            fun = funs[(coarse_resolution, resolution)]
-        except KeyError:
-            raise NotImplementedError('Interpolation from {}m to {}m not implemented'.format(
-                                      coarse_resolution, resolution))
-
-        logger.debug("Interpolating from " + str(coarse_resolution)
-                     + " to " + str(resolution))
-
-        return fun(clons, clats, csatz)
-
-
-class HDFEOSBandReader(HDFEOSFileReader):
+class HDFEOSBandReader(HDFEOSBaseFileReader):
     """Handler for the regular band channels."""
 
     res = {"1": 1000,
@@ -236,7 +42,7 @@ class HDFEOSBandReader(HDFEOSFileReader):
            "H": 500}
 
     def __init__(self, filename, filename_info, filetype_info):
-        HDFEOSFileReader.__init__(self, filename, filename_info, filetype_info)
+        HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
 
         ds = self.metadata['INVENTORYMETADATA'][
             'COLLECTIONDESCRIPTIONCLASS']['SHORTNAME']['VALUE']
@@ -364,9 +170,7 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
         HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info)
 
     def get_dataset(self, key, info):
-        if key.name in ['longitude', 'latitude',
-                        'satellite_azimuth_angle', 'satellite_zenith_angle',
-                        'solar_azimuth_angle', 'solar_zenith_angle']:
+        if key.name in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, key, info)
         return HDFEOSBandReader.get_dataset(self, key, info)
 
@@ -451,6 +255,6 @@ def calibrate_bt(array, attributes, index, band_name):
     cwn = cwn[global_index]
     tcs = tcs[global_index]
     tci = tci[global_index]
-    array = c_2 / (cwn * xu.log(c_1 / (1000000 * array * cwn ** 5) + 1))
+    array = c_2 / (cwn * np.log(c_1 / (1000000 * array * cwn ** 5) + 1))
     array = (array - tci) / tcs
     return array

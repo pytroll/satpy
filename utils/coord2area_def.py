@@ -1,25 +1,21 @@
-# Copyright (c) 2012, 2015
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2012-2019 Satpy developers
 #
-
-# Author(s):
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-
-"""
-Convert human coordinates (lon and lat) to an area definition.
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Convert human coordinates (lon and lat) to an area definition.
 
 Here is a usage example:
 python coord2area_def.py france stere 42.0 51.5 -5.5 8.0 1.5
@@ -104,19 +100,21 @@ if __name__ == '__main__':
         " +".join(("proj=" + proj + ",lat_0=" + str(lat_0) +
                    ",lon_0=" + str(lon_0) + ",ellps=WGS84").split(","))
 
-    print proj4_string
-
-    print "REGION:", name, "{"
-    print "\tNAME:\t", name
-    print "\tPCS_ID:\t", proj + "_" + str(lon_0) + "_" + str(lat_0)
-    print ("\tPCS_DEF:\tproj=" + proj +
-           ",lat_0=" + str(lat_0) +
-           ",lon_0=" + str(lon_0) +
-           ",ellps=WGS84")
-    print "\tXSIZE:\t", xsize
-    print "\tYSIZE:\t", ysize
-    print "\tAREA_EXTENT:\t", area_extent
-    print "};"
+    print(proj4_string)
+    print()
+    print(name + ":")
+    print("  description: " + name)
+    print("  projection:")
+    print("    proj: " + proj)
+    print("    ellps: WGS84")
+    print("    lat_0: " + str(lat_0))
+    print("    lon_0: " + str(lon_0))
+    print("  shape:")
+    print("    height: " + str(ysize))
+    print("    width: " + str(xsize))
+    print("  area_extent:")
+    print("    lower_left_xy: [%f, %f]" % (area_extent[0], area_extent[1]))
+    print("    upper_right_xy: [%f, %f]" % (area_extent[2], area_extent[3]))
 
     if args.shapes is None:
         sys.exit(0)

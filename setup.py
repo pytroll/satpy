@@ -31,7 +31,7 @@ import versioneer
 
 from setuptools import find_packages, setup
 
-requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.10.3', 'trollsift',
+requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
             'dask[array] >=0.17.1', 'pyproj']
 
@@ -61,9 +61,11 @@ extras_require = {
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
+    'hsaf_grib': ['pygrib'],
     # Writers:
+    'cf': ['h5netcdf >= 0.7.3'],
     'scmi': ['netCDF4 >= 1.1.8'],
-    'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     # MultiScene:
     'animations': ['imageio'],
