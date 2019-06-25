@@ -1,5 +1,5 @@
 reader:
-  description: NetCDF4 reader for the NWCSAF MSG Seviri 2016 format
+  description: NetCDF4 reader for the NWCSAF MSG Seviri 2016/2018 format
   name: nwcsaf-geo
   sensors: [seviri]
   default_channels: []
@@ -45,6 +45,14 @@ file_types:
     nc_nwcsaf_asii:
         file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
         file_patterns: ['S_NWC_ASII-NG_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+
+    nc_nwcsaf_asii_tf:
+        file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
+        file_patterns: ['S_NWC_ASII-TF_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
+
+    nc_nwcsaf_asii_gw:
+        file_reader: !!python/name:satpy.readers.nwcsaf_nc.NcNWCSAF
+        file_patterns: ['S_NWC_ASII-GW_{platform_id}_{region_id}_{start_time:%Y%m%dT%H%M%S}Z.nc']
 
 datasets:
 
@@ -98,6 +106,18 @@ datasets:
     resolution: 3000
     file_type: nc_nwcsaf_cma
 
+  cma_conditions:
+    name: cma_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_cma
+
+  cma_status_flag:
+    name: cma_status_flag
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_cma
+
 # ---- CT products ------------
 
   ct:
@@ -108,6 +128,42 @@ datasets:
 
   ct_pal:
     name: ct_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ct
+
+  ct_cumuliform:
+    name: ct_cumuliform
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ct
+
+  ct_cumuliform_pal:
+    name: ct_cumuliform_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ct
+
+  ct_multilayer:
+    name: ct_cumuliform
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ct
+
+  ct_multilayer_pal:
+    name: ct_cumuliform_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ct
+
+  ct_quality:
+    name: ct_quality
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ct
+
+  ct_conditions:
+    name: ct_conditions
     sensor: seviri
     resolution: 3000
     file_type: nc_nwcsaf_ct
@@ -158,6 +214,30 @@ datasets:
 
   ctth_effectiv_pal:
     name: ctth_effectiv_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ctth
+
+  ctth_method:
+    name: ctth_method
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ctth
+
+  ctth_conditions:
+    name: ctth_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ctth
+
+  ctth_quality:
+    name: ctth_quality
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ctth
+
+  ctth_status_flag:
+    name: ctth_status_flag
     sensor: seviri
     resolution: 3000
     file_type: nc_nwcsaf_ctth
@@ -224,6 +304,24 @@ datasets:
     resolution: 3000
     file_type: nc_nwcsaf_cmic
 
+  cmic_status_flag:
+    name: cmic_status_flag
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_cmic
+
+  cmic_conditions:
+    name: cmic_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_cmic
+
+  cmic_quality:
+    name: cmic_quality
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_cmic
+
 # ---- PC products ------------
 
   pc:
@@ -234,6 +332,18 @@ datasets:
 
   pc_pal:
     name: pc_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_pc
+
+  pc_conditions:
+    name: pc_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_pc
+
+  pc_quality:
+    name: pc_quality
     sensor: seviri
     resolution: 3000
     file_type: nc_nwcsaf_pc
@@ -272,6 +382,24 @@ datasets:
 
   crr_intensity_pal:
     name: crr_intensity_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_crr
+
+  crr_status_flag:
+    name: crr_status_flag
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_crr
+
+  crr_conditions:
+    name: crr_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_crr
+
+  crr_quality:
+    name: crr_quality
     sensor: seviri
     resolution: 3000
     file_type: nc_nwcsaf_crr
@@ -398,6 +526,144 @@ datasets:
     resolution: 3000
     file_type: nc_nwcsaf_ishai
 
+  ishai_difftpw:
+    name: ishai_difftpw
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_difftpw_pal:
+    name: ishai_difftpw_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffshw:
+    name: ishai_diffshw
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffshw_pal:
+    name: ishai_diffshw_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffli:
+    name: ishai_diffli
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffli_pal:
+    name: ishai_diffli_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffki:
+    name: ishai_diffki
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffki_pal:
+    name: ishai_diffki_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffbl:
+    name: ishai_diffbl
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffbl_pal:
+    name: ishai_diffbl_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffml:
+    name: ishai_diffml
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffml_pal:
+    name: ishai_diffml_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffhl:
+    name: ishai_diffhl
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffhl_pal:
+    name: ishai_diffhl_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_difftoz:
+    name: ishai_difftoz
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_difftoz_pal:
+    name: ishai_difftoz_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffskt:
+    name: ishai_diffskt
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_diffskt_pal:
+    name: ishai_diffskt_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ihsai_status_flag:
+    name: ihsai_status_flag
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_residual:
+    name: ishai_residual
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_residual_pal:
+    name: ishai_residual_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_conditions:
+    name: ishai_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
+  ishai_quality:
+    name: ishai_quality
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ishai
+
 
 # ----CI products ------------
 
@@ -419,8 +685,34 @@ datasets:
     resolution: 3000
     file_type: nc_nwcsaf_ci
 
+  # 2018 version
+  ci_prob_pal:
+    name: ci_prob_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ci
+
+  # 2016 Version
   ci_pal:
     name: ci_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ci
+
+  ci_status_flag:
+    name: ci_status_flag
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ci
+
+  ci_conditions:
+    name: ci_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_ci
+
+  ci_quality:
+    name: ci_quality
     sensor: seviri
     resolution: 3000
     file_type: nc_nwcsaf_ci
@@ -439,16 +731,73 @@ datasets:
     resolution: 3000
     file_type: nc_nwcsaf_rdt
 
-# ----ASII product ------------
+  MapCell_conditions:
+    name: MapCell_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_rdt
 
+  MapCell_quality:
+    name: MapCell_quality
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_rdt
+
+# ----ASII products in multiple files ------------
   asii_turb_trop_prob:
     name: asii_turb_trop_prob
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf_asii
+    file_type: [nc_nwcsaf_asii_tf, nc_nwcsaf_asii]
 
   asii_turb_prob_pal:
     name: asii_turb_prob_pal
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf_asii
+    file_type: [nc_nwcsaf_asii_tf, nc_nwcsaf_asii_gw]
+
+# ----ASII-TF product ------------
+
+  asii_turb_prob_status_flag:
+    name: asii_turb_trop_prob_status_flag
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_tf
+
+  asiitf_conditions:
+    name: asiitf_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_tf
+
+  asiitf_quality:
+    name: asiitf_quality
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_tf
+
+# ----ASII-GW product ------------
+
+  asii_turb_wave_prob:
+    name: asii_turb_wave_prob
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw
+
+  asii_turb_wave_prob_status_flag:
+    name: asii_turb_wave_prob_status_flag
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw
+
+  asiigw_conditions:
+    name: asiigw_conditions
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw
+
+  asiigw_quality:
+    name: asiigw_quality
+    sensor: seviri
+    resolution: 3000
+    file_type: nc_nwcsaf_asii_gw

@@ -1,24 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010, 2011, 2012, 2014, 2015.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2010-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for scene.py.
 """
 
@@ -56,10 +52,10 @@ class TestScene(unittest.TestCase):
 
     def test_init_with_sensor(self):
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader
+        from satpy.tests.utils import FakeReader
         with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
             cri.return_value = {
-                'fake_reader': create_fake_reader('fake_reader', sensor_name='fake_sensor'),
+                'fake_reader': FakeReader('fake_reader', sensor_name='fake_sensor'),
             }
             scene = satpy.scene.Scene(filenames=['bla'],
                                       base_dir='bli',
@@ -72,13 +68,13 @@ class TestScene(unittest.TestCase):
 
     def test_start_end_times(self):
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader
+        from satpy.tests.utils import FakeReader
         from datetime import datetime
         with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
-            r = create_fake_reader('fake_reader',
-                                   start_time=datetime(2017, 1, 1, 0, 0, 0),
-                                   end_time=datetime(2017, 1, 1, 1, 0, 0),
-                                   )
+            r = FakeReader('fake_reader',
+                           start_time=datetime(2017, 1, 1, 0, 0, 0),
+                           end_time=datetime(2017, 1, 1, 1, 0, 0),
+                           )
             cri.return_value = {'fake_reader': r}
             scene = satpy.scene.Scene(filenames=['bla'],
                                       base_dir='bli',
@@ -88,13 +84,13 @@ class TestScene(unittest.TestCase):
 
     def test_init_preserve_reader_kwargs(self):
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader
+        from satpy.tests.utils import FakeReader
         from datetime import datetime
         with mock.patch('satpy.scene.Scene.create_reader_instances') as cri:
-            r = create_fake_reader('fake_reader',
-                                   start_time=datetime(2017, 1, 1, 0, 0, 0),
-                                   end_time=datetime(2017, 1, 1, 1, 0, 0),
-                                   )
+            r = FakeReader('fake_reader',
+                           start_time=datetime(2017, 1, 1, 0, 0, 0),
+                           end_time=datetime(2017, 1, 1, 1, 0, 0),
+                           )
             cri.return_value = {'fake_reader': r}
             reader_kwargs = {'calibration_type': 'gsics'}
             scene = satpy.scene.Scene(filenames=['bla'],
@@ -190,7 +186,7 @@ class TestScene(unittest.TestCase):
 
     def test_create_reader_instances_with_reader_kwargs(self):
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader
+        from satpy.tests.utils import FakeReader
         from datetime import datetime
         filenames = ["1", "2", "3"]
         reader_kwargs = {'calibration_type': 'gsics'}
@@ -198,12 +194,14 @@ class TestScene(unittest.TestCase):
         reader_kwargs2 = {'calibration_type': 'gsics', 'filter_parameters': filter_parameters}
 
         with mock.patch('satpy.readers.load_reader') as lr_mock:
-            r = create_fake_reader('fake_reader',
-                                   start_time=datetime(2017, 1, 1, 0, 0, 0),
-                                   end_time=datetime(2017, 1, 1, 1, 0, 0),
-                                   )
+            r = FakeReader('fake_reader',
+                           start_time=datetime(2017, 1, 1, 0, 0, 0),
+                           end_time=datetime(2017, 1, 1, 1, 0, 0),
+                           )
             lr_mock.return_value = r
-            r.select_path_from_pathnames.return_value = filenames
+            r.select_files_from_pathnames = mock.MagicMock()
+            r.select_files_from_pathnames.return_value = filenames
+            r.create_filehandlers = mock.MagicMock()
             scene = satpy.scene.Scene(filenames=['bla'],
                                       base_dir='bli',
                                       sensor='fake_sensor',
@@ -659,8 +657,8 @@ class TestScene(unittest.TestCase):
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_all_datasets_one_reader(self, cri, cl):
         from satpy import Scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        r = create_fake_reader('fake_reader', 'fake_sensor')
+        from satpy.tests.utils import FakeReader, test_composites
+        r = FakeReader('fake_reader', 'fake_sensor')
         cri.return_value = {'fake_reader': r}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -671,18 +669,18 @@ class TestScene(unittest.TestCase):
         scene.cpl.compositors = comps
         scene.cpl.modifiers = mods
         id_list = scene.all_dataset_ids()
-        self.assertEqual(len(id_list), len(r.datasets))
+        self.assertEqual(len(id_list), len(r.all_ids))
         id_list = scene.all_dataset_ids(composites=True)
         self.assertEqual(len(id_list),
-                         len(r.datasets) + len(scene.cpl.compositors['fake_sensor'].keys()))
+                         len(r.all_ids) + len(scene.cpl.compositors['fake_sensor'].keys()))
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_all_datasets_multiple_reader(self, cri, cl):
         from satpy import Scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        r = create_fake_reader('fake_reader', 'fake_sensor', datasets=['ds1'])
-        r2 = create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        r = FakeReader('fake_reader', 'fake_sensor', datasets=['ds1'])
+        r2 = FakeReader(
             'fake_reader2', 'fake_sensor2', datasets=['ds2'])
         cri.return_value = {'fake_reader': r, 'fake_reader2': r2}
         comps, mods = test_composites('fake_sensor')
@@ -703,8 +701,8 @@ class TestScene(unittest.TestCase):
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_available_datasets_one_reader(self, cri, cl):
         from satpy import Scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        r = create_fake_reader('fake_reader', 'fake_sensor', datasets=['ds1'])
+        from satpy.tests.utils import FakeReader, test_composites
+        r = FakeReader('fake_reader', 'fake_sensor', datasets=['ds1'])
         cri.return_value = {'fake_reader': r}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -717,8 +715,8 @@ class TestScene(unittest.TestCase):
         id_list = scene.available_dataset_ids()
         self.assertEqual(len(id_list), 1)
         id_list = scene.available_dataset_ids(composites=True)
-        # ds1, comp1, comp14, comp16
-        self.assertEqual(len(id_list), 4)
+        # ds1, comp1, comp14, comp16, static_image
+        self.assertEqual(len(id_list), 5)
 
     def test_available_composite_ids_bad_available(self):
         from satpy import Scene
@@ -741,8 +739,8 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_no_exist(self, cri, cl):
         """Test loading a dataset that doesn't exist"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -756,9 +754,9 @@ class TestSceneLoading(unittest.TestCase):
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_no_exist2(self, cri, cl):
         """Test loading a dataset that doesn't exist then another load"""
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID, Scene
-        r = create_fake_reader('fake_reader', 'fake_sensor')
+        r = FakeReader('fake_reader', 'fake_sensor')
         cri.return_value = {'fake_reader': r}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -782,9 +780,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_ds1_no_comps(self, cri):
         """Test loading one dataset with no loaded compositors"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader
+        from satpy.tests.utils import FakeReader
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         scene = satpy.scene.Scene(filenames=['bla'],
                                   base_dir='bli',
@@ -799,9 +797,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_ds1_load_twice(self, cri):
         """Test loading one dataset with no loaded compositors"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader
+        from satpy.tests.utils import FakeReader
         from satpy import DatasetID
-        r = create_fake_reader('fake_reader', 'fake_sensor')
+        r = FakeReader('fake_reader', 'fake_sensor')
         cri.return_value = {'fake_reader': r}
         scene = satpy.scene.Scene(filenames=['bla'],
                                   base_dir='bli',
@@ -826,9 +824,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_ds1_unknown_modifier(self, cri, cl):
         """Test loading one dataset with no loaded compositors"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -843,8 +841,8 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_ds4_cal(self, cri, cl):
         """Test loading a dataset that has two calibration variations"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -858,11 +856,56 @@ class TestSceneLoading(unittest.TestCase):
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_ds5_best_resolution(self, cri, cl):
+        """Test loading a dataset has multiple resolutions available."""
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        scene.load(['ds5'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 1)
+        self.assertEqual(loaded_ids[0].name, 'ds5')
+        self.assertEqual(loaded_ids[0].resolution, 250)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_ds5_missing_best_resolution(self, cri, cl):
+        """Test loading a dataset that has multiple resolutions but the best isn't available."""
+        import satpy.scene
+        from satpy import DatasetID
+        from satpy.tests.utils import FakeReader, test_composites
+
+        # only the 500m is available
+        available_datasets = [DatasetID('ds5', resolution=500)]
+        cri.return_value = {
+            'fake_reader': FakeReader(
+                'fake_reader', 'fake_sensor', datasets=['ds5'],
+                available_datasets=available_datasets),
+        }
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        scene.load(['ds5'])
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 1)
+        self.assertEqual(loaded_ids[0].name, 'ds5')
+        self.assertEqual(loaded_ids[0].resolution, 500)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_ds6_wl(self, cri, cl):
         """Test loading a dataset by wavelength"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -879,8 +922,8 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_ds9_fail_load(self, cri, cl):
         """Test loading a dataset that will fail during load"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -896,9 +939,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp1(self, cri, cl):
         """Test loading a composite with one required prereq"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -916,9 +959,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp4(self, cri, cl):
         """Test loading a composite that depends on a composite"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -936,9 +979,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp5(self, cri, cl):
         """Test loading a composite that has an optional prerequisite"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -956,9 +999,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp6(self, cri, cl):
         """Test loading a composite that has an optional composite prerequisite"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -976,8 +1019,8 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp8(self, cri, cl):
         """Test loading a composite that has a non-existent prereq"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -991,9 +1034,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp9(self, cri, cl):
         """Test loading a composite that has a non-existent optional prereq"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1012,9 +1055,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp10(self, cri, cl):
         """Test loading a composite that depends on a modified dataset"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1033,9 +1076,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp11(self, cri, cl):
         """Test loading a composite that depends all wavelengths"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1054,9 +1097,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp12(self, cri, cl):
         """Test loading a composite that depends all wavelengths that get modified"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1075,9 +1118,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp13(self, cri, cl):
         """Test loading a composite that depends on a modified dataset where the resolution changes"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1096,8 +1139,8 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp14(self, cri, cl):
         """Test loading a composite that updates the DatasetID during generation"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1118,8 +1161,8 @@ class TestSceneLoading(unittest.TestCase):
         Note that the prereq exists in the reader, but fails in loading.
         """
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1139,8 +1182,8 @@ class TestSceneLoading(unittest.TestCase):
         Note that the prereq exists in the reader, but fails in loading
         """
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1159,8 +1202,8 @@ class TestSceneLoading(unittest.TestCase):
         """Test loading a composite that depends on a composite that won't load
         """
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1178,9 +1221,9 @@ class TestSceneLoading(unittest.TestCase):
         """Test loading a composite that depends on a incompatible area modified dataset
         """
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1195,9 +1238,47 @@ class TestSceneLoading(unittest.TestCase):
         #   ds4 (mod1, mod3)
         #   ds5 (mod1, incomp_areas)
         # We should end up with ds3, ds4 (mod1, mod3), ds5 (mod1), and ds1
-        # for the mod1 modifier
+        # for the incomp_areas modifier
         self.assertEqual(len(loaded_ids), 4)  # the 1 dependencies
         self.assertIn('ds3', scene.datasets)
+        self.assertIn(DatasetID(name='ds4', calibration='reflectance',
+                                modifiers=('mod1', 'mod3')),
+                      scene.datasets)
+        self.assertIn(DatasetID(name='ds5', resolution=250,
+                                modifiers=('mod1',)),
+                      scene.datasets)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_comp18_2(self, cri, cl):
+        """Test loading a composite that depends on a incompatible area modified dataset.
+
+        Specifically a modified dataset where the modifier has optional
+        dependencies.
+
+        """
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        # it is fine that an optional prereq doesn't exist
+        scene.load(['comp18_2'])
+        loaded_ids = list(scene.datasets.keys())
+        # depends on:
+        #   ds3
+        #   ds4 (mod1, mod3)
+        #   ds5 (mod1, incomp_areas_opt)
+        # We should end up with ds3, ds4 (mod1, mod3), ds5 (mod1), and ds1
+        # and ds2 for the incomp_areas_opt modifier
+        self.assertEqual(len(loaded_ids), 5)  # the 1 dependencies
+        self.assertIn('ds3', scene.datasets)
+        self.assertIn('ds2', scene.datasets)
         self.assertIn(DatasetID(name='ds4', calibration='reflectance',
                                 modifiers=('mod1', 'mod3')),
                       scene.datasets)
@@ -1217,9 +1298,9 @@ class TestSceneLoading(unittest.TestCase):
 
         """
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1253,8 +1334,8 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_multiple_comps(self, cri, cl):
         """Test loading multiple composites"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1271,8 +1352,8 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_multiple_comps_separate(self, cri, cl):
         """Test loading multiple composites, one at a time"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1296,9 +1377,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_modified(self, cri, cl):
         """Test loading a modified dataset"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1315,9 +1396,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_multiple_modified(self, cri, cl):
         """Test loading multiple modified datasets"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1342,8 +1423,8 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_dataset_after_composite(self, cri, cl):
         """Test load composite followed by other datasets"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        r = create_fake_reader('fake_reader', 'fake_sensor')
+        from satpy.tests.utils import FakeReader, test_composites
+        r = FakeReader('fake_reader', 'fake_sensor')
         cri.return_value = {'fake_reader': r}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1368,9 +1449,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_dataset_after_composite2(self, cri, cl):
         """Test load complex composite followed by other datasets"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        r = create_fake_reader('fake_reader', 'fake_sensor')
+        r = FakeReader('fake_reader', 'fake_sensor')
         cri.return_value = {'fake_reader': r}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1412,9 +1493,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp20(self, cri, cl):
         """Test loading composite with optional modifier dependencies"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1433,9 +1514,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp21(self, cri, cl):
         """Test loading composite with bad optional modifier dependencies"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1454,9 +1535,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp22(self, cri, cl):
         """Test loading composite with only optional modifier dependencies"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1475,8 +1556,8 @@ class TestSceneLoading(unittest.TestCase):
     def test_no_generate_comp10(self, cri, cl):
         """Test generating a composite after loading"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
-        cri.return_value = {'fake_reader': create_fake_reader(
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1507,9 +1588,9 @@ class TestSceneLoading(unittest.TestCase):
 
         """
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1549,9 +1630,9 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_comp11_and_23(self, cri, cl):
         """Test loading two composites that depend on similar wavelengths."""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID, DatasetDict
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
 
@@ -1591,12 +1672,12 @@ class TestSceneLoading(unittest.TestCase):
     def test_load_too_many(self, cri, cl):
         """Test dependency tree if too many reader keys match."""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
         datasets = [DatasetID(name='duplicate1', wavelength=(0.1, 0.2, 0.3)),
                     DatasetID(name='duplicate2', wavelength=(0.1, 0.2, 0.3))]
-        reader = create_fake_reader('fake_reader', 'fake_sensor', datasets=datasets)
-        reader.datasets = reader.available_dataset_ids = reader.all_dataset_ids = datasets
+        reader = FakeReader('fake_reader', 'fake_sensor', datasets=datasets,
+                            filter_datasets=False)
         cri.return_value = {'fake_reader': reader}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1605,6 +1686,39 @@ class TestSceneLoading(unittest.TestCase):
         avail_comps = scene.available_composite_ids()
         self.assertEqual(len(avail_comps), 0)
         self.assertRaises(KeyError, scene.load, [0.21])
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_available_comps_no_deps(self, cri, cl):
+        """Test Scene available composites when composites don't have a dependency."""
+        from satpy.tests.utils import FakeReader, test_composites
+        import satpy.scene
+        from satpy.readers import DatasetDict
+        from satpy import DatasetID
+
+        def _test(self, sensor_names):
+            if not self.compositors:
+                self.compositors = comps
+                self.modifiers = mods
+            new_comps = {}
+            new_mods = {}
+            for sn in sensor_names:
+                new_comps[sn] = DatasetDict(
+                    self.compositors[sn].copy())
+                new_mods[sn] = self.modifiers[sn].copy()
+            return new_comps, new_mods
+
+        # fancy magic to make sure the CompositorLoader thinks it has comps
+        cl.side_effect = _test
+
+        reader = FakeReader('fake_reader', 'fake_sensor')
+        cri.return_value = {'fake_reader': reader}
+        comps, mods = test_composites('fake_sensor')
+        scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
+        all_comp_ids = scene.available_composite_ids()
+        self.assertIn(DatasetID(name='static_image'), all_comp_ids)
+        available_comp_ids = scene.available_composite_ids()
+        self.assertIn(DatasetID(name='static_image'), available_comp_ids)
 
 
 class TestSceneResampling(unittest.TestCase):
@@ -1625,11 +1739,11 @@ class TestSceneResampling(unittest.TestCase):
 
         """
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1675,13 +1789,13 @@ class TestSceneResampling(unittest.TestCase):
     def test_resample_reduce_data_toggle(self, cri, cl, rs):
         """Test that the Scene can be reduced or not reduced during resampling."""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
         import dask.array as da
         import xarray as xr
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1739,10 +1853,10 @@ class TestSceneResampling(unittest.TestCase):
     def test_resample_ancillary(self, cri, cl):
         """Test that the Scene reducing data does not affect final output."""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1771,10 +1885,10 @@ class TestSceneResampling(unittest.TestCase):
     def test_resample_reduce_data(self, cri, cl):
         """Test that the Scene reducing data does not affect final output."""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1805,10 +1919,10 @@ class TestSceneResampling(unittest.TestCase):
     def test_no_generate_comp10(self, cri, cl, rs):
         """Test generating a composite after loading"""
         import satpy.scene
-        from satpy.tests.utils import create_fake_reader, test_composites
+        from satpy.tests.utils import FakeReader, test_composites
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1826,7 +1940,7 @@ class TestSceneResampling(unittest.TestCase):
             400,
             (-1000., -1500., 1000., 1500.),
         )
-        cri.return_value = {'fake_reader': create_fake_reader(
+        cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
         cl.return_value = (comps, mods)
@@ -1893,6 +2007,30 @@ class TestSceneSaving(unittest.TestCase):
         scn.save_datasets(base_dir=self.base_dir)
         self.assertTrue(os.path.isfile(
             os.path.join(self.base_dir, 'test_20180101_000000.tif')))
+
+    def test_save_datasets_by_ext(self):
+        """Save a dataset using 'save_datasets' with 'filename'."""
+        from satpy.scene import Scene
+        from satpy.tests.utils import spy_decorator
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime(2018, 1, 1, 0, 0, 0)}
+        )
+        scn = Scene()
+        scn['test'] = ds1
+
+        from satpy.writers.simple_image import PillowWriter
+        save_image_mock = spy_decorator(PillowWriter.save_image)
+        with mock.patch.object(PillowWriter, 'save_image', save_image_mock):
+            scn.save_datasets(base_dir=self.base_dir, filename='{name}.png')
+        save_image_mock.mock.assert_called_once()
+        self.assertTrue(os.path.isfile(
+            os.path.join(self.base_dir, 'test.png')))
 
     def test_save_datasets_bad_writer(self):
         """Save a dataset using 'save_datasets' and a bad writer."""

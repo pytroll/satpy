@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
 # Copyright (c) 2014-2019 Satpy developers
 #
-# This file is part of Satpy.
+# This file is part of satpy.
 #
-# Satpy is free software: you can redistribute it and/or modify it under the
+# satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
 #
-# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
-# Satpy.  If not, see <http://www.gnu.org/licenses/>.
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Compact viirs format.
 """
 
@@ -25,7 +24,6 @@ from datetime import datetime, timedelta
 import h5py
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 import dask.array as da
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -250,7 +248,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
                     lambda_c = h5attrs['CentralWaveLength']
                     rads *= 1e6
                     rads = (h * c) / (k * lambda_c *
-                                      xu.log(1 +
+                                      np.log(1 +
                                              (2 * h * c ** 2) /
                                              ((lambda_c ** 5) * rads)))
                     rads *= a_ir

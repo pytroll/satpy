@@ -1,24 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Composite classes for the VIIRS instrument.
 """
 
@@ -90,38 +86,37 @@ class SARRGB(GenericCompositor):
         # red = 1 - (mhv / .223)
         # blue = 1 - (mhh / .596)
         # import xarray as xr
-        # import xarray.ufuncs as xu
         # from functools import reduce
         #
-        # mask1 = reduce(xu.logical_and,
+        # mask1 = reduce(np.logical_and,
         #                [abs(green - blue) < 10 / 255.,
         #                 red - blue >= 0,
-        #                 xu.maximum(green, blue) < 200 / 255.])
+        #                 np.maximum(green, blue) < 200 / 255.])
         #
-        # mask2 = xu.logical_and(abs(green - blue) < 40 / 255.,
+        # mask2 = np.logical_and(abs(green - blue) < 40 / 255.,
         #                        red - blue > 40 / 255.)
         #
-        # mask3 = xu.logical_and(red - blue > 10 / 255.,
-        #                        xu.maximum(green, blue) < 120 / 255.)
+        # mask3 = np.logical_and(red - blue > 10 / 255.,
+        #                        np.maximum(green, blue) < 120 / 255.)
         #
-        # mask4 = reduce(xu.logical_and,
+        # mask4 = reduce(np.logical_and,
         #                [red < 70 / 255.,
         #                 green < 60 / 255.,
         #                 blue < 60 / 255.])
         #
-        # mask5 = reduce(xu.logical_and,
+        # mask5 = reduce(np.logical_and,
         #                [red < 80 / 255.,
         #                 green < 80 / 255.,
         #                 blue < 80 / 255.,
-        #                 xu.minimum(xu.minimum(red, green), blue) < 30 / 255.])
+        #                 np.minimum(np.minimum(red, green), blue) < 30 / 255.])
         #
-        # mask6 = reduce(xu.logical_and,
+        # mask6 = reduce(np.logical_and,
         #                [red < 110 / 255.,
         #                 green < 110 / 255.,
         #                 blue < 110 / 255.,
-        #                 xu.minimum(red, green) < 10 / 255.])
+        #                 np.minimum(red, green) < 10 / 255.])
         #
-        # mask = reduce(xu.logical_or, [mask1, mask2, mask3, mask4, mask5, mask6])
+        # mask = reduce(np.logical_or, [mask1, mask2, mask3, mask4, mask5, mask6])
         #
         # red = xr.where(mask, 230 / 255. - red, red).clip(min=0)
         # green = xr.where(mask, 1 - green, green)

@@ -1,33 +1,93 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
+# Copyright (c) 2017-2019 Satpy developers
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities for various satpy tests.
 """
 
 from datetime import datetime
+from satpy.readers.yaml_reader import FileYAMLReader
 
 try:
     from unittest import mock
 except ImportError:
     import mock
+
+
+def spy_decorator(method_to_decorate):
+    """Fancy decorate to wrap an object while still calling it.
+
+    See https://stackoverflow.com/a/41599695/433202
+
+    """
+    tmp_mock = mock.MagicMock()
+
+    def wrapper(self, *args, **kwargs):
+        tmp_mock(*args, **kwargs)
+        return method_to_decorate(self, *args, **kwargs)
+
+    wrapper.mock = tmp_mock
+    return wrapper
+
+
+def convert_file_content_to_data_array(file_content, attrs=tuple(),
+                                       dims=('z', 'y', 'x')):
+    """Helper for old reader tests that still use numpy arrays.
+
+    A lot of old reader tests still use numpy arrays and depend on the
+    "var_name/attr/attr_name" convention established before Satpy used xarray
+    and dask. While these conventions are still used and should be supported,
+    readers need to use xarray DataArrays instead.
+
+    If possible, new tests should be based on pure DataArray objects instead
+    of the "var_name/attr/attr_name" style syntax provided by the utility
+    file handlers.
+
+    Args:
+        file_content (dict): Dictionary of string file keys to fake file data.
+        attrs (iterable): Series of attributes to copy to DataArray object from
+            file content dictionary. Defaults to no attributes.
+        dims (iterable): Dimension names to use for resulting DataArrays.
+            The second to last dimension is used for 1D arrays, so for
+            dims of ``('z', 'y', 'x')`` this would use ``'y'``. Otherwise, the
+            dimensions are used starting with the last, so 2D arrays are
+            ``('y', 'x')``
+            Dimensions are used in reverse order so the last dimension
+            specified is used as the only dimension for 1D arrays and the
+            last dimension for other arrays.
+
+    """
+    from xarray import DataArray
+    import dask.array as da
+    import numpy as np
+    for key, val in file_content.items():
+        da_attrs = {}
+        for a in attrs:
+            if key + '/attr/' + a in file_content:
+                da_attrs[a] = file_content[key + '/attr/' + a]
+
+        if isinstance(val, np.ndarray):
+            val = da.from_array(val, chunks=4096)
+            if val.ndim == 1:
+                da_dims = dims[-2]
+            elif val.ndim > 1:
+                da_dims = tuple(dims[-val.ndim:])
+            else:
+                da_dims = None
+
+            file_content[key] = DataArray(val, dims=da_dims, attrs=da_attrs)
 
 
 def test_datasets():
@@ -110,7 +170,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                 if name == 'res_change' and resolution is not None:
                     i = datasets[0].attrs.copy()
                     i['resolution'] *= 5
-                elif name == 'incomp_areas':
+                elif 'incomp_areas' in name:
                     raise IncompatibleAreas(
                         "Test modifier 'incomp_areas' always raises IncompatibleAreas")
                 else:
@@ -154,11 +214,15 @@ def test_composites(sensor_name):
         DatasetID(name='comp18'): (['ds3',
                                     DatasetID(name='ds4', modifiers=('mod1', 'mod3',)),
                                     DatasetID(name='ds5', modifiers=('mod1', 'incomp_areas'))], []),
+        DatasetID(name='comp18_2'): (['ds3',
+                                      DatasetID(name='ds4', modifiers=('mod1', 'mod3',)),
+                                      DatasetID(name='ds5', modifiers=('mod1', 'incomp_areas_opt'))], []),
         DatasetID(name='comp19'): ([DatasetID('ds5', modifiers=('res_change',)), 'comp13', 'ds2'], []),
         DatasetID(name='comp20'): ([DatasetID(name='ds5', modifiers=('mod_opt_prereq',))], []),
         DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
         DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
         DatasetID(name='comp23'): ([0.8], []),
+        DatasetID(name='static_image'): ([], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -167,6 +231,7 @@ def test_composites(sensor_name):
         'mod3': (['ds2'], []),
         'res_change': ([], []),
         'incomp_areas': (['ds1'], []),
+        'incomp_areas_opt': ([DatasetID(name='ds1', modifiers=('incomp_areas',))], ['ds2']),
         'mod_opt_prereq': (['ds1'], ['ds2']),
         'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
         'mod_opt_only': ([], ['ds2']),
@@ -179,46 +244,84 @@ def test_composites(sensor_name):
     return comps, mods
 
 
-def _get_dataset_key(self, key, **kwargs):
-    from satpy.readers import get_key
-    return get_key(key, self.datasets, **kwargs)
+def _filter_datasets(all_ds, names_or_ids):
+    """Helper function for filtering DatasetIDs by name or DatasetID."""
+    # DatasetID will match a str to the name
+    # need to separate them out
+    str_filter = [ds_name for ds_name in names_or_ids if isinstance(ds_name, str)]
+    id_filter = [ds_id for ds_id in names_or_ids if not isinstance(ds_id, str)]
+    for ds_id in all_ds:
+        if ds_id in id_filter or ds_id.name in str_filter:
+            yield ds_id
 
 
-def _reader_load(self, dataset_keys):
-    from satpy import DatasetDict
-    from xarray import DataArray
-    import numpy as np
-    dataset_ids = self.datasets
-    loaded_datasets = DatasetDict()
-    for k in dataset_keys:
-        if k == 'ds9_fail_load':
-            continue
-        for ds in dataset_ids:
-            if ds == k:
-                loaded_datasets[ds] = DataArray(data=np.arange(25).reshape(5, 5),
-                                                attrs=ds.to_dict(),
-                                                dims=['y', 'x'])
-    return loaded_datasets
+class FakeReader(FileYAMLReader):
+    """Fake reader to make testing basic Scene/reader functionality easier."""
 
+    def __init__(self, name, sensor_name='fake_sensor', datasets=None,
+                 available_datasets=None, start_time=None, end_time=None,
+                 filter_datasets=True):
+        """Initialize reader and mock necessary properties and methods.
 
-def create_fake_reader(reader_name, sensor_name='fake_sensor', datasets=None,
-                       start_time=None, end_time=None):
-    from functools import partial
-    if start_time is None:
-        start_time = datetime.utcnow()
-    if end_time is None:
-        end_time = start_time
-    r = mock.MagicMock()
-    ds = test_datasets()
-    if datasets is not None:
-        ds = [d for d in ds if d.name in datasets]
+        By default any 'datasets' provided will be filtered by what datasets
+        are configured at the top of this module in 'test_datasets'. This can
+        be disabled by specifying `filter_datasets=False`.
 
-    r.datasets = ds
-    r.start_time = start_time
-    r.end_time = end_time
-    r.sensor_names = set([sensor_name])
-    r.get_dataset_key = partial(_get_dataset_key, r)
-    r.all_dataset_ids = r.datasets
-    r.available_dataset_ids = r.datasets
-    r.load.side_effect = partial(_reader_load, r)
-    return r
+        """
+        with mock.patch('satpy.readers.yaml_reader.recursive_dict_update') as rdu, \
+                mock.patch('satpy.readers.yaml_reader.open'), \
+                mock.patch('satpy.readers.yaml_reader.yaml.load'):
+            rdu.return_value = {'reader': {'name': name}, 'file_types': {}}
+            super(FakeReader, self).__init__(['fake.yaml'])
+
+        if start_time is None:
+            start_time = datetime.utcnow()
+        self._start_time = start_time
+        if end_time is None:
+            end_time = start_time
+        self._end_time = end_time
+        self._sensor_name = set([sensor_name])
+
+        all_ds = test_datasets()
+        if datasets is not None and filter_datasets:
+            all_ds = list(_filter_datasets(all_ds, datasets))
+        elif datasets:
+            all_ds = datasets
+        if available_datasets is not None:
+            available_datasets = list(_filter_datasets(all_ds, available_datasets))
+        else:
+            available_datasets = all_ds
+
+        self.all_ids = {ds_id: {} for ds_id in all_ds}
+        self.available_ids = {ds_id: {} for ds_id in available_datasets}
+
+        # Wrap load method in mock object so we can record call information
+        self.load = mock.patch.object(self, 'load', wraps=self.load).start()
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
+
+    @property
+    def sensor_names(self):
+        return self._sensor_name
+
+    def load(self, dataset_keys):
+        from satpy import DatasetDict
+        from xarray import DataArray
+        import numpy as np
+        dataset_ids = self.all_ids.keys()
+        loaded_datasets = DatasetDict()
+        for k in dataset_keys:
+            if k == 'ds9_fail_load':
+                continue
+            for ds in dataset_ids:
+                if ds == k:
+                    loaded_datasets[ds] = DataArray(data=np.arange(25).reshape(5, 5),
+                                                    attrs=ds.to_dict(),
+                                                    dims=['y', 'x'])
+        return loaded_datasets

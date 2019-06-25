@@ -1,27 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2017.
-
-# Author(s):
-
+# Copyright (c) 2016-2017 Satpy developers
 #
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
-
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Helpers for reading netcdf-based files.
 
 """
@@ -135,6 +128,16 @@ class NetCDF4FileHandler(BaseFileHandler):
             with xr.open_dataset(self.filename, group=group,
                                  **self._xarray_kwargs) as nc:
                 val = nc[key]
+                # Even though `chunks` is specified in the kwargs, xarray
+                # uses dask.arrays only for data variables that have at least
+                # one dimension; for zero-dimensional data variables (scalar),
+                # it uses its own lazy loading for scalars.  When those are
+                # accessed after file closure, xarray reopens the file without
+                # closing it again.  This will leave potentially many open file
+                # objects (which may in turn trigger a Segmentation Fault:
+                # https://github.com/pydata/xarray/issues/2954#issuecomment-491221266
+                if not val.chunks:
+                    val.load()
         return val
 
     def __contains__(self, item):

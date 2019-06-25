@@ -1,27 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016, 2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
+# Copyright (c) 2016-2019 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-# New stuff
-
+"""Base reader classes"""
 import glob
 import itertools
 import logging
@@ -47,8 +41,8 @@ from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
+from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
-from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +104,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             self.info['sensors'] = [self.info['sensors']]
         self.datasets = self.config.get('datasets', {})
         self.info['filenames'] = []
-        self.ids = {}
+        self.all_ids = {}
         self.load_ds_ids_from_config()
 
     @property
@@ -119,7 +113,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @property
     def all_dataset_ids(self):
-        return self.ids.keys()
+        return self.all_ids.keys()
 
     @property
     def all_dataset_names(self):
@@ -199,7 +193,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         See `satpy.readers.get_key` for more information about kwargs.
 
         """
-        return get_key(key, self.ids.keys(), **kwargs)
+        return get_key(key, self.all_ids.keys(), **kwargs)
 
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
@@ -246,7 +240,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                     # this is important for wavelength which was converted
                     # to a tuple
                     ds_info[key] = getattr(dsid, key)
-                self.ids[dsid] = ds_info
+                self.all_ids[dsid] = ds_info
 
         return ids
 
@@ -262,10 +256,9 @@ class FileYAMLReader(AbstractYAMLReader):
         super(FileYAMLReader, self).__init__(config_files)
 
         self.file_handlers = {}
+        self.available_ids = {}
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
-        if kwargs:
-            logger.warning("Unrecognized/unused reader keyword argument(s) '{}'".format(kwargs))
         self.coords_cache = WeakValueDictionary()
 
     @property
@@ -287,12 +280,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     @property
     def available_dataset_ids(self):
-        for ds_id in self.all_dataset_ids:
-            fts = self.ids[ds_id]["file_type"]
-            if isinstance(fts, str) and fts in self.file_handlers:
-                yield ds_id
-            elif any(ft in self.file_handlers for ft in fts):
-                yield ds_id
+        return self.available_ids.keys()
 
     @property
     def start_time(self):
@@ -516,59 +504,69 @@ class FileYAMLReader(AbstractYAMLReader):
                     self.file_handlers.get(filetype, []) + filehandlers,
                     key=lambda fhd: (fhd.start_time, fhd.filename))
 
-        # update existing dataset IDs with information from the file handler
-        self.update_ds_ids_from_file_handlers()
-
         # load any additional dataset IDs determined dynamically from the file
-        self.add_ds_ids_from_files()
+        # and update any missing metadata that only the file knows
+        self.update_ds_ids_from_file_handlers()
         return created_fhs
 
-    def update_ds_ids_from_file_handlers(self):
-        """Update DatasetIDs with information from loaded files.
+    def _file_handlers_available_datasets(self):
+        """Generate a series of available dataset information.
 
-        This is useful, for example, if dataset resolution may change
-        depending on what files were loaded.
+        This is done by chaining file handler's
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        together. See that method's documentation for more information.
+
+        Returns:
+            Generator of (bool, dict) where the boolean tells whether the
+            current dataset is available from any of the file handlers. The
+            boolean can also be None in the case where no loaded file handler
+            is configured to load the dataset. The
+            dictionary is the metadata provided either by the YAML
+            configuration files or by the file handler itself if it is a new
+            dataset. The file handler may have also supplemented or modified
+            the information.
 
         """
-        for file_handlers in self.file_handlers.values():
-            fh = file_handlers[0]
-            # update resolution in the dataset IDs for this files resolution
-            res = getattr(fh, 'resolution', None)
-            if res is None:
-                continue
+        # flatten all file handlers in to one list
+        flat_fhs = (fh for fhs in self.file_handlers.values() for fh in fhs)
+        id_values = list(self.all_ids.values())
+        configured_datasets = ((None, ds_info) for ds_info in id_values)
+        for fh in flat_fhs:
+            # chain the 'available_datasets' methods together by calling the
+            # current file handler's method with the previous ones result
+            configured_datasets = fh.available_datasets(configured_datasets=configured_datasets)
+        return configured_datasets
 
-            for ds_id, ds_info in list(self.ids.items()):
-                file_types = ds_info['file_type']
-                if not isinstance(file_types, list):
-                    file_types = [file_types]
-                if fh.filetype_info['file_type'] not in file_types:
-                    continue
-                if ds_id.resolution is not None:
-                    continue
-                ds_info['resolution'] = res
-                new_id = DatasetID.from_dict(ds_info)
-                self.ids[new_id] = ds_info
-                del self.ids[ds_id]
+    def update_ds_ids_from_file_handlers(self):
+        """Add or modify available dataset information.
 
-    def add_ds_ids_from_files(self):
-        """Check files for more dynamically discovered datasets."""
-        for file_handlers in self.file_handlers.values():
-            try:
-                fh = file_handlers[0]
-                avail_ids = fh.available_datasets()
-            except NotImplementedError:
-                continue
+        Each file handler is consulted on whether or not it can load the
+        dataset with the provided information dictionary.
+        See
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        for more information.
 
-            # dynamically discover other available datasets
-            for ds_id, ds_info in avail_ids:
-                # don't overwrite an existing dataset
-                # especially from the yaml config
-                coordinates = ds_info.get('coordinates')
-                if isinstance(coordinates, list):
-                    # xarray doesn't like concatenating attributes that are
-                    # lists: https://github.com/pydata/xarray/issues/2060
-                    ds_info['coordinates'] = tuple(ds_info['coordinates'])
-                self.ids.setdefault(ds_id, ds_info)
+        """
+        avail_datasets = self._file_handlers_available_datasets()
+        new_ids = {}
+        for is_avail, ds_info in avail_datasets:
+            # especially from the yaml config
+            coordinates = ds_info.get('coordinates')
+            if isinstance(coordinates, list):
+                # xarray doesn't like concatenating attributes that are
+                # lists: https://github.com/pydata/xarray/issues/2060
+                ds_info['coordinates'] = tuple(ds_info['coordinates'])
+
+            ds_info.setdefault('modifiers', tuple())  # default to no mods
+            ds_id = DatasetID.from_dict(ds_info)
+            # all datasets
+            new_ids[ds_id] = ds_info
+            # available datasets
+            # False == we have the file type but it doesn't have this dataset
+            # None == we don't have the file type object to ask
+            if is_avail:
+                self.available_ids[ds_id] = ds_info
+        self.all_ids = new_ids
 
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
@@ -600,7 +598,7 @@ class FileYAMLReader(AbstractYAMLReader):
         return res
 
     def _load_dataset_data(self, file_handlers, dsid):
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
         proj = self._load_dataset(dsid, ds_info, file_handlers)
         # FIXME: areas could be concatenated here
         # Update the metadata
@@ -633,7 +631,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _get_coordinates_for_dataset_key(self, dsid):
         """Get the coordinate dataset keys for *dsid*."""
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
         cids = []
 
         for cinfo in ds_info.get('coordinates', []):
@@ -658,7 +656,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _get_file_handlers(self, dsid):
         """Get the file handler to load this dataset."""
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
 
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
@@ -728,12 +726,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         if area is not None:
             ds.attrs['area'] = area
-            calc_coords = (('x' not in ds.coords) or('y' not in ds.coords)) and hasattr(area, 'get_proj_vectors_dask')
-            if calc_coords and hasattr(area, 'get_proj_vectors'):
-                ds['x'], ds['y'] = area.get_proj_vectors()
-            elif calc_coords:
-                # older pyresample with dask-only method
-                ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNK_SIZE)
+            ds = add_crs_xy_coords(ds, area)
         return ds
 
     def _load_ancillary_variables(self, datasets):
@@ -767,10 +760,24 @@ class FileYAMLReader(AbstractYAMLReader):
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
 
+    def get_dataset_key(self, key, prefer_available=True, **kwargs):
+        """Get the fully qualified `DatasetID` matching `key`.
+
+        See `satpy.readers.get_key` for more information about kwargs.
+
+        """
+        if prefer_available:
+            try:
+                return get_key(key, self.available_ids.keys(), **kwargs)
+            except KeyError:
+                return get_key(key, self.all_ids.keys(), **kwargs)
+        return get_key(key, self.all_ids.keys(), **kwargs)
+
     def load(self, dataset_keys, previous_datasets=None):
         """Load `dataset_keys`.
 
-        If `previous_datasets` is provided, do not reload those."""
+        If `previous_datasets` is provided, do not reload those.
+        """
         all_datasets = previous_datasets or DatasetDict()
         datasets = DatasetDict()
 

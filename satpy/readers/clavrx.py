@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# Copyright (c) 2017 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -26,7 +22,6 @@ import logging
 import numpy as np
 import netCDF4
 from glob import glob
-from satpy.dataset import DatasetID
 from satpy.readers.hdf4_utils import HDF4FileHandler, SDS
 from pyresample import geometry
 
@@ -102,19 +97,48 @@ class CLAVRXFileHandler(HDF4FileHandler):
     def end_time(self):
         return self.filename_info.get('end_time', self.start_time)
 
-    def available_datasets(self):
+    def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file"""
         sensor = self.get_sensor(self['/attr/sensor'])
         nadir_resolution = self.get_nadir_resolution(sensor)
+        coordinates = ('longitude', 'latitude')
+        handled_variables = set()
+
+        # update previously configured datasets
+        for is_avail, ds_info in (configured_datasets or []):
+            this_res = ds_info.get('resolution')
+            this_coords = ds_info.get('coordinates')
+            # some other file handler knows how to load this
+            if is_avail is not None:
+                yield is_avail, ds_info
+
+            var_name = ds_info.get('file_key', ds_info['name'])
+            matches = self.file_type_matches(ds_info['file_type'])
+            # we can confidently say that we can provide this dataset and can
+            # provide more info
+            if matches and var_name in self and this_res != nadir_resolution:
+                handled_variables.add(var_name)
+                new_info = ds_info.copy()  # don't mess up the above yielded
+                new_info['resolution'] = nadir_resolution
+                if self._is_polar() and this_coords is None:
+                    new_info['coordinates'] = coordinates
+                yield True, new_info
+            elif is_avail is None:
+                # if we didn't know how to handle this dataset and no one else did
+                # then we should keep it going down the chain
+                yield is_avail, ds_info
+
+        # add new datasets
         for var_name, val in self.file_content.items():
             if isinstance(val, SDS):
                 ds_info = {
                     'file_type': self.filetype_info['file_type'],
                     'resolution': nadir_resolution,
+                    'name': var_name,
                 }
                 if self._is_polar():
                     ds_info['coordinates'] = ['longitude', 'latitude']
-                yield DatasetID(name=var_name, resolution=nadir_resolution), ds_info
+                yield True, ds_info
 
     def get_shape(self, dataset_id, ds_info):
         var_name = ds_info.get('file_key', dataset_id.name)
@@ -213,7 +237,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
         glob_pat = os.path.join(dirname, l1b_base + '*R20*.nc')
         LOG.debug("searching for {0}".format(glob_pat))
         l1b_filenames = list(glob(glob_pat))
-        if len(l1b_filenames) == 0:
+        if not l1b_filenames:
             raise IOError("Could not find navigation donor for {0}"
                           " in same directory as CLAVR-x data".format(l1b_base))
         LOG.debug('Candidate nav donors: {0}'.format(repr(l1b_filenames)))

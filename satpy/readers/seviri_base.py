@@ -1,34 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017, 2018 PyTroll Community
-
-# Author(s):
-
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Sauli.Joro <sauli.joro@eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# Copyright (c) 2017-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities and eventually also base classes for MSG HRIT/Native data reading
 """
 
-from datetime import datetime, timedelta
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
-import xarray.ufuncs as xu
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
@@ -193,11 +185,30 @@ CALIB[324] = {'HRV': {'F': 79.0035 / np.pi},
 
 
 def get_cds_time(days, msecs):
-    """Get the datetime object of the time since epoch given in days and
-    milliseconds of day
+    """Compute timestamp given the days since epoch and milliseconds of the day
+
+    1958-01-01 00:00 is interpreted as fill value and will be replaced by NaT (Not a Time).
+
+    Args:
+        days (int, either scalar or numpy.ndarray):
+            Days since 1958-01-01
+        msecs (int, either scalar or numpy.ndarray):
+            Milliseconds of the day
+
+    Returns:
+        numpy.datetime64: Timestamp(s)
     """
-    return datetime(1958, 1, 1) + timedelta(days=float(days),
-                                            milliseconds=float(msecs))
+    if np.isscalar(days):
+        days = np.array([days], dtype='int64')
+        msecs = np.array([msecs], dtype='int64')
+
+    time = np.datetime64('1958-01-01').astype('datetime64[ms]') + \
+        days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]')
+    time[time == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
+
+    if len(time) == 1:
+        return time[0]
+    return time
 
 
 def dec10216(inbuf):
@@ -283,7 +294,7 @@ class SEVIRICalibrationHandler(object):
         """Compute the L15 temperature."""
 
         return ((C2 * wavenumber) /
-                xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
+                np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
     def _vis_calibrate(self, data, solar_irradiance):
         """Calibrate to reflectance."""

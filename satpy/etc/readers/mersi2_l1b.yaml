@@ -1,0 +1,614 @@
+reader:
+  description: FY-3D Medium Resolution Spectral Imager 2 (MERSI-2) L1B Reader
+  name: mersi2_l1b
+  sensors: [mersi2]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  mersi2_l1b_1000:
+    file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
+    rows_per_scan: 10
+    file_patterns:
+      # tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF
+      - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_1000M_L1B.{ext}'
+  mersi2_l1b_250:
+    file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
+    rows_per_scan: 40
+    file_patterns:
+      # tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF
+      - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_0250M_L1B.{ext}'
+  mersi2_l1b_1000_geo:
+    file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
+    rows_per_scan: 10
+    file_patterns:
+      # tf2019071182739.FY3D-X_MERSI_GEO1K_L1B.HDF
+      - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_GEO1K_L1B.{ext}'
+  mersi2_l1b_250_geo:
+    file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
+    rows_per_scan: 40
+    file_patterns:
+      # tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF
+      - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_GEOQK_L1B.{ext}'
+
+# NOTE: OSCAR website currently has bands in wavelength order
+#       https://www.wmo-sat.info/oscar/instruments/view/279
+#       The order below is by the wavelength in the input files
+#       The slides at the below link have band 5 and 19 swapped:
+#       http://www.wmo.int/pages/prog/sat/meetings/documents/IPET-SUP-4_Doc_05-04_FY-3D-ppt.pdf
+datasets:
+  '1':
+    name: '1'
+    wavelength: [0.445, 0.470, 0.495]
+    resolution:
+      1000:
+        file_type: mersi2_l1b_1000
+        file_key: Data/EV_250_Aggr.1KM_RefSB
+        band_index: 0
+        calibration_key: Calibration/VIS_Cal_Coeff
+        calibration_index: 0
+      250:
+        file_type: mersi2_l1b_250
+        file_key: Data/EV_250_RefSB_b1
+        calibration_key: Calibration/VIS_Cal_Coeff
+        calibration_index: 0
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '2':
+    name: '2'
+    wavelength: [0.525, 0.550, 0.575]
+    resolution:
+      1000:
+        file_type: mersi2_l1b_1000
+        file_key: Data/EV_250_Aggr.1KM_RefSB
+        band_index: 1
+        calibration_key: Calibration/VIS_Cal_Coeff
+        calibration_index: 1
+      250:
+        file_type: mersi2_l1b_250
+        file_key: Data/EV_250_RefSB_b2
+        calibration_key: Calibration/VIS_Cal_Coeff
+        calibration_index: 1
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '3':
+    name: '3'
+    wavelength: [0.625, 0.650, 0.675]
+    resolution:
+      1000:
+        file_type: mersi2_l1b_1000
+        file_key: Data/EV_250_Aggr.1KM_RefSB
+        band_index: 2
+        calibration_key: Calibration/VIS_Cal_Coeff
+        calibration_index: 2
+      250:
+        file_type: mersi2_l1b_250
+        file_key: Data/EV_250_RefSB_b3
+        calibration_key: Calibration/VIS_Cal_Coeff
+        calibration_index: 2
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '4':
+    name: '4'
+    wavelength: [0.840, 0.865, 0.890]
+    resolution:
+      1000:
+        file_type: mersi2_l1b_1000
+        file_key: Data/EV_250_Aggr.1KM_RefSB
+        band_index: 3
+        calibration_key: Calibration/VIS_Cal_Coeff
+        calibration_index: 3
+      250:
+        file_type: mersi2_l1b_250
+        file_key: Data/EV_250_RefSB_b4
+        calibration_key: Calibration/VIS_Cal_Coeff
+        calibration_index: 3
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+
+  '5':
+    name: '5'
+    wavelength: [1.37, 1.38, 1.39]  # or 30nm bandwidth?
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 0
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 0
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '6':
+    name: '6'
+    wavelength: [1.615, 1.640, 1.665]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 1
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 1
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '7':
+    name: '7'
+    wavelength: [2.105, 2.130, 2.155]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 2
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 2
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '8':
+    name: '8'
+    wavelength: [0.402, 0.412, 0.422]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 3
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 3
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '9':
+    name: '9'
+    wavelength: [0.433, 0.443, 0.453]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 4
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 4
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '10':
+    name: '10'
+    wavelength: [0.480, 0.490, 0.500]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 5
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '11':
+    name: '11'
+    wavelength: [0.545, 0.555, 0.565]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 6
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 6
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '12':
+    name: '12'
+    wavelength: [0.660, 0.670, 0.680]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 7
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 7
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '13':
+    name: '13'
+    wavelength: [0.699, 0.709, 0.719]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 8
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 8
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '14':
+    name: '14'
+    wavelength: [0.736, 0.746, 0.756]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 9
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 9
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '15':
+    name: '15'
+    wavelength: [0.855, 0.865, 0.875]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 10
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 10
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '16':
+    name: '16'
+    wavelength: [0.895, 0.905, 0.915]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 11
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 11
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '17':
+    name: '17'
+    wavelength: [0.926, 0.936, 0.946]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 12
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 12
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '18':
+    name: '18'
+    wavelength: [0.915, 0.940, 0.965]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 13
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 13
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+  '19':
+    name: '19'
+    wavelength: [1.23, 1.24, 1.25]  # or 1.03um?
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_RefSB
+    band_index: 14
+    calibration_key: Calibration/VIS_Cal_Coeff
+    calibration_index: 14
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        units: "%"
+        standard_name: toa_bidirectional_reflectance
+      radiance:
+        units: 'mW/ (m2 cm-1 sr)'
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+      counts:
+        units: "1"
+        standard_name: counts
+
+  # Not sure how to get radiance for BT channels
+  '20':
+    name: '20'
+    wavelength: [3.710, 3.800, 3.890]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_Emissive
+    band_index: 0
+    calibration_key: Calibration/IR_Cal_Coeff
+    calibration_index: 0
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        units: "K"
+        standard_name: toa_brightness_temperature
+      counts:
+        units: "1"
+        standard_name: counts
+  '21':
+    name: '21'
+    wavelength: [3.9725, 4.050, 4.1275]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_Emissive
+    band_index: 1
+    calibration_key: Calibration/IR_Cal_Coeff
+    calibration_index: 1
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        units: "K"
+        standard_name: toa_brightness_temperature
+      counts:
+        units: "1"
+        standard_name: counts
+  '22':
+    name: '22'
+    wavelength: [6.950, 7.20, 7.450]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_Emissive
+    band_index: 2
+    calibration_key: Calibration/IR_Cal_Coeff
+    calibration_index: 2
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        units: "K"
+        standard_name: toa_brightness_temperature
+      counts:
+        units: "1"
+        standard_name: counts
+  '23':
+    name: '23'
+    wavelength: [8.400, 8.550, 8.700]
+    resolution: 1000
+    file_type: mersi2_l1b_1000
+    file_key: Data/EV_1KM_Emissive
+    band_index: 3
+    calibration_key: Calibration/IR_Cal_Coeff
+    calibration_index: 3
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        units: "K"
+        standard_name: toa_brightness_temperature
+      counts:
+        units: "1"
+        standard_name: counts
+  '24':
+    name: '24'
+    wavelength: [10.300, 10.800, 11.300]
+    resolution:
+      1000:
+        file_type: mersi2_l1b_1000
+        file_key: Data/EV_250_Aggr.1KM_Emissive
+        band_index: 0
+        calibration_key: Calibration/IR_Cal_Coeff
+        calibration_index: 4
+      250:
+        file_type: mersi2_l1b_250
+        file_key: Data/EV_250_Emissive_b24
+        calibration_key: Calibration/IR_Cal_Coeff
+        calibration_index: 4
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        units: "K"
+        standard_name: toa_brightness_temperature
+      counts:
+        units: "1"
+        standard_name: counts
+  '25':
+    name: '25'
+    wavelength: [11.500, 12.000, 12.500]
+    resolution:
+      1000:
+        file_type: mersi2_l1b_1000
+        file_key: Data/EV_250_Aggr.1KM_Emissive
+        band_index: 1
+        calibration_key: Calibration/IR_Cal_Coeff
+        calibration_index: 5
+      250:
+        file_type: mersi2_l1b_250
+        file_key: Data/EV_250_Emissive_b25
+        calibration_key: Calibration/IR_Cal_Coeff
+        calibration_index: 5
+    coordinates: [longitude, latitude]
+    calibration:
+      brightness_temperature:
+        units: "K"
+        standard_name: toa_brightness_temperature
+      counts:
+        units: "1"
+        standard_name: counts
+
+  longitude:
+    name: longitude
+    units: degrees_east
+    standard_name: longitude
+    resolution:
+      1000:
+        file_type: mersi2_l1b_1000_geo
+        file_key: Geolocation/Longitude
+      250:
+        file_type: mersi2_l1b_250_geo
+        file_key: Longitude
+  latitude:
+    name: latitude
+    units: degrees_north
+    standard_name: latitude
+    resolution:
+      1000:
+        file_type: mersi2_l1b_1000_geo
+        file_key: Geolocation/Latitude
+      250:
+        file_type: mersi2_l1b_250_geo
+        file_key: Latitude
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    units: degree
+    standard_name: solar_zenith_angle
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi2_l1b_1000_geo
+    file_key: Geolocation/SolarZenith
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    units: degree
+    standard_name: solar_azimuth_angle
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi2_l1b_1000_geo
+    file_key: Geolocation/SolarAzimuth
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    units: degree
+    standard_name: sensor_zenith_angle
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi2_l1b_1000_geo
+    file_key: Geolocation/SensorZenith
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    units: degree
+    standard_name: sensor_azimuth_angle
+    resolution: 1000
+    coordinates: [longitude, latitude]
+    file_type: mersi2_l1b_1000_geo
+    file_key: Geolocation/SensorAzimuth

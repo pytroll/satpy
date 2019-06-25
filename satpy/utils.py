@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2018 PyTroll developers
-#
-# Author(s):
-#
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   Esben S. Nielsen <esn@dmi.dk>
-#   Panu Lahtinen <pnuu+git@iki.fi>
+# Copyright (c) 2009-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -23,16 +16,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Module defining various utilities.
 """
 
 import logging
 import os
+import sys
 import re
+import warnings
 
 import numpy as np
-import xarray.ufuncs as xu
 
 try:
     import configparser
@@ -137,7 +130,7 @@ def get_logger(name):
         logging.Logger.trace = trace
 
     log = logging.getLogger(name)
-    if not log.handlers:
+    if not log.handlers and sys.version_info[0] < 3:
         log.addHandler(logging.NullHandler())
     return log
 
@@ -155,35 +148,35 @@ def in_ipynb():
 
 def lonlat2xyz(lon, lat):
     """Convert lon lat to cartesian."""
-    lat = xu.deg2rad(lat)
-    lon = xu.deg2rad(lon)
-    x = xu.cos(lat) * xu.cos(lon)
-    y = xu.cos(lat) * xu.sin(lon)
-    z = xu.sin(lat)
+    lat = np.deg2rad(lat)
+    lon = np.deg2rad(lon)
+    x = np.cos(lat) * np.cos(lon)
+    y = np.cos(lat) * np.sin(lon)
+    z = np.sin(lat)
     return x, y, z
 
 
 def xyz2lonlat(x, y, z):
     """Convert cartesian to lon lat."""
-    lon = xu.rad2deg(xu.arctan2(y, x))
-    lat = xu.rad2deg(xu.arctan2(z, xu.sqrt(x**2 + y**2)))
+    lon = np.rad2deg(np.arctan2(y, x))
+    lat = np.rad2deg(np.arctan2(z, np.sqrt(x ** 2 + y ** 2)))
     return lon, lat
 
 
 def angle2xyz(azi, zen):
     """Convert azimuth and zenith to cartesian."""
-    azi = xu.deg2rad(azi)
-    zen = xu.deg2rad(zen)
-    x = xu.sin(zen) * xu.sin(azi)
-    y = xu.sin(zen) * xu.cos(azi)
-    z = xu.cos(zen)
+    azi = np.deg2rad(azi)
+    zen = np.deg2rad(zen)
+    x = np.sin(zen) * np.sin(azi)
+    y = np.sin(zen) * np.cos(azi)
+    z = np.cos(zen)
     return x, y, z
 
 
 def xyz2angle(x, y, z):
     """Convert cartesian to azimuth and zenith."""
-    azi = xu.rad2deg(xu.arctan2(x, y))
-    zen = 90 - xu.rad2deg(xu.arctan2(z, xu.sqrt(x**2 + y**2)))
+    azi = np.rad2deg(np.arctan2(x, y))
+    zen = 90 - np.rad2deg(np.arctan2(z, np.sqrt(x ** 2 + y ** 2)))
     return azi, zen
 
 
@@ -288,3 +281,51 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
     corr = corr.where(cos_zen.notnull(), 0)
 
     return data * corr
+
+
+def get_satpos(dataset):
+    """Get satellite position from dataset attributes.
+
+    Preferences are:
+
+    * Longitude & Latitude: Nadir, actual, nominal, projection
+    * Altitude: Actual, projection
+
+    A warning is issued when projection values have to be used because nothing else is available.
+
+    Returns:
+        Geodetic longitude, latitude, altitude
+    """
+    try:
+        orb_params = dataset.attrs['orbital_parameters']
+
+        # Altitude
+        try:
+            alt = orb_params['satellite_actual_altitude']
+        except KeyError:
+            alt = orb_params['projection_altitude']
+            warnings.warn('Satellite altitude not available, using projection altitude instead.')
+
+        # Longitude & Latitude
+        try:
+            lon = orb_params['nadir_longitude']
+            lat = orb_params['nadir_latitude']
+        except KeyError:
+            try:
+                lon = orb_params['satellite_actual_longitude']
+                lat = orb_params['satellite_actual_latitude']
+            except KeyError:
+                try:
+                    lon = orb_params['satellite_nominal_longitude']
+                    lat = orb_params['satellite_nominal_latitude']
+                except KeyError:
+                    lon = orb_params['projection_longitude']
+                    lat = orb_params['projection_latitude']
+                    warnings.warn('Satellite lon/lat not available, using projection centre instead.')
+    except KeyError:
+        # Legacy
+        lon = dataset.attrs['satellite_longitude']
+        lat = dataset.attrs['satellite_latitude']
+        alt = dataset.attrs['satellite_altitude']
+
+    return lon, lat, alt

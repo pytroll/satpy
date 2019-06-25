@@ -1,31 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011-2019 Pytroll
-
-# Author(s):
-
+# Copyright (c) 2011-2019 Satpy developers
 #
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   Kristian Rune Larsen <krl@dmi.dk>
-#   Lars Ørum Rasmussen <ras@dmi.dk>
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
-
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Interface to VIIRS SDR format
 **********************************
 
@@ -124,9 +113,7 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
 
 
 class VIIRSSDRFileHandler(HDF5FileHandler):
-
-    """VIIRS HDF5 File Reader.
-    """
+    """VIIRS HDF5 File Reader."""
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
         self.datasets = filename_info['datasets'].split('-')
@@ -415,6 +402,24 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         return lons_ring, lats_ring
 
+    def available_datasets(self, configured_datasets=None):
+        """Generate dataset info and their availablity.
+
+        See
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        for details.
+
+        """
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                yield is_avail, ds_info
+                continue
+            dataset_group = [ds_group for ds_group in ds_info['dataset_groups'] if ds_group in self.datasets]
+            if dataset_group:
+                yield True, ds_info
+            elif is_avail is None:
+                yield is_avail, ds_info
+
 
 def split_desired_other(fhs, req_geo, rem_geo):
     """Split the provided filehandlers *fhs* into desired filehandlers and others."""
@@ -531,7 +536,7 @@ class VIIRSSDRReader(FileYAMLReader):
 
     def get_right_geo_fhs(self, dsid, fhs):
         """Find the right geographical file handlers for given dataset ID *dsid*."""
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
         req_geo, rem_geo = self._get_req_rem_geo(ds_info)
         desired, other = split_desired_other(fhs, req_geo, rem_geo)
         if desired:
@@ -545,7 +550,7 @@ class VIIRSSDRReader(FileYAMLReader):
 
     def _get_file_handlers(self, dsid):
         """Get the file handler to load this dataset."""
-        ds_info = self.ids[dsid]
+        ds_info = self.all_ids[dsid]
 
         fhs = [fh for fh in self.file_handlers['generic_file']
                if set(fh.datasets) & set(ds_info['dataset_groups'])]
@@ -565,7 +570,7 @@ class VIIRSSDRReader(FileYAMLReader):
         """
         coords = super(VIIRSSDRReader, self)._get_coordinates_for_dataset_key(dsid)
         for c_id in coords:
-            c_info = self.ids[c_id]  # c_info['dataset_groups'] should be a list of 2 elements
+            c_info = self.all_ids[c_id]  # c_info['dataset_groups'] should be a list of 2 elements
             self._get_file_handlers(c_id)
             if len(c_info['dataset_groups']) == 1:  # filtering already done
                 continue

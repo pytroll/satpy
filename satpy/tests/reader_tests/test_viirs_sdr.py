@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.viirs_sdr module.
 """
 
@@ -534,6 +549,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
         r.create_filehandlers(loadables)
+        self.assertNotIn('I01', [x.name for x in r.available_dataset_ids])
         ds = r.load(['I01'])
         self.assertEqual(len(ds), 0)
 
@@ -738,8 +754,7 @@ class TestAggrVIIRSSDRReader(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_viirs_sdr.
-    """
+    """The test suite for test_viirs_sdr."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSSDRReader))
