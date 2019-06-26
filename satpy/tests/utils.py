@@ -110,8 +110,6 @@ def test_datasets():
         DatasetID(name='ds11', resolution=1000),
         DatasetID(name='ds12', resolution=500),
         DatasetID(name='ds12', resolution=1000),
-
-
     ]
     return d
 
