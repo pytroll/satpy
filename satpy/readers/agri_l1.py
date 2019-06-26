@@ -58,9 +58,9 @@ class HDF_AGRI_L1(HDF5FileHandler):
             data = data.rename({data.dims[-2]: 'y', data.dims[-1]: 'x'})
 
         # convert bytes to string
-        data.attrs['long_name'] = data.attrs['long_name'].decode("utf-8", 'ignore')
-        data.attrs['band_names'] = data.attrs['band_names'].decode("utf-8")
-        data.attrs['center_wavelength'] = data.attrs['center_wavelength'].decode("utf-8")
+        data.attrs['long_name'] = data.attrs['long_name'].decode('gbk')
+        data.attrs['band_names'] = data.attrs['band_names'].decode('gbk')
+        data.attrs['center_wavelength'] = data.attrs['center_wavelength'].decode('gbk')
 
         # calibration
         calibration = ds_info['calibration']
