@@ -50,7 +50,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                     'FillValue': -65535.0,
                                     'units': 'NUL',
                                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
-                                    'band_names': 'band{}(band number is range from 1 to 14)'.format(ch).encode('utf-8'),
+                                    'band_names': 'band{}(band number is range from 1 to 14)'
+                                                    .format(ch).encode('utf-8'),
                                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
                                     'valid_range': [0, 1.5],
                                 },
@@ -58,70 +59,73 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
         elif prefix == 'NOM':
             data = xr.DataArray(
-                                da.from_array(np.arange(10, dtype=np.uint16).reshape((2, 5)) + 1, [dim for dim in dims]),
+                                da.from_array(np.arange(10, dtype=np.uint16).reshape((2, 5)) + 1,
+                                            [dim for dim in dims]),
                                 attrs={
                                     'Slope': 1., 'Intercept': 0.,
                                     'FillValue': 65535,
                                     'units': 'DN',
                                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
-                                    'band_names': 'band{}(band number is range from 1 to 14)'.format(ch).encode('utf-8'),
+                                    'band_names': 'band{}(band number is range from 1 to 14)'
+                                                    .format(ch).encode('utf-8'),
                                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
                                     'valid_range': [0, 4095],
                                 },
                                 dims=('_RegLength', '_RegWidth'))
 
         elif prefix == 'COEF':
-                if file_type == '500':
-                    data = xr.DataArray(
-                                    da.from_array((np.arange(2.).reshape((1, 2)) + 1.) / np.array([1E4, 1E2]), [1, 2]),
-                                    attrs={
-                                        'Slope': 1., 'Intercept': 0.,
-                                        'FillValue': 0,
-                                        'units': 'NUL',
-                                        'band_names': 'NUL'.format(ch).encode('utf-8'),
-                                        'long_name': b'Calibration coefficient (SCALE and OFFSET)',
-                                        'valid_range': [-500, 500],
-                                    },
-                                    dims=('_num_channel', '_coefs'))
+            if file_type == '500':
+                data = xr.DataArray(
+                                da.from_array((np.arange(2.).reshape((1, 2)) + 1.) / np.array([1E4, 1E2]), [1, 2]),
+                                attrs={
+                                    'Slope': 1., 'Intercept': 0.,
+                                    'FillValue': 0,
+                                    'units': 'NUL',
+                                    'band_names': 'NUL'.format(ch).encode('utf-8'),
+                                    'long_name': b'Calibration coefficient (SCALE and OFFSET)',
+                                    'valid_range': [-500, 500],
+                                },
+                                dims=('_num_channel', '_coefs'))
 
-                elif file_type == '1000':
-                    data = xr.DataArray(
-                                    da.from_array((np.arange(6.).reshape((3, 2)) + 1.) / np.array([1E4, 1E2]), [3, 2]),
-                                    attrs={
-                                        'Slope': 1., 'Intercept': 0.,
-                                        'FillValue': 0,
-                                        'units': 'NUL',
-                                        'band_names': 'NUL'.format(ch).encode('utf-8'),
-                                        'long_name': b'Calibration coefficient (SCALE and OFFSET)',
-                                        'valid_range': [-500, 500],
-                                    },
-                                    dims=('_num_channel', '_coefs'))
+            elif file_type == '1000':
+                data = xr.DataArray(
+                                da.from_array((np.arange(6.).reshape((3, 2)) + 1.) / np.array([1E4, 1E2]), [3, 2]),
+                                attrs={
+                                    'Slope': 1., 'Intercept': 0.,
+                                    'FillValue': 0,
+                                    'units': 'NUL',
+                                    'band_names': 'NUL'.format(ch).encode('utf-8'),
+                                    'long_name': b'Calibration coefficient (SCALE and OFFSET)',
+                                    'valid_range': [-500, 500],
+                                },
+                                dims=('_num_channel', '_coefs'))
 
-                elif file_type == '2000':
-                    data = xr.DataArray(
-                                    da.from_array((np.arange(14.).reshape((7, 2)) + 1.) / np.array([1E4, 1E2]), [7, 2]),
-                                    attrs={
-                                        'Slope': 1., 'Intercept': 0.,
-                                        'FillValue': 0,
-                                        'units': 'NUL',
-                                        'band_names': 'NUL'.format(ch).encode('utf-8'),
-                                        'long_name': b'Calibration coefficient (SCALE and OFFSET)',
-                                        'valid_range': [-500, 500],
-                                    },
-                                    dims=('_num_channel', '_coefs'))
+            elif file_type == '2000':
+                data = xr.DataArray(
+                                da.from_array((np.arange(14.).reshape((7, 2)) + 1.) / np.array([1E4, 1E2]), [7, 2]),
+                                attrs={
+                                    'Slope': 1., 'Intercept': 0.,
+                                    'FillValue': 0,
+                                    'units': 'NUL',
+                                    'band_names': 'NUL'.format(ch).encode('utf-8'),
+                                    'long_name': b'Calibration coefficient (SCALE and OFFSET)',
+                                    'valid_range': [-500, 500],
+                                },
+                                dims=('_num_channel', '_coefs'))
 
-                elif file_type == '4000':
-                    data = xr.DataArray(
-                                    da.from_array((np.arange(28.).reshape((14, 2)) + 1.) / np.array([1E4, 1E2]), [14, 2]),
-                                    attrs={
-                                        'Slope': 1., 'Intercept': 0.,
-                                        'FillValue': 0,
-                                        'units': 'NUL',
-                                        'band_names': 'NUL'.format(ch).encode('utf-8'),
-                                        'long_name': b'Calibration coefficient (SCALE and OFFSET)',
-                                        'valid_range': [-500, 500],
-                                    },
-                                    dims=('_num_channel', '_coefs'))
+            elif file_type == '4000':
+                data = xr.DataArray(
+                                da.from_array((np.arange(28.).reshape((14, 2)) + 1.)
+                                    / np.array([1E4, 1E2]), [14, 2]),
+                                attrs={
+                                    'Slope': 1., 'Intercept': 0.,
+                                    'FillValue': 0,
+                                    'units': 'NUL',
+                                    'band_names': 'NUL'.format(ch).encode('utf-8'),
+                                    'long_name': b'Calibration coefficient (SCALE and OFFSET)',
+                                    'valid_range': [-500, 500],
+                                },
+                                dims=('_num_channel', '_coefs'))
 
         return data
 
@@ -132,48 +136,60 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         cwls = [0.65]
         data = {}
         for index, cwl in enumerate(cwls):
-            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL', [dim_0, dim_1], file_type)
-            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM', [dim_0, dim_1], file_type)
-            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF', [dim_0, dim_1], file_type)
+            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
+                                                        [dim_0, dim_1], file_type)
+            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
+                                                        [dim_0, dim_1], file_type)
+            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
+                                                        [dim_0, dim_1], file_type)
 
         return data
 
     def _get_1km_data(self, file_type):
         dim_0 = 2
         dim_1 = 5
-        chs = np.linspace(1,3,3)
+        chs = np.linspace(1, 3, 3)
         cwls = [0.47, 0.65, 0.83]
         data = {}
         for index, cwl in enumerate(cwls):
-            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL', [dim_0, dim_1], file_type)
-            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM', [dim_0, dim_1], file_type)
-            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF', [dim_0, dim_1], file_type)
+            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
+                                                        [dim_0, dim_1], file_type)
+            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
+                                                        [dim_0, dim_1], file_type)
+            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
+                                                        [dim_0, dim_1], file_type)
 
         return data
 
     def _get_2km_data(self, file_type):
         dim_0 = 2
         dim_1 = 5
-        chs = np.linspace(1,7,7)
+        chs = np.linspace(1, 7, 7)
         cwls = [0.47, 0.65, 0.83, 1.37, 1.61, 2.22, 3.72]
         data = {}
         for index, cwl in enumerate(cwls):
-            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL', [dim_0, dim_1], file_type)
-            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM', [dim_0, dim_1], file_type)
-            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF', [dim_0, dim_1], file_type)
+            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
+                                                        [dim_0, dim_1], file_type)
+            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
+                                                        [dim_0, dim_1], file_type)
+            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
+                                                        [dim_0, dim_1], file_type)
 
         return data
 
     def _get_4km_data(self, file_type):
         dim_0 = 2
         dim_1 = 5
-        chs = np.linspace(1,14,14)
+        chs = np.linspace(1, 14, 14)
         cwls = [0.47, 0.65, 0.83, 1.37, 1.61, 2.22, 3.72, 3.72, 6.25, 7.10, 8.50, 10.8, 12, 13.5]
         data = {}
         for index, cwl in enumerate(cwls):
-            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL', [dim_0, dim_1], file_type)
-            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM', [dim_0, dim_1], file_type)
-            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF', [dim_0, dim_1], file_type)
+            data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
+                                                        [dim_0, dim_1], file_type)
+            data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
+                                                        [dim_0, dim_1], file_type)
+            data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
+                                                        [dim_0, dim_1], file_type)
 
         return data
 
@@ -184,7 +200,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             '/attr/OBIType': 'REGC', '/attr/RegLength': 2.0, '/attr/RegWidth': 5.0,
             '/attr/Begin Line Number': 0, '/attr/End Line Number': 1,
             '/attr/Observing Beginning Date': '2019-06-03', '/attr/Observing Beginning Time': '00:30:01.807',
-            '/attr/Observing Ending Date': '2019-06-03', '/attr/Observing Ending Time': '00:34:07.572',            
+            '/attr/Observing Ending Date': '2019-06-03', '/attr/Observing Ending Time': '00:34:07.572',
             '/attr/Satellite Name': 'FY4A', '/attr/Sensor Identification Code': 'AGRI', '/attr/Sensor Name': 'AGRI',
         }
 
@@ -203,6 +219,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         test_content.update(data)
 
         return test_content
+
 
 class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     """Test VIRR L1B Reader."""
@@ -242,21 +259,21 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         available_datasets = reader.available_dataset_ids
 
         # 500m
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(2,2,1)]
+        band_names = ['C' + '%02d' % ch for ch in np.linspace(2, 2, 1)]
         for band_name in band_names:
             ds_id = DatasetID(name=band_name, resolution=500)
             res = get_key(ds_id, available_datasets, num_results=0, best=False)
             self.assertEqual(2, len(res))
 
         # 1km
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(1,3,3)]
+        band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 3, 3)]
         for band_name in band_names:
             ds_id = DatasetID(name=band_name, resolution=1000)
             res = get_key(ds_id, available_datasets, num_results=0, best=False)
             self.assertEqual(2, len(res))
 
         # 2km
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(1,7,7)]
+        band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 7, 7)]
         for band_name in band_names:
             ds_id = DatasetID(name=band_name, resolution=2000)
             res = get_key(ds_id, available_datasets, num_results=0, best=False)
@@ -278,7 +295,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
             if band_name < 'C07':
                 self.assertEqual('%', res[band_name].attrs['units'])
             else:
-                self.assertEqual('K', res[band_name].attrs['units'])        
+                self.assertEqual('K', res[band_name].attrs['units'])
 
     def test_fy4a_counts_calib(self):
         """Test loading data at counts calibration."""
@@ -347,22 +364,16 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         res = reader.load(band_names)
         self.assertEqual(14, len(res))
-        expected = {1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05],
-                           [2.06, 2.07, 2.08, 2.09, 2.1]]),
-                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15],
-                            [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1 , 6.15, 6.2 , 6.25],
-                            [6.3 , 6.35, 6.4 , 6.45, 6.5]]),
-                    4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35],
-                            [8.42, 8.49, 8.56, 8.63, 8.7]]),
-                    5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45],
-                            [10.54, 10.63, 10.72, 10.81, 10.9]]),
-                    6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55],
-                            [12.66, 12.77, 12.88, 12.99, 13.1]])
+        expected = {
+                    1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
+                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
+                    3: np.array([[6.05, 6.1 , 6.15, 6.2, 6.25], [6.3 , 6.35, 6.4, 6.45, 6.5]]),
+                    4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35], [8.42, 8.49, 8.56, 8.63, 8.7]]),
+                    5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45], [10.54, 10.63, 10.72, 10.81, 10.9]]),
+                    6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55], [12.66, 12.77, 12.88, 12.99, 13.1]])
                     }
         for i in range(7, 15):
-            expected[i] = np.array([[0.2, 0.3, 0.4, 0.5, 0.6],
-                                    [0.7, 0.8, 0.9, 1., np.nan]])
+            expected[i] = np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
 
         for index, band_name in enumerate(band_names):
             self.assertEqual((2, 5), res[band_name].shape)
@@ -392,7 +403,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         # Verify that the resolution is only 2km
         available_datasets = reader.available_dataset_ids
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(1,7,7)]
+        band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 7, 7)]
 
         for band_name in band_names:
             ds_id = DatasetID(name=band_name, resolution=500)
@@ -413,20 +424,14 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         res = reader.load(band_names)
         self.assertEqual(7, len(res))
-        expected = {1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05],
-                           [2.06, 2.07, 2.08, 2.09, 2.1]]),
-                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15],
-                            [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1 , 6.15, 6.2 , 6.25],
-                            [6.3 , 6.35, 6.4 , 6.45, 6.5]]),
-                    4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35],
-                            [8.42, 8.49, 8.56, 8.63, 8.7]]),
-                    5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45],
-                            [10.54, 10.63, 10.72, 10.81, 10.9]]),
-                    6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55],
-                            [12.66, 12.77, 12.88, 12.99, 13.1]]),
-                    7: np.array([[0.2, 0.3, 0.4, 0.5, 0.6],
-                        [0.7, 0.8, 0.9, 1., np.nan]])
+        expected = {
+                    1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
+                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
+                    3: np.array([[6.05, 6.1 , 6.15, 6.2, 6.25], [6.3 , 6.35, 6.4, 6.45, 6.5]]),
+                    4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35], [8.42, 8.49, 8.56, 8.63, 8.7]]),
+                    5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45], [10.54, 10.63, 10.72, 10.81, 10.9]]),
+                    6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55], [12.66, 12.77, 12.88, 12.99, 13.1]]),
+                    7: np.array([[0.2, 0.3, 0.4, 0.5, 0.6], [0.7, 0.8, 0.9, 1., np.nan]])
                     }
 
         for index, band_name in enumerate(band_names):
@@ -457,7 +462,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         # Verify that the resolution is only 1km
         available_datasets = reader.available_dataset_ids
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(1,3,3)]
+        band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 3, 3)]
 
         for band_name in band_names:
             ds_id = DatasetID(name=band_name, resolution=500)
@@ -475,12 +480,10 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         res = reader.load(band_names)
         self.assertEqual(3, len(res))
-        expected = {1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05],
-                                    [2.06, 2.07, 2.08, 2.09, 2.1]]),
-                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15],
-                                    [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25],
-                                    [6.3, 6.35, 6.4, 6.45, 6.5]])
+        expected = {
+                    1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
+                    2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
+                    3: np.array([[6.05, 6.1 , 6.15, 6.2, 6.25], [6.3 , 6.35, 6.4, 6.45, 6.5]])
                     }
 
         for index, band_name in enumerate(band_names):
@@ -505,7 +508,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         # Verify that the resolution is only 500m
         available_datasets = reader.available_dataset_ids
-        band_names = ['C' + '%02d' % ch for ch in np.linspace(2,2,1)]
+        band_names = ['C' + '%02d' % ch for ch in np.linspace(2, 2, 1)]
 
         for band_name in band_names:
             ds_id = DatasetID(name=band_name, resolution=500)
@@ -523,8 +526,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         res = reader.load(band_names)
         self.assertEqual(1, len(res))
-        expected = np.array([[2.01, 2.02, 2.03, 2.04, 2.05],
-                   [2.06, 2.07, 2.08, 2.09, 2.1]])
+        expected = np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]])
 
         for band_name in band_names:
             self.assertEqual((2, 5), res[band_name].shape)
@@ -532,9 +534,11 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
             self.assertEqual('%', res[band_name].attrs['units'])
             self.assertTrue(np.allclose(res[band_name].values, expected, equal_nan=True))
 
+
 def suite():
     """The test suite for test_agri_l1."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(Test_HDF_AGRI_L1_cal))
+
     return mysuite
