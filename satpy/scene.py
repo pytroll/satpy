@@ -1,26 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2010-2017
+# Copyright (c) 2010-2017 Satpy developers
 #
-# Author(s):
+# This file is part of satpy.
 #
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Esben S. Nielsen <esn@dmi.dk>
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Scene objects to hold satellite data.
 """
 
@@ -752,7 +746,10 @@ class Scene(MetadataObject):
                     and not prereq_node.is_leaf:
                 self._generate_composite(prereq_node, keepables)
 
-            if prereq_id in self.datasets:
+            if prereq_node is self.dep_tree.empty_node:
+                # empty sentinel node - no need to load it
+                continue
+            elif prereq_id in self.datasets:
                 prereq_datasets.append(self.datasets[prereq_id])
             elif not prereq_node.is_leaf and prereq_id in keepables:
                 delayed_gen = True
@@ -1173,13 +1170,8 @@ class Scene(MetadataObject):
               to be passed to geoviews
 
         """
-        try:
-            import geoviews as gv
-            from cartopy import crs  # noqa
-        except ImportError:
-            import warnings
-            warnings.warn("This method needs the geoviews package installed.")
-
+        import geoviews as gv
+        from cartopy import crs  # noqa
         if gvtype is None:
             gvtype = gv.Image
 
