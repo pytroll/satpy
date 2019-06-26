@@ -51,7 +51,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                                     'units': 'NUL',
                                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
                                     'band_names': 'band{}(band number is range from 1 to 14)'
-                                                    .format(ch).encode('utf-8'),
+                                                  .format(ch).encode('utf-8'),
                                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
                                     'valid_range': [0, 1.5],
                                 },
@@ -60,14 +60,14 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         elif prefix == 'NOM':
             data = xr.DataArray(
                                 da.from_array(np.arange(10, dtype=np.uint16).reshape((2, 5)) + 1,
-                                            [dim for dim in dims]),
+                                              [dim for dim in dims]),
                                 attrs={
                                     'Slope': 1., 'Intercept': 0.,
                                     'FillValue': 65535,
                                     'units': 'DN',
                                     'center_wavelength': '{}um'.format(cwl).encode('utf-8'),
                                     'band_names': 'band{}(band number is range from 1 to 14)'
-                                                    .format(ch).encode('utf-8'),
+                                                  .format(ch).encode('utf-8'),
                                     'long_name': 'Calibration table of {}um Channel'.format(cwl).encode('utf-8'),
                                     'valid_range': [0, 4095],
                                 },
@@ -116,7 +116,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             elif file_type == '4000':
                 data = xr.DataArray(
                                 da.from_array((np.arange(28.).reshape((14, 2)) + 1.)
-                                    / np.array([1E4, 1E2]), [14, 2]),
+                                              / np.array([1E4, 1E2]), [14, 2]),
                                 attrs={
                                     'Slope': 1., 'Intercept': 0.,
                                     'FillValue': 0,
@@ -137,11 +137,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         data = {}
         for index, cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
             data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
-                                                        [dim_0, dim_1], file_type)
+                                                                         [dim_0, dim_1], file_type)
 
         return data
 
@@ -153,11 +153,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         data = {}
         for index, cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
             data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
-                                                        [dim_0, dim_1], file_type)
+                                                                         [dim_0, dim_1], file_type)
 
         return data
 
@@ -169,11 +169,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         data = {}
         for index, cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
             data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
 
         return data
 
@@ -185,11 +185,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         data = {}
         for index, cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
             data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
-                                                        [dim_0, dim_1], file_type)
+                                                                           [dim_0, dim_1], file_type)
 
         return data
 
@@ -367,7 +367,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         expected = {
                     1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
                     2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1 , 6.15, 6.2, 6.25], [6.3 , 6.35, 6.4, 6.45, 6.5]]),
+                    3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25], [6.3, 6.35, 6.4, 6.45, 6.5]]),
                     4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35], [8.42, 8.49, 8.56, 8.63, 8.7]]),
                     5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45], [10.54, 10.63, 10.72, 10.81, 10.9]]),
                     6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55], [12.66, 12.77, 12.88, 12.99, 13.1]])
@@ -427,7 +427,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         expected = {
                     1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
                     2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1 , 6.15, 6.2, 6.25], [6.3 , 6.35, 6.4, 6.45, 6.5]]),
+                    3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25], [6.3, 6.35, 6.4, 6.45, 6.5]]),
                     4: np.array([[8.07, 8.14, 8.21, 8.28, 8.35], [8.42, 8.49, 8.56, 8.63, 8.7]]),
                     5: np.array([[10.09, 10.18, 10.27, 10.36, 10.45], [10.54, 10.63, 10.72, 10.81, 10.9]]),
                     6: np.array([[12.11, 12.22, 12.33, 12.44, 12.55], [12.66, 12.77, 12.88, 12.99, 13.1]]),
@@ -483,7 +483,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         expected = {
                     1: np.array([[2.01, 2.02, 2.03, 2.04, 2.05], [2.06, 2.07, 2.08, 2.09, 2.1]]),
                     2: np.array([[4.03, 4.06, 4.09, 4.12, 4.15], [4.18, 4.21, 4.24, 4.27, 4.3]]),
-                    3: np.array([[6.05, 6.1 , 6.15, 6.2, 6.25], [6.3 , 6.35, 6.4, 6.45, 6.5]])
+                    3: np.array([[6.05, 6.1, 6.15, 6.2, 6.25], [6.3, 6.35, 6.4, 6.45, 6.5]])
                     }
 
         for index, band_name in enumerate(band_names):
