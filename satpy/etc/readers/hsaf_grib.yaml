@@ -1,0 +1,47 @@
+reader:
+  description: Reader for Hydrology SAF products
+  name: hsaf_grib
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [hsaf]
+
+file_types:
+  hsafgrib:
+    file_reader: !!python/name:satpy.readers.hsaf_grib.HSAFFileHandler
+    file_patterns: ['h03_{sensing_time:%Y%m%d_%H%M}_{region:3s}.grb',
+                    'h05_{sensing_time:%Y%m%d_%H%M}_{accum_time:2s}_{region:3s}.grb',
+                    'h03B_{sensing_time:%Y%m%d_%H%M}_{region:3s}.grb',
+                    'h05B_{sensing_time:%Y%m%d_%H%M}_{accum_time:2s}_{region:3s}.grb']
+
+datasets:
+  h03:
+    name: h03
+    msg_name: irrate
+    sensor: hsaf
+    resolution: 3000
+    standard_name: instantaneous_rainfall_rate
+    units: kg m-2 s-1
+    file_type: hsafgrib
+  h03B:
+    name: h03B
+    msg_name: irrate
+    sensor: hsaf
+    resolution: 3000
+    standard_name: instantaneous_rainfall_rate
+    units: kg m-2 s-1
+    file_type: hsafgrib
+  h05:
+    name: h05
+    msg_name: accumrain
+    sensor: hsaf
+    resolution: 3000
+    standard_name: accumulated_rainfall_rate
+    units: kg m-2
+    file_type: hsafgrib
+  h05B:
+    name: h05B
+    msg_name: accumrain
+    sensor: hsaf
+    resolution: 3000
+    standard_name: accumulated_rainfall_rate
+    units: kg m-2
+    file_type: hsafgrib
