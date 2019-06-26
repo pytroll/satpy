@@ -175,9 +175,8 @@ class NC_ABI_BASE(BaseFileHandler):
 
         # compute x and y extents in m
         h = float(h)
-
-        x = self.nc['x']
-        y = self.nc['y']
+        x = self['x']
+        y = self['y']
         x_l = h * x[0]
         x_r = h * x[-1]
         y_l = h * y[-1]

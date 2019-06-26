@@ -105,7 +105,7 @@ class Test_NC_ABI_L2_area_fixedgrid(unittest.TestCase):
                                             'proj': 'geos', 'sweep': 'x', 'units': 'm'})
         self.assertEqual(call_args[4], self.reader.ncols)
         self.assertEqual(call_args[5], self.reader.nlines)
-        np.testing.assert_allclose(call_args[6], (-0.5,  1.5,  1.5, -0.5))
+        np.testing.assert_allclose(call_args[6], (-2., -2.,  2.,  2.))
 
 
 class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
