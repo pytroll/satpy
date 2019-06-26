@@ -173,7 +173,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
                                                                            [dim_0, dim_1], file_type)
             data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
-                                                                           [dim_0, dim_1], file_type)
+                                                                         [dim_0, dim_1], file_type)
 
         return data
 
@@ -189,7 +189,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
                                                                            [dim_0, dim_1], file_type)
             data['CALIBRATION_COEF(SCALE+OFFSET)'] = self.make_test_data(cwls[index], chs[index], 'COEF',
-                                                                           [dim_0, dim_1], file_type)
+                                                                         [dim_0, dim_1], file_type)
 
         return data
 
