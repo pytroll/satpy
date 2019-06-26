@@ -142,6 +142,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
         self.assertEqual(self.reader.end_time,
                          datetime(2017, 9, 20, 17, 41, 17, 500000))
 
+        
     def test_get_dataset(self):
         from satpy import DatasetID
         key = DatasetID(name='Rad', calibration='radiance')
