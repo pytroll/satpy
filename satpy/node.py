@@ -432,6 +432,20 @@ class DependencyTree(Node):
 
         return root, set()
 
+    def get_filtered_item(self, dataset_key, **dfilter):
+        """Get the item matching *dataset_key* and *dfilter*."""
+        try:
+            ds_dict = dataset_key.to_dict()
+        except AttributeError:
+            if isinstance(dataset_key, str):
+                ds_dict = {'name': dataset_key}
+            elif isinstance(dataset_key, float):
+                ds_dict = {'wavelength': dataset_key}
+        clean_filter = {key: value for key, value in dfilter.items() if value is not None}
+        ds_dict.update(clean_filter)
+        dsid = DatasetID.from_dict(ds_dict)
+        return self[dsid]
+
     def _find_dependencies(self, dataset_key, **dfilter):
         """Find the dependencies for *dataset_key*.
 
@@ -472,7 +486,7 @@ class DependencyTree(Node):
             # assume that there is no such thing as a "better" composite
             # version so if we find any DatasetIDs already loaded then
             # we want to use them
-            node = self[dataset_key]
+            node = self.get_filtered_item(dataset_key, **dfilter)
             LOG.trace("Composite already loaded:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
             return node, set()
         except KeyError:

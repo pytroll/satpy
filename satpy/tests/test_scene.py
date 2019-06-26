@@ -901,6 +901,28 @@ class TestSceneLoading(unittest.TestCase):
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_ds5_multiple_resolution(self, cri, cl):
+        """Test loading a dataset has multiple resolutions available with different resolutions."""
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        scene.load(['ds5'], resolution=1000)
+        scene.load(['ds5'], resolution=500)
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 2)
+        self.assertEqual(loaded_ids[0].name, 'ds5')
+        self.assertEqual(loaded_ids[0].resolution, 500)
+        self.assertEqual(loaded_ids[1].name, 'ds5')
+        self.assertEqual(loaded_ids[1].resolution, 1000)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_ds5_missing_best_resolution(self, cri, cl):
         """Test loading a dataset that has multiple resolutions but the best isn't available."""
         import satpy.scene
@@ -999,6 +1021,41 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(loaded_ids), 1)
         self.assertTupleEqual(
             tuple(loaded_ids[0]), tuple(DatasetID(name='comp4')))
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_multiple_resolutions(self, cri, cl):
+        """Test loading a dataset has multiple resolutions available with different resolutions."""
+        # import satpy.scene
+        # from satpy.tests.utils import FakeReader, test_composites
+        # cri.return_value = {'fake_reader': FakeReader(
+        #     'fake_reader', 'fake_sensor')}
+        # comps, mods = test_composites('fake_sensor')
+        # cl.return_value = (comps, mods)
+        # scene = satpy.scene.Scene(filenames=['bla'],
+        #                           base_dir='bli',
+        #                           reader='fake_reader')
+        # scene.load(['comp4'], resolution=1000)
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        from satpy import DatasetID
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        comp25 = DatasetID(name='comp25', resolution=1000)
+        scene[comp25] = 'bla'
+        scene.load(['comp25'], resolution=500)
+
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 2)
+        self.assertEqual(loaded_ids[0].name, 'comp25')
+        self.assertEqual(loaded_ids[0].resolution, 500)
+        self.assertEqual(loaded_ids[1].name, 'comp25')
+        self.assertEqual(loaded_ids[1].resolution, 1000)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
