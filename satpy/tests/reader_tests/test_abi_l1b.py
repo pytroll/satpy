@@ -137,7 +137,6 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        from satpy import DatasetID
         self.assertEqual(self.reader.start_time,
                          datetime(2017, 9, 20, 17, 30, 40, 800000))
         self.assertEqual(self.reader.end_time,
