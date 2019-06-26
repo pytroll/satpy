@@ -1170,13 +1170,8 @@ class Scene(MetadataObject):
               to be passed to geoviews
 
         """
-        try:
-            import geoviews as gv
-            from cartopy import crs  # noqa
-        except ImportError:
-            import warnings
-            warnings.warn("This method needs the geoviews package installed.")
-
+        import geoviews as gv
+        from cartopy import crs  # noqa
         if gvtype is None:
             gvtype = gv.Image
 
