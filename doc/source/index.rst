@@ -202,6 +202,17 @@ the base Satpy installation.
     * - FY-4A AGRI L1 data in HDF5 format
       - `agri_l1`
       - Beta
+    * - Vaisala Global Lightning Dataset GLD360 data in ASCII format
+      - `vaisala_gld360`
+      - Beta
+    * - TROPOMI L2 data in NetCDF4 format
+      - `tropomi_l2`
+      - Beta
+    * - Hydrology SAF products in GRIB format
+      - `hsaf_grib`
+      - | Beta
+        | Only the h03, h03b, h05 and h05B products are supported at-present
+
 
 Indices and tables
 ==================

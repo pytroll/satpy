@@ -1,3 +1,56 @@
+## Version 0.16.0 (2019/06/18)
+
+### Issues Closed
+
+* [Issue 795](https://github.com/pytroll/satpy/issues/795) - Composites delayed in the presence of non-dimensional coordinates ([PR 796](https://github.com/pytroll/satpy/pull/796))
+* [Issue 753](https://github.com/pytroll/satpy/issues/753) - seviri l1b netcdf reader needs to be updated due to EUM fixing Attribute  Issue ([PR 791](https://github.com/pytroll/satpy/pull/791))
+* [Issue 734](https://github.com/pytroll/satpy/issues/734) - Add a compositor that can use static images ([PR 804](https://github.com/pytroll/satpy/pull/804))
+* [Issue 670](https://github.com/pytroll/satpy/issues/670) - Refine Satellite Position
+* [Issue 640](https://github.com/pytroll/satpy/issues/640) - question: save geotiff without modifying pixel value
+* [Issue 625](https://github.com/pytroll/satpy/issues/625) - Fix inconsistency  between save_dataset and save_datasets ([PR 803](https://github.com/pytroll/satpy/pull/803))
+* [Issue 460](https://github.com/pytroll/satpy/issues/460) - Creating day/night composites ([PR 804](https://github.com/pytroll/satpy/pull/804))
+
+In this release 7 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 805](https://github.com/pytroll/satpy/pull/805) - Fix 3a3b transition in the aapp l1b reader
+* [PR 803](https://github.com/pytroll/satpy/pull/803) - Fix save_datasets always using geotiff writer regardless of filename ([625](https://github.com/pytroll/satpy/issues/625), [625](https://github.com/pytroll/satpy/issues/625))
+* [PR 802](https://github.com/pytroll/satpy/pull/802) - Factorize and improve modis reader's interpolation
+* [PR 800](https://github.com/pytroll/satpy/pull/800) - Fix 'virr_l1b' reader when slope attribute is 0
+* [PR 796](https://github.com/pytroll/satpy/pull/796) - Drop non-dimensional coordinates in Compositor ([795](https://github.com/pytroll/satpy/issues/795), [795](https://github.com/pytroll/satpy/issues/795))
+* [PR 792](https://github.com/pytroll/satpy/pull/792) - Bug mitiff writer when only one channel is to be written with calibration information
+* [PR 791](https://github.com/pytroll/satpy/pull/791) - Fix handling of file attributes in seviri_l1b_nc reader ([753](https://github.com/pytroll/satpy/issues/753))
+
+#### Features added
+
+* [PR 821](https://github.com/pytroll/satpy/pull/821) - Remove warning about unused kwargs in YAML reader
+* [PR 820](https://github.com/pytroll/satpy/pull/820) - Add support for NWCSAF GEO v2018, retain support for v2016
+* [PR 818](https://github.com/pytroll/satpy/pull/818) - Add TLEs to dataset attributes in avhrr_l1b_gaclac
+* [PR 816](https://github.com/pytroll/satpy/pull/816) - Add grouping parameters for the 'viirs_sdr' reader
+* [PR 814](https://github.com/pytroll/satpy/pull/814) - Reader for Hydrology SAF precipitation products
+* [PR 806](https://github.com/pytroll/satpy/pull/806) - Add flag_meanings and flag_values to 'viirs_edr_active_fires' categories
+* [PR 805](https://github.com/pytroll/satpy/pull/805) - Fix 3a3b transition in the aapp l1b reader
+* [PR 804](https://github.com/pytroll/satpy/pull/804) - Add compositor for adding an image as a background ([734](https://github.com/pytroll/satpy/issues/734), [460](https://github.com/pytroll/satpy/issues/460))
+* [PR 794](https://github.com/pytroll/satpy/pull/794) - Add 'orbital_parameters' metadata to all geostationary satellite readers
+* [PR 788](https://github.com/pytroll/satpy/pull/788) - Add new 'crs' coordinate variable when pyproj 2.0+ is installed
+* [PR 779](https://github.com/pytroll/satpy/pull/779) - Add TROPOMI L2 reader (tropomi_l2)
+* [PR 736](https://github.com/pytroll/satpy/pull/736) - CF Writer: Attribute encoding, groups and non-dimensional coordinates. Plus: Raw SEVIRI HRIT metadata
+* [PR 687](https://github.com/pytroll/satpy/pull/687) - Add Vaisala GLD360-reader.
+
+#### Documentation changes
+
+* [PR 797](https://github.com/pytroll/satpy/pull/797) - Sort AUTHORS.md file by last name
+
+#### Backwards incompatible changes
+
+* [PR 822](https://github.com/pytroll/satpy/pull/822) - Deprecate old reader names so that they are no longer recognized ([598](https://github.com/pytroll/satpy/issues/598))
+* [PR 815](https://github.com/pytroll/satpy/pull/815) - Remove legacy GDAL-based geotiff writer support
+
+In this release 23 pull requests were closed.
+
 ## Version 0.15.2 (2019/05/22)
 
 ### Issues Closed
@@ -398,7 +451,7 @@ In this release 20 pull requests were closed.
 * [Issue 453](https://github.com/pytroll/satpy/issues/453) - Review subclasses of BaseFileHander ([PR 455](https://github.com/pytroll/satpy/pull/455))
 * [Issue 450](https://github.com/pytroll/satpy/issues/450) - Allow readers to accept pathlib.Path instances ([PR 451](https://github.com/pytroll/satpy/pull/451))
 * [Issue 445](https://github.com/pytroll/satpy/issues/445) - Readthedocs builds are failing
-* [Issue 439](https://github.com/pytroll/satpy/issues/439) - KeyError when creating true_color for ABI 
+* [Issue 439](https://github.com/pytroll/satpy/issues/439) - KeyError when creating true_color for ABI
 * [Issue 417](https://github.com/pytroll/satpy/issues/417) - Add custom string formatter for lower/upper support
 * [Issue 414](https://github.com/pytroll/satpy/issues/414) - Inconsistent units of geostationary radiances ([PR 490](https://github.com/pytroll/satpy/pull/490))
 * [Issue 405](https://github.com/pytroll/satpy/issues/405) - Angle interpolation for MODIS data missing ([PR 430](https://github.com/pytroll/satpy/pull/430))
