@@ -49,7 +49,4 @@ The following people have made contributions to this project:
 - [hazbottles (hazbottles)](https://github.com/hazbottles)
 - [oananicola (oananicola)](https://github.com/oananicola)
 - [praerien (praerien)](https://github.com/praerien)
-- [ralphk11 (ralphk11)](https://github.com/ralphk11)
-- [roquetp (roquetp)](https://github.com/roquetp)
-- [sjoro (sjoro)](https://github.com/sjoro)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
