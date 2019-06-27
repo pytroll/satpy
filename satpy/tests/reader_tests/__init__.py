@@ -20,7 +20,7 @@
 
 import sys
 
-from satpy.tests.reader_tests import (test_abi_l1b, test_hrit_base,
+from satpy.tests.reader_tests import (test_abi_l1b, test_agri_l1, test_hrit_base,
                                       test_viirs_sdr, test_viirs_l1b, test_virr_l1b,
                                       test_seviri_l1b_native, test_seviri_base,
                                       test_hdf5_utils, test_netcdf_utils,
@@ -52,6 +52,7 @@ def suite():
     """Test suite for all reader tests"""
     mysuite = unittest.TestSuite()
     mysuite.addTests(test_abi_l1b.suite())
+    mysuite.addTests(test_agri_l1.suite())
     mysuite.addTests(test_viirs_sdr.suite())
     mysuite.addTests(test_viirs_l1b.suite())
     mysuite.addTests(test_virr_l1b.suite())
