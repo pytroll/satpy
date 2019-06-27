@@ -65,7 +65,7 @@ class Node(object):
         if node_cache and self.name in node_cache:
             return node_cache[self.name]
 
-        if self.name == EMPTY_LEAF_NAME:
+        if self.name is EMPTY_LEAF_NAME:
             return self
 
         s = Node(self.name, self.data)

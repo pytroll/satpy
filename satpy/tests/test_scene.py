@@ -1026,16 +1026,6 @@ class TestSceneLoading(unittest.TestCase):
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_multiple_resolutions(self, cri, cl):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
-        # import satpy.scene
-        # from satpy.tests.utils import FakeReader, test_composites
-        # cri.return_value = {'fake_reader': FakeReader(
-        #     'fake_reader', 'fake_sensor')}
-        # comps, mods = test_composites('fake_sensor')
-        # cl.return_value = (comps, mods)
-        # scene = satpy.scene.Scene(filenames=['bla'],
-        #                           base_dir='bli',
-        #                           reader='fake_reader')
-        # scene.load(['comp4'], resolution=1000)
         import satpy.scene
         from satpy.tests.utils import FakeReader, test_composites
         from satpy import DatasetID
