@@ -12,16 +12,19 @@ reader:
 file_types:
     agri_l1_0500m:
         file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_{code:s}-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0500M_{version:s}.HDF']
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_0500M_{version:s}.HDF']
     agri_l1_1000m:
         file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_{code:s}-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_1000M_{version:s}.HDF']
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_1000M_{version:s}.HDF']
     agri_l1_2000m:
         file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_{code:s}-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_2000M_{version:s}.HDF']
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_2000M_{version:s}.HDF']
     agri_l1_4000m:
         file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
-        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_{code:s}-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF']
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_FDI-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF']
+    agri_l1_4000m_geo:
+        file_reader: !!python/name:satpy.readers.agri_l1.HDF_AGRI_L1
+        file_patterns: ['{platform_id:4s}-_{instrument:4s}--_N_{observation_type:s}_{longitude:5s}_L1-_GEO-_MULT_{projection:s}_{start_time:%Y%m%d%H%M%S}_{end_time:%Y%m%d%H%M%S}_4000M_{version:s}.HDF']
 
 datasets:
   C01:
@@ -282,3 +285,43 @@ datasets:
     lut_key: CALChannel14
     file_type: agri_l1_4000m
     fill_value: 65535
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    units: degree
+    standard_name: solar_zenith_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSunZenith
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    units: degree
+    standard_name: solar_azimuth_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSunAzimuth
+
+  solar_glint_angle:
+    name: solar_glint_angle
+    units: degree
+    standard_name: solar_glint_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSunGlintAngle
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    units: degree
+    standard_name: satellite_zenith_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSatelliteZenith
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    units: degree
+    standard_name: satellite_azimuth_angle
+    resolution: 4000
+    file_type: agri_l1_4000m_geo
+    file_key: NOMSatelliteAzimuth
