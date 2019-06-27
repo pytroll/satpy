@@ -60,7 +60,8 @@ class HDF_AGRI_L1(HDF5FileHandler):
         # convert bytes to string
         data.attrs['long_name'] = data.attrs['long_name'].decode('gbk')
         data.attrs['band_names'] = data.attrs['band_names'].decode('gbk')
-        data.attrs['center_wavelength'] = data.attrs['center_wavelength'].decode('gbk')
+        if ds_info['file_type'] != 'agri_l1_4000m_geo':
+            data.attrs['center_wavelength'] = data.attrs['center_wavelength'].decode('gbk')
 
         # calibration
         calibration = ds_info['calibration']
