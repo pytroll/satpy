@@ -52,9 +52,4 @@ The following people have made contributions to this project:
 - [ralphk11 (ralphk11)](https://github.com/ralphk11)
 - [roquetp (roquetp)](https://github.com/roquetp)
 - [sjoro (sjoro)](https://github.com/sjoro)
-- Guido della Bruna - meteoswiss
-- Marco Sassi - meteoswiss
-- [Rohan Daruwala (rdaruwala)](https://github.com/rdaruwala)
-- [Simon R. Proud (simonrp84)](https://github.com/simonrp84)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
-- [Joleen Feltz (joleenf)](https://github.com/joleenf)
