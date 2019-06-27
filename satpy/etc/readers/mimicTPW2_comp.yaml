@@ -6,7 +6,7 @@ reader:
 
 file_types:
     mimicTPW2_comp:
-        file_reader:  !!python/name:satpy.readers.mimic_TPW2_nc.MIMIC_TPW2FileHandler
+        file_reader:  !!python/name:satpy.readers.mimic_TPW2_nc.MimicTPW2FileHandler
         file_patterns: ['comp{start_time:%Y%m%d.%H%M%S}.nc']
         sensor: ['mimic']
         platform_name: ['microwave']
@@ -14,17 +14,17 @@ file_types:
 datasets:
     latArr:
         name:  latArr
-        units:  degrees
+        units:  degrees_north
         file_key:  latArr
         standard_name:  latitude
-        coordinates:  [ latArr ]
+        coordinates: [ lonArr ]
         file_type: mimicTPW2_comp
     lonArr:
         name: lonArr
-        units: degrees
+        units: degrees_east
         file_key:  lonArr
         standard_name:  longitude
-        coordinates:  [ lonArr ]
+        coordinates: [ latArr ]
         file_type: mimicTPW2_comp
     tpwGrid:
         name: tpwGrid
