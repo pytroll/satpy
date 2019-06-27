@@ -26,11 +26,7 @@ import numpy as np
 import dask.array as da
 import xarray as xr
 import os
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 try:
     from unittest import mock
