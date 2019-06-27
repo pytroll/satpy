@@ -192,6 +192,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         """Mimic reader input file content."""
         global_attrs = {
             '/attr/NOMCenterLat': 0.0, '/attr/NOMCenterLon': 104.7, '/attr/NOMSatHeight': 3.5786E7,
+            '/attr/dEA': 6378.14, '/attr/dObRecFlat': 298.257223563,
             '/attr/OBIType': 'REGC', '/attr/RegLength': 2.0, '/attr/RegWidth': 5.0,
             '/attr/Begin Line Number': 0, '/attr/End Line Number': 1,
             '/attr/Observing Beginning Date': '2019-06-03', '/attr/Observing Beginning Time': '00:30:01.807',
