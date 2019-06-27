@@ -21,7 +21,6 @@
 """Test for readers/agri_l1.py.
 """
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-import sys
 import numpy as np
 import dask.array as da
 import xarray as xr
