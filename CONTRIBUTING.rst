@@ -115,7 +115,7 @@ style check for you. To this aim, we provide a configuration file for the
   pip install pre-commit
   pre-commit install
 
-running for your base satpy directory.
+running from your base satpy directory. This will automatically check code style for every commit.
 
 Code of Conduct
 ===============
