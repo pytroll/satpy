@@ -92,7 +92,10 @@ class HDF_AGRI_L1(HDF5FileHandler):
             ds_info['valid_range'] = lut.attrs['valid_range']
 
         data.attrs.update({'platform_name': self['/attr/Satellite Name'],
-                           'sensor': self['/attr/Sensor Identification Code']})
+                           'sensor': self['/attr/Sensor Identification Code'],
+                           'satellite_nominal_latitude': self['/attr/NOMCenterLat'],
+                           'satellite_nominal_longitude': self['/attr/NOMCenterLon'],
+                           'satellite_nominal_altitude': self['/attr/NOMSatHeight']})
         data.attrs.update(ds_info)
 
         # remove attributes that could be confusing later
@@ -113,10 +116,13 @@ class HDF_AGRI_L1(HDF5FileHandler):
         loff = _LOFF_list[_resolution_list.index(res)]
         cfac = _CFAC_list[_resolution_list.index(res)]
         lfac = _LFAC_list[_resolution_list.index(res)]
-        a = 6378137.0   # equator radius (m)
-        b = 6356752.3   # polar radius(m)
-        H = 42164000.0  # the distance between spacecraft and centre of earth (m)
-        h = H - a       # the altitude of satellite
+        # a = 6378137.0   # equator radius (m)
+        # b = 6356752.3   # polar radius(m)
+        # H = 42164000.0  # the distance between spacecraft and centre of earth (m)
+        # h = H - a       # the altitude of satellite
+        a = self.file_content['/attr/dEA'] * 1E3 # equator radius (m)
+        b = a * (1 - 1 / self.file_content['/attr/dObRecFlat']) # polar radius (m)
+        h = self.file_content['/attr/NOMSatHeight'] # the altitude of satellite (m)
 
         lon_0 = self.file_content['/attr/NOMCenterLon']
         nlines = self.file_content['/attr/RegLength']
@@ -139,7 +145,8 @@ class HDF_AGRI_L1(HDF5FileHandler):
                      'lon_0': float(lon_0),
                      'h': float(h),
                      'proj': 'geos',
-                     'units': 'm'}
+                     'units': 'm',
+                     'sweep': 'y'}
 
         area = geometry.AreaDefinition(
             self.filename_info['observation_type'],
