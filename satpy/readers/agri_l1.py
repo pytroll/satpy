@@ -117,13 +117,9 @@ class HDF_AGRI_L1(HDF5FileHandler):
         loff = _LOFF_list[_resolution_list.index(res)]
         cfac = _CFAC_list[_resolution_list.index(res)]
         lfac = _LFAC_list[_resolution_list.index(res)]
-        # a = 6378137.0   # equator radius (m)
-        # b = 6356752.3   # polar radius(m)
-        # H = 42164000.0  # the distance between spacecraft and centre of earth (m)
-        # h = H - a       # the altitude of satellite
-        a = self.file_content['/attr/dEA'] * 1E3 # equator radius (m)
-        b = a * (1 - 1 / self.file_content['/attr/dObRecFlat']) # polar radius (m)
-        h = self.file_content['/attr/NOMSatHeight'] # the altitude of satellite (m)
+        a = self.file_content['/attr/dEA'] * 1E3  # equator radius (m)
+        b = a * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
+        h = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)
 
         lon_0 = self.file_content['/attr/NOMCenterLon']
         nlines = self.file_content['/attr/RegLength']
