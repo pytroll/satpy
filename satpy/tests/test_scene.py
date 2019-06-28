@@ -1049,6 +1049,28 @@ class TestSceneLoading(unittest.TestCase):
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_same_subcomposite(self, cri, cl):
+        """Test loading a composite and one of it's subcomposites at the same time."""
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        scene.load(['comp24', 'comp25'], resolution=500)
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 2)
+        self.assertEqual(loaded_ids[0].name, 'comp24')
+        self.assertEqual(loaded_ids[0].resolution, 500)
+        self.assertEqual(loaded_ids[1].name, 'comp25')
+        self.assertEqual(loaded_ids[1].resolution, 500)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_comp5(self, cri, cl):
         """Test loading a composite that has an optional prerequisite."""
         import satpy.scene
@@ -1733,8 +1755,8 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['comp11', 'comp23'])
         comp11_node = scene.dep_tree['comp11']
         comp23_node = scene.dep_tree['comp23']
-        self.assertEqual(comp11_node.data[1][-1].name, 'ds10')
-        self.assertEqual(comp23_node.data[1][0].name, 'ds8')
+        self.assertEqual(comp11_node.data[1][-1].name.name, 'ds10')
+        self.assertEqual(comp23_node.data[1][0].name.name, 'ds8')
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
         self.assertIn('comp11', scene.datasets)

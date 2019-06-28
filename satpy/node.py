@@ -455,7 +455,8 @@ class DependencyTree(Node):
 
         # 0 check if the *exact* dataset is already loaded
         try:
-            node = self.get_filtered_item(dataset_key, **dfilter)
+            dsid = create_filtered_dsid(dataset_key, **dfilter)
+            node = self.getitem(dsid)
             LOG.trace("Found exact dataset already loaded: {}".format(node.name))
             return node, set()
         except KeyError:
