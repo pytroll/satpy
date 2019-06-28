@@ -20,6 +20,7 @@
 from satpy import DatasetDict, DatasetID, DATASET_KEYS
 from satpy.readers import TooManyResults
 from satpy.utils import get_logger
+from satpy.dataset import create_filtered_dsid
 
 LOG = get_logger(__name__)
 # Empty leaf used for marking composites with no prerequisites
@@ -410,7 +411,7 @@ class DependencyTree(Node):
             compositor = self.get_compositor(dataset_key)
         except KeyError:
             raise KeyError("Can't find anything called {}".format(str(dataset_key)))
-        dataset_key = compositor.id
+        dataset_key = create_filtered_dsid(compositor.id, **dfilter)
         root = Node(dataset_key, data=(compositor, [], []))
         if src_node is not None:
             self.add_child(root, src_node)
@@ -434,16 +435,7 @@ class DependencyTree(Node):
 
     def get_filtered_item(self, dataset_key, **dfilter):
         """Get the item matching *dataset_key* and *dfilter*."""
-        try:
-            ds_dict = dataset_key.to_dict()
-        except AttributeError:
-            if isinstance(dataset_key, str):
-                ds_dict = {'name': dataset_key}
-            elif isinstance(dataset_key, float):
-                ds_dict = {'wavelength': dataset_key}
-        clean_filter = {key: value for key, value in dfilter.items() if value is not None}
-        ds_dict.update(clean_filter)
-        dsid = DatasetID.from_dict(ds_dict)
+        dsid = create_filtered_dsid(dataset_key, **dfilter)
         return self[dsid]
 
     def _find_dependencies(self, dataset_key, **dfilter):
@@ -463,7 +455,7 @@ class DependencyTree(Node):
 
         # 0 check if the *exact* dataset is already loaded
         try:
-            node = self.getitem(dataset_key)
+            node = self.get_filtered_item(dataset_key, **dfilter)
             LOG.trace("Found exact dataset already loaded: {}".format(node.name))
             return node, set()
         except KeyError:
