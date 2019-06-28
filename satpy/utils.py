@@ -289,7 +289,7 @@ def get_satpos(dataset):
     Preferences are:
 
     * Longitude & Latitude: Nadir, actual, nominal, projection
-    * Altitude: Actual, projection
+    * Altitude: Actual, nominal, projection
 
     A warning is issued when projection values have to be used because nothing else is available.
 
