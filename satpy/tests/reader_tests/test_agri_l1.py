@@ -233,7 +233,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_fy3d_all_resolutions(self):
+    def test_fy4a_all_resolutions(self):
         """Test loading data when all resolutions are available."""
         from satpy import DatasetID
         from satpy.readers import load_reader, get_key
