@@ -150,7 +150,9 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs.update({'platform_name': self.platform_name,
                                'sensor': self.sensor})
 
-        variable.attrs.setdefault('units', '1')
+        if not variable.attrs.get('standard_name', '').endswith('status_flag'):
+            # TODO: do we really need to add units to everything ?
+            variable.attrs.setdefault('units', '1')
 
         ancillary_names = variable.attrs.get('ancillary_variables', '')
         try:

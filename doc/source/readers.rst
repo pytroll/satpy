@@ -194,3 +194,9 @@ xRIT-based readers
 
 .. automodule:: satpy.readers.electrol_hrit
 
+hdf-eos based readers
+---------------------
+
+.. automodule:: satpy.readers.modis_l1b
+
+.. automodule:: satpy.readers.modis_l2
