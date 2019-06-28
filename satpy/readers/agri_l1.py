@@ -78,18 +78,18 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
             if num_channel == 1:
                 # only channel_2, resolution = 500 m
-                slope = self.get(cal_coef)[0, 0]
-                offset = self.get(cal_coef)[0, 1]
+                slope = self.get(cal_coef)[0, 0].values
+                offset = self.get(cal_coef)[0, 1].values
             else:
-                slope = self.get(cal_coef)[int(file_key[-2:])-1, 0]
-                offset = self.get(cal_coef)[int(file_key[-2:])-1, 1]
+                slope = self.get(cal_coef)[int(file_key[-2:])-1, 0].values
+                offset = self.get(cal_coef)[int(file_key[-2:])-1, 1].values
 
             data = self.dn2(data, calibration, slope, offset)
 
             if calibration == 'reflectance':
-                ds_info['valid_range'] = (xr.DataArray(data.attrs['valid_range']) * slope + offset) * 100
+                ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset) * 100
             else:
-                ds_info['valid_range'] = (xr.DataArray(data.attrs['valid_range']) * slope + offset)
+                ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset)
 
         elif calibration == 'brightness_temperature':
             logger.debug("Calibrating to brightness_temperature")
