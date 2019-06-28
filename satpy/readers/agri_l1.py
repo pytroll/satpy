@@ -70,11 +70,12 @@ class HDF_AGRI_L1(HDF5FileHandler):
             ds_info['valid_range'] = data.attrs['valid_range']
             return data
 
-        elif calibration == 'reflectance':
+        elif calibration in ['reflectance', 'radiance']:
             logger.debug("Calibrating to reflectances")
             # using the corresponding SCALE and OFFSET
             cal_coef = 'CALIBRATION_COEF(SCALE+OFFSET)'
             num_channel = self.get(cal_coef).shape[0]
+
             if num_channel == 1:
                 # only channel_2, resolution = 500 m
                 slope = self.get(cal_coef)[:, 0].values
@@ -82,8 +83,13 @@ class HDF_AGRI_L1(HDF5FileHandler):
             else:
                 slope = self.get(cal_coef)[:, 0][int(file_key[-2:])-1].values
                 offset = self.get(cal_coef)[:, 1][int(file_key[-2:])-1].values
-            data = self.dn2reflectance(data, slope, offset)
-            ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset) * 100
+
+            data = self.dn2(data, calibration, slope, offset)
+
+            if calibration == 'reflectance':
+                ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset) * 100
+            else:
+                ds_info['valid_range'] = (data.attrs['valid_range'] * slope + offset)
 
         elif calibration == 'brightness_temperature':
             logger.debug("Calibrating to brightness_temperature")
@@ -104,8 +110,8 @@ class HDF_AGRI_L1(HDF5FileHandler):
         data.attrs.pop('Intercept', None)
         data.attrs.pop('Slope', None)
 
-        data = data.where((data >= data.attrs['valid_range'][0]) &
-                          (data <= data.attrs['valid_range'][1]))
+        data = data.where((data >= min(data.attrs['valid_range'])) &
+                          (data <= max(data.attrs['valid_range'])))
 
         return data
 
@@ -156,8 +162,8 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         return area
 
-    def dn2reflectance(self, dn, slope, offset):
-        """Convert digital number (DN) to reflectance
+    def dn2(self, dn, calibration, slope, offset):
+        """Convert digital number (DN) to reflectance or radiance
 
         Args:
             dn: Raw detector digital number
@@ -166,9 +172,11 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         Returns:
             Reflectance [%]
+            or Radiance [mW/ (m2 cm-1 sr)]
         """
         ref = dn * slope + offset
-        ref *= 100  # set unit to %
+        if calibration == 'reflectance':
+            ref *= 100  # set unit to %
         ref = ref.clip(min=0)
         ref.attrs = dn.attrs
 
