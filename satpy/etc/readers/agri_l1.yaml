@@ -140,12 +140,12 @@ datasets:
         2000: {file_type: agri_l1_2000m}
         4000: {file_type: agri_l1_4000m}
     calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       counts:
         standard_name: counts
         units: "1"
@@ -158,12 +158,12 @@ datasets:
     wavelength: [3.5, 3.72, 4.0]
     resolution: 4000
     calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       counts:
         standard_name: counts
         units: "1"
@@ -177,12 +177,12 @@ datasets:
     wavelength: [5.8, 6.25, 6.7]
     resolution: 4000
     calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       counts:
         standard_name: counts
         units: "1"
@@ -196,12 +196,12 @@ datasets:
     wavelength: [6.9, 7.10, 7.3]
     resolution: 4000
     calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       counts:
         standard_name: counts
         units: "1"
@@ -215,12 +215,12 @@ datasets:
     wavelength: [8.0, 8.5, 9.0]
     resolution: 4000
     calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       counts:
         standard_name: counts
         units: "1"
@@ -234,12 +234,12 @@ datasets:
     wavelength: [10.3, 10.8, 11.1]
     resolution: 4000
     calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       counts:
         standard_name: counts
         units: "1"
@@ -253,12 +253,12 @@ datasets:
     wavelength: [11.5, 12.0, 12.5]
     resolution: 4000
     calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       counts:
         standard_name: counts
         units: "1"
@@ -272,12 +272,12 @@ datasets:
     wavelength: [13.2, 13.5, 13.8]
     resolution: 4000
     calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavenumber
+        units: "mW/ (m2 cm-1 sr)"
       brightness_temperature:
         standard_name: toa_brightness_temperature
         units: "K"
-      reflectance:
-        standard_name: toa_bidirectional_reflectance
-        units: "%"
       counts:
         standard_name: counts
         units: "1"
