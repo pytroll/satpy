@@ -303,8 +303,11 @@ def get_satpos(dataset):
         try:
             alt = orb_params['satellite_actual_altitude']
         except KeyError:
-            alt = orb_params['projection_altitude']
-            warnings.warn('Satellite altitude not available, using projection altitude instead.')
+            try:
+                alt = orb_params['satellite_nominal_altitude']
+            except KeyError:
+                alt = orb_params['projection_altitude']
+                warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
 
         # Longitude & Latitude
         try:
@@ -321,7 +324,7 @@ def get_satpos(dataset):
                 except KeyError:
                     lon = orb_params['projection_longitude']
                     lat = orb_params['projection_latitude']
-                    warnings.warn('Satellite lon/lat not available, using projection centre instead.')
+                    warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
     except KeyError:
         # Legacy
         lon = dataset.attrs['satellite_longitude']
