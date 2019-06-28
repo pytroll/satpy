@@ -71,10 +71,13 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             'spare': ''}
 
             area_def = fh.get_area_def(None)
-            self.assertEqual(area_def.proj_dict, {'a': 6378137.0, 'b': 6356752.3,
-                                                  'h': 35785863.0, 'lon_0': 140.7,
-                                                  'proj': 'geos', 'units': 'm'})
-
+            proj_dict = area_def.proj_dict
+            self.assertEqual(proj_dict['a'], 6378137.0)
+            self.assertEqual(proj_dict['b'], 6356752.3)
+            self.assertEqual(proj_dict['h'], 35785863.0)
+            self.assertEqual(proj_dict['lon_0'], 140.7)
+            self.assertEqual(proj_dict['proj'], 'geos')
+            self.assertEqual(proj_dict['units'], 'm')
             self.assertEqual(area_def.area_extent, (592000.0038256244, 4132000.026701824,
                                                     1592000.0102878278, 5132000.033164027))
 
@@ -113,10 +116,13 @@ class TestAHIHSDNavigation(unittest.TestCase):
                             'spare': ''}
 
             area_def = fh.get_area_def(None)
-            self.assertEqual(area_def.proj_dict, {'a': 6378137.0, 'b': 6356752.3,
-                                                  'h': 35785863.0, 'lon_0': 140.7,
-                                                  'proj': 'geos', 'units': 'm'})
-
+            proj_dict = area_def.proj_dict
+            self.assertEqual(proj_dict['a'], 6378137.0)
+            self.assertEqual(proj_dict['b'], 6356752.3)
+            self.assertEqual(proj_dict['h'], 35785863.0)
+            self.assertEqual(proj_dict['lon_0'], 140.7)
+            self.assertEqual(proj_dict['proj'], 'geos')
+            self.assertEqual(proj_dict['units'], 'm')
             self.assertEqual(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
                                                     5500000.035542117, -2200000.0142168473))
 
