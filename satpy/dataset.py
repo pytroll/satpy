@@ -270,7 +270,12 @@ class DatasetID(DatasetID):
 
 
 def create_filtered_dsid(dataset_key, **dfilter):
-    """Create a DatasetID matching *dataset_key* and *dfilter*."""
+    """Create a DatasetID matching *dataset_key* and *dfilter*.
+
+    If a proprety is specified in both *dataset_key* and *dfilter*, the former
+    has priority.
+
+    """
     try:
         ds_dict = dataset_key.to_dict()
     except AttributeError:
@@ -279,8 +284,9 @@ def create_filtered_dsid(dataset_key, **dfilter):
         elif isinstance(dataset_key, float):
             ds_dict = {'wavelength': dataset_key}
     clean_filter = {key: value for key, value in dfilter.items() if value is not None}
-    ds_dict.update(clean_filter)
-    return DatasetID.from_dict(ds_dict)
+    clean_dict = {key: value for key, value in ds_dict.items() if value is not None}
+    clean_filter.update(clean_dict)
+    return DatasetID.from_dict(clean_filter)
 
 
 def dataset_walker(datasets):
