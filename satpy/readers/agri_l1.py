@@ -1,22 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
 # Copyright (c) 2019 Satpy developers
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""Advanced Geostationary Radiation Imager for the Level_1 HDF format
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Advanced Geostationary Radiation Imager reader for the Level_1 HDF format
 
 The files read by this reader are described in the official Real Time Data Service:
 
@@ -94,9 +93,10 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         data.attrs.update({'platform_name': self['/attr/Satellite Name'],
                            'sensor': self['/attr/Sensor Identification Code'],
+                           'orbital_parameters': {
                            'satellite_nominal_latitude': self['/attr/NOMCenterLat'],
                            'satellite_nominal_longitude': self['/attr/NOMCenterLon'],
-                           'satellite_nominal_altitude': self['/attr/NOMSatHeight']})
+                           'satellite_nominal_altitude': self['/attr/NOMSatHeight']}})
         data.attrs.update(ds_info)
 
         # remove attributes that could be confusing later
@@ -154,16 +154,16 @@ class HDF_AGRI_L1(HDF5FileHandler):
             nlines,
             area_extent)
 
-        self.area = area
-
         return area
 
     def dn2reflectance(self, dn, slope, offset):
         """Convert digital number (DN) to reflectance
+
         Args:
             dn: Raw detector digital number
             slope: Slope
             offset: Offset
+
         Returns:
             Reflectance [%]
         """
