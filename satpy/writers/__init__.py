@@ -326,6 +326,27 @@ def add_logo(orig, dc, img, logo=None):
     return XRImage(new_data)
 
 
+def add_scale(orig, dc, img, scale=None):
+    """Add scale to an image using the pydecorate package.
+
+    All the features of pydecorate's ``add_scale`` are available.
+    See documentation of :doc:`pydecorate:index` for more info.
+
+    """
+    LOG.info("Add scale to image.")
+
+    dc.add_scale(**scale)
+
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
+
+    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                            coords={'y': orig.data.coords['y'],
+                                    'x': orig.data.coords['x'],
+                                    'bands': list(img.mode)},
+                            attrs=orig.data.attrs)
+    return XRImage(new_data)
+
+
 def add_decorate(orig, fill_value=None, **decorate):
     """Decorate an image with text and/or logos/images.
 
@@ -380,6 +401,8 @@ def add_decorate(orig, fill_value=None, **decorate):
                 img = add_logo(img, dc, img_orig, logo=dec['logo'])
             elif 'text' in dec:
                 img = add_text(img, dc, img_orig, text=dec['text'])
+            elif 'scale' in dec:
+                img = add_scale(img, dc, img_orig, scale=dec['scale'])
     return img
 
 
