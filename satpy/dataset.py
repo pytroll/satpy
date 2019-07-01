@@ -283,10 +283,10 @@ def create_filtered_dsid(dataset_key, **dfilter):
             ds_dict = {'name': dataset_key}
         elif isinstance(dataset_key, numbers.Number):
             ds_dict = {'wavelength': dataset_key}
-    clean_filter = {key: value for key, value in dfilter.items() if value is not None}
-    clean_dict = {key: value for key, value in ds_dict.items() if value is not None}
-    clean_filter.update(clean_dict)
-    return DatasetID.from_dict(clean_filter)
+    for key, value in dfilter.items():
+        if value is not None:
+            ds_dict.setdefault(key, value)
+    return DatasetID.from_dict(ds_dict)
 
 
 def dataset_walker(datasets):
