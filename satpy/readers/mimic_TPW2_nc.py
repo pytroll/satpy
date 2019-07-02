@@ -91,8 +91,8 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         return metadata
 
     def _calc_area_resolution(self):
-        # y_res = abs(self['latArr'][0] - self['latArr'][1])
-        x_res = abs(self['lonArr'][0] - self['lonArr'][1])
+        #y_res = abs(self['latArr'].values[0] - self['latArr'].values[1])
+        x_res = abs(self['lonArr'].values[0] - self['lonArr'].values[1])
 
         return x_res
 
@@ -108,7 +108,11 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         # update previously configured datasets
         logger.debug("Starting previously configured variables loop...")
         for is_avail, ds_info in (configured_datasets or []):
-
+            """if ds_info['file_key'] is 'lonArr':
+                ds_info['resolution'] = res
+            if ds_info['file_key'] is 'latArr':
+                ds_info['resolution'] = res
+"""
             # some other file handler knows how to load this
             if is_avail is not None:
                 yield is_avail, ds_info
@@ -147,7 +151,7 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
                     new_info = {
                         'name': var_name,
                         'file_key': var_name,
-                        'coordinates': ['latArr', 'lonArr'],
+                        #'coordinates': ['latitude', 'longitude'],
                         'file_type': self.filetype_info['file_type'],
                         'resolution': res,
                     }
