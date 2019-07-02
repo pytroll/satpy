@@ -58,6 +58,7 @@ class NC_ABI_L2(NC_ABI_BASE):
         variable.attrs.pop('scale_factor', None)
         variable.attrs.pop('add_offset', None)
         variable.attrs.pop('valid_range', None)
+        variable.attrs.pop('_Unsigned', None)
 
         # add in information from the filename that may be useful to the user
         for key in ('scan_mode', 'platform_shortname'):
