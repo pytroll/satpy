@@ -13,23 +13,16 @@ file_types:
 
 datasets:
     latArr:
-        name:  latArr
+        name:  latitude
         units:  degrees_north
         file_key:  latArr
         standard_name:  latitude
-        coordinates: [ lonArr ]
+        coordinates: [ latitude ]
         file_type: mimicTPW2_comp
     lonArr:
-        name: lonArr
+        name: longitude
         units: degrees_east
         file_key:  lonArr
         standard_name:  longitude
-        coordinates: [ latArr ]
-        file_type: mimicTPW2_comp
-    tpwGrid:
-        name: tpwGrid
-        units: mm
-        file_key:  tpwGrid
-        standard_name:  Total_Precipitable_Water
-        coordinates:  [ latArr, lonArr ]
+        coordinates: [ longitude ]
         file_type: mimicTPW2_comp
