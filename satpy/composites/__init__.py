@@ -839,6 +839,7 @@ class FillingCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
+        projectables = self.check_areas(projectables)
         projectables[1] = projectables[1].fillna(projectables[0])
         projectables[2] = projectables[2].fillna(projectables[0])
         projectables[3] = projectables[3].fillna(projectables[0])
@@ -850,6 +851,7 @@ class Filler(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
+        projectables = self.check_areas(projectables)
         filled_projectable = projectables[0].fillna(projectables[1])
         return super(Filler, self).__call__([filled_projectable], **info)
 
