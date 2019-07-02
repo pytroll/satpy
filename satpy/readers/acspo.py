@@ -153,4 +153,5 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             data = data.where(~clear_sky_mask)
 
         data.attrs.update(metadata)
+        data.attrs.pop('_FillValue', None)
         return data
