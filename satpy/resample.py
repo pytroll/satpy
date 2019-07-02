@@ -271,7 +271,8 @@ def add_crs_xy_coords(data_arr, area):
         lats.attrs.setdefault('standard_name', 'latitude')
         lats.attrs.setdefault('long_name', 'latitude')
         lats.attrs.setdefault('units', 'degrees_north')
-        data_arr = data_arr.assign_coords(longitude=lons, latitude=lats)
+        # See https://github.com/pydata/xarray/issues/3068
+        # data_arr = data_arr.assign_coords(longitude=lons, latitude=lats)
     else:
         # Gridded data (AreaDefinition/StackedAreaDefinition)
         data_arr = add_xy_coords(data_arr, area, crs=crs)
