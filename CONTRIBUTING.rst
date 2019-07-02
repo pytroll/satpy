@@ -106,6 +106,17 @@ After talking to the Satpy developers any additional work like code or
 documentation changes can be provided as a GitHub
 `Pull Request <https://help.github.com/articles/creating-a-pull-request/>`_.
 
+To make sure that your code complies with the pytroll python standard, you can
+run the `flake8 <http://flake8.pycqa.org/en/latest/>`_ linter on your changes
+before you submit them, or even better install a pre-commit hook that runs the
+style check for you. To this aim, we provide a configuration file for the
+`pre-commit <http://pre-commit.com>`_ tool, that you can install with eg::
+
+  pip install pre-commit
+  pre-commit install
+
+running from your base satpy directory. This will automatically check code style for every commit.
+
 Code of Conduct
 ===============
 

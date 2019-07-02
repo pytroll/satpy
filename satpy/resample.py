@@ -621,6 +621,11 @@ class EWAResampler(BaseResampler):
 
     def precompute(self, cache_dir=None, swath_usage=0, **kwargs):
         """Generate row and column arrays and store it for later use."""
+        if self.cache:
+            # this resampler should be used for one SwathDefinition
+            # no need to recompute ll2cr output again
+            return None
+
         if kwargs.get('mask') is not None:
             LOG.warning("'mask' parameter has no affect during EWA "
                         "resampling")
@@ -950,7 +955,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 
     key = (resampler_class,
            source_area, destination_area,
-           hash_dict(resample_kwargs))
+           hash_dict(resample_kwargs).hexdigest())
     try:
         resampler_instance = resamplers_cache[key]
     except KeyError:
@@ -962,12 +967,6 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 def resample(source_area, data, destination_area,
              resampler=None, **kwargs):
     """Do the resampling."""
-    if 'resampler_class' in kwargs:
-        import warnings
-        warnings.warn("'resampler_class' is deprecated, use 'resampler'",
-                      DeprecationWarning)
-        resampler = kwargs.pop('resampler_class')
-
     if not isinstance(resampler, BaseResampler):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,
