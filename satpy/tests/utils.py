@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Utilities for various satpy tests.
-"""
+"""Utilities for various satpy tests."""
 
 from datetime import datetime
 from satpy.readers.yaml_reader import FileYAMLReader
@@ -44,7 +43,7 @@ def spy_decorator(method_to_decorate):
 
 def convert_file_content_to_data_array(file_content, attrs=tuple(),
                                        dims=('z', 'y', 'x')):
-    """Helper for old reader tests that still use numpy arrays.
+    """Help old reader tests that still use numpy arrays.
 
     A lot of old reader tests still use numpy arrays and depend on the
     "var_name/attr/attr_name" convention established before Satpy used xarray
@@ -91,7 +90,7 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
 
 
 def test_datasets():
-    """Get list of various test datasets"""
+    """Get list of various test datasets."""
     from satpy import DatasetID
     d = [
         DatasetID(name='ds1'),
@@ -107,6 +106,10 @@ def test_datasets():
         DatasetID(name='ds8', wavelength=(0.7, 0.8, 0.9)),
         DatasetID(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
         DatasetID(name='ds10', wavelength=(0.75, 0.85, 0.95)),
+        DatasetID(name='ds11', resolution=500),
+        DatasetID(name='ds11', resolution=1000),
+        DatasetID(name='ds12', resolution=500),
+        DatasetID(name='ds12', resolution=1000),
     ]
     return d
 
@@ -189,6 +192,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
 
 
 def test_composites(sensor_name):
+    """Create some test composites."""
     from satpy import DatasetID, DatasetDict
     # Composite ID -> (prereqs, optional_prereqs)
     comps = {
@@ -223,6 +227,14 @@ def test_composites(sensor_name):
         DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
         DatasetID(name='comp23'): ([0.8], []),
         DatasetID(name='static_image'): ([], []),
+        DatasetID(name='comp24', resolution=500): ([DatasetID(name='ds11', resolution=500),
+                                                    DatasetID(name='ds12', resolution=500)], []),
+        DatasetID(name='comp24', resolution=1000): ([DatasetID(name='ds11', resolution=1000),
+                                                     DatasetID(name='ds12', resolution=1000)], []),
+        DatasetID(name='comp25', resolution=500): ([DatasetID(name='comp24', resolution=500),
+                                                    DatasetID(name='ds5', resolution=500)], []),
+        DatasetID(name='comp25', resolution=1000): ([DatasetID(name='comp24', resolution=1000),
+                                                     DatasetID(name='ds5', resolution=1000)], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -245,7 +257,7 @@ def test_composites(sensor_name):
 
 
 def _filter_datasets(all_ds, names_or_ids):
-    """Helper function for filtering DatasetIDs by name or DatasetID."""
+    """Help filtering DatasetIDs by name or DatasetID."""
     # DatasetID will match a str to the name
     # need to separate them out
     str_filter = [ds_name for ds_name in names_or_ids if isinstance(ds_name, str)]
@@ -300,17 +312,21 @@ class FakeReader(FileYAMLReader):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self._end_time
 
     @property
     def sensor_names(self):
+        """Get the sensor names."""
         return self._sensor_name
 
     def load(self, dataset_keys):
+        """Load some data."""
         from satpy import DatasetDict
         from xarray import DataArray
         import numpy as np

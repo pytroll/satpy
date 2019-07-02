@@ -144,6 +144,7 @@ class NC_ABI_L1B(BaseFileHandler):
         res.attrs.pop('_FillValue', None)
         res.attrs.pop('scale_factor', None)
         res.attrs.pop('add_offset', None)
+        res.attrs.pop('_Unsigned', None)
         res.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
         # add in information from the filename that may be useful to the user
         for key in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname'):
