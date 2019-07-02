@@ -149,7 +149,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         return group, root_group
 
     def calc_area_extent(self, key):
-        """Calculate area extent for a dataset."""
+        """Calculate area extent for a dataset.
+
+        C"""
         # Calculate the area extent of the swath based on start line and column
         # information, total number of segments and channel resolution
         # numbers from Package Description, Table 8
@@ -159,31 +161,25 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
         # Get start/end line and column of loaded swath.
-        self.startline = int(self[measured + "/start_position_row"])
-        self.endline = int(self[measured + "/end_position_row"])
-        self.startcol = int(self[measured + "/start_position_column"])
-        self.endcol = int(self[measured + "/end_position_column"])
         self.nlines, self.ncols = self[measured + "/effective_radiance/shape"]
 
         logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
         logger.debug('Row/Cols: {} / {}'.format(self.nlines, self.ncols))
-        logger.debug('Start/End row: {} / {}'.format(self.startline, self.endline))
-        logger.debug('Start/End col: {} / {}'.format(self.startcol, self.endcol))
         # total_segments = 70
 
         # Calculate full globe line extent
-        max_y = 5432229.9317116784
-        min_y = -5429229.5285458621
-        full_y = max_y + abs(min_y)
-        # Single swath line extent
-        res_y = full_y / chkres  # Extent per pixel resolution
-        startl = min_y + res_y * self.startline - 0.5 * (res_y)
-        endl = min_y + res_y * self.endline + 0.5 * (res_y)
-        logger.debug('Start / end extent: {} / {}'.format(startl, endl))
+        h = float(self["data/mtg_geos_projection"].perspective_point_height)
 
-        chk_extent = (-5432229.9317116784, endl,
-                      5429229.5285458621, startl)
-        return(chk_extent)
+        ext = {}
+        for c in "xy":
+            c_radian = self[f"data/{key.name:s}/measured/{c:s}"]
+            c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
+            min_c_radian = c_radian_num[0]
+            max_c_radian = c_radian_num[-1]
+            min_c = min_c_radian * h  # arc length in m
+            max_c = max_c_radian * h
+            ext[c] = (min_c.item(), max_c.item())
+        return (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
 
     _fallback_area_def = {
             "reference_altitude": 35786400,  # metre
@@ -195,29 +191,23 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # Test dataset doen't provide the values in the file container.
         # Only fill values are inserted
 
-        a = float(self["state/processor/earth_equatorial_radius"])
-        b = float(self["state/processor/earth_polar_radius"])
-        h = float(self["state/processor/reference_altitude"])
-        lon_0 = float(self["state/processor/projection_origin_longitude"])
-        if h == default_fillvals[
-                self["state/processor/reference_altitude"].dtype.str[1:]]:
-            logger.warning(
-                    "Reference altitude in {:s} set to "
-                    "fill value, using {:d}".format(
-                        self.filename,
-                        self._fallback_area_def["reference_altitude"]))
-            h = self._fallback_area_def["reference_altitude"]
+        a = float(self["data/mtg_geos_projection"].semi_major_axis)
+        b = float(self["data/mtg_geos_projection"].semi_minor_axis)
+        h = float(self["data/mtg_geos_projection"].perspective_point_height)
+        lon_0 = float(self["data/mtg_geos_projection"].longitude_of_projection_origin)
+        sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
         # Channel dependent swath resoultion
         area_extent = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
+        proj_dict = {'a': a,
+                     'b': b,
+                     'lon_0': lon_0,
+                     'h': h,
                      'proj': 'geos',
-                     'units': 'm'}
+                     'units': 'm',
+                     "sweep": sweep}
 
         area = geometry.AreaDefinition(
             'some_area_name',
