@@ -57,10 +57,10 @@ class NC_ABI_BASE(BaseFileHandler):
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'abi'
 
-        if 'goes_imager_projection' in self.nc.keys():
+        if 'goes_imager_projection' in self.nc:
             self.nlines = self.nc['y'].size
             self.ncols = self.nc['x'].size
-        elif 'goes_lat_lon_projection' in self.nc.keys():
+        elif 'goes_lat_lon_projection' in self.nc:
             self.nlines = self.nc['lat'].size
             self.ncols = self.nc['lon'].size
             self.nc = self.nc.rename({'lon': 'x', 'lat': 'y'})
@@ -114,9 +114,9 @@ class NC_ABI_BASE(BaseFileHandler):
     def get_area_def(self, key):
         """Get the area definition of the data at hand.
         """
-        if 'goes_imager_projection' in self.nc.keys():
+        if 'goes_imager_projection' in self.nc:
             return self._get_areadef_fixedgrid(key)
-        elif 'goes_lat_lon_projection' in self.nc.keys():
+        elif 'goes_lat_lon_projection' in self.nc:
             return self._get_areadef_latlon(key)
         else:
             raise ValueError('Unsupported projection found in the dataset')

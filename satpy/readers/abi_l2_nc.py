@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2016-2019 Satpy developers
+# Copyright (c) 2019 Satpy developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,6 +58,7 @@ class NC_ABI_L2(NC_ABI_BASE):
         variable.attrs.pop('scale_factor', None)
         variable.attrs.pop('add_offset', None)
         variable.attrs.pop('valid_range', None)
+        variable.attrs.pop('_Unsigned', None)
 
         # add in information from the filename that may be useful to the user
         for key in ('scan_mode', 'platform_shortname'):
