@@ -328,7 +328,6 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename,
                               header_attrs=header_attrs,
                               writer='cf')
-            import netCDF4 as nc4
             with xr.open_dataset(filename) as f:
                 self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
                 self.assertTrue('sensor' in f.attrs.keys())
