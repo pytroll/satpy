@@ -83,13 +83,12 @@ class TestCFWriter(unittest.TestCase):
                                                     prerequisites=[DatasetID('hej')]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
                 expected_prereq = ("DatasetID(name='hej', wavelength=None, "
                                    "resolution=None, polarization=None, "
                                    "calibration=None, level=None, modifiers=())")
-                self.assertEqual(f['test-array'].attrs['prerequisites'][0],
+                self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
     def test_save_with_compression(self):
@@ -136,8 +135,7 @@ class TestCFWriter(unittest.TestCase):
                                                     prerequisites=[DatasetID('hej')]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
                 self.assertTrue(np.all(f['x'][:] == [0, 1, 2]))
                 self.assertTrue(np.all(f['y'][:] == [0]))
@@ -147,7 +145,7 @@ class TestCFWriter(unittest.TestCase):
                 expected_prereq = ("DatasetID(name='hej', wavelength=None, "
                                    "resolution=None, polarization=None, "
                                    "calibration=None, level=None, modifiers=())")
-                self.assertEqual(f['test-array'].attrs['prerequisites'][0],
+                self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
     def test_groups(self):
@@ -222,8 +220,7 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, decode_cf=False) as f:
                 self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_bounds(self):
@@ -241,8 +238,7 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, decode_cf=False) as f:
                 self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_bounds_minimum(self):
@@ -268,8 +264,7 @@ class TestCFWriter(unittest.TestCase):
                                                      end_time=end_timeB))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, decode_cf=False) as f:
                 self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_bounds_missing_time_info(self):
@@ -291,8 +286,7 @@ class TestCFWriter(unittest.TestCase):
                                           coords={'time': [np.datetime64('2018-05-30T10:05:00')]})
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, decode_cf=False) as f:
                 self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_encoding_kwarg(self):
@@ -311,8 +305,7 @@ class TestCFWriter(unittest.TestCase):
                                        'add_offset': 0.0,
                                        '_FillValue': 3}}
             scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, mask_and_scale=False) as f:
                 self.assertTrue(np.all(f['test-array'][:] == [10, 20, 30]))
                 self.assertTrue(f['test-array'].attrs['scale_factor'] == 0.1)
                 self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
@@ -335,8 +328,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename,
                               header_attrs=header_attrs,
                               writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename) as f:
                 self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
                 self.assertTrue('sensor' in f.attrs.keys())
                 self.assertTrue('orbit' not in f.attrs.keys())

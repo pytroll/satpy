@@ -123,7 +123,7 @@ NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
               np.dtype('int64'), np.dtype('uint64'),
               np.dtype('float32'), np.dtype('float64'),
               np.string_]
-"""Numpy datatypes compatible with all netCDF4 backends. np.unicode_ is excluded because h5py (and thus h5netcdf)
+"""Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is excluded because h5py (and thus h5netcdf)
 has problems with unicode, see https://github.com/h5py/h5py/issues/624."""
 
 
@@ -570,7 +570,7 @@ class CFWriter(Writer):
 
         return encoding, other_to_netcdf_kwargs
 
-    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', epoch=EPOCH,
+    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
                       compression=None, **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
@@ -589,7 +589,9 @@ class CFWriter(Writer):
             header_attrs:
                 Global attributes to be included
             engine (str):
-                Module to be used for writing netCDF files
+                Module to be used for writing netCDF files. Follows xarray's
+                :meth:`~xarray.Dataset.to_netcdf` engine choices with a
+                preference for 'netcdf4'.
             epoch (str):
                 Reference time for encoding of time coordinates
             flatten_attrs (bool):
