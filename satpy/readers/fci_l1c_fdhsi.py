@@ -174,11 +174,18 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         for c in "xy":
             c_radian = self[f"data/{key.name:s}/measured/{c:s}"]
             c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
-            min_c_radian = c_radian_num[0]
-            max_c_radian = c_radian_num[-1]
+            # FCI defines pixels by centroids (Example Products for Pytroll
+            # Workshop, §B.4.2)
+            #
+            # pyresample defines corners as lower left corner of lower left pixel,
+            # upper right corner of upper right pixel (Martin Raspaud, personal
+            # communication).
+            min_c_radian = c_radian_num[0] - c_radian.scale_factor/2
+            max_c_radian = c_radian_num[-1] + c_radian.scale_factor/2
             min_c = min_c_radian * h  # arc length in m
             max_c = max_c_radian * h
             ext[c] = (min_c.item(), max_c.item())
+
         return (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
 
     _fallback_area_def = {
