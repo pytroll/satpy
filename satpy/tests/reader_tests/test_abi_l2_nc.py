@@ -44,11 +44,11 @@ class FakeDataset(object):
     def __getitem__(self, key):
         return self.info[key]
 
+    def __contains__(self, key):
+        return key in self.info
+
     def rename(self, *args, **kwargs):
         return self
-
-    def keys(self):
-        return self.info.keys()
 
     def close(self):
         return
