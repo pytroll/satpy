@@ -47,9 +47,6 @@ class FakeDataset(object):
     def rename(self, *args, **kwargs):
         return self
 
-    def keys(self):
-        return self.info.keys()
-
     def close(self):
         return
 
