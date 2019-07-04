@@ -172,7 +172,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         ext = {}
         for c in "xy":
-            c_radian = self[f"data/{key.name:s}/measured/{c:s}"]
+            c_radian = self["data/{:s}/measured/{:s}".format(key.name, c)]
             c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
             # FCI defines pixels by centroids (Example Products for Pytroll
             # Workshop, §B.4.2)
