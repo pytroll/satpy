@@ -35,7 +35,7 @@ To get a list of the available datasets for a given file refer to the "Load data
 Geolocation files
 -----------------
 
-Similar to the ``modis_l1b` reader the geolocation files (mod03) for the 1km data are optional and if not
+Similar to the ``modis_l1b`` reader the geolocation files (mod03) for the 1km data are optional and if not
 given 1km geolocations will be interpolated from the 5km geolocation contained within the file.
 
 For the 500m and 250m data geolocation files are needed.
