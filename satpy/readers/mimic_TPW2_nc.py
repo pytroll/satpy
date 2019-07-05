@@ -1,34 +1,35 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+#
 # Copyright (c) 2019 Satpy developers
 #
-# Author(s):
-#     Joleen Feltz <joleen.feltz@ssec.wisc.edu>
-#     David Hoese <david.hoese@ssec.wisc.edu>
-#     Daniel Hueholt <daniel.hueholt@noaa.gov>
-#     Tommy Jasmin <tommy.jasmin@ssec.wisc.edu>
+# This file is part of Satpy.
 #
-# This file is part of Satpy
+# Satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# Satpy.  If not, see <http://www.gnu.org/licenses/>.
 #
 #
 """MIMIC_TPW2FileReader
 *************************
 
-This module implements readers for MIMIC_TPW2
-netcdf files.
+This module implements reader for MIMIC_TPW2 netcdf files.
+MIMIC-TPW2 is an experimental global product of total precipitable water (TPW), 
+using morphological compositing of the MIRS retrieval from several available 
+operational microwave-frequency sensors. Originally described in a 2010 paper by 
+Wimmers and Velden. This Version 2 is developed from an older method that uses simpler, 
+but more limited TPW retrievals and advection calculations.
+
+More information, data and credits at 
+http://tropic.ssec.wisc.edu/real-time/mtpw2/credits.html
 """
 
 import numpy as np
@@ -108,11 +109,11 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         # update previously configured datasets
         logger.debug("Starting previously configured variables loop...")
         for is_avail, ds_info in (configured_datasets or []):
-            """if ds_info['file_key'] is 'lonArr':
+            if ds_info['file_key'] is 'lonArr':
                 ds_info['resolution'] = res
             if ds_info['file_key'] is 'latArr':
                 ds_info['resolution'] = res
-"""
+
             # some other file handler knows how to load this
             if is_avail is not None:
                 yield is_avail, ds_info
