@@ -154,17 +154,6 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['end_time'], None)
         self.assertEqual(scn['image'].area, self.area_def)
 
-    def test_get_geotiff_area_def(self):
-        """Test reading area definition from a geotiff"""
-        from satpy.readers.generic_image import get_geotiff_area_def
-        from satpy import CHUNK_SIZE
-
-        fname = os.path.join(self.base_dir, '20180101_0000_test_rgb.tif')
-        data = xr.open_rasterio(fname,
-                                chunks=(1, CHUNK_SIZE, CHUNK_SIZE))
-        adef = get_geotiff_area_def(fname, data.crs)
-        self.assertEqual(adef, self.area_def)
-
     def test_GenericImageFileHandler(self):
         """Test direct use of the reader."""
         from satpy.readers.generic_image import GenericImageFileHandler
