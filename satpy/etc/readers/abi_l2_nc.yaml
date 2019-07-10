@@ -13,7 +13,7 @@ datasets:
     file_type:
       - abi_l2_rsr
       - abi_l2_dsr
-    units: "degrees"
+    units: "degrees_east"
     standard_name: longitude
 
   lat:
@@ -21,7 +21,7 @@ datasets:
     file_type:
       - abi_l2_rsr
       - abi_l2_dsr
-    units: "degrees"
+    units: "degrees_north"
     standard_name: latitude
 
 # --- Cloud Moisture Image Products ---
