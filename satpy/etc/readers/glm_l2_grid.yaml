@@ -1,0 +1,29 @@
+reader:
+  description: NetCDF4 reader for GOES-R series GLM data
+  name: glm_l2
+  sensors: [glm]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', 'scene_abbr']
+  
+# Typical filenames from Unidata THREDDS server:
+# https://thredds-test.unidata.ucar.edu/thredds/catalog/satellite/goes16/GRB16/Products/GeostationaryLightningMapper/CONUS/catalog.html
+# OR_GLM-L2-GLMC-M3_G16_s20191920000000_e20191920001000_c20191920001380.nc
+
+file_types:
+  glm_l2_grid:
+    file_reader: !!python/name:satpy.readers.glm_l2.NC_GLM_L2_GRID
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+# glm_l2_lcfa — add this with glmtools
+
+datasets:
+  flash_extent_density:
+    name: flash_extent_density
+    # wavelength: [0.777, 0.777, 0.777]
+    # resolution: 2000
+    file_type: glm_l2_grid
+  average_flash_area:
+    name: average_flash_area
+    # wavelength: [0.777, 0.777, 0.777]
+    # resolution: 2000
+    file_type: glm_l2_grid
