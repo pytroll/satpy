@@ -23,7 +23,11 @@ from datetime import datetime
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.append(os.path.abspath('../../'))
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-from satpy import __version__  # noqa
+# get version using setuptools-scm
+from pkg_resources import get_distribution
+release = get_distribution('satpy').version
+# for example take major/minor
+version = '.'.join(release.split('.')[:2])
 
 
 class Mock(object):
