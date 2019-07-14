@@ -31,6 +31,14 @@ import versioneer
 
 from setuptools import find_packages, setup
 
+try:
+    # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286
+    # Stop setuptools_scm from including all repository files
+    import setuptools_scm.integration
+    setuptools_scm.integration.find_files = lambda _: []
+except ImportError:
+    pass
+
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
             'dask[array] >=0.17.1', 'pyproj']
@@ -135,6 +143,8 @@ setup(name=NAME,
                               os.path.join('etc', 'enhancements', '*.yaml'),
                               ]},
       zip_safe=False,
+      use_scm_version={'write_to': 'satpy/version.py'},
+      setup_requires=['setuptools_scm', 'setuptools_scm_git_archive'],
       install_requires=requires,
       tests_require=test_requires,
       python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',

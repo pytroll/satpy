@@ -19,7 +19,11 @@
 """
 
 import os
-from .version import get_versions
+try:
+    from .version import version as __version__
+except ImportError:
+    # package is not installed
+    pass
 
 CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 
@@ -50,6 +54,3 @@ from satpy.scene import Scene  # noqa
 from satpy.multiscene import MultiScene  # noqa
 
 log = get_logger('satpy')
-
-__version__ = get_versions()['version']
-del get_versions
