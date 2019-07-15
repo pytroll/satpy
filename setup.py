@@ -27,7 +27,6 @@
 import os.path
 import sys
 from glob import glob
-import versioneer
 
 from setuptools import find_packages, setup
 
@@ -115,8 +114,6 @@ NAME = 'satpy'
 README = open('README.rst', 'r').read()
 
 setup(name=NAME,
-      version=versioneer.get_version(),
-      cmdclass=versioneer.get_cmdclass(),
       description='Python package for earth-observing satellite data processing',
       long_description=README,
       author='The Pytroll Team',
