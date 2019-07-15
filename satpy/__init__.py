@@ -20,7 +20,7 @@
 
 import os
 try:
-    from .version import version as __version__
+    from .version import version as __version__  # noqa
 except ImportError:
     # package is not installed
     pass
