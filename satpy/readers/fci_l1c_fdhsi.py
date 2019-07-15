@@ -188,10 +188,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
 
-    _fallback_area_def = {
-            "reference_altitude": 35786400,  # metre
-            }
-
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
         # TODO Projection information are hard coded for 0 degree geos projection
