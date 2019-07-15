@@ -3,6 +3,7 @@ reader:
   name: seviri_l1b_nc
   sensors: [seviri]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  group_keys: ["processing_time", "satid"]
 
 file_types:
     seviri_l1b_nc:
