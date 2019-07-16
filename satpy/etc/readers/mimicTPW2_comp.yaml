@@ -13,14 +13,14 @@ file_types:
 
 datasets:
     latArr:
-        name:  latitude
+        name:  'latitude'
         units:  degrees_north
         file_key:  latArr
         standard_name:  latitude
         coordinates: [ latitude ]
         file_type: mimicTPW2_comp
     lonArr:
-        name: longitude
+        name: 'longitude'
         units: degrees_east
         file_key:  lonArr
         standard_name:  longitude
