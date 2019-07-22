@@ -138,18 +138,19 @@ class FakeNetCDF4FileHandlerGRAN(FakeNetCDF4FileHandler):
         return file_content
 
 
-class TestVIIRSGRANReader(unittest.TestCase):
-    """ Test VIIRS GRAN reader """
-    yaml_file = 'viirs_gran.yaml'
+class TestVIIRSEDRGRANReader(unittest.TestCase):
+    """ Test VIIRS EDR GRAN reader """
+    yaml_file = 'viirs_edr_gran.yaml'
 
     def setUp(self):
         """ Wrap the netCDF4 file handler with the fake handler """
         from satpy.config import config_search_paths
-        from satpy.readers.viirs_gran import VIIRSGRANFileHandler
+        from satpy.readers.viirs_edr_gran import VIIRSEDRGRANFileHandler
         self.reader_configs = config_search_paths(
             os.path.join('readers', self.yaml_file))
         self.p = mock.patch.object(
-            VIIRSGRANFileHandler, '__bases__', (FakeNetCDF4FileHandlerGRAN,))
+            VIIRSEDRGRANFileHandler,
+            '__bases__', (FakeNetCDF4FileHandlerGRAN,))
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
@@ -186,6 +187,6 @@ def suite():
     """ The test suite for test_viirs_gran """
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSGRANReader))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSEDRGRANReader))
 
     return mysuite
