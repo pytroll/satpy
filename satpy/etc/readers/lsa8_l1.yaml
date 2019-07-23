@@ -44,68 +44,54 @@ datasets:
     resolution: 30
     file_type: lsa_granule
 
-  B05:
-    name: B05
-    sensor: MSI
-    wavelength: [0.695, 0.705, 0.715]
+  B5:
+    name: B5
+    sensor: OLI
+    wavelength: [0.851, 0.865, 0.879]
+    resolution: 30
+    file_type: lsa_granule
+
+  B6:
+    name: B6
+    sensor: OLI
+    wavelength: [1.566, 1.610, 1.651]
     resolution: 20
-    file_type: safe_granule
+    file_type: lsa_granule
 
-  B06:
-    name: B06
-    sensor: MSI
-    wavelength: [0.731, 0.740, 0.749]
-    resolution: 20
-    file_type: safe_granule
+  B7:
+    name: B7
+    sensor: OLI
+    wavelength: [2.107, 2.190, 2.294]
+    resolution: 30
+    file_type: lsa_granule
 
-  B07:
-    name: B07
-    sensor: MSI
-    wavelength: [0.764, 0.783, 0.802]
-    resolution: 20
-    file_type: safe_granule
+  B8:
+    name: B8
+    sensor: OLI
+    wavelength: [0.503, 0.589, 0.676]
+    resolution: 15
+    file_type: lsa_granule
 
-  B08:
-    name: B08
-    sensor: MSI
-    wavelength: [0.780, 0.842, 0.905]
-    resolution: 10
-    file_type: safe_granule
-
-  B8A:
-    name: B8A
-    sensor: MSI
-    wavelength: [0.855, 0.865, 0.875]
-    resolution: 20
-    file_type: safe_granule
-
-  B09:
-    name: B09
-    sensor: MSI
-    wavelength: [0.935, 0.945, 0.955]
-    resolution: 60
-    file_type: safe_granule
+  B9:
+    name: B9
+    sensor: OLI
+    wavelength: [1.363, 1.375, 1.384]
+    resolution: 30
+    file_type: lsa_granule
 
   B10:
     name: B10
-    sensor: MSI
-    wavelength: [1.365, 1.375, 1.385]
-    resolution: 60
-    file_type: safe_granule
+    sensor: TIRS
+    wavelength: [10.60, 10.90, 11.19]
+    resolution: 100
+    file_type: lsa_granule
 
   B11:
     name: B11
-    sensor: MSI
-    wavelength: [1.565, 1.610, 1.655]
-    resolution: 20
-    file_type: safe_granule
-
-  B12:
-    name: B12
-    sensor: MSI
-    wavelength: [2.100, 2.190, 2.280]
-    resolution: 20
-    file_type: safe_granule
+    sensor: TIRS
+    wavelength: [11.50, 12.0, 12.51]
+    resolution: 100
+    file_type: lsa_granule
 
 
   solar_zenith_angle:
