@@ -34,6 +34,7 @@ References:
 
 import logging
 from datetime import datetime
+import ast
 
 import numpy as np
 import rasterio
@@ -96,8 +97,8 @@ class LSA8MetaReader(BaseFileHandler):
             key = key.strip()
             val = val.strip()
             try:
-                val = eval(val)
-            except NameError:
+                val = ast.literal_eval(val)
+            except ValueError:
                 pass
             except SyntaxError as err:
                 if "EOL" in err.text:
