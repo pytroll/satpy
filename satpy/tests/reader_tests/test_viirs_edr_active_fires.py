@@ -1,19 +1,20 @@
-# Copyright (c) 2019 Satpy Developers
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2019 Satpy developers
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """VIIRS Active Fires Tests
 *********************
 This module implements tests for VIIRS Active Fires NetCDF and ASCII file
@@ -28,6 +29,7 @@ import dask.dataframe as dd
 import pandas as pd
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -76,19 +78,10 @@ class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         file_content['Fire Pixels/attr/units'] = 'none'
         file_content['Fire Pixels/shape'] = DEFAULT_FILE_SHAPE
 
-        # convert to xarrays
-        from xarray import DataArray
-        for key, val in file_content.items():
-            if isinstance(val, np.ndarray):
-                attrs = {}
-                for a in ['FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence']:
-                    if key + '/attr/' + a in file_content:
-                        attrs[a] = file_content[key + '/attr/' + a]
-                if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
-                else:
-                    file_content[key] = DataArray(val, attrs=attrs)
-
+        attrs = ('FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence')
+        convert_file_content_to_data_array(
+            file_content, attrs=attrs,
+            dims=('z', 'fakeDim0', 'fakeDim1'))
         return file_content
 
 
@@ -107,19 +100,10 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         file_content['FP_T4'] = DEFAULT_M13_FILE_DATA
         file_content['FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
 
-        # convert to xarrays
-        from xarray import DataArray
-        for key, val in file_content.items():
-            if isinstance(val, np.ndarray):
-                attrs = {}
-                for a in ['FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence']:
-                    if key + '/attr/' + a in file_content:
-                        attrs[a] = file_content[key + '/attr/' + a]
-                if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
-                else:
-                    file_content[key] = DataArray(val, attrs=attrs)
-
+        attrs = ('FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence')
+        convert_file_content_to_data_array(
+            file_content, attrs=attrs,
+            dims=('z', 'fakeDim0', 'fakeDim1'))
         return file_content
 
 
@@ -260,7 +244,9 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         datasets = r.load(['confidence_cat'])
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], '[7,8,9]->[lo,med,hi]')
+            self.assertEqual(v.attrs['units'], '1')
+            self.assertEqual(v.attrs['flag_meanings'], ['low', 'medium', 'high'])
+            self.assertEqual(v.attrs['flag_values'], [7, 8, 9])
 
         datasets = r.load(['T4'])
         self.assertEqual(len(datasets), 1)
@@ -370,7 +356,9 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         datasets = r.load(['confidence_cat'])
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
-            self.assertEqual(v.attrs['units'], '[7,8,9]->[lo,med,hi]')
+            self.assertEqual(v.attrs['units'], '1')
+            self.assertEqual(v.attrs['flag_meanings'], ['low', 'medium', 'high'])
+            self.assertEqual(v.attrs['flag_values'], [7, 8, 9])
 
         datasets = r.load(['T4'])
         self.assertEqual(len(datasets), 1)

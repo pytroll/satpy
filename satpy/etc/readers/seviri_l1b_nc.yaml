@@ -3,6 +3,7 @@ reader:
   name: seviri_l1b_nc
   sensors: [seviri]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  group_keys: ["processing_time", "satid"]
 
 file_types:
     seviri_l1b_nc:
@@ -76,7 +77,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch5'
+    nc_key: 'ch7'
 
   IR_097:
     name: IR_097
@@ -196,7 +197,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch6'
+    nc_key: 'ch5'
 
   WV_073:
     name: WV_073
@@ -213,6 +214,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: seviri_l1b_nc
-    nc_key: 'ch7'
+    nc_key: 'ch6'
 
 

@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#   Pascale Roquet <pascale.roquet@meteo.fr>
+# Copyright (c) 2017 Satpy developers
 #
 # This file is part of satpy.
 #

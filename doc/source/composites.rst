@@ -189,6 +189,33 @@ reflectance.
     >>> colorized_ir_clouds = local_scene['colorized_ir_clouds']
     >>> composite = compositor([vis_data, colorized_ir_clouds])
 
+StaticImageCompositor
+---------------------
+
+    :class:`StaticImageCompositor` can be used to read an image from disk
+    and used just like satellite data, including resampling and using as a
+    part of other composites.
+
+    >>> from satpy.composites import StaticImageCompositor
+    >>> compositor = StaticImageCompositor("static_image", filename="image.tif")
+    >>> composite = compositor()
+
+BackgroundCompositor
+--------------------
+
+    :class:`BackgroundCompositor` can be used to stack two composites
+    together.  If the composites don't have `alpha` channels, the
+    `background` is used where `foreground` has no data.  If `foreground`
+    has alpha channel, the `alpha` values are used to weight when blending
+    the two composites.
+
+    >>> from satpy import Scene
+    >>> from satpy.composites import BackgroundCompositor
+    >>> compositor = BackgroundCompositor()
+    >>> clouds = local_scene['ir_cloud_day']
+    >>> background = local_scene['overview']
+    >>> composite = compositor([clouds, background])
+
 Creating composite configuration files
 ======================================
 
@@ -319,6 +346,61 @@ the built-in airmass composite::
           - wavelength: 10.8
       - wavelength: 6.2
       standard_name: airmass
+
+Using a pre-made image as a background
+--------------------------------------
+
+Below is an example composite config using
+:class:`StaticImageCompositor`, :class:`DayNightCompositor`,
+:class:`CloudCompositor` and :class:`BackgroundCompositor` to show how
+to create a composite with a blended day/night imagery as background
+for clouds.  As the images are in PNG format, and thus not
+georeferenced, the name of the area definition for the background
+images are given.  When using GeoTIFF images the `area` parameter can
+be left out.
+
+.. note::
+
+    The background blending uses the current time if there is no
+    timestamps in the image filenames.
+
+::
+
+    clouds_with_background:
+      compositor: !!python/name:satpy.composites.BackgroundCompositor
+      standard_name: clouds_with_background
+      prerequisites:
+        - ir_cloud_day
+        - compositor: !!python/name:satpy.composites.DayNightCompositor
+          prerequisites:
+            - static_day
+            - static_night
+
+    static_day:
+      compositor: !!python/name:satpy.composites.StaticImageCompositor
+      standard_name: static_day
+      filename: /path/to/day_image.png
+      area: euro4
+
+    static_night:
+      compositor: !!python/name:satpy.composites.StaticImageCompositor
+      standard_name: static_night
+      filename: /path/to/night_image.png
+      area: euro4
+
+To ensure that the images aren't auto-stretched and possibly altered,
+the following should be added to enhancement config (assuming 8-bit
+image) for both of the static images::
+
+    static_day:
+      standard_name: static_day
+      operations:
+      - name: stretch
+        method: *stretchfun
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [255, 255, 255]
 
 Enhancing the images
 ====================

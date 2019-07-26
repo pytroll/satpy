@@ -1,24 +1,20 @@
-#!/usr/bin/python
-# Copyright (c) 2019.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2019 Satpy developers
 #
+# This file is part of satpy.
 #
-# Author(s):
-#   Lucas Meyer
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for MODIS L2 HDF reader."""
 
 import os
@@ -38,6 +34,7 @@ TEST_LAT = np.repeat(np.linspace(35., 45., SCAN_WIDTH)[:, None], SCAN_LEN, 1)
 TEST_LAT *= np.linspace(0.9, 1.1, SCAN_LEN)
 TEST_LON = np.repeat(np.linspace(-45., -35., SCAN_LEN)[None, :], SCAN_WIDTH, 0)
 TEST_LON *= np.linspace(0.9, 1.1, SCAN_WIDTH)[:, None]
+TEST_SATZ = (np.repeat(abs(np.linspace(-65.2, 65.4, SCAN_LEN))[None, :], SCAN_WIDTH, 0) * 100).astype(np.int16)
 TEST_DATA = {
     'Latitude': {'data': TEST_LAT.astype(np.float32),
                  'type': SDC.FLOAT32,
@@ -47,10 +44,11 @@ TEST_DATA = {
                   'type': SDC.FLOAT32,
                   'fill_value': -999,
                   'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
-    'Sensor_Zenith': {'data': np.zeros((SCAN_WIDTH, SCAN_LEN), dtype=np.int16),
+    'Sensor_Zenith': {'data': TEST_SATZ,
                       'type': SDC.INT32,
                       'fill_value': -32767,
-                      'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35']}},
+                      'attrs': {'dim_labels': ['Cell_Along_Swath_5km:mod35', 'Cell_Across_Swath_5km:mod35'],
+                                'scale_factor': 0.01}},
     'Cloud_Mask': {'data': np.zeros((6, 5*SCAN_WIDTH, 5*SCAN_LEN+4), dtype=np.int8),
                    'type': SDC.INT8,
                    'fill_value': 0,
@@ -115,9 +113,9 @@ def create_test_data():
                              "END_GROUP=SWATH_1\n"\
                              "END_GROUP=SwathStructure\nEND"
     archive_metadata_header = "GROUP = ARCHIVEDMETADATA\nEND_GROUP = ARCHIVEDMETADATA\nEND"
-    setattr(h, 'CoreMetadata.0', core_metadata_header)
-    setattr(h, 'StructMetadata.0', struct_metadata_header)
-    setattr(h, 'ArchiveMetadata.0', archive_metadata_header)
+    setattr(h, 'CoreMetadata.0', core_metadata_header)  # noqa
+    setattr(h, 'StructMetadata.0', struct_metadata_header)  # noqa
+    setattr(h, 'ArchiveMetadata.0', archive_metadata_header)  # noqa
 
     # Fill datasets
     for dataset in TEST_DATA:
@@ -128,7 +126,7 @@ def create_test_data():
             v.dim(dim_count).setname(dimension_name)
             dim_count += 1
         v.setfillvalue(TEST_DATA[dataset]['fill_value'])
-        v.scale_factor = SCALE_FACTOR
+        v.scale_factor = TEST_DATA[dataset]['attrs'].get('scale_factor', SCALE_FACTOR)
     h.end()
     return base_dir, file_name
 
@@ -190,6 +188,7 @@ class TestModisL2(unittest.TestCase):
             test_func(dataset_name, longitude_5km.values, 0)
 
     def test_load_quality_assurance(self):
+        """Test loading quality assurance."""
         from satpy import DatasetID
         scene = Scene(reader='modis_l2', filenames=[self.file_name])
         dataset_name = 'quality_assurance'
@@ -200,6 +199,7 @@ class TestModisL2(unittest.TestCase):
         self.assertEqual(quality_assurance.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
 
     def test_load_1000m_cloud_mask_dataset(self):
+        """Test loading 1000m cloud mask."""
         from satpy import DatasetID
         scene = Scene(reader='modis_l2', filenames=[self.file_name])
         dataset_name = 'cloud_mask'
@@ -210,6 +210,7 @@ class TestModisL2(unittest.TestCase):
         self.assertEqual(cloud_mask.shape, (5*SCAN_WIDTH, 5*SCAN_LEN+4))
 
     def test_load_250m_cloud_mask_dataset(self):
+        """Test loading 250m cloud mask."""
         from satpy import DatasetID
         scene = Scene(reader='modis_l2', filenames=[self.file_name])
         dataset_name = 'cloud_mask'
@@ -221,7 +222,7 @@ class TestModisL2(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_modis_l2."""
+    """Set the test suite for test_modis_l2."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestModisL2))
