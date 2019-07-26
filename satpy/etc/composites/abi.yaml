@@ -147,3 +147,261 @@ composites:
         - name: C13
     - name: C08
     standard_name: airmass
+
+  ash:
+    ## RGB Ash recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/GOES_Ash_RGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C15
+        - name: C13
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C14
+        - name: C11
+    - name: C13
+    standard_name: ash
+
+  dust:
+    ## RGB Dust recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Dust_RGB_Quick_Guide.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C15
+        - name: C13
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C14
+        - name: C11
+    - name: C13
+    standard_name: dust
+
+  cloud_phase_distinction:
+    ## Cloud Phase Distinction or Day Cloud Phase (name from NASA SPORT) or Cloud Type RGB(name from EUMETSAT)
+    ## RGB Day Cloud Phase Distinction recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Day_Cloud_Phase_Distinction.pdf
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C13
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: C05
+      modifiers: [sunz_corrected]
+    standard_name: cloud_phase_distinction
+
+  cloud_phase_distinction_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C13
+    - name: C02
+    - name: C05
+    standard_name: cloud_phase_distinction
+
+
+  water_vapors1:
+    ## Water Vapors RGB or Simple Water Vapor (name from NASA SPORT)
+    ## RGB Simple Water Vapor recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Simple_Water_Vapor_RGB.pdf
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C13
+    - name: C08
+    - name: C10
+    standard_name: water_vapors1
+
+  water_vapors2:
+    ## Differential Water Vapor (name from NASA SPORT)
+    ## RGB Differential Water Vapor recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Simple_Water_Vapor_RGB.pdf
+    ## it uses the default used in etc/enhancements/generic.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C10
+        - name: C08
+    - name: C10
+    - name: C08
+    standard_name: water_vapors2
+
+  convection:
+    ## RGB Convection recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C08
+        - name: C10
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C07
+        - name: C13
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C05
+        - name: C02
+    standard_name: convection
+
+  so2:
+    ## RGB SO2 recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Quick_Guide_SO2_RGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C09
+        - name: C10
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C13
+        - name: C11
+    - name: C13
+    standard_name: so2
+
+  snow_fog:
+    ## RGB Day Snow Fog recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DaySnowFog.pdf
+    ## it uses the default used in etc/enhancements/generic.yaml of snow_defaul
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C05
+      modifiers: [sunz_corrected]
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C07
+        - name: C13
+    standard_name: snow
+
+  night_microphysics_abi:
+    ## RGB Nighttime Microphysics recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C15
+        - name: C13
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C13
+        - name: C07
+    - name: C13
+    standard_name: night_microphysics
+
+  fire_temperature_awips:
+    ## RGB composite for Fire Temperature source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
+    ## adapted from etc/composites/viirs.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C07
+    - name: C06
+    - name: C05
+    standard_name: fire_temperature
+    name: fire_temperature_awips
+
+  land_cloud_fire:
+    ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C06
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
+    standard_name: land_cloud_fire
+
+  land_cloud:
+    ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C05
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected]
+    standard_name: land_cloud
+
+  day_microphysics_eum:
+    ## adapted from etc/composites/ahi.yaml
+    ## source: http://www.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C07
+      modifiers: [nir_reflectance]
+    - name: C14
+    standard_name: day_microphysics
+
+  snow:
+    ## adapted from etc/composites/visir.yaml
+    ## source: http://www.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C05
+      modifiers: [sunz_corrected]
+    - name: C07
+      modifiers: [nir_reflectance]
+    standard_name: snow
+
+  day_microphysics_abi:
+    ## adapted from etc/composites/ahi.yaml
+    ## Variations to the Day Microphysics RGB product using the 2.3 micron channel
+    ## source: pages 12 and 13 http://www.virtuallab.bom.gov.au/files/3114/7884/4308/NewRGBProductsNov2016RFGmeeting.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C03
+    - name: C06
+    - name: C13
+    standard_name: day_microphysics_ahi
+
+  cloud_phase:
+    ## Day Cloud Phase RGB (name from EUMETSAT)
+    ## it uses the default used in etc/enhancements/generic.yaml of natural_color_default
+    ## source: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+    ## source: https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_2861499.html
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C05
+      modifiers: [sunz_corrected]
+    - name: C06
+      modifiers: [sunz_corrected]
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: natural
+
+  cloud_phase_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C05
+    - name: C06
+    - name: C02
+    standard_name: natural
+
+  tropical_airmass:
+    ## Tropical Airmass RGB (name from EUMETSAT)
+    ## source: pages 6 http://www.virtuallab.bom.gov.au/files/3114/7884/4308/NewRGBProductsNov2016RFGmeeting.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C10
+        - name: C08
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C13
+        - name: C12
+    - name: C08
+    standard_name: tropical_airmass
+
+  ir_overview:
+    ## adapted from etc/composites/visir.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C05
+      modifiers: [co2_corrected]
+    - name: C14
+    - name: C15
+    standard_name: ir_overview
