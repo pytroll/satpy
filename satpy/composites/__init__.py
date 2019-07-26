@@ -1386,61 +1386,6 @@ class SandwichCompositor(GenericCompositor):
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
 
 
-<<<<<<< HEAD
-class NaturaColorEnh(GenericCompositor):
-
-    def __call__(self, projectables, *args, **kwargs):
-        _ch1 = projectables[0]
-        ch2 = projectables[1]
-        ch3 = projectables[2]
-        ch1 = (ch3 * 2.2) + (ch2 * 2.5) + (_ch1 * 1.3)
-        ch1.attrs = _ch1.attrs
-
-        res = super(NaturaColorEnh, self).__call__((ch1, ch2, ch3), *args, **kwargs)
-        return res
-
-
-class NaturaColorEnh2(GenericCompositor):
-
-    def __call__(self, projectables, *args, **kwargs):
-
-
-        def d2i(ch, level=255.):
-            """Convert data value range to image value range"""
-            ch = ((ch - ch.min()) * level / (ch.max() - ch.min()))
-            return ch
-
-        _ch1 = projectables[0]#self[1.63].check_range() C05
-        _ch2 = projectables[1]#self[0.85].check_range() C03
-        _ch3 = projectables[2]#self[0.635].check_range() C02
-        #hrv = projectables[0]#self["HRV"].check_range() C02
-        ir = projectables[3] * -1#-self[10.8].data C14
-
-        # Normalize data
-        ch1 = d2i(_ch1); ch2 = d2i(_ch2); ch3 = d2i(_ch3);
-        ir = d2i(ir); #hrv = d2i(hrv)
-
-        ch = (ch2 + ch3 + ir) / 3.
-
-        # Add Overview composite
-        a = np.sin(np.deg2rad(90. * ch / 255.))
-        b = 1. - a
-        ch1 = (ch1 * b + ch3 * a)
-        ch2 = (ch2 * b + ch2 * a)
-        ch3 = (ch3 * b + ir * a)
-
-        # Add HRV channel
-        a = np.sin(np.deg2rad(90. * ch3 / 255.))
-        b = 1. - a
-        ch1 = (ch1 * b + ch3 * a)
-        ch1.attrs = _ch1.attrs
-        ch2 = (ch2 * b + ch3 * a)
-        ch2.attrs = _ch2.attrs
-        ch3 = (ch3 * b + ch3 * a)
-        ch3.attrs = _ch3.attrs
-
-        res = super(NaturaColorEnh2, self).__call__((ch1, ch2, ch3), *args, **kwargs)
-=======
 class StaticImageCompositor(GenericCompositor):
     """A compositor that loads a static image from disk."""
 
@@ -1534,5 +1479,4 @@ class BackgroundCompositor(GenericCompositor):
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs['area'] = attrs['area']
 
->>>>>>> master
         return res
