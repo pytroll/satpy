@@ -305,8 +305,8 @@ datasets:
     file_type: abi_l2_rrqpe
     file_key: RRQPE
 
-# --- Total Pricipitalable Water ---
-  total_pricipitalable_water:
+# --- Total Precipitalable Water ---
+  total_precipitalable_water:
     name: TPW
     resolution: 10000
     file_type: abi_l2_tpw
