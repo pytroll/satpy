@@ -784,46 +784,6 @@ enhancements:
           min_stretch: [0, 0, 0]
           max_stretch: [1, 1, 1]
 
-  ash_abi:
-    ## RGB Ash recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/GOES_Ash_RGB.pdf
-    standard_name: ash
-    sensor: abi
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs:
-        stretch: crude
-        min_stretch: [-6.7, -6.0, 243.6]
-        max_stretch: [ 2.6,  6.3, 302.4]
-
-  dust_abi:
-    ## RGB Dust recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Dust_RGB_Quick_Guide.pdf
-    standard_name: dust
-    sensor: abi
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs:
-        stretch: crude
-        min_stretch: [-6.7, -0.5, 261.2]
-        max_stretch: [ 2.6, 20.0, 288.7]
-    - name: gamma
-      method: *gammafun
-      kwargs:
-        gamma: [1, 2.5, 1]
-
-  convection_abi:
-    ## RGB Convection recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
-    standard_name: convection
-    sensor: abi
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs:
-        stretch: crude
-        min_stretch: [-35.0, -5.0, -75]
-        max_stretch: [  5.0, 60.0, 25]
-
   so2_default:
     ## RGB SO2 recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/Quick_Guide_SO2_RGB.pdf
     standard_name: so2
@@ -834,39 +794,6 @@ enhancements:
         stretch: crude
         min_stretch: [-4, -4, 243.05]
         max_stretch: [ 2,  5, 302.95]
-
-  night_microphysics_abi:
-    ## RGB Nighttime Microphysics recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_NtMicroRGB_final.pdf
-    standard_name: night_microphysics
-    sensor: abi
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs:
-        stretch: crude
-        min_stretch: [-6.7, -3.1, -29.6]
-        max_stretch: [ 2.6,  5.2,  19.5]
-
-  land_cloud_fire:
-    ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
-    standard_name: land_cloud_fire
-    sensor: abi
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
-
-  land_cloud:
-    ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_daylandcloudRGB_final.pdf
-    standard_name: land_cloud
-    sensor: abi
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs:
-        stretch: crude
-        min_stretch: [ 0.0,   0.0,   0.0]
-        max_stretch: [97.5, 108.6, 100.0]
 
   tropical_airmass_default:
     standard_name: tropical_airmass
