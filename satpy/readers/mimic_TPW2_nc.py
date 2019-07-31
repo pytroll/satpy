@@ -133,9 +133,15 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         description = "MIMIC TPW Equirectangular Projection"
         area_id = 'mimic'
         proj_id = 'equirectangular'
-        proj_dict = {'proj': 'longlat', 'datum': 'WGS84', 'ellps': 'WGS84'}
-        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent)
+        proj_dict = {'proj': 'longlat', 'datum': 'WGS84', 'ellps': 'WGS84', 'units': 'degrees',
+                     'resolution': self._calc_area_resolution()}
+        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent,)
         return area_def
+
+    def _calc_area_resolution(self):
+        y_res = abs(self['latArr'].values[0] - self['latArr'].values[1])
+
+        return y_res
 
     def get_metadata(self, data, info):
         """Get general metadata for file."""
