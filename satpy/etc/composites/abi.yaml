@@ -357,21 +357,6 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: land_cloud
 
-  day_microphysics_eum:
-    description: >
-      SEVIRI Day Microphysics RGB, for EUMETSAT
-    references:
-      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
-    ## adapted from etc/composites/ahi.yaml
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - name: C03
-      modifiers: [sunz_corrected]
-    - name: C07
-      modifiers: [nir_reflectance]
-    - name: C14
-    standard_name: day_microphysics
-
   snow:
     description: >
       SEVIRI Snow RGB, for EUMETSAT
@@ -387,6 +372,21 @@ composites:
     - name: C07
       modifiers: [nir_reflectance]
     standard_name: snow
+
+  day_microphysics_eum:
+    description: >
+      SEVIRI Day Microphysics RGB, for EUMETSAT
+    references:
+      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/DaymicroRGB.pdf
+    ## adapted from etc/composites/ahi.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: C03
+      modifiers: [sunz_corrected]
+    - name: C07
+      modifiers: [nir_reflectance]
+    - name: C14
+    standard_name: day_microphysics
 
   day_microphysics_abi:
     description: >
@@ -417,7 +417,7 @@ composites:
       modifiers: [sunz_corrected]
     - name: C02
       modifiers: [sunz_corrected, rayleigh_corrected]
-    standard_name: natural
+    standard_name: natural_color
 
   cloud_phase_raw:
     description: >
@@ -427,7 +427,7 @@ composites:
     - name: C05
     - name: C06
     - name: C02
-    standard_name: natural
+    standard_name: natural_color
 
   tropical_airmass:
     description: >
