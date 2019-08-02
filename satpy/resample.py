@@ -399,7 +399,7 @@ class BaseResampler(object):
         cache_dir = cache_dir or '.'
         hash_str = self.get_hash(**kwargs)
 
-        return os.path.join(cache_dir, 'resample_lut-' + hash_str + '.npz')
+        return os.path.join(cache_dir, 'resample_lut-' + hash_str + '.zarr')
 
 
 class KDTreeResampler(BaseResampler):
