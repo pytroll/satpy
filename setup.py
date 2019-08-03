@@ -33,7 +33,7 @@ from setuptools import find_packages, setup
 
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
-            'dask[array] >=0.17.1', 'pyproj']
+            'dask[array] >=0.17.1', 'pyproj', 'zarr']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
                  'rasterio', 'geoviews']
