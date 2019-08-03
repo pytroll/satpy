@@ -548,7 +548,7 @@ class KDTreeResampler(BaseResampler):
     def compute(self, data, weight_funcs=None, fill_value=np.nan,
                 with_uncert=False, **kwargs):
         del kwargs
-        LOG.debug("Resampling ", str(data.name))
+        LOG.debug("Resampling %s", str(data.name))
         res = self.resampler.get_sample_from_neighbour_info(data, fill_value)
         return update_resampled_coords(data, res, self.target_geo_def)
 
