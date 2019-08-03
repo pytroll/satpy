@@ -133,6 +133,7 @@ import numpy as np
 import xarray as xr
 import dask
 import dask.array as da
+import zarr
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
@@ -144,6 +145,14 @@ from satpy.config import config_search_paths, get_config_path
 LOG = getLogger(__name__)
 
 CACHE_SIZE = 10
+NN_KEYVALS = {'nn_lut_vii-': 'valid_input_index',
+              'nn_lut_voi-': 'valid_output_index',
+              'nn_lut_ia-': 'index_array'}
+              # 'nn_lut_da-': 'distance_array'}
+BIL_KEYVALS = {'bil_lut_s-': 'bilinear_s',
+               'bil_lut_t-': 'bilinear_t',
+               'bil_lut_vii-': 'valid_input_index',
+               'bil_lut_ia-': 'index_array'}
 
 resamplers_cache = WeakValueDictionary()
 
@@ -394,12 +403,13 @@ class BaseResampler(object):
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
-    def _create_cache_filename(self, cache_dir=None, **kwargs):
+    def _create_cache_filename(self, cache_dir=None, prefix='',
+                               **kwargs):
         """Create filename for the cached resampling parameters"""
         cache_dir = cache_dir or '.'
         hash_str = self.get_hash(**kwargs)
 
-        return os.path.join(cache_dir, 'resample_lut-' + hash_str + '.zarr')
+        return os.path.join(cache_dir, prefix + hash_str + '.zarr')
 
 
 class KDTreeResampler(BaseResampler):
@@ -479,61 +489,66 @@ class KDTreeResampler(BaseResampler):
             self.resampler.get_neighbour_info(mask=mask)
             self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
 
-    def _apply_cached_indexes(self, cached_indexes, persist=False):
-        """Reassign various resampler index attributes."""
-        # cacheable_dict = {}
-        for elt in ['valid_input_index', 'valid_output_index',
-                    'index_array', 'distance_array']:
-            val = cached_indexes[elt]
-            if isinstance(val, tuple):
-                val = cached_indexes[elt][0]
-            elif isinstance(val, np.ndarray):
-                val = da.from_array(val, chunks=CHUNK_SIZE)
-            elif persist and isinstance(val, da.Array):
-                cached_indexes[elt] = val = val.persist()
-            setattr(self.resampler, elt, val)
+    def _apply_cached_index(self, val, idx_name, persist=False):
+        """Reassign resampler index attributes."""
+        if isinstance(val, np.ndarray):
+            val = da.from_array(val, chunks=CHUNK_SIZE)
+        elif isinstance(val, zarr.core.Array):
+            val = da.from_zarr(val)
+        elif persist and isinstance(val, da.Array):
+            val = val.persist()
+        setattr(self.resampler, idx_name, val)
+        return val
 
     def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Read index arrays from either the in-memory or disk cache."""
         mask_name = getattr(mask, 'name', None)
-        filename = self._create_cache_filename(cache_dir,
-                                               mask=mask_name, **kwargs)
-        if kwargs.get('mask') in self._index_caches:
-            self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
-        elif cache_dir:
-            cache = np.load(filename, mmap_mode='r', allow_pickle=True)
-            # copy the dict so we can modify it's keys
-            new_cache = dict(cache.items())
-            cache.close()
-            self._apply_cached_indexes(new_cache)  # modifies cache dict in-place
-            self._index_caches[mask_name] = new_cache
-        else:
-            raise IOError
+        cached = {}
+        for prefix, idx_name in NN_KEYVALS.items():
+            filename = self._create_cache_filename(cache_dir, prefix=prefix,
+                                                   mask=mask_name, **kwargs)
+            if mask in self._index_caches:
+                cached[idx_name] = self._apply_cached_index(
+                    self._index_caches[mask][idx_name], idx_name)
+            elif cache_dir:
+                try:
+                    cache = zarr.open(filename, 'r')
+                except ValueError:
+                    raise IOError
+                cache = self._apply_cached_index(cache, idx_name)
+                cached[idx_name] = cache
+            else:
+                raise IOError
+        self._index_caches[mask_name] = cached
 
     def save_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Cache resampler's index arrays if there is a cache dir."""
         if cache_dir:
             mask_name = getattr(mask, 'name', None)
-            filename = self._create_cache_filename(
-                cache_dir, mask=mask_name, **kwargs)
-            LOG.info('Saving kd_tree neighbour info to %s', filename)
             cache = self._read_resampler_attrs()
-            # update the cache in place with persisted dask arrays
-            self._apply_cached_indexes(cache, persist=True)
+            for prefix, idx_name in NN_KEYVALS.items():
+                filename = self._create_cache_filename(
+                    cache_dir, prefix=prefix, mask=mask_name, **kwargs)
+                LOG.info('Saving kd_tree neighbour info to %s', filename)
+                # update the cache in place with persisted dask arrays
+                cache[idx_name] = self._apply_cached_index(cache[idx_name],
+                                                           idx_name,
+                                                           persist=True)
+                # Write index to Zarr file
+                cache[idx_name].to_zarr(filename)
+
             self._index_caches[mask_name] = cache
-            np.savez(filename, **cache)
+
 
     def _read_resampler_attrs(self):
         """Read certain attributes from the resampler for caching."""
         return {attr_name: getattr(self.resampler, attr_name)
-                for attr_name in [
-                    'valid_input_index', 'valid_output_index',
-                    'index_array', 'distance_array']}
+                for attr_name in NN_KEYVALS.values()}
 
     def compute(self, data, weight_funcs=None, fill_value=np.nan,
                 with_uncert=False, **kwargs):
         del kwargs
-        LOG.debug("Resampling " + str(data.name))
+        LOG.debug("Resampling ", str(data.name))
         res = self.resampler.get_sample_from_neighbour_info(data, fill_value)
         return update_resampled_coords(data, res, self.target_geo_def)
 
@@ -773,32 +788,27 @@ class BilinearResampler(BaseResampler):
     def load_bil_info(self, cache_dir, **kwargs):
 
         if cache_dir:
-            filename = self._create_cache_filename(cache_dir,
-                                                   prefix='resample_lut_bil_',
-                                                   **kwargs)
-            cache = np.load(filename)
-            for elt in ['bilinear_s', 'bilinear_t', 'valid_input_index',
-                        'index_array']:
-                if isinstance(cache[elt], tuple):
-                    setattr(self.resampler, elt, cache[elt][0])
-                else:
-                    setattr(self.resampler, elt, cache[elt])
-            cache.close()
+            for key, val in BIL_KEYVALS.items():
+                filename = self._create_cache_filename(cache_dir,
+                                                       prefix=key,
+                                                       **kwargs)
+                try:
+                    fid = zarr.open(filename, 'r')
+                except ValueError:
+                    raise IOError
+                setattr(self.resampler, val, fid)
+
         else:
             raise IOError
 
     def save_bil_info(self, cache_dir, **kwargs):
         if cache_dir:
-            filename = self._create_cache_filename(cache_dir,
-                                                   prefix='resample_lut_bil_',
-                                                   **kwargs)
-            LOG.info('Saving kd_tree neighbour info to %s', filename)
-            cache = {'bilinear_s': self.resampler.bilinear_s,
-                     'bilinear_t': self.resampler.bilinear_t,
-                     'valid_input_index': self.resampler.valid_input_index,
-                     'index_array': self.resampler.index_array}
-
-            np.savez(filename, **cache)
+            for key, val in BIL_KEYVALS.items():
+                filename = self._create_cache_filename(cache_dir,
+                                                       prefix=key,
+                                                       **kwargs)
+                LOG.info('Saving BIL neighbour info to %s', filename)
+                zarr.save(filename, getattr(self.resampler, val))
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation"""
