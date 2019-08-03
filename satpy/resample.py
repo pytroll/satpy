@@ -133,7 +133,6 @@ import numpy as np
 import xarray as xr
 import dask
 import dask.array as da
-import zarr
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
@@ -493,8 +492,6 @@ class KDTreeResampler(BaseResampler):
         """Reassign resampler index attributes."""
         if isinstance(val, np.ndarray):
             val = da.from_array(val, chunks=CHUNK_SIZE)
-        elif isinstance(val, zarr.core.Array):
-            val = da.from_zarr(val)
         elif persist and isinstance(val, da.Array):
             val = val.persist()
         setattr(self.resampler, idx_name, val)
@@ -512,7 +509,7 @@ class KDTreeResampler(BaseResampler):
                     self._index_caches[mask][idx_name], idx_name)
             elif cache_dir:
                 try:
-                    cache = zarr.open(filename, 'r')
+                    cache = da.from_zarr(filename)
                 except ValueError:
                     raise IOError
                 cache = self._apply_cached_index(cache, idx_name)
@@ -793,10 +790,10 @@ class BilinearResampler(BaseResampler):
                                                        prefix=key,
                                                        **kwargs)
                 try:
-                    fid = zarr.open(filename, 'r')
+                    cache = da.from_zarr(filename)
                 except ValueError:
                     raise IOError
-                setattr(self.resampler, val, da.from_zarr(fid))
+                setattr(self.resampler, val, cache)
 
         else:
             raise IOError
