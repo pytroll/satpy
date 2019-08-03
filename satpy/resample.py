@@ -796,7 +796,7 @@ class BilinearResampler(BaseResampler):
                     fid = zarr.open(filename, 'r')
                 except ValueError:
                     raise IOError
-                setattr(self.resampler, val, fid)
+                setattr(self.resampler, val, da.from_zarr(fid))
 
         else:
             raise IOError
@@ -808,7 +808,10 @@ class BilinearResampler(BaseResampler):
                                                        prefix=key,
                                                        **kwargs)
                 LOG.info('Saving BIL neighbour info to %s', filename)
-                zarr.save(filename, getattr(self.resampler, val))
+                var = getattr(self.resampler, val)
+                if isinstance(var, np.ndarray):
+                    var = da.from_array(var, chunks=CHUNK_SIZE)
+                var.to_zarr(filename)
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation"""
