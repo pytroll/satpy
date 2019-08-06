@@ -498,7 +498,7 @@ class KDTreeResampler(BaseResampler):
         mask_name = getattr(mask, 'name', None)
         filename = self._create_cache_filename(cache_dir,
                                                mask=mask_name, **kwargs)
-        if kwargs.get('mask') in self._index_caches:
+        if kwargs.get('mask') in self._index_caches and cache_dir is not False:
             self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
         elif cache_dir:
             cache = np.load(filename, mmap_mode='r', allow_pickle=True)
@@ -1016,6 +1016,11 @@ def resample_dataset(dataset, destination_area, **kwargs):
         return dataset
 
     fill_value = kwargs.pop('fill_value', get_fill_value(dataset))
+    no_cache = kwargs.pop('no_cache_for', [])
+
+    if dataset.attrs['name'] in no_cache:
+        kwargs['cache_dir'] = False
+        LOG.info('Caching removed for %s', dataset.attrs['name'])
     new_data = resample(source_area, dataset, destination_area, fill_value=fill_value, **kwargs)
     new_attrs = new_data.attrs
     new_data.attrs = dataset.attrs.copy()
