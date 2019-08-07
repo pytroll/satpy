@@ -371,15 +371,22 @@ class AttributeEncoder(json.JSONEncoder):
         return self._encode(obj)
 
     def _encode(self, obj):
-        """Encode the given object as a json-serializable datatype.
-
-        Use the netcdf encoder as it covers most of the datatypes appearing in dataset attributes. If that fails,
-        return the string representation of the object.
-        """
-        try:
-            return _encode_nc(obj)
-        except ValueError:
+        """Encode the given object as a json-serializable datatype."""
+        if isinstance(obj, (bool, np.bool_)):
+            # Bool has to be checked first, because it is a subclass of int
             return str(obj)
+        elif isinstance(obj, (int, float, str)):
+            return obj
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.void):
+            return tuple(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+
+        return str(obj)
 
 
 def _encode_nc(obj):
@@ -387,30 +394,18 @@ def _encode_nc(obj):
 
     Raises:
         ValueError if no such datatype could be found
-
     """
-    if isinstance(obj, (bool, np.bool_)):
-        # Bool has to be checked first, because it is a subclass of int
-        return str(obj)
-    elif isinstance(obj, (int, float, str)):
+    if isinstance(obj, (int, float, str, np.integer, np.floating)):
         return obj
-    elif isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, np.floating):
-        return float(obj)
-    elif isinstance(obj, np.void):
-        return tuple(obj)
     elif isinstance(obj, np.ndarray):
-        if not obj.dtype.fields and obj.dtype == np.bool_:
-            # Convert array of booleans to array of strings
-            obj = obj.astype(str)
-
-        # Multi-dimensional nc attributes are not supported, so we have to skip record arrays and multi-dimensional
-        # arrays here
+        # Only plain 1-d arrays are supported. Skip record arrays and multi-dimensional arrays.
         is_plain_1d = not obj.dtype.fields and len(obj.shape) <= 1
         if is_plain_1d:
             if obj.dtype in NC4_DTYPES:
                 return obj
+            elif obj.dtype == np.bool_:
+                # Boolean arrays are not supported, convert to array of strings.
+                obj = obj.astype(str)
             return obj.tolist()
 
     raise ValueError('Unable to encode')
