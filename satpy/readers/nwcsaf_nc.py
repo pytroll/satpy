@@ -143,9 +143,11 @@ class NcNWCSAF(BaseFileHandler):
             if 'valid_min' in variable.attrs:
                 variable = variable.where(
                     variable >= variable.attrs['valid_min'])
-        attrs = variable.attrs
+        attrs = variable.attrs.copy()
         variable = variable * scale + offset
         variable.attrs = attrs
+        variable.attrs.pop('add_offset', None)
+        variable.attrs.pop('scale_factor', None)
 
         variable.attrs.update({'platform_name': self.platform_name,
                                'sensor': self.sensor})
