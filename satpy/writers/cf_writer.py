@@ -117,14 +117,25 @@ logger = logging.getLogger(__name__)
 
 EPOCH = u"seconds since 1970-01-01 00:00:00"
 
+# Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is
+# excluded because h5py (and thus h5netcdf) has problems with unicode, see
+# https://github.com/h5py/h5py/issues/624."""
 NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
               np.dtype('int16'), np.dtype('uint16'),
               np.dtype('int32'), np.dtype('uint32'),
               np.dtype('int64'), np.dtype('uint64'),
               np.dtype('float32'), np.dtype('float64'),
               np.string_]
-"""Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is excluded because h5py (and thus h5netcdf)
-has problems with unicode, see https://github.com/h5py/h5py/issues/624."""
+
+# Unsigned and int64 isn't CF 1.7 compatible
+CF_DTYPES = [np.dtype('int8'),
+             np.dtype('int16'),
+             np.dtype('int32'),
+             np.dtype('float32'),
+             np.dtype('float64'),
+             np.string_]
+
+CF_VERSION = 'CF-1.7'
 
 
 def omerc2cf(area):
@@ -394,6 +405,7 @@ def _encode_nc(obj):
 
     Raises:
         ValueError if no such datatype could be found
+
     """
     if isinstance(obj, (int, float, str, np.integer, np.floating)):
         return obj
@@ -532,6 +544,8 @@ class CFWriter(Writer):
         start_times = []
         end_times = []
         for ds in ds_collection.values():
+            if ds.dtype not in CF_DTYPES:
+                warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
             try:
                 new_datasets = area2cf(ds, strict=include_lonlats)
             except KeyError:
@@ -627,7 +641,7 @@ class CFWriter(Writer):
             root.attrs.update({k: v for k, v in header_attrs.items() if v})
         if groups is None:
             # Groups are not CF-1.7 compliant
-            root.attrs['Conventions'] = 'CF-1.7'
+            root.attrs['Conventions'] = CF_VERSION
 
         # Remove satpy-specific kwargs
         satpy_kwargs = ['overlay', 'decorate', 'config_files']
