@@ -11,7 +11,7 @@ env:
         - EVENT_TYPE='push pull_request'
         - SETUP_CMD='test'
         - CONDA_CHANNELS='conda-forge'
-        - CONDA_CHANNEL_PRIORITY='True'
+        - CONDA_CHANNEL_PRIORITY='strict'
 matrix:
   include:
   - env: PYTHON_VERSION=2.7
