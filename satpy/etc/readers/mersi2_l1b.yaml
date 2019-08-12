@@ -11,6 +11,8 @@ file_types:
     file_patterns:
       # tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF
       - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_1000M_L1B.{ext}'
+      # FY3D_20190808_130200_130300_8965_MERSI_1000M_L1B.HDF
+      - '{platform_shortname}_{start_time:%Y%m%d_%H%M%S}_{end_time:%H%M%S}_{orbit_number:s}_MERSI_1000M_L1B.{ext}'
   mersi2_l1b_250:
     file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
     rows_per_scan: 40
@@ -23,6 +25,8 @@ file_types:
     file_patterns:
       # tf2019071182739.FY3D-X_MERSI_GEO1K_L1B.HDF
       - 'tf{start_time:%Y%j%H%M%S}.{platform_shortname}-{trans_band:1s}_MERSI_GEO1K_L1B.{ext}'
+      # FY3D_20190808_130200_130300_8965_MERSI_GEO1K_L1B.HDF
+      - '{platform_shortname}_{start_time:%Y%m%d_%H%M%S}_{end_time:%H%M%S}_{orbit_number:s}_MERSI_GEO1K_L1B.{ext}'
   mersi2_l1b_250_geo:
     file_reader: !!python/name:satpy.readers.mersi2_l1b.MERSI2L1B
     rows_per_scan: 40
