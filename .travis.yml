@@ -10,6 +10,7 @@ env:
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
         - SETUP_CMD='test'
+        - MINICONDA_VERSION="4.6.14"
         - CONDA_VERSION="4.6"
         - CONDA_CHANNELS='conda-forge'
         - CONDA_CHANNEL_PRIORITY='strict'
