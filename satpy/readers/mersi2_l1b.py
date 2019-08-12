@@ -100,6 +100,10 @@ class MERSI2L1B(HDF5FileHandler):
         else:
             new_fill = np.nan
         if valid_range is not None:
+            # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
+            # in the HDF data, this is hardcoded here.
+            if(dataset_id.name in ['24', '25'] and valid_range[1] == 4095):
+                valid_range[1] = 25000
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
             data = data.where((data >= valid_range[0]) &
