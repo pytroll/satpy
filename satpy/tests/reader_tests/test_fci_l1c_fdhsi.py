@@ -336,6 +336,20 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
                     res[ch],
                     181.917084)
 
+    def test_load_composite(self):
+        """Test that composites are loadable
+        """
+
+        # when dedicated composites for FCI FDHSI are implemented in satpy,
+        # this method should probably move to a dedicated class and module
+        # in the tests.compositor_tests package
+
+        from satpy.composites import CompositorLoader
+        cl = CompositorLoader()
+        (comps, mods) = cl.load_compositors(["fci"])
+        self.assertGreater(len(comps["fci"]), 0)
+        self.assertGreater(len(mods["fci"]), 0)
+
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     _alt_handler = FakeNetCDF4FileHandler3
