@@ -4,7 +4,7 @@
     sensor: abi
     operations:
     - name: stretch
-      method: *stretchfun
+      method: &stretchfun !!python/name:satpy.enhancements.stretch ''
       kwargs:
         stretch: crude
         min_stretch: [-6.7, -6.0, 243.6]
@@ -22,7 +22,7 @@
         min_stretch: [-6.7, -0.5, 261.2]
         max_stretch: [ 2.6, 20.0, 288.7]
     - name: gamma
-      method: *gammafun
+      method: &gammafun !!python/name:satpy.enhancements.gamma ''
       kwargs:
         gamma: [1, 2.5, 1]
 
