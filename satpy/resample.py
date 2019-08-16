@@ -15,7 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Satpy provides multiple resampling algorithms for resampling geolocated
+"""Satpy resampling module.
+
+Satpyprovides multiple resampling algorithms for resampling geolocated
 data to uniform projected grids. The easiest way to perform resampling in
 Satpy is through the :class:`~satpy.scene.Scene` object's
 :meth:`~satpy.scene.Scene.resample` method. Additional utility functions are
@@ -144,19 +146,19 @@ from satpy.config import config_search_paths, get_config_path
 LOG = getLogger(__name__)
 
 CACHE_SIZE = 10
-NN_KEYVALS = {'nn_lut_vii-': 'valid_input_index',
-              'nn_lut_voi-': 'valid_output_index',
-              'nn_lut_ia-': 'index_array'}
-              # 'nn_lut_da-': 'distance_array'}
-BIL_KEYVALS = {'bil_lut_s-': 'bilinear_s',
-               'bil_lut_t-': 'bilinear_t',
-               'bil_lut_vii-': 'valid_input_index',
-               'bil_lut_ia-': 'index_array'}
+NN_KEY_NAMES = ['valid_input_index',
+                'valid_output_index',
+                'index_array']
+BIL_KEY_NAMES = ['bilinear_s',
+                 'bilinear_t',
+                 'valid_input_index',
+                 'index_array']
 
 resamplers_cache = WeakValueDictionary()
 
 
 def hash_dict(the_dict, the_hash=None):
+    """Calculate a hash for a dictionary."""
     if the_hash is None:
         the_hash = hashlib.sha1()
     the_hash.update(json.dumps(the_dict, sort_keys=True).encode('utf-8'))
@@ -329,7 +331,6 @@ class BaseResampler(object):
                 Geolocation definition for the area to resample data to.
 
         """
-
         self.source_geo_def = source_geo_def
         self.target_geo_def = target_geo_def
 
@@ -404,7 +405,7 @@ class BaseResampler(object):
 
     def _create_cache_filename(self, cache_dir=None, prefix='',
                                **kwargs):
-        """Create filename for the cached resampling parameters"""
+        """Create filename for the cached resampling parameters."""
         cache_dir = cache_dir or '.'
         hash_str = self.get_hash(**kwargs)
 
@@ -436,6 +437,7 @@ class KDTreeResampler(BaseResampler):
     """
 
     def __init__(self, source_geo_def, target_geo_def):
+        """Init KDTreeResampler."""
         super(KDTreeResampler, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
         self._index_caches = {}
@@ -501,15 +503,15 @@ class KDTreeResampler(BaseResampler):
         """Read index arrays from either the in-memory or disk cache."""
         mask_name = getattr(mask, 'name', None)
         cached = {}
-        for prefix, idx_name in NN_KEYVALS.items():
-            filename = self._create_cache_filename(cache_dir, prefix=prefix,
-                                                   mask=mask_name, **kwargs)
+        filename = self._create_cache_filename(cache_dir, prefix='nn_lut-',
+                                               mask=mask_name, **kwargs)
+        for idx_name in NN_KEY_NAMES:
             if mask in self._index_caches:
                 cached[idx_name] = self._apply_cached_index(
                     self._index_caches[mask][idx_name], idx_name)
             elif cache_dir:
                 try:
-                    cache = da.from_zarr(filename)
+                    cache = da.from_zarr(filename, idx_name)
                 except ValueError:
                     raise IOError
                 cache = self._apply_cached_index(cache, idx_name)
@@ -523,27 +525,27 @@ class KDTreeResampler(BaseResampler):
         if cache_dir:
             mask_name = getattr(mask, 'name', None)
             cache = self._read_resampler_attrs()
-            for prefix, idx_name in NN_KEYVALS.items():
-                filename = self._create_cache_filename(
-                    cache_dir, prefix=prefix, mask=mask_name, **kwargs)
-                LOG.info('Saving kd_tree neighbour info to %s', filename)
+            filename = self._create_cache_filename(
+                cache_dir, prefix='nn_lut-', mask=mask_name, **kwargs)
+            LOG.info('Saving kd_tree neighbour info to %s', filename)
+            for idx_name in NN_KEY_NAMES:
                 # update the cache in place with persisted dask arrays
                 cache[idx_name] = self._apply_cached_index(cache[idx_name],
                                                            idx_name,
                                                            persist=True)
                 # Write index to Zarr file
-                cache[idx_name].to_zarr(filename)
+                cache[idx_name].to_zarr(filename, idx_name)
 
             self._index_caches[mask_name] = cache
-
 
     def _read_resampler_attrs(self):
         """Read certain attributes from the resampler for caching."""
         return {attr_name: getattr(self.resampler, attr_name)
-                for attr_name in NN_KEYVALS.values()}
+                for attr_name in NN_KEY_NAMES}
 
     def compute(self, data, weight_funcs=None, fill_value=np.nan,
                 with_uncert=False, **kwargs):
+        """Resample data."""
         del kwargs
         LOG.debug("Resampling %s", str(data.name))
         res = self.resampler.get_sample_from_neighbour_info(data, fill_value)
@@ -595,6 +597,7 @@ class EWAResampler(BaseResampler):
     """
 
     def __init__(self, source_geo_def, target_geo_def):
+        """Init EWAResampler."""
         super(EWAResampler, self).__init__(source_geo_def, target_geo_def)
         self.cache = {}
 
@@ -611,7 +614,7 @@ class EWAResampler(BaseResampler):
         return super(EWAResampler, self).resample(*args, **kwargs)
 
     def _call_ll2cr(self, lons, lats, target_geo_def, swath_usage=0):
-        """Wrapper around ll2cr for handling dask delayed calls better."""
+        """Wrap ll2cr() for handling dask delayed calls better."""
         new_src = SwathDefinition(lons, lats)
 
         swath_points_in_grid, cols, rows = ll2cr(new_src, target_geo_def)
@@ -676,7 +679,7 @@ class EWAResampler(BaseResampler):
 
     def _call_fornav(self, cols, rows, target_geo_def, data,
                      grid_coverage=0, **kwargs):
-        """Wrapper to run fornav as a dask delayed."""
+        """Wrap fornav() to run as a dask delayed."""
         num_valid_points, res = fornav(cols, rows, target_geo_def,
                                        data, **kwargs)
 
@@ -746,10 +749,10 @@ class EWAResampler(BaseResampler):
 
 
 class BilinearResampler(BaseResampler):
-
     """Resample using bilinear."""
 
     def __init__(self, source_geo_def, target_geo_def):
+        """Init BilinearResampler."""
         super(BilinearResampler, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
 
@@ -762,7 +765,6 @@ class BilinearResampler(BaseResampler):
         where data points are invalid. This defaults to the `mask` attribute of
         the `data` numpy masked array passed to the `resample` method.
         """
-
         del kwargs
 
         if self.resampler is None:
@@ -783,14 +785,14 @@ class BilinearResampler(BaseResampler):
                 self.save_bil_info(cache_dir, **kwargs)
 
     def load_bil_info(self, cache_dir, **kwargs):
-
+        """Load bilinear resampling info from cache directory."""
         if cache_dir:
-            for key, val in BIL_KEYVALS.items():
-                filename = self._create_cache_filename(cache_dir,
-                                                       prefix=key,
-                                                       **kwargs)
+            filename = self._create_cache_filename(cache_dir,
+                                                   prefix='bil_lut-',
+                                                   **kwargs)
+            for val in BIL_KEY_NAMES:
                 try:
-                    cache = da.from_zarr(filename)
+                    cache = da.from_zarr(filename, val)
                 except ValueError:
                     raise IOError
                 setattr(self.resampler, val, cache)
@@ -799,19 +801,21 @@ class BilinearResampler(BaseResampler):
             raise IOError
 
     def save_bil_info(self, cache_dir, **kwargs):
+        """Save bilinear resampling info to cache directory."""
         if cache_dir:
-            for key, val in BIL_KEYVALS.items():
-                filename = self._create_cache_filename(cache_dir,
-                                                       prefix=key,
-                                                       **kwargs)
-                LOG.info('Saving BIL neighbour info to %s', filename)
+            filename = self._create_cache_filename(cache_dir,
+                                                   prefix='bil_lut-',
+                                                   **kwargs)
+            LOG.info('Saving BIL neighbour info to %s', filename)
+            for val in BIL_KEY_NAMES:
                 var = getattr(self.resampler, val)
                 if isinstance(var, np.ndarray):
                     var = da.from_array(var, chunks=CHUNK_SIZE)
-                var.to_zarr(filename)
+                var = var.rechunk(CHUNK_SIZE)
+                var.to_zarr(filename, val)
 
     def compute(self, data, fill_value=None, **kwargs):
-        """Resample the given data using bilinear interpolation"""
+        """Resample the given data using bilinear interpolation."""
         del kwargs
 
         if fill_value is None:
@@ -848,6 +852,7 @@ class NativeResampler(BaseResampler):
     """
 
     def resample(self, data, cache_dir=None, mask_area=False, **kwargs):
+        """Run NativeResampler."""
         # use 'mask_area' with a default of False. It wouldn't do anything.
         return super(NativeResampler, self).resample(data,
                                                      cache_dir=cache_dir,
@@ -856,7 +861,7 @@ class NativeResampler(BaseResampler):
 
     @staticmethod
     def aggregate(d, y_size, x_size):
-        """Average every 4 elements (2x2) in a 2D array"""
+        """Average every 4 elements (2x2) in a 2D array."""
         if d.ndim != 2:
             # we can't guarantee what blocks we are getting and how
             # it should be reshaped to do the averaging.
@@ -877,6 +882,7 @@ class NativeResampler(BaseResampler):
 
     @classmethod
     def expand_reduce(cls, d_arr, repeats):
+        """Expand reduce."""
         if not isinstance(d_arr, da.Array):
             d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
         if all(x == 1 for x in repeats.values()):
@@ -910,6 +916,7 @@ class NativeResampler(BaseResampler):
                              "directions")
 
     def compute(self, data, expand=True, **kwargs):
+        """Resample data with NativeResampler."""
         if isinstance(self.target_geo_def, (list, tuple)):
             # find the highest/lowest area among the provided
             test_func = max if expand else min
