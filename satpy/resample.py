@@ -146,13 +146,13 @@ from satpy.config import config_search_paths, get_config_path
 LOG = getLogger(__name__)
 
 CACHE_SIZE = 10
-NN_KEY_NAMES = ['valid_input_index',
-                'valid_output_index',
-                'index_array']
-BIL_KEY_NAMES = ['bilinear_s',
-                 'bilinear_t',
-                 'valid_input_index',
-                 'index_array']
+NN_COORDINATES = {'valid_input_index': ('y1', 'x1'),
+                  'valid_output_index': ('y2', 'x2'),
+                  'index_array': ('y2', 'x2', 'z2')}
+BIL_COORDINATES = {'bilinear_s': ('x1', ),
+                   'bilinear_t': ('x1', ),
+                   'valid_input_index': ('x2', ),
+                   'index_array': ('x1', 'n')}
 
 resamplers_cache = WeakValueDictionary()
 
@@ -505,7 +505,7 @@ class KDTreeResampler(BaseResampler):
         cached = {}
         filename = self._create_cache_filename(cache_dir, prefix='nn_lut-',
                                                mask=mask_name, **kwargs)
-        for idx_name in NN_KEY_NAMES:
+        for idx_name in NN_COORDINATES.keys():
             if mask in self._index_caches:
                 cached[idx_name] = self._apply_cached_index(
                     self._index_caches[mask][idx_name], idx_name)
@@ -528,20 +528,23 @@ class KDTreeResampler(BaseResampler):
             filename = self._create_cache_filename(
                 cache_dir, prefix='nn_lut-', mask=mask_name, **kwargs)
             LOG.info('Saving kd_tree neighbour info to %s', filename)
-            for idx_name in NN_KEY_NAMES:
+            zarr_out = xr.Dataset()
+            for idx_name, coord in NN_COORDINATES.items():
                 # update the cache in place with persisted dask arrays
                 cache[idx_name] = self._apply_cached_index(cache[idx_name],
                                                            idx_name,
                                                            persist=True)
-                # Write index to Zarr file
-                cache[idx_name].to_zarr(filename, idx_name)
+                zarr_out[idx_name] = (coord, cache[idx_name])
+
+            # Write indices to Zarr file
+            zarr_out.to_zarr(filename)
 
             self._index_caches[mask_name] = cache
 
     def _read_resampler_attrs(self):
         """Read certain attributes from the resampler for caching."""
         return {attr_name: getattr(self.resampler, attr_name)
-                for attr_name in NN_KEY_NAMES}
+                for attr_name in NN_COORDINATES.keys()}
 
     def compute(self, data, weight_funcs=None, fill_value=np.nan,
                 with_uncert=False, **kwargs):
@@ -790,7 +793,7 @@ class BilinearResampler(BaseResampler):
             filename = self._create_cache_filename(cache_dir,
                                                    prefix='bil_lut-',
                                                    **kwargs)
-            for val in BIL_KEY_NAMES:
+            for val in BIL_COORDINATES.keys():
                 try:
                     cache = da.from_zarr(filename, val)
                 except ValueError:
@@ -807,12 +810,14 @@ class BilinearResampler(BaseResampler):
                                                    prefix='bil_lut-',
                                                    **kwargs)
             LOG.info('Saving BIL neighbour info to %s', filename)
-            for val in BIL_KEY_NAMES:
-                var = getattr(self.resampler, val)
+            zarr_out = xr.Dataset()
+            for idx_name, coord in BIL_COORDINATES.items():
+                var = getattr(self.resampler, idx_name)
                 if isinstance(var, np.ndarray):
                     var = da.from_array(var, chunks=CHUNK_SIZE)
                 var = var.rechunk(CHUNK_SIZE)
-                var.to_zarr(filename, val)
+                zarr_out[idx_name] = (coord, var)
+            zarr_out.to_zarr(filename)
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
