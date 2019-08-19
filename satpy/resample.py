@@ -17,7 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Satpy resampling module.
 
-Satpyprovides multiple resampling algorithms for resampling geolocated
+Satpy provides multiple resampling algorithms for resampling geolocated
 data to uniform projected grids. The easiest way to perform resampling in
 Satpy is through the :class:`~satpy.scene.Scene` object's
 :meth:`~satpy.scene.Scene.resample` method. Additional utility functions are
@@ -512,6 +512,9 @@ class KDTreeResampler(BaseResampler):
             elif cache_dir:
                 try:
                     cache = da.from_zarr(filename, idx_name)
+                    if idx_name == 'valid_input_index':
+                        # valid input index array needs to be boolean
+                        cache = cache.astype(np.bool)
                 except ValueError:
                     raise IOError
                 cache = self._apply_cached_index(cache, idx_name)
@@ -796,6 +799,9 @@ class BilinearResampler(BaseResampler):
             for val in BIL_COORDINATES.keys():
                 try:
                     cache = da.from_zarr(filename, val)
+                    if val == 'valid_input_index':
+                        # valid input index array needs to be boolean
+                        cache = cache.astype(np.bool)
                 except ValueError:
                     raise IOError
                 setattr(self.resampler, val, cache)
