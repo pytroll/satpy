@@ -802,6 +802,8 @@ class BilinearResampler(BaseResampler):
                     if val == 'valid_input_index':
                         # valid input index array needs to be boolean
                         cache = cache.astype(np.bool)
+                    # Compute the cache arrays
+                    cache = cache.compute()
                 except ValueError:
                     raise IOError
                 setattr(self.resampler, val, cache)
