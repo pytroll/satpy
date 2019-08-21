@@ -21,6 +21,10 @@ import unittest
 import numpy as np
 import xarray as xr
 import dask.array as da
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 class TestEnhancementStretch(unittest.TestCase):
@@ -135,6 +139,39 @@ class TestEnhancementStretch(unittest.TestCase):
             [0.73216, 0.595869, 0.158745, -0.278379, -0.715503]]])
         self._test_enhancement(btemp_threshold, self.ch1, expected,
                                min_in=-200, max_in=500, threshold=350)
+
+    @mock.patch('satpy.enhancements.create_colormap')
+    def test_merge_colormaps(self, create_colormap):
+        """Test merging colormaps."""
+        from trollimage.colormap import Colormap
+        from satpy.enhancements import _merge_colormaps as mcp
+        ret_map = mock.MagicMock()
+        create_colormap.return_value = ret_map
+
+        cmap1 = Colormap((1, (1., 1., 1.)))
+        kwargs = {'palettes': cmap1}
+        res = mcp(kwargs)
+        self.assertTrue(res is cmap1)
+        create_colormap.assert_not_called()
+
+        cmap1 = {'colors': 'foo', 'min_value': 0,
+                 'max_value': 1}
+        kwargs = {'palettes': [cmap1]}
+        res = mcp(kwargs)
+        create_colormap.assert_called_once()
+        ret_map.reverse.assert_not_called()
+        ret_map.set_range.assert_called_with(0, 1)
+
+        cmap2 = {'colors': 'bar', 'min_value': 2,
+                 'max_value': 3, 'reverse': True}
+        kwargs = {'palettes': [cmap2]}
+        res = mcp(kwargs)
+        ret_map.reverse.assert_called_once()
+        ret_map.set_range.assert_called_with(2, 3)
+
+        kwargs = {'palettes': [cmap1, cmap2]}
+        res = mcp(kwargs)
+        ret_map.__add__.assert_called_once()
 
     def tearDown(self):
         """Clean up."""
