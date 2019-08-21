@@ -186,6 +186,8 @@ def _merge_colormaps(kwargs):
     else:
         for itm in palette:
             cmap = create_colormap(itm)
+            if itm.get("reverse", False):
+                cmap.reverse()
             cmap.set_range(itm["min_value"], itm["max_value"])
             if full_cmap is None:
                 full_cmap = cmap
