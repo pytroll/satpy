@@ -105,6 +105,7 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 
 # pointed to by generic.yaml
 def crefl_scaling(img, **kwargs):
+    """Apply CREFL scaling."""
     LOG.debug("Applying the crefl_scaling")
 
     def func(band_data, index=None):
@@ -228,6 +229,7 @@ def create_colormap(palette):
 
 
 def _three_d_effect_delayed(band_data, kernel, mode):
+    """Kernel for running delayed 3D effect creation."""
     from scipy.signal import convolve2d
     band_data = band_data.reshape(band_data.shape[1:])
     new_data = convolve2d(band_data, kernel, mode=mode)
@@ -235,7 +237,7 @@ def _three_d_effect_delayed(band_data, kernel, mode):
 
 
 def three_d_effect(img, **kwargs):
-    """Create 3D effect using convolution"""
+    """Create 3D effect using convolution."""
     w = kwargs.get('weight', 1)
     LOG.debug("Applying 3D effect with weight %.2f", w)
     kernel = np.array([[-w, 0, w],
