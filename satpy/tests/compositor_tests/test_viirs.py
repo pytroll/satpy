@@ -173,7 +173,10 @@ class TestVIIRSComposites(unittest.TestCase):
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
                            attrs={'name': 'solar_zenith_angle', 'area': area})
-        lza = da.from_array(sza, chunks=25)
+        lza = np.zeros((rows, cols)) + 70.0
+        lza[:, 3] += 20.0
+        lza[:, 4:] += 45.0
+        lza = da.from_array(lza, chunks=25)
         c03 = xr.DataArray(lza,
                            dims=('y', 'x'),
                            attrs={'name': 'lunar_zenith_angle', 'area': area})
