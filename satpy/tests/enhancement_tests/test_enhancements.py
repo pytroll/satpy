@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit testing the enhancements functions, e.g. cira_stretch
-"""
+"""Unit testing the enhancements functions, e.g. cira_stretch."""
 
 import unittest
 import numpy as np
@@ -25,10 +24,10 @@ import dask.array as da
 
 
 class TestEnhancementStretch(unittest.TestCase):
-    """Class for testing enhancements in satpy.enhancements"""
+    """Class for testing enhancements in satpy.enhancements."""
 
     def setUp(self):
-        """Setup the test"""
+        """Initialize the tests."""
         data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
         data[0, 0] = np.nan  # one bad value for testing
         crefl_data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
@@ -42,7 +41,7 @@ class TestEnhancementStretch(unittest.TestCase):
                                 coords={'bands': ['R', 'G', 'B']})
 
     def _test_enhancement(self, func, data, expected, **kwargs):
-        """Helper for testing enhancement functions."""
+        """Help testing enhancement functions."""
         from trollimage.xrimage import XRImage
 
         pre_attrs = data.attrs
@@ -57,7 +56,7 @@ class TestEnhancementStretch(unittest.TestCase):
         np.testing.assert_allclose(img.data.values, expected, atol=1.e-6, rtol=0)
 
     def test_cira_stretch(self):
-        """Test applying the cira_stretch"""
+        """Test applying the cira_stretch."""
         from satpy.enhancements import cira_stretch
 
         expected = np.array([[
@@ -66,6 +65,7 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(cira_stretch, self.ch1, expected)
 
     def test_lookup(self):
+        """Test applying a lookup table."""
         from satpy.enhancements import lookup
         expected = np.array([[
             [0., 0., 0., 0.333333, 0.705882],
@@ -84,6 +84,7 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(lookup, self.rgb, expected, luts=lut)
 
     def test_colorize(self):
+        """Test colorizing."""
         from satpy.enhancements import colorize
         from trollimage.colormap import brbg
         expected = np.array([[
@@ -102,12 +103,14 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(colorize, self.ch1, expected, palettes=brbg)
 
     def test_palettize(self):
+        """Test palettizing."""
         from satpy.enhancements import palettize
         from trollimage.colormap import brbg
         expected = np.array([[[10, 0, 0, 10, 10], [10, 10, 10, 10, 10]]])
         self._test_enhancement(palettize, self.ch1, expected, palettes=brbg)
 
     def test_three_d_effect(self):
+        """Test 3D enhancement."""
         from satpy.enhancements import three_d_effect
         expected = np.array([[
             [np.nan, np.nan, -389.5, -294.5, 826.5],
@@ -115,6 +118,7 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(three_d_effect, self.ch1, expected)
 
     def test_crefl_scaling(self):
+        """Test crefl scaling."""
         from satpy.enhancements import crefl_scaling
         expected = np.array([[
             [np.nan, 0., 0., 0.44378, 0.631734],
@@ -123,7 +127,7 @@ class TestEnhancementStretch(unittest.TestCase):
                                sc=[0., 90., 140., 175., 255.])
 
     def test_btemp_threshold(self):
-        """Test applying the cira_stretch"""
+        """Test applying the cira_stretch."""
         from satpy.enhancements import btemp_threshold
 
         expected = np.array([[
@@ -133,13 +137,12 @@ class TestEnhancementStretch(unittest.TestCase):
                                min_in=-200, max_in=500, threshold=350)
 
     def tearDown(self):
-        """Clean up"""
+        """Clean up."""
         pass
 
 
 def suite():
-    """The test suite for test_satin_helpers.
-    """
+    """Create test suite for test_satin_helpers."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestEnhancementStretch))
