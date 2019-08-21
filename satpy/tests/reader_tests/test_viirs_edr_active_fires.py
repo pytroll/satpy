@@ -15,10 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""VIIRS Active Fires Tests
-*********************
+"""VIIRS Active Fires Tests.
+
 This module implements tests for VIIRS Active Fires NetCDF and ASCII file
 readers.
+
 """
 
 import sys
@@ -62,9 +63,10 @@ DEFAULT_POWER_FILE_DATA = np.arange(start=1, stop=25, step=0.24,
 
 
 class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
-    """Swap in CDF4 file handler"""
+    """Swap in CDF4 file handler."""
+
     def get_test_content(self, filename, filename_info, filename_type):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {}
         file_content['/attr/data_id'] = "AFMOD"
         file_content['satellite_name'] = "npp"
@@ -74,6 +76,7 @@ class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         file_content['Fire Pixels/FP_longitude'] = DEFAULT_LATLON_FILE_DATA
         file_content['Fire Pixels/FP_power'] = DEFAULT_POWER_FILE_DATA
         file_content['Fire Pixels/FP_T13'] = DEFAULT_M13_FILE_DATA
+        file_content['Fire Pixels/FP_T13/attr/units'] = 'kelvins'
         file_content['Fire Pixels/FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
         file_content['Fire Pixels/attr/units'] = 'none'
         file_content['Fire Pixels/shape'] = DEFAULT_FILE_SHAPE
@@ -86,9 +89,10 @@ class FakeModFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
 
 
 class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
-    """Swap in CDF4 file handler"""
+    """Swap in CDF4 file handler."""
+
     def get_test_content(self, filename, filename_info, filename_type):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {}
         file_content['/attr/data_id'] = "AFIMG"
         file_content['satellite_name'] = "npp"
@@ -98,6 +102,7 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
         file_content['FP_longitude'] = DEFAULT_LATLON_FILE_DATA
         file_content['FP_power'] = DEFAULT_POWER_FILE_DATA
         file_content['FP_T4'] = DEFAULT_M13_FILE_DATA
+        file_content['FP_T4/attr/units'] = 'kelvins'
         file_content['FP_confidence'] = DEFAULT_DETECTION_FILE_DATA
 
         attrs = ('FP_latitude', 'FP_longitude',  'FP_T13', 'FP_confidence')
@@ -108,8 +113,10 @@ class FakeImgFiresNetCDF4FileHandler(FakeNetCDF4FileHandler):
 
 
 class FakeModFiresTextFileHandler(BaseFileHandler):
+    """Fake file handler for text files at moderate resolution."""
+
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Get fake file content from 'get_test_content'"""
+        """Get fake file content from 'get_test_content'."""
         super(FakeModFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content()
 
@@ -118,6 +125,7 @@ class FakeModFiresTextFileHandler(BaseFileHandler):
         self.platform_name = platform_key.get(self.filename_info['satellite_name'].upper(), "unknown")
 
     def get_test_content(self):
+        """Create fake test file content."""
         fake_file = io.StringIO(u'''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
         24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
         25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
@@ -130,12 +138,15 @@ class FakeModFiresTextFileHandler(BaseFileHandler):
 
 
 class FakeImgFiresTextFileHandler(BaseFileHandler):
+    """Fake file handler for text files at image resolution."""
+
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Get fake file content from 'get_test_content'"""
+        """Get fake file content from 'get_test_content'."""
         super(FakeImgFiresTextFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content()
 
     def get_test_content(self):
+        """Create fake test file content."""
         fake_file = io.StringIO(u'''\n\n\n\n\n\n\n\n\n\n\n\n\n\n
         24.64015007, -107.57017517,  317.38290405,   0.75,   0.75,   40,    4.28618050
         25.90660477, -100.06127167,  331.17962646,   0.75,   0.75,   81,   20.61096764''')
@@ -152,11 +163,12 @@ class FakeImgFiresTextFileHandler(BaseFileHandler):
 
 
 class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
-    """Test VIIRS Fires Reader"""
+    """Test VIIRS Fires Reader."""
+
     yaml_file = 'viirs_edr_active_fires.yaml'
 
     def setUp(self):
-        """Wrap CDF4 file handler with own fake file handler"""
+        """Wrap CDF4 file handler with own fake file handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -165,11 +177,11 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the CDF4 file handler"""
+        """Stop wrapping the CDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
-        """Test basic init with no extra parameters"""
+        """Test basic init with no extra parameters."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -180,7 +192,7 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_dataset(self):
-        """Test loading all datasets"""
+        """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -206,11 +218,12 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
 
 class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
-    """Test VIIRS Fires Reader"""
+    """Test VIIRS Fires Reader."""
+
     yaml_file = 'viirs_edr_active_fires.yaml'
 
     def setUp(self):
-        """Wrap CDF4 file handler with own fake file handler"""
+        """Wrap CDF4 file handler with own fake file handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -219,11 +232,11 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the CDF4 file handler"""
+        """Stop wrapping the CDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
-        """Test basic init with no extra parameters"""
+        """Test basic init with no extra parameters."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -234,7 +247,7 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_dataset(self):
-        """Test loading all datasets"""
+        """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -263,11 +276,12 @@ class TestImgVIIRSActiveFiresNetCDF4(unittest.TestCase):
 
 @mock.patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
 class TestModVIIRSActiveFiresText(unittest.TestCase):
-    """Test VIIRS Fires Reader"""
+    """Test VIIRS Fires Reader."""
+
     yaml_file = 'viirs_edr_active_fires.yaml'
 
     def setUp(self):
-        """Wrap file handler with own fake file handler"""
+        """Wrap file handler with own fake file handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -276,11 +290,11 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the text file handler"""
+        """Stop wrapping the text file handler."""
         self.p.stop()
 
     def test_init(self, mock_obj):
-        """Test basic init with no extra parameters"""
+        """Test basic init with no extra parameters."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -291,7 +305,7 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_dataset(self, csv_mock):
-        """Test loading all datasets"""
+        """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -318,11 +332,12 @@ class TestModVIIRSActiveFiresText(unittest.TestCase):
 
 @mock.patch('satpy.readers.viirs_edr_active_fires.dd.read_csv')
 class TestImgVIIRSActiveFiresText(unittest.TestCase):
-    """Test VIIRS Fires Reader"""
+    """Test VIIRS Fires Reader."""
+
     yaml_file = 'viirs_edr_active_fires.yaml'
 
     def setUp(self):
-        """Wrap file handler with own fake file handler"""
+        """Wrap file handler with own fake file handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_edr_active_fires import VIIRSActiveFiresTextFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -331,11 +346,11 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the text file handler"""
+        """Stop wrapping the text file handler."""
         self.p.stop()
 
     def test_init(self, mock_obj):
-        """Test basic init with no extra parameters"""
+        """Test basic init with no extra parameters."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -346,7 +361,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_dataset(self, mock_obj):
-        """Test loading all datasets"""
+        """Test loading all datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -374,8 +389,7 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
 
 
 def suite():
-    """The test suite for testing viirs active fires
-    """
+    """Create test suite for testing viirs active fires."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestModVIIRSActiveFiresNetCDF4))
