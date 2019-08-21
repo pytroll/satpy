@@ -47,8 +47,8 @@
       method: *stretchfun
       kwargs:
         stretch: crude
-        min_stretch: [-6.7, -3.1, -29.6]
-        max_stretch: [ 2.6,  5.2,  19.5]
+        min_stretch: [-6.7, -3.1, 243.55]
+        max_stretch: [ 2.6,  5.2, 292.65]
 
   land_cloud_fire:
     ## RGB Day Land Cloud Fire recipe source: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayLandCloudFireRGB_final.pdf
