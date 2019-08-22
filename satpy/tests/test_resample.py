@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
-"""
+"""Unittests for resamplers."""
 
 import unittest
 import tempfile
@@ -136,23 +135,24 @@ class TestHLResample(unittest.TestCase):
 class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
-    @mock.patch('satpy.resample.np.savez')
-    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample.xr.Dataset')
+    @mock.patch('satpy.resample.da.from_zarr')
     @mock.patch('satpy.resample.KDTreeResampler._create_cache_filename')
     @mock.patch('satpy.resample.XArrayResamplerNN')
-    def test_kd_resampling(self, resampler, create_filename, load, savez):
+    def test_kd_resampling(self, resampler, create_filename, from_zarr, xr_dset):
         """Test the kd resampler."""
         import numpy as np
         import dask.array as da
         from satpy.resample import KDTreeResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
-
+        mock_dset = mock.MagicMock()
+        xr_dset.return_value = mock_dset
         resampler = KDTreeResampler(source_swath, target_area)
         resampler.precompute(
             mask=da.arange(5, chunks=5).astype(np.bool), cache_dir='.')
         resampler.resampler.get_neighbour_info.assert_called()
         # swath definitions should not be cached
-        self.assertFalse(len(savez.mock_calls), 0)
+        self.assertFalse(len(mock_dset.to_zarr.mock_calls), 0)
         resampler.resampler.reset_mock()
 
         resampler = KDTreeResampler(source_area, target_area)
@@ -162,32 +162,36 @@ class TestKDTreeResampler(unittest.TestCase):
         try:
             the_dir = tempfile.mkdtemp()
             resampler = KDTreeResampler(source_area, target_area)
-            create_filename.return_value = os.path.join(the_dir, 'test_cache.npz')
-            load.side_effect = IOError()
+            create_filename.return_value = os.path.join(the_dir, 'test_cache.zarr')
+            from_zarr.side_effect = IOError()
             resampler.precompute(cache_dir=the_dir)
             # assert data was saved to the on-disk cache
-            self.assertEqual(len(savez.mock_calls), 1)
-            # assert that load was called to try to load something from disk
-            self.assertEqual(len(load.mock_calls), 1)
+            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
+            # assert that from_zarr was called to try to from_zarr something from disk
+            self.assertEqual(len(from_zarr.mock_calls), 1)
             # we should have cached things in-memory
             self.assertEqual(len(resampler._index_caches), 1)
             nbcalls = len(resampler.resampler.get_neighbour_info.mock_calls)
             # test reusing the resampler
-            load.side_effect = None
+            from_zarr.side_effect = None
 
-            class FakeNPZ(dict):
+            class FakeZarr(dict):
+
                 def close(self):
                     pass
 
-            load.return_value = FakeNPZ(valid_input_index=1,
-                                        valid_output_index=2,
-                                        index_array=3,
-                                        distance_array=4)
+                def astype(self, dtype):
+                    pass
+
+            from_zarr.return_value = FakeZarr(valid_input_index=1,
+                                              valid_output_index=2,
+                                              index_array=3,
+                                              distance_array=4)
             resampler.precompute(cache_dir=the_dir)
             # we already have things cached in-memory, no need to save again
-            self.assertEqual(len(savez.mock_calls), 1)
+            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
             # we already have things cached in-memory, don't need to load
-            self.assertEqual(len(load.mock_calls), 1)
+            self.assertEqual(len(from_zarr.mock_calls), 1)
             # we should have cached things in-memory
             self.assertEqual(len(resampler._index_caches), 1)
             self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
@@ -195,7 +199,7 @@ class TestKDTreeResampler(unittest.TestCase):
             # test loading saved resampler
             resampler = KDTreeResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
-            self.assertEqual(len(load.mock_calls), 2)
+            self.assertEqual(len(from_zarr.mock_calls), 4)
             self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
             # we should have cached things in-memory now
             self.assertEqual(len(resampler._index_caches), 1)
@@ -411,11 +415,11 @@ class TestNativeResampler(unittest.TestCase):
 class TestBilinearResampler(unittest.TestCase):
     """Test the bilinear resampler."""
 
-    @mock.patch('satpy.resample.np.savez')
-    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample.xr.Dataset')
+    @mock.patch('satpy.resample.da.from_zarr')
     @mock.patch('satpy.resample.BilinearResampler._create_cache_filename')
     @mock.patch('satpy.resample.XArrayResamplerBilinear')
-    def test_bil_resampling(self, resampler, create_filename, load, savez):
+    def test_bil_resampling(self, resampler, create_filename, from_zarr, xr_dset):
         """Test the bilinear resampler."""
         import numpy as np
         import dask.array as da
@@ -423,18 +427,21 @@ class TestBilinearResampler(unittest.TestCase):
         from satpy.resample import BilinearResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
 
+        mock_dset = mock.MagicMock()
+        xr_dset.return_value = mock_dset
+
         # Test that bilinear resampling info calculation is called,
         # and the info is saved
-        load.side_effect = IOError()
+        from_zarr.side_effect = IOError()
         resampler = BilinearResampler(source_swath, target_area)
         resampler.precompute(
             mask=da.arange(5, chunks=5).astype(np.bool))
         resampler.resampler.get_bil_info.assert_called()
         resampler.resampler.get_bil_info.assert_called_with()
-        self.assertFalse(len(savez.mock_calls), 1)
+        self.assertFalse(len(mock_dset.to_zarr.mock_calls), 1)
         resampler.resampler.reset_mock()
-        load.reset_mock()
-        load.side_effect = None
+        from_zarr.reset_mock()
+        from_zarr.side_effect = None
 
         # Test that get_sample_from_bil_info is called properly
         fill_value = 8
@@ -455,46 +462,50 @@ class TestBilinearResampler(unittest.TestCase):
         # Test that the resampling info is tried to read from the disk
         resampler = BilinearResampler(source_swath, target_area)
         resampler.precompute(cache_dir='.')
-        load.assert_called()
+        from_zarr.assert_called()
 
         # Test caching the resampling info
         try:
             the_dir = tempfile.mkdtemp()
             resampler = BilinearResampler(source_area, target_area)
-            create_filename.return_value = os.path.join(the_dir, 'test_cache.npz')
-            load.reset_mock()
-            load.side_effect = IOError()
+            create_filename.return_value = os.path.join(the_dir, 'test_cache.zarr')
+            from_zarr.reset_mock()
+            from_zarr.side_effect = IOError()
 
             resampler.precompute(cache_dir=the_dir)
-            savez.assert_called()
+            xr_dset.assert_called()
             # assert data was saved to the on-disk cache
-            self.assertEqual(len(savez.mock_calls), 1)
-            # assert that load was called to try to load something from disk
-            self.assertEqual(len(load.mock_calls), 1)
+            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
+            # assert that from_zarr was called to try to load something from disk
+            self.assertEqual(len(from_zarr.mock_calls), 1)
 
             nbcalls = len(resampler.resampler.get_bil_info.mock_calls)
             # test reusing the resampler
-            load.side_effect = None
+            from_zarr.side_effect = None
 
-            class FakeNPZ(dict):
+            class FakeZarr(dict):
+
                 def close(self):
                     pass
 
-            load.return_value = FakeNPZ(bilinear_s=1,
-                                        bilinear_t=2,
-                                        valid_input_index=3,
-                                        index_array=4)
+                def astype(self, dtype):
+                    pass
+
+            from_zarr.return_value = FakeZarr(bilinear_s=1,
+                                              bilinear_t=2,
+                                              valid_input_index=3,
+                                              index_array=4)
             resampler.precompute(cache_dir=the_dir)
             # we already have things cached in-memory, no need to save again
-            self.assertEqual(len(savez.mock_calls), 1)
+            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
             # we already have things cached in-memory, don't need to load
-            # self.assertEqual(len(load.mock_calls), 1)
+            # self.assertEqual(len(from_zarr.mock_calls), 1)
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
 
             # test loading saved resampler
             resampler = BilinearResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
-            self.assertEqual(len(load.mock_calls), 2)
+            self.assertEqual(len(from_zarr.mock_calls), 2)
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
             # we should have cached things in-memory now
             # self.assertEqual(len(resampler._index_caches), 1)
@@ -617,8 +628,7 @@ class TestCoordinateHelpers(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_scene.
-    """
+    """Create test suite for test_resampler."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestNativeResampler))
