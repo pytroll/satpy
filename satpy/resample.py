@@ -506,9 +506,9 @@ class KDTreeResampler(BaseResampler):
         filename = self._create_cache_filename(cache_dir, prefix='nn_lut-',
                                                mask=mask_name, **kwargs)
         for idx_name in NN_COORDINATES.keys():
-            if mask in self._index_caches:
+            if mask_name in self._index_caches:
                 cached[idx_name] = self._apply_cached_index(
-                    self._index_caches[mask][idx_name], idx_name)
+                    self._index_caches[mask_name][idx_name], idx_name)
             elif cache_dir:
                 try:
                     cache = da.from_zarr(filename, idx_name)
