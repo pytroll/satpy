@@ -344,17 +344,12 @@ class TestMITIFFWriter(unittest.TestCase):
                      'metadata_requirements': {
                          'order': ['4'],
                          'config': {
-                             '4': {'alias': '4-IR10.8',
+                             '4': {'alias': 'BT',
                                    'calibration': 'brightness_temperature',
                                    'min-val': '-150',
                                    'max-val': '50'},
                          },
-                         'translate': {'1': '1',
-                                       '2': '2',
-                                       '3': '3',
-                                       '4': '4',
-                                       '5': '5',
-                                       '6': '6'
+                         'translate': {'4': '4',
                                        },
                          'file_pattern': 'test-dataset-{start_time:%Y%m%d%H%M%S}.mitiff'
                      }
@@ -585,6 +580,28 @@ class TestMITIFFWriter(unittest.TestCase):
         from satpy.writers.mitiff import MITIFFWriter
 
         expected = np.full((100, 200), 255)
+        expected_key_channel = ['Table_calibration: BT, BT, °[C], 8, [ 50.00 49.22 48.43 47.65 46.86 46.08 45.29 '
+                                '44.51 43.73 42.94 42.16 41.37 40.59 39.80 39.02 38.24 37.45 36.67 35.88 35.10 34.31 '
+                                '33.53 32.75 31.96 31.18 30.39 29.61 28.82 28.04 27.25 26.47 25.69 24.90 24.12 23.33 '
+                                '22.55 21.76 20.98 20.20 19.41 18.63 17.84 17.06 16.27 15.49 14.71 13.92 13.14 12.35 '
+                                '11.57 10.78 10.00 9.22 8.43 7.65 6.86 6.08 5.29 4.51 3.73 2.94 2.16 1.37 0.59 -0.20 '
+                                '-0.98 -1.76 -2.55 -3.33 -4.12 -4.90 -5.69 -6.47 -7.25 -8.04 -8.82 -9.61 -10.39 -11.18 '
+                                '-11.96 -12.75 -13.53 -14.31 -15.10 -15.88 -16.67 -17.45 -18.24 -19.02 -19.80 -20.59 '
+                                '-21.37 -22.16 -22.94 -23.73 -24.51 -25.29 -26.08 -26.86 -27.65 -28.43 -29.22 -30.00 '
+                                '-30.78 -31.57 -32.35 -33.14 -33.92 -34.71 -35.49 -36.27 -37.06 -37.84 -38.63 -39.41 '
+                                '-40.20 -40.98 -41.76 -42.55 -43.33 -44.12 -44.90 -45.69 -46.47 -47.25 -48.04 -48.82 '
+                                '-49.61 -50.39 -51.18 -51.96 -52.75 -53.53 -54.31 -55.10 -55.88 -56.67 -57.45 -58.24 '
+                                '-59.02 -59.80 -60.59 -61.37 -62.16 -62.94 -63.73 -64.51 -65.29 -66.08 -66.86 -67.65 '
+                                '-68.43 -69.22 -70.00 -70.78 -71.57 -72.35 -73.14 -73.92 -74.71 -75.49 -76.27 -77.06 '
+                                '-77.84 -78.63 -79.41 -80.20 -80.98 -81.76 -82.55 -83.33 -84.12 -84.90 -85.69 -86.47 '
+                                '-87.25 -88.04 -88.82 -89.61 -90.39 -91.18 -91.96 -92.75 -93.53 -94.31 -95.10 -95.88 '
+                                '-96.67 -97.45 -98.24 -99.02 -99.80 -100.59 -101.37 -102.16 -102.94 -103.73 -104.51 '
+                                '-105.29 -106.08 -106.86 -107.65 -108.43 -109.22 -110.00 -110.78 -111.57 -112.35 '
+                                '-113.14 -113.92 -114.71 -115.49 -116.27 -117.06 -117.84 -118.63 -119.41 -120.20 '
+                                '-120.98 -121.76 -122.55 -123.33 -124.12 -124.90 -125.69 -126.47 -127.25 -128.04 '
+                                '-128.82 -129.61 -130.39 -131.18 -131.96 -132.75 -133.53 -134.31 -135.10 -135.88 '
+                                '-136.67 -137.45 -138.24 -139.02 -139.80 -140.59 -141.37 -142.16 -142.94 -143.73 '
+                                '-144.51 -145.29 -146.08 -146.86 -147.65 -148.43 -149.22 -150.00 ]', ]
 
         dataset = self._get_test_dataset_calibration_one_dataset()
         w = MITIFFWriter(filename=dataset.attrs['metadata_requirements']['file_pattern'], base_dir=self.base_dir)
@@ -592,6 +609,18 @@ class TestMITIFFWriter(unittest.TestCase):
         filename = (dataset.attrs['metadata_requirements']['file_pattern']).format(
             start_time=dataset.attrs['start_time'])
         tif = TIFF.open(os.path.join(self.base_dir, filename))
+        IMAGEDESCRIPTION = 270
+        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        found_table_calibration = False
+        number_of_calibrations = 0
+        for key in imgdesc:
+            if 'Table_calibration' in key:
+                found_table_calibration = True
+                if 'BT' in key:
+                    self.assertEqual(key, expected_key_channel[0])
+                    number_of_calibrations += 1
+        self.assertTrue(found_table_calibration, "Expected table_calibration is not found in the imagedescription.")
+        self.assertEqual(number_of_calibrations, 1)
         for image in tif.iter_images():
             np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
