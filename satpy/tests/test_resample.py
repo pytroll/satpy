@@ -477,7 +477,7 @@ class TestBilinearResampler(unittest.TestCase):
             # assert data was saved to the on-disk cache
             self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
             # assert that from_zarr was called to try to load something from disk
-            self.assertEqual(len(from_zarr.mock_calls), 1)
+            self.assertEqual(len(from_zarr.mock_calls), 5)
 
             nbcalls = len(resampler.resampler.get_bil_info.mock_calls)
             # test reusing the resampler
@@ -489,7 +489,10 @@ class TestBilinearResampler(unittest.TestCase):
                     pass
 
                 def astype(self, dtype):
-                    pass
+                    return self
+
+                def compute(self):
+                    return self
 
             from_zarr.return_value = FakeZarr(bilinear_s=1,
                                               bilinear_t=2,
@@ -505,7 +508,7 @@ class TestBilinearResampler(unittest.TestCase):
             # test loading saved resampler
             resampler = BilinearResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
-            self.assertEqual(len(from_zarr.mock_calls), 2)
+            self.assertEqual(len(from_zarr.mock_calls), 9)
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
             # we should have cached things in-memory now
             # self.assertEqual(len(resampler._index_caches), 1)
