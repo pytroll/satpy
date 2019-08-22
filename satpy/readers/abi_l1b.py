@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Advance Baseline Imager reader for the Level 1b format
+"""Advance Baseline Imager reader for the Level 1b format.
 
 The files read by this reader are described in the official PUG document:
 
@@ -42,8 +42,10 @@ PLATFORM_NAMES = {
 
 
 class NC_ABI_L1B(BaseFileHandler):
+    """File reader for individual ABI L1B NetCDF4 files."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_L1B, self).__init__(filename, filename_info, filetype_info)
         # xarray's default netcdf4 engine
         self.nc = xr.open_dataset(self.filename,
@@ -58,7 +60,7 @@ class NC_ABI_L1B(BaseFileHandler):
         self.coords = {}
 
     def __getitem__(self, item):
-        """Wrapper around `self.nc[item]`.
+        """Wrap `self.nc[item]` for better floating point precision.
 
         Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
         variables which causes inaccurate unscaled data values. This method
@@ -72,7 +74,11 @@ class NC_ABI_L1B(BaseFileHandler):
         fill = data.attrs.get('_FillValue')
         if fill is not None:
             data = data.where(data != fill)
-        if factor is not None:
+        if factor is not None and item in ('x', 'y'):
+            # be more precise with x/y coordinates
+            # set get_area_def for more information
+            data = data * np.round(float(factor), 6) + np.round(float(offset), 6)
+        elif factor is not None:
             # make sure the factor is a 64-bit float
             # can't do this in place since data is most likely uint16
             # and we are making it a 64-bit float
@@ -160,7 +166,15 @@ class NC_ABI_L1B(BaseFileHandler):
         return res
 
     def get_area_def(self, key):
-        """Get the area definition of the data at hand."""
+        """Get the area definition of the data at hand.
+
+        Note this method takes special care to round and cast numbers to new
+        data types so that the area definitions for different resolutions
+        (different bands) should be equal. Without the special rounding in
+        `__getitem__` and this method the area extents can be 0 to 1.0 meters
+        off depending on how the calculations are done.
+
+        """
         projection = self.nc["goes_imager_projection"]
         a = projection.attrs['semi_major_axis']
         h = projection.attrs['perspective_point_height']
@@ -170,16 +184,17 @@ class NC_ABI_L1B(BaseFileHandler):
         sweep_axis = projection.attrs['sweep_angle_axis'][0]
 
         # x and y extents in m
-        h = float(h)
+        h = np.float64(h)
         x = self['x']
         y = self['y']
-        x_l = h * x[0]
-        x_r = h * x[-1]
-        y_l = h * y[-1]
-        y_u = h * y[0]
+        x_l = x[0].values
+        x_r = x[-1].values
+        y_l = y[-1].values
+        y_u = y[0].values
         x_half = (x_r - x_l) / (self.ncols - 1) / 2.
         y_half = (y_u - y_l) / (self.nlines - 1) / 2.
         area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
+        area_extent = tuple(np.round(h * val, 6) for val in area_extent)
 
         proj_dict = {'a': float(a),
                      'b': float(b),
@@ -230,13 +245,16 @@ class NC_ABI_L1B(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Start time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
+        """End time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     def __del__(self):
+        """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
         except (IOError, OSError, AttributeError):
