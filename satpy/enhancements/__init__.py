@@ -164,7 +164,37 @@ def lookup(img, **kwargs):
 
 
 def colorize(img, **kwargs):
-    """Colorize the given image."""
+    """Colorize the given image.
+
+    Args:
+        img: image to be colorized
+    Kwargs:
+        palettes: colormap(s) to use
+
+    The `palettes` kwarg can be one of the following:
+        - a trollimage.colormap.Colormap object
+        - list of dictionaries with each of one of the following forms:
+            - {'filename': '/path/to/colors.npy',
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'colors': <trollimage.colormap.Colormap instance>,
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'colors': <tuple of RGB(A) tuples>,
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'colors': <tuple of RGB(A) tuples>,
+               'values': <tuple of values to match colors to>,
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+
+    If multiple palettes are supplied, they are concatenated before applied.
+
+    """
     full_cmap = _merge_colormaps(kwargs)
     img.colorize(full_cmap)
 
