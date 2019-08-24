@@ -34,7 +34,7 @@ datasets:
     name: average_flash_area
     file_type: glm_l2_imagery
   minimum_flash_area:
-    name: average_flash_area
+    name: minimum_flash_area
     file_type: glm_l2_imagery
   average_group_area:
     name: average_group_area
