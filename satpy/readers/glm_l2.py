@@ -18,9 +18,9 @@ PLATFORM_NAMES = {
 #class NC_GLM_L2_LCFA(BaseFileHandler): — add this with glmtools
 
 
-class NC_GLM_L2_GRID(BaseFileHandler):
+class NC_GLM_L2_IMAGERY(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info):
-        super(NC_GLM_L2_GRID, self).__init__(filename, filename_info, filetype_info)
+        super(NC_GLM_L2_IMAGERY, self).__init__(filename, filename_info, filetype_info)
         # xarray's default netcdf4 engine. 
         # It includes handling of the _Unsigned attribute, so that the default
         # mask_and_scale behavior is correct.
