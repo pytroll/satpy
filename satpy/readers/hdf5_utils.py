@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2017 Satpy developers
+# Copyright (c) 2016-2017, 2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -40,6 +40,7 @@ class HDF5FileHandler(BaseFileHandler):
         super(HDF5FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
+
         try:
             file_handle = h5py.File(self.filename, 'r')
         except IOError:
@@ -57,7 +58,7 @@ class HDF5FileHandler(BaseFileHandler):
             fc_key = "{}/attr/{}".format(name, key)
             try:
                 self.file_content[fc_key] = np2str(value)
-            except ValueError:
+            except (ValueError, AttributeError):
                 self.file_content[fc_key] = value
 
     def collect_metadata(self, name, obj):
