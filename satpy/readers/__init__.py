@@ -1,23 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2018.
-
-# Author(s):
-
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
+# Copyright (c) 2015-2018 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared objects of the various reader classes."""
@@ -50,29 +45,6 @@ LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
 OLD_READER_NAMES = {
-    'avhrr_aapp_l1b': 'avhrr_l1b_aapp',
-    'avhrr_eps_l1b': 'avhrr_l1b_eps',
-    'avhrr_hrpt_l1b': 'avhrr_l1b_hrpt',
-    'gac_lac_l1': 'avhrr_l1b_gaclac',
-    'hdf4_caliopv3': 'caliop_l2_cloud',
-    'hdfeos_l1b': 'modis_l1b',
-    'hrit_electrol': 'electrol_hrit',
-    'hrit_jma': 'ahi_hrit',
-    'fci_fdhsi': 'fci_l1c_fdhsi',
-    'ghrsst_osisaf': 'ghrsst_l3c_sst',
-    'hrit_goes': 'goes-imager_hrit',
-    'hrit_msg': 'seviri_l1b_hrit',
-    'native_msg': 'seviri_l1b_native',
-    'nc_goes': 'goes-imager_nc',
-    'nc_nwcsaf_msg': 'nwcsaf-geo',
-    'nc_nwcsaf_pps': 'nwcsaf-pps_nc',
-    'nc_olci_l1b': 'olci_l1b',
-    'nc_olci_l2': 'olci_l2',
-    'nc_seviri_l1b': 'seviri_l1b_nc',
-    'nc_slstr': 'slstr_l1b',
-    'safe_msi': 'msi_safe',
-    'safe_sar_c': 'sar-c_safe',
-    'scmi_abi_l1b': 'abi_l1b_scmi',
 }
 
 
@@ -440,9 +412,9 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             that files will not be grouped properly (datetimes being barely
             unequal). Defaults to a reader's ``group_keys`` configuration (set
             in YAML), otherwise ``('start_time',)``.
-        ppp_config_dir (str): Root usser configuration directory for SatPy.
+        ppp_config_dir (str): Root usser configuration directory for Satpy.
             This will be deprecated in the future, but is here for consistency
-            with other SatPy features.
+            with other Satpy features.
         reader_kwargs (dict): Additional keyword arguments to pass to reader
             creation.
 
@@ -559,10 +531,10 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
                 continue
 
             new_name = OLD_READER_NAMES[reader_name]
-            # SatPy 0.11 only displays a warning
-            # SatPy 0.13 will raise an exception
+            # Satpy 0.11 only displays a warning
+            # Satpy 0.13 will raise an exception
             raise ValueError("Reader name '{}' has been deprecated, use '{}' instead.".format(reader_name, new_name))
-            # SatPy 0.15 or 1.0, remove exception and mapping
+            # Satpy 0.15 or 1.0, remove exception and mapping
 
         reader = new_readers
         # given a config filename or reader name
@@ -638,7 +610,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         reader (str or list): The name of the reader to use for loading the data or a list of names.
         sensor (str or list): Limit used files by provided sensors.
         ppp_config_dir (str): The directory containing the configuration
-                              files for SatPy.
+                              files for Satpy.
         filter_parameters (dict): Filename pattern metadata to filter on. `start_time` and `end_time` are
                                   automatically added to this dictionary. Shortcut for
                                   `reader_kwargs['filter_parameters']`.
@@ -699,8 +671,6 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
                                       should map reader names to a list of filenames for that reader.
         reader (str or list): The name of the reader to use for loading the data or a list of names.
-        filter_parameters (dict): Specify loaded file filtering parameters.
-                                  Shortcut for `reader_kwargs['filter_parameters']`.
         reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
         ppp_config_dir (str): The directory containing the configuration files for satpy.
 
@@ -709,6 +679,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
     """
     reader_instances = {}
     reader_kwargs = reader_kwargs or {}
+    reader_kwargs_without_filter = reader_kwargs.copy()
+    reader_kwargs_without_filter.pop('filter_parameters', None)
+
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
@@ -749,7 +722,7 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
         if readers_files:
             loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs)
+            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:

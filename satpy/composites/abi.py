@@ -1,26 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2015-2017
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Composite classes for the AHI instrument.
-"""
+# Copyright (c) 2015-2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Composite classes for the ABI instrument."""
 
 import logging
 from satpy.composites import GenericCompositor
@@ -59,7 +54,7 @@ class SimulatedGreen(GenericCompositor):
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Generate the single band composite."""
-        c01, c02, c03 = self.check_areas(projectables)
+        c01, c02, c03 = self.match_data_arrays(projectables)
         res = c01 * self.fractions[0] + c02 * self.fractions[1] + c03 * self.fractions[2]
         res.attrs = c03.attrs.copy()
         return super(SimulatedGreen, self).__call__((res,), **attrs)

@@ -11,6 +11,7 @@ dist
 build
 doc/build
 eggs
+*.eggs
 parts
 bin
 var
@@ -27,6 +28,7 @@ pip-log.txt
 .coverage
 .tox
 nosetests.xml
+htmlcov
 
 #Translations
 *.mo
@@ -63,3 +65,4 @@ nosetests.xml
 
 # vi / vim swp files
 *.swp
+.DS_STORE

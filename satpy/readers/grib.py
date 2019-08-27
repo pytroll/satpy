@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# Copyright (c) 2017 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -123,9 +119,15 @@ class GRIBFileHandler(BaseFileHandler):
         """
         return self._end_time
 
-    def available_datasets(self):
+    def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file"""
-        return self._msg_datasets.items()
+        # previously configured or provided datasets
+        # we can't provide any additional information
+        for is_avail, ds_info in (configured_datasets or []):
+            yield is_avail, ds_info
+        # new datasets
+        for ds_info in self._msg_datasets.values():
+            yield True, ds_info
 
     def _get_message(self, ds_info):
         with pygrib.open(self.filename) as grib_file:

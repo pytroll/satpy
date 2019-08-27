@@ -1,28 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017-2018 PyTroll Community
-
-# Author(s):
-
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   Ulrich Hamann <ulrich.hamann@meteoswiss.ch>
-#   Sauli Joro <sauli.joro@eumetsat.int>
-#   Colin Duff <colin.duff@external.eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# Copyright (c) 2017-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI native format reader.
 
 References:
@@ -172,9 +164,9 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.mda['channel_list'] = [i for i in CHANNEL_NAMES.values()
                                     if self.mda['available_channels'][i]]
 
-        self.mda['platform_id'] = data15hd[
+        self.platform_id = data15hd[
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
-        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.mda['platform_id']]
+        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
 
         equator_radius = data15hd['GeometricProcessing'][
             'EarthModel']['EquatorialRadius'] * 1000.
@@ -412,6 +404,10 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             dataset.attrs['standard_name'] = info['standard_name']
             dataset.attrs['platform_name'] = self.mda['platform_name']
             dataset.attrs['sensor'] = 'seviri'
+            dataset.attrs['orbital_parameters'] = {
+                'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
+                'projection_latitude': 0.,
+                'projection_altitude': self.mda['projection_parameters']['h']}
 
         return dataset
 
@@ -453,7 +449,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             res = self._convert_to_radiance(data, gain, offset)
 
         if calibration == 'reflectance':
-            solar_irradiance = CALIB[self.mda['platform_id']][channel]["F"]
+            solar_irradiance = CALIB[self.platform_id][channel]["F"]
             res = self._vis_calibrate(res, solar_irradiance)
 
         elif calibration == 'brightness_temperature':

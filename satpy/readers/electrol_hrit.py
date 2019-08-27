@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 # Copyright (c) 2014, 2015, 2016 Adam.Dybbroe
 
@@ -269,6 +284,8 @@ class HRITGOMSFileHandler(HRITFileHandler):
         sublon = self.epilogue['GeometricProcessing']['TGeomNormInfo']['SubLon']
         sublon = sublon[self.chid]
         self.mda['projection_parameters']['SSP_longitude'] = np.rad2deg(sublon)
+        self.mda['orbital_parameters']['satellite_nominal_longitude'] = np.rad2deg(
+            self.prologue['SatelliteStatus']['NominalLongitude'])
         satellite_id = self.prologue['SatelliteStatus']['SatelliteID']
         self.platform_name = SPACECRAFTS[satellite_id]
 
@@ -285,6 +302,13 @@ class HRITGOMSFileHandler(HRITFileHandler):
         res.attrs['satellite_longitude'] = self.mda['projection_parameters']['SSP_longitude']
         res.attrs['satellite_latitude'] = 0
         res.attrs['satellite_altitude'] = 35785831.00
+        res.attrs['orbital_parameters'] = {
+            'satellite_nominal_longitude': self.mda['orbital_parameters']['satellite_nominal_longitude'],
+            'satellite_nominal_latitude': 0.,
+            'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+            'projection_latitude': 0.,
+            'projection_altitude': 35785831.00
+        }
 
         return res
 
@@ -319,7 +343,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         lut /= 1000
         lut[0] = np.nan
         # Dask/XArray don't support indexing in 2D (yet).
-        res = data.data.map_blocks(self._getitem, dtype=lut.dtype)
+        res = data.data.map_blocks(self._getitem, lut, dtype=lut.dtype)
         res = xr.DataArray(res, dims=data.dims,
                            attrs=data.attrs, coords=data.coords)
         res = res.where(data > 0)

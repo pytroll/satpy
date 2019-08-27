@@ -1,11 +1,11 @@
 MultiScene (Experimental)
 =========================
 
-Scene objects in SatPy are meant to represent a single geographic region at
+Scene objects in Satpy are meant to represent a single geographic region at
 a specific single instant in time or range of time. This means they are not
 suited for handling multiple orbits of polar-orbiting satellite data,
 multiple time steps of geostationary satellite data, or other special data
-cases. To handle these cases SatPy provides the `MultiScene` class. The below
+cases. To handle these cases Satpy provides the `MultiScene` class. The below
 examples will walk through some basic use cases of the MultiScene.
 
 .. warning::
@@ -91,7 +91,7 @@ time.
 
 .. versionadded:: 0.12
 
-    The ``from_files`` and ``group_files`` functions were added in SatPy 0.12.
+    The ``from_files`` and ``group_files`` functions were added in Satpy 0.12.
     See below for an alternative solution.
 
 This will compute one video frame (image) at a time and write it to the MPEG-4
@@ -103,7 +103,7 @@ for information on creating a ``Client`` object. If working on a cluster
 you may want to use :doc:`dask jobqueue <jobqueue:index>` to take advantage
 of multiple nodes at a time.
 
-For older versions of SatPy we can manually create the `Scene` objects used.
+For older versions of Satpy we can manually create the `Scene` objects used.
 The :func:`~glob.glob` function and for loops are used to group files into
 Scene objects that, if used individually, could load the data we want. The
 code below is equivalent to the ``from_files`` code above:

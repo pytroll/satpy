@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 # Copyright (c) 2017.
 #
 # Author(s):
@@ -39,7 +54,6 @@ from pyproj import Proj
 from pyresample import geometry
 from pyresample.utils import proj4_str_to_dict
 
-from satpy.dataset import DatasetID
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 LOG = logging.getLogger(__name__)
@@ -129,19 +143,60 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return self.resolutions.get(sensor, {}).get(int(elem_res),
                                                     elem_res * 1000.)
 
-    def available_datasets(self):
-        """Automatically determine datasets provided by this file"""
+    def available_datasets(self, configured_datasets=None):
+        """Update information for or add datasets provided by this file.
+
+        If this file handler can load a dataset then it will supplement the
+        dataset info with the resolution and possibly coordinate datasets
+        needed to load it. Otherwise it will continue passing the dataset
+        information down the chain.
+
+        See
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        for details.
+
+        """
         res = self.resolution
-        coordinates = ['pixel_longitude', 'pixel_latitude']
+        coordinates = ('pixel_longitude', 'pixel_latitude')
+        handled_variables = set()
+
+        # update previously configured datasets
+        for is_avail, ds_info in (configured_datasets or []):
+            this_res = ds_info.get('resolution')
+            this_coords = ds_info.get('coordinates')
+            # some other file handler knows how to load this
+            if is_avail is not None:
+                yield is_avail, ds_info
+
+            var_name = ds_info.get('file_key', ds_info['name'])
+            matches = self.file_type_matches(ds_info['file_type'])
+            # we can confidently say that we can provide this dataset and can
+            # provide more info
+            if matches and var_name in self and this_res != res:
+                handled_variables.add(var_name)
+                new_info = ds_info.copy()  # don't mess up the above yielded
+                new_info['resolution'] = res
+                if not self.is_geo and this_coords is None:
+                    new_info['coordinates'] = coordinates
+                yield True, new_info
+            elif is_avail is None:
+                # if we didn't know how to handle this dataset and no one else did
+                # then we should keep it going down the chain
+                yield is_avail, ds_info
+
+        # Provide new datasets
         for var_name, val in self.file_content.items():
+            if var_name in handled_variables:
+                continue
             if isinstance(val, netCDF4.Variable):
                 ds_info = {
                     'file_type': self.filetype_info['file_type'],
                     'resolution': res,
+                    'name': var_name,
                 }
                 if not self.is_geo:
                     ds_info['coordinates'] = coordinates
-                yield DatasetID(name=var_name, resolution=res), ds_info
+                yield True, ds_info
 
     def get_shape(self, dataset_id, ds_info):
         var_name = ds_info.get('file_key', dataset_id.name)
