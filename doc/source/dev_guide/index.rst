@@ -18,19 +18,19 @@ at the pages listed below.
 Coding guidelines
 =================
 
-SatPy is part of `PyTroll <http://pytroll.github.io/>`_,
+Satpy is part of `PyTroll <http://pytroll.github.io/>`_,
 and all code should follow the
 `PyTroll coding guidelines and best
 practices <http://pytroll.github.io/guidelines.html>`_.
 
-SatPy currently supports Python 2.7 and 3.4+. All code should be written to
+Satpy currently supports Python 2.7 and 3.4+. All code should be written to
 be compatible with these versions.
 
 Development installation
 ========================
 
 See the :doc:`../install` section for basic installation instructions. When
-it comes time to install SatPy it should be installed from a clone of the git
+it comes time to install Satpy it should be installed from a clone of the git
 repository and in development mode so that local file changes are
 automatically reflected in the python environment. We highly recommend making
 a separate conda environment or virtualenv for development.
@@ -44,7 +44,7 @@ clone your fork. The package can then be installed in development by doing::
 Running tests
 =============
 
-SatPy tests are written using the python :mod:`unittest` module and the tests
+Satpy tests are written using the python :mod:`unittest` module and the tests
 can be executed by running::
 
     python setup.py test
@@ -52,7 +52,7 @@ can be executed by running::
 Documentation
 =============
 
-SatPy's documentation is built using Sphinx. All documentation lives in the
+Satpy's documentation is built using Sphinx. All documentation lives in the
 ``doc/`` directory of the project repository. After editing the source files
 there the documentation can be generated locally::
 

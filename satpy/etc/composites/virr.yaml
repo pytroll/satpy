@@ -1,0 +1,43 @@
+sensor_name: visir/virr
+
+modifiers:
+  sunz_corrected:
+    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    prerequisites:
+    - name: solar_zenith_angle
+
+  rayleigh_corrected:
+    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    atmosphere: us-standard
+    aerosol_type: rayleigh_only
+    prerequisites:
+    - name: R1
+      modifiers: [sunz_corrected]
+    optional_prerequisites:
+    - name: satellite_azimuth_angle
+    - name: satellite_zenith_angle
+    - name: solar_azimuth_angle
+    - name: solar_zenith_angle
+
+composites:
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: R1
+      modifiers: [sunz_corrected]
+    - name: R6
+      modifiers: [sunz_corrected]
+    - name: R4
+      modifiers: [sunz_corrected]
+    standard_name: true_color
+
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: R1
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: R6
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: R4
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color

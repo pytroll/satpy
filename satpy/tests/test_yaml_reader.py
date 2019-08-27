@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Author(s):
-#
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# Copyright (c) 2015-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -18,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Testing the yaml_reader module."""
 
 import os
@@ -196,6 +192,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         res_dict = {'reader': {'name': 'fake',
                                'sensors': ['canon']},
                     'file_types': {'ftype1': {'name': 'ft1',
+                                              'file_reader': BaseFileHandler,
                                               'file_patterns': patterns}},
                     'datasets': {'ch1': {'name': 'ch01',
                                          'wavelength': [0.5, 0.6, 0.7],
@@ -255,7 +252,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_available_dataset_ids(self):
         """Get ids of the available datasets."""
-        self.reader.file_handlers = ['ftype1']
+        loadables = self.reader.select_files_from_pathnames(['a001.bla'])
+        self.reader.create_filehandlers(loadables)
         self.assertSetEqual(set(self.reader.available_dataset_ids),
                             {DatasetID(name='ch02',
                                        wavelength=(0.7, 0.75, 0.8),
@@ -272,7 +270,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_available_dataset_names(self):
         """Get ids of the available datasets."""
-        self.reader.file_handlers = ['ftype1']
+        loadables = self.reader.select_files_from_pathnames(['a001.bla'])
+        self.reader.create_filehandlers(loadables)
         self.assertSetEqual(set(self.reader.available_dataset_names),
                             set(["ch01", "ch02"]))
 
@@ -539,13 +538,43 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
 
     def test_update_ds_ids_from_file_handlers(self):
         """Test updating existing dataset IDs with information from the file"""
-        orig_ids = self.reader.ids
+        from functools import partial
+        orig_ids = self.reader.all_ids
+
+        def available_datasets(self, configured_datasets=None):
+            res = self.resolution
+            # update previously configured datasets
+            for is_avail, ds_info in (configured_datasets or []):
+                if is_avail is not None:
+                    yield is_avail, ds_info
+
+                matches = self.file_type_matches(ds_info['file_type'])
+                if matches and ds_info.get('resolution') != res:
+                    new_info = ds_info.copy()
+                    new_info['resolution'] = res
+                    yield True, new_info
+                elif is_avail is None:
+                    yield is_avail, ds_info
+
+        def file_type_matches(self, ds_ftype):
+            if isinstance(ds_ftype, str) and ds_ftype == self.filetype_info['file_type']:
+                return True
+            elif self.filetype_info['file_type'] in ds_ftype:
+                return True
+            return None
+
         for ftype, resol in zip(('ftype1', 'ftype2'), (1, 2)):
-            with patch.dict(self.reader.ids, orig_ids, clear=True):
+            # need to copy this because the dataset infos will be modified
+            _orig_ids = {key: val.copy() for key, val in orig_ids.items()}
+            with patch.dict(self.reader.all_ids, _orig_ids, clear=True), \
+                    patch.dict(self.reader.available_ids, {}, clear=True):
                 # Add a file handler with resolution property
+                fh = MagicMock(filetype_info={'file_type': ftype},
+                               resolution=resol)
+                fh.available_datasets = partial(available_datasets, fh)
+                fh.file_type_matches = partial(file_type_matches, fh)
                 self.reader.file_handlers = {
-                    ftype: [MagicMock(filetype_info={'file_type': ftype},
-                                      resolution=resol)]}
+                    ftype: [fh]}
 
                 # Update existing dataset IDs with resolution property from
                 # the file handler
@@ -553,12 +582,12 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
 
                 # Make sure the resolution property has been transferred
                 # correctly from the file handler to the dataset ID
-                for ds_id, ds_info in self.reader.ids.items():
+                for ds_id, ds_info in self.reader.all_ids.items():
                     file_types = ds_info['file_type']
                     if not isinstance(file_types, list):
                         file_types = [file_types]
                     expected = resol if ftype in file_types else None
-                    self.assertEqual(ds_id.resolution, expected)
+                    self.assertEqual(expected, ds_id.resolution)
 
 
 def suite():

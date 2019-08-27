@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
 
     satpy.composites
+    satpy.demo
     satpy.enhancements
     satpy.readers
     satpy.writers

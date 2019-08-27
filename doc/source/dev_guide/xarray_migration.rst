@@ -5,16 +5,16 @@ Migrating to xarray and dask
 Many python developers dealing with meteorologic satellite data begin with
 using NumPy arrays directly. This work usually involves masked arrays,
 boolean masks, index arrays, and reshaping. Due to the libraries used by
-SatPy these operations can't always be done in the same way. This guide acts
-as a starting point for new SatPy developers in transitioning from NumPy's
-array operations to SatPy's operations, although they are very similar.
+Satpy these operations can't always be done in the same way. This guide acts
+as a starting point for new Satpy developers in transitioning from NumPy's
+array operations to Satpy's operations, although they are very similar.
 
 To provide the most functionality for users,
-SatPy uses the `xarray <http://xarray.pydata.org/en/stable/>`_ library's
+Satpy uses the `xarray <http://xarray.pydata.org/en/stable/>`_ library's
 :class:`~xarray.DataArray` object as the main representation for its data.
 DataArray objects can also benefit from the
 `dask <https://dask.pydata.org/en/latest/>`_ library. The combination of
-these libraries allow SatPy to easily distribute operations over multiple
+these libraries allow Satpy to easily distribute operations over multiple
 workers, lazy evaluate operations, and keep track additional metadata and
 coordinate information.
 
@@ -38,7 +38,7 @@ To create such an array, you can do for example
                                 attrs={'sensor': 'olci'})
 
 where ``my_data`` can be a regular numpy array, a numpy memmap, or, if you
-want to keep things lazy, a dask array (more on dask later). SatPy uses dask
+want to keep things lazy, a dask array (more on dask later). Satpy uses dask
 arrays with all of its DataArrays.
 
 Dimensions
@@ -115,15 +115,13 @@ numpy arrays, with the exception that using an operator on two DataArrays
 requires both arrays to share the same dimensions, and coordinates if those
 are defined.
 
-For mathematical functions like cos or log, use the
-:ref:`ufuncs <xarray:api.ufuncs>` module:
+For mathematical functions like cos or log, you can use numpy functions
+directly and they will return a DataArray object:
 
 .. code-block:: python
 
-    import xarray.ufuncs as xu
-    cos_zen = xu.cos(zen_xarray)
-
-Note that the ``xu.something`` function also work on numpy arrays.
+    import numpy as np
+    cos_zen = np.cos(zen_xarray)
 
 Masking data
 ************
@@ -235,7 +233,7 @@ Regular arithmetic operations are provided, and generate another dask array.
 
 In order to compute the actual data during testing, use the
 :func:`~dask.compute` method.
-In normal SatPy operations you will want the data to be evaluated as late as
+In normal Satpy operations you will want the data to be evaluated as late as
 possible to improve performance so `compute` should only be used when needed.
 
     >>> (arr1 + arr2).compute()

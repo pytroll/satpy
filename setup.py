@@ -31,9 +31,9 @@ import versioneer
 
 from setuptools import find_packages, setup
 
-requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.10.3', 'trollsift',
+requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
-            'dask[array] >=0.17.1']
+            'dask[array] >=0.17.1', 'pyproj']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
                  'rasterio', 'geoviews']
@@ -55,15 +55,17 @@ extras_require = {
     'amsr2_l1b': ['h5py >= 2.7.0'],
     'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
     'proj': ['pyresample'],
-    'pyspectral': ['pyspectral >= 0.7.0'],
+    'pyspectral': ['pyspectral >= 0.8.7'],
     'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
+    'hsaf_grib': ['pygrib'],
     # Writers:
+    'cf': ['h5netcdf >= 0.7.3'],
     'scmi': ['netCDF4 >= 1.1.8'],
-    'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     # MultiScene:
     'animations': ['imageio'],

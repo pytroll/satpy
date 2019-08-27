@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.viirs_sdr module.
 """
 
@@ -78,6 +93,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             prefix1 = 'Data_Products/{dataset_group}'.format(dataset_group=dataset_group)
             prefix2 = '{prefix}/{dataset_group}_Aggr'.format(prefix=prefix1, dataset_group=dataset_group)
             prefix3 = 'All_Data/{dataset_group}_All'.format(dataset_group=dataset_group)
+            prefix4 = '{prefix}/{dataset_group}_Gran_0'.format(prefix=prefix1, dataset_group=dataset_group)
             begin_date = start_time.strftime('%Y%m%d')
             begin_time = start_time.strftime('%H%M%S.%fZ')
             ending_date = end_time.strftime('%Y%m%d')
@@ -89,7 +105,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             else:
                 geo_prefix = None
             file_content = {
-                "{prefix3}/NumberOfScans": np.array([48]),
+                "{prefix2}/attr/AggregateNumberGranules": 1,
+                "{prefix4}/attr/N_Number_Of_Scans": 48,
                 "{prefix2}/attr/AggregateBeginningDate": begin_date,
                 "{prefix2}/attr/AggregateBeginningTime": begin_time,
                 "{prefix2}/attr/AggregateEndingDate": ending_date,
@@ -104,7 +121,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             if geo_prefix:
                 file_content['/attr/N_GEO_Ref'] = geo_prefix + filename[5:]
             for k, v in list(file_content.items()):
-                file_content[k.format(prefix1=prefix1, prefix2=prefix2, prefix3=prefix3)] = v
+                file_content[k.format(prefix1=prefix1, prefix2=prefix2, prefix3=prefix3, prefix4=prefix4)] = v
 
             if filename[:3] in ['SVM', 'SVI', 'SVD']:
                 if filename[2:5] in ['M{:02d}'.format(x) for x in range(12)] + ['I01', 'I02', 'I03']:
@@ -532,6 +549,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
         r.create_filehandlers(loadables)
+        self.assertNotIn('I01', [x.name for x in r.available_dataset_ids])
         ds = r.load(['I01'])
         self.assertEqual(len(ds), 0)
 
@@ -736,8 +754,7 @@ class TestAggrVIIRSSDRReader(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_viirs_sdr.
-    """
+    """The test suite for test_viirs_sdr."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSSDRReader))

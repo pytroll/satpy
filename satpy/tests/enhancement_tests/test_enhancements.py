@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017 Adam.Dybbroe
-
-# Author(s):
-
-#   Adam.Dybbroe <a000680@c20671.ad.smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# Copyright (c) 2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit testing the enhancements functions, e.g. cira_stretch
 """
 
@@ -30,7 +25,7 @@ import dask.array as da
 
 
 class TestEnhancementStretch(unittest.TestCase):
-    """Class for testing enhancements in satpy.enhancements."""
+    """Class for testing enhancements in satpy.enhancements"""
 
     def setUp(self):
         """Setup the test"""
@@ -96,14 +91,14 @@ class TestEnhancementStretch(unittest.TestCase):
              4.35952940e-06, 4.35952940e-06],
             [4.35952940e-06, 4.35952940e-06, 4.35952940e-06,
              4.35952940e-06, 4.35952940e-06]],
-           [[np.nan, 1.88249866e-01, 1.88249866e-01,
-             2.35302110e-01, 2.35302110e-01],
-            [2.35302110e-01, 2.35302110e-01, 2.35302110e-01,
-             2.35302110e-01, 2.35302110e-01]],
-           [[np.nan, 1.96102817e-02, 1.96102817e-02,
-             1.88238767e-01, 1.88238767e-01],
-            [1.88238767e-01, 1.88238767e-01, 1.88238767e-01,
-             1.88238767e-01, 1.88238767e-01]]])
+            [[np.nan, 1.88249866e-01, 1.88249866e-01,
+              2.35302110e-01, 2.35302110e-01],
+             [2.35302110e-01, 2.35302110e-01, 2.35302110e-01,
+              2.35302110e-01, 2.35302110e-01]],
+            [[np.nan, 1.96102817e-02, 1.96102817e-02,
+              1.88238767e-01, 1.88238767e-01],
+             [1.88238767e-01, 1.88238767e-01, 1.88238767e-01,
+              1.88238767e-01, 1.88238767e-01]]])
         self._test_enhancement(colorize, self.ch1, expected, palettes=brbg)
 
     def test_palettize(self):

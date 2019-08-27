@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018 PyTroll developers
-
+# Copyright (c) 2018 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Reader for GOES 8-15 imager data in netCDF format from NOAA CLASS
    Also handles GOES 15 data in netCDF format reformated by Eumetsat
 
@@ -194,7 +193,6 @@ import re
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 
 import pyresample.geometry
 from satpy import CHUNK_SIZE
@@ -651,7 +649,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
             Mask (1=earth, 0=space)
         """
         logger.debug('Computing earth mask')
-        return xu.fabs(lat) <= 90
+        return np.fabs(lat) <= 90
 
     @staticmethod
     def _get_nadir_pixel(earth_mask, sector):
@@ -718,14 +716,13 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                 sampling = SAMPLING_NS_IR
             pix_size = ALTITUDE * sampling
             area_def = pyresample.geometry.AreaDefinition(
-                area_id='goes_geos_uniform',
-                name='{} geostationary projection (uniform sampling)'.format(
-                    self.platform_name),
-                proj_id='goes_geos_uniform',
-                proj_dict=proj_dict,
-                x_size=np.rint((urx - llx) / pix_size).astype(int),
-                y_size=np.rint((ury - lly) / pix_size).astype(int),
-                area_extent=area_extent)
+                'goes_geos_uniform',
+                '{} geostationary projection (uniform sampling)'.format(self.platform_name),
+                'goes_geos_uniform',
+                proj_dict,
+                np.rint((urx - llx) / pix_size).astype(int),
+                np.rint((ury - lly) / pix_size).astype(int),
+                area_extent)
 
             return area_def
         else:
@@ -874,11 +871,11 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
         # Compute brightness temperature using inverse Planck formula
         n = coefs['n']
-        bteff = C2 * n / xu.log(1 + C1 * n**3 / radiance.where(radiance > 0))
+        bteff = C2 * n / np.log(1 + C1 * n ** 3 / radiance.where(radiance > 0))
         bt = xr.DataArray(bteff * coefs['b'] + coefs['a'])
 
         # Apply BT threshold
-        return bt.where(xu.logical_and(bt >= coefs['btmin'],
+        return bt.where(np.logical_and(bt >= coefs['btmin'],
                                        bt <= coefs['btmax']))
 
     @staticmethod
@@ -935,12 +932,12 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         if 'file_type' in data.attrs:
             data.attrs.pop('file_type')
 
-        # Metadata discovered from the file
+        # Metadata discovered from the file.
         data.attrs.update(
             {'platform_name': self.platform_name,
              'sensor': self.sensor,
              'sector': self.sector,
-             'yaw_flip': self.meta['yaw_flip']}
+             'orbital_parameters': {'yaw_flip': self.meta['yaw_flip']}}
         )
         if self.meta['lon0'] is not None:
             # Attributes only available for full disc images. YAML reader
@@ -953,12 +950,44 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                  'nadir_col': self.meta['nadir_col'],
                  'area_def_uniform_sampling': self.meta['area_def_uni']}
             )
+            data.attrs['orbital_parameters'].update(
+                {'projection_longitude': self.meta['lon0'],
+                 'projection_latitude': self.meta['lat0'],
+                 'projection_altitude': ALTITUDE}
+            )
 
     def __del__(self):
         try:
             self.nc.close()
         except (AttributeError, IOError, OSError):
             pass
+
+    def available_datasets(self, configured_datasets=None):
+        """Update information for or add datasets provided by this file.
+
+        If this file handler can load a dataset then it will supplement the
+        dataset info with the resolution and possibly coordinate datasets
+        needed to load it. Otherwise it will continue passing the dataset
+        information down the chain.
+
+        See
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        for details.
+
+        """
+        res = self.resolution
+        # update previously configured datasets
+        for is_avail, ds_info in (configured_datasets or []):
+            if is_avail is not None:
+                yield is_avail, ds_info
+
+            matches = self.file_type_matches(ds_info['file_type'])
+            if matches and ds_info.get('resolution') != res:
+                new_info = ds_info.copy()
+                new_info['resolution'] = res
+                yield True, new_info
+            elif is_avail is None:
+                yield is_avail, ds_info
 
 
 class GOESNCFileHandler(GOESNCBaseFileHandler):

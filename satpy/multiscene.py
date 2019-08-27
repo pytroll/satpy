@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2016
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# Copyright (c) 2016-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """MultiScene object to blend satellite data.
 """
 
@@ -44,6 +39,11 @@ try:
     import imageio
 except ImportError:
     imageio = None
+
+try:
+    from dask.distributed import get_client
+except ImportError:
+    get_client = None
 
 log = logging.getLogger(__name__)
 
@@ -389,17 +389,18 @@ class MultiScene(object):
     def _get_client(self, client=True):
         """Determine what dask distributed client to use."""
         client = client or None  # convert False/None to None
-        if client is True:
+        if client is True and get_client is None:
+            log.debug("'dask.distributed' library was not found, will "
+                      "use simple serial processing.")
+            client = None
+        elif client is True:
             try:
                 # get existing client
-                from dask.distributed import get_client
                 client = get_client()
-            except ImportError:
-                log.debug("'dask.distributed' library was not found, will "
-                          "use simple serial processing.")
             except ValueError:
                 log.warning("No dask distributed client was provided or found, "
                             "but distributed features were requested. Will use simple serial processing.")
+                client = None
         return client
 
     def _distribute_frame_compute(self, writers, frame_keys, frames_to_write, client, batch_size=1):

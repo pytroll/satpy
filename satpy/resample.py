@@ -1,30 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2015-2018 Satpy developers
 #
-# Copyright (c) 2015-2018
+# This file is part of satpy.
 #
-# Author(s):
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""SatPy provides multiple resampling algorithms for resampling geolocated
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Satpy provides multiple resampling algorithms for resampling geolocated
 data to uniform projected grids. The easiest way to perform resampling in
-SatPy is through the :class:`~satpy.scene.Scene` object's
+Satpy is through the :class:`~satpy.scene.Scene` object's
 :meth:`~satpy.scene.Scene.resample` method. Additional utility functions are
 also available to assist in resampling data. Below is more information on
-resampling with SatPy as well as links to the relevant API documentation for
+resampling with Satpy as well as links to the relevant API documentation for
 available keyword arguments.
 
 Resampling algorithms
@@ -82,7 +78,7 @@ may work, but behavior is currently undefined.
 Caching for geostationary data
 ------------------------------
 
-SatPy will do its best to reuse calculations performed to resample datasets,
+Satpy will do its best to reuse calculations performed to resample datasets,
 but it can only do this for the current processing and will lose this
 information when the process/script ends. Some resampling algorithms, like
 ``nearest`` and ``bilinear``, can benefit by caching intermediate data on disk in the directory
@@ -139,7 +135,7 @@ import dask
 import dask.array as da
 
 from pyresample.ewa import fornav, ll2cr
-from pyresample.geometry import SwathDefinition, AreaDefinition
+from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import XArrayResamplerNN
 from pyresample.bilinear.xarr import XArrayResamplerBilinear
 from satpy import CHUNK_SIZE
@@ -182,6 +178,134 @@ def get_area_def(area_name):
     except ImportError:
         from pyresample.utils import parse_area_file
     return parse_area_file(get_area_file(), area_name)[0]
+
+
+def add_xy_coords(data_arr, area, crs=None):
+    """Assign x/y coordinates to DataArray from provided area.
+
+    If 'x' and 'y' coordinates already exist then they will not be added.
+
+    Args:
+        data_arr (xarray.DataArray): data object to add x/y coordinates to
+        area (pyresample.geometry.AreaDefinition): area providing the
+            coordinate data.
+        crs (pyproj.crs.CRS or None): CRS providing additional information
+            about the area's coordinate reference system if available.
+            Requires pyproj 2.0+.
+
+    Returns (xarray.DataArray): Updated DataArray object
+
+    """
+    if 'x' in data_arr.coords and 'y' in data_arr.coords:
+        # x/y coords already provided
+        return data_arr
+    elif 'x' not in data_arr.dims or 'y' not in data_arr.dims:
+        # no defined x and y dimensions
+        return data_arr
+
+    if hasattr(area, 'get_proj_vectors'):
+        x, y = area.get_proj_vectors()
+    else:
+        return data_arr
+
+    # convert to DataArrays
+    y_attrs = {}
+    x_attrs = {}
+    if crs is not None:
+        units = crs.axis_info[0].unit_name
+        # fix udunits/CF standard units
+        units = units.replace('metre', 'meter')
+        if units == 'degree':
+            y_attrs['units'] = 'degrees_north'
+            x_attrs['units'] = 'degrees_east'
+        else:
+            y_attrs['units'] = units
+            x_attrs['units'] = units
+    y = xr.DataArray(y, dims=('y',), attrs=y_attrs)
+    x = xr.DataArray(x, dims=('x',), attrs=x_attrs)
+    return data_arr.assign_coords(y=y, x=x)
+
+
+def add_crs_xy_coords(data_arr, area):
+    """Add :class:`pyproj.crs.CRS` and x/y or lons/lats to coordinates.
+
+    For SwathDefinition or GridDefinition areas this will add a
+    `crs` coordinate and coordinates for the 2D arrays of `lons` and `lats`.
+
+    For AreaDefinition areas this will add a `crs` coordinate and the
+    1-dimensional `x` and `y` coordinate variables.
+
+    Args:
+        data_arr (xarray.DataArray): DataArray to add the 'crs'
+            coordinate.
+        area (pyresample.geometry.AreaDefinition): Area to get CRS
+            information from.
+
+    """
+    # add CRS object if pyproj 2.0+
+    try:
+        from pyproj import CRS
+    except ImportError:
+        LOG.debug("Could not add 'crs' coordinate with pyproj<2.0")
+        crs = None
+    else:
+        # default lat/lon projection
+        latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
+        # otherwise get it from the area definition
+        proj_str = getattr(area, 'proj_str', latlon_proj)
+        crs = CRS.from_string(proj_str)
+        data_arr = data_arr.assign_coords(crs=crs)
+
+    # Add x/y coordinates if possible
+    if isinstance(area, SwathDefinition):
+        # add lon/lat arrays for swath definitions
+        # SwathDefinitions created by Satpy should be assigning DataArray
+        # objects as the lons/lats attributes so use those directly to
+        # maintain original .attrs metadata (instead of converting to dask
+        # array).
+        lons = area.lons
+        lats = area.lats
+        lons.attrs.setdefault('standard_name', 'longitude')
+        lons.attrs.setdefault('long_name', 'longitude')
+        lons.attrs.setdefault('units', 'degrees_east')
+        lats.attrs.setdefault('standard_name', 'latitude')
+        lats.attrs.setdefault('long_name', 'latitude')
+        lats.attrs.setdefault('units', 'degrees_north')
+        # See https://github.com/pydata/xarray/issues/3068
+        # data_arr = data_arr.assign_coords(longitude=lons, latitude=lats)
+    else:
+        # Gridded data (AreaDefinition/StackedAreaDefinition)
+        data_arr = add_xy_coords(data_arr, area, crs=crs)
+    return data_arr
+
+
+def update_resampled_coords(old_data, new_data, new_area):
+    """Add coordinate information to newly resampled DataArray.
+
+    Args:
+        old_data (xarray.DataArray): Old data before resampling.
+        new_data (xarray.DataArray): New data after resampling.
+        new_area (pyresample.geometry.BaseDefinition): Area definition
+            for the newly resampled data.
+
+    """
+    # copy over other non-x/y coordinates
+    # this *MUST* happen before we set 'crs' below otherwise any 'crs'
+    # coordinate in the coordinate variables we are copying will overwrite the
+    # 'crs' coordinate we just assigned to the data
+    ignore_coords = ('y', 'x', 'crs')
+    new_coords = {}
+    for cname, cval in old_data.coords.items():
+        # we don't want coordinates that depended on the old x/y dimensions
+        has_ignored_dims = any(dim in cval.dims for dim in ignore_coords)
+        if cname in ignore_coords or has_ignored_dims:
+            continue
+        new_coords[cname] = cval
+    new_data = new_data.assign_coords(**new_coords)
+
+    # add crs, x, and y coordinates
+    new_data = add_crs_xy_coords(new_data, new_area)
+    return new_data
 
 
 class BaseResampler(object):
@@ -262,7 +386,6 @@ class BaseResampler(object):
             else:
                 geo_dims = ('y', 'x')
             flat_dims = [dim for dim in data.dims if dim not in geo_dims]
-            # xarray <= 0.10.1 computes dask arrays during isnull
             if np.issubdtype(data.dtype, np.integer):
                 kwargs['mask'] = data == data.attrs.get('_FillValue', np.iinfo(data.dtype.type).max)
             else:
@@ -324,11 +447,18 @@ class KDTreeResampler(BaseResampler):
                         "resampler. Cached parameters are affected by "
                         "masked pixels. Will not cache results.")
             cache_dir = None
-
+        # TODO: move this to pyresample
         if radius_of_influence is None:
             try:
                 radius_of_influence = source_geo_def.lons.resolution * 3
-            except (AttributeError, TypeError):
+            except AttributeError:
+                try:
+                    radius_of_influence = max(abs(source_geo_def.pixel_size_x),
+                                              abs(source_geo_def.pixel_size_y)) * 3
+                except AttributeError:
+                    radius_of_influence = 1000
+
+            except TypeError:
                 radius_of_influence = 10000
 
         kwargs = dict(source_geo_def=source_geo_def,
@@ -371,7 +501,7 @@ class KDTreeResampler(BaseResampler):
         if kwargs.get('mask') in self._index_caches:
             self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
         elif cache_dir:
-            cache = np.load(filename, mmap_mode='r')
+            cache = np.load(filename, mmap_mode='r', allow_pickle=True)
             # copy the dict so we can modify it's keys
             new_cache = dict(cache.items())
             cache.close()
@@ -405,7 +535,7 @@ class KDTreeResampler(BaseResampler):
         del kwargs
         LOG.debug("Resampling " + str(data.name))
         res = self.resampler.get_sample_from_neighbour_info(data, fill_value)
-        return res
+        return update_resampled_coords(data, res, self.target_geo_def)
 
 
 class EWAResampler(BaseResampler):
@@ -492,6 +622,11 @@ class EWAResampler(BaseResampler):
 
     def precompute(self, cache_dir=None, swath_usage=0, **kwargs):
         """Generate row and column arrays and store it for later use."""
+        if self.cache:
+            # this resampler should be used for one SwathDefinition
+            # no need to recompute ll2cr output again
+            return None
+
         if kwargs.get('mask') is not None:
             LOG.warning("'mask' parameter has no affect during EWA "
                         "resampling")
@@ -503,7 +638,7 @@ class EWAResampler(BaseResampler):
         if cache_dir:
             LOG.warning("'cache_dir' is not used by EWA resampling")
 
-        # SatPy/PyResample don't support dynamic grids out of the box yet
+        # Satpy/PyResample don't support dynamic grids out of the box yet
         lons, lats = source_geo_def.get_lonlats()
         if isinstance(lons, xr.DataArray):
             # get dask arrays
@@ -594,8 +729,8 @@ class EWAResampler(BaseResampler):
         else:
             dims = data.dims
 
-        return xr.DataArray(data_arr, dims=dims,
-                            attrs=data.attrs.copy())
+        res = xr.DataArray(data_arr, dims=dims, attrs=data.attrs.copy())
+        return update_resampled_coords(data, res, self.target_geo_def)
 
 
 class BilinearResampler(BaseResampler):
@@ -677,7 +812,7 @@ class BilinearResampler(BaseResampler):
                                                       fill_value=fill_value,
                                                       output_shape=target_shape)
 
-        return res
+        return update_resampled_coords(data, res, self.target_geo_def)
 
 
 def _mean(data, y_size, x_size):
@@ -793,27 +928,8 @@ class NativeResampler(BaseResampler):
         repeats[x_axis] = x_repeats
 
         d_arr = self.expand_reduce(data.data, repeats)
-
-        coords = {}
-        # Update coords if we can
-        if ('y' in data.coords or 'x' in data.coords) and isinstance(target_geo_def, AreaDefinition):
-            coord_chunks = (d_arr.chunks[y_axis], d_arr.chunks[x_axis])
-            if hasattr(target_geo_def, 'get_proj_vectors'):
-                x_coord, y_coord = target_geo_def.get_proj_vectors()
-            else:
-                # older version of pyresample
-                x_coord, y_coord = target_geo_def.get_proj_vectors_dask(chunks=coord_chunks)
-            if 'y' in data.coords:
-                coords['y'] = y_coord
-            if 'x' in data.coords:
-                coords['x'] = x_coord
-        for dim in data.dims:
-            if dim not in ['y', 'x'] and dim in data.coords:
-                coords[dim] = data.coords[dim]
-
-        return xr.DataArray(d_arr,
-                            dims=data.dims,
-                            coords=coords or None)
+        new_data = xr.DataArray(d_arr, dims=data.dims)
+        return update_resampled_coords(data, new_data, target_geo_def)
 
 
 RESAMPLERS = {"kd_tree": KDTreeResampler,
@@ -840,7 +956,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 
     key = (resampler_class,
            source_area, destination_area,
-           hash_dict(resample_kwargs))
+           hash_dict(resample_kwargs).hexdigest())
     try:
         resampler_instance = resamplers_cache[key]
     except KeyError:
@@ -852,12 +968,6 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 def resample(source_area, data, destination_area,
              resampler=None, **kwargs):
     """Do the resampling."""
-    if 'resampler_class' in kwargs:
-        import warnings
-        warnings.warn("'resampler_class' is deprecated, use 'resampler'",
-                      DeprecationWarning)
-        resampler = kwargs.pop('resampler_class')
-
     if not isinstance(resampler, BaseResampler):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,

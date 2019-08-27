@@ -1,28 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2015
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""Dataset objects.
-"""
+# Copyright (c) 2015-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Dataset objects."""
 
 import sys
 import logging
@@ -145,7 +138,7 @@ class DatasetID(DatasetID):
     and "reflectance". If an element is `None` then it is considered not
     applicable.
 
-    A DatasetID can also be used in SatPy to query for a Dataset. This way
+    A DatasetID can also be used in Satpy to query for a Dataset. This way
     a fully qualified DatasetID can be found even if some of the DatasetID
     elements are unknown. In this case a `None` signifies something that is
     unknown or not applicable to the requested Dataset.
@@ -177,6 +170,7 @@ class DatasetID(DatasetID):
     """
 
     def __new__(cls, *args, **kwargs):
+        """Create new DatasetID."""
         ret = super(DatasetID, cls).__new__(cls, *args, **kwargs)
         if ret.modifiers is not None and not isinstance(ret.modifiers, tuple):
             raise TypeError("'DatasetID' modifiers must be a tuple or None, "
@@ -273,6 +267,26 @@ class DatasetID(DatasetID):
     def _to_trimmed_dict(self):
         return {key: getattr(self, key) for key in DATASET_KEYS
                 if getattr(self, key) is not None}
+
+
+def create_filtered_dsid(dataset_key, **dfilter):
+    """Create a DatasetID matching *dataset_key* and *dfilter*.
+
+    If a proprety is specified in both *dataset_key* and *dfilter*, the former
+    has priority.
+
+    """
+    try:
+        ds_dict = dataset_key.to_dict()
+    except AttributeError:
+        if isinstance(dataset_key, str):
+            ds_dict = {'name': dataset_key}
+        elif isinstance(dataset_key, numbers.Number):
+            ds_dict = {'wavelength': dataset_key}
+    for key, value in dfilter.items():
+        if value is not None:
+            ds_dict.setdefault(key, value)
+    return DatasetID.from_dict(ds_dict)
 
 
 def dataset_walker(datasets):

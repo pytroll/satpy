@@ -1,7 +1,7 @@
 reader:
   description: MSG HRIT Reader
   name: electrol_hrit
-  sensors: [electrol]  # [msu-gs]
+  sensors: [msu-gs]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
