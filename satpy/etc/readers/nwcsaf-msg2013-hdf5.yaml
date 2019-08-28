@@ -130,46 +130,61 @@ datasets:
     sensor: seviri
     resolution: 3000
     file_type: h5_nwcsaf_ctth
+    file_key: CTTH_HEIGHT
 
   ctth_alti_pal:
     name: ctth_alti_pal
     sensor: seviri
     resolution: 3000
     file_type: h5_nwcsaf_ctth
+    file_key: 02-PALETTE
 
   ctth_pres:
     name: ctth_pres
     sensor: seviri
     resolution: 3000
     file_type: h5_nwcsaf_ctth
+    file_key: CTTH_PRESS
 
   ctth_pres_pal:
     name: ctth_pres_pal
     sensor: seviri
     resolution: 3000
     file_type: h5_nwcsaf_ctth
+    file_key: 01-PALETTE
 
   ctth_tempe:
     name: ctth_tempe
     sensor: seviri
     resolution: 3000
     file_type: h5_nwcsaf_ctth
+    file_key: CTTH_TEMPER
 
   ctth_tempe_pal:
     name: ctth_tempe_pal
     sensor: seviri
     resolution: 3000
     file_type: h5_nwcsaf_ctth
+    file_key: 03-PALETTE
+
+  ctth_effective_cloudiness:
+    name: ctth_eff
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: CTTH_TEMPER
+
+  ctth_effective_cloudiness_pal:
+    name: ctth_eff_pal
+    sensor: seviri
+    resolution: 3000
+    file_type: h5_nwcsaf_ctth
+    file_key: 04-PALETTE
 
   ctth_quality:
     name: ctth_quality
     sensor: seviri
     resolution: 3000
     file_type: h5_nwcsaf_ctth
-
-  ctth_status_flag:
-    name: ctth_status_flag
-    sensor: seviri
-    resolution: 3000
-    file_type: h5_nwcsaf_ctth
+    file_key: CTTH_QUALITY
 
