@@ -36,7 +36,7 @@ class SimulatedGreen(GenericCompositor):
     Common used fractions for ABI data with C01, C02, and C03 inputs include:
 
     - SatPy default (historical): (0.465, 0.465, 0.07)
-    - `CIMSS (Kaba) <https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000379>`_: (0.45, 0.45, 0.01)
+    - `CIMSS (Kaba) <https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000379>`_: (0.45, 0.45, 0.10)
     - `EDC <http://edc.occ-data.org/goes16/python/>`_: (0.45706946, 0.48358168, 0.06038137)
 
     """
