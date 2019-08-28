@@ -43,7 +43,7 @@ from pyresample.utils import get_area_def
 from satpy import CHUNK_SIZE
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from pyresample.geometry import AreaDefinition
-
+import h5py
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +70,11 @@ class Hdf5NWCSAF(HDF5FileHandler):
         if 'SCALING_FACTOR' in data.attrs and 'OFFSET' in data.attrs:
             dtype = np.dtype(data.data)
             data.data = (data.data * data.attrs['SCALING_FACTOR'] + data.attrs['OFFSET']).astype(dtype)
+
+        for key in list(data.attrs.keys()):
+            val = data.attrs[key]
+            if isinstance(val, h5py.h5r.Reference):
+                del data.attrs[key]
 
         return data
 

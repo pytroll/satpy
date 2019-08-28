@@ -58,8 +58,24 @@ class HDF5FileHandler(BaseFileHandler):
             fc_key = "{}/attr/{}".format(name, key)
             try:
                 self.file_content[fc_key] = np2str(value)
-            except (ValueError, AttributeError):
+            except ValueError:
                 self.file_content[fc_key] = value
+            except AttributeError:
+                # A HDF5 reference ?
+                value = self.get_reference(name, key)
+                if value is None:
+                    LOG.warning("Value cannot be converted - skip setting attribute %s", fc_key)
+                else:
+                    self.file_content[fc_key] = value
+
+    def get_reference(self, name, key):
+
+        with h5py.File(self.filename, 'r') as hf:
+            if type(hf[name].attrs[key]) is h5py.h5r.Reference:
+                ref_name = h5py.h5r.get_name(hf[name].attrs[key], hf.id)
+                return hf[ref_name][()]
+            else:
+                return None
 
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):
