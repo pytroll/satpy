@@ -814,11 +814,12 @@ class GenericCompositor(CompositeBase):
                 data['time'] = [time]
 
         new_attrs = combine_metadata(*projectables)
-        # remove metadata that shouldn't make sense in a composite
-        new_attrs["wavelength"] = None
-        new_attrs.pop("units", None)
-        new_attrs.pop('calibration', None)
-        new_attrs.pop('modifiers', None)
+        # remove metadata that shouldn't make sense in a multiband composite
+        if len(projectables) > 1:
+            new_attrs["wavelength"] = None
+            new_attrs.pop("units", None)
+            new_attrs.pop('calibration', None)
+            new_attrs.pop('modifiers', None)
 
         new_attrs.update({key: val
                           for (key, val) in attrs.items()
