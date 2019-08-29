@@ -181,6 +181,6 @@ class NinjoTIFFWriter(ImageWriter):
             else:
                 dataset = convert_units(dataset, units, nunits)
 
-        return super(NinjoTIFFWriter, self).__call__(
+        return super(NinjoTIFFWriter, self).save_dataset(
             dataset, filename=filename, compute=compute, fill_value=fill_value, **kwargs
         )
