@@ -132,7 +132,7 @@ class TestVIRRL1BReader(unittest.TestCase):
             ds = datasets[dataset.name]
             attributes = ds.attrs
             self.assertTrue(isinstance(ds.data, da.Array))
-            self.assertEqual('VIRR', attributes['sensor'])
+            self.assertEqual('virr', attributes['sensor'])
             self.assertEqual(platform_name, attributes['platform_name'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes['start_time'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes['end_time'])
