@@ -81,9 +81,9 @@ The parameters to provide in this section are:
    replacing ``_`` with spaces and uppercasing every letter.
  - long_name: Human-readable title for the reader. This may be used as a
    section title on a website or in GUI applications using Satpy. Default
-   naming scheme is ``<space program> <sensor> Level <level>``. For example,
-   for the ``abi_l1b`` reader this is ``"GOES-R ABI Level 1b"`` where
-   "GOES-R" is the name of the program and **not** the name of the
+   naming scheme is ``<space program> <sensor> Level <level> [<format>]``.
+   For example, for the ``abi_l1b`` reader this is ``"GOES-R ABI Level 1b"``
+   where "GOES-R" is the name of the program and **not** the name of the
    platform/satellite. This scheme may not work for all readers, but in
    general should be followed. See existing readers for more examples.
  - description: General description of the reader. This may include any
