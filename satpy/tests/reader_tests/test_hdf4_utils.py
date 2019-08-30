@@ -103,7 +103,7 @@ class TestHDF4FileHandler(unittest.TestCase):
             self.assertEqual(file_handler[ds + '/dtype'], np.float32 if ds.endswith('f') else np.int16)
             self.assertTupleEqual(file_handler[ds + '/shape'], (10, 100))
             # make sure that the dtype is an instance, not the class
-            self.assertEqual(file_handler[ds].dtype.itemsize, 4)
+            self.assertEqual(file_handler[ds].dtype.itemsize, 4 if ds.endswith('f') else 2)
             attrs = file_handler[ds].attrs
             self.assertEqual(attrs.get('test_attr_str'), 'test_string')
             self.assertEqual(attrs.get('test_attr_int'), 0)
