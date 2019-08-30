@@ -126,6 +126,15 @@ class TestVIRRL1BReader(unittest.TestCase):
                        '3': 496.542155, '4': 297.444511, '5': 288.956557, 'solar_zenith_angle': .1,
                        'satellite_zenith_angle': .1, 'solar_azimuth_angle': .1, 'satellite_azimuth_angle': .1,
                        'longitude': 10}
+        if platform_name == 'FY3B':
+            # updated 2015 coefficients
+            band_values['1'] = -0.168
+            band_values['2'] = -0.2706
+            band_values['6'] = -1.5631
+            band_values['7'] = -0.2114
+            band_values['8'] = -0.171
+            band_values['9'] = -0.1606
+            band_values['10'] = -0.1328
         datasets = reader.load([band for band in band_values])
         for dataset in datasets:
             # Object returned by get_dataset.
