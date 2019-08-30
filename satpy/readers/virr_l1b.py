@@ -49,6 +49,25 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
+# PROVIDED BY NIGEL ATKINSON - 2013
+# FY3B_REF_COEFFS = [
+#     0.12640, -1.43200,  #channel1#
+#     0.13530, -1.62360,  #channel2#
+#     0.09193, -2.48207,  #channel6#
+#     0.07480, -0.90980,  #channel7#
+#     0.07590, -0.91080,  #channel8#
+#     0.07460, -0.89520,  #channel9#
+#     0.06300, -0.76280]  #channel10#
+# CMA - 2015 - http://www.nsmc.org.cn/en/NSMC/Contents/100089.html
+FY3B_REF_COEFFS = [
+    0.1264, -1.4320,
+    0.1353, -1.6236,
+    0.0919, -2.4821,
+    0.0938, -1.1494,
+    0.0857, -1.0280,
+    0.0803, -0.9636,
+    0.0630, -0.7628]
+
 
 class VIRR_L1B(HDF5FileHandler):
     """VIRR Level 1b reader."""
@@ -92,8 +111,12 @@ class VIRR_L1B(HDF5FileHandler):
                     # new versions of pyspectral can do dask arrays
                     data.data = bt_data
             elif 'RefSB' in file_key:
-                slope = self._correct_slope(self['/attr/RefSB_Cal_Coefficients'][0::2])
-                intercept = self['/attr/RefSB_Cal_Coefficients'][1::2]
+                if self.platform_id == 'FY3B':
+                    coeffs = da.from_array(FY3B_REF_COEFFS, chunks=-1)
+                else:
+                    coeffs = self['/attr/RefSB_Cal_Coefficients']
+                slope = self._correct_slope(coeffs[0::2])
+                intercept = coeffs[1::2]
                 data = data * slope[band_index] + intercept[band_index]
         else:
             slope = self._correct_slope(self[file_key + '/attr/Slope'])
