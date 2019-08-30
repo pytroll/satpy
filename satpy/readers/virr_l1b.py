@@ -51,9 +51,10 @@ LOG = logging.getLogger(__name__)
 
 
 class VIRR_L1B(HDF5FileHandler):
-    """VIRR_L1B reader."""
+    """VIRR Level 1b reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Open file and perform initial setup."""
         super(VIRR_L1B, self).__init__(filename, filename_info, filetype_info)
         LOG.debug('day/night flag for {0}: {1}'.format(filename, self['/attr/Day Or Night Flag']))
         self.geolocation_prefix = filetype_info['geolocation_prefix']
@@ -66,6 +67,7 @@ class VIRR_L1B(HDF5FileHandler):
             self.wave_number = 'Emmisive_Centroid_Wave_Number'
 
     def get_dataset(self, dataset_id, ds_info):
+        """Create DataArray from file content for `dataset_id`."""
         file_key = self.geolocation_prefix + ds_info.get('file_key', dataset_id.name)
         if self.platform_id == 'FY3B':
             file_key = file_key.replace('Data/', '')
@@ -75,7 +77,7 @@ class VIRR_L1B(HDF5FileHandler):
             data = data[band_index]
             data = data.where((data >= self[file_key + '/attr/valid_range'][0]) &
                               (data <= self[file_key + '/attr/valid_range'][1]))
-            if 'E' in dataset_id.name:
+            if 'Emissive' in file_key:
                 slope = self._correct_slope(self[self.l1b_prefix + 'Emissive_Radiance_Scales'].
                                             data[:, band_index][:, np.newaxis])
                 intercept = self[self.l1b_prefix + 'Emissive_Radiance_Offsets'].data[:, band_index][:, np.newaxis]
@@ -89,7 +91,7 @@ class VIRR_L1B(HDF5FileHandler):
                 else:
                     # new versions of pyspectral can do dask arrays
                     data.data = bt_data
-            elif 'R' in dataset_id.name:
+            elif 'RefSB' in file_key:
                 slope = self._correct_slope(self['/attr/RefSB_Cal_Coefficients'][0::2])
                 intercept = self['/attr/RefSB_Cal_Coefficients'][1::2]
                 data = data * slope[band_index] + intercept[band_index]
@@ -101,8 +103,9 @@ class VIRR_L1B(HDF5FileHandler):
             data = data * slope + intercept
         new_dims = {old: new for old, new in zip(data.dims, ('y', 'x'))}
         data = data.rename(new_dims)
+        # use lowercase sensor name to be consistent with the rest of satpy
         data.attrs.update({'platform_name': self['/attr/Satellite Name'],
-                           'sensor': self['/attr/Sensor Identification Code']})
+                           'sensor': self['/attr/Sensor Identification Code'].lower()})
         data.attrs.update(ds_info)
         units = self.get(file_key + '/attr/units')
         if units is not None and str(units).lower() != 'none':
@@ -119,10 +122,12 @@ class VIRR_L1B(HDF5FileHandler):
 
     @property
     def start_time(self):
+        """Get starting observation time."""
         start_time = self['/attr/Observing Beginning Date'] + 'T' + self['/attr/Observing Beginning Time'] + 'Z'
         return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
+        """Get ending observation time."""
         end_time = self['/attr/Observing Ending Date'] + 'T' + self['/attr/Observing Ending Time'] + 'Z'
         return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%S.%fZ')
