@@ -1,6 +1,6 @@
 reader:
   name: seviri_l1b_native
-  short_name: SEVIRI L1b HRIT
+  short_name: SEVIRI L1b Native
   long_name: MSG SEVIRI Level 1b (Native)
   description: >
     Reader for EUMETSAT MSG SEVIRI Level 1b native format files.
