@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test for readers/virr_l1b.py.
-"""
+"""Test for readers/virr_l1b.py."""
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 import sys
 import numpy as np
@@ -39,6 +38,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
     def make_test_data(self, dims):
+        """Create fake test data."""
         return xr.DataArray(da.from_array(np.ones([dim for dim in dims], dtype=np.float32) * 10, [dim for dim in dims]))
 
     def _make_file(self, platform_id, geolocation_prefix, l1b_prefix, ECWN, Emissive_units):
@@ -92,6 +92,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 class TestVIRRL1BReader(unittest.TestCase):
     """Test VIRR L1B Reader."""
+
     yaml_file = "virr_l1b.yaml"
 
     def setUp(self):
@@ -119,9 +120,10 @@ class TestVIRRL1BReader(unittest.TestCase):
         self.assertEqual(('longitude', 'latitude'), attributes['coordinates'])
 
     def _fy3_helper(self, platform_name, reader, Emissive_units):
+        """Load channels and test accurate metadata."""
         import datetime
-        band_values = {'R1': 22.0, 'R2': 22.0, 'R3': 22.0, 'R4': 22.0, 'R5': 22.0, 'R6': 22.0, 'R7': 22.0,
-                       'E1': 496.542155, 'E2': 297.444511, 'E3': 288.956557, 'solar_zenith_angle': .1,
+        band_values = {'1': 22.0, '2': 22.0, '6': 22.0, '7': 22.0, '8': 22.0, '9': 22.0, '10': 22.0,
+                       '3': 496.542155, '4': 297.444511, '5': 288.956557, 'solar_zenith_angle': .1,
                        'satellite_zenith_angle': .1, 'solar_azimuth_angle': .1, 'satellite_azimuth_angle': .1,
                        'longitude': 10}
         datasets = reader.load([band for band in band_values])
@@ -130,17 +132,17 @@ class TestVIRRL1BReader(unittest.TestCase):
             ds = datasets[dataset.name]
             attributes = ds.attrs
             self.assertTrue(isinstance(ds.data, da.Array))
-            self.assertEqual('VIRR', attributes['sensor'])
+            self.assertEqual('virr', attributes['sensor'])
             self.assertEqual(platform_name, attributes['platform_name'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 41, 47, 90000), attributes['start_time'])
             self.assertEqual(datetime.datetime(2018, 12, 25, 21, 47, 28, 254000), attributes['end_time'])
             self.assertEqual((19, 20), datasets[dataset.name].shape)
             self.assertEqual(('y', 'x'), datasets[dataset.name].dims)
-            if 'R' in dataset.name:
+            if dataset.name in ['1', '2', '6', '7', '8', '9', '10']:
                 self._band_helper(attributes, '%', 'reflectance',
                                   'toa_bidirectional_reflectance', 'virr_l1b',
                                   7, 1000)
-            elif 'E' in dataset.name:
+            elif dataset.name in ['3', '4', '5']:
                 self._band_helper(attributes, Emissive_units, 'brightness_temperature',
                                   'toa_brightness_temperature', 'virr_l1b', 3, 1000)
             elif dataset.name in ['longitude', 'latitude']:
@@ -159,6 +161,7 @@ class TestVIRRL1BReader(unittest.TestCase):
                              round(float(np.array(ds[ds.shape[0] // 2][ds.shape[1] // 2])), 6))
 
     def test_fy3b_file(self):
+        """Test that FY3B files are recognized."""
         from satpy.readers import load_reader
         FY3B_reader = load_reader(self.reader_configs)
         FY3B_file = FY3B_reader.select_files_from_pathnames(['tf2018359214943.FY3B-L_VIRRX_L1B.HDF'])
@@ -169,6 +172,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         self._fy3_helper('FY3B', FY3B_reader, 'milliWstts/m^2/cm^(-1)/steradian')
 
     def test_fy3c_file(self):
+        """Test that FY3C files are recognized."""
         from satpy.readers import load_reader
         FY3C_reader = load_reader(self.reader_configs)
         FY3C_files = FY3C_reader.select_files_from_pathnames(['tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF',
@@ -181,7 +185,7 @@ class TestVIRRL1BReader(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_virr_l1b."""
+    """Create test suite for test_virr_l1b."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIRRL1BReader))
