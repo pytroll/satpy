@@ -135,11 +135,13 @@ class TestHLResample(unittest.TestCase):
 class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
+    @mock.patch('satpy.resample.KDTreeResampler._check_numpy_cache')
     @mock.patch('satpy.resample.xr.Dataset')
     @mock.patch('satpy.resample.da.from_zarr')
     @mock.patch('satpy.resample.KDTreeResampler._create_cache_filename')
     @mock.patch('satpy.resample.XArrayResamplerNN')
-    def test_kd_resampling(self, resampler, create_filename, from_zarr, xr_dset):
+    def test_kd_resampling(self, resampler, create_filename, from_zarr,
+                           xr_dset, cnc):
         """Test the kd resampler."""
         import numpy as np
         import dask.array as da
@@ -154,6 +156,7 @@ class TestKDTreeResampler(unittest.TestCase):
         # swath definitions should not be cached
         self.assertFalse(len(mock_dset.to_zarr.mock_calls), 0)
         resampler.resampler.reset_mock()
+        cnc.assert_called_once()
 
         resampler = KDTreeResampler(source_area, target_area)
         resampler.precompute()
