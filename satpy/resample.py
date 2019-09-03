@@ -404,12 +404,12 @@ class BaseResampler(object):
         return self.compute(data, cache_id=cache_id, **kwargs)
 
     def _create_cache_filename(self, cache_dir=None, prefix='',
-                               **kwargs):
+                               fmt='.zarr', **kwargs):
         """Create filename for the cached resampling parameters."""
         cache_dir = cache_dir or '.'
         hash_str = self.get_hash(**kwargs)
 
-        return os.path.join(cache_dir, prefix + hash_str + '.zarr')
+        return os.path.join(cache_dir, prefix + hash_str + fmt)
 
 
 class KDTreeResampler(BaseResampler):
@@ -499,10 +499,36 @@ class KDTreeResampler(BaseResampler):
         setattr(self.resampler, idx_name, val)
         return val
 
+    def _check_numpy_cache(self, cache_dir, mask=None,
+                           **kwargs):
+        """Check if there's Numpy cache file and convert it to zarr."""
+        fname_np = self._create_cache_filename(cache_dir,
+                                               prefix='resample_lut-',
+                                               mask=mask, fmt='.npz',
+                                               **kwargs)
+        fname_zarr = self._create_cache_filename(cache_dir, prefix='nn_lut-',
+                                                 mask=mask, fmt='.zarr',
+                                                 **kwargs)
+
+        if os.path.exists(fname_np) and not os.path.exists(fname_zarr):
+            import warnings
+            warnings.warn("Using Numpy files as resampling cache is "
+                          "deprecated.")
+            LOG.warning("Converting resampling LUT from .npz to .zarr")
+            zarr_out = xr.Dataset()
+            with np.load(fname_np, 'r') as fid:
+                for idx_name, coord in NN_COORDINATES.items():
+                    zarr_out[idx_name] = (coord, fid[idx_name])
+
+            # Write indices to Zarr file
+            zarr_out.to_zarr(fname_zarr)
+
     def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Read index arrays from either the in-memory or disk cache."""
         mask_name = getattr(mask, 'name', None)
         cached = {}
+        self._check_numpy_cache(cache_dir, mask=mask_name, **kwargs)
+
         filename = self._create_cache_filename(cache_dir, prefix='nn_lut-',
                                                mask=mask_name, **kwargs)
         for idx_name in NN_COORDINATES.keys():
