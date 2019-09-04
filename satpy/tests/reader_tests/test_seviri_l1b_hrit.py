@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The HRIT msg reader tests package.
-"""
+"""The HRIT msg reader tests package."""
 
 import sys
 from datetime import datetime
@@ -246,6 +245,24 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
 
         east_bound = 3
         self.assertRaises(IndexError, pad_hrv_data, data, final_size, east_bound, west_bound)
+
+    def test_get_area_def(self):
+        """Test getting the area def."""
+        area = self.reader.get_area_def(DatasetID('HRV'))
+        self.assertEqual(area.area_extent,
+                         (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356))
+        self.assertEqual(area.proj_dict, {'a': 6378169.0,
+                                          'b': 6356583.8,
+                                          'h': 35785831.0,
+                                          'lon_0': 44,
+                                          'proj': 'geos',
+                                          'units': 'm'})
+        self.reader.fill_HRV = False
+        area = self.reader.get_area_def(DatasetID('HRV'))
+        self.assertEqual(area.defs[0].area_extent,
+                         (-22017598561055.01, -2926674655354.9604, 23564847539690.22, 77771774058.38356))
+        self.assertEqual(area.defs[1].area_extent,
+                         (-30793529275853.656, -3720765401003.719, 14788916824891.568, -2926674655354.9604))
 
 
 class TestHRITMSGFileHandler(unittest.TestCase):
@@ -690,7 +707,8 @@ def suite():
     """Test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    tests = [TestHRITMSGFileHandler, TestHRITMSGPrologueFileHandler, TestHRITMSGEpilogueFileHandler]
+    tests = [TestHRITMSGFileHandler, TestHRITMSGPrologueFileHandler, TestHRITMSGEpilogueFileHandler,
+             TestHRITMSGFileHandlerHRV]
     for test in tests:
         mysuite.addTest(loader.loadTestsFromTestCase(test))
     return mysuite
