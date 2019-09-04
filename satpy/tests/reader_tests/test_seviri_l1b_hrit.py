@@ -241,7 +241,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
         res = pad_hrv_data(data, final_size, east_bound, west_bound)
         expected = np.array([[np.nan, np.nan, np.nan,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
                               np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
-        np.testing.assert_allclose(res.compute(), expected)
+        np.testing.assert_allclose(res, expected)
 
         east_bound = 3
         self.assertRaises(IndexError, pad_hrv_data, data, final_size, east_bound, west_bound)
@@ -374,7 +374,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                                                 size=int((464 * 3712 * nbits) / 8),
                                                 dtype=np.uint8)
         res = self.reader.read_band('VIS006', None)
-        self.assertEqual(res.compute().shape, (464, 3712))
+        self.assertEqual(res.shape, (464, 3712))
 
     @mock.patch('satpy.readers.hrit_base.HRITFileHandler.__init__', return_value=None)
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_header', autospec=True)
