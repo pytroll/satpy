@@ -136,7 +136,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
                                                 size=int((464 * 5568 * nbits) / 8),
                                                 dtype=np.uint8)
         res = self.reader.read_band('HRV', None)
-        self.assertEqual(res.compute().shape, (464, 5568))
+        self.assertEqual(res.shape, (464, 5568))
 
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_timestamps')
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITFileHandler.get_dataset')
