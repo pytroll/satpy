@@ -125,6 +125,7 @@ References:
 """
 
 from __future__ import division
+
 import copy
 import logging
 from datetime import datetime
@@ -781,6 +782,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 def pad_hrv_data(data, final_size, east_bound, west_bound):
     """Pad the data given east and west bounds and the desired size."""
     nlines = final_size[0]
+    if west_bound - east_bound != data.shape[1] - 1:
+        raise IndexError('East and west bounds do not match data shape')
     padding_east = da.zeros((nlines, east_bound - 1),
                             dtype=data.dtype, chunks=CHUNK_SIZE)
     padding_west = da.zeros((nlines, (final_size[1] - west_bound)),
@@ -788,5 +791,4 @@ def pad_hrv_data(data, final_size, east_bound, west_bound):
     if np.issubdtype(data.dtype, np.floating):
         padding_east = padding_east * np.nan
         padding_west = padding_west * np.nan
-
-    return da.hstack((padding_east, data, padding_west))
+    return np.hstack((padding_east, data, padding_west))
