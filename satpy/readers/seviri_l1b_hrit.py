@@ -42,6 +42,16 @@ Each image is decomposed into 24 segments (files) for the high-resolution-visibl
 visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
 which contain global metadata valid for all channels.
 
+Arguments
+---------
+Some arguments can be provided to the reader to change it's behaviour. These are
+provided through the `Scene` instantiation, eg::
+
+  Scene(reader="seviri_l1b_hrit", filenames=fnames, reader_kwargs={'fill_hrv': False})
+
+To see the full list of arguments that can be provided, look into the documentation
+of `:class:HRITMSGFileHandler`.
+
 Example
 -------
 Here is an example how to read the data in satpy:
@@ -440,11 +450,21 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     By default, arrays with more than 100 elements are excluded from the raw reader metadata to
     limit memory usage. This threshold can be adjusted using the `mda_max_array_size` keyword
-    argument:
+    argument::
 
         scene = satpy.Scene(filenames,
                             reader='seviri_l1b_hrit',
                             reader_kwargs={'mda_max_array_size': 1000})
+
+    **Padding of the HRV channel**
+
+    By default, the HRV channel is loaded padded with no-data, that is it is
+    returned as a full-disk dataset. If you want the original, unpadded, data,
+    just provide the `fill_hrv` as False in the `reader_kwargs`::
+
+        scene = satpy.Scene(filenames,
+                            reader='seviri_l1b_hrit',
+                            reader_kwargs={'fill_hrv': False})
 
     """
 
