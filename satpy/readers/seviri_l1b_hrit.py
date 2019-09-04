@@ -121,30 +121,30 @@ References:
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
     RevisionSelectionMethod=LatestReleased&Rendition=Web
+
 """
 
 import copy
 import logging
 from datetime import datetime
 
+import dask.array as da
 import numpy as np
 import pyproj
+import xarray as xr
 
+import satpy.readers.utils as utils
 from pyresample import geometry
-
-from satpy.readers.eum_base import (time_cds_short,
-                                    recarray2dict)
+from satpy import CHUNK_SIZE
+from satpy.readers.eum_base import recarray2dict, time_cds_short
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
-
-from satpy.readers.seviri_base import SEVIRICalibrationHandler, chebyshev, get_cds_time
-from satpy.readers.seviri_base import (CHANNEL_NAMES, VIS_CHANNELS, CALIB, SATNUM)
-
-from satpy.readers.seviri_l1b_native_hdr import (hrit_prologue, hrit_epilogue,
+from satpy.readers.seviri_base import (CALIB, CHANNEL_NAMES, SATNUM,
+                                       VIS_CHANNELS, SEVIRICalibrationHandler,
+                                       chebyshev, get_cds_time)
+from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
-import satpy.readers.utils as utils
-
 
 logger = logging.getLogger('hrit_msg')
 
@@ -201,29 +201,35 @@ cuc_time = np.dtype([('coarse', 'u1', (4, )),
 
 
 class NoValidOrbitParams(Exception):
+    """Exception when validOrbitParameters are missing."""
+
     pass
 
 
 class HRITMSGPrologueEpilogueBase(HRITFileHandler):
+    """Base reader for *logue files."""
+
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
+        """Initialize the *logue readers."""
         super(HRITMSGPrologueEpilogueBase, self).__init__(filename, filename_info, filetype_info, hdr_info)
         self._reduced = None
 
     def _reduce(self, mda, max_size):
+        """Reduce the metadata."""
         if self._reduced is None:
             self._reduced = utils.reduce_mda(mda, max_size=max_size)
         return self._reduced
 
     def reduce(self, max_size):
+        """Reduce the metadata (placeholder)."""
         raise NotImplementedError
 
 
 class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
-    """SEVIRI HRIT prologue reader.
-    """
+    """SEVIRI HRIT prologue reader."""
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
-                 ext_calib_coefs=None, mda_max_array_size=None):
+                 ext_calib_coefs=None, mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
         super(HRITMSGPrologueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -242,7 +248,6 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def read_prologue(self):
         """Read the prologue metadata."""
-
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=hrit_prologue, count=1)
@@ -255,7 +260,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
                 self.prologue.update(recarray2dict(impf))
 
     def get_satpos(self):
-        """Get actual satellite position in geodetic coordinates (WGS-84)
+        """Get actual satellite position in geodetic coordinates (WGS-84).
 
         Returns: Longitude [deg east], Latitude [deg north] and Altitude [m]
         """
@@ -281,7 +286,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         return self.satpos
 
     def _get_satpos_cart(self):
-        """Determine satellite position in earth-centered cartesion coordinates
+        """Determine satellite position in earth-centered cartesion coordinates.
 
         The coordinates as a function of time are encoded in the coefficients of an 8th-order Chebyshev polynomial.
         In the prologue there is one set of coefficients for each coordinate (x, y, z). The coordinates are obtained by
@@ -309,13 +314,14 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         return x*1000, y*1000, z*1000  # km -> m
 
     def _find_orbit_coefs(self):
-        """Find orbit coefficients for the current time
+        """Find orbit coefficients for the current time.
 
         The orbital Chebyshev coefficients are only valid for a certain time interval. The header entry
         SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients for multiple time intervals. Find the
         coefficients which are valid for the nominal timestamp of the scan.
 
         Returns: Corresponding index in the coefficient list.
+
         """
         # Find index of interval enclosing the nominal timestamp of the scan
         time = np.datetime64(self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart'])
@@ -329,10 +335,11 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
             raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
 
     def get_earth_radii(self):
-        """Get earth radii from prologue
+        """Get earth radii from prologue.
 
         Returns:
             Equatorial radius, polar radius [m]
+
         """
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
         a = earth_model['EquatorialRadius'] * 1000
@@ -341,15 +348,15 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         return a, b
 
     def reduce(self, max_size):
+        """Reduce the prologue metadata."""
         return self._reduce(self.prologue, max_size=max_size)
 
 
 class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
-    """SEVIRI HRIT epilogue reader.
-    """
+    """SEVIRI HRIT epilogue reader."""
 
     def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal',
-                 ext_calib_coefs=None, mda_max_array_size=None):
+                 ext_calib_coefs=None, mda_max_array_size=None, fill_hrv=None):
         """Initialize the reader."""
         super(HRITMSGEpilogueFileHandler, self).__init__(filename, filename_info,
                                                          filetype_info,
@@ -367,18 +374,18 @@ class HRITMSGEpilogueFileHandler(HRITMSGPrologueEpilogueBase):
 
     def read_epilogue(self):
         """Read the epilogue metadata."""
-
         with open(self.filename, "rb") as fp_:
             fp_.seek(self.mda['total_header_length'])
             data = np.fromfile(fp_, dtype=hrit_epilogue, count=1)
             self.epilogue.update(recarray2dict(data))
 
     def reduce(self, max_size):
+        """Reduce the epilogue metadata."""
         return self._reduce(self.epilogue, max_size=max_size)
 
 
 class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
-    """SEVIRI HRIT format reader
+    """SEVIRI HRIT format reader.
 
     **Calibration**
 
@@ -438,9 +445,10 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
                             reader_kwargs={'mda_max_array_size': 1000})
 
     """
+
     def __init__(self, filename, filename_info, filetype_info,
                  prologue, epilogue, calib_mode='nominal',
-                 ext_calib_coefs=None, mda_max_array_size=100):
+                 ext_calib_coefs=None, mda_max_array_size=100, fill_hrv=True):
         """Initialize the reader."""
         super(HRITMSGFileHandler, self).__init__(filename, filename_info,
                                                  filetype_info,
@@ -455,6 +463,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self._filename_info = filename_info
         self.ext_calib_coefs = ext_calib_coefs if ext_calib_coefs is not None else {}
         self.mda_max_array_size = mda_max_array_size
+        self.fill_HRV = fill_hrv
         calib_mode_choices = ('NOMINAL', 'GSICS')
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
@@ -464,8 +473,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self._get_header()
 
     def _get_header(self):
-        """Read the header info, and fill the metadata dictionary"""
-
+        """Read the header info, and fill the metadata dictionary."""
         earth_model = self.prologue['GeometricProcessing']['EarthModel']
         self.mda['offset_corrected'] = earth_model['TypeOfEarthModel'] == 2
 
@@ -501,13 +509,13 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     @property
     def start_time(self):
-
+        """Get the start time."""
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanStart']
 
     @property
     def end_time(self):
-
+        """Get the end time."""
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanEnd']
 
@@ -518,8 +526,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         """
         loff, coff = offsets
         lfac, cfac = factors
-        x__ = (col - coff) / cfac * 2**16
-        y__ = - (line - loff) / lfac * 2**16
+        x__ = (col - coff) / (cfac / 2**16)
+        y__ = - (line - loff) / (lfac / 2**16)
 
         return x__, y__
 
@@ -585,9 +593,15 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         segment_number = self.mda['segment_sequence_number']
 
-        current_first_line = (segment_number -
-                              self.mda['planned_start_segment_number']) * nlines
-        bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV']
+        current_first_line = (segment_number
+                              - self.mda['planned_start_segment_number']) * nlines
+        bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV'].copy()
+        if self.fill_HRV:
+            bounds['UpperEastColumnActual'] = 1
+            bounds['UpperWestColumnActual'] = 11136
+            bounds['LowerEastColumnActual'] = 1
+            bounds['LowerWestColumnActual'] = 11136
+            ncols = 11136
 
         upper_south_line = bounds[
             'LowerNorthLineActual'] - current_first_line - 1
@@ -632,15 +646,48 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             ncols,
             nlines - upper_south_line,
             upper_area_extent)
-
         area = geometry.StackedAreaDefinition(lower_area, upper_area)
 
         self.area = area.squeeze()
-        return area
+        return self.area
 
     def get_dataset(self, key, info):
+        """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key.calibration)
+        if key.name == 'HRV' and self.fill_HRV:
+            # add empty pixels around the HRV
+            logger.debug('Padding HRV data to full disk')
+            nlines = int(self.mda['number_of_lines'])
+
+            segment_number = self.mda['segment_sequence_number']
+
+            current_first_line = (segment_number
+                                  - self.mda['planned_start_segment_number']) * nlines
+            bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV']
+
+            upper_south_line = bounds[
+              'LowerNorthLineActual'] - current_first_line - 1
+            upper_south_line = min(max(upper_south_line, 0), nlines)
+
+            data_list = list()
+            if upper_south_line > 0:
+                # we have some of the lower window
+                data_lower = pad_hrv_data(res[:upper_south_line, :].data,
+                                          (upper_south_line, 11136),
+                                          bounds['LowerEastColumnActual'],
+                                          bounds['LowerWestColumnActual'])
+                data_list.append(data_lower)
+
+            if upper_south_line < nlines:
+                # we have some of the upper window
+                data_upper = pad_hrv_data(res[upper_south_line:, :].data,
+                                          (nlines - upper_south_line, 11136),
+                                          bounds['UpperEastColumnActual'],
+                                          bounds['UpperWestColumnActual'])
+                data_list.append(data_upper)
+            res = xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
+
         res.attrs['units'] = info['units']
         res.attrs['wavelength'] = info['wavelength']
         res.attrs['standard_name'] = info['standard_name']
@@ -712,7 +759,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         return res
 
     def _get_raw_mda(self):
-        """Compile raw metadata to be included in the dataset attributes"""
+        """Compile raw metadata to be included in the dataset attributes."""
         # Metadata from segment header (excluding items which vary among the different segments)
         raw_mda = copy.deepcopy(self.mda)
         for key in ('image_segment_line_quality', 'segment_sequence_number', 'annotation_header', 'loff'):
@@ -725,18 +772,20 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         return raw_mda
 
     def _get_timestamps(self):
-        """Read scanline timestamps from the segment header"""
+        """Read scanline timestamps from the segment header."""
         tline = self.mda['image_segment_line_quality']['line_mean_acquisition']
         return get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
 
 
-def show(data, negate=False):
-    """Show the stretched data.
-    """
-    from PIL import Image as pil
-    data = np.array((data - data.min()) * 255.0 /
-                    (data.max() - data.min()), np.uint8)
-    if negate:
-        data = 255 - data
-    img = pil.fromarray(data)
-    img.show()
+def pad_hrv_data(data, final_size, east_bound, west_bound):
+    """Pad the data given east and west bounds and the desired size."""
+    nlines = final_size[0]
+    padding_east = da.zeros((nlines, east_bound - 1),
+                            dtype=data.dtype, chunks=CHUNK_SIZE)
+    padding_west = da.zeros((nlines, (final_size[1] - west_bound)),
+                            dtype=data.dtype, chunks=CHUNK_SIZE)
+    if np.issubdtype(data.dtype, np.floating):
+        padding_east = padding_east * np.nan
+        padding_west = padding_west * np.nan
+
+    return da.hstack((padding_east, data, padding_west))
