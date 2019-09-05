@@ -345,6 +345,12 @@ class TestCFWriter(unittest.TestCase):
                  'end_time': datetime(2018, 1, 1, 0, 15),
                  'int': 1,
                  'float': 1.0,
+                 'numpy_int': np.uint8(1),
+                 'numpy_float': np.float32(1),
+                 'numpy_bool': np.bool(True),
+                 'numpy_void': np.void(0),
+                 'numpy_bytes': np.bytes_('test'),
+                 'numpy_string': np.string_('test'),
                  'list': [1, 2, np.float64(3)],
                  'nested_list': ["1", ["2", [3]]],
                  'bool': True,
@@ -364,9 +370,15 @@ class TestCFWriter(unittest.TestCase):
                    'end_time': '2018-01-01 00:15:00',
                    'int': 1,
                    'float': 1.0,
-                   'list': [1, 2, 3.0],
+                   'numpy_int': np.uint8(1),
+                   'numpy_float': np.float32(1),
+                   'numpy_bool': np.bool(True),
+                   'numpy_void': '[]',
+                   'numpy_bytes': 'test',
+                   'numpy_string': 'test',
+                   'list': [1, 2, np.float64(3)],
                    'nested_list': '["1", ["2", [3]]]',
-                   'bool': 'True',
+                   'bool': True,
                    'array': np.array([1, 2, 3], dtype='uint8'),
                    'array_bool': ['True', 'False', 'True'],
                    'array_2d': '[[1, 2], [3, 4]]',
@@ -380,9 +392,15 @@ class TestCFWriter(unittest.TestCase):
                         'end_time': '2018-01-01 00:15:00',
                         'int': 1,
                         'float': 1.0,
-                        'list': [1, 2, 3.0],
+                        'numpy_int': np.uint8(1),
+                        'numpy_float': np.float32(1),
+                        'numpy_bool': np.bool(True),
+                        'numpy_void': '[]',
+                        'numpy_bytes': 'test',
+                        'numpy_string': 'test',
+                        'list': [1, 2, np.float64(3)],
                         'nested_list': '["1", ["2", [3]]]',
-                        'bool': 'True',
+                        'bool': True,
                         'array': np.array([1, 2, 3], dtype='uint8'),
                         'array_bool': ['True', 'False', 'True'],
                         'array_2d': '[[1, 2], [3, 4]]',
@@ -406,6 +424,9 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(val1.dtype, val2.dtype)
             else:
                 self.assertEqual(val1, val2)
+                if isinstance(val1, (np.floating, np.integer, np.bool_)):
+                    self.assertTrue(isinstance(val2, np.generic))
+                    self.assertEqual(val1.dtype, val2.dtype)
 
     def test_encode_attrs_nc(self):
         """Test attributes encoding."""
@@ -416,7 +437,7 @@ class TestCFWriter(unittest.TestCase):
 
         # Test encoding
         encoded = encode_attrs_nc(attrs)
-        self.assertDictWithArraysEqual(encoded, expected)
+        self.assertDictWithArraysEqual(expected, encoded)
 
         # Test decoding of json-encoded attributes
         raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],

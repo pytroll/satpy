@@ -117,14 +117,25 @@ logger = logging.getLogger(__name__)
 
 EPOCH = u"seconds since 1970-01-01 00:00:00"
 
+# Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is
+# excluded because h5py (and thus h5netcdf) has problems with unicode, see
+# https://github.com/h5py/h5py/issues/624."""
 NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
               np.dtype('int16'), np.dtype('uint16'),
               np.dtype('int32'), np.dtype('uint32'),
               np.dtype('int64'), np.dtype('uint64'),
               np.dtype('float32'), np.dtype('float64'),
               np.string_]
-"""Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is excluded because h5py (and thus h5netcdf)
-has problems with unicode, see https://github.com/h5py/h5py/issues/624."""
+
+# Unsigned and int64 isn't CF 1.7 compatible
+CF_DTYPES = [np.dtype('int8'),
+             np.dtype('int16'),
+             np.dtype('int32'),
+             np.dtype('float32'),
+             np.dtype('float64'),
+             np.string_]
+
+CF_VERSION = 'CF-1.7'
 
 
 def omerc2cf(area):
@@ -371,15 +382,22 @@ class AttributeEncoder(json.JSONEncoder):
         return self._encode(obj)
 
     def _encode(self, obj):
-        """Encode the given object as a json-serializable datatype.
-
-        Use the netcdf encoder as it covers most of the datatypes appearing in dataset attributes. If that fails,
-        return the string representation of the object.
-        """
-        try:
-            return _encode_nc(obj)
-        except ValueError:
+        """Encode the given object as a json-serializable datatype."""
+        if isinstance(obj, (bool, np.bool_)):
+            # Bool has to be checked first, because it is a subclass of int
             return str(obj)
+        elif isinstance(obj, (int, float, str)):
+            return obj
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.void):
+            return tuple(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+
+        return str(obj)
 
 
 def _encode_nc(obj):
@@ -389,28 +407,17 @@ def _encode_nc(obj):
         ValueError if no such datatype could be found
 
     """
-    if isinstance(obj, (bool, np.bool_)):
-        # Bool has to be checked first, because it is a subclass of int
-        return str(obj)
-    elif isinstance(obj, (int, float, str)):
+    if isinstance(obj, (int, float, str, np.integer, np.floating)):
         return obj
-    elif isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, np.floating):
-        return float(obj)
-    elif isinstance(obj, np.void):
-        return tuple(obj)
     elif isinstance(obj, np.ndarray):
-        if not obj.dtype.fields and obj.dtype == np.bool_:
-            # Convert array of booleans to array of strings
-            obj = obj.astype(str)
-
-        # Multi-dimensional nc attributes are not supported, so we have to skip record arrays and multi-dimensional
-        # arrays here
+        # Only plain 1-d arrays are supported. Skip record arrays and multi-dimensional arrays.
         is_plain_1d = not obj.dtype.fields and len(obj.shape) <= 1
         if is_plain_1d:
             if obj.dtype in NC4_DTYPES:
                 return obj
+            elif obj.dtype == np.bool_:
+                # Boolean arrays are not supported, convert to array of strings.
+                obj = obj.astype(str)
             return obj.tolist()
 
     raise ValueError('Unable to encode')
@@ -537,6 +544,8 @@ class CFWriter(Writer):
         start_times = []
         end_times = []
         for ds in ds_collection.values():
+            if ds.dtype not in CF_DTYPES:
+                warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
             try:
                 new_datasets = area2cf(ds, strict=include_lonlats)
             except KeyError:
@@ -632,7 +641,7 @@ class CFWriter(Writer):
             root.attrs.update({k: v for k, v in header_attrs.items() if v})
         if groups is None:
             # Groups are not CF-1.7 compliant
-            root.attrs['Conventions'] = 'CF-1.7'
+            root.attrs['Conventions'] = CF_VERSION
 
         # Remove satpy-specific kwargs
         satpy_kwargs = ['overlay', 'decorate', 'config_files']

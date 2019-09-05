@@ -1,10 +1,14 @@
-# References:
-# GOES 8-12:  https://goes.gsfc.nasa.gov/text/databook/databook.pdf, page 20 ff
-# GOES 13-15: https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf, chapter 3.
-
 reader:
-  description: GOES netCDF Reader
   name: goes-imager_nc
+  short_name: GOES Imager netCDF
+  long_name: GOES Imager Level 1 (netCDF)
+  description: >
+    Reader for GOES Imager Level 1 data in netCDF format (from both NOAA CLASS and EUMETCast)
+    References:
+
+    - GOES 8-12: https://goes.gsfc.nasa.gov/text/databook/databook.pdf, page 20 ff.
+    - GOES 13-15: https://goes.gsfc.nasa.gov/text/GOES-N_Databook/databook.pdf, chapter 3.
+
   sensors: [goes_imager]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
