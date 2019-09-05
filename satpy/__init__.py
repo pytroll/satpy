@@ -19,9 +19,10 @@
 """
 
 import os
+from pkg_resources import get_distribution, DistributionNotFound
 try:
-    from .version import version as __version__  # noqa
-except ImportError:
+    __version__ = get_distribution(__name__).version
+except DistributionNotFound:
     # package is not installed
     pass
 
