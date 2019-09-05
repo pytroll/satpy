@@ -312,7 +312,7 @@ class MITIFFWriter(ImageWriter):
         found_calibration = False
         skip_calibration = False
         ds_list = datasets
-        if not isinstance(datasets, list):
+        if not isinstance(datasets, list) and 'bands' not in datasets.sizes:
             ds_list = [datasets]
 
         for i, ds in enumerate(ds_list):
@@ -597,15 +597,15 @@ class MITIFFWriter(ImageWriter):
 
                 tif.write_image(data.astype(np.uint8), compression='deflate')
             else:
-                for _cn in self.channel_order[kwargs['sensor']]:
+                for _cn_i, _cn in enumerate(self.channel_order[kwargs['sensor']]):
                     for i, band in enumerate(datasets['bands']):
                         if band == _cn:
                             chn = datasets.sel(bands=band)
                             # Need to possible translate channels names from satpy to mitiff
                             # Note the last index is a tuple index.
-                            cn = cns.get(chn.attrs['prerequisites'][int(_cn) - 1][0],
-                                         chn.attrs['prerequisites'][int(_cn) - 1][0])
-                            data = self._calibrate_data(chn, chn.attrs['prerequisites'][int(_cn) - 1][4],
+                            cn = cns.get(chn.attrs['prerequisites'][_cn_i][0],
+                                         chn.attrs['prerequisites'][_cn_i][0])
+                            data = self._calibrate_data(chn, chn.attrs['prerequisites'][_cn_i][4],
                                                         self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                         self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 

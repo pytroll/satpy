@@ -5,13 +5,13 @@ env:
         - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
         - NUMPY_VERSION=stable
         - MAIN_CMD='python setup.py'
-        - CONDA_DEPENDENCIES='xarray dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio<1.0.14 imageio pyhdf mock libtiff pycoast pydecorate geoviews'
+        - CONDA_DEPENDENCIES='xarray dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff pycoast pydecorate geoviews'
         - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
         - SETUP_CMD='test'
         - CONDA_CHANNELS='conda-forge'
-        - CONDA_CHANNEL_PRIORITY='True'
+        - CONDA_CHANNEL_PRIORITY='strict'
 matrix:
   include:
   - env: PYTHON_VERSION=2.7
@@ -25,7 +25,8 @@ matrix:
     os: osx
     language: generic
 install:
-    - git clone --depth 1 git://github.com/astropy/ci-helpers.git
+#    - git clone --depth 1 git://github.com/astropy/ci-helpers.git
+    - git clone --depth 1 -b all-the-fixes git://github.com/djhoese/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
 script:
 - coverage run --source=satpy setup.py test
