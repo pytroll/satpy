@@ -35,6 +35,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
+from satpy.config import get_environ_ancpath
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
@@ -1410,6 +1411,10 @@ class StaticImageCompositor(GenericCompositor):
     def __call__(self, *args, **kwargs):
         """Call the compositor."""
         from satpy import Scene
+        # Check if filename exists, if not then try from SATPY_ANCPATH
+        if (not os.path.isfile(self.filename)):
+            self.filename = os.path.join(get_environ_ancpath(), self.filename)
+        print(self.filename)
         scn = Scene(reader='generic_image', filenames=[self.filename])
         scn.load(['image'])
         img = scn['image']
