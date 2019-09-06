@@ -99,7 +99,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
                     ncols = 5568
                     nlines = 464
                     nbits = 10
-                    self.reader.fill_HRV = True
+                    self.reader.fill_hrv = True
                     self.reader.mda['number_of_bits_per_pixel'] = nbits
                     self.reader.mda['number_of_lines'] = nlines
                     self.reader.mda['number_of_columns'] = ncols
@@ -194,7 +194,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
         key.name = 'HRV'
         info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
         timestamps = np.arange(0, 464, dtype='datetime64[ns]')
-        self.reader.fill_HRV = False
+        self.reader.fill_hrv = False
         parent_get_dataset.return_value = mock.MagicMock()
         calibrate.return_value = xr.DataArray(data=np.zeros((464, 5568)), dims=('y', 'x'))
         _get_timestamps.return_value = timestamps
@@ -257,7 +257,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
                                           'lon_0': 44,
                                           'proj': 'geos',
                                           'units': 'm'})
-        self.reader.fill_HRV = False
+        self.reader.fill_hrv = False
         area = self.reader.get_area_def(DatasetID('HRV'))
         self.assertEqual(area.defs[0].area_extent,
                          (-22017598561055.01, -2926674655354.9604, 23564847539690.22, 77771774058.38356))
