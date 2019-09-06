@@ -135,6 +135,7 @@ import numpy as np
 import xarray as xr
 import dask
 import dask.array as da
+import zarr
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
@@ -151,8 +152,11 @@ NN_COORDINATES = {'valid_input_index': ('y1', 'x1'),
                   'index_array': ('y2', 'x2', 'z2')}
 BIL_COORDINATES = {'bilinear_s': ('x1', ),
                    'bilinear_t': ('x1', ),
-                   'valid_input_index': ('x2', ),
-                   'index_array': ('x1', 'n')}
+                   'slices_x': ('x1', 'n'),
+                   'slices_y': ('x1', 'n'),
+                   'mask_slices': ('x1', 'n'),
+                   'out_coords_x': ('x2', ),
+                   'out_coords_y': ('y2', )}
 
 resamplers_cache = WeakValueDictionary()
 
@@ -537,7 +541,8 @@ class KDTreeResampler(BaseResampler):
                     self._index_caches[mask_name][idx_name], idx_name)
             elif cache_dir:
                 try:
-                    cache = da.from_zarr(filename, idx_name)
+                    fid = zarr.open(filename, 'r')
+                    cache = np.array(fid[idx_name])
                     if idx_name == 'valid_input_index':
                         # valid input index array needs to be boolean
                         cache = cache.astype(np.bool)
@@ -813,6 +818,7 @@ class BilinearResampler(BaseResampler):
             except IOError:
                 LOG.debug("Computing bilinear parameters")
                 self.resampler.get_bil_info()
+                LOG.debug("Saving bilinear parameters.")
                 self.save_bil_info(cache_dir, **kwargs)
 
     def load_bil_info(self, cache_dir, **kwargs):
@@ -821,18 +827,13 @@ class BilinearResampler(BaseResampler):
             filename = self._create_cache_filename(cache_dir,
                                                    prefix='bil_lut-',
                                                    **kwargs)
-            for val in BIL_COORDINATES.keys():
-                try:
-                    cache = da.from_zarr(filename, val)
-                    if val == 'valid_input_index':
-                        # valid input index array needs to be boolean
-                        cache = cache.astype(np.bool)
-                    # Compute the cache arrays
-                    cache = cache.compute()
-                except ValueError:
-                    raise IOError
-                setattr(self.resampler, val, cache)
-
+            try:
+                fid = zarr.open(filename, 'r')
+                for val in BIL_COORDINATES.keys():
+                    cache = np.array(fid[val])
+                    setattr(self.resampler, val, cache)
+            except ValueError:
+                raise IOError
         else:
             raise IOError
 
@@ -848,7 +849,8 @@ class BilinearResampler(BaseResampler):
                 var = getattr(self.resampler, idx_name)
                 if isinstance(var, np.ndarray):
                     var = da.from_array(var, chunks=CHUNK_SIZE)
-                var = var.rechunk(CHUNK_SIZE)
+                else:
+                    var = var.rechunk(CHUNK_SIZE)
                 zarr_out[idx_name] = (coord, var)
             zarr_out.to_zarr(filename)
 
