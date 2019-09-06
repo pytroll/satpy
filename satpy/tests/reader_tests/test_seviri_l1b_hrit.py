@@ -24,7 +24,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
-                                           NoValidOrbitParams, pad_hrv_data)
+                                           NoValidOrbitParams, pad_data)
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
 from satpy.dataset import DatasetID
 
@@ -232,19 +232,19 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
         self.assertTrue(np.all(res['acq_time'] == timestamps))
         self.assertEqual(res['acq_time'].attrs['long_name'], 'Mean scanline acquisition time')
 
-    def test_pad_hrv(self):
+    def test_pad_data(self):
         """Test the hrv padding."""
         data = xr.DataArray(data=np.zeros((1, 10)), dims=('y', 'x'))
         east_bound = 4
         west_bound = 13
         final_size = (1, 20)
-        res = pad_hrv_data(data, final_size, east_bound, west_bound)
+        res = pad_data(data, final_size, east_bound, west_bound)
         expected = np.array([[np.nan, np.nan, np.nan,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,  0.,
                               np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan]])
         np.testing.assert_allclose(res, expected)
 
         east_bound = 3
-        self.assertRaises(IndexError, pad_hrv_data, data, final_size, east_bound, west_bound)
+        self.assertRaises(IndexError, pad_data, data, final_size, east_bound, west_bound)
 
     def test_get_area_def(self):
         """Test getting the area def."""

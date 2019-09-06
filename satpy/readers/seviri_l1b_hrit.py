@@ -485,7 +485,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self._filename_info = filename_info
         self.ext_calib_coefs = ext_calib_coefs if ext_calib_coefs is not None else {}
         self.mda_max_array_size = mda_max_array_size
-        self.fill_HRV = fill_hrv
+        self.fill_hrv = fill_hrv
         calib_mode_choices = ('NOMINAL', 'GSICS')
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
@@ -618,7 +618,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         current_first_line = (segment_number
                               - self.mda['planned_start_segment_number']) * nlines
         bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV'].copy()
-        if self.fill_HRV:
+        if self.fill_hrv:
             bounds['UpperEastColumnActual'] = 1
             bounds['UpperWestColumnActual'] = 11136
             bounds['LowerEastColumnActual'] = 1
@@ -677,38 +677,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
         res = self.calibrate(res, key.calibration)
-        if key.name == 'HRV' and self.fill_HRV:
-            # add empty pixels around the HRV
-            logger.debug('Padding HRV data to full disk')
-            nlines = int(self.mda['number_of_lines'])
-
-            segment_number = self.mda['segment_sequence_number']
-
-            current_first_line = (segment_number
-                                  - self.mda['planned_start_segment_number']) * nlines
-            bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV']
-
-            upper_south_line = bounds[
-              'LowerNorthLineActual'] - current_first_line - 1
-            upper_south_line = min(max(upper_south_line, 0), nlines)
-
-            data_list = list()
-            if upper_south_line > 0:
-                # we have some of the lower window
-                data_lower = pad_hrv_data(res[:upper_south_line, :].data,
-                                          (upper_south_line, 11136),
-                                          bounds['LowerEastColumnActual'],
-                                          bounds['LowerWestColumnActual'])
-                data_list.append(data_lower)
-
-            if upper_south_line < nlines:
-                # we have some of the upper window
-                data_upper = pad_hrv_data(res[upper_south_line:, :].data,
-                                          (nlines - upper_south_line, 11136),
-                                          bounds['UpperEastColumnActual'],
-                                          bounds['UpperWestColumnActual'])
-                data_list.append(data_upper)
-            res = xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
+        if key.name == 'HRV' and self.fill_hrv:
+            res = self.pad_hrv_data(res)
 
         res.attrs['units'] = info['units']
         res.attrs['wavelength'] = info['wavelength']
@@ -733,6 +703,39 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
 
         return res
+
+    def pad_hrv_data(self, res):
+        """Add empty pixels around the HRV."""
+        logger.debug('Padding HRV data to full disk')
+        nlines = int(self.mda['number_of_lines'])
+
+        segment_number = self.mda['segment_sequence_number']
+
+        current_first_line = (segment_number
+                              - self.mda['planned_start_segment_number']) * nlines
+        bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV']
+
+        upper_south_line = bounds[
+          'LowerNorthLineActual'] - current_first_line - 1
+        upper_south_line = min(max(upper_south_line, 0), nlines)
+
+        data_list = list()
+        if upper_south_line > 0:
+            # we have some of the lower window
+            data_lower = pad_hrv_data(res[:upper_south_line, :].data,
+                                      (upper_south_line, 11136),
+                                      bounds['LowerEastColumnActual'],
+                                      bounds['LowerWestColumnActual'])
+            data_list.append(data_lower)
+
+        if upper_south_line < nlines:
+            # we have some of the upper window
+            data_upper = pad_hrv_data(res[upper_south_line:, :].data,
+                                      (nlines - upper_south_line, 11136),
+                                      bounds['UpperEastColumnActual'],
+                                      bounds['UpperWestColumnActual'])
+            data_list.append(data_upper)
+        return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
 
     def calibrate(self, data, calibration):
         """Calibrate the data."""
@@ -799,7 +802,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         return get_cds_time(days=tline['days'], msecs=tline['milliseconds'])
 
 
-def pad_hrv_data(data, final_size, east_bound, west_bound):
+def pad_data(data, final_size, east_bound, west_bound):
     """Pad the data given east and west bounds and the desired size."""
     nlines = final_size[0]
     if west_bound - east_bound != data.shape[1] - 1:
