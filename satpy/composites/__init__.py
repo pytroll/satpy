@@ -1388,7 +1388,12 @@ class SandwichCompositor(GenericCompositor):
 
 
 class StaticImageCompositor(GenericCompositor):
-    """A compositor that loads a static image from disk."""
+    """A compositor that loads a static image from disk.
+
+    If the filename passed to this compositor is not valid then
+    the SATPY_ANCPATH environment variable will be checked to see
+    if the image is located there
+    """
 
     def __init__(self, name, filename=None, area=None, **kwargs):
         """Collect custom configuration values.
