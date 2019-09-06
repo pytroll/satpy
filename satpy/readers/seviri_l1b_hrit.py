@@ -722,18 +722,18 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         data_list = list()
         if upper_south_line > 0:
             # we have some of the lower window
-            data_lower = pad_hrv_data(res[:upper_south_line, :].data,
-                                      (upper_south_line, 11136),
-                                      bounds['LowerEastColumnActual'],
-                                      bounds['LowerWestColumnActual'])
+            data_lower = pad_data(res[:upper_south_line, :].data,
+                                  (upper_south_line, 11136),
+                                  bounds['LowerEastColumnActual'],
+                                  bounds['LowerWestColumnActual'])
             data_list.append(data_lower)
 
         if upper_south_line < nlines:
             # we have some of the upper window
-            data_upper = pad_hrv_data(res[upper_south_line:, :].data,
-                                      (nlines - upper_south_line, 11136),
-                                      bounds['UpperEastColumnActual'],
-                                      bounds['UpperWestColumnActual'])
+            data_upper = pad_data(res[upper_south_line:, :].data,
+                                  (nlines - upper_south_line, 11136),
+                                  bounds['UpperEastColumnActual'],
+                                  bounds['UpperWestColumnActual'])
             data_list.append(data_upper)
         return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
 
