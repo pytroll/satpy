@@ -797,7 +797,7 @@ enhancements:
       method: *inversefun
       args:
       - [false, false, false]
-      
+
   night_background:
     standard_name: night_background
     operations:
