@@ -1,30 +1,23 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
+# Copyright (c) 2017 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Enhancements."""
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 import dask
 import dask.array as da
 import logging
@@ -138,12 +131,18 @@ def cira_stretch(img, **kwargs):
         log_root = np.log10(0.0223)
         denom = (1.0 - log_root) * 0.75
         band_data *= 0.01
-        band_data = xu.log10(band_data)
+        band_data = band_data.clip(np.finfo(float).eps)
+        band_data = np.log10(band_data)
         band_data -= log_root
         band_data /= denom
         return band_data
 
     return apply_enhancement(img.data, func)
+
+
+def _lookup_delayed(luts, band_data):
+    # can't use luts.__getitem__ for some reason
+    return luts[band_data]
 
 
 def lookup(img, **kwargs):
@@ -155,10 +154,7 @@ def lookup(img, **kwargs):
         lut = luts[:, index] if len(luts.shape) == 2 else luts
         band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
 
-        def _delayed(luts, band_data):
-            # can't use luts.__getitem__ for some reason
-            return luts[band_data]
-        new_delay = dask.delayed(_delayed)(lut, band_data)
+        new_delay = dask.delayed(_lookup_delayed)(lut, band_data)
         new_data = da.from_delayed(new_delay, shape=band_data.shape,
                                    dtype=luts.dtype)
         return new_data
@@ -212,11 +208,11 @@ def create_colormap(palette):
         return Colormap(*cmap)
 
     colors = palette.get('colors', None)
-    if isinstance(colors, list):
+    if isinstance(colors, (tuple, list)):
         cmap = []
         values = palette.get('values', None)
         for idx, color in enumerate(colors):
-            if values:
+            if values is not None:
                 value = values[idx]
             else:
                 value = idx / float(len(colors) - 1)
@@ -231,9 +227,15 @@ def create_colormap(palette):
     return None
 
 
+def _three_d_effect_delayed(band_data, kernel, mode):
+    from scipy.signal import convolve2d
+    band_data = band_data.reshape(band_data.shape[1:])
+    new_data = convolve2d(band_data, kernel, mode=mode)
+    return new_data.reshape((1, band_data.shape[0], band_data.shape[1]))
+
+
 def three_d_effect(img, **kwargs):
     """Create 3D effect using convolution"""
-    from scipy.signal import convolve2d
     w = kwargs.get('weight', 1)
     LOG.debug("Applying 3D effect with weight %.2f", w)
     kernel = np.array([[-w, 0, w],
@@ -244,22 +246,14 @@ def three_d_effect(img, **kwargs):
     def func(band_data, kernel=kernel, mode=mode, index=None):
         del index
 
-        def _delayed(band_data, kernel, mode):
-            band_data = band_data.reshape(band_data.shape[1:])
-            new_data = convolve2d(band_data, kernel, mode=mode)
-            return new_data.reshape((1, band_data.shape[0],
-                                     band_data.shape[1]))
-
-        delay = dask.delayed(_delayed)(band_data, kernel, mode)
-        new_data = da.from_delayed(delay, shape=band_data.shape,
-                                   dtype=band_data.dtype)
+        delay = dask.delayed(_three_d_effect_delayed)(band_data, kernel, mode)
+        new_data = da.from_delayed(delay, shape=band_data.shape, dtype=band_data.dtype)
         return new_data
 
     return apply_enhancement(img.data, func, separate=True, pass_dask=True)
 
 
-def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None,
-                    **kwargs):
+def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs):
     """Scale data linearly in two separate regions.
 
     This enhancement scales the input data linearly by splitting the data

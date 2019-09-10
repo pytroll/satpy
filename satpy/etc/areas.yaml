@@ -1,0 +1,1364 @@
+omerc_bb:
+  description: Oblique Mercator Bounding Box for Polar Overpasses
+  projection:
+    ellps: WGS84
+    proj: omerc
+  optimize_projection: True
+
+laea_bb:
+  description: Lambert Azimuthal Equal-Area Bounding Box for Polar Overpasses
+  projection:
+    ellps: WGS84
+    proj: laea
+  optimize_projection: True
+
+australia:
+  description: australia
+  projection:
+    proj: merc
+    lat_0: -27.5
+    lon_0: 132.5
+    ellps: WGS84
+  shape:
+    height: 895
+    width: 1001
+  area_extent:
+    lower_left_xy: [-2504688.5428486555, -5591295.9185533915]
+    upper_right_xy: [2504688.5428486555, -1111475.102852225]
+mali:
+  description: mali
+  projection:
+    proj: merc
+    lat_0: 19.0
+    lon_0: -1.0
+    ellps: WGS84
+  shape:
+    height: 705
+    width: 816
+  area_extent:
+    lower_left_xy: [-1224514.3987260093, 1111475.1028522244]
+    upper_right_xy: [1224514.3987260093, 3228918.5790461157]
+mali_eqc:
+  description: mali
+  projection:
+    proj: eqc
+    lat_0: 19.0
+    lon_0: -1.0
+    ellps: WGS84
+  shape:
+    height: 667
+    width: 816
+  area_extent:
+    lower_left_xy: [-1224514.3987260093, -1001875.4171394627]
+    upper_right_xy: [1224514.3987260093, 1001875.4171394617]
+sve:
+  description: North half of the Iberian Peninsula and the Gulf of Biscay image 0
+    degrees
+  projection:
+    init: epsg:3006
+  shape:
+    height: 2000
+    width: 2000
+  area_extent:
+    lower_left_xy: [-342379.698, 6032580.06]
+    upper_right_xy: [1423701.52, 8029648.75]
+iber:
+  description: North half of the Iberian Peninsula and the Gulf of Biscay image 0
+    degrees
+  projection:
+    proj: utm
+  shape:
+    height: 1000
+    width: 2000
+  area_extent:
+    lower_left_xy: [-342379.698, 4432580.06]
+    upper_right_xy: [723701.52, 5029648.75]
+    units: m
+SouthAmerica:
+  description: South America
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 1200
+    width: 3000
+  area_extent:
+    lower_left_xy: [-5570248.477339261, -4263473.561036119]
+    upper_right_xy: [-384719.90821206354, 1339786.2707295895]
+brazil2:
+  description: brazil, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 768
+    width: 768
+  area_extent:
+    lower_left_xy: [-7792364.355529149, -4452779.631730943]
+    upper_right_xy: [-2226389.8158654715, 1669792.3618991035]
+    units: m
+sudeste:
+  description: sudeste, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 959
+    width: 959
+  area_extent:
+    lower_left_xy: [-6122571.993630046, -3005626.251418386]
+    upper_right_xy: [-4230140.650144396, -1447153.3803125564]
+    units: m
+SouthAmerica_flat:
+  description: South America flat
+  projection:
+    proj: eqc
+    a: 6378137.0
+    b: 6378137.0
+  shape:
+    height: 1213
+    width: 1442
+  area_extent:
+    lower_left_xy: [-8326322.82790897, -4609377.085697311]
+    upper_right_xy: [-556597.4539663679, 1535833.8895192828]
+    units: m
+worldeqc30km:
+  description: World in 3km, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 410
+    width: 820
+  area_extent:
+    lower_left_xy: [-20037508.3428, -10018754.1714]
+    upper_right_xy: [20037508.3428, 10018754.1714]
+    units: m
+south_america:
+  description: south_america, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-8126322.82790897, -5009377.085697311]
+    upper_right_xy: [-556597.4539663679, 1335833.8895192828]
+    units: m
+brazil:
+  description: brazil, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 768
+    width: 768
+  area_extent:
+    lower_left_xy: [-8348961.809495518, -3896182.1777645745]
+    upper_right_xy: [-3784862.6869713017, 1001875.4171394621]
+    units: m
+worldeqc3km70:
+  description: World in 3km, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 4096
+    width: 8192
+  area_extent:
+    lower_left_xy: [-20037508.3428, -7792364.355533333]
+    upper_right_xy: [20037508.3428, 7792364.355533333]
+    units: m
+worldeqc30km70:
+  description: World in 3km, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 410
+    width: 819
+  area_extent:
+    lower_left_xy: [-20037508.3428, -7792364.355533333]
+    upper_right_xy: [20037508.3428, 7792364.355533333]
+    units: m
+worldeqc3km73:
+  description: World in 3km, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 2048
+    width: 4096
+  area_extent:
+    lower_left_xy: [-20037508.3428, -8181982.573309999]
+    upper_right_xy: [20037508.3428, 8181982.573309999]
+    units: m
+worldeqc3km:
+  description: World in 3km, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 2048
+    width: 4096
+  area_extent:
+    lower_left_xy: [-20037508.3428, -10018754.1714]
+    upper_right_xy: [20037508.3428, 10018754.1714]
+    units: m
+worldeqc30km:
+  description: World in 3km, platecarree
+  projection:
+    proj: eqc
+    ellps: WGS84
+  shape:
+    height: 410
+    width: 820
+  area_extent:
+    lower_left_xy: [-20037508.3428, -10018754.1714]
+    upper_right_xy: [20037508.3428, 10018754.1714]
+    units: m
+libya:
+  description: libya area
+  projection:
+    proj: merc
+    lat_ts: 31.625
+    lon_0: 17.875
+    ellps: WGS84
+  shape:
+    height: 1024
+    width: 1280
+  area_extent:
+    lower_left_xy: [-1921632.0902750609, 1725320.2028891125]
+    upper_right_xy: [1918367.9097249391, 4797320.202889113]
+    units: m
+phil:
+  description: kuwait area
+  projection:
+    proj: merc
+    lat_0: 10.0
+    lat_ts: 10.0
+    lon_0: 125.0
+    ellps: WGS84
+  shape:
+    height: 2048
+    width: 4096
+  area_extent:
+    lower_left_xy: [-2200000.0, 0.0]
+    upper_right_xy: [2200000.0, 2200000.0]
+    units: m
+phil_small:
+  description: kuwait area
+  projection:
+    proj: merc
+    lat_0: 10.0
+    lat_ts: 10.0
+    lon_0: 125.0
+    ellps: WGS84
+  shape:
+    height: 512
+    width: 512
+  area_extent:
+    lower_left_xy: [-600000.0, 0.0]
+    upper_right_xy: [1600000.0, 2200000.0]
+    units: m
+kuwait:
+  description: kuwait area
+  projection:
+    proj: merc
+    lat_ts: 30.0
+    lon_0: 44.75
+    ellps: WGS84
+  shape:
+    height: 512
+    width: 512
+  area_extent:
+    lower_left_xy: [-1280000.0, 1820000.0]
+    upper_right_xy: [1280000.0, 4380000.0]
+    units: m
+afghanistan:
+  description: Afghanistan
+  projection:
+    proj: merc
+    lat_ts: 35.0
+    a: 6370997.0
+    b: 6370997.0
+    lon_0: 67.5
+    lat_0: 35.0
+  shape:
+    height: 1600
+    width: 1600
+  area_extent:
+    lower_left_xy: [-1600000.0, 1600000.0]
+    upper_right_xy: [1600000.0, 4800000.0]
+EuropeCanary:
+  description: Northern globe MSG image 0 degrees
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 1200
+    width: 3000
+  area_extent:
+    lower_left_xy: [-4823148.089050828, 1969764.6783588605]
+    upper_right_xy: [4178061.408400173, 5570248.477339261]
+EastEurope:
+  description: Easten part of Northern globe MSG image 0 degrees
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 800
+    width: 1300
+  area_extent:
+    lower_left_xy: [654112.8864287604, 2989901.7547366405]
+    upper_right_xy: [4553111.804127298, 5390224.287390241]
+AfHorn:
+  description: Eastern globe MSG image 0 degrees
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 1600
+    width: 1100
+  area_extent:
+    lower_left_xy: [2263804.1886089267, -1327678.4008740226]
+    upper_right_xy: [5564247.671007627, 3472966.6644331776]
+maspalomas:
+  description: Western Africa and Canary Islands
+  projection:
+    proj: merc
+    ellps: bessel
+    lon_0: -10.0
+  shape:
+    height: 1100
+    width: 2100
+  area_extent:
+    lower_left_xy: [-1200000.0, 2900000.0]
+    upper_right_xy: [900000.0, 4000000.0]
+afhorn:
+  description: Africa horn 3km resolution
+  projection:
+    proj: merc
+    ellps: bessel
+    lon_0: 50.0
+  shape:
+    height: 1622
+    width: 1622
+  area_extent:
+    lower_left_xy: [-2432000.0, -1130348.139543]
+    upper_right_xy: [2432000.0, 3733651.860457]
+met09globe:
+  description: Cropped globe MSG image 0 degrees
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 3620
+    width: 3620
+  area_extent:
+    lower_left_xy: [-5432229.931711678, -5429229.528545862]
+    upper_right_xy: [5429229.528545862, 5432229.931711678]
+met09globeFull:
+  description: Full globe MSG image 0 degrees
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 3712
+    width: 3712
+  area_extent:
+    lower_left_xy: [-5570248.477339261, -5567248.074173444]
+    upper_right_xy: [5567248.074173444, 5570248.477339261]
+seviri_0deg:
+  description: Full globe MSG image 0 degrees
+  projection:
+    proj: geos
+    lon_0: 0.0
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 3712
+    width: 3712
+  area_extent:
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708, 5570248.686685662]
+seviri_iodc:
+  description: Full globe MSG image 41.5 degrees
+  projection:
+    proj: geos
+    lon_0: 41.5
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 3712
+    width: 3712
+  area_extent:
+    lower_left_xy: [-5570248.686685662, -5567248.28340708]
+    upper_right_xy: [5567248.28340708, 5570248.686685662]
+msg_resample_area:
+  description: Full globe MSG image 20.75 degrees
+  projection:
+    proj: geos
+    lon_0: 20.75
+    a: 6378169.0
+    b: 6356583.8
+    h: 35785831.0
+  shape:
+    height: 3712
+    width: 3712
+  area_extent:
+    lower_left_xy: [-5570248.477339261, -5567248.074173444]
+    upper_right_xy: [5567248.074173444, 5570248.477339261]
+met07globe:
+  description: Full globe IODC image 57 degrees
+  projection:
+    proj: geos
+    lon_0: 57.0
+    a: 6378140.0
+    b: 6356755.0
+    h: 35785831.0
+  shape:
+    height: 2500
+    width: 2500
+  area_extent:
+    lower_left_xy: [-5621225.237846375, -5621225.237846375]
+    upper_right_xy: [5621225.237846375, 5621225.237846375]
+spain:
+  description: Spain
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 40.0
+    lon_0: -3.0
+    lat_ts: 40.0
+    a: 6378144.0
+    b: 6356759.0
+  shape:
+    height: 2048
+    width: 2048
+  area_extent:
+    lower_left_xy: [-500000.0, -500000.0]
+    upper_right_xy: [500000.0, 500000.0]
+germ:
+  description: Germany
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 5.0
+    lat_ts: 50.0
+    a: 6378144.0
+    b: 6356759.0
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-155100.436345, -4441495.37946]
+    upper_right_xy: [868899.563655, -3417495.37946]
+germ2:
+  description: Germany
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 5.0
+    lat_ts: 50.0
+    a: 6378144.0
+    b: 6356759.0
+  shape:
+    height: 1024
+    width: 1280
+  area_extent:
+    lower_left_xy: [-165100.436345, -4441495.37946]
+    upper_right_xy: [878899.563655, -3417495.37946]
+euro4:
+  description: Euro 4km area - Europe
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-2717181.7304994687, -5571048.14031214]
+    upper_right_xy: [1378818.2695005313, -1475048.1403121399]
+euro1:
+  description: Euro 4km area - Europe
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+  shape:
+    height: 4096
+    width: 4096
+  area_extent:
+    lower_left_xy: [-2717181.7304994687, -5571048.14031214]
+    upper_right_xy: [1378818.2695005313, -1475048.1403121399]
+scan:
+  description: Scandinavia
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+  shape:
+    height: 512
+    width: 512
+  area_extent:
+    lower_left_xy: [-1268854.126638295, -4150234.8425892727]
+    upper_right_xy: [779145.8733617051, -2102234.8425892727]
+scan2:
+  description: Scandinavia - 2km area
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-1268854.126638295, -4150234.8425892727]
+    upper_right_xy: [779145.8733617051, -2102234.8425892727]
+scan1:
+  description: Scandinavia - 1km area
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+  shape:
+    height: 2088
+    width: 2048
+  area_extent:
+    lower_left_xy: [-1268854.126638295, -4150234.8425892727]
+    upper_right_xy: [779145.8733617051, -2062234.8425892727]
+scan500m:
+  description: Scandinavia - 500m area
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+  shape:
+    height: 4176
+    width: 4096
+  area_extent:
+    lower_left_xy: [-1268854.126638295, -4150234.8425892727]
+    upper_right_xy: [779145.8733617051, -2062234.8425892727]
+mesanX:
+  description: Mesan-X rotated lon/lat 1.8km
+  projection:
+    proj: ob_tran
+    o_proj: eqc
+    o_lat_p: 30.0
+    o_lon_p: 10.0
+    lon_0: -10.0
+    a: 6371000.0
+    b: 6371000.0
+    wktext: True
+  shape:
+    height: 1608
+    width: 1476
+  area_extent:
+    lower_left_xy: [1067435.7598983962, -1278764.890341909]
+    upper_right_xy: [3791765.9965939857, 1690140.6680267097]
+mesanE:
+  description: Europe Mesan rotated lon/lat 1.8km
+  projection:
+    proj: ob_tran
+    o_proj: eqc
+    o_lat_p: 30.0
+    o_lon_p: 10.0
+    lon_0: -10.0
+    a: 6371000.0
+    b: 6371000.0
+    wktext: True
+  shape:
+    height: 6294
+    width: 5093
+  area_extent:
+    lower_left_xy: [289083.0005619671, -2957836.6467769896]
+    upper_right_xy: [5381881.121371055, 3335826.68502126]
+baws:
+  description: BAWS
+  projection:
+    proj: aea
+    ellps: bessel
+    lon_0: 14.0
+    lat_1: 60.0
+    lat_2: 60.0
+  shape:
+    height: 1400
+    width: 1400
+  area_extent:
+    lower_left_xy: [-475617.0, 5324430.0]
+    upper_right_xy: [924383.0, 6724430.0]
+eurotv:
+  description: Europe TV -  6.2x5.0km
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+    a: 6378144.0
+    b: 6356759.0
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-3503748.8201907813, -6589593.134058789]
+    upper_right_xy: [2842567.6359087573, -1499856.5846593212]
+eurotv4n:
+  description: Europe TV4 -  4.1x4.1km
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+    a: 6378144.0
+    b: 6356759.0
+  shape:
+    height: 1152
+    width: 2048
+  area_extent:
+    lower_left_xy: [-5103428.678666952, -6772478.60053407]
+    upper_right_xy: [3293371.321333048, -2049278.6005340703]
+eurol:
+  description: Euro 3.0km area - Europe
+  projection:
+    proj: stere
+    ellps: WGS84
+    lat_0: 90.0
+    lon_0: 0.0
+    lat_ts: 60.0
+  shape:
+    height: 2048
+    width: 2560
+  area_extent:
+    lower_left_xy: [-3780000.0, -7644000.0]
+    upper_right_xy: [3900000.0, -1500000.0]
+eurol1:
+  description: Euro 3.0km area - Europe
+  projection:
+    proj: stere
+    ellps: WGS84
+    lat_0: 90.0
+    lon_0: 0.0
+    lat_ts: 60.0
+  shape:
+    height: 8000
+    width: 10000
+  area_extent:
+    lower_left_xy: [-3780000.0, -7644000.0]
+    upper_right_xy: [3900000.0, -1500000.0]
+scanl:
+  description: Scandinavia - Large
+  projection:
+    proj: stere
+    ellps: WGS84
+    lat_0: 90.0
+    lon_0: 0.0
+    lat_ts: 60.0
+  shape:
+    height: 2900
+    width: 2900
+  area_extent:
+    lower_left_xy: [-900000.0, -4500000.0]
+    upper_right_xy: [2000000.0, -1600000.0]
+euron1:
+  description: Northern Europe - 1km
+  projection:
+    proj: stere
+    ellps: WGS84
+    lat_0: 90.0
+    lon_0: 0.0
+    lat_ts: 60.0
+  shape:
+    height: 3072
+    width: 3072
+  area_extent:
+    lower_left_xy: [-1000000.0, -4500000.0]
+    upper_right_xy: [2072000.0, -1428000.0]
+euron0250:
+  description: Northern Europe - 1km
+  projection:
+    proj: stere
+    ellps: WGS84
+    lat_0: 90.0
+    lon_0: 0.0
+    lat_ts: 60.0
+  shape:
+    height: 12288
+    width: 12288
+  area_extent:
+    lower_left_xy: [-1000000.0, -4500000.0]
+    upper_right_xy: [2072000.0, -1428000.0]
+nsea:
+  description: North Baltic Sea
+  projection:
+    proj: merc
+    ellps: WGS84
+    lat_ts: 0.0
+    lon_0: 15.0
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-322789.07638000086, 7784901.986829306]
+    upper_right_xy: [1725210.923619999, 9832901.986829307]
+ssea:
+  description: South Baltic Sea
+  projection:
+    proj: merc
+    ellps: WGS84
+    lat_ts: 0.0
+    lon_0: 15.0
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-801407.3620468981, 7003690.663643802]
+    upper_right_xy: [1246592.637953102, 9051690.663643802]
+nsea250:
+  description: North Baltic Sea
+  projection:
+    proj: merc
+    ellps: WGS84
+    lat_ts: 0.0
+    lon_0: 15.0
+  shape:
+    height: 4096
+    width: 4096
+  area_extent:
+    lower_left_xy: [-322789.07638000086, 7784901.986829306]
+    upper_right_xy: [1725210.923619999, 9832901.986829307]
+ssea250:
+  description: South Baltic Sea
+  projection:
+    proj: merc
+    ellps: WGS84
+    lat_ts: 0.0
+    lon_0: 15.0
+  shape:
+    height: 4096
+    width: 4096
+  area_extent:
+    lower_left_xy: [-801407.3620468981, 7003690.663643802]
+    upper_right_xy: [1246592.637953102, 9051690.663643802]
+bsea250:
+  description: South Baltic Sea
+  projection:
+    proj: merc
+    ellps: WGS84
+    lat_ts: 60.0
+    lon_0: 0.0
+  shape:
+    height: 5632
+    width: 4752
+  area_extent:
+    lower_left_xy: [512000.0, 3525000.0]
+    upper_right_xy: [1700000.0, 4933000.0]
+test250:
+  description: South Baltic Sea
+  projection:
+    proj: merc
+    ellps: WGS84
+    lat_ts: 60.0
+    lon_0: 0.0
+  shape:
+    height: 5632
+    width: 4752
+  area_extent:
+    lower_left_xy: [512000.0, 3525000.0]
+    upper_right_xy: [1700000.0, 4933000.0]
+bsea1000:
+  description: South Baltic Sea
+  projection:
+    proj: merc
+    ellps: WGS84
+    lat_ts: 60.0
+    lon_0: 0.0
+  shape:
+    height: 1408
+    width: 1188
+  area_extent:
+    lower_left_xy: [512000.0, 3525000.0]
+    upper_right_xy: [1700000.0, 4933000.0]
+euro:
+  description: Euro area - Europe
+  projection:
+    proj: stere
+    ellps: bessel
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+  shape:
+    height: 512
+    width: 512
+  area_extent:
+    lower_left_xy: [-2717181.7304994687, -5571048.14031214]
+    upper_right_xy: [1378818.2695005313, -1475048.1403121399]
+baltrad_lambert:
+  description: Baltrad Lambert
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lon_0: 20.0
+    lat_0: 60.0
+  shape:
+    height: 1195
+    width: 815
+  area_extent:
+    lower_left_xy: [-994211.85388, -1291605.15396]
+    upper_right_xy: [635788.14612, 1098394.84604]
+eport:
+  description: eport
+  projection:
+    proj: stere
+    lat_0: 90.0
+    lon_0: 0.0
+    ellps: WGS84
+  shape:
+    height: 1792
+    width: 1792
+  area_extent:
+    lower_left_xy: [-5283418.625834752, -5283418.625834753]
+    upper_right_xy: [5283418.625834753, 5283418.625834752]
+    units: m
+eport1:
+  description: eport
+  projection:
+    proj: stere
+    lat_0: 90.0
+    lon_0: 0.0
+    ellps: WGS84
+  shape:
+    height: 10567
+    width: 10567
+  area_extent:
+    lower_left_xy: [-5283418.625834752, -5283418.625834753]
+    upper_right_xy: [5283418.625834753, 5283418.625834752]
+    units: m
+eport10:
+  description: eport reduced resolution
+  projection:
+    proj: stere
+    lat_0: 90.0
+    lon_0: 0.0
+    ellps: WGS84
+  shape:
+    height: 1057
+    width: 1057
+  area_extent:
+    lower_left_xy: [-5283418.625834752, -5283418.625834753]
+    upper_right_xy: [5283418.625834753, 5283418.625834752]
+    units: m
+eport4:
+  description: eport reduced resolution
+  projection:
+    proj: stere
+    lat_0: 90.0
+    lon_0: 0.0
+    ellps: WGS84
+  shape:
+    height: 2642
+    width: 2642
+  area_extent:
+    lower_left_xy: [-5283418.625834752, -5283418.625834753]
+    upper_right_xy: [5283418.625834753, 5283418.625834752]
+    units: m
+eport2:
+  description: eport reduced resolution
+  projection:
+    proj: stere
+    lat_0: 90.0
+    lon_0: 0.0
+    ellps: WGS84
+  shape:
+    height: 5285
+    width: 5285
+  area_extent:
+    lower_left_xy: [-5283418.625834752, -5283418.625834753]
+    upper_right_xy: [5283418.625834753, 5283418.625834752]
+    units: m
+npp_sample_m:
+  description: North America - NPP sample data - M-bands
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: 60.0
+    lon_0: -120.0
+  shape:
+    height: 1500
+    width: 1500
+  area_extent:
+    lower_left_xy: [-1700000.0, -1400000.0]
+    upper_right_xy: [1100000.0, 1400000.0]
+arctic_europe_1km:
+  description: Arctic and Europe
+  projection:
+    proj: laea
+    a: 6371228.0
+    b: 6371228.0
+    lon_0: 0.0
+    lat_0: 90.0
+  shape:
+    height: 9100
+    width: 9100
+  area_extent:
+    lower_left_xy: [-3100000.0, -7100000.0]
+    upper_right_xy: [6000000.0, 2000000.0]
+arctic_europe_9km:
+  description: Arctic and Europe
+  projection:
+    proj: laea
+    a: 6371228.0
+    b: 6371228.0
+    lon_0: 0.0
+    lat_0: 90.0
+  shape:
+    height: 910
+    width: 910
+  area_extent:
+    lower_left_xy: [-3100000.0, -7100000.0]
+    upper_right_xy: [6000000.0, 2000000.0]
+sswe:
+  description: Southern Sweden
+  projection:
+    proj: stere
+    ellps: bessel
+    a: 6378144.0
+    b: 6356759.0
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-400884.23045, -3946631.71387]
+    upper_right_xy: [623115.76955, -2922631.71387]
+nswe:
+  description: Northern Sweden
+  projection:
+    proj: stere
+    ellps: bessel
+    a: 6378144.0
+    b: 6356759.0
+    lat_0: 90.0
+    lon_0: 14.0
+    lat_ts: 60.0
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-392288.010506, -3105279.35252]
+    upper_right_xy: [631711.989494, -2081279.35252]
+sval:
+  description: Svalbard
+  projection:
+    proj: stere
+    ellps: WGS84
+    lat_0: 90.0
+    lon_0: 20.0
+    lat_ts: 75.0
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-287554.9489620461, -1630805.15418955]
+    upper_right_xy: [736445.0510379539, -606805.1541895501]
+ease_sh:
+  description: Antarctic EASE grid
+  projection:
+    proj: laea
+    lat_0: -90.0
+    lon_0: 0.0
+    a: 6371228.0
+    b: 6371228.0
+  shape:
+    height: 425
+    width: 425
+  area_extent:
+    lower_left_xy: [-5326849.0625, -5326849.0625]
+    upper_right_xy: [5326849.0625, 5326849.0625]
+    units: m
+ease_nh:
+  description: Arctic EASE grid
+  projection:
+    proj: laea
+    lat_0: 90.0
+    lon_0: 0.0
+    a: 6371228.0
+    b: 6371228.0
+  shape:
+    height: 425
+    width: 425
+  area_extent:
+    lower_left_xy: [-5326849.0625, -5326849.0625]
+    upper_right_xy: [5326849.0625, 5326849.0625]
+    units: m
+barents_sea:
+  description: Barents and Greenland seas
+  projection:
+    proj: stere
+    ellps: WGS84
+    lat_0: 90.0
+    lon_0: 40.0
+    lat_ts: 75.0
+  shape:
+    height: 1700
+    width: 3000
+  area_extent:
+    lower_left_xy: [-1600000.0, -2000000.0]
+    upper_right_xy: [1400000.0, -300000.0]
+antarctica:
+  description: Antarctica - 1km
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lon_0: 0.0
+    lat_0: -90.0
+  shape:
+    height: 5718
+    width: 5718
+  area_extent:
+    lower_left_xy: [-2858899.2042342643, -2858899.204234264]
+    upper_right_xy: [2858899.204234264, 2858899.2042342643]
+arctica:
+  description: arctica - 1km
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lon_0: 0.0
+    lat_0: 90.0
+  shape:
+    height: 5718
+    width: 5718
+  area_extent:
+    lower_left_xy: [-1458899.2042342643, -1458899.2042342639]
+    upper_right_xy: [1458899.2042342639, 1458899.2042342643]
+euroasia:
+  description: Euroasia - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: 55.0
+    lon_0: 20.0
+  shape:
+    height: 13000
+    width: 13000
+  area_extent:
+    lower_left_xy: [-3000000.0, -4999000.0]
+    upper_right_xy: [9999000.0, 8000000.0]
+euroasia_10km:
+  description: Euroasia - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: 55.0
+    lon_0: 20.0
+  shape:
+    height: 1300
+    width: 1300
+  area_extent:
+    lower_left_xy: [-3000000.0, -4999000.0]
+    upper_right_xy: [9999000.0, 8000000.0]
+euroasia_asia:
+  description: Euroasia - optimised for Asia - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: 45.0
+    lon_0: 100.0
+  shape:
+    height: 12000
+    width: 13000
+  area_extent:
+    lower_left_xy: [-8000000.0, -5499000.0]
+    upper_right_xy: [4999000.0, 6500000.0]
+euroasia_asia_10km:
+  description: Euroasia - optimised for Asia - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: 45.0
+    lon_0: 100.0
+  shape:
+    height: 1200
+    width: 1300
+  area_extent:
+    lower_left_xy: [-8000000.0, -5499000.0]
+    upper_right_xy: [4999000.0, 6500000.0]
+australia_pacific:
+  description: Austalia/Pacific - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: -15.0
+    lon_0: 135.0
+  shape:
+    height: 8000
+    width: 9300
+  area_extent:
+    lower_left_xy: [-5000000.0, -3944890.0]
+    upper_right_xy: [4299000.0, 4054110.0]
+australia_pacific_10km:
+  description: Austalia/Pacific - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: -15.0
+    lon_0: 135.0
+  shape:
+    height: 800
+    width: 930
+  area_extent:
+    lower_left_xy: [-5000000.0, -3944890.0]
+    upper_right_xy: [4299000.0, 4054110.0]
+africa:
+  description: Africa - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: 5.0
+    lon_0: 20.0
+  shape:
+    height: 9276
+    width: 8350
+  area_extent:
+    lower_left_xy: [-4458000.0, -4795000.0]
+    upper_right_xy: [3891000.0, 4480000.0]
+africa_10km:
+  description: Africa - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: 5.0
+    lon_0: 20.0
+  shape:
+    height: 928
+    width: 835
+  area_extent:
+    lower_left_xy: [-4458000.0, -4795000.0]
+    upper_right_xy: [3891000.0, 4480000.0]
+southamerica:
+  description: South America - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: -15.0
+    lon_0: -60.0
+  shape:
+    height: 8000
+    width: 6000
+  area_extent:
+    lower_left_xy: [-3000000.0, -4899000.0]
+    upper_right_xy: [2999000.0, 3100000.0]
+southamerica_10km:
+  description: South America - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: -15.0
+    lon_0: -60.0
+  shape:
+    height: 800
+    width: 600
+  area_extent:
+    lower_left_xy: [-3000000.0, -4899000.0]
+    upper_right_xy: [2999000.0, 3100000.0]
+northamerica:
+  description: North America - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: 50.0
+    lon_0: -100.0
+  shape:
+    height: 8996
+    width: 9223
+  area_extent:
+    lower_left_xy: [-4487000.0, -4515000.0]
+    upper_right_xy: [4735000.0, 4480000.0]
+northamerica_10km:
+  description: North America - Global 1km USGS Landuse database
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lat_0: 50.0
+    lon_0: -100.0
+  shape:
+    height: 900
+    width: 922
+  area_extent:
+    lower_left_xy: [-4487000.0, -4515000.0]
+    upper_right_xy: [4735000.0, 4480000.0]
+romania:
+  description: Romania - 3km
+  projection:
+    proj: stere
+    ellps: WGS84
+    lat_0: 50.0
+    lon_0: 15.0
+    lat_ts: 60.0
+  shape:
+    height: 855
+    width: 1509
+  area_extent:
+    lower_left_xy: [-2226837.662574135, -1684219.2829063328]
+    upper_right_xy: [2299196.337425865, 881436.7170936672]
+stere_asia_test:
+  description: stere
+  projection:
+    proj: stere
+    lon_0: 121.5
+    lat_0: 25.0
+  shape:
+    height: 7162
+    width: 7200
+  area_extent:
+    lower_left_xy: [-3589072.840299738, -3568228.07278016]
+    upper_right_xy: [3611014.256314698, 3594111.7022882444]
+bocheng_test:
+  description: stere
+  projection:
+    proj: stere
+    lon_0: 121.5
+    lat_0: 25.0
+  shape:
+    height: 1989
+    width: 2000
+  area_extent:
+    lower_left_xy: [-3589072.840299738, -3568228.07278016]
+    upper_right_xy: [3611014.256314698, 3594111.7022882444]
+nsper_swe:
+  description: nsper_swe
+  projection:
+    proj: nsper
+    lon_0: 16.0
+    lat_0: 58.0
+    h: 360000000.0
+    wktext: True
+  shape:
+    height: 1024
+    width: 1024
+  area_extent:
+    lower_left_xy: [-5000000.0, -5000000.0]
+    upper_right_xy: [5000000.0, 5000000.0]
+new_bsea250:
+  description: new_bsea250
+  projection:
+    proj: stere
+    lat_0: 59.5
+    lon_0: 19.5
+    ellps: WGS84
+  shape:
+    height: 5750
+    width: 5104
+  area_extent:
+    lower_left_xy: [-638072.2772287376, -680339.8397175331]
+    upper_right_xy: [638072.277228737, 757253.9342263378]
+scanice:
+  description: Scandinavia and Iceland
+  projection:
+    proj: laea
+    a: 6370997.0
+    b: 6370997.0
+    lon_0: 0.0
+    lat_0: 64.0
+  shape:
+    height: 1024
+    width: 1280
+  area_extent:
+    lower_left_xy: [-1920000.0, -1536000.0]
+    upper_right_xy: [1920000.0, 1536000.0]
+baws250:
+  description: BAWS, 250m resolution
+  projection:
+    proj: aea
+    ellps: WGS84
+    lon_0: 14.0
+    lat_1: 60.0
+    lat_2: 60.0
+  shape:
+    height: 5600
+    width: 5600
+  area_extent:
+    lower_left_xy: [-475617.0, 5324430.0]
+    upper_right_xy: [924383.0, 6724430.0]
+moll:
+  description: moll
+  projection:
+    proj: moll
+    lat_0: 0.0
+    lon_0: 0.0
+    ellps: WGS84
+  shape:
+    height: 1800
+    width: 3600
+  area_extent:
+    lower_left_xy: [-18040095.696147293, -9020047.848073646]
+    upper_right_xy: [18040095.696147293, 9020047.848073646]
+robinson:
+  description: robinson
+  projection:
+    proj: robin
+    lat_0: 70.0
+    lon_0: -45.0
+    ellps: WGS84
+  shape:
+    height: 3296
+    width: 4096
+  area_extent:
+    lower_left_xy: [-2049911.5256036147, 5326895.725982913]
+    upper_right_xy: [2049911.5256036168, 8625155.12857459]

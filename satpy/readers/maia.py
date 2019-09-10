@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#   Pascale Roquet <pascale.roquet@meteo.fr>
+# Copyright (c) 2017 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -58,7 +54,7 @@ class MAIAFileHandler(BaseFileHandler):
             self.finfo['end_time'] = self.finfo['end_time'].replace(
                 day=myday + 1)
         self.selected = None
-        self.read(filename)
+        self.read(self.filename)
 
     def read(self, filename):
         self.h5 = h5py.File(filename, 'r')

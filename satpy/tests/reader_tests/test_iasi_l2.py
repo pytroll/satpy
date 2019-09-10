@@ -1,24 +1,20 @@
-#!/usr/bin/python
-# Copyright (c) 2018.
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2018 Satpy developers
 #
+# This file is part of satpy.
 #
-# Author(s):
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for IASI L2 reader"""
 
 import os
@@ -35,59 +31,45 @@ TEST_DATA = {
     # Not implemented in the reader
     'Amsu': {
         'FLG_AMSUBAD': {'data': np.zeros((NUM_SCANLINES, 30), dtype=np.uint8),
-                        'attrs': {}
-        }
+                        'attrs': {}}
     },
-# Not implemented in the reader
+    # Not implemented in the reader
     'INFO': {
         'OmC': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
                 'attrs': {'long_name': "Cloud signal. Predicted average window channel 'Obs minus Calc",
-                          'units': 'K'}
-        },
+                          'units': 'K'}},
         'mdist': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                  'attrs': {}
-        }
+                  'attrs': {}}
     },
     'L1C': {
         'Latitude': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                     'attrs': {'units': 'degrees_north'}
-        },
+                     'attrs': {'units': 'degrees_north'}},
         'Longitude': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                      'attrs': {'units': 'degrees_north'}
-        },
+                      'attrs': {'units': 'degrees_north'}},
         'SatAzimuth': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                       'attrs': {'units': 'degrees'}
-        },
+                       'attrs': {'units': 'degrees'}},
         'SatZenith': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                      'attrs': {'units': 'degrees'}
-        },
+                      'attrs': {'units': 'degrees'}},
         'SensingTime_day': {'data': np.array([6472], dtype=np.uint16),
-                            'attrs': {}
-        },
+                            'attrs': {}},
         'SensingTime_msec': {'data': np.array([37337532], dtype=np.uint32),
-                             'attrs': {}
-        },
+                             'attrs': {}},
         'SunAzimuth': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                       'attrs': {'units': 'degrees'}
-        },
+                       'attrs': {'units': 'degrees'}},
         'SunZenith': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                      'attrs': {'units': 'degrees'}
-        },
+                      'attrs': {'units': 'degrees'}},
     },
     # Not implemented in the reader
     'Maps': {
         'Height': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                   'attrs': {'units': 'm'}
-        },
+                   'attrs': {'units': 'm'}},
         'HeightStd': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                   'attrs': {'units': 'm'}
-        },
+                      'attrs': {'units': 'm'}},
     },
     # Not implemented in the reader
     'Mhs': {
         'FLG_MHSBAD': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.uint8),
-                       'attrs': {}
-        }
+                       'attrs': {}}
     },
     'PWLR': {
         'E': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH, 10), dtype=np.float32),
@@ -96,53 +78,36 @@ TEST_DATA = {
                                                             1204.8, 1315.7,
                                                             1724.1, 2000.0,
                                                             2325.5, 2702.7],
-                                                           dtype=np.float32)}
-        },
+                                                           dtype=np.float32)}},
         'O': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH, NUM_LEVELS), dtype=np.float32),
               'attrs': {'long_name': 'Ozone mixing ratio vertical profile',
-                        'units': 'kg/kg'}
-        },
+                        'units': 'kg/kg'}},
         'OC': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-               'attrs': {}
-        },
+               'attrs': {}},
         'P': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH, NUM_LEVELS), dtype=np.float32),
-              'attrs': {'long_name': 'Atmospheric pressures at which the vertical profiles are given. Last value is the surface pressure',
-                        'units': 'hpa'}
-        },
+              'attrs': {'long_name': 'Atmospheric pressures at which the vertical profiles are given. '
+                                     'Last value is the surface pressure',
+                        'units': 'hpa'}},
         'QE': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-               'attrs': {}
-        },
+               'attrs': {}},
         'QO': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-               'attrs': {}
-        },
+               'attrs': {}},
         'QP': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-               'attrs': {}
-        },
+               'attrs': {}},
         'QT': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-               'attrs': {}
-        },
+               'attrs': {}},
         'QTs': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-                'attrs': {}
-        },
+                'attrs': {}},
         'QW': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-               'attrs': {}
-        },
+               'attrs': {}},
         'T': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH, NUM_LEVELS), dtype=np.float32),
-              'attrs': {'long_name': 'Temperature vertical profile',
-                        'units': 'K'}
-        },
+              'attrs': {'long_name': 'Temperature vertical profile', 'units': 'K'}},
         'Ts': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-               'attrs': {'long_name': 'Surface skin temperature',
-                        'units': 'K'}
-        },
+               'attrs': {'long_name': 'Surface skin temperature', 'units': 'K'}},
         'W': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH, NUM_LEVELS), dtype=np.float32),
-              'attrs': {'long_name': 'Water vapour mixing ratio vertical profile',
-                        'units': 'kg/kg'}
-        },
+              'attrs': {'long_name': 'Water vapour mixing ratio vertical profile', 'units': 'kg/kg'}},
         'WC': {'data': np.zeros((NUM_SCANLINES, SCAN_WIDTH), dtype=np.float32),
-               'attrs': {'long_name': 'Water vapour total columnar amount',
-                         'units': 'mm'}
-        },
+               'attrs': {'long_name': 'Water vapour total columnar amount', 'units': 'mm'}},
     }
 }
 
@@ -199,7 +164,7 @@ class TestIasiL2(unittest.TestCase):
         """Test scene creation"""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
-        scn = Scene(reader='iasi_l2', filenames=[fname,])
+        scn = Scene(reader='iasi_l2', filenames=[fname])
         self.assertTrue('start_time' in scn.attrs)
         self.assertTrue('end_time' in scn.attrs)
         self.assertTrue('sensor' in scn.attrs)
@@ -209,14 +174,14 @@ class TestIasiL2(unittest.TestCase):
         """Test that all datasets are available"""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
-        scn = Scene(reader='iasi_l2', filenames=[fname,])
+        scn = Scene(reader='iasi_l2', filenames=[fname])
         scn.load(scn.available_dataset_names())
 
     def test_scene_load_pressure(self):
         """Test loading pressure data"""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
-        scn = Scene(reader='iasi_l2', filenames=[fname,])
+        scn = Scene(reader='iasi_l2', filenames=[fname])
         scn.load(['pressure'])
         pres = scn['pressure'].compute()
         self.check_pressure(pres, scn.attrs)
@@ -225,7 +190,7 @@ class TestIasiL2(unittest.TestCase):
         """Test loading emissivity data"""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
-        scn = Scene(reader='iasi_l2', filenames=[fname,])
+        scn = Scene(reader='iasi_l2', filenames=[fname])
         scn.load(['emissivity'])
         emis = scn['emissivity'].compute()
         self.check_emissivity(emis)
@@ -234,7 +199,7 @@ class TestIasiL2(unittest.TestCase):
         """Test loading sensing times"""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
-        scn = Scene(reader='iasi_l2', filenames=[fname,])
+        scn = Scene(reader='iasi_l2', filenames=[fname])
         scn.load(['sensing_time'])
         times = scn['sensing_time'].compute()
         self.check_sensing_times(times)
@@ -337,8 +302,7 @@ class TestIasiL2(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_scene.
-    """
+    """The test suite for test_iasi_l2."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestIasiL2))

@@ -1,0 +1,175 @@
+reader:
+    name: avhrr_l1b_gaclac
+    description: AAPP l1b Reader for AVHRR
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [avhrr-3, avhrr-2, avhrr-1]
+
+datasets:
+    '1':
+        name: '1'
+        wavelength: [0.58, 0.63, 0.68]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: toa_bidirectional_reflectance
+            units: '%'
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+    '2':
+        name: '2'
+        wavelength: [0.725, 0.8625, 1.0]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: toa_bidirectional_reflectance
+            units: '%'
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+    '3':
+        name: '3'
+        wavelength: [1.58, 1.61, 1.64]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: toa_bidirectional_reflectance
+            units: '%'
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+    '3a':
+        name: '3a'
+        wavelength: [1.58, 1.61, 1.64]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: toa_bidirectional_reflectance
+            units: '%'
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+    '3b':
+        name: '3b'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+            units: K
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+    '4':
+        name: '4'
+        wavelength: [10.3, 10.8, 11.3]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+            units: K
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+    '5':
+        name: '5'
+        wavelength: [11.5, 12.0, 12.5]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: toa_brightness_temperature
+            units: K
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+
+    solar_zenith_angle:
+        name: solar_zenith_angle
+        standard_name: solar_zenith_angle
+        resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+        units: degrees
+
+    sensor_zenith_angle:
+        name: sensor_zenith_angle
+        standard_name: sensor_zenith_angle
+        resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+        units: degrees
+
+    solar_azimuth_angle:
+        name: solar_azimuth_angle
+        standard_name: solar_azimuth_angle
+        resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+        units: degrees
+
+    sensor_azimuth_angle:
+        name: sensor_azimuth_angle
+        standard_name: sensor_azimuth_angle
+        resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+        units: degrees
+
+    sun_sensor_azimuth_difference_angle:
+        name: sun_sensor_azimuth_difference_angle
+        standard_name: angle_of_rotation_from_solar_azimuth_to_platform_azimuth
+        resolution: 1050
+        coordinates:
+            - longitude
+            - latitude
+        file_type: gac_lac_l1b
+        units: degrees
+
+    latitude:
+        name: latitude
+        resolution: 1050
+        file_type: gac_lac_l1b
+        standard_name: latitude
+        units: degrees_north
+
+    longitude:
+        name: longitude
+        resolution: 1050
+        file_type: gac_lac_l1b
+        standard_name: longitude
+        units: degrees_east
+
+file_types:
+    gac_lac_l1b:
+        file_reader: !!python/name:satpy.readers.avhrr_l1b_gaclac.GACLACFile
+        #NSS.GHRR.NJ.D95056.S1116.E1303.B0080506.GC
+        file_patterns: ['NSS.GHRR.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}']

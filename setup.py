@@ -24,24 +24,26 @@
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Setup file for satpy."""
 
-import imp
 import os.path
 import sys
 from glob import glob
 
 from setuptools import find_packages, setup
 
-version = imp.load_source('satpy.version', 'satpy/version.py')
+try:
+    # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286
+    # Stop setuptools_scm from including all repository files
+    import setuptools_scm.integration
+    setuptools_scm.integration.find_files = lambda _: []
+except ImportError:
+    pass
 
-BASE_PATH = os.path.sep.join(os.path.dirname(os.path.realpath(__file__)).split(
-    os.path.sep))
-
-requires = ['numpy >=1.4.1', 'pillow', 'pyresample >=1.10.0', 'trollsift',
+requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
-            'dask[array] >=0.17.1']
+            'dask[array] >=0.17.1', 'pyproj', 'zarr']
 
-# pyhdf (conda) == python-hdf4 (pip)
-test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff', 'rasterio']
+test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
+                 'rasterio', 'geoviews']
 
 if sys.version < '3.0':
     test_requires.append('mock')
@@ -49,9 +51,8 @@ if sys.version < '3.0':
 
 extras_require = {
     # Readers:
-    'xRIT': ['mipp >= 0.6.0'],
-    'hdfeos_l1b': ['python-hdf4'],
-    'geocat': ['python-hdf4'],
+    'modis_l1b': ['pyhdf', 'python-geotiepoints >= 1.1.7'],
+    'geocat': ['pyhdf'],
     'acspo': ['netCDF4 >= 1.1.8'],
     'clavrx': ['netCDF4 >= 1.1.8'],
     'viirs_l1b': ['netCDF4 >= 1.1.8'],
@@ -59,20 +60,26 @@ extras_require = {
     'viirs_compact': ['h5py >= 2.7.0'],
     'omps_edr': ['h5py >= 2.7.0'],
     'amsr2_l1b': ['h5py >= 2.7.0'],
-    'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints'],
+    'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
     'proj': ['pyresample'],
-    'pyspectral': ['pyspectral >= 0.7.0'],
+    'pyspectral': ['pyspectral >= 0.8.7'],
     'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
-    'sar_c': ['python-geotiepoints', 'gdal'],
+    'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
+    'hsaf_grib': ['pygrib'],
     # Writers:
+    'cf': ['h5netcdf >= 0.7.3'],
     'scmi': ['netCDF4 >= 1.1.8'],
-    'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
     # MultiScene:
     'animations': ['imageio'],
+    # Documentation:
+    'doc': ['sphinx'],
+    # Other
+    'geoviews': ['geoviews'],
 }
 all_extras = []
 for extra_deps in extras_require.values():
@@ -104,10 +111,11 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 
 
 NAME = 'satpy'
+README = open('README.rst', 'r').read()
 
 setup(name=NAME,
-      version=version.__version__,
-      description='Meteorological post processing package',
+      description='Python package for earth-observing satellite data processing',
+      long_description=README,
       author='The Pytroll Team',
       author_email='pytroll@googlegroups.com',
       classifiers=["Development Status :: 5 - Production/Stable",
@@ -121,7 +129,7 @@ setup(name=NAME,
       test_suite='satpy.tests.suite',
       packages=find_packages(),
       package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
-                              os.path.join('etc', 'areas.def'),
+                              os.path.join('etc', 'areas.yaml'),
                               os.path.join('etc', 'satpy.cfg'),
                               os.path.join('etc', 'himawari-8.cfg'),
                               os.path.join('etc', 'eps_avhrrl1b_6.5.xml'),
@@ -132,6 +140,7 @@ setup(name=NAME,
                               os.path.join('etc', 'enhancements', '*.yaml'),
                               ]},
       zip_safe=False,
+      use_scm_version=True,
       install_requires=requires,
       tests_require=test_requires,
       python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',

@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.netcdf_utils module.
 """
 
@@ -20,10 +35,10 @@ else:
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler for reader tests to use"""
+    """Swap-in NetCDF4 File Handler for reader tests to use."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Get fake file content from 'get_test_content'"""
+        """Get fake file content from 'get_test_content'."""
         if NetCDF4FileHandler is object:
             raise ImportError("Base 'NetCDF4FileHandler' could not be "
                               "imported.")
@@ -32,15 +47,15 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
         self.file_content.update(kwargs)
 
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content
-        
+        """Mimic reader input file content.
+
         Args:
-            filename (str): input filename 
+            filename (str): input filename
             filename_info (dict): Dict of metadata pulled from filename
             filetype_info (dict): Dict of metadata from the reader's yaml config for this file type
 
         Returns: dict of file content with keys like:
-        
+
             - 'dataset'
             - '/attr/global_attr'
             - 'dataset/attr/global_attr'
@@ -52,9 +67,10 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
 
 
 class TestNetCDF4FileHandler(unittest.TestCase):
-    """Test NetCDF4 File Handler Utility class"""
+    """Test NetCDF4 File Handler Utility class."""
+
     def setUp(self):
-        """Create a test NetCDF4 file"""
+        """Create a test NetCDF4 file."""
         from netCDF4 import Dataset
         with Dataset('test.nc', 'w') as nc:
             # Create dimensions
@@ -92,11 +108,11 @@ class TestNetCDF4FileHandler(unittest.TestCase):
                 d.test_attr_float = 1.2
 
     def tearDown(self):
-        """Remove the previously created test file"""
+        """Remove the previously created test file."""
         os.remove('test.nc')
 
     def test_all_basic(self):
-        """Test everything about the NetCDF4 class"""
+        """Test everything about the NetCDF4 class."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
         import xarray as xr
         file_handler = NetCDF4FileHandler('test.nc', {}, {})
@@ -125,8 +141,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_netcdf_utils.
-    """
+    """The test suite for test_netcdf_utils."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestNetCDF4FileHandler))

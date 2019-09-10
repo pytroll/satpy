@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2014-2018 PyTroll developers
-#
-# Author(s):
-#
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# Copyright (c) 2014-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -20,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Helper functions for area extent calculations."""
 
 import logging
@@ -30,9 +24,12 @@ import tempfile
 import bz2
 import os
 import numpy as np
+import pyproj
 from pyresample.geometry import AreaDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 import h5py
+
+from satpy import CHUNK_SIZE
 
 LOGGER = logging.getLogger(__name__)
 
@@ -78,6 +75,29 @@ def get_geostationary_angle_extent(geos_area):
     xmax = np.arccos(np.sqrt(aeq))
     ymax = np.arccos(np.sqrt(ap_))
     return xmax, ymax
+
+
+def get_geostationary_mask(area):
+    """Compute a mask of the earth's shape as seen by a geostationary satellite
+
+    Args:
+        area (pyresample.geometry.AreaDefinition) : Corresponding area
+                                                    definition
+
+    Returns:
+        Boolean mask, True inside the earth's shape, False outside.
+    """
+    # Compute projection coordinates at the earth's limb
+    h = area.proj_dict['h']
+    xmax, ymax = get_geostationary_angle_extent(area)
+    xmax *= h
+    ymax *= h
+
+    # Compute projection coordinates at the centre of each pixel
+    x, y = area.get_proj_coords(chunks=CHUNK_SIZE)
+
+    # Compute mask of the earth's elliptical shape
+    return ((x / xmax) ** 2 + (y / ymax) ** 2) <= 1
 
 
 def _lonlat_from_geos_angle(x, y, geos_area):
@@ -190,3 +210,48 @@ def unzip_file(filename):
         return tmpfilepath
 
     return None
+
+
+def bbox(img):
+    """Find the bounding box around nonzero elements in the given array
+
+    Copied from https://stackoverflow.com/a/31402351/5703449 .
+
+    Returns:
+        rowmin, rowmax, colmin, colmax
+    """
+    rows = np.any(img, axis=1)
+    cols = np.any(img, axis=0)
+    rmin, rmax = np.where(rows)[0][[0, -1]]
+    cmin, cmax = np.where(cols)[0][[0, -1]]
+
+    return rmin, rmax, cmin, cmax
+
+
+def get_earth_radius(lon, lat, a, b):
+    """Compute radius of the earth ellipsoid at the given longitude and latitude.
+
+    Args:
+        lon: Geodetic longitude (degrees)
+        lat: Geodetic latitude (degrees)
+        a: Semi-major axis of the ellipsoid (meters)
+        b: Semi-minor axis of the ellipsoid (meters)
+
+    Returns:
+        Earth Radius (meters)
+    """
+    geocent = pyproj.Proj(proj='geocent', a=a, b=b, units='m')
+    latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
+    x, y, z = pyproj.transform(latlong, geocent, lon, lat, 0.)
+    return np.sqrt(x**2 + y**2 + z**2)
+
+
+def reduce_mda(mda, max_size=100):
+    """Recursively remove arrays with more than `max_size` elements from the given metadata dictionary"""
+    reduced = {}
+    for key, val in mda.items():
+        if isinstance(val, dict):
+            reduced[key] = reduce_mda(val, max_size)
+        elif not (isinstance(val, np.ndarray) and val.size > max_size):
+            reduced[key] = val
+    return reduced

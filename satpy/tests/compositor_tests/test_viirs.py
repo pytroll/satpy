@@ -1,23 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2018 Satpy developers
 #
-# Copyright (c) 2018 PyTroll developers
+# This file is part of satpy.
 #
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for VIIRS compositors.
-"""
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Tests for VIIRS compositors."""
 
 import sys
 
@@ -31,6 +29,7 @@ class TestVIIRSComposites(unittest.TestCase):
     """Test VIIRS-specific composites."""
 
     def data_area_ref_corrector(self):
+        """Create test area definition and data."""
         import dask.array as da
         import numpy as np
         from pyresample.geometry import AreaDefinition
@@ -81,9 +80,10 @@ class TestVIIRSComposites(unittest.TestCase):
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
+        # data changes by row, sza changes by col for testing
         sza = np.zeros((rows, cols)) + 70.0
-        sza[3, :] += 20.0
-        sza[4:, :] += 45.0
+        sza[:, 3] += 20.0
+        sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
@@ -96,7 +96,7 @@ class TestVIIRSComposites(unittest.TestCase):
                          'equalized_radiance')
         data = res.compute()
         unique_values = np.unique(data)
-        np.testing.assert_allclose(unique_values, [0.25, 0.5, 0.75])
+        np.testing.assert_allclose(unique_values, [0.5994, 0.7992, 0.999], rtol=1e-3)
 
     def test_adaptive_dnb(self):
         """Test the 'adaptive_dnb' compositor."""
@@ -125,8 +125,8 @@ class TestVIIRSComposites(unittest.TestCase):
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
         sza = np.zeros((rows, cols)) + 70.0
-        sza[3, :] += 20.0
-        sza[4:, :] += 45.0
+        sza[:, 3] += 20.0
+        sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
@@ -167,13 +167,16 @@ class TestVIIRSComposites(unittest.TestCase):
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
         sza = np.zeros((rows, cols)) + 70.0
-        sza[3, :] += 20.0
-        sza[4:, :] += 45.0
+        sza[:, 3] += 20.0
+        sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
                            attrs={'name': 'solar_zenith_angle', 'area': area})
-        lza = da.from_array(sza, chunks=25)
+        lza = np.zeros((rows, cols)) + 70.0
+        lza[:, 3] += 20.0
+        lza[:, 4:] += 45.0
+        lza = da.from_array(lza, chunks=25)
         c03 = xr.DataArray(lza,
                            dims=('y', 'x'),
                            attrs={'name': 'lunar_zenith_angle', 'area': area})
@@ -188,8 +191,8 @@ class TestVIIRSComposites(unittest.TestCase):
                          'equalized_radiance')
         data = res.compute()
         unique = np.unique(data)
-        np.testing.assert_allclose(
-            unique, [0.00000000e+00, 1.64116082e-01, 2.49270516e+02])
+        np.testing.assert_allclose(unique, [0.00000000e+00, 1.00446703e-01, 1.64116082e-01, 2.09233451e-01,
+                                            1.43916324e+02, 2.03528498e+02, 2.49270516e+02])
 
     def test_hncc_dnb(self):
         """Test the 'hncc_dnb' compositor."""
@@ -218,13 +221,16 @@ class TestVIIRSComposites(unittest.TestCase):
                            dims=('y', 'x'),
                            attrs={'name': 'DNB', 'area': area})
         sza = np.zeros((rows, cols)) + 70.0
-        sza[3, :] += 20.0
-        sza[4:, :] += 45.0
+        sza[:, 3] += 20.0
+        sza[:, 4:] += 45.0
         sza = da.from_array(sza, chunks=25)
         c02 = xr.DataArray(sza,
                            dims=('y', 'x'),
                            attrs={'name': 'solar_zenith_angle', 'area': area})
-        lza = da.from_array(sza, chunks=25)
+        lza = np.zeros((rows, cols)) + 70.0
+        lza[:, 3] += 20.0
+        lza[:, 4:] += 45.0
+        lza = da.from_array(lza, chunks=25)
         c03 = xr.DataArray(lza,
                            dims=('y', 'x'),
                            attrs={'name': 'lunar_zenith_angle', 'area': area})
@@ -240,9 +246,12 @@ class TestVIIRSComposites(unittest.TestCase):
         data = res.compute()
         unique = np.unique(data)
         np.testing.assert_allclose(
-            unique, [3.484797e-04, 9.507845e-03, 4.500016e+03])
+            unique, [3.48479712e-04, 6.96955799e-04, 1.04543189e-03, 4.75394738e-03,
+                     9.50784532e-03, 1.42617433e-02, 1.50001560e+03, 3.00001560e+03,
+                     4.50001560e+03])
 
     def test_reflectance_corrector_abi(self):
+        """Test ReflectanceCorrector modifier with ABI data."""
         import xarray as xr
         import dask.array as da
         import numpy as np
@@ -315,6 +324,7 @@ class TestVIIRSComposites(unittest.TestCase):
                                             71.10179768327806, 71.33161009169649, 78.81291424983952])
 
     def test_reflectance_corrector_viirs(self):
+        """Test ReflectanceCorrector modifier with VIIRS data."""
         import xarray as xr
         import dask.array as da
         import numpy as np
@@ -347,7 +357,7 @@ class TestVIIRSComposites(unittest.TestCase):
         area, dnb = self.data_area_ref_corrector()
 
         def make_xarray(self, file_key, name, standard_name, wavelength=None, units='degrees', calibration=None,
-                        file_type=['gitco', 'gimgo']):
+                        file_type=('gitco', 'gimgo')):
             return xr.DataArray(dnb, dims=('y', 'x'),
                                 attrs={'start_orbit': 1708, 'end_orbit': 1708, 'wavelength': wavelength, 'level': None,
                                        'modifiers': None, 'calibration': calibration, 'file_key': file_key,
@@ -392,6 +402,7 @@ class TestVIIRSComposites(unittest.TestCase):
         np.testing.assert_allclose(unique, [25.20341702519979, 52.38819447051263, 75.79089653845898])
 
     def test_reflectance_corrector_modis(self):
+        """Test ReflectanceCorrector modifier with MODIS data."""
         import xarray as xr
         import dask.array as da
         import numpy as np
@@ -464,8 +475,7 @@ class TestVIIRSComposites(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_ahi.
-    """
+    """Create test suite for test_ahi."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSComposites))

@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.hdf5_utils module.
 """
 
@@ -27,20 +42,21 @@ class FakeHDF5FileHandler(HDF5FileHandler):
         if HDF5FileHandler is object:
             raise ImportError("Base 'HDF5FileHandler' could not be "
                               "imported.")
+        filename = str(filename)
         super(HDF5FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
         self.file_content.update(kwargs)
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content
-        
+
         Args:
-            filename (str): input filename 
+            filename (str): input filename
             filename_info (dict): Dict of metadata pulled from filename
             filetype_info (dict): Dict of metadata from the reader's yaml config for this file type
 
         Returns: dict of file content with keys like:
-        
+
             - 'dataset'
             - '/attr/global_attr'
             - 'dataset/attr/global_attr'
@@ -125,11 +141,9 @@ class TestHDF5FileHandler(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_hdf5_utils.
-    """
+    """The test suite for test_hdf5_utils."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHDF5FileHandler))
 
     return mysuite
-

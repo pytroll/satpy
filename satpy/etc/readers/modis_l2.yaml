@@ -1,0 +1,88 @@
+reader:
+  default_datasets: [cloud_mask]
+  description: MODIS HDF-EOS Cloud Mask Reader
+  name: modis_l2
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [modis]
+
+file_types:
+  mod35_hdf:
+    file_patterns:
+    - 'M{platform_indicator:1s}D35_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
+  hdf_eos_geo:
+    file_patterns:
+      - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+      - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+      - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+      - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
+      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSGeoReader
+
+datasets:
+  cloud_mask:
+    # byte Cloud_Mask(Byte_Segment, Cell_Along_Swath_1km, Cell_Across_Swath_1km)
+    name: cloud_mask
+    resolution: [1000, 250]
+    # The dimension of the dataset where the byte information is stored
+    byte_dimension: 0
+    # Different logic depending on the resolution
+    byte:
+      - 1000: 0
+      - 250: [4, 5]
+    bit_start:
+      - 1000: 1
+      - 250: 0
+    bit_count:
+      - 1000: 2
+      - 250: 1
+    # Quality Assurance flag is necessary for 250m resolution dataset
+    quality_assurance:
+      - 250: True
+    file_key: Cloud_Mask
+    file_type: mod35_hdf
+    coordinates: [longitude, latitude]
+
+  longitude:
+    name: longitude
+    resolution:
+      5000:
+        file_type: mod35_hdf
+      1000:
+        file_type: [hdf_eos_geo, mod35_hdf]
+      500:
+        file_type: hdf_eos_geo
+      250:
+        file_type: hdf_eos_geo
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    name: latitude
+    resolution:
+      5000:
+        # For EUM reduced (thinned) files
+        file_type: mod35_hdf
+      1000:
+        file_type: [hdf_eos_geo, mod35_hdf]
+      500:
+        file_type: hdf_eos_geo
+      250:
+        file_type: hdf_eos_geo
+    standard_name: latitude
+    units: degree
+
+  quality_assurance:
+    # byte Quality_Assurance(Cell_Along_Swath_1km, Cell_Across_Swath_1km, QA_Dimension)
+    name: quality_assurance
+    resolution: 1000
+    # The dimension of the dataset where the byte information is stored
+    byte_dimension: 2
+    # The byte to consider to extract relevant bits
+    byte: 0
+    bit_start: 0
+    bit_count: 1
+    file_key: Quality_Assurance
+    file_type: mod35_hdf
+    coordinates: [longitude, latitude]
+

@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
+# Copyright (c) 2017 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -63,14 +57,14 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         """Get numpy array shape for the specified dataset.
-        
+
         Args:
             ds_id (DatasetID): ID of dataset that will be loaded
             ds_info (dict): Dictionary of dataset information from config file
-            
+
         Returns:
             tuple: (rows, cols)
-            
+
         """
         var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
         if var_path + '/shape' not in self:
@@ -159,4 +153,8 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             data = data.where(~clear_sky_mask)
 
         data.attrs.update(metadata)
+        # Remove these attributes since they are no longer valid and can cause invalid value filling.
+        data.attrs.pop('_FillValue', None)
+        data.attrs.pop('valid_max', None)
+        data.attrs.pop('valid_min', None)
         return data

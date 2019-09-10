@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
-#
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# Copyright (c) 2016 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -170,6 +166,8 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             # this is a pressure based field
             # include surface_pressure as metadata
             sp = self['Surface_Pressure']
+            if 'number_of_FORs' in sp.dims:
+                sp = sp.rename({'number_of_FORs': 'y'})
             if 'surface_pressure' in ds_info:
                 ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp))
             else:
@@ -185,6 +183,8 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             data = data.where(data != fill_value)
 
         data.attrs.update(metadata)
+        if 'number_of_FORs' in data.dims:
+            data = data.rename({'number_of_FORs': 'y'})
         return data
 
 
@@ -215,8 +215,8 @@ class NUCAPSReader(FileYAMLReader):
         pressure level.
         """
         super(NUCAPSReader, self).load_ds_ids_from_config()
-        for ds_id in list(self.ids.keys()):
-            ds_info = self.ids[ds_id]
+        for ds_id in list(self.all_ids.keys()):
+            ds_info = self.all_ids[ds_id]
             if ds_info.get('pressure_based', False):
                 for idx, lvl_num in enumerate(ALL_PRESSURE_LEVELS):
                     if lvl_num < 5.0:
@@ -231,7 +231,7 @@ class NUCAPSReader(FileYAMLReader):
                     new_info['name'] = ds_id.name + suffix
                     new_ds_id = ds_id._replace(name=new_info['name'])
                     new_info['id'] = new_ds_id
-                    self.ids[new_ds_id] = new_info
+                    self.all_ids[new_ds_id] = new_info
                     self.pressure_dataset_names[ds_id.name].append(new_info['name'])
 
     def load(self, dataset_keys, previous_datasets=None, pressure_levels=None):
@@ -246,7 +246,7 @@ class NUCAPSReader(FileYAMLReader):
         if pressure_levels is not None:
             # Filter out datasets that don't fit in the correct pressure level
             for ds_id in dataset_keys.copy():
-                ds_info = self.ids[ds_id]
+                ds_info = self.all_ids[ds_id]
                 ds_level = ds_info.get("pressure_level")
                 if ds_level is not None:
                     if pressure_levels is True:

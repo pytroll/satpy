@@ -1,0 +1,135 @@
+reader:
+    name: avhrr_l1b_eps
+    description: EPS Reader for AVHRR
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+    sensors: [avhrr-3]
+    default_channels: [1, 2, 3a, 3b, 4, 5]
+
+datasets:
+    '1':
+        name: '1'
+        wavelength: [0.58, 0.63, 0.68]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: reflectance
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_eps
+    '2':
+        name: '2'
+        wavelength: [0.725, 0.8625, 1.0]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: reflectance
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_eps
+    '3a':
+        name: '3a'
+        wavelength: [1.58, 1.61, 1.64]
+        resolution: 1050
+        calibration:
+          reflectance:
+            standard_name: reflectance
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_eps
+    '3b':
+        name: '3b'
+        wavelength: [3.55, 3.74, 3.93]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: brightness_temperature
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_eps
+    '4':
+        name: '4'
+        wavelength: [10.3, 10.8, 11.3]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: brightness_temperature
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_eps
+    '5':
+        name: '5'
+        wavelength: [11.5, 12.0, 12.5]
+        resolution: 1050
+        calibration:
+          brightness_temperature:
+            standard_name: brightness_temperature
+          radiance:
+            standard_name: radiance
+        coordinates:
+            - longitude
+            - latitude
+        file_type: avhrr_eps
+
+    latitude:
+        name: latitude
+        resolution: 1050
+        file_type: avhrr_eps
+        standard_name: latitude
+        units: degree
+
+    longitude:
+        name: longitude
+        resolution: 1050
+        file_type: avhrr_eps
+        standard_name: longitude
+        units: degree
+
+    solar_zenith_angle:
+        name: solar_zenith_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
+    solar_azimuth_angle:
+        name: solar_azimuth_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
+    satellite_zenith_angle:
+        name: satellite_zenith_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
+    satellite_azimuth_angle:
+        name: satellite_azimuth_angle
+        sensor: avhrr-3
+        resolution: 1050
+        coordinates: [longitude, latitude]
+        file_type: avhrr_eps
+
+file_types:
+    avhrr_eps:
+        file_reader: !!python/name:satpy.readers.eps_l1b.EPSAVHRRFile ''
+        file_patterns: [
+                       'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}',
+                       'AVHR_xxx_1B_{platform_short_name}_{start_time:%Y%m%d%H%M%SZ}_{end_time:%Y%m%d%H%M%SZ}_{processing_mode}_{disposition_mode}_{creation_time:%Y%m%d%H%M%SZ}.nat']

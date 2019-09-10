@@ -1,0 +1,26 @@
+reader:
+    description: TROPOMI Level 2 NetCDF reader
+    name: tropomi_l2
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [tropomi]
+
+file_types:
+    tropomi_l2:
+        # Ex: S5P_OFFL_L2__NO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc
+        file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler
+        file_patterns:
+            - '{platform_shortname:3s}_OFFL_L2__{product:3s}____{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit:5d}_{version:2d}_{unknown:6d}_{creation_time:%Y%m%dT%H%M%S}.nc'
+
+datasets:
+    latitude:
+        name: 'latitude'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/latitude'
+        coordinates: [longitude, latitude]
+        standard_name: latitude
+    longitude:
+        name: 'longitude'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/longitude'
+        coordinates: [longitude, latitude]
+        standard_name: longitude

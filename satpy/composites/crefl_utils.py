@@ -1,37 +1,28 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2018 PyTroll Developers
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2010-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared utilities for correcting reflectance data using the 'crefl' algorithm.
 
 Original code written by Ralph Kuehn with modifications by David Hoese and Martin Raspaud.
 Ralph's code was originally based on the C crefl code distributed for VIIRS and MODIS.
 """
 import logging
-import os
-import sys
 
 import numpy as np
-# from memory_profiler import profile
-import xarray.ufuncs as xu
 import xarray as xr
 import dask.array as da
 
@@ -62,8 +53,8 @@ def csalbr(tau):
     # Previously 3 functions csalbr fintexp1, fintexp3
     a = [-.57721566, 0.99999193, -0.24991055, 0.05519968, -0.00976004,
          0.00107857]
-    #xx = a[0] + a[1] * tau + a[2] * tau**2 + a[3] * tau**3 + a[4] * tau**4 + a[5] * tau**5
-    #xx = np.polyval(a[::-1], tau)
+    # xx = a[0] + a[1] * tau + a[2] * tau**2 + a[3] * tau**3 + a[4] * tau**4 + a[5] * tau**5
+    # xx = np.polyval(a[::-1], tau)
 
     # xx = a[0]
     # xftau = 1.0
@@ -75,6 +66,7 @@ def csalbr(tau):
 
     return (3.0 * tau - fintexp3 *
             (4.0 + 2.0 * tau) + 2.0 * np.exp(-tau)) / (4.0 + 3.0 * tau)
+
 
 # From crefl.1.7.1
 if bUseV171:
@@ -330,6 +322,11 @@ def chand(phi, muv, mus, taur):
     return rhoray, trdown, trup
 
 
+def _sphalb_index(index_arr, sphalb0):
+    # FIXME: if/when dask can support lazy index arrays then remove this
+    return sphalb0[index_arr]
+
+
 def atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, tO2=1.0):
     tau_step = da.linspace(taustep4sphalb, MAXNUMSPHALBVALUES * taustep4sphalb, MAXNUMSPHALBVALUES,
                            chunks=int(MAXNUMSPHALBVALUES / 2))
@@ -337,9 +334,6 @@ def atm_variables_finder(mus, muv, phi, height, tau, tO3, tH2O, taustep4sphalb, 
     taur = tau * da.exp(-height / SCALEHEIGHT)
     rhoray, trdown, trup = chand(phi, muv, mus, taur)
     if isinstance(height, xr.DataArray):
-        def _sphalb_index(index_arr, sphalb0):
-            # FIXME: if/when dask can support lazy index arrays then remove this
-            return sphalb0[index_arr]
         sphalb = da.map_blocks(_sphalb_index, (taur / taustep4sphalb + 0.5).astype(np.int32).data, sphalb0.compute(),
                                dtype=sphalb0.dtype)
     else:
@@ -383,6 +377,10 @@ def G_calc(zenith, a_coeff):
     return (da.cos(da.deg2rad(zenith))+(a_coeff[0]*(zenith**a_coeff[1])*(a_coeff[2]-zenith)**a_coeff[3]))**-1
 
 
+def _avg_elevation_index(avg_elevation, row, col):
+    return avg_elevation[row, col]
+
+
 def run_crefl(refl, coeffs,
               lon,
               lat,
@@ -414,7 +412,7 @@ def run_crefl(refl, coeffs,
     # Get digital elevation map data for our granule, set ocean fill value to 0
     if avg_elevation is None:
         LOG.debug("No average elevation information provided in CREFL")
-        #height = np.zeros(lon.shape, dtype=np.float)
+        # height = np.zeros(lon.shape, dtype=np.float)
         height = 0.
     else:
         LOG.debug("Using average elevation information provided to CREFL")
@@ -426,8 +424,6 @@ def run_crefl(refl, coeffs,
         row[space_mask] = 0
         col[space_mask] = 0
 
-        def _avg_elevation_index(avg_elevation, row, col):
-            return avg_elevation[row, col]
         height = da.map_blocks(_avg_elevation_index, avg_elevation, row, col, dtype=avg_elevation.dtype)
         height = xr.DataArray(height, dims=['y', 'x'])
         # negative heights aren't allowed, clip to 0

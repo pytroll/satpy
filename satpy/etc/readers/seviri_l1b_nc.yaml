@@ -1,0 +1,222 @@
+reader:
+  name: seviri_l1b_nc
+  short_name: SEVIRI L1b NetCDF4
+  long_name: MSG SEVIRI Level 1b NetCDF4
+  description: >
+    NetCDF4 reader for EUMETSAT MSG SEVIRI Level 1b files.
+  sensors: [seviri]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  group_keys: ["processing_time", "satid"]
+
+file_types:
+    seviri_l1b_nc:
+        file_reader: !!python/name:satpy.readers.seviri_l1b_nc.NCSEVIRIFileHandler
+        file_patterns: ['W_XX-EUMETSAT-Darmstadt,VIS+IR+HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
+
+datasets:
+  HRV:
+    name: HRV
+    resolution: 1000.134348869
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch12'
+
+  IR_016:
+    name: IR_016
+    resolution: 3000.403165817
+    wavelength: [1.5, 1.64, 1.78]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch3'
+
+  IR_039:
+    name: IR_039
+    resolution: 3000.403165817
+    wavelength: [3.48, 3.92, 4.36]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch4'
+
+  IR_087:
+    name: IR_087
+    resolution: 3000.403165817
+    wavelength: [8.3, 8.7, 9.1]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch7'
+
+  IR_097:
+    name: IR_097
+    resolution: 3000.403165817
+    wavelength: [9.38, 9.66, 9.94]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch8'
+
+  IR_108:
+    name: IR_108
+    resolution: 3000.403165817
+    wavelength: [9.8, 10.8, 11.8]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch9'
+
+  IR_120:
+    name: IR_120
+    resolution: 3000.403165817
+    wavelength: [11.0, 12.0, 13.0]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch10'
+
+  IR_134:
+    name: IR_134
+    resolution: 3000.403165817
+    wavelength: [12.4, 13.4, 14.4]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: K
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch11'
+
+  VIS006:
+    name: VIS006
+    resolution: 3000.403165817
+    wavelength: [0.56, 0.635, 0.71]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch1'
+
+
+  VIS008:
+    name: VIS008
+    resolution: 3000.403165817
+    wavelength: [0.74, 0.81, 0.88]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch2'
+
+  WV_062:
+    name: WV_062
+    resolution: 3000.403165817
+    wavelength: [5.35, 6.25, 7.15]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch5'
+
+  WV_073:
+    name: WV_073
+    resolution: 3000.403165817
+    wavelength: [6.85, 7.35, 7.85]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l1b_nc
+    nc_key: 'ch6'
+
+
