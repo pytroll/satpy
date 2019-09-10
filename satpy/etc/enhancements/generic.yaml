@@ -804,3 +804,27 @@ enhancements:
         stretch: crude
         min_stretch: [26.2,  27.4, 243.9]
         max_stretch: [ 0.6, -26.2, 208.5]
+
+  night_background:
+    standard_name: night_background
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [255, 255, 255]
+
+  true_color_ir_night:
+    standard_name: true_color_ir_night
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+    - name: inverse
+      method: *inversefun
+      args:
+      - [false, false, false]        
