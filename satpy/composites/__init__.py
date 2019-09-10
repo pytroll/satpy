@@ -1420,7 +1420,7 @@ class StaticImageCompositor(GenericCompositor):
         if (not os.path.isfile(self.filename)):
             tmp_filename = os.path.join(get_environ_ancpath(), self.filename)
             if (os.path.isfile(tmp_filename)):
-                    self.filename = tmp_filename
+                self.filename = tmp_filename
         scn = Scene(reader='generic_image', filenames=[self.filename])
         scn.load(['image'])
         img = scn['image']
