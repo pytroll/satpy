@@ -509,3 +509,15 @@ composites:
     - name: C13
     - name: C07
     standard_name: ir_overview
+
+  night_background:
+    compositor: !!python/name:satpy.composites.StaticImageCompositor
+    standard_name: night_background
+    filename: /home/jbravo/BlackMarble_2016_3km_lights_CONUS.tif
+
+  true_color_ir_night:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_ir_night
+    prerequisites:
+      - true_color
+      - ir_night
