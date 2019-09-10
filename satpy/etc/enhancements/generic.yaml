@@ -793,10 +793,6 @@ enhancements:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [1, 1, 1]
-    - name: inverse
-      method: *inversefun
-      args:
-      - [false, false, false]
 
   night_background:
     standard_name: night_background
@@ -828,7 +824,3 @@ enhancements:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [1, 1, 1]
-    - name: inverse
-      method: *inversefun
-      args:
-      - [false, false, false]
