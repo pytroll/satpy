@@ -166,7 +166,7 @@ class TestKDTreeResampler(unittest.TestCase):
             the_dir = tempfile.mkdtemp()
             resampler = KDTreeResampler(source_area, target_area)
             create_filename.return_value = os.path.join(the_dir, 'test_cache.zarr')
-            zarr_open.side_effect = IOError()
+            zarr_open.side_effect = ValueError()
             resampler.precompute(cache_dir=the_dir)
             # assert data was saved to the on-disk cache
             self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
