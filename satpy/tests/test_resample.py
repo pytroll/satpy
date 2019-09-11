@@ -571,6 +571,10 @@ class TestBilinearResampler(unittest.TestCase):
             self.assertTrue(os.path.exists(
                 os.path.join(the_dir, 'moved_by_satpy',
                              'test.zarr')))
+            # Run again to see that the existing dir doesn't matter
+            with open(zarr_file, 'w') as fid:
+                fid.write('42')
+            _move_existing_caches(the_dir, zarr_file)
         finally:
             shutil.rmtree(the_dir)
 

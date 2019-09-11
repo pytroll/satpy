@@ -881,7 +881,12 @@ def _move_existing_caches(cache_dir, filename):
         os.mkdir(old_cache_dir)
     except FileExistsError:
         pass
-    shutil.move(filename, old_cache_dir)
+    try:
+        shutil.move(filename, old_cache_dir)
+    except shutil.Error:
+        os.remove(os.path.join(old_cache_dir,
+                               os.path.basename(filename)))
+        shutil.move(filename, old_cache_dir)
     LOG.warning("Old cache file was moved to %s", old_cache_dir)
 
 
