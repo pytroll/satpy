@@ -449,13 +449,13 @@ class TestNativeResampler(unittest.TestCase):
 class TestBilinearResampler(unittest.TestCase):
     """Test the bilinear resampler."""
 
-    @mock.patch('os.path.exists')
+    @mock.patch('satpy.resample._move_existing_caches')
     @mock.patch('satpy.resample.xr.Dataset')
     @mock.patch('satpy.resample.zarr.open')
     @mock.patch('satpy.resample.BilinearResampler._create_cache_filename')
     @mock.patch('satpy.resample.XArrayResamplerBilinear')
     def test_bil_resampling(self, resampler, create_filename, zarr_open,
-                            xr_dset, exists):
+                            xr_dset, move_existing_caches):
         """Test the bilinear resampler."""
         import numpy as np
         import dask.array as da
@@ -465,7 +465,6 @@ class TestBilinearResampler(unittest.TestCase):
 
         mock_dset = mock.MagicMock()
         xr_dset.return_value = mock_dset
-        exists.return_value = False
 
         # Test that bilinear resampling info calculation is called,
         # and the info is saved
@@ -553,6 +552,16 @@ class TestBilinearResampler(unittest.TestCase):
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
             # we should have cached things in-memory now
             # self.assertEqual(len(resampler._index_caches), 1)
+
+            resampler = BilinearResampler(source_area, target_area)
+            resampler.precompute(cache_dir=the_dir)
+            resampler.save_bil_info(cache_dir=the_dir)
+            zarr_file = os.path.join(the_dir, 'test_cache.zarr')
+            # Save again faking the cache file already exists
+            with mock.patch('os.path.exists') as exists:
+                exists.return_value = True
+                resampler.save_bil_info(cache_dir=the_dir)
+            move_existing_caches.assert_called_once_with(the_dir, zarr_file)
 
         finally:
             shutil.rmtree(the_dir)
