@@ -213,6 +213,37 @@ class TestKDTreeResampler(unittest.TestCase):
         resampler.compute(data, fill_value=fill_value)
         resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
 
+    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample.xr.Dataset')
+    def test_check_numpy_cache(self, xr_Dataset, np_load):
+        """Test that cache stored in .npz is converted to zarr."""
+        from satpy.resample import KDTreeResampler
+
+        data, source_area, swath_data, source_swath, target_area = get_test_data()
+        resampler = KDTreeResampler(source_area, target_area)
+
+        zarr_out = mock.MagicMock()
+        xr_Dataset.return_value = zarr_out
+
+        # The correct filenames
+        fname_np = 'resample_lut-2ece018b649510bc57f800b765fb3bb160dc1d5f.npz'
+        fname_zarr = 'nn_lut-2ece018b649510bc57f800b765fb3bb160dc1d5f.zarr'
+
+        try:
+            the_dir = tempfile.mkdtemp()
+            np_path = os.path.join(the_dir, fname_np)
+            zarr_path = os.path.join(the_dir, fname_zarr)
+            resampler._check_numpy_cache(the_dir)
+            np_load.assert_not_called()
+            zarr_out.to_zarr.assert_not_called()
+            with open(np_path, 'w') as fid:
+                fid.write("42")
+            resampler._check_numpy_cache(the_dir)
+            np_load.assert_called_once_with(np_path, 'r')
+            zarr_out.to_zarr.assert_called_once_with(zarr_path)
+        finally:
+            shutil.rmtree(the_dir)
+
 
 class TestEWAResampler(unittest.TestCase):
     """Test EWA resampler class."""
