@@ -843,6 +843,9 @@ class BilinearResampler(BaseResampler):
             filename = self._create_cache_filename(cache_dir,
                                                    prefix='bil_lut-',
                                                    **kwargs)
+            # There are some old caches, move them out of the way
+            if os.path.exists(filename):
+                _move_existing_caches(cache_dir, filename)
             LOG.info('Saving BIL neighbour info to %s', filename)
             zarr_out = xr.Dataset()
             for idx_name, coord in BIL_COORDINATES.items():
@@ -867,6 +870,19 @@ class BilinearResampler(BaseResampler):
                                                       output_shape=target_shape)
 
         return update_resampled_coords(data, res, self.target_geo_def)
+
+
+def _move_existing_caches(cache_dir, filename):
+    """Move existing cache files out of the way."""
+    import os
+    import shutil
+    old_cache_dir = os.path.join(cache_dir, 'moved_by_satpy')
+    try:
+        os.mkdir(old_cache_dir)
+    except FileExistsError:
+        pass
+    shutil.move(filename, old_cache_dir)
+    LOG.warning("Old cache file was moved to %s", old_cache_dir)
 
 
 def _mean(data, y_size, x_size):
