@@ -523,6 +523,13 @@ class TestBilinearResampler(unittest.TestCase):
             # we should have cached things in-memory now
             # self.assertEqual(len(resampler._index_caches), 1)
 
+        finally:
+            shutil.rmtree(the_dir)
+
+    def test_move_existing_caches(self):
+        """Test that existing caches are moved to a subdirectory."""
+        try:
+            the_dir = tempfile.mkdtemp()
             # Test that existing cache file is moved away
             zarr_file = os.path.join(the_dir, 'test.zarr')
             with open(zarr_file, 'w') as fid:
@@ -530,8 +537,9 @@ class TestBilinearResampler(unittest.TestCase):
             from satpy.resample import _move_existing_caches
             _move_existing_caches(the_dir, zarr_file)
             self.assertFalse(os.path.exists(zarr_file))
-            self.assertTrue(os.path.join(the_dir, 'moved_by_satpy',
-                                         'test.zarr'))
+            self.assertTrue(os.path.exists(
+                os.path.join(the_dir, 'moved_by_satpy',
+                             'test.zarr')))
         finally:
             shutil.rmtree(the_dir)
 
