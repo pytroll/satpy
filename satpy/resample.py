@@ -434,10 +434,10 @@ class KDTreeResampler(BaseResampler):
     Args:
         cache_dir (str): Long term storage directory for intermediate
                          results.
-        mask_area (bool): Force resampled data's invalid pixel mask to be used
-                          when searching for nearest neighbor pixels. By
-                          default this is True for SwathDefinition source
-                          areas and False for all other area definition types.
+        mask (bool): Force resampled data's invalid pixel mask to be used
+                     when searching for nearest neighbor pixels. By
+                     default this is True for SwathDefinition source
+                     areas and False for all other area definition types.
         radius_of_influence (float): Search radius cut off distance in meters
         epsilon (float): Allowed uncertainty in meters. Increasing uncertainty
                          reduces execution time.
