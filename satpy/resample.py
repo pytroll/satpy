@@ -433,8 +433,7 @@ class KDTreeResampler(BaseResampler):
 
     Args:
         cache_dir (str): Long term storage directory for intermediate
-                         results. By default only 10 different source/target
-                         combinations are cached to save space.
+                         results.
         mask_area (bool): Force resampled data's invalid pixel mask to be used
                           when searching for nearest neighbor pixels. By
                           default this is True for SwathDefinition source
