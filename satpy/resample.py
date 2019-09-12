@@ -513,7 +513,7 @@ class KDTreeResampler(BaseResampler):
         fname_zarr = self._create_cache_filename(cache_dir, prefix='nn_lut-',
                                                  mask=mask, fmt='.zarr',
                                                  **kwargs)
-
+        LOG.debug("Check if %s exists", fname_np)
         if os.path.exists(fname_np) and not os.path.exists(fname_zarr):
             import warnings
             warnings.warn("Using Numpy files as resampling cache is "
@@ -526,6 +526,7 @@ class KDTreeResampler(BaseResampler):
 
             # Write indices to Zarr file
             zarr_out.to_zarr(fname_zarr)
+            LOG.debug("Resampling LUT saved to %s", fname_zarr)
 
     def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Read index arrays from either the in-memory or disk cache."""
