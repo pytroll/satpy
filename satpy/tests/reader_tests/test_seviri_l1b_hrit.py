@@ -349,12 +349,13 @@ class TestHRITMSGFileHandler(unittest.TestCase):
     def test_get_area_def(self):
         """Test getting the area def."""
         area = self.reader.get_area_def(DatasetID('VIS006'))
-        self.assertEqual(area.proj_dict, {'a': 6378169.0,
-                                          'b': 6356583.8,
-                                          'h': 35785831.0,
-                                          'lon_0': 44.0,
-                                          'proj': 'geos',
-                                          'units': 'm'})
+        proj_dict = area.proj_dict
+        self.assertEqual(proj_dict['a'], 6378169.0)
+        self.assertEqual(proj_dict['b'], 6356583.8)
+        self.assertEqual(proj_dict['h'], 35785831.0)
+        self.assertEqual(proj_dict['lon_0'], 44.0)
+        self.assertEqual(proj_dict['proj'], 'geos')
+        self.assertEqual(proj_dict['units'], 'm')
         self.assertEqual(area.area_extent,
                          (-77771774058.38356, -3720765401003.719,
                           30310525626438.438, 77771774058.38356))
