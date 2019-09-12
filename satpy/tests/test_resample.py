@@ -225,14 +225,19 @@ class TestKDTreeResampler(unittest.TestCase):
         zarr_out = mock.MagicMock()
         xr_Dataset.return_value = zarr_out
 
-        # The correct filenames
-        fname_np = 'resample_lut-2ece018b649510bc57f800b765fb3bb160dc1d5f.npz'
-        fname_zarr = 'nn_lut-2ece018b649510bc57f800b765fb3bb160dc1d5f.zarr'
-
         try:
             the_dir = tempfile.mkdtemp()
-            np_path = os.path.join(the_dir, fname_np)
-            zarr_path = os.path.join(the_dir, fname_zarr)
+            kwargs = {}
+            np_path = resampler._create_cache_filename(the_dir,
+                                                       prefix='resample_lut-',
+                                                       fmt='.npz',
+                                                       mask=None,
+                                                       **kwargs)
+            zarr_path = resampler._create_cache_filename(the_dir,
+                                                         prefix='nn_lut-',
+                                                         fmt='.zarr',
+                                                         mask=None,
+                                                         **kwargs)
             resampler._check_numpy_cache(the_dir)
             np_load.assert_not_called()
             zarr_out.to_zarr.assert_not_called()
