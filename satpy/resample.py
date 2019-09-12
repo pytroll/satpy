@@ -817,6 +817,7 @@ class BilinearResampler(BaseResampler):
                    reduce_data=True, cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use."""
         del kwargs
+        del mask
 
         if self.resampler is None:
             kwargs = dict(source_geo_def=self.source_geo_def,
