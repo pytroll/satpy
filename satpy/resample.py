@@ -791,7 +791,22 @@ class EWAResampler(BaseResampler):
 
 
 class BilinearResampler(BaseResampler):
-    """Resample using bilinear."""
+    """Resample using bilinear interpolation.
+
+    This resampler implements on-disk caching when the `cache_dir` argument
+    is provided to the `resample` method. This should provide significant
+    performance improvements on consecutive resampling of geostationary data.
+
+    Args:
+        cache_dir (str): Long term storage directory for intermediate
+                         results.
+        radius_of_influence (float): Search radius cut off distance in meters
+        epsilon (float): Allowed uncertainty in meters. Increasing uncertainty
+                         reduces execution time.
+        reduce_data (bool): Reduce the input data to (roughly) match the
+                            target area.
+
+    """
 
     def __init__(self, source_geo_def, target_geo_def):
         """Init BilinearResampler."""
@@ -805,6 +820,7 @@ class BilinearResampler(BaseResampler):
         Note: The `mask` keyword should be provided if geolocation may be valid
         where data points are invalid. This defaults to the `mask` attribute of
         the `data` numpy masked array passed to the `resample` method.
+
         """
         del kwargs
 
