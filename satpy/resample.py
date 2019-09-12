@@ -815,13 +815,7 @@ class BilinearResampler(BaseResampler):
 
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
                    reduce_data=True, cache_dir=False, **kwargs):
-        """Create bilinear coefficients and store them for later use.
-
-        Note: The `mask` keyword should be provided if geolocation may be valid
-        where data points are invalid. This defaults to the `mask` attribute of
-        the `data` numpy masked array passed to the `resample` method.
-
-        """
+        """Create bilinear coefficients and store them for later use."""
         del kwargs
 
         if self.resampler is None:
