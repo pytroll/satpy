@@ -137,8 +137,8 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     y = -np.sin(np.linspace(-np.pi, 0, nb_points / 2)) * (ymax - 0.001)
 
     # clip the projection coordinates to fit the area extent of geos_area
-    ll_x, ll_y, ur_x, ur_y = (np.array(geos_area.area_extent)
-                              / float(geos_area.proj_dict['h']))
+    ll_x, ll_y, ur_x, ur_y = (np.array(geos_area.area_extent) /
+                              float(geos_area.proj_dict['h']))
 
     x = np.clip(np.concatenate([x, x[::-1]]), min(ll_x, ur_x), max(ll_x, ur_x))
     y = np.clip(np.concatenate([y, -y]), min(ll_y, ur_y), max(ll_y, ur_y))
