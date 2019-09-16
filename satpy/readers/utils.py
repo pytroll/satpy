@@ -61,9 +61,9 @@ def get_geostationary_angle_extent(geos_area):
     # TODO: take into account sweep_axis_angle parameter
 
     # get some projection parameters
-    req = geos_area.proj_dict['a'] / 1000.0
-    rp = geos_area.proj_dict['b'] / 1000.0
-    h = geos_area.proj_dict['h'] / 1000.0 + req
+    req = float(geos_area.proj_dict['a']) / 1000
+    rp = float(geos_area.proj_dict['b']) / 1000
+    h = float(geos_area.proj_dict['h']) / 1000 + req
 
     # compute some constants
     aeq = 1 - req**2 / (h ** 2)
@@ -102,12 +102,12 @@ def get_geostationary_mask(area):
 
 def _lonlat_from_geos_angle(x, y, geos_area):
     """Get lons and lats from x, y in projection coordinates."""
-    h = (geos_area.proj_dict['h'] + geos_area.proj_dict['a']) / 1000.0
-    b__ = (geos_area.proj_dict['a'] / geos_area.proj_dict['b']) ** 2
+    h = float(geos_area.proj_dict['h'] + geos_area.proj_dict['a']) / 1000
+    b__ = (geos_area.proj_dict['a'] / float(geos_area.proj_dict['b'])) ** 2
 
     sd = np.sqrt((h * np.cos(x) * np.cos(y)) ** 2 -
                  (np.cos(y)**2 + b__ * np.sin(y)**2) *
-                 (h**2 - (geos_area.proj_dict['a'] / 1000.0)**2))
+                 (h**2 - (float(geos_area.proj_dict['a']) / 1000)**2))
     # sd = 0
 
     sn = (h * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
@@ -137,8 +137,8 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     y = -np.sin(np.linspace(-np.pi, 0, nb_points / 2)) * (ymax - 0.001)
 
     # clip the projection coordinates to fit the area extent of geos_area
-    ll_x, ll_y, ur_x, ur_y = (np.array(geos_area.area_extent) /
-                              geos_area.proj_dict['h'])
+    ll_x, ll_y, ur_x, ur_y = (np.array(geos_area.area_extent)
+                              / float(geos_area.proj_dict['h']))
 
     x = np.clip(np.concatenate([x, x[::-1]]), min(ll_x, ur_x), max(ll_x, ur_x))
     y = np.clip(np.concatenate([y, -y]), min(ll_y, ur_y), max(ll_y, ur_y))
