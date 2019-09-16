@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2018 Satpy developers
+# Copyright (c) 2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -34,11 +34,8 @@ import dask.array as da
 class MERSI2L1B(HDF5FileHandler):
     """MERSI-2 L1B file reader."""
 
-    def __init__(self, filename, filename_info, filetype_info):
-        super(MERSI2L1B, self).__init__(filename, filename_info, filetype_info)
-
     def _strptime(self, date_attr, time_attr):
-        """Helper to parse date/time strings."""
+        """Parse date/time strings."""
         date = self[date_attr]
         time = self[time_attr]  # "18:27:39.720"
         # cuts off microseconds because of unknown meaning
@@ -47,10 +44,12 @@ class MERSI2L1B(HDF5FileHandler):
 
     @property
     def start_time(self):
+        """Time for first observation."""
         return self._strptime('/attr/Observing Beginning Date', '/attr/Observing Beginning Time')
 
     @property
     def end_time(self):
+        """Time for final observation."""
         return self._strptime('/attr/Observing Ending Date', '/attr/Observing Ending Time')
 
     @property
@@ -58,7 +57,7 @@ class MERSI2L1B(HDF5FileHandler):
         """Map sensor name to Satpy 'standard' sensor names."""
         file_sensor = self['/attr/Sensor Identification Code']
         sensor = {
-            'MERSI': 'mersi2',
+            'MERSI': 'mersi-2',
         }.get(file_sensor, file_sensor)
         return sensor
 
@@ -100,6 +99,10 @@ class MERSI2L1B(HDF5FileHandler):
         else:
             new_fill = np.nan
         if valid_range is not None:
+            # Due to a bug in the valid_range upper limit in the 10.8(24) and 12.0(25)
+            # in the HDF data, this is hardcoded here.
+            if dataset_id.name in ['24', '25'] and valid_range[1] == 4095:
+                valid_range[1] = 25000
             # typically bad_values == 65535, saturated == 65534
             # dead detector == 65533
             data = data.where((data >= valid_range[0]) &

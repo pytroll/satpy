@@ -1,26 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2015-2019 PyTroll developers
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2015-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Compositors for cloud products.
 """
 
@@ -84,7 +78,7 @@ class PrecipCloudsRGB(GenericCompositor):
     def __call__(self, projectables, *args, **kwargs):
         """Make an RGB image out of the three probability categories of the NWCSAF precip product."""
 
-        projectables = self.check_areas(projectables)
+        projectables = self.match_data_arrays(projectables)
         light = projectables[0]
         moderate = projectables[1]
         intense = projectables[2]
