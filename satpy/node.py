@@ -1,31 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2016
+# Copyright (c) 2016-2019 Satpy developers
 #
-# Author(s):
+# This file is part of satpy.
 #
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Nodes to build trees."""
 
 from satpy import DatasetDict, DatasetID, DATASET_KEYS
 from satpy.readers import TooManyResults
 from satpy.utils import get_logger
+from satpy.dataset import create_filtered_dsid
 
 LOG = get_logger(__name__)
+# Empty leaf used for marking composites with no prerequisites
+EMPTY_LEAF_NAME = "__EMPTY_LEAF_SENTINEL__"
 
 
 class Node(object):
@@ -40,11 +39,11 @@ class Node(object):
 
     @property
     def is_leaf(self):
+        """Check if the node is a leaf."""
         return not self.children
 
     def flatten(self, d=None):
         """Flatten tree structure to a one level dictionary.
-
 
         Args:
             d (dict, optional): output dictionary to update
@@ -52,6 +51,7 @@ class Node(object):
         Returns:
             dict: Node.name -> Node. The returned dictionary includes the
                   current Node and all its children.
+
         """
         if d is None:
             d = {}
@@ -62,8 +62,12 @@ class Node(object):
         return d
 
     def copy(self, node_cache=None):
+        """Make a copy of the node."""
         if node_cache and self.name in node_cache:
             return node_cache[self.name]
+
+        if self.name is EMPTY_LEAF_NAME:
+            return self
 
         s = Node(self.name, self.data)
         for c in self.children:
@@ -81,12 +85,15 @@ class Node(object):
         return self.display()
 
     def __repr__(self):
+        """Generate a representation of the node."""
         return "<Node ({})>".format(repr(self.name))
 
     def __eq__(self, other):
+        """Check equality."""
         return self.name == other.name
 
     def __hash__(self):
+        """Generate the hash of the node."""
         return hash(self.name)
 
     def display(self, previous=0, include_data=False):
@@ -98,22 +105,24 @@ class Node(object):
 
     def leaves(self, unique=True):
         """Get the leaves of the tree starting at this root."""
-        if not self.children:
+        if self.name is EMPTY_LEAF_NAME:
+            return []
+        elif not self.children:
             return [self]
-        else:
-            res = list()
-            for child in self.children:
-                for sub_child in child.leaves(unique=unique):
-                    if not unique or sub_child not in res:
-                        res.append(sub_child)
-            return res
+
+        res = list()
+        for child in self.children:
+            for sub_child in child.leaves(unique=unique):
+                if not unique or sub_child not in res:
+                    res.append(sub_child)
+        return res
 
     def trunk(self, unique=True):
         """Get the trunk of the tree starting at this root."""
         # uniqueness is not correct in `trunk` yet
         unique = False
         res = []
-        if self.children:
+        if self.children and self.name is not EMPTY_LEAF_NAME:
             if self.name is not None:
                 res.append(self)
             for child in self.children:
@@ -124,13 +133,17 @@ class Node(object):
 
 
 class DependencyTree(Node):
-    """Structure to discover and store `Dataset` dependencies
+    """Structure to discover and store `Dataset` dependencies.
 
     Used primarily by the `Scene` object to organize dependency finding.
     Dependencies are stored used a series of `Node` objects which this
     class is a subclass of.
 
     """
+
+    # simplify future logic by only having one "sentinel" empty node
+    # making it a class attribute ensures it is the same across instances
+    empty_node = Node(EMPTY_LEAF_NAME)
 
     def __init__(self, readers, compositors, modifiers):
         """Collect Dataset generating information.
@@ -199,15 +212,20 @@ class DependencyTree(Node):
         return res
 
     def add_child(self, parent, child):
+        """Add a child to the tree."""
         Node.add_child(parent, child)
         # Sanity check: Node objects should be unique. They can be added
         #               multiple times if more than one Node depends on them
         #               but they should all map to the same Node object.
         if self.contains(child.name):
             assert self._all_nodes[child.name] is child
+        if child is self.empty_node:
+            # No need to store "empty" nodes
+            return
         self._all_nodes[child.name] = child
 
     def add_leaf(self, ds_id, parent=None):
+        """Add a leaf to the tree."""
         if parent is None:
             parent = self
         try:
@@ -217,7 +235,7 @@ class DependencyTree(Node):
         self.add_child(parent, node)
 
     def copy(self):
-        """Copy the this node tree
+        """Copy this node tree.
 
         Note all references to readers are removed. This is meant to avoid
         tree copies accessing readers that would return incompatible (Area)
@@ -232,9 +250,11 @@ class DependencyTree(Node):
         return new_tree
 
     def __contains__(self, item):
+        """Check if a item is in the tree."""
         return item in self._all_nodes
 
     def __getitem__(self, item):
+        """Get an item of the tree."""
         return self._all_nodes[item]
 
     def contains(self, item):
@@ -246,6 +266,7 @@ class DependencyTree(Node):
         return super(DatasetDict, self._all_nodes).__getitem__(item)
 
     def get_compositor(self, key):
+        """Get a compositor."""
         for sensor_name in self.compositors.keys():
             try:
                 return self.compositors[sensor_name][key]
@@ -259,6 +280,7 @@ class DependencyTree(Node):
         raise KeyError("Could not find compositor '{}'".format(key))
 
     def get_modifier(self, comp_id):
+        """Get a modifer."""
         # create a DatasetID for the compositor we are generating
         modifier = comp_id.modifiers[-1]
         for sensor_name in self.modifiers.keys():
@@ -330,6 +352,10 @@ class DependencyTree(Node):
         """
         prereq_ids = []
         unknowns = set()
+        if not prereq_names and not skip:
+            # this composite has no required prerequisites
+            prereq_names = [None]
+
         for prereq in prereq_names:
             n, u = self._find_dependencies(prereq, **dfilter)
             if u:
@@ -385,7 +411,7 @@ class DependencyTree(Node):
             compositor = self.get_compositor(dataset_key)
         except KeyError:
             raise KeyError("Can't find anything called {}".format(str(dataset_key)))
-        dataset_key = compositor.id
+        dataset_key = create_filtered_dsid(compositor.id, **dfilter)
         root = Node(dataset_key, data=(compositor, [], []))
         if src_node is not None:
             self.add_child(root, src_node)
@@ -407,6 +433,11 @@ class DependencyTree(Node):
 
         return root, set()
 
+    def get_filtered_item(self, dataset_key, **dfilter):
+        """Get the item matching *dataset_key* and *dfilter*."""
+        dsid = create_filtered_dsid(dataset_key, **dfilter)
+        return self[dsid]
+
     def _find_dependencies(self, dataset_key, **dfilter):
         """Find the dependencies for *dataset_key*.
 
@@ -418,9 +449,14 @@ class DependencyTree(Node):
                               `satpy.readers.get_key` for more details.
 
         """
+        # Special case: No required dependencies for this composite
+        if dataset_key is None:
+            return self.empty_node, set()
+
         # 0 check if the *exact* dataset is already loaded
         try:
-            node = self.getitem(dataset_key)
+            dsid = create_filtered_dsid(dataset_key, **dfilter)
+            node = self.getitem(dsid)
             LOG.trace("Found exact dataset already loaded: {}".format(node.name))
             return node, set()
         except KeyError:
@@ -443,7 +479,7 @@ class DependencyTree(Node):
             # assume that there is no such thing as a "better" composite
             # version so if we find any DatasetIDs already loaded then
             # we want to use them
-            node = self[dataset_key]
+            node = self.get_filtered_item(dataset_key, **dfilter)
             LOG.trace("Composite already loaded:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
             return node, set()
         except KeyError:

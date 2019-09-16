@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Author(s):
-#
-#   Panu Lahtinen <panu.lahtinen@fmi.fi
+# Copyright (c) 2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -534,8 +531,12 @@ class TestFindFilesAndReaders(unittest.TestCase):
 
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
-        from satpy.readers import configs_for_reader
-        self.assertRaises(ValueError, list, configs_for_reader('hrit_jma'))
+        from satpy.readers import configs_for_reader, OLD_READER_NAMES
+        if not OLD_READER_NAMES:
+            return unittest.skip("Skipping deprecated reader tests because "
+                                 "no deprecated readers.")
+        test_reader = sorted(OLD_READER_NAMES.keys())[0]
+        self.assertRaises(ValueError, list, configs_for_reader(test_reader))
 
 
 class TestYAMLFiles(unittest.TestCase):
@@ -598,6 +599,31 @@ class TestGroupFiles(unittest.TestCase):
         ]
         self.g16_files = input_files
         self.g17_files = [x.replace('G16', 'G17') for x in input_files]
+        self.noaa20_files = [
+            "GITCO_j01_d20180511_t2027292_e2028538_b02476_c20190530192858056873_noac_ops.h5",
+            "GITCO_j01_d20180511_t2028550_e2030195_b02476_c20190530192932937427_noac_ops.h5",
+            "GITCO_j01_d20180511_t2030208_e2031435_b02476_c20190530192932937427_noac_ops.h5",
+            "GITCO_j01_d20180511_t2031447_e2033092_b02476_c20190530192932937427_noac_ops.h5",
+            "GITCO_j01_d20180511_t2033105_e2034350_b02476_c20190530192932937427_noac_ops.h5",
+            "SVI03_j01_d20180511_t2027292_e2028538_b02476_c20190530190950789763_noac_ops.h5",
+            "SVI03_j01_d20180511_t2028550_e2030195_b02476_c20190530192911205765_noac_ops.h5",
+            "SVI03_j01_d20180511_t2030208_e2031435_b02476_c20190530192911205765_noac_ops.h5",
+            "SVI03_j01_d20180511_t2031447_e2033092_b02476_c20190530192911205765_noac_ops.h5",
+            "SVI03_j01_d20180511_t2033105_e2034350_b02476_c20190530192911205765_noac_ops.h5",
+            "SVI04_j01_d20180511_t2027292_e2028538_b02476_c20190530190951848958_noac_ops.h5",
+            "SVI04_j01_d20180511_t2028550_e2030195_b02476_c20190530192903985164_noac_ops.h5",
+            "SVI04_j01_d20180511_t2030208_e2031435_b02476_c20190530192903985164_noac_ops.h5",
+            "SVI04_j01_d20180511_t2031447_e2033092_b02476_c20190530192903985164_noac_ops.h5",
+            "SVI04_j01_d20180511_t2033105_e2034350_b02476_c20190530192903985164_noac_ops.h5"
+        ]
+        self.npp_files = [
+            "GITCO_npp_d20180511_t1939067_e1940309_b33872_c20190612031740518143_noac_ops.h5",
+            "GITCO_npp_d20180511_t1940321_e1941563_b33872_c20190612031740518143_noac_ops.h5",
+            "GITCO_npp_d20180511_t1941575_e1943217_b33872_c20190612031740518143_noac_ops.h5",
+            "SVI03_npp_d20180511_t1939067_e1940309_b33872_c20190612032009230105_noac_ops.h5",
+            "SVI03_npp_d20180511_t1940321_e1941563_b33872_c20190612032009230105_noac_ops.h5",
+            "SVI03_npp_d20180511_t1941575_e1943217_b33872_c20190612032009230105_noac_ops.h5",
+        ]
 
     def test_no_reader(self):
         """Test that reader must be provided."""
@@ -665,6 +691,43 @@ class TestGroupFiles(unittest.TestCase):
         groups = group_files(self.g16_files + self.g17_files, reader='abi_l1b')
         self.assertEqual(12, len(groups))
         self.assertEqual(2, len(groups[0]['abi_l1b']))
+
+    def test_viirs_orbits(self):
+        """Test a reader that doesn't use 'start_time' for default grouping."""
+        from satpy.readers import group_files
+        groups = group_files(self.noaa20_files + self.npp_files, reader='viirs_sdr')
+        self.assertEqual(2, len(groups))
+        # the noaa-20 files will be first because the orbit number is smaller
+        # 5 granules * 3 file types
+        self.assertEqual(5 * 3, len(groups[0]['viirs_sdr']))
+        # 3 granules * 2 file types
+        self.assertEqual(6, len(groups[1]['viirs_sdr']))
+
+    def test_viirs_override_keys(self):
+        """Test overriding a group keys to add 'start_time'."""
+        from satpy.readers import group_files
+        groups = group_files(self.noaa20_files + self.npp_files, reader='viirs_sdr',
+                             group_keys=('start_time', 'orbit', 'platform_shortname'))
+        self.assertEqual(8, len(groups))
+        self.assertEqual(2, len(groups[0]['viirs_sdr']))  # NPP
+        self.assertEqual(2, len(groups[1]['viirs_sdr']))  # NPP
+        self.assertEqual(2, len(groups[2]['viirs_sdr']))  # NPP
+        self.assertEqual(3, len(groups[3]['viirs_sdr']))  # N20
+        self.assertEqual(3, len(groups[4]['viirs_sdr']))  # N20
+        self.assertEqual(3, len(groups[5]['viirs_sdr']))  # N20
+        self.assertEqual(3, len(groups[6]['viirs_sdr']))  # N20
+        self.assertEqual(3, len(groups[7]['viirs_sdr']))  # N20
+
+        # Ask for a larger time span with our groups
+        groups = group_files(self.noaa20_files + self.npp_files, reader='viirs_sdr',
+                             time_threshold=60 * 60 * 2,
+                             group_keys=('start_time', 'orbit', 'platform_shortname'))
+        self.assertEqual(2, len(groups))
+        # NPP is first because it has an earlier time
+        # 3 granules * 2 file types
+        self.assertEqual(6, len(groups[0]['viirs_sdr']))
+        # 5 granules * 3 file types
+        self.assertEqual(5 * 3, len(groups[1]['viirs_sdr']))
 
 
 def suite():
