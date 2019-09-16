@@ -103,8 +103,8 @@ def apply_enhancement(data, func, exclude=None, separate=False,
     return data
 
 
-# pointed to by generic.yaml
 def crefl_scaling(img, **kwargs):
+    """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
 
     def func(band_data, index=None):
@@ -198,6 +198,8 @@ def create_colormap(palette):
     from trollimage.colormap import Colormap
     fname = palette.get('filename', None)
     colors = palette.get('colors', None)
+    # are colors between 0-255 or 0-1
+    color_scale = palette.get('color_scale', 255)
     if fname:
         data = np.load(fname)
         cols = data.shape[1]
@@ -214,10 +216,14 @@ def create_colormap(palette):
 
         rows = data.shape[0]
         if mode[0] == 'V':
-            colors = data[:, 1:] / 255.0
+            colors = data[:, 1:]
+            if color_scale != 1:
+                colors = data[:, 1:] / float(color_scale)
             values = data[:, 0]
         else:
-            colors = data / 255.0
+            colors = data
+            if color_scale != 1:
+                colors = colors / float(color_scale)
             values = np.arange(rows) / float(rows - 1)
         cmap = Colormap(*zip(values, colors))
     elif isinstance(colors, (tuple, list)):
@@ -228,6 +234,8 @@ def create_colormap(palette):
                 value = values[idx]
             else:
                 value = idx / float(len(colors) - 1)
+            if color_scale != 1:
+                color = tuple(elem / float(color_scale) for elem in color)
             cmap.append((value, tuple(color)))
         cmap = Colormap(*cmap)
     elif isinstance(colors, str):
@@ -251,7 +259,7 @@ def _three_d_effect_delayed(band_data, kernel, mode):
 
 
 def three_d_effect(img, **kwargs):
-    """Create 3D effect using convolution"""
+    """Create 3D effect using convolution."""
     w = kwargs.get('weight', 1)
     LOG.debug("Applying 3D effect with weight %.2f", w)
     kernel = np.array([[-w, 0, w],

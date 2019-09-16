@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit testing the enhancements functions, e.g. cira_stretch
-"""
+"""Unit testing the enhancements functions, e.g. cira_stretch."""
 
 import os
 import unittest
@@ -26,10 +25,10 @@ import dask.array as da
 
 
 class TestEnhancementStretch(unittest.TestCase):
-    """Class for testing enhancements in satpy.enhancements"""
+    """Class for testing enhancements in satpy.enhancements."""
 
     def setUp(self):
-        """Setup the test"""
+        """Create test data used by every test."""
         data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
         data[0, 0] = np.nan  # one bad value for testing
         crefl_data = np.arange(-210, 790, 100).reshape((2, 5)) * 0.95
@@ -43,7 +42,7 @@ class TestEnhancementStretch(unittest.TestCase):
                                 coords={'bands': ['R', 'G', 'B']})
 
     def _test_enhancement(self, func, data, expected, **kwargs):
-        """Helper for testing enhancement functions."""
+        """Perform basic checks that apply to multiple tests."""
         from trollimage.xrimage import XRImage
 
         pre_attrs = data.attrs
@@ -58,7 +57,7 @@ class TestEnhancementStretch(unittest.TestCase):
         np.testing.assert_allclose(img.data.values, expected, atol=1.e-6, rtol=0)
 
     def test_cira_stretch(self):
-        """Test applying the cira_stretch"""
+        """Test applying the cira_stretch."""
         from satpy.enhancements import cira_stretch
 
         expected = np.array([[
@@ -67,6 +66,7 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(cira_stretch, self.ch1, expected)
 
     def test_lookup(self):
+        """Test the lookup enhancement function."""
         from satpy.enhancements import lookup
         expected = np.array([[
             [0., 0., 0., 0.333333, 0.705882],
@@ -85,6 +85,7 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(lookup, self.rgb, expected, luts=lut)
 
     def test_colorize(self):
+        """Test the colorize enhancement function."""
         from satpy.enhancements import colorize
         from trollimage.colormap import brbg
         expected = np.array([[
@@ -103,12 +104,14 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(colorize, self.ch1, expected, palettes=brbg)
 
     def test_palettize(self):
+        """Test the palettize enhancement function."""
         from satpy.enhancements import palettize
         from trollimage.colormap import brbg
         expected = np.array([[[10, 0, 0, 10, 10], [10, 10, 10, 10, 10]]])
         self._test_enhancement(palettize, self.ch1, expected, palettes=brbg)
 
     def test_three_d_effect(self):
+        """Test the three_d_effect enhancement function."""
         from satpy.enhancements import three_d_effect
         expected = np.array([[
             [np.nan, np.nan, -389.5, -294.5, 826.5],
@@ -116,6 +119,7 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(three_d_effect, self.ch1, expected)
 
     def test_crefl_scaling(self):
+        """Test the crefl_scaling enhancement function."""
         from satpy.enhancements import crefl_scaling
         expected = np.array([[
             [np.nan, 0., 0., 0.44378, 0.631734],
@@ -124,7 +128,7 @@ class TestEnhancementStretch(unittest.TestCase):
                                sc=[0., 90., 140., 175., 255.])
 
     def test_btemp_threshold(self):
-        """Test applying the cira_stretch"""
+        """Test applying the cira_stretch."""
         from satpy.enhancements import btemp_threshold
 
         expected = np.array([[
@@ -132,10 +136,6 @@ class TestEnhancementStretch(unittest.TestCase):
             [0.73216, 0.595869, 0.158745, -0.278379, -0.715503]]])
         self._test_enhancement(btemp_threshold, self.ch1, expected,
                                min_in=-200, max_in=500, threshold=350)
-
-    def tearDown(self):
-        """Clean up"""
-        pass
 
 
 class TestColormapLoading(unittest.TestCase):
@@ -158,12 +158,47 @@ class TestColormapLoading(unittest.TestCase):
         try:
             cmap = create_colormap({'filename': cmap_filename})
             self.assertEqual(cmap.colors.shape[0], 4)
+            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
             self.assertEqual(cmap.values.shape[0], 4)
             self.assertEqual(cmap.values[0], 0)
             self.assertEqual(cmap.values[-1], 1.0)
 
             cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
             self.assertEqual(cmap.colors.shape[0], 4)
+            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
+            self.assertEqual(cmap.values.shape[0], 4)
+            self.assertEqual(cmap.values[0], 50)
+            self.assertEqual(cmap.values[-1], 100)
+        finally:
+            os.remove(cmap_filename)
+
+    def test_cmap_from_file_rgb_1(self):
+        """Test that colormaps can be loaded from a binary file with 0-1 colors."""
+        from satpy.enhancements import create_colormap
+        from tempfile import NamedTemporaryFile
+        # create the colormap file on disk
+        with NamedTemporaryFile(suffix='.npy', delete=False) as tmp_cmap:
+            cmap_filename = tmp_cmap.name
+            np.save(cmap_filename, np.array([
+                [1, 0, 0],
+                [1, 1, 0],
+                [1, 1, 1],
+                [0, 0, 1],
+            ]))
+
+        try:
+            cmap = create_colormap({'filename': cmap_filename,
+                                    'color_scale': 1})
+            self.assertEqual(cmap.colors.shape[0], 4)
+            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
+            self.assertEqual(cmap.values.shape[0], 4)
+            self.assertEqual(cmap.values[0], 0)
+            self.assertEqual(cmap.values[-1], 1.0)
+
+            cmap = create_colormap({'filename': cmap_filename, 'color_scale': 1,
+                                    'min_value': 50, 'max_value': 100})
+            self.assertEqual(cmap.colors.shape[0], 4)
+            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
             self.assertEqual(cmap.values.shape[0], 4)
             self.assertEqual(cmap.values[0], 50)
             self.assertEqual(cmap.values[-1], 100)
@@ -188,6 +223,7 @@ class TestColormapLoading(unittest.TestCase):
             # default mode of VRGB
             cmap = create_colormap({'filename': cmap_filename})
             self.assertEqual(cmap.colors.shape[0], 4)
+            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
             self.assertEqual(cmap.values.shape[0], 4)
             self.assertEqual(cmap.values[0], 128)
             self.assertEqual(cmap.values[-1], 134)
@@ -195,12 +231,14 @@ class TestColormapLoading(unittest.TestCase):
             cmap = create_colormap({'filename': cmap_filename, 'colormap_mode': 'RGBA'})
             self.assertEqual(cmap.colors.shape[0], 4)
             self.assertEqual(cmap.colors.shape[1], 4)  # RGBA
+            np.testing.assert_equal(cmap.colors[0], [128 / 255., 1.0, 0, 0])
             self.assertEqual(cmap.values.shape[0], 4)
             self.assertEqual(cmap.values[0], 0)
             self.assertEqual(cmap.values[-1], 1.0)
 
             cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
             self.assertEqual(cmap.colors.shape[0], 4)
+            np.testing.assert_equal(cmap.colors[0], [1.0, 0, 0])
             self.assertEqual(cmap.values.shape[0], 4)
             self.assertEqual(cmap.values[0], 50)
             self.assertEqual(cmap.values[-1], 100)
@@ -230,6 +268,7 @@ class TestColormapLoading(unittest.TestCase):
             cmap = create_colormap({'filename': cmap_filename})
             self.assertEqual(cmap.colors.shape[0], 4)
             self.assertEqual(cmap.colors.shape[1], 4)  # RGBA
+            np.testing.assert_equal(cmap.colors[0], [128 / 255.0, 1.0, 0, 0])
             self.assertEqual(cmap.values.shape[0], 4)
             self.assertEqual(cmap.values[0], 128)
             self.assertEqual(cmap.values[-1], 134)
@@ -239,7 +278,8 @@ class TestColormapLoading(unittest.TestCase):
 
             cmap = create_colormap({'filename': cmap_filename, 'min_value': 50, 'max_value': 100})
             self.assertEqual(cmap.colors.shape[0], 4)
-            self.assertEqual(cmap.colors.shape[1], 4)
+            self.assertEqual(cmap.colors.shape[1], 4)  # RGBA
+            np.testing.assert_equal(cmap.colors[0], [128 / 255.0, 1.0, 0, 0])
             self.assertEqual(cmap.values.shape[0], 4)
             self.assertEqual(cmap.values[0], 50)
             self.assertEqual(cmap.values[-1], 100)
@@ -289,22 +329,23 @@ class TestColormapLoading(unittest.TestCase):
             [1, 1, 1],
         ]
         values = [2, 4, 6, 8]
-        cmap = create_colormap({'colors': colors})
+        cmap = create_colormap({'colors': colors, 'color_scale': 1})
         self.assertEqual(cmap.colors.shape[0], 4)
+        np.testing.assert_equal(cmap.colors[0], [0.0, 0.0, 1.0])
         self.assertEqual(cmap.values.shape[0], 4)
         self.assertEqual(cmap.values[0], 0)
         self.assertEqual(cmap.values[-1], 1.0)
 
-        cmap = create_colormap({'colors': colors, 'values': values})
+        cmap = create_colormap({'colors': colors, 'color_scale': 1, 'values': values})
         self.assertEqual(cmap.colors.shape[0], 4)
+        np.testing.assert_equal(cmap.colors[0], [0.0, 0.0, 1.0])
         self.assertEqual(cmap.values.shape[0], 4)
         self.assertEqual(cmap.values[0], 2)
         self.assertEqual(cmap.values[-1], 8)
 
 
 def suite():
-    """The test suite for test_satin_helpers.
-    """
+    """Create test suite for builtin enhancement functions."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestEnhancementStretch))
@@ -314,5 +355,4 @@ def suite():
 
 
 if __name__ == "__main__":
-    # So you can run tests from this module individually.
     unittest.main()
