@@ -61,9 +61,9 @@ def get_geostationary_angle_extent(geos_area):
     # TODO: take into account sweep_axis_angle parameter
 
     # get some projection parameters
-    req = geos_area.proj_dict['a'] / 1000
-    rp = geos_area.proj_dict['b'] / 1000
-    h = geos_area.proj_dict['h'] / 1000 + req
+    req = float(geos_area.proj_dict['a']) / 1000
+    rp = float(geos_area.proj_dict['b']) / 1000
+    h = float(geos_area.proj_dict['h']) / 1000 + req
 
     # compute some constants
     aeq = 1 - req**2 / (h ** 2)
@@ -77,7 +77,7 @@ def get_geostationary_angle_extent(geos_area):
 
 
 def get_geostationary_mask(area):
-    """Compute a mask of the earth's shape as seen by a geostationary satellite
+    """Compute a mask of the earth's shape as seen by a geostationary satellite.
 
     Args:
         area (pyresample.geometry.AreaDefinition) : Corresponding area
@@ -85,6 +85,7 @@ def get_geostationary_mask(area):
 
     Returns:
         Boolean mask, True inside the earth's shape, False outside.
+
     """
     # Compute projection coordinates at the earth's limb
     h = area.proj_dict['h']
@@ -101,12 +102,12 @@ def get_geostationary_mask(area):
 
 def _lonlat_from_geos_angle(x, y, geos_area):
     """Get lons and lats from x, y in projection coordinates."""
-    h = (geos_area.proj_dict['h'] + geos_area.proj_dict['a']) / 1000
-    b__ = (geos_area.proj_dict['a'] / geos_area.proj_dict['b']) ** 2
+    h = float(geos_area.proj_dict['h'] + geos_area.proj_dict['a']) / 1000
+    b__ = (geos_area.proj_dict['a'] / float(geos_area.proj_dict['b'])) ** 2
 
     sd = np.sqrt((h * np.cos(x) * np.cos(y)) ** 2 -
                  (np.cos(y)**2 + b__ * np.sin(y)**2) *
-                 (h**2 - (geos_area.proj_dict['a'] / 1000)**2))
+                 (h**2 - (float(geos_area.proj_dict['a']) / 1000)**2))
     # sd = 0
 
     sn = (h * np.cos(x) * np.cos(y) - sd) / (np.cos(y)**2 + b__ * np.sin(y)**2)
@@ -126,6 +127,7 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
 
     Args:
       nb_points: Number of points on the polygon
+
     """
     xmax, ymax = get_geostationary_angle_extent(geos_area)
 
@@ -136,7 +138,7 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
 
     # clip the projection coordinates to fit the area extent of geos_area
     ll_x, ll_y, ur_x, ur_y = (np.array(geos_area.area_extent) /
-                              geos_area.proj_dict['h'])
+                              float(geos_area.proj_dict['h']))
 
     x = np.clip(np.concatenate([x, x[::-1]]), min(ll_x, ur_x), max(ll_x, ur_x))
     y = np.clip(np.concatenate([y, -y]), min(ll_y, ur_y), max(ll_y, ur_y))
@@ -146,7 +148,6 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
 
 def get_area_slices(data_area, area_to_cover):
     """Compute the slice to read from an *area* based on an *area_to_cover*."""
-
     if data_area.proj_dict['proj'] != 'geos':
         raise NotImplementedError('Only geos supported')
 
@@ -191,8 +192,7 @@ def get_sub_area(area, xslice, yslice):
 
 
 def unzip_file(filename):
-    """Unzip the file if file is bzipped = ending with 'bz2'"""
-
+    """Unzip the file if file is bzipped = ending with 'bz2'."""
     if filename.endswith('bz2'):
         bz2file = bz2.BZ2File(filename)
         fdn, tmpfilepath = tempfile.mkstemp()
@@ -212,12 +212,13 @@ def unzip_file(filename):
 
 
 def bbox(img):
-    """Find the bounding box around nonzero elements in the given array
+    """Find the bounding box around nonzero elements in the given array.
 
     Copied from https://stackoverflow.com/a/31402351/5703449 .
 
     Returns:
         rowmin, rowmax, colmin, colmax
+
     """
     rows = np.any(img, axis=1)
     cols = np.any(img, axis=0)
@@ -238,6 +239,7 @@ def get_earth_radius(lon, lat, a, b):
 
     Returns:
         Earth Radius (meters)
+
     """
     geocent = pyproj.Proj(proj='geocent', a=a, b=b, units='m')
     latlong = pyproj.Proj(proj='latlong', a=a, b=b, units='m')
@@ -246,7 +248,7 @@ def get_earth_radius(lon, lat, a, b):
 
 
 def reduce_mda(mda, max_size=100):
-    """Recursively remove arrays with more than `max_size` elements from the given metadata dictionary"""
+    """Recursively remove arrays with more than `max_size` elements from the given metadata dictionary."""
     reduced = {}
     for key, val in mda.items():
         if isinstance(val, dict):
