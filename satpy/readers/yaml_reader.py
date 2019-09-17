@@ -679,13 +679,13 @@ class FileYAMLReader(AbstractYAMLReader):
                     sdef = None
                 if sdef is None:
                     sdef = SwathDefinition(*coords)
+                    sensor_str = '_'.join(self.info['sensors'])
+                    shape_str = '_'.join(map(str, coords[0].shape))
+                    sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                                     coords[0].attrs['name'],
+                                                     coords[1].attrs['name'])
                     if key is not None:
                         self.coords_cache[key] = sdef
-                sensor_str = '_'.join(self.info['sensors'])
-                shape_str = '_'.join(map(str, coords[0].shape))
-                sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                                 coords[0].attrs['name'],
-                                                 coords[1].attrs['name'])
                 return sdef
             else:
                 raise ValueError(

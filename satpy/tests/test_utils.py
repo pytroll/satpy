@@ -205,7 +205,8 @@ class TestUtils(unittest.TestCase):
                       'satellite_nominal_latitude': 2.2,
                       'projection_latitude': 2.3,
                       'satellite_actual_altitude': 3,
-                      'projection_altitude': 3.1}
+                      'satellite_nominal_altitude': 3.1,
+                      'projection_altitude': 3.2}
         dataset = mock.MagicMock(attrs={'orbital_parameters': orb_params,
                                         'satellite_longitude': -1,
                                         'satellite_latitude': -2,
@@ -224,15 +225,16 @@ class TestUtils(unittest.TestCase):
         # Nominal
         orb_params.pop('satellite_actual_longitude')
         orb_params.pop('satellite_actual_latitude')
+        orb_params.pop('satellite_actual_altitude')
         lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.2, 2.2, 3))
+        self.assertTupleEqual((lon, lat, alt), (1.2, 2.2, 3.1))
 
         # Projection
         orb_params.pop('satellite_nominal_longitude')
         orb_params.pop('satellite_nominal_latitude')
-        orb_params.pop('satellite_actual_altitude')
+        orb_params.pop('satellite_nominal_altitude')
         lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.1))
+        self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.2))
         warn_mock.assert_called()
 
         # Legacy
