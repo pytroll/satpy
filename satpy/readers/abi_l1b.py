@@ -121,4 +121,3 @@ class NC_ABI_L1B(NC_ABI_BASE):
         res.attrs['long_name'] = 'Brightness Temperature'
         res.attrs['standard_name'] = 'toa_brightness_temperature'
         return res
-

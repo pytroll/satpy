@@ -117,8 +117,7 @@ class NC_ABI_BASE(BaseFileHandler):
         raise NotImplementedError("Reader {} has not implemented get_dataset".format(self.name))
 
     def get_area_def(self, key):
-        """Get the area definition of the data at hand.
-        """
+        """Get the area definition of the data at hand."""
         if 'goes_imager_projection' in self.nc:
             return self._get_areadef_fixedgrid(key)
         elif 'goes_lat_lon_projection' in self.nc:
@@ -127,8 +126,7 @@ class NC_ABI_BASE(BaseFileHandler):
             raise ValueError('Unsupported projection found in the dataset')
 
     def _get_areadef_latlon(self, key):
-        """Get the area definition of the data at hand.
-        """
+        """Get the area definition of the data at hand."""
         projection = self.nc["goes_lat_lon_projection"]
 
         a = projection.attrs['semi_major_axis']
@@ -232,4 +230,3 @@ class NC_ABI_BASE(BaseFileHandler):
             self.nc.close()
         except (IOError, OSError, AttributeError):
             pass
-

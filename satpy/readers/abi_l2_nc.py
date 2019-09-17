@@ -65,4 +65,3 @@ class NC_ABI_L2(NC_ABI_BASE):
             variable.attrs[attr] = self.nc.attrs.get(attr)
 
         return variable
-
