@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Advance Baseline Imager reader for the Level 1b format
+"""Advance Baseline Imager reader for the Level 1b format.
 
 The files read by this reader are described in the official PUG document:
 
@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 class NC_ABI_L1B(NC_ABI_BASE):
+    """File reader for individual ABI L1B NetCDF4 files."""
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -81,15 +82,15 @@ class NC_ABI_L1B(NC_ABI_BASE):
         res.attrs.pop('_Unsigned', None)
         res.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
         # add in information from the filename that may be useful to the user
-        for key in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname'):
-            res.attrs[key] = self.filename_info[key]
+        for attr in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname'):
+            res.attrs[attr] = self.filename_info[attr]
         # copy global attributes to metadata
-        for key in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
-            res.attrs[key] = self.nc.attrs.get(key)
+        for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
+            res.attrs[attr] = self.nc.attrs.get(attr)
         # only include these if they are present
-        for key in ('fusion_args',):
-            if key in self.nc.attrs:
-                res.attrs[key] = self.nc.attrs[key]
+        for attr in ('fusion_args',):
+            if attr in self.nc.attrs:
+                res.attrs[attr] = self.nc.attrs[attr]
 
         return res
 
@@ -120,3 +121,4 @@ class NC_ABI_L1B(NC_ABI_BASE):
         res.attrs['long_name'] = 'Brightness Temperature'
         res.attrs['standard_name'] = 'toa_brightness_temperature'
         return res
+

@@ -1,4 +1,4 @@
-sensor_name: visir/mersi2
+sensor_name: visir/mersi-2
 
 modifiers:
   rayleigh_corrected:

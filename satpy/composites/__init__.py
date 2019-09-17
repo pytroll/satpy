@@ -823,7 +823,10 @@ class GenericCompositor(CompositeBase):
         new_attrs.update({key: val
                           for (key, val) in attrs.items()
                           if val is not None})
+        resolution = new_attrs.get('resolution', None)
         new_attrs.update(self.attrs)
+        if resolution is not None:
+            new_attrs['resolution'] = resolution
         new_attrs["sensor"] = self._get_sensors(projectables)
         new_attrs["mode"] = mode
 
@@ -836,6 +839,7 @@ class FillingCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
+        projectables = self.check_areas(projectables)
         projectables[1] = projectables[1].fillna(projectables[0])
         projectables[2] = projectables[2].fillna(projectables[0])
         projectables[3] = projectables[3].fillna(projectables[0])
@@ -847,8 +851,9 @@ class Filler(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
-        projectables[0] = projectables[0].fillna(projectables[1])
-        return super(Filler, self).__call__([projectables[0]], **info)
+        projectables = self.check_areas(projectables)
+        filled_projectable = projectables[0].fillna(projectables[1])
+        return super(Filler, self).__call__([filled_projectable], **info)
 
 
 class RGBCompositor(GenericCompositor):
@@ -1403,6 +1408,7 @@ class StaticImageCompositor(GenericCompositor):
         super(StaticImageCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, *args, **kwargs):
+        """Call the compositor."""
         from satpy import Scene
         scn = Scene(reader='generic_image', filenames=[self.filename])
         scn.load(['image'])
@@ -1435,6 +1441,7 @@ class BackgroundCompositor(GenericCompositor):
     """A compositor that overlays one composite on top of another."""
 
     def __call__(self, projectables, *args, **kwargs):
+        """Call the compositor."""
         projectables = self.check_areas(projectables)
 
         # Get enhanced datasets

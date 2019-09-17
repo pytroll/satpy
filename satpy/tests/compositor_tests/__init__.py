@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for compositors.
-"""
+"""Tests for compositors."""
 
 import xarray as xr
 import dask.array as da
@@ -36,7 +35,7 @@ class TestMatchDataArrays(unittest.TestCase):
     """Test the utility method 'match_data_arrays'."""
 
     def _get_test_ds(self, shape=(50, 100), dims=('y', 'x')):
-        """Helper method to get a fake DataArray."""
+        """Get a fake DataArray."""
         from pyresample.geometry import AreaDefinition
         data = da.random.random(shape, chunks=25)
         area = AreaDefinition(
@@ -113,6 +112,7 @@ class TestMatchDataArrays(unittest.TestCase):
         self.assertRaises(IncompatibleAreas, comp.match_data_arrays, (ds1, ds2))
 
     def test_nondimensional_coords(self):
+        """Test the removal of non-dimensional coordinates when compositing."""
         from satpy.composites import CompositeBase
         ds = self._get_test_ds(shape=(2, 2))
         ds['acq_time'] = ('y', [0, 1])
@@ -230,6 +230,8 @@ class TestRatioSharpenedCompositors(unittest.TestCase):
 
 
 class TestSunZenithCorrector(unittest.TestCase):
+    """Test case for the zenith corrector."""
+
     def setUp(self):
         """Create test data."""
         from pyresample.geometry import AreaDefinition
@@ -291,6 +293,7 @@ class TestSunZenithCorrector(unittest.TestCase):
 
 
 class TestDifferenceCompositor(unittest.TestCase):
+    """Test case for the difference compositor."""
 
     def setUp(self):
         """Create test data."""
@@ -385,7 +388,7 @@ class TestDayNightCompositor(unittest.TestCase):
         self.sza.attrs['area'] = my_area
 
     def test_basic_sza(self):
-        """Test compositor when SZA data is included"""
+        """Test compositor when SZA data is included."""
         from satpy.composites import DayNightCompositor
         comp = DayNightCompositor(name='dn_test')
         res = comp((self.data_a, self.data_b, self.sza))
@@ -404,8 +407,10 @@ class TestDayNightCompositor(unittest.TestCase):
 
 
 class TestFillingCompositor(unittest.TestCase):
+    """Test case for the filling compositor."""
 
     def test_fill(self):
+        """Test filling."""
         from satpy.composites import FillingCompositor
         comp = FillingCompositor(name='fill_test')
         filler = xr.DataArray(np.array([1, 2, 3, 4, 3, 2, 1]))
@@ -586,6 +591,7 @@ class TestColormapCompositor(unittest.TestCase):
     """Test the ColormapCompositor."""
 
     def test_build_colormap(self):
+        """Test colormap building."""
         from satpy.composites import ColormapCompositor
         cmap_comp = ColormapCompositor('test_cmap_compositor')
         palette = np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]])
@@ -605,6 +611,7 @@ class TestPaletteCompositor(unittest.TestCase):
     """Test the PaletteCompositor."""
 
     def test_call(self):
+        """Test palette compositing."""
         from satpy.composites import PaletteCompositor
         cmap_comp = PaletteCompositor('test_cmap_compositor')
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
@@ -748,7 +755,7 @@ class TestGenericCompositor(unittest.TestCase):
     @mock.patch('satpy.composites.check_times')
     @mock.patch('satpy.composites.GenericCompositor.match_data_arrays')
     def test_call_with_mock(self, match_data_arrays, check_times, combine_metadata, get_sensors):
-        """Test calling generic compositor"""
+        """Test calling generic compositor."""
         from satpy.composites import IncompatibleAreas
         combine_metadata.return_value = dict()
         get_sensors.return_value = 'foo'
@@ -777,11 +784,12 @@ class TestGenericCompositor(unittest.TestCase):
         match_data_arrays.assert_called_once()
 
     def test_call(self):
-        """Test calling generic compositor"""
+        """Test calling generic compositor."""
         # Multiple datasets with extra attributes
         all_valid = self.all_valid
         all_valid.attrs['sensor'] = 'foo'
-        attrs = {'foo': 'bar'}
+        attrs = {'foo': 'bar', 'resolution': 333}
+        self.comp.attrs['resolution'] = None
         res = self.comp([self.all_valid, self.first_invalid], **attrs)
         # Verify attributes
         self.assertEqual(res.attrs.get('sensor'), 'foo')
@@ -792,11 +800,14 @@ class TestGenericCompositor(unittest.TestCase):
         self.assertTrue('modifiers' not in res.attrs)
         self.assertIsNone(res.attrs['wavelength'])
         self.assertEqual(res.attrs['mode'], 'LA')
+        self.assertEquals(res.attrs['resolution'], 333)
 
 
 class TestAddBands(unittest.TestCase):
+    """Test case for the `add_bands` function."""
 
     def test_add_bands(self):
+        """Test adding bands."""
         from satpy.composites import add_bands
         import dask.array as da
         import numpy as np
@@ -849,9 +860,11 @@ class TestAddBands(unittest.TestCase):
 
 
 class TestStaticImageCompositor(unittest.TestCase):
+    """Test case for the static compositor."""
 
     @mock.patch('satpy.resample.get_area_def')
     def test_init(self, get_area_def):
+        """Test the initializiation of static compositor."""
         from satpy.composites import StaticImageCompositor
 
         # No filename given raises ValueError
@@ -872,6 +885,7 @@ class TestStaticImageCompositor(unittest.TestCase):
 
     @mock.patch('satpy.Scene')
     def test_call(self, Scene):
+        """Test the static compositing."""
         from satpy.composites import StaticImageCompositor
 
         class mock_scene(dict):
@@ -905,12 +919,14 @@ class TestStaticImageCompositor(unittest.TestCase):
 
 
 class TestBackgroundCompositor(unittest.TestCase):
+    """Test case for the background compositor."""
 
     @mock.patch('satpy.composites.combine_metadata')
     @mock.patch('satpy.composites.add_bands')
     @mock.patch('satpy.composites.enhance2dataset')
     @mock.patch('satpy.composites.BackgroundCompositor.check_areas')
     def test_call(self, check_areas, e2d, add_bands, combine_metadata):
+        """Test the background compositing."""
         from satpy.composites import BackgroundCompositor
         import numpy as np
 
