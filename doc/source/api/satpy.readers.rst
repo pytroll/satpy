@@ -28,6 +28,14 @@ satpy.readers.acspo module
     :undoc-members:
     :show-inheritance:
 
+satpy.readers.agri\_l1 module
+-----------------------------
+
+.. automodule:: satpy.readers.agri_l1
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 satpy.readers.ahi\_hsd module
 -----------------------------
 

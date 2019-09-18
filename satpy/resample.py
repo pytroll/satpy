@@ -1,21 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2015-2018 Satpy developers
 #
-# Copyright (c) 2015-2018
+# This file is part of satpy.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Satpy provides multiple resampling algorithms for resampling geolocated
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Satpy resampling module.
+
+Satpy provides multiple resampling algorithms for resampling geolocated
 data to uniform projected grids. The easiest way to perform resampling in
 Satpy is through the :class:`~satpy.scene.Scene` object's
 :meth:`~satpy.scene.Scene.resample` method. Additional utility functions are
@@ -126,7 +128,6 @@ and loaded using pyresample's utility methods::
 Examples coming soon...
 
 """
-
 import hashlib
 import json
 import os
@@ -137,23 +138,41 @@ import numpy as np
 import xarray as xr
 import dask
 import dask.array as da
+import zarr
+import six
 
 from pyresample.ewa import fornav, ll2cr
-from pyresample.geometry import SwathDefinition, AreaDefinition
+from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import XArrayResamplerNN
 from pyresample.bilinear.xarr import XArrayResamplerBilinear
 from pyresample import bucket
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
 
+# In Python3 os.mkdir raises FileExistsError, in Python2 OSError
+if six.PY2:
+    FileExistsError = OSError
+
+
 LOG = getLogger(__name__)
 
 CACHE_SIZE = 10
+NN_COORDINATES = {'valid_input_index': ('y1', 'x1'),
+                  'valid_output_index': ('y2', 'x2'),
+                  'index_array': ('y2', 'x2', 'z2')}
+BIL_COORDINATES = {'bilinear_s': ('x1', ),
+                   'bilinear_t': ('x1', ),
+                   'slices_x': ('x1', 'n'),
+                   'slices_y': ('x1', 'n'),
+                   'mask_slices': ('x1', 'n'),
+                   'out_coords_x': ('x2', ),
+                   'out_coords_y': ('y2', )}
 
 resamplers_cache = WeakValueDictionary()
 
 
 def hash_dict(the_dict, the_hash=None):
+    """Calculate a hash for a dictionary."""
     if the_hash is None:
         the_hash = hashlib.sha1()
     the_hash.update(json.dumps(the_dict, sort_keys=True).encode('utf-8'))
@@ -185,6 +204,134 @@ def get_area_def(area_name):
     return parse_area_file(get_area_file(), area_name)[0]
 
 
+def add_xy_coords(data_arr, area, crs=None):
+    """Assign x/y coordinates to DataArray from provided area.
+
+    If 'x' and 'y' coordinates already exist then they will not be added.
+
+    Args:
+        data_arr (xarray.DataArray): data object to add x/y coordinates to
+        area (pyresample.geometry.AreaDefinition): area providing the
+            coordinate data.
+        crs (pyproj.crs.CRS or None): CRS providing additional information
+            about the area's coordinate reference system if available.
+            Requires pyproj 2.0+.
+
+    Returns (xarray.DataArray): Updated DataArray object
+
+    """
+    if 'x' in data_arr.coords and 'y' in data_arr.coords:
+        # x/y coords already provided
+        return data_arr
+    elif 'x' not in data_arr.dims or 'y' not in data_arr.dims:
+        # no defined x and y dimensions
+        return data_arr
+
+    if hasattr(area, 'get_proj_vectors'):
+        x, y = area.get_proj_vectors()
+    else:
+        return data_arr
+
+    # convert to DataArrays
+    y_attrs = {}
+    x_attrs = {}
+    if crs is not None:
+        units = crs.axis_info[0].unit_name
+        # fix udunits/CF standard units
+        units = units.replace('metre', 'meter')
+        if units == 'degree':
+            y_attrs['units'] = 'degrees_north'
+            x_attrs['units'] = 'degrees_east'
+        else:
+            y_attrs['units'] = units
+            x_attrs['units'] = units
+    y = xr.DataArray(y, dims=('y',), attrs=y_attrs)
+    x = xr.DataArray(x, dims=('x',), attrs=x_attrs)
+    return data_arr.assign_coords(y=y, x=x)
+
+
+def add_crs_xy_coords(data_arr, area):
+    """Add :class:`pyproj.crs.CRS` and x/y or lons/lats to coordinates.
+
+    For SwathDefinition or GridDefinition areas this will add a
+    `crs` coordinate and coordinates for the 2D arrays of `lons` and `lats`.
+
+    For AreaDefinition areas this will add a `crs` coordinate and the
+    1-dimensional `x` and `y` coordinate variables.
+
+    Args:
+        data_arr (xarray.DataArray): DataArray to add the 'crs'
+            coordinate.
+        area (pyresample.geometry.AreaDefinition): Area to get CRS
+            information from.
+
+    """
+    # add CRS object if pyproj 2.0+
+    try:
+        from pyproj import CRS
+    except ImportError:
+        LOG.debug("Could not add 'crs' coordinate with pyproj<2.0")
+        crs = None
+    else:
+        # default lat/lon projection
+        latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
+        # otherwise get it from the area definition
+        proj_str = getattr(area, 'proj_str', latlon_proj)
+        crs = CRS.from_string(proj_str)
+        data_arr = data_arr.assign_coords(crs=crs)
+
+    # Add x/y coordinates if possible
+    if isinstance(area, SwathDefinition):
+        # add lon/lat arrays for swath definitions
+        # SwathDefinitions created by Satpy should be assigning DataArray
+        # objects as the lons/lats attributes so use those directly to
+        # maintain original .attrs metadata (instead of converting to dask
+        # array).
+        lons = area.lons
+        lats = area.lats
+        lons.attrs.setdefault('standard_name', 'longitude')
+        lons.attrs.setdefault('long_name', 'longitude')
+        lons.attrs.setdefault('units', 'degrees_east')
+        lats.attrs.setdefault('standard_name', 'latitude')
+        lats.attrs.setdefault('long_name', 'latitude')
+        lats.attrs.setdefault('units', 'degrees_north')
+        # See https://github.com/pydata/xarray/issues/3068
+        # data_arr = data_arr.assign_coords(longitude=lons, latitude=lats)
+    else:
+        # Gridded data (AreaDefinition/StackedAreaDefinition)
+        data_arr = add_xy_coords(data_arr, area, crs=crs)
+    return data_arr
+
+
+def update_resampled_coords(old_data, new_data, new_area):
+    """Add coordinate information to newly resampled DataArray.
+
+    Args:
+        old_data (xarray.DataArray): Old data before resampling.
+        new_data (xarray.DataArray): New data after resampling.
+        new_area (pyresample.geometry.BaseDefinition): Area definition
+            for the newly resampled data.
+
+    """
+    # copy over other non-x/y coordinates
+    # this *MUST* happen before we set 'crs' below otherwise any 'crs'
+    # coordinate in the coordinate variables we are copying will overwrite the
+    # 'crs' coordinate we just assigned to the data
+    ignore_coords = ('y', 'x', 'crs')
+    new_coords = {}
+    for cname, cval in old_data.coords.items():
+        # we don't want coordinates that depended on the old x/y dimensions
+        has_ignored_dims = any(dim in cval.dims for dim in ignore_coords)
+        if cname in ignore_coords or has_ignored_dims:
+            continue
+        new_coords[cname] = cval
+    new_data = new_data.assign_coords(**new_coords)
+
+    # add crs, x, and y coordinates
+    new_data = add_crs_xy_coords(new_data, new_area)
+    return new_data
+
+
 class BaseResampler(object):
     """Base abstract resampler class."""
 
@@ -198,7 +345,6 @@ class BaseResampler(object):
                 Geolocation definition for the area to resample data to.
 
         """
-
         self.source_geo_def = source_geo_def
         self.target_geo_def = target_geo_def
 
@@ -263,7 +409,6 @@ class BaseResampler(object):
             else:
                 geo_dims = ('y', 'x')
             flat_dims = [dim for dim in data.dims if dim not in geo_dims]
-            # xarray <= 0.10.1 computes dask arrays during isnull
             if np.issubdtype(data.dtype, np.integer):
                 kwargs['mask'] = data == data.attrs.get('_FillValue', np.iinfo(data.dtype.type).max)
             else:
@@ -272,12 +417,13 @@ class BaseResampler(object):
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
-    def _create_cache_filename(self, cache_dir=None, **kwargs):
-        """Create filename for the cached resampling parameters"""
+    def _create_cache_filename(self, cache_dir=None, prefix='',
+                               fmt='.zarr', **kwargs):
+        """Create filename for the cached resampling parameters."""
         cache_dir = cache_dir or '.'
         hash_str = self.get_hash(**kwargs)
 
-        return os.path.join(cache_dir, 'resample_lut-' + hash_str + '.npz')
+        return os.path.join(cache_dir, prefix + hash_str + fmt)
 
 
 class KDTreeResampler(BaseResampler):
@@ -292,12 +438,11 @@ class KDTreeResampler(BaseResampler):
 
     Args:
         cache_dir (str): Long term storage directory for intermediate
-                         results. By default only 10 different source/target
-                         combinations are cached to save space.
-        mask_area (bool): Force resampled data's invalid pixel mask to be used
-                          when searching for nearest neighbor pixels. By
-                          default this is True for SwathDefinition source
-                          areas and False for all other area definition types.
+                         results.
+        mask (bool): Force resampled data's invalid pixel mask to be used
+                     when searching for nearest neighbor pixels. By
+                     default this is True for SwathDefinition source
+                     areas and False for all other area definition types.
         radius_of_influence (float): Search radius cut off distance in meters
         epsilon (float): Allowed uncertainty in meters. Increasing uncertainty
                          reduces execution time.
@@ -305,6 +450,7 @@ class KDTreeResampler(BaseResampler):
     """
 
     def __init__(self, source_geo_def, target_geo_def):
+        """Init KDTreeResampler."""
         super(KDTreeResampler, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
         self._index_caches = {}
@@ -357,63 +503,100 @@ class KDTreeResampler(BaseResampler):
             self.resampler.get_neighbour_info(mask=mask)
             self.save_neighbour_info(cache_dir, mask=mask, **kwargs)
 
-    def _apply_cached_indexes(self, cached_indexes, persist=False):
-        """Reassign various resampler index attributes."""
-        # cacheable_dict = {}
-        for elt in ['valid_input_index', 'valid_output_index',
-                    'index_array', 'distance_array']:
-            val = cached_indexes[elt]
-            if isinstance(val, tuple):
-                val = cached_indexes[elt][0]
-            elif isinstance(val, np.ndarray):
-                val = da.from_array(val, chunks=CHUNK_SIZE)
-            elif persist and isinstance(val, da.Array):
-                cached_indexes[elt] = val = val.persist()
-            setattr(self.resampler, elt, val)
+    def _apply_cached_index(self, val, idx_name, persist=False):
+        """Reassign resampler index attributes."""
+        if isinstance(val, np.ndarray):
+            val = da.from_array(val, chunks=CHUNK_SIZE)
+        elif persist and isinstance(val, da.Array):
+            val = val.persist()
+        setattr(self.resampler, idx_name, val)
+        return val
+
+    def _check_numpy_cache(self, cache_dir, mask=None,
+                           **kwargs):
+        """Check if there's Numpy cache file and convert it to zarr."""
+        fname_np = self._create_cache_filename(cache_dir,
+                                               prefix='resample_lut-',
+                                               mask=mask, fmt='.npz',
+                                               **kwargs)
+        fname_zarr = self._create_cache_filename(cache_dir, prefix='nn_lut-',
+                                                 mask=mask, fmt='.zarr',
+                                                 **kwargs)
+        LOG.debug("Check if %s exists", fname_np)
+        if os.path.exists(fname_np) and not os.path.exists(fname_zarr):
+            import warnings
+            warnings.warn("Using Numpy files as resampling cache is "
+                          "deprecated.")
+            LOG.warning("Converting resampling LUT from .npz to .zarr")
+            zarr_out = xr.Dataset()
+            with np.load(fname_np, 'r') as fid:
+                for idx_name, coord in NN_COORDINATES.items():
+                    zarr_out[idx_name] = (coord, fid[idx_name])
+
+            # Write indices to Zarr file
+            zarr_out.to_zarr(fname_zarr)
+            LOG.debug("Resampling LUT saved to %s", fname_zarr)
 
     def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Read index arrays from either the in-memory or disk cache."""
         mask_name = getattr(mask, 'name', None)
-        filename = self._create_cache_filename(cache_dir,
+        cached = {}
+        self._check_numpy_cache(cache_dir, mask=mask_name, **kwargs)
+
+        filename = self._create_cache_filename(cache_dir, prefix='nn_lut-',
                                                mask=mask_name, **kwargs)
-        if kwargs.get('mask') in self._index_caches:
-            self._apply_cached_indexes(self._index_caches[kwargs.get('mask')])
-        elif cache_dir:
-            cache = np.load(filename, mmap_mode='r', allow_pickle=True)
-            # copy the dict so we can modify it's keys
-            new_cache = dict(cache.items())
-            cache.close()
-            self._apply_cached_indexes(new_cache)  # modifies cache dict in-place
-            self._index_caches[mask_name] = new_cache
-        else:
-            raise IOError
+        for idx_name in NN_COORDINATES.keys():
+            if mask_name in self._index_caches:
+                cached[idx_name] = self._apply_cached_index(
+                    self._index_caches[mask_name][idx_name], idx_name)
+            elif cache_dir:
+                try:
+                    fid = zarr.open(filename, 'r')
+                    cache = np.array(fid[idx_name])
+                    if idx_name == 'valid_input_index':
+                        # valid input index array needs to be boolean
+                        cache = cache.astype(np.bool)
+                except ValueError:
+                    raise IOError
+                cache = self._apply_cached_index(cache, idx_name)
+                cached[idx_name] = cache
+            else:
+                raise IOError
+        self._index_caches[mask_name] = cached
 
     def save_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Cache resampler's index arrays if there is a cache dir."""
         if cache_dir:
             mask_name = getattr(mask, 'name', None)
-            filename = self._create_cache_filename(
-                cache_dir, mask=mask_name, **kwargs)
-            LOG.info('Saving kd_tree neighbour info to %s', filename)
             cache = self._read_resampler_attrs()
-            # update the cache in place with persisted dask arrays
-            self._apply_cached_indexes(cache, persist=True)
+            filename = self._create_cache_filename(
+                cache_dir, prefix='nn_lut-', mask=mask_name, **kwargs)
+            LOG.info('Saving kd_tree neighbour info to %s', filename)
+            zarr_out = xr.Dataset()
+            for idx_name, coord in NN_COORDINATES.items():
+                # update the cache in place with persisted dask arrays
+                cache[idx_name] = self._apply_cached_index(cache[idx_name],
+                                                           idx_name,
+                                                           persist=True)
+                zarr_out[idx_name] = (coord, cache[idx_name])
+
+            # Write indices to Zarr file
+            zarr_out.to_zarr(filename)
+
             self._index_caches[mask_name] = cache
-            np.savez(filename, **cache)
 
     def _read_resampler_attrs(self):
         """Read certain attributes from the resampler for caching."""
         return {attr_name: getattr(self.resampler, attr_name)
-                for attr_name in [
-                    'valid_input_index', 'valid_output_index',
-                    'index_array', 'distance_array']}
+                for attr_name in NN_COORDINATES.keys()}
 
     def compute(self, data, weight_funcs=None, fill_value=np.nan,
                 with_uncert=False, **kwargs):
+        """Resample data."""
         del kwargs
-        LOG.debug("Resampling " + str(data.name))
+        LOG.debug("Resampling %s", str(data.name))
         res = self.resampler.get_sample_from_neighbour_info(data, fill_value)
-        return res
+        return update_resampled_coords(data, res, self.target_geo_def)
 
 
 class EWAResampler(BaseResampler):
@@ -461,6 +644,7 @@ class EWAResampler(BaseResampler):
     """
 
     def __init__(self, source_geo_def, target_geo_def):
+        """Init EWAResampler."""
         super(EWAResampler, self).__init__(source_geo_def, target_geo_def)
         self.cache = {}
 
@@ -477,7 +661,7 @@ class EWAResampler(BaseResampler):
         return super(EWAResampler, self).resample(*args, **kwargs)
 
     def _call_ll2cr(self, lons, lats, target_geo_def, swath_usage=0):
-        """Wrapper around ll2cr for handling dask delayed calls better."""
+        """Wrap ll2cr() for handling dask delayed calls better."""
         new_src = SwathDefinition(lons, lats)
 
         swath_points_in_grid, cols, rows = ll2cr(new_src, target_geo_def)
@@ -500,6 +684,11 @@ class EWAResampler(BaseResampler):
 
     def precompute(self, cache_dir=None, swath_usage=0, **kwargs):
         """Generate row and column arrays and store it for later use."""
+        if self.cache:
+            # this resampler should be used for one SwathDefinition
+            # no need to recompute ll2cr output again
+            return None
+
         if kwargs.get('mask') is not None:
             LOG.warning("'mask' parameter has no affect during EWA "
                         "resampling")
@@ -537,7 +726,7 @@ class EWAResampler(BaseResampler):
 
     def _call_fornav(self, cols, rows, target_geo_def, data,
                      grid_coverage=0, **kwargs):
-        """Wrapper to run fornav as a dask delayed."""
+        """Wrap fornav() to run as a dask delayed."""
         num_valid_points, res = fornav(cols, rows, target_geo_def,
                                        data, **kwargs)
 
@@ -602,29 +791,38 @@ class EWAResampler(BaseResampler):
         else:
             dims = data.dims
 
-        return xr.DataArray(data_arr, dims=dims,
-                            attrs=data.attrs.copy())
+        res = xr.DataArray(data_arr, dims=dims, attrs=data.attrs.copy())
+        return update_resampled_coords(data, res, self.target_geo_def)
 
 
 class BilinearResampler(BaseResampler):
+    """Resample using bilinear interpolation.
 
-    """Resample using bilinear."""
+    This resampler implements on-disk caching when the `cache_dir` argument
+    is provided to the `resample` method. This should provide significant
+    performance improvements on consecutive resampling of geostationary data.
+
+    Args:
+        cache_dir (str): Long term storage directory for intermediate
+                         results.
+        radius_of_influence (float): Search radius cut off distance in meters
+        epsilon (float): Allowed uncertainty in meters. Increasing uncertainty
+                         reduces execution time.
+        reduce_data (bool): Reduce the input data to (roughly) match the
+                            target area.
+
+    """
 
     def __init__(self, source_geo_def, target_geo_def):
+        """Init BilinearResampler."""
         super(BilinearResampler, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
 
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
-                   reduce_data=True, nprocs=1,
-                   cache_dir=False, **kwargs):
-        """Create bilinear coefficients and store them for later use.
-
-        Note: The `mask` keyword should be provided if geolocation may be valid
-        where data points are invalid. This defaults to the `mask` attribute of
-        the `data` numpy masked array passed to the `resample` method.
-        """
-
+                   reduce_data=True, cache_dir=False, **kwargs):
+        """Create bilinear coefficients and store them for later use."""
         del kwargs
+        del mask
 
         if self.resampler is None:
             kwargs = dict(source_geo_def=self.source_geo_def,
@@ -641,40 +839,47 @@ class BilinearResampler(BaseResampler):
             except IOError:
                 LOG.debug("Computing bilinear parameters")
                 self.resampler.get_bil_info()
+                LOG.debug("Saving bilinear parameters.")
                 self.save_bil_info(cache_dir, **kwargs)
 
     def load_bil_info(self, cache_dir, **kwargs):
-
+        """Load bilinear resampling info from cache directory."""
         if cache_dir:
             filename = self._create_cache_filename(cache_dir,
-                                                   prefix='resample_lut_bil_',
+                                                   prefix='bil_lut-',
                                                    **kwargs)
-            cache = np.load(filename)
-            for elt in ['bilinear_s', 'bilinear_t', 'valid_input_index',
-                        'index_array']:
-                if isinstance(cache[elt], tuple):
-                    setattr(self.resampler, elt, cache[elt][0])
-                else:
-                    setattr(self.resampler, elt, cache[elt])
-            cache.close()
+            try:
+                fid = zarr.open(filename, 'r')
+                for val in BIL_COORDINATES.keys():
+                    cache = np.array(fid[val])
+                    setattr(self.resampler, val, cache)
+            except ValueError:
+                raise IOError
         else:
             raise IOError
 
     def save_bil_info(self, cache_dir, **kwargs):
+        """Save bilinear resampling info to cache directory."""
         if cache_dir:
             filename = self._create_cache_filename(cache_dir,
-                                                   prefix='resample_lut_bil_',
+                                                   prefix='bil_lut-',
                                                    **kwargs)
-            LOG.info('Saving kd_tree neighbour info to %s', filename)
-            cache = {'bilinear_s': self.resampler.bilinear_s,
-                     'bilinear_t': self.resampler.bilinear_t,
-                     'valid_input_index': self.resampler.valid_input_index,
-                     'index_array': self.resampler.index_array}
-
-            np.savez(filename, **cache)
+            # There are some old caches, move them out of the way
+            if os.path.exists(filename):
+                _move_existing_caches(cache_dir, filename)
+            LOG.info('Saving BIL neighbour info to %s', filename)
+            zarr_out = xr.Dataset()
+            for idx_name, coord in BIL_COORDINATES.items():
+                var = getattr(self.resampler, idx_name)
+                if isinstance(var, np.ndarray):
+                    var = da.from_array(var, chunks=CHUNK_SIZE)
+                else:
+                    var = var.rechunk(CHUNK_SIZE)
+                zarr_out[idx_name] = (coord, var)
+            zarr_out.to_zarr(filename)
 
     def compute(self, data, fill_value=None, **kwargs):
-        """Resample the given data using bilinear interpolation"""
+        """Resample the given data using bilinear interpolation."""
         del kwargs
 
         if fill_value is None:
@@ -685,7 +890,25 @@ class BilinearResampler(BaseResampler):
                                                       fill_value=fill_value,
                                                       output_shape=target_shape)
 
-        return res
+        return update_resampled_coords(data, res, self.target_geo_def)
+
+
+def _move_existing_caches(cache_dir, filename):
+    """Move existing cache files out of the way."""
+    import os
+    import shutil
+    old_cache_dir = os.path.join(cache_dir, 'moved_by_satpy')
+    try:
+        os.mkdir(old_cache_dir)
+    except FileExistsError:
+        pass
+    try:
+        shutil.move(filename, old_cache_dir)
+    except shutil.Error:
+        os.remove(os.path.join(old_cache_dir,
+                               os.path.basename(filename)))
+        shutil.move(filename, old_cache_dir)
+    LOG.warning("Old cache file was moved to %s", old_cache_dir)
 
 
 def _mean(data, y_size, x_size):
@@ -711,6 +934,7 @@ class NativeResampler(BaseResampler):
     """
 
     def resample(self, data, cache_dir=None, mask_area=False, **kwargs):
+        """Run NativeResampler."""
         # use 'mask_area' with a default of False. It wouldn't do anything.
         return super(NativeResampler, self).resample(data,
                                                      cache_dir=cache_dir,
@@ -719,7 +943,7 @@ class NativeResampler(BaseResampler):
 
     @staticmethod
     def aggregate(d, y_size, x_size):
-        """Average every 4 elements (2x2) in a 2D array"""
+        """Average every 4 elements (2x2) in a 2D array."""
         if d.ndim != 2:
             # we can't guarantee what blocks we are getting and how
             # it should be reshaped to do the averaging.
@@ -740,6 +964,7 @@ class NativeResampler(BaseResampler):
 
     @classmethod
     def expand_reduce(cls, d_arr, repeats):
+        """Expand reduce."""
         if not isinstance(d_arr, da.Array):
             d_arr = da.from_array(d_arr, chunks=CHUNK_SIZE)
         if all(x == 1 for x in repeats.values()):
@@ -773,6 +998,7 @@ class NativeResampler(BaseResampler):
                              "directions")
 
     def compute(self, data, expand=True, **kwargs):
+        """Resample data with NativeResampler."""
         if isinstance(self.target_geo_def, (list, tuple)):
             # find the highest/lowest area among the provided
             test_func = max if expand else min
@@ -801,27 +1027,8 @@ class NativeResampler(BaseResampler):
         repeats[x_axis] = x_repeats
 
         d_arr = self.expand_reduce(data.data, repeats)
-
-        coords = {}
-        # Update coords if we can
-        if ('y' in data.coords or 'x' in data.coords) and isinstance(target_geo_def, AreaDefinition):
-            coord_chunks = (d_arr.chunks[y_axis], d_arr.chunks[x_axis])
-            if hasattr(target_geo_def, 'get_proj_vectors'):
-                x_coord, y_coord = target_geo_def.get_proj_vectors()
-            else:
-                # older version of pyresample
-                x_coord, y_coord = target_geo_def.get_proj_vectors_dask(chunks=coord_chunks)
-            if 'y' in data.coords:
-                coords['y'] = y_coord
-            if 'x' in data.coords:
-                coords['x'] = x_coord
-        for dim in data.dims:
-            if dim not in ['y', 'x'] and dim in data.coords:
-                coords[dim] = data.coords[dim]
-
-        return xr.DataArray(d_arr,
-                            dims=data.dims,
-                            coords=coords or None)
+        new_data = xr.DataArray(d_arr, dims=data.dims)
+        return update_resampled_coords(data, new_data, target_geo_def)
 
 
 class BucketResamplerBase(BaseResampler):
@@ -1024,7 +1231,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 
     key = (resampler_class,
            source_area, destination_area,
-           hash_dict(resample_kwargs))
+           hash_dict(resample_kwargs).hexdigest())
     try:
         resampler_instance = resamplers_cache[key]
     except KeyError:
@@ -1036,12 +1243,6 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 def resample(source_area, data, destination_area,
              resampler=None, **kwargs):
     """Do the resampling."""
-    if 'resampler_class' in kwargs:
-        import warnings
-        warnings.warn("'resampler_class' is deprecated, use 'resampler'",
-                      DeprecationWarning)
-        resampler = kwargs.pop('resampler_class')
-
     if not isinstance(resampler, BaseResampler):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,

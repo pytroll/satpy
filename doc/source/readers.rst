@@ -109,6 +109,70 @@ the :class:`~satpy.scene.Scene` initialization.
 See the :func:`~satpy.readers.find_files_and_readers` documentation for
 more information on the possible parameters.
 
+Metadata
+========
+
+The datasets held by a scene also provide vital metadata such as dataset name, units, observation time etc. The
+following attributes are standardized across all readers:
+
+* ``name``, ``wavelength``, ``resolution``, ``polarization``, ``calibration``, ``level``, ``modifiers``: See
+  :class:`satpy.dataset.DatasetID`.
+* ``start_time``: Left boundary of the time interval covered by the dataset.
+* ``end_time``: Right boundary of the time interval covered by the dataset.
+* ``area``: :class:`~pyresample.geometry.AreaDefinition` or :class:`~pyresample.geometry.SwathDefinition` if
+  if data is geolocated. Areas are used for gridded projected data and Swaths when data must be
+  described by individual longitude/latitude coordinates. See the Coordinates section below.
+* ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
+
+  * For *geostationary* satellites it is described using the following scalar attributes:
+
+    * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the time of observation in
+      geodetic coordinates (i.e. altitude is normal to the surface).
+    * ``satellite_nominal_longitude/latitude/altitude``: Centre of the station keeping box (a confined area in which
+      the satellite is actively maintained in using maneuvres). Inbetween major maneuvres, when the satellite
+      is permanently moved, the nominal position is constant.
+    * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the earth. May differ
+      from the actual satellite position, if the instrument is poiting slightly off the axis (satellite, earth-centre).
+      If available, this should be used to compute viewing angles etc. Otherwise, use the actual satellite position.
+    * ``projection_longitude/latitude/altitude``: Projection centre of the re-projected data. This should be used to
+      compute lat/lon coordinates. Note that the projection centre can differ considerably from the actual satellite
+      position. For example MSG-1 was at times positioned at 3.4 degrees west, while the image data was re-projected
+      to 0 degrees.
+    * [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at the time of observation
+      in geodetic coordinates.
+
+  * For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of the swath as
+    ancillary datasets. Additional metadata related to the satellite position include:
+
+      * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
+
+* ``raw_metadata``: Raw, unprocessed metadata from the reader.
+
+Note that the above attributes are not necessarily available for each dataset.
+
+Coordinates
+===========
+
+Each :class:`~xarray.DataArray` produced by Satpy has several Xarray
+coordinate variables added to them.
+
+* ``x`` and ``y``: Projection coordinates for gridded and projected data.
+  By default `y` and `x` are the preferred **dimensions** for all 2D data, but
+  these **coordinates** are only added for gridded (non-swath) data. For 1D
+  data only the ``y`` dimension may be specified.
+* ``crs``: A :class:`~pyproj.crs.CRS` object defined the Coordinate Reference
+  System for the data. Requires pyproj 2.0 or later to be installed. This is
+  stored as a scalar array by Xarray so it must be accessed by doing
+  ``crs = my_data_arr.attrs['crs'].item()``. For swath data this defaults
+  to a ``longlat`` CRS using the WGS84 datum.
+* ``longitude``: Array of longitude coordinates for swath data.
+* ``latitude``: Array of latitude coordinates for swath data.
+
+Readers are free to define any coordinates in addition to the ones above that
+are automatically added. Other possible coordinates you may see:
+
+* ``acq_time``: Instrument data acquisition time per scan or row of data.
+
 Adding a Reader to Satpy
 ========================
 
@@ -130,3 +194,9 @@ xRIT-based readers
 
 .. automodule:: satpy.readers.electrol_hrit
 
+hdf-eos based readers
+---------------------
+
+.. automodule:: satpy.readers.modis_l1b
+
+.. automodule:: satpy.readers.modis_l2

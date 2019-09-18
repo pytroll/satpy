@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2013, 2014, 2015.
-#
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
+# Copyright (c) 2011-2015 Satpy developers
 #
 # This file is part of satpy.
 #
