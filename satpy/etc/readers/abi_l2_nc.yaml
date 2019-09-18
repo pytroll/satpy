@@ -1,11 +1,16 @@
-# GOES-R PUG vol5 L2+ products
-#  https://www.goes-r.gov/products/docs/PUG-L2+-vol5.pdf
 reader:
-  description: NetCDF4 reader for the GOES-R Level 2+ products from NOAA
   name: abi_l2_nc
+  short_name: ABI L2 NetCDF4
+  long_name: GOES-R ABI Level 2 NetCDF4
+  description: >
+    GOES-R ABI Level 2+ data reader in the NetCDF4 format. The file format is
+    described in the GOES-R Product Definition and Users' Guide (PUG) Volume
+    5. This document can be found
+    `here <https://www.goes-r.gov/products/docs/PUG-L2+-vol5.pdf>`_.
   sensors: ['abi']
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'platform_shortname', 'scene_abbr']
 
 datasets:
 # --- Cloud Moisture Image Products ---
