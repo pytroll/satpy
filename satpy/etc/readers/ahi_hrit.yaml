@@ -3,8 +3,10 @@
 #   - http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
 
 reader:
-  description: JMA HRIT Reader
   name: ahi_hrit
+  short_name: AHI HRIT
+  long_name: Himawari AHI Level 1 (HRIT)
+  description: Reader for the JMA Himawari AHI Level 1 data in HRIT format
   sensors: [ahi]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'

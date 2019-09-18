@@ -66,3 +66,7 @@ htmlcov
 # vi / vim swp files
 *.swp
 .DS_STORE
+
+# setuptools_scm files
+# this should be generated automatically when installed
+satpy/version.py
