@@ -525,9 +525,10 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
         self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
-        self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
-        self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
-        self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
+        if actual_lon is not None:
+            self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
+            self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
+            self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
 
         # Misc
         self.platform_id = self.prologue["SatelliteStatus"][

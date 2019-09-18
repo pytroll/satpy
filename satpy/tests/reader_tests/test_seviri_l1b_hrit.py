@@ -41,7 +41,7 @@ except ImportError:
 
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
-    instance.mda = {'spectral_channel_id': 'bla'}
+    instance.mda = {'spectral_channel_id': 1}
     instance.mda.setdefault('number_of_bits_per_pixel', 10)
 
     instance.mda['projection_parameters'] = {'a': 6378169.00,
@@ -532,6 +532,18 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         self.assertTrue(np.all(month[1:-1] == 3))
         self.assertTrue(np.all(day[1:-1] == 3))
         self.assertTrue(np.all(msec[1:-1] == np.arange(len(tline) - 2)))
+
+    def test_get_header(self):
+        # Make sure that the actual satellite position is only included if available
+        self.reader.mda['orbital_parameters'] = {}
+        self.reader.prologue_.get_satpos.return_value = 1, 2, 3
+        self.reader._get_header()
+        self.assertIn('satellite_actual_longitude', self.reader.mda['orbital_parameters'])
+
+        self.reader.mda['orbital_parameters'] = {}
+        self.reader.prologue_.get_satpos.return_value = None, None, None
+        self.reader._get_header()
+        self.assertNotIn('satellite_actual_longitude', self.reader.mda['orbital_parameters'])
 
 
 class TestHRITMSGPrologueFileHandler(unittest.TestCase):
