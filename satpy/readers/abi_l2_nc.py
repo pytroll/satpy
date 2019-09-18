@@ -68,3 +68,33 @@ class NC_ABI_L2(NC_ABI_BASE):
             variable.attrs[attr] = self.nc.attrs.get(attr)
 
         return variable
+
+    def spatial_resolution_to_number(self):
+        """Convert the 'spatial_resolution' global attribute to meters."""
+        res = self.nc.attrs['spatial_resolution'].split(' ')[0]
+        if res.endswith('km'):
+            res = int(float(res[:-2]) * 1000)
+        elif res.endswith('m'):
+            res = int(res[:-1])
+        else:
+            raise ValueError("Unexpected 'spatial_resolution' attribute '{}'".format(res))
+        return res
+
+    def available_datasets(self, configured_datasets=None):
+        """Add resolution to configured datasets."""
+        for is_avail, ds_info in (configured_datasets or []):
+            # some other file handler knows how to load this
+            # don't override what they've done
+            if is_avail is not None:
+                yield is_avail, ds_info
+            matches = self.file_type_matches(ds_info['file_type'])
+            if matches:
+                # we have this dataset
+                resolution = self.spatial_resolution_to_number()
+                new_info = ds_info.copy()
+                new_info.setdefault('resolution', resolution)
+                yield True, ds_info
+            elif is_avail is None:
+                # we don't know what to do with this
+                # see if another future file handler does
+                yield is_avail, ds_info
