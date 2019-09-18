@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
+# Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.hdf4_utils module.
-"""
+"""Module for testing the satpy.readers.hdf4_utils module."""
 
 import os
 import sys
@@ -39,7 +38,7 @@ class FakeHDF4FileHandler(HDF4FileHandler):
     """Swap-in NetCDF4 File Handler for reader tests to use."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Get fake file content from 'get_test_content'"""
+        """Get fake file content from 'get_test_content'."""
         if HDF4FileHandler is object:
             raise ImportError("Base 'HDF4FileHandler' could not be "
                               "imported.")
@@ -67,10 +66,10 @@ class FakeHDF4FileHandler(HDF4FileHandler):
 
 
 class TestHDF4FileHandler(unittest.TestCase):
-    """Test HDF4 File Handler Utility class"""
+    """Test HDF4 File Handler Utility class."""
 
     def setUp(self):
-        """Create a test HDF4 file"""
+        """Create a test HDF4 file."""
         from pyhdf.SD import SD, SDC
         h = SD('test.hdf', SDC.WRITE | SDC.CREATE | SDC.TRUNC)
         data = np.arange(10. * 100, dtype=np.float32).reshape((10, 100))
@@ -92,17 +91,19 @@ class TestHDF4FileHandler(unittest.TestCase):
         h.end()
 
     def tearDown(self):
-        """Remove the previously created test file"""
+        """Remove the previously created test file."""
         os.remove('test.hdf')
 
     def test_all_basic(self):
-        """Test everything about the HDF4 class"""
+        """Test everything about the HDF4 class."""
         from satpy.readers.hdf4_utils import HDF4FileHandler
         file_handler = HDF4FileHandler('test.hdf', {}, {})
 
         for ds in ('ds1_f', 'ds1_i'):
             self.assertEqual(file_handler[ds + '/dtype'], np.float32 if ds.endswith('f') else np.int16)
             self.assertTupleEqual(file_handler[ds + '/shape'], (10, 100))
+            # make sure that the dtype is an instance, not the class
+            self.assertEqual(file_handler[ds].dtype.itemsize, 4 if ds.endswith('f') else 2)
             attrs = file_handler[ds].attrs
             self.assertEqual(attrs.get('test_attr_str'), 'test_string')
             self.assertEqual(attrs.get('test_attr_int'), 0)
@@ -122,7 +123,7 @@ class TestHDF4FileHandler(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_hdf4_utils."""
+    """Create the test suite for test_hdf4_utils."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHDF4FileHandler))
