@@ -1,6 +1,9 @@
 reader:
-  description: NetCDF4 reader for the Eumetsat MSG format
   name: seviri_l1b_nc
+  short_name: SEVIRI L1b NetCDF4
+  long_name: MSG SEVIRI Level 1b NetCDF4
+  description: >
+    NetCDF4 reader for EUMETSAT MSG SEVIRI Level 1b files.
   sensors: [seviri]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   group_keys: ["processing_time", "satid"]

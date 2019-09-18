@@ -2,8 +2,10 @@
 #  - Himawari-8/9 Himawari Standard Data User's Guide
 
 reader:
-  description: Generic HSD AHI Reader
   name: ahi_hsd
+  short_name: AHI HSD
+  long_name: Himawari AHI Level 1b (HSD)
+  description: Reader for the JMA Himawari AHI Level 1 data in HSD format
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
   sensors: [ahi]
   # file pattern keys to sort files by with 'satpy.utils.group_files'
