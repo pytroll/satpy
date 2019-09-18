@@ -137,10 +137,10 @@ class TestKDTreeResampler(unittest.TestCase):
 
     @mock.patch('satpy.resample.KDTreeResampler._check_numpy_cache')
     @mock.patch('satpy.resample.xr.Dataset')
-    @mock.patch('satpy.resample.da.from_zarr')
+    @mock.patch('satpy.resample.zarr.open')
     @mock.patch('satpy.resample.KDTreeResampler._create_cache_filename')
     @mock.patch('satpy.resample.XArrayResamplerNN')
-    def test_kd_resampling(self, resampler, create_filename, from_zarr,
+    def test_kd_resampling(self, resampler, create_filename, zarr_open,
                            xr_dset, cnc):
         """Test the kd resampler."""
         import numpy as np
@@ -166,17 +166,17 @@ class TestKDTreeResampler(unittest.TestCase):
             the_dir = tempfile.mkdtemp()
             resampler = KDTreeResampler(source_area, target_area)
             create_filename.return_value = os.path.join(the_dir, 'test_cache.zarr')
-            from_zarr.side_effect = IOError()
+            zarr_open.side_effect = ValueError()
             resampler.precompute(cache_dir=the_dir)
             # assert data was saved to the on-disk cache
             self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
-            # assert that from_zarr was called to try to from_zarr something from disk
-            self.assertEqual(len(from_zarr.mock_calls), 1)
+            # assert that zarr_open was called to try to zarr_open something from disk
+            self.assertEqual(len(zarr_open.mock_calls), 1)
             # we should have cached things in-memory
             self.assertEqual(len(resampler._index_caches), 1)
             nbcalls = len(resampler.resampler.get_neighbour_info.mock_calls)
             # test reusing the resampler
-            from_zarr.side_effect = None
+            zarr_open.side_effect = None
 
             class FakeZarr(dict):
 
@@ -186,7 +186,7 @@ class TestKDTreeResampler(unittest.TestCase):
                 def astype(self, dtype):
                     pass
 
-            from_zarr.return_value = FakeZarr(valid_input_index=1,
+            zarr_open.return_value = FakeZarr(valid_input_index=1,
                                               valid_output_index=2,
                                               index_array=3,
                                               distance_array=4)
@@ -194,7 +194,7 @@ class TestKDTreeResampler(unittest.TestCase):
             # we already have things cached in-memory, no need to save again
             self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
             # we already have things cached in-memory, don't need to load
-            self.assertEqual(len(from_zarr.mock_calls), 1)
+            self.assertEqual(len(zarr_open.mock_calls), 1)
             # we should have cached things in-memory
             self.assertEqual(len(resampler._index_caches), 1)
             self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
@@ -202,7 +202,7 @@ class TestKDTreeResampler(unittest.TestCase):
             # test loading saved resampler
             resampler = KDTreeResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
-            self.assertEqual(len(from_zarr.mock_calls), 4)
+            self.assertEqual(len(zarr_open.mock_calls), 4)
             self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
             # we should have cached things in-memory now
             self.assertEqual(len(resampler._index_caches), 1)
@@ -212,6 +212,42 @@ class TestKDTreeResampler(unittest.TestCase):
         fill_value = 8
         resampler.compute(data, fill_value=fill_value)
         resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
+
+    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample.xr.Dataset')
+    def test_check_numpy_cache(self, xr_Dataset, np_load):
+        """Test that cache stored in .npz is converted to zarr."""
+        from satpy.resample import KDTreeResampler
+
+        data, source_area, swath_data, source_swath, target_area = get_test_data()
+        resampler = KDTreeResampler(source_area, target_area)
+
+        zarr_out = mock.MagicMock()
+        xr_Dataset.return_value = zarr_out
+
+        try:
+            the_dir = tempfile.mkdtemp()
+            kwargs = {}
+            np_path = resampler._create_cache_filename(the_dir,
+                                                       prefix='resample_lut-',
+                                                       fmt='.npz',
+                                                       mask=None,
+                                                       **kwargs)
+            zarr_path = resampler._create_cache_filename(the_dir,
+                                                         prefix='nn_lut-',
+                                                         fmt='.zarr',
+                                                         mask=None,
+                                                         **kwargs)
+            resampler._check_numpy_cache(the_dir)
+            np_load.assert_not_called()
+            zarr_out.to_zarr.assert_not_called()
+            with open(np_path, 'w') as fid:
+                fid.write("42")
+            resampler._check_numpy_cache(the_dir)
+            np_load.assert_called_once_with(np_path, 'r')
+            zarr_out.to_zarr.assert_called_once_with(zarr_path)
+        finally:
+            shutil.rmtree(the_dir)
 
 
 class TestEWAResampler(unittest.TestCase):
@@ -418,11 +454,13 @@ class TestNativeResampler(unittest.TestCase):
 class TestBilinearResampler(unittest.TestCase):
     """Test the bilinear resampler."""
 
+    @mock.patch('satpy.resample._move_existing_caches')
     @mock.patch('satpy.resample.xr.Dataset')
-    @mock.patch('satpy.resample.da.from_zarr')
+    @mock.patch('satpy.resample.zarr.open')
     @mock.patch('satpy.resample.BilinearResampler._create_cache_filename')
     @mock.patch('satpy.resample.XArrayResamplerBilinear')
-    def test_bil_resampling(self, resampler, create_filename, from_zarr, xr_dset):
+    def test_bil_resampling(self, resampler, create_filename, zarr_open,
+                            xr_dset, move_existing_caches):
         """Test the bilinear resampler."""
         import numpy as np
         import dask.array as da
@@ -435,7 +473,7 @@ class TestBilinearResampler(unittest.TestCase):
 
         # Test that bilinear resampling info calculation is called,
         # and the info is saved
-        from_zarr.side_effect = IOError()
+        zarr_open.side_effect = IOError()
         resampler = BilinearResampler(source_swath, target_area)
         resampler.precompute(
             mask=da.arange(5, chunks=5).astype(np.bool))
@@ -443,8 +481,8 @@ class TestBilinearResampler(unittest.TestCase):
         resampler.resampler.get_bil_info.assert_called_with()
         self.assertFalse(len(mock_dset.to_zarr.mock_calls), 1)
         resampler.resampler.reset_mock()
-        from_zarr.reset_mock()
-        from_zarr.side_effect = None
+        zarr_open.reset_mock()
+        zarr_open.side_effect = None
 
         # Test that get_sample_from_bil_info is called properly
         fill_value = 8
@@ -465,26 +503,27 @@ class TestBilinearResampler(unittest.TestCase):
         # Test that the resampling info is tried to read from the disk
         resampler = BilinearResampler(source_swath, target_area)
         resampler.precompute(cache_dir='.')
-        from_zarr.assert_called()
+        zarr_open.assert_called()
 
         # Test caching the resampling info
         try:
             the_dir = tempfile.mkdtemp()
             resampler = BilinearResampler(source_area, target_area)
             create_filename.return_value = os.path.join(the_dir, 'test_cache.zarr')
-            from_zarr.reset_mock()
-            from_zarr.side_effect = IOError()
+            zarr_open.reset_mock()
+            zarr_open.side_effect = IOError()
 
             resampler.precompute(cache_dir=the_dir)
             xr_dset.assert_called()
             # assert data was saved to the on-disk cache
             self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
-            # assert that from_zarr was called to try to load something from disk
-            self.assertEqual(len(from_zarr.mock_calls), 5)
+            # assert that zarr.open was called to try to load
+            # something from disk
+            self.assertEqual(len(zarr_open.mock_calls), 1)
 
             nbcalls = len(resampler.resampler.get_bil_info.mock_calls)
             # test reusing the resampler
-            from_zarr.side_effect = None
+            zarr_open.side_effect = None
 
             class FakeZarr(dict):
 
@@ -497,24 +536,59 @@ class TestBilinearResampler(unittest.TestCase):
                 def compute(self):
                     return self
 
-            from_zarr.return_value = FakeZarr(bilinear_s=1,
+            zarr_open.return_value = FakeZarr(bilinear_s=1,
                                               bilinear_t=2,
-                                              valid_input_index=3,
-                                              index_array=4)
+                                              slices_x=3,
+                                              slices_y=4,
+                                              mask_slices=5,
+                                              out_coords_x=6,
+                                              out_coords_y=7)
             resampler.precompute(cache_dir=the_dir)
             # we already have things cached in-memory, no need to save again
             self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
             # we already have things cached in-memory, don't need to load
-            # self.assertEqual(len(from_zarr.mock_calls), 1)
+            # self.assertEqual(len(zarr_open.mock_calls), 1)
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
 
             # test loading saved resampler
             resampler = BilinearResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
-            self.assertEqual(len(from_zarr.mock_calls), 9)
+            self.assertEqual(len(zarr_open.mock_calls), 2)
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
             # we should have cached things in-memory now
             # self.assertEqual(len(resampler._index_caches), 1)
+
+            resampler = BilinearResampler(source_area, target_area)
+            resampler.precompute(cache_dir=the_dir)
+            resampler.save_bil_info(cache_dir=the_dir)
+            zarr_file = os.path.join(the_dir, 'test_cache.zarr')
+            # Save again faking the cache file already exists
+            with mock.patch('os.path.exists') as exists:
+                exists.return_value = True
+                resampler.save_bil_info(cache_dir=the_dir)
+            move_existing_caches.assert_called_once_with(the_dir, zarr_file)
+
+        finally:
+            shutil.rmtree(the_dir)
+
+    def test_move_existing_caches(self):
+        """Test that existing caches are moved to a subdirectory."""
+        try:
+            the_dir = tempfile.mkdtemp()
+            # Test that existing cache file is moved away
+            zarr_file = os.path.join(the_dir, 'test.zarr')
+            with open(zarr_file, 'w') as fid:
+                fid.write('42')
+            from satpy.resample import _move_existing_caches
+            _move_existing_caches(the_dir, zarr_file)
+            self.assertFalse(os.path.exists(zarr_file))
+            self.assertTrue(os.path.exists(
+                os.path.join(the_dir, 'moved_by_satpy',
+                             'test.zarr')))
+            # Run again to see that the existing dir doesn't matter
+            with open(zarr_file, 'w') as fid:
+                fid.write('42')
+            _move_existing_caches(the_dir, zarr_file)
         finally:
             shutil.rmtree(the_dir)
 

@@ -124,7 +124,6 @@ and loaded using pyresample's utility methods::
 Examples coming soon...
 
 """
-
 import hashlib
 import json
 import os
@@ -135,6 +134,8 @@ import numpy as np
 import xarray as xr
 import dask
 import dask.array as da
+import zarr
+import six
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
@@ -142,6 +143,11 @@ from pyresample.kd_tree import XArrayResamplerNN
 from pyresample.bilinear.xarr import XArrayResamplerBilinear
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
+
+# In Python3 os.mkdir raises FileExistsError, in Python2 OSError
+if six.PY2:
+    FileExistsError = OSError
+
 
 LOG = getLogger(__name__)
 
@@ -151,8 +157,11 @@ NN_COORDINATES = {'valid_input_index': ('y1', 'x1'),
                   'index_array': ('y2', 'x2', 'z2')}
 BIL_COORDINATES = {'bilinear_s': ('x1', ),
                    'bilinear_t': ('x1', ),
-                   'valid_input_index': ('x2', ),
-                   'index_array': ('x1', 'n')}
+                   'slices_x': ('x1', 'n'),
+                   'slices_y': ('x1', 'n'),
+                   'mask_slices': ('x1', 'n'),
+                   'out_coords_x': ('x2', ),
+                   'out_coords_y': ('y2', )}
 
 resamplers_cache = WeakValueDictionary()
 
@@ -424,12 +433,11 @@ class KDTreeResampler(BaseResampler):
 
     Args:
         cache_dir (str): Long term storage directory for intermediate
-                         results. By default only 10 different source/target
-                         combinations are cached to save space.
-        mask_area (bool): Force resampled data's invalid pixel mask to be used
-                          when searching for nearest neighbor pixels. By
-                          default this is True for SwathDefinition source
-                          areas and False for all other area definition types.
+                         results.
+        mask (bool): Force resampled data's invalid pixel mask to be used
+                     when searching for nearest neighbor pixels. By
+                     default this is True for SwathDefinition source
+                     areas and False for all other area definition types.
         radius_of_influence (float): Search radius cut off distance in meters
         epsilon (float): Allowed uncertainty in meters. Increasing uncertainty
                          reduces execution time.
@@ -509,7 +517,7 @@ class KDTreeResampler(BaseResampler):
         fname_zarr = self._create_cache_filename(cache_dir, prefix='nn_lut-',
                                                  mask=mask, fmt='.zarr',
                                                  **kwargs)
-
+        LOG.debug("Check if %s exists", fname_np)
         if os.path.exists(fname_np) and not os.path.exists(fname_zarr):
             import warnings
             warnings.warn("Using Numpy files as resampling cache is "
@@ -522,6 +530,7 @@ class KDTreeResampler(BaseResampler):
 
             # Write indices to Zarr file
             zarr_out.to_zarr(fname_zarr)
+            LOG.debug("Resampling LUT saved to %s", fname_zarr)
 
     def load_neighbour_info(self, cache_dir, mask=None, **kwargs):
         """Read index arrays from either the in-memory or disk cache."""
@@ -537,7 +546,8 @@ class KDTreeResampler(BaseResampler):
                     self._index_caches[mask_name][idx_name], idx_name)
             elif cache_dir:
                 try:
-                    cache = da.from_zarr(filename, idx_name)
+                    fid = zarr.open(filename, 'r')
+                    cache = np.array(fid[idx_name])
                     if idx_name == 'valid_input_index':
                         # valid input index array needs to be boolean
                         cache = cache.astype(np.bool)
@@ -781,7 +791,22 @@ class EWAResampler(BaseResampler):
 
 
 class BilinearResampler(BaseResampler):
-    """Resample using bilinear."""
+    """Resample using bilinear interpolation.
+
+    This resampler implements on-disk caching when the `cache_dir` argument
+    is provided to the `resample` method. This should provide significant
+    performance improvements on consecutive resampling of geostationary data.
+
+    Args:
+        cache_dir (str): Long term storage directory for intermediate
+                         results.
+        radius_of_influence (float): Search radius cut off distance in meters
+        epsilon (float): Allowed uncertainty in meters. Increasing uncertainty
+                         reduces execution time.
+        reduce_data (bool): Reduce the input data to (roughly) match the
+                            target area.
+
+    """
 
     def __init__(self, source_geo_def, target_geo_def):
         """Init BilinearResampler."""
@@ -790,13 +815,9 @@ class BilinearResampler(BaseResampler):
 
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
                    reduce_data=True, cache_dir=False, **kwargs):
-        """Create bilinear coefficients and store them for later use.
-
-        Note: The `mask` keyword should be provided if geolocation may be valid
-        where data points are invalid. This defaults to the `mask` attribute of
-        the `data` numpy masked array passed to the `resample` method.
-        """
+        """Create bilinear coefficients and store them for later use."""
         del kwargs
+        del mask
 
         if self.resampler is None:
             kwargs = dict(source_geo_def=self.source_geo_def,
@@ -813,6 +834,7 @@ class BilinearResampler(BaseResampler):
             except IOError:
                 LOG.debug("Computing bilinear parameters")
                 self.resampler.get_bil_info()
+                LOG.debug("Saving bilinear parameters.")
                 self.save_bil_info(cache_dir, **kwargs)
 
     def load_bil_info(self, cache_dir, **kwargs):
@@ -821,18 +843,13 @@ class BilinearResampler(BaseResampler):
             filename = self._create_cache_filename(cache_dir,
                                                    prefix='bil_lut-',
                                                    **kwargs)
-            for val in BIL_COORDINATES.keys():
-                try:
-                    cache = da.from_zarr(filename, val)
-                    if val == 'valid_input_index':
-                        # valid input index array needs to be boolean
-                        cache = cache.astype(np.bool)
-                    # Compute the cache arrays
-                    cache = cache.compute()
-                except ValueError:
-                    raise IOError
-                setattr(self.resampler, val, cache)
-
+            try:
+                fid = zarr.open(filename, 'r')
+                for val in BIL_COORDINATES.keys():
+                    cache = np.array(fid[val])
+                    setattr(self.resampler, val, cache)
+            except ValueError:
+                raise IOError
         else:
             raise IOError
 
@@ -842,13 +859,17 @@ class BilinearResampler(BaseResampler):
             filename = self._create_cache_filename(cache_dir,
                                                    prefix='bil_lut-',
                                                    **kwargs)
+            # There are some old caches, move them out of the way
+            if os.path.exists(filename):
+                _move_existing_caches(cache_dir, filename)
             LOG.info('Saving BIL neighbour info to %s', filename)
             zarr_out = xr.Dataset()
             for idx_name, coord in BIL_COORDINATES.items():
                 var = getattr(self.resampler, idx_name)
                 if isinstance(var, np.ndarray):
                     var = da.from_array(var, chunks=CHUNK_SIZE)
-                var = var.rechunk(CHUNK_SIZE)
+                else:
+                    var = var.rechunk(CHUNK_SIZE)
                 zarr_out[idx_name] = (coord, var)
             zarr_out.to_zarr(filename)
 
@@ -865,6 +886,24 @@ class BilinearResampler(BaseResampler):
                                                       output_shape=target_shape)
 
         return update_resampled_coords(data, res, self.target_geo_def)
+
+
+def _move_existing_caches(cache_dir, filename):
+    """Move existing cache files out of the way."""
+    import os
+    import shutil
+    old_cache_dir = os.path.join(cache_dir, 'moved_by_satpy')
+    try:
+        os.mkdir(old_cache_dir)
+    except FileExistsError:
+        pass
+    try:
+        shutil.move(filename, old_cache_dir)
+    except shutil.Error:
+        os.remove(os.path.join(old_cache_dir,
+                               os.path.basename(filename)))
+        shutil.move(filename, old_cache_dir)
+    LOG.warning("Old cache file was moved to %s", old_cache_dir)
 
 
 def _mean(data, y_size, x_size):
