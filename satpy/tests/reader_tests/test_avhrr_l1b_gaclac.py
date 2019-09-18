@@ -1,18 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Pytroll developers
-
+# Copyright (c) 2009-2019 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -97,9 +97,11 @@ class TestGACLACFile(TestCase):
 
             GACPODReader.return_value.get_angles.return_value = (angle_ones, ) * 5
             GACPODReader.return_value.get_times.return_value = acq_ones
+            GACPODReader.return_value.get_tle_lines.return_value = 'tle1', 'tle2'
             res = fh.get_dataset(key, info)
             np.testing.assert_allclose(res.data, angle_ones)
             self.assertIs(res.coords['acq_time'].data, acq_ones)
+            self.assertDictEqual(res.attrs['orbital_parameters'], {'tle': ('tle1', 'tle2')})
 
         key = DatasetID('longitude')
         info = {'name': 'longitude', 'unit': 'degrees_east'}

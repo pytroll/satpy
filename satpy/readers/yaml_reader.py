@@ -1,27 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016, 2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
+# Copyright (c) 2016-2019 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-# New stuff
-
+"""Base reader classes"""
 import glob
 import itertools
 import logging
@@ -47,8 +41,8 @@ from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
+from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
-from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -265,8 +259,6 @@ class FileYAMLReader(AbstractYAMLReader):
         self.available_ids = {}
         self.filter_filenames = self.info.get('filter_filenames', filter_filenames)
         self.filter_parameters = filter_parameters or {}
-        if kwargs:
-            logger.warning("Unrecognized/unused reader keyword argument(s) '{}'".format(kwargs))
         self.coords_cache = WeakValueDictionary()
 
     @property
@@ -687,13 +679,13 @@ class FileYAMLReader(AbstractYAMLReader):
                     sdef = None
                 if sdef is None:
                     sdef = SwathDefinition(*coords)
+                    sensor_str = '_'.join(self.info['sensors'])
+                    shape_str = '_'.join(map(str, coords[0].shape))
+                    sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
+                                                     coords[0].attrs['name'],
+                                                     coords[1].attrs['name'])
                     if key is not None:
                         self.coords_cache[key] = sdef
-                sensor_str = '_'.join(self.info['sensors'])
-                shape_str = '_'.join(map(str, coords[0].shape))
-                sdef.name = "{}_{}_{}_{}".format(sensor_str, shape_str,
-                                                 coords[0].attrs['name'],
-                                                 coords[1].attrs['name'])
                 return sdef
             else:
                 raise ValueError(
@@ -734,12 +726,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
         if area is not None:
             ds.attrs['area'] = area
-            calc_coords = (('x' not in ds.coords) or('y' not in ds.coords)) and hasattr(area, 'get_proj_vectors_dask')
-            if calc_coords and hasattr(area, 'get_proj_vectors'):
-                ds['x'], ds['y'] = area.get_proj_vectors()
-            elif calc_coords:
-                # older pyresample with dask-only method
-                ds['x'], ds['y'] = area.get_proj_vectors_dask(CHUNK_SIZE)
+            ds = add_crs_xy_coords(ds, area)
         return ds
 
     def _load_ancillary_variables(self, datasets):

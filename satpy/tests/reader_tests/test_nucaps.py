@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.nucaps module.
 """
 
@@ -7,6 +22,7 @@ import os
 import sys
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -129,21 +145,10 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         file_content[k + '/attr/standard_name'] = 'latitude'
         file_content[k + '/attr/_FillValue'] = -9999.
 
-        # convert to xarrays
-        from xarray import DataArray
-        for key, val in file_content.items():
-            if isinstance(val, np.ndarray):
-                attrs = {}
-                for a in ['_FillValue', 'flag_meanings', 'flag_values', 'units']:
-                    if key + '/attr/' + a in file_content:
-                        attrs[a] = file_content[key + '/attr/' + a]
-                if val.ndim == 1:
-                    file_content[key] = DataArray(val, dims=('number_of_FORs',), attrs=attrs)
-                elif val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('number_of_FORs', 'number_of_p_levels'), attrs=attrs)
-                else:
-                    file_content[key] = DataArray(val, attrs=attrs)
-
+        attrs = ('_FillValue', 'flag_meanings', 'flag_values', 'units')
+        convert_file_content_to_data_array(
+            file_content, attrs=attrs,
+            dims=('z', 'number_of_FORs', 'number_of_p_levels'))
         return file_content
 
 
