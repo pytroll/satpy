@@ -23,6 +23,7 @@ The files read by this reader are described in the official PUG document:
 """
 
 import logging
+import numpy as np
 
 from satpy.readers.abi_base import NC_ABI_BASE
 
@@ -36,7 +37,7 @@ class NC_ABI_L2(NC_ABI_BASE):
         """Load a dataset."""
         var = info['file_key']
         LOG.debug('Reading in get_dataset %s.', var)
-        variable = self.nc[var]
+        variable = self[var]
 
         _units = variable.attrs['units'] if 'units' in variable.attrs else None
 
@@ -50,7 +51,9 @@ class NC_ABI_L2(NC_ABI_BASE):
         variable.attrs.update(key.to_dict())
 
         # remove attributes that could be confusing later
-        variable.attrs.pop('_FillValue', None)
+        if not np.issubdtype(variable.dtype, np.integer):
+            # integer fields keep the _FillValue
+            variable.attrs.pop('_FillValue', None)
         variable.attrs.pop('scale_factor', None)
         variable.attrs.pop('add_offset', None)
         variable.attrs.pop('valid_range', None)
