@@ -23,6 +23,7 @@ import logging
 import os
 import sys
 import re
+import warnings
 
 import numpy as np
 
@@ -280,3 +281,54 @@ def atmospheric_path_length_correction(data, cos_zen, limit=88., max_sza=95.):
     corr = corr.where(cos_zen.notnull(), 0)
 
     return data * corr
+
+
+def get_satpos(dataset):
+    """Get satellite position from dataset attributes.
+
+    Preferences are:
+
+    * Longitude & Latitude: Nadir, actual, nominal, projection
+    * Altitude: Actual, nominal, projection
+
+    A warning is issued when projection values have to be used because nothing else is available.
+
+    Returns:
+        Geodetic longitude, latitude, altitude
+    """
+    try:
+        orb_params = dataset.attrs['orbital_parameters']
+
+        # Altitude
+        try:
+            alt = orb_params['satellite_actual_altitude']
+        except KeyError:
+            try:
+                alt = orb_params['satellite_nominal_altitude']
+            except KeyError:
+                alt = orb_params['projection_altitude']
+                warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
+
+        # Longitude & Latitude
+        try:
+            lon = orb_params['nadir_longitude']
+            lat = orb_params['nadir_latitude']
+        except KeyError:
+            try:
+                lon = orb_params['satellite_actual_longitude']
+                lat = orb_params['satellite_actual_latitude']
+            except KeyError:
+                try:
+                    lon = orb_params['satellite_nominal_longitude']
+                    lat = orb_params['satellite_nominal_latitude']
+                except KeyError:
+                    lon = orb_params['projection_longitude']
+                    lat = orb_params['projection_latitude']
+                    warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
+    except KeyError:
+        # Legacy
+        lon = dataset.attrs['satellite_longitude']
+        lat = dataset.attrs['satellite_latitude']
+        alt = dataset.attrs['satellite_altitude']
+
+    return lon, lat, alt

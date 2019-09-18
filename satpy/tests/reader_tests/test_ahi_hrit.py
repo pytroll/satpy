@@ -1,19 +1,20 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2018 Satpy developers
 #
-# Copyright (c) 2018 PyTroll developers
+# This file is part of satpy.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The hrit msg reader tests package.
 """
 
@@ -261,8 +262,11 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         self.assertEqual(res.attrs['sensor'], 'ahi')
         self.assertEqual(res.attrs['platform_name'], HIMAWARI8)
         self.assertEqual(res.attrs['satellite_longitude'], 140.7)
-        self.assertEqual(res.attrs['satellite_longitude'], 140.7)
+        self.assertEqual(res.attrs['satellite_latitude'], 0.)
         self.assertEqual(res.attrs['satellite_altitude'], 35785831.0)
+        self.assertDictEqual(res.attrs['orbital_parameters'], {'projection_longitude': 140.7,
+                                                               'projection_latitude': 0.,
+                                                               'projection_altitude': 35785831.0})
 
         # Check called methods
         with mock.patch.object(reader, '_mask_space') as mask_space:

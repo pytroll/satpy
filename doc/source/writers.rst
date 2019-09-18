@@ -30,21 +30,27 @@ One common parameter across almost all Writers is ``filename`` and
     * - Description
       - Writer name
       - Status
+      - Examples
     * - GeoTIFF
       - :class:`geotiff <satpy.writers.geotiff.GeoTIFFWriter>`
       - Nominal
+      -
     * - Simple Image (PNG, JPEG, etc)
       - :class:`simple_image <satpy.writers.simple_image.PillowWriter>`
       - Nominal
+      -
     * - NinJo TIFF (using ``pyninjotiff`` package)
       - :class:`ninjotiff <satpy.writers.ninjotiff.NinjoTIFFWriter>`
       - Nominal
+      -
     * - NetCDF (Standard CF)
       - :class:`cf <satpy.writers.cf_writer.CFWriter>`
       - Pre-alpha
+      - :mod:`Usage example <satpy.writers.cf_writer>`
     * - AWIPS II Tiled SCMI NetCDF4
       - :class:`scmi <satpy.writers.scmi.SCMIWriter>`
       - Beta
+      -
 
 Available Writers
 =================
@@ -53,6 +59,7 @@ To get a list of available writers use the `available_writers` function::
 
     >>> from satpy import available_writers
     >>> available_writers()
+
 
 Colorizing and Palettizing using user-supplied colormaps
 ========================================================

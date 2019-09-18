@@ -1,21 +1,20 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Simon Proud
-# Author(s):
-
-#   Simon Proud <simon.proud@physics.ox.ac.uk>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT electrol reader tests package.
 """
 
@@ -50,9 +49,7 @@ u32_t = np.uint32
 
 
 class Testrecarray2dict(unittest.TestCase):
-    ''' Test the function that converts numpy record arrays into
-        dicts for use within SatPy.
-    '''
+    """Test the function that converts numpy record arrays into dicts for use within SatPy."""
     def test_fun(self):
         inner_st = np.dtype([('test_str', '<S20'), ('test_int', 'i4')])
         outer_st = np.dtype([('test_sec', inner_st), ('test_flt', 'f4')])
@@ -184,8 +181,8 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
     def test_get_dataset(self, *mocks):
         fh = HRITGOMSFileHandler()
         fh.platform_name = 'Electro'
-        fh.mda = {'projection_parameters': {'SSP_longitude': 0.0}}
-        key = 0
+        fh.mda = {'projection_parameters': {'SSP_longitude': 0.0},
+                  'orbital_parameters': {'satellite_nominal_longitude': 0.5}}
         info = {'units': 'm', 'standard_name': 'electro', 'wavelength': 5.0}
         output = fh.get_dataset(resser(), info)
 
@@ -193,8 +190,15 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
         mocks[1].assert_called()
 
         # Check that the correct attributes are returned
-        for key in info:
-            self.assertEqual(output.attrs[key], info[key])
+        attrs_exp = info.copy()
+        attrs_exp.update({'orbital_parameters': {'satellite_nominal_longitude': 0.5,
+                                                 'satellite_nominal_latitude': 0.0,
+                                                 'projection_longitude': 0.0,
+                                                 'projection_latitude': 0.0,
+                                                 'projection_altitude': 35785831.00},
+                          'platform_name': 'Electro',
+                          'sensor': 'msu-gs'})
+        self.assertDictContainsSubset(attrs_exp, output.attrs)
 
     def test_calibrate(self, *mocks):
         lut = np.linspace(1e6, 1.6e6, num=1024).astype(np.int32)
