@@ -335,16 +335,28 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         Returns: Corresponding index in the coefficient list.
 
         """
-        # Find index of interval enclosing the nominal timestamp of the scan
         time = np.datetime64(self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart'])
         intervals_tstart = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['StartTime'][0].astype(
             'datetime64[us]')
         intervals_tend = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['EndTime'][0].astype(
             'datetime64[us]')
         try:
-            return np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0][0]
-        except IndexError:
-            raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
+            # Find index of interval enclosing the nominal timestamp of the scan. If there are
+            # multiple enclosing intervals, use the most recent one.
+            enclosing = np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0]
+            most_recent = np.argmax(intervals_tstart[enclosing])
+            return enclosing[most_recent]
+        except ValueError:
+            # No enclosing interval. Instead, find the interval whose centre is closest to the scan's timestamp
+            # (but not more than 6 hours apart)
+            intervals_centre = intervals_tstart + 0.5 * (intervals_tend - intervals_tstart)
+            diffs_us = (time - intervals_centre).astype('i8')
+            closest_match = np.argmin(np.fabs(diffs_us))
+            if abs(intervals_centre[closest_match] - time) < np.timedelta64(6, 'h'):
+                logger.warning('No orbit coefficients valid for {}. Using closest match.'.format(time))
+                return closest_match
+            else:
+                raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
 
     def get_earth_radii(self):
         """Get earth radii from prologue.
