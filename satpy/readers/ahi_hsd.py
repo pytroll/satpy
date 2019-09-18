@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2014-2019 Satpy developers
 #
-# Copyright (c) 2014-2019 PyTroll developers
+# This file is part of satpy.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Advanced Himawari Imager (AHI) standard format data reader.
 
 References:
@@ -44,7 +43,7 @@ import warnings
 from pyresample import geometry
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import get_geostationary_mask, np2str
+from satpy.readers.utils import get_geostationary_mask, np2str, get_earth_radius
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -116,8 +115,8 @@ _NAV_INFO_TYPE = np.dtype([("hblock_number", "u1"),
                            ("SSP_longitude", "f8"),
                            ("SSP_latitude", "f8"),
                            ("distance_earth_center_to_satellite", "f8"),
-                           ("nadir_latitude", "f8"),
                            ("nadir_longitude", "f8"),
+                           ("nadir_latitude", "f8"),
                            ("sun_position", "f8", (3,)),
                            ("moon_position", "f8", (3,)),
                            ("spare", "S40"),
@@ -505,22 +504,40 @@ class AHIHSDFileHandler(BaseFileHandler):
         # Calibrate
         res = self.calibrate(res, key.calibration)
 
+        # Get actual satellite position. For altitude use the ellipsoid radius at the SSP.
+        actual_lon = float(self.nav_info['SSP_longitude'])
+        actual_lat = float(self.nav_info['SSP_latitude'])
+        re = get_earth_radius(lon=actual_lon, lat=actual_lat,
+                              a=float(self.proj_info['earth_equatorial_radius'] * 1000),
+                              b=float(self.proj_info['earth_polar_radius'] * 1000))
+        actual_alt = float(self.nav_info['distance_earth_center_to_satellite']) * 1000 - re
+
         # Update metadata
-        new_info = dict(units=info['units'],
-                        standard_name=info['standard_name'],
-                        wavelength=info['wavelength'],
-                        resolution='resolution',
-                        id=key,
-                        name=key.name,
-                        scheduled_time=self.scheduled_time,
-                        platform_name=self.platform_name,
-                        sensor=self.sensor,
-                        satellite_longitude=float(
-                            self.nav_info['SSP_longitude']),
-                        satellite_latitude=float(
-                            self.nav_info['SSP_latitude']),
-                        satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
-                                                 self.proj_info['earth_equatorial_radius']) * 1000)
+        new_info = dict(
+            units=info['units'],
+            standard_name=info['standard_name'],
+            wavelength=info['wavelength'],
+            resolution='resolution',
+            id=key,
+            name=key.name,
+            scheduled_time=self.scheduled_time,
+            platform_name=self.platform_name,
+            sensor=self.sensor,
+            satellite_longitude=float(self.nav_info['SSP_longitude']),
+            satellite_latitude=float(self.nav_info['SSP_latitude']),
+            satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
+                                     self.proj_info['earth_equatorial_radius']) * 1000,
+            orbital_parameters={
+                'projection_longitude': float(self.proj_info['sub_lon']),
+                'projection_latitude': 0.,
+                'projection_altitude': float(self.proj_info['distance_from_earth_center'] -
+                                             self.proj_info['earth_equatorial_radius']) * 1000,
+                'satellite_actual_longitude': actual_lon,
+                'satellite_actual_latitude': actual_lat,
+                'satellite_actual_altitude': actual_alt,
+                'nadir_longitude': float(self.nav_info['nadir_longitude']),
+                'nadir_latitude': float(self.nav_info['nadir_latitude'])}
+        )
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
 
         # Mask space pixels

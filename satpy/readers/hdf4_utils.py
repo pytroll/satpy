@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
+# Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -21,9 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Helpers for reading hdf4-based files.
-
-"""
+"""Helpers for reading hdf4-based files."""
 import logging
 
 from pyhdf.SD import SD, SDC, SDS
@@ -54,22 +46,22 @@ HTYPE_TO_DTYPE = {
 
 def from_sds(var, *args, **kwargs):
     """Create a dask array from a SD dataset."""
-    var.__dict__['dtype'] = HTYPE_TO_DTYPE[var.info()[3]]
+    var.__dict__['dtype'] = np.dtype(HTYPE_TO_DTYPE[var.info()[3]])
     shape = var.info()[2]
     var.__dict__['shape'] = shape if isinstance(shape, (tuple, list)) else tuple(shape)
     return da.from_array(var, *args, **kwargs)
 
 
 class HDF4FileHandler(BaseFileHandler):
-    """Small class for inspecting a HDF5 file and retrieve its metadata/header data.
-    """
+    """Base class for common HDF4 operations."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Open file and collect information."""
         super(HDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = {}
         file_handle = SD(self.filename, SDC.READ)
         self._collect_attrs('', file_handle.attributes())
-        for k, v in file_handle.datasets().items():
+        for k in file_handle.datasets().keys():
             self.collect_metadata(k, file_handle.select(k))
         del file_handle
 
@@ -87,10 +79,11 @@ class HDF4FileHandler(BaseFileHandler):
                 self.file_content["{}/attr/{}".format(name, key)] = value
 
     def collect_metadata(self, name, obj):
+        """Collect all metadata about file content."""
         if isinstance(obj, SDS):
             self.file_content[name] = obj
             info = obj.info()
-            self.file_content[name + "/dtype"] = HTYPE_TO_DTYPE.get(info[3])
+            self.file_content[name + "/dtype"] = np.dtype(HTYPE_TO_DTYPE.get(info[3]))
             self.file_content[name + "/shape"] = info[2] if isinstance(info[2], (int, float)) else tuple(info[2])
 
     def _open_xarray_dataset(self, val, chunks=CHUNK_SIZE):
@@ -101,6 +94,7 @@ class HDF4FileHandler(BaseFileHandler):
                             attrs=attrs)
 
     def __getitem__(self, key):
+        """Get file content as xarray compatible objects."""
         val = self.file_content[key]
         if isinstance(val, SDS):
             # these datasets are closed and inaccessible when the file is closed, need to reopen
@@ -108,9 +102,11 @@ class HDF4FileHandler(BaseFileHandler):
         return val
 
     def __contains__(self, item):
+        """Check if item is in file content."""
         return item in self.file_content
 
     def get(self, item, default=None):
+        """Get variable as DataArray or return the default."""
         if item in self:
             return self[item]
         else:

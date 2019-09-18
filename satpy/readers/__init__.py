@@ -1,23 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2018.
-
-# Author(s):
-
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
+# Copyright (c) 2015-2018 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared objects of the various reader classes."""
@@ -50,29 +45,6 @@ LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
 OLD_READER_NAMES = {
-    'avhrr_aapp_l1b': 'avhrr_l1b_aapp',
-    'avhrr_eps_l1b': 'avhrr_l1b_eps',
-    'avhrr_hrpt_l1b': 'avhrr_l1b_hrpt',
-    'gac_lac_l1': 'avhrr_l1b_gaclac',
-    'hdf4_caliopv3': 'caliop_l2_cloud',
-    'hdfeos_l1b': 'modis_l1b',
-    'hrit_electrol': 'electrol_hrit',
-    'hrit_jma': 'ahi_hrit',
-    'fci_fdhsi': 'fci_l1c_fdhsi',
-    'ghrsst_osisaf': 'ghrsst_l3c_sst',
-    'hrit_goes': 'goes-imager_hrit',
-    'hrit_msg': 'seviri_l1b_hrit',
-    'native_msg': 'seviri_l1b_native',
-    'nc_goes': 'goes-imager_nc',
-    'nc_nwcsaf_msg': 'nwcsaf-geo',
-    'nc_nwcsaf_pps': 'nwcsaf-pps_nc',
-    'nc_olci_l1b': 'olci_l1b',
-    'nc_olci_l2': 'olci_l2',
-    'nc_seviri_l1b': 'seviri_l1b_nc',
-    'nc_slstr': 'slstr_l1b',
-    'safe_msi': 'msi_safe',
-    'safe_sar_c': 'sar-c_safe',
-    'scmi_abi_l1b': 'abi_l1b_scmi',
 }
 
 

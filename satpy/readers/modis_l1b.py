@@ -1,39 +1,48 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2014, 2017.
-
-# SMHI,
-# Folkborgsvägen 1,
-# Norrköping,
-# Sweden
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Ronald Scheirer <ronald.scheirer@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-
+# Copyright (c) 2010-2017 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Interface to Modis level 1b format.
-http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
-http://www.sciencedirect.com/science?_ob=MiamiImageURL&_imagekey=B6V6V-4700BJP-\
-3-27&_cdi=5824&_user=671124&_check=y&_orig=search&_coverDate=11%2F30%2F2002&vie\
-w=c&wchp=dGLzVlz-zSkWz&md5=bac5bc7a4f08007722ae793954f1dd63&ie=/sdarticle.pdf
-"""
+"""Modis level 1b hdf-eos format reader
 
+Introduction
+------------
+
+The ``modis_l1b`` reader reads and calibrates Modis L1 image data in hdf-eos format. Files often have
+a pattern similar to the following one:
+
+.. parsed-literal::
+    M[O/Y]D02[1/H/Q]KM.A[date].[time].[collection].[processing_time].hdf
+
+Other patterns where "collection" and/or "proccessing_time" are missing might also work
+(see the readers yaml file for details). Geolocation files (MOD03) are also supported.
+
+
+Geolocation files
+-----------------
+
+For the 1km data (mod021km) geolocation files (mod03) are optional. If not given to the reader
+1km geolocations will be interpolated from the 5km geolocation contained within the file.
+
+For the 500m and 250m data geolocation files are needed.
+
+
+References:
+    - Modis gelocation description: http://www.icare.univ-lille1.fr/wiki/index.php/MODIS_geolocation
+"""
 import logging
 
 import numpy as np

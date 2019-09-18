@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
-#
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# Copyright (c) 2016 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -170,6 +166,8 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             # this is a pressure based field
             # include surface_pressure as metadata
             sp = self['Surface_Pressure']
+            if 'number_of_FORs' in sp.dims:
+                sp = sp.rename({'number_of_FORs': 'y'})
             if 'surface_pressure' in ds_info:
                 ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp))
             else:
@@ -185,6 +183,8 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             data = data.where(data != fill_value)
 
         data.attrs.update(metadata)
+        if 'number_of_FORs' in data.dims:
+            data = data.rename({'number_of_FORs': 'y'})
         return data
 
 
