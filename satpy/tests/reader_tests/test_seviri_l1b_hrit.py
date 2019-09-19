@@ -572,9 +572,11 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
                 'Orbit': {
                     'OrbitPolynomial': {
                         'StartTime': np.array([
-                            [datetime(2006, 1, 1, 6), datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18)]]),
+                            [datetime(2006, 1, 1, 6), datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18),
+                             datetime(1958, 1, 1, 0)]]),
                         'EndTime': np.array([
-                            [datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18), datetime(2006, 1, 2, 0)]]),
+                            [datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18), datetime(2006, 1, 2, 0),
+                             datetime(1958, 1, 1, 0)]]),
                         'X': [np.zeros(8),
                               [8.41607082e+04, 2.94319260e+00, 9.86748617e-01, -2.70135453e-01,
                                -3.84364650e-02, 8.48718433e-03, 7.70548174e-04, -1.44262718e-04],
@@ -657,9 +659,9 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
             'Orbit': {
                 'OrbitPolynomial': {
                     'StartTime': np.array([
-                        [datetime(1959, 1, 1, 0), datetime(1959, 1, 1)]]),
+                        [datetime(1958, 1, 1, 0), datetime(1958, 1, 1)]]),
                     'EndTime': np.array([
-                        [datetime(1959, 1, 1, 0), datetime(1959, 1, 1)]])
+                        [datetime(1958, 1, 1, 0), datetime(1958, 1, 1)]])
                 }
             }
         }
