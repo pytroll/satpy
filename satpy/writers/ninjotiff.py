@@ -79,6 +79,8 @@ The metadata to provide to the writer can also be stored in a configuration file
 
 import logging
 
+from dask import delayed
+
 import pyninjotiff.ninjotiff as nt
 from satpy.writers import ImageWriter
 
@@ -159,7 +161,7 @@ class NinjoTIFFWriter(ImageWriter):
                         "Don't know how to handle non-scale/offset-based enhancements yet."
                     )
 
-        nt.save(img, filename, data_is_scaled_01=True, **kwargs)
+        return delayed(nt.save)(img, filename, data_is_scaled_01=True, **kwargs)
 
     def save_dataset(
         self, dataset, filename=None, fill_value=None, compute=True, **kwargs
