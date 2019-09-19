@@ -140,6 +140,7 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 from pyresample.kd_tree import XArrayResamplerNN
 from pyresample.bilinear.xarr import XArrayResamplerBilinear
+from pyresample.gradient import parallel_gradient_search
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
 
@@ -987,11 +988,48 @@ class NativeResampler(BaseResampler):
         return update_resampled_coords(data, new_data, target_geo_def)
 
 
+class GradientSearchResampler(BaseResampler):
+    """Resample using gradient search based bilinear interpolation."""
+
+    def __init__(self, source_geo_def, target_geo_def):
+        """Init BilinearResampler."""
+        super(GradientSearchResampler, self).__init__(source_geo_def, target_geo_def)
+        self.source_lons = None
+        self.source_lats = None
+        self.target_coords = None
+
+    def precompute(self, **kwargs):
+        """Set source coordinages."""
+        lons, lats = self.source_geo_def.get_lonlats(chunks=CHUNK_SIZE)
+        self.source_lons, self.source_lats = lons, lats
+        target_x, target_y = self.target_geo_def.get_proj_coords(chunks=CHUNK_SIZE)
+        self.target_coords = {'x': target_x[0, :],
+                              'y': target_y[:, 0]}
+
+    def compute(self, data, fill_value=None, reduce_data=False, **kwargs):
+        """Resample the given data using bilinear interpolation."""
+        del kwargs
+
+        if fill_value is None:
+            fill_value = data.attrs.get('_FillValue')
+
+        res = parallel_gradient_search(data,
+                                       self.source_lons,
+                                       self.source_lats,
+                                       self.target_geo_def,
+                                       chunk_size=CHUNK_SIZE,
+                                       reduce_data=reduce_data)
+        # res = da.where(np.isnull(res), fill_value, res)
+        res = xr.DataArray(res, dims=data.dims, coords=self.target_coords)
+
+        return res
+
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
               "bilinear": BilinearResampler,
               "native": NativeResampler,
+              "gradient": GradientSearchResampler,
               }
 
 
