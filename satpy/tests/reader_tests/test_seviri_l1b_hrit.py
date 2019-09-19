@@ -612,7 +612,7 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
 
     def test_find_orbit_coefs(self):
         """Test identification of orbit coefficients."""
-        # Contiguous coefficients (that's the norm)
+        # Contiguous validity intervals (that's the norm)
         self.assertEqual(self.reader._find_orbit_coefs(), 1)
 
         # No interval enclosing the given timestamp ...
