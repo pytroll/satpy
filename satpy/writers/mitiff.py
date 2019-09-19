@@ -203,12 +203,19 @@ class MITIFFWriter(ImageWriter):
         proj4_string = " Proj string: "
 
         if isinstance(datasets, list):
-            proj4_string += first_dataset.attrs['area'].proj4_string
+            area = first_dataset.attrs['area']
         else:
-            proj4_string += datasets.attrs['area'].proj4_string
+            area = datasets.attrs['area']
+        # Use pyproj's CRS object to get a valid EPSG code if possible
+        # only in newer pyresample versions with pyproj 2.0+ installed
+        if hasattr(area, 'crs') and area.crs.to_epsg() is not None:
+            proj4_string += "+init=EPSG:{}".format(area.crs.to_epsg())
+        else:
+            proj4_string += area.proj_str
 
         x_0 = 0
         y_0 = 0
+        # FUTURE: Use pyproj 2.0+ to convert EPSG to PROJ4 if possible
         if 'EPSG:32631' in proj4_string:
             proj4_string = proj4_string.replace("+init=EPSG:32631",
                                                 "+proj=etmerc +lat_0=0 +lon_0=3 +k=0.9996 +ellps=WGS84 +datum=WGS84")
@@ -246,14 +253,14 @@ class MITIFFWriter(ImageWriter):
         if 'units' not in proj4_string:
             proj4_string += ' +units=km'
 
-        if isinstance(datasets, list):
+        if 'x_0' not in proj4_string and isinstance(datasets, list):
             proj4_string += ' +x_0=%.6f' % (
                 (-first_dataset.attrs['area'].area_extent[0] +
                  first_dataset.attrs['area'].pixel_size_x) + x_0)
             proj4_string += ' +y_0=%.6f' % (
                 (-first_dataset.attrs['area'].area_extent[1] +
                  first_dataset.attrs['area'].pixel_size_y) + y_0)
-        else:
+        elif 'x_0' not in proj4_string:
             proj4_string += ' +x_0=%.6f' % (
                 (-datasets.attrs['area'].area_extent[0] +
                  datasets.attrs['area'].pixel_size_x) + x_0)

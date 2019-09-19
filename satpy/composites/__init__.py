@@ -35,6 +35,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
+from satpy.config import get_environ_ancpath
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
@@ -1388,7 +1389,12 @@ class SandwichCompositor(GenericCompositor):
 
 
 class StaticImageCompositor(GenericCompositor):
-    """A compositor that loads a static image from disk."""
+    """A compositor that loads a static image from disk.
+
+    If the filename passed to this compositor is not valid then
+    the SATPY_ANCPATH environment variable will be checked to see
+    if the image is located there
+    """
 
     def __init__(self, name, filename=None, area=None, **kwargs):
         """Collect custom configuration values.
@@ -1411,6 +1417,11 @@ class StaticImageCompositor(GenericCompositor):
     def __call__(self, *args, **kwargs):
         """Call the compositor."""
         from satpy import Scene
+        # Check if filename exists, if not then try from SATPY_ANCPATH
+        if (not os.path.isfile(self.filename)):
+            tmp_filename = os.path.join(get_environ_ancpath(), self.filename)
+            if (os.path.isfile(tmp_filename)):
+                self.filename = tmp_filename
         scn = Scene(reader='generic_image', filenames=[self.filename])
         scn.load(['image'])
         img = scn['image']

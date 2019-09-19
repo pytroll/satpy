@@ -43,6 +43,7 @@ The following people have made contributions to this project:
 - [Kristian Rune Larsen](https://github.com/)
 - [RutgerK (RutgerK)](https://github.com/RutgerK)
 - Marco Sassi - meteoswiss
+- [Stefan Scheiblauer (StefanSnippetCoder)](https://github.com/StefanSnippetCoder)
 - [Ronald Scheirer](https://github.com/)
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
@@ -51,3 +52,5 @@ The following people have made contributions to this project:
 - [oananicola (oananicola)](https://github.com/oananicola)
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
+- [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
+
