@@ -251,12 +251,13 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
         area = self.reader.get_area_def(DatasetID('HRV'))
         self.assertEqual(area.area_extent,
                          (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356))
-        self.assertEqual(area.proj_dict, {'a': 6378169.0,
-                                          'b': 6356583.8,
-                                          'h': 35785831.0,
-                                          'lon_0': 44,
-                                          'proj': 'geos',
-                                          'units': 'm'})
+        proj_dict = area.proj_dict
+        self.assertEqual(proj_dict['a'], 6378169.0)
+        self.assertEqual(proj_dict['b'], 6356583.8)
+        self.assertEqual(proj_dict['h'], 35785831.0)
+        self.assertEqual(proj_dict['lon_0'], 44.0)
+        self.assertEqual(proj_dict['proj'], 'geos')
+        self.assertEqual(proj_dict['units'], 'm')
         self.reader.fill_hrv = False
         area = self.reader.get_area_def(DatasetID('HRV'))
         self.assertEqual(area.defs[0].area_extent,

@@ -39,11 +39,11 @@ except ImportError:
     pass
 
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
-            'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
+            'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
             'dask[array] >=0.17.1', 'pyproj', 'zarr']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews']
+                 'rasterio', 'geoviews', 'pycoast', 'pydecorate', 'trollimage']
 
 if sys.version < '3.0':
     test_requires.append('mock')

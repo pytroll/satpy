@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test objects and functions in the satpy.config module.
-"""
+"""Test objects and functions in the satpy.config module."""
 
 import sys
 
@@ -111,7 +110,7 @@ class TestBuiltinAreas(unittest.TestCase):
                     # in a generic test so just skip this area
                     continue
             proj_dict = area_obj.proj_dict
-            if proj_dict['proj'] in ('ob_tran', 'nsper') and \
+            if proj_dict.get('proj') in ('ob_tran', 'nsper') and \
                     'wktext' not in proj_dict:
                 # FIXME: rasterio doesn't understand ob_tran unless +wktext
                 # See: https://github.com/pyproj4/pyproj/issues/357
@@ -121,7 +120,7 @@ class TestBuiltinAreas(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_config."""
+    """Test suite for test_config."""
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestCheckSatpy))
