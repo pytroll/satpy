@@ -91,12 +91,19 @@ def convert_units(dataset, in_unit, out_unit):
     from pint import UnitRegistry
 
     ureg = UnitRegistry()
-    ureg.define("degree_Celsius = degC = Celsius = C")
-    data = ureg.Quantity(dataset, ureg.parse_expression(in_unit, False))
+    # Commented because buggy: race condition ?
+    # ureg.define("degree_Celsius = degC = Celsius = C = CELSIUS")
+    in_unit = ureg.parse_expression(in_unit, False)
+    if out_unit in ['CELSIUS', 'C', 'Celsius', 'celsius']:
+        dest_unit = ureg.degC
+    else:
+        dest_unit = ureg.parse_expression(out_unit, False)
+    data = ureg.Quantity(dataset, in_unit)
     attrs = dataset.attrs
-    dataset = data.to(ureg.parse_expression(out_unit, False)).magnitude
+    dataset = data.to(dest_unit).magnitude
     dataset.attrs = attrs
     dataset.attrs["units"] = out_unit
+    return dataset
 
 
 class NinjoTIFFWriter(ImageWriter):
@@ -180,7 +187,6 @@ class NinjoTIFFWriter(ImageWriter):
                 )
             else:
                 dataset = convert_units(dataset, units, nunits)
-
         return super(NinjoTIFFWriter, self).save_dataset(
             dataset, filename=filename, compute=compute, fill_value=fill_value, **kwargs
         )
