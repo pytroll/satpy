@@ -44,6 +44,9 @@ class FakeDataset(object):
     def __getitem__(self, key):
         return self.info[key]
 
+    def __contains__(self, key):
+        return key in self.info
+
     def rename(self, *args, **kwargs):
         return self
 
@@ -54,7 +57,7 @@ class FakeDataset(object):
 class Test_NC_ABI_L1B_Base(unittest.TestCase):
     """Common setup for NC_ABI_L1B tests"""
 
-    @mock.patch('satpy.readers.abi_l1b.xr')
+    @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_, rad=None):
         """Create a fake dataset using the given radiance data"""
         from satpy.readers.abi_l1b import NC_ABI_L1B
@@ -134,13 +137,10 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        from satpy import DatasetID
         self.assertEqual(self.reader.start_time,
                          datetime(2017, 9, 20, 17, 30, 40, 800000))
         self.assertEqual(self.reader.end_time,
                          datetime(2017, 9, 20, 17, 41, 17, 500000))
-        self.assertEqual(self.reader.get_shape(DatasetID(name='C05'), {}),
-                         (2, 5))
 
     def test_get_dataset(self):
         from satpy import DatasetID
@@ -171,6 +171,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                'sensor': 'abi',
                'timeline_ID': None,
                'units': 'W m-2 um-1 sr-1'}
+
         self.assertDictEqual(res.attrs, exp)
 
     def test_bad_calibration(self):
@@ -179,7 +180,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
         self.assertRaises(ValueError, self.reader.get_dataset,
                           DatasetID(name='C05', calibration='_bad_'), {})
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def(self, adef):
         """Test the area generation."""
         self.reader.get_area_def(None)
@@ -269,3 +270,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_ir_cal))
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_vis_cal))
     return mysuite
+
+
+if __name__ == '__main__':
+    unittest.main()

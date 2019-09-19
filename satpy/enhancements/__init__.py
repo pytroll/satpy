@@ -105,6 +105,7 @@ def apply_enhancement(data, func, exclude=None, separate=False,
 
 # pointed to by generic.yaml
 def crefl_scaling(img, **kwargs):
+    """Apply CREFL scaling."""
     LOG.debug("Applying the crefl_scaling")
 
     def func(band_data, index=None):
@@ -163,7 +164,37 @@ def lookup(img, **kwargs):
 
 
 def colorize(img, **kwargs):
-    """Colorize the given image."""
+    """Colorize the given image.
+
+    Args:
+        img: image to be colorized
+    Kwargs:
+        palettes: colormap(s) to use
+
+    The `palettes` kwarg can be one of the following:
+        - a trollimage.colormap.Colormap object
+        - list of dictionaries with each of one of the following forms:
+            - {'filename': '/path/to/colors.npy',
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'colors': <trollimage.colormap.Colormap instance>,
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'colors': <tuple of RGB(A) tuples>,
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'colors': <tuple of RGB(A) tuples>,
+               'values': <tuple of values to match colors to>,
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+
+    If multiple palettes are supplied, they are concatenated before applied.
+
+    """
     full_cmap = _merge_colormaps(kwargs)
     img.colorize(full_cmap)
 
@@ -185,6 +216,8 @@ def _merge_colormaps(kwargs):
     else:
         for itm in palette:
             cmap = create_colormap(itm)
+            if itm.get("reverse", False):
+                cmap.reverse()
             cmap.set_range(itm["min_value"], itm["max_value"])
             if full_cmap is None:
                 full_cmap = cmap
@@ -228,6 +261,7 @@ def create_colormap(palette):
 
 
 def _three_d_effect_delayed(band_data, kernel, mode):
+    """Kernel for running delayed 3D effect creation."""
     from scipy.signal import convolve2d
     band_data = band_data.reshape(band_data.shape[1:])
     new_data = convolve2d(band_data, kernel, mode=mode)
@@ -235,7 +269,7 @@ def _three_d_effect_delayed(band_data, kernel, mode):
 
 
 def three_d_effect(img, **kwargs):
-    """Create 3D effect using convolution"""
+    """Create 3D effect using convolution."""
     w = kwargs.get('weight', 1)
     LOG.debug("Applying 3D effect with weight %.2f", w)
     kernel = np.array([[-w, 0, w],
