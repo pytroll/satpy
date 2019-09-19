@@ -41,7 +41,7 @@ except ImportError:
 
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
-    instance.mda = {'spectral_channel_id': 'bla'}
+    instance.mda = {'spectral_channel_id': 1}
     instance.mda.setdefault('number_of_bits_per_pixel', 10)
 
     instance.mda['projection_parameters'] = {'a': 6378169.00,
@@ -534,6 +534,18 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         self.assertTrue(np.all(day[1:-1] == 3))
         self.assertTrue(np.all(msec[1:-1] == np.arange(len(tline) - 2)))
 
+    def test_get_header(self):
+        # Make sure that the actual satellite position is only included if available
+        self.reader.mda['orbital_parameters'] = {}
+        self.reader.prologue_.get_satpos.return_value = 1, 2, 3
+        self.reader._get_header()
+        self.assertIn('satellite_actual_longitude', self.reader.mda['orbital_parameters'])
+
+        self.reader.mda['orbital_parameters'] = {}
+        self.reader.prologue_.get_satpos.return_value = None, None, None
+        self.reader._get_header()
+        self.assertNotIn('satellite_actual_longitude', self.reader.mda['orbital_parameters'])
+
 
 class TestHRITMSGPrologueFileHandler(unittest.TestCase):
     """Test the HRIT prologue file handler."""
@@ -560,9 +572,11 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
                 'Orbit': {
                     'OrbitPolynomial': {
                         'StartTime': np.array([
-                            [datetime(2006, 1, 1, 6), datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18)]]),
+                            [datetime(2006, 1, 1, 6), datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18),
+                             datetime(1958, 1, 1, 0)]]),
                         'EndTime': np.array([
-                            [datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18), datetime(2006, 1, 2, 0)]]),
+                            [datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18), datetime(2006, 1, 2, 0),
+                             datetime(1958, 1, 1, 0)]]),
                         'X': [np.zeros(8),
                               [8.41607082e+04, 2.94319260e+00, 9.86748617e-01, -2.70135453e-01,
                                -3.84364650e-02, 8.48718433e-03, 7.70548174e-04, -1.44262718e-04],
@@ -598,11 +612,60 @@ class TestHRITMSGPrologueFileHandler(unittest.TestCase):
 
     def test_find_orbit_coefs(self):
         """Test identification of orbit coefficients."""
+        # Contiguous validity intervals (that's the norm)
         self.assertEqual(self.reader._find_orbit_coefs(), 1)
 
-        # No interval enclosing the given timestamp
-        self.reader.prologue['ImageAcquisition']['PlannedAcquisitionTime'][
-            'TrueRepeatCycleStart'] = datetime(2000, 1, 1)
+        # No interval enclosing the given timestamp ...
+        # a) closest interval should be selected (if not too far away)
+        self.reader.prologue['SatelliteStatus'] = {
+            'Orbit': {
+                'OrbitPolynomial': {
+                    'StartTime': np.array([
+                        [datetime(2006, 1, 1, 10), datetime(2006, 1, 1, 13)]]),
+                    'EndTime': np.array([
+                        [datetime(2006, 1, 1, 12), datetime(2006, 1, 1, 18)]])
+                }
+            }
+        }
+        self.assertEqual(self.reader._find_orbit_coefs(), 0)
+
+        # b) closest interval too far away
+        self.reader.prologue['SatelliteStatus'] = {
+            'Orbit': {
+                'OrbitPolynomial': {
+                    'StartTime': np.array([
+                        [datetime(2006, 1, 1, 0), datetime(2006, 1, 1, 18)]]),
+                    'EndTime': np.array([
+                        [datetime(2006, 1, 1, 4), datetime(2006, 1, 1, 22)]])
+                }
+            }
+        }
+        self.assertRaises(NoValidOrbitParams, self.reader._find_orbit_coefs)
+
+        # Overlapping intervals -> most recent interval should be selected
+        self.reader.prologue['SatelliteStatus'] = {
+            'Orbit': {
+                'OrbitPolynomial': {
+                    'StartTime': np.array([
+                        [datetime(2006, 1, 1, 6), datetime(2006, 1, 1, 10)]]),
+                    'EndTime': np.array([
+                        [datetime(2006, 1, 1, 13), datetime(2006, 1, 1, 18)]])
+                }
+            }
+        }
+        self.assertEqual(self.reader._find_orbit_coefs(), 1)
+
+        # No valid coefficients at all
+        self.reader.prologue['SatelliteStatus'] = {
+            'Orbit': {
+                'OrbitPolynomial': {
+                    'StartTime': np.array([
+                        [datetime(1958, 1, 1, 0), datetime(1958, 1, 1)]]),
+                    'EndTime': np.array([
+                        [datetime(1958, 1, 1, 0), datetime(1958, 1, 1)]])
+                }
+            }
+        }
         self.assertRaises(NoValidOrbitParams, self.reader._find_orbit_coefs)
 
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler._find_orbit_coefs')
