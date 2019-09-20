@@ -37,8 +37,11 @@ class FakeImage:
         self.mode = mode
 
 
-modules = {'pyninjotiff.ninjotiff': mock.Mock()}
-@mock.patch.dict(sys.modules)
+modules = {'pyninjotiff': mock.Mock(),
+           'pyninjotiff.ninjotiff': mock.Mock()}
+
+
+@mock.patch.dict(sys.modules, modules)
 class TestNinjoTIFFWriter(unittest.TestCase):
     """The ninjo tiff writer tests."""
 
