@@ -58,6 +58,10 @@ class NC_ABI_L2(NC_ABI_BASE):
         variable.attrs.pop('add_offset', None)
         variable.attrs.pop('valid_range', None)
         variable.attrs.pop('_Unsigned', None)
+        variable.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
+
+        if 'flag_meanings' in variable.attrs:
+            variable.attrs['flag_meanings'] = variable.attrs['flag_meanings'].split(' ')
 
         # add in information from the filename that may be useful to the user
         for attr in ('scan_mode', 'platform_shortname'):
