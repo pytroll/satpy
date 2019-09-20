@@ -124,7 +124,7 @@ class NinjoTIFFWriter(ImageWriter):
             # if it's coming from a config file
             self.tags = dict(tuple(x.split("=")) for x in self.tags.split(","))
 
-    def save_image(self, img, filename=None, **kwargs):  # floating_point=False,
+    def save_image(self, img, filename=None, compute=True, **kwargs):  # floating_point=False,
         """Save the image to the given *filename* in ninjotiff_ format.
 
         .. _ninjotiff: http://www.ssec.wisc.edu/~davidh/polar2grid/misc/NinJo_Satellite_Import_Formats.html
@@ -160,8 +160,10 @@ class NinjoTIFFWriter(ImageWriter):
                     raise NotImplementedError(
                         "Don't know how to handle non-scale/offset-based enhancements yet."
                     )
-
-        return delayed(nt.save)(img, filename, data_is_scaled_01=True, **kwargs)
+        if compute:
+            return nt.save(img, filename, data_is_scaled_01=True, **kwargs)
+        else:
+            return delayed(nt.save)(img, filename, data_is_scaled_01=True, **kwargs)
 
     def save_dataset(
         self, dataset, filename=None, fill_value=None, compute=True, **kwargs
