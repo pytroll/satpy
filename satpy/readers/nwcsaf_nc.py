@@ -27,9 +27,9 @@ import os
 from datetime import datetime
 
 import dask.array as da
+import numpy as np
 import xarray as xr
 
-import numpy as np
 from pyresample.utils import get_area_def
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -123,7 +123,10 @@ class NcNWCSAF(BaseFileHandler):
         return variable
 
     def scale_dataset(self, dsid, variable, info):
-        """Scale the data set, applying the attributes from the netCDF file."""
+        """Scale the data set, applying the attributes from the netCDF file.
+
+        The scale and offset attributes will then be removed from the resulting variable.
+        """
         variable = remove_empties(variable)
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
