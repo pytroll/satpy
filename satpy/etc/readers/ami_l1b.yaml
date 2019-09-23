@@ -97,7 +97,7 @@ datasets:
 
   C03:
     name: VI006
-    wavelength: [0.599, .639, 0.679]
+    wavelength: [0.599, 0.639, 0.679]
     resolution: 500
     calibration:
       radiance:
