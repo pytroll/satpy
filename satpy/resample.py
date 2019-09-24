@@ -401,6 +401,7 @@ class BaseResampler(object):
             else:
                 kwargs['mask'] = data.isnull()
             kwargs['mask'] = kwargs['mask'].all(dim=flat_dims)
+
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
@@ -790,7 +791,7 @@ class BilinearResampler(BaseResampler):
         self.resampler = None
 
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
-                   reduce_data=True, cache_dir=False, **kwargs):
+                   cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use.
 
         Note: The `mask` keyword should be provided if geolocation may be valid
@@ -804,8 +805,7 @@ class BilinearResampler(BaseResampler):
                           target_geo_def=self.target_geo_def,
                           radius_of_influence=radius_of_influence,
                           neighbours=32,
-                          epsilon=epsilon,
-                          reduce_data=reduce_data)
+                          epsilon=epsilon)
 
             self.resampler = XArrayResamplerBilinear(**kwargs)
             try:
@@ -1006,10 +1006,9 @@ class GradientSearchResampler(BaseResampler):
         self.target_coords = {'x': target_x[0, :],
                               'y': target_y[:, 0]}
 
-    def compute(self, data, fill_value=None, reduce_data=False, **kwargs):
+    def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
         del kwargs
-
         if fill_value is None:
             fill_value = data.attrs.get('_FillValue')
 
@@ -1017,12 +1016,12 @@ class GradientSearchResampler(BaseResampler):
                                        self.source_lons,
                                        self.source_lats,
                                        self.target_geo_def,
-                                       chunk_size=CHUNK_SIZE,
-                                       reduce_data=reduce_data)
+                                       chunk_size=CHUNK_SIZE)
         # res = da.where(np.isnull(res), fill_value, res)
         res = xr.DataArray(res, dims=data.dims, coords=self.target_coords)
 
         return res
+
 
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
