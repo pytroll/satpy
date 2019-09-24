@@ -37,29 +37,26 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 
 
 class BitFlags(object):
+    """Manipulate flags stored bitwise."""
 
-    """Manipulate flags stored bitwise.
-    """
-    flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
-                 'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
-                 'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
-                 'WHITECAPS', 'ADJAC', 'WV_FAIL', 'PAR_FAIL',
-                 'AC_FAIL', 'OC4ME_FAIL', 'OCNN_FAIL',
-                 'Extra_1',
-                 'KDM_FAIL',
-                 'Extra_2',
-                 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN', 'BPAC_ON', 'WHITE_SCATT',
-                 'LOWRW', 'HIGHRW']
+    def __init__(self, data, masks, meanings):
 
-    meaning = {f: i for i, f in enumerate(flag_list)}
-
-    def __init__(self, value):
-
-        self._value = value
+        self._data = data
+        self._masks = masks
+        self._meanings = meanings
+        self._map = dict(zip(meanings, masks))
 
     def __getitem__(self, item):
-        pos = self.meaning[item]
-        return ((self._value >> pos) % 2).astype(np.bool)
+        mask = self._map[item]
+        return np.bitwise_and(self._data, mask).astype(np.bool)
+
+    def match_all(self, items):
+        mask = reduce(np.bitwise_or, [self._map[item] for item in items])
+        return np.bitwise_and(self._data, mask) == mask
+
+    def match_any(self, items):
+        mask = reduce(np.bitwise_or, [self._map[item] for item in items])
+        return np.bitwise_and(self._data, mask).astype(np.bool)
 
 
 class NCOLCIBase(BaseFileHandler):
@@ -200,23 +197,26 @@ class NCOLCI2(NCOLCIChannelBase):
 
         if key.name == 'wqsf':
             dataset.attrs['_FillValue'] = 1
-        elif key.name == 'mask':
-            mask = self.getbitmask(dataset.to_masked_array().data)
-            dataset = dataset * np.nan
-            dataset = dataset.where(~ mask, True)
+        elif key.name in ['mask', 'cloud_mask']:
+            if key.name == 'cloud_mask':
+                dataset = self.getbitmask(dataset, items=["CLOUD"])
+            else:
+                dataset = self.getbitmask(dataset)
 
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
         dataset.attrs.update(key.to_dict())
         return dataset
 
-    def getbitmask(self, wqsf, items=[]):
+    def getbitmask(self, wqsf, items=None):
         """ """
-        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
-                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
-                 "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
-        bflags = BitFlags(wqsf)
-        return reduce(np.logical_or, [bflags[item] for item in items])
+        if items is None:
+            items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                     "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                     "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+        bflags = BitFlags(wqsf, wqsf.attrs['flag_masks'],
+                          wqsf.attrs['flag_meanings'].split())
+        return bflags.match_any(items)
 
 
 class NCOLCIAngles(BaseFileHandler):
