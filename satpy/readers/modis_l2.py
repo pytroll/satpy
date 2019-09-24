@@ -168,6 +168,23 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
 
         return dataset
 
+    def available_datasets(self, configured_datasets=None):
+        "Add information to configured datasets."
+        # pass along existing datasets
+        for is_avail, ds_info in (configured_datasets or []):
+            yield is_avail, ds_info
+
+
+
+        # get dynamic variables known to this file (that we created)
+        for var_name, val in self.dynamic_variables.items():
+            ds_info = {
+                'file_type': self.filetype_info['file_type'],
+                'resolution': 1000,
+                'name': var_name,
+            }
+            yield True, ds_info
+
 
 def bits_strip(bit_start, bit_count, value):
     """Extract specified bit from bit representation of integer value.
