@@ -1,1 +1,19 @@
 sensor_name: visir/ami
+
+composites:
+  green:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    prerequisites:
+      - VI005
+      - VI008
+    standard_name: toa_bidirectional_reflectance
+    fractions: [0.85, 0.15]
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - VI006
+#      - VI005
+      - green
+      - VI004
+    standard_name: true_color
