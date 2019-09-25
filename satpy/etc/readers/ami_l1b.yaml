@@ -83,7 +83,7 @@ datasets:
 
   C02:
     name: VI005
-    wavelength: [0.576, 0.590, 0.614]
+    wavelength: [0.495, 0.509, 0.523]
     resolution: 1000
     calibration:
       radiance:
