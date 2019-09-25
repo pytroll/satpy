@@ -164,8 +164,9 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         good_mask = data != fill_value
 
         scale_factor = data.attrs.get('scale_factor')
+        add_offset = data.attrs.get('add_offset', 0)
         if scale_factor is not None:
-            data = data * scale_factor
+            data = data * scale_factor + add_offset
 
         data = data.where(good_mask, new_fill)
         return data
