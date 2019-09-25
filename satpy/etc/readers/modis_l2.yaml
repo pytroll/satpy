@@ -10,6 +10,10 @@ file_types:
     file_patterns:
     - 'M{platform_indicator:1s}D35_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
+  modis_l2_product:
+    file_patterns:
+      - 'M{platform_indicator:1s}D{product:2s}_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   hdf_eos_geo:
     file_patterns:
       - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
@@ -49,7 +53,7 @@ datasets:
       5000:
         file_type: mod35_hdf
       1000:
-        file_type: [hdf_eos_geo, mod35_hdf]
+        file_type: [hdf_eos_geo, mod35_hdf, modis_l2_product]
       500:
         file_type: hdf_eos_geo
       250:
@@ -64,7 +68,7 @@ datasets:
         # For EUM reduced (thinned) files
         file_type: mod35_hdf
       1000:
-        file_type: [hdf_eos_geo, mod35_hdf]
+        file_type: [hdf_eos_geo, mod35_hdf, modis_l2_product]
       500:
         file_type: hdf_eos_geo
       250:

@@ -168,22 +168,33 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
 
         return dataset
 
-    def available_datasets(self, configured_datasets=None):
-        "Add information to configured datasets."
+    def available_datasets(self, configured_datasets):
+        """
+        Adds dataset information not specifically specified in reader yaml file
+        from arbitrary modis level 2 product files to available datasets.
+
+        Notes:
+             Currently only adds 2D datasets and does not decode bit encoded information.
+        """
         # pass along existing datasets
         for is_avail, ds_info in (configured_datasets or []):
             yield is_avail, ds_info
 
-
+        res_dict = {(8120, 5416): 250, (4060, 2708): 500, (2030, 1354): 1000, (406, 270): 5000, (203, 135): 10000}
 
         # get dynamic variables known to this file (that we created)
-        for var_name, val in self.dynamic_variables.items():
-            ds_info = {
-                'file_type': self.filetype_info['file_type'],
-                'resolution': 1000,
-                'name': var_name,
-            }
-            yield True, ds_info
+        for var_name, val in self.sd.datasets().items():
+            if len(val[0]) == 2:
+                resolution = res_dict.get(val[1])
+                if not resolution is None:
+                    ds_info = {
+                        'file_type': self.filetype_info['file_type'],
+                        'resolution': resolution,
+                        'name': var_name,
+                        'file_key': var_name,
+                        'coordinates': ["longitude", "latitude"]
+                    }
+                    yield True, ds_info
 
 
 def bits_strip(bit_start, bit_count, value):
