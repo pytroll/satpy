@@ -98,7 +98,6 @@ class TestMSGBufr(unittest.TestCase):
 
     def test_msg_bufr(self):
         self.msg_bufr_test()
-        pass
 
     def tearDown(self):
         pass
