@@ -158,7 +158,8 @@ class AMIL1bNetCDF(BaseFileHandler):
         # only take "no error" pixels as valid
         data = data.where(qf == 0)
 
-        coeffs = CALIBRATION_COEFFS.get(dataset_id.name)
+        channel_name = attrs.get('channel_name', dataset_id.name)
+        coeffs = CALIBRATION_COEFFS.get(channel_name)
         if coeffs is None and dataset_id.calibration is not None:
             raise ValueError("No coefficients configured for {}".format(dataset_id))
         if dataset_id.calibration in ('radiance', 'reflectance', 'brightness_temperature'):
@@ -171,7 +172,6 @@ class AMIL1bNetCDF(BaseFileHandler):
             if ds_info.get('units') == '%':
                 rad_to_alb *= 100
             data = data * rad_to_alb
-            # print(da.compute(np.nanmin(data.data), np.nanmax(data.data)))
         elif dataset_id.calibration == 'brightness_temperature':
             # depends on the radiance calibration above
             # Convert um to m^-1 (SI units for pyspectral)
