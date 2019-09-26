@@ -276,8 +276,11 @@ def add_crs_xy_coords(data_arr, area):
         # default lat/lon projection
         latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
         # otherwise get it from the area definition
-        proj_str = getattr(area, 'proj_str', latlon_proj)
-        crs = CRS.from_string(proj_str)
+        if hasattr(area, 'crs'):
+            crs = area.crs
+        else:
+            proj_str = getattr(area, 'proj_str', latlon_proj)
+            crs = CRS.from_string(proj_str)
         data_arr = data_arr.assign_coords(crs=crs)
 
     # Add x/y coordinates if possible
