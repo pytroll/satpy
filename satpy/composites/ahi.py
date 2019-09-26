@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Composite classes for the AHI instrument.
-"""
+"""Composite classes for the AHI instrument."""
 
 import logging
 
@@ -26,9 +25,8 @@ LOG = logging.getLogger(__name__)
 
 
 class GreenCorrector(GenericCompositor):
-    """Corrector of the AHI green band to compensate for the deficit of
-    chlorophyl signal.
-    """
+    """Corrector of the AHI green band to compensate for the deficit of chlorophyll signal."""
+
     def __init__(self, *args, **kwargs):
         # XXX: Should this be 0.93 and 0.07
         self.fractions = kwargs.pop('fractions', [0.85, 0.15])
