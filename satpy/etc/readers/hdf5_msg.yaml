@@ -8,7 +8,7 @@ reader:
 file_types:
     HDF5_MSG:
         file_reader: !!python/name:satpy.readers.hdf5_msg.HDF5MSGFileHandler
-        file_patterns: ['{platform_shortname:4s}-{instrument:4s}-MSG{data_level:2s}-{base_algo_version:4s}-{prod_algo_version:2s}-{reception_stop_time:%Y%m%d%H%M%S}.{subseconds:9s}Z-{processing_start_time:%Y%m%d%H%M%S}-{order_number:7s}.h5']
+        file_patterns: ['{platform_shortname:4s}-{instrument:4s}-MSG{data_level:2s}-{base_algo_version:4s}-{prod_algo_version:2s}-{reception_stop_time:%Y%m%d%H%M%S}.{subseconds:9s}Z-{processing_start_time:%Y%m%d%H%M%S}-{order_number:7s}-{seq:1s}.h5']
 
 datasets:
   VIS006:

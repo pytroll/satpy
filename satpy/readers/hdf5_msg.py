@@ -41,8 +41,8 @@ import h5py
 from pyresample import geometry
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
-from satpy.readers.msg_base import SEVIRICalibrationHandler
-from satpy.readers.msg_base import (CHANNEL_NAMES, CALIB, SATNUM)
+from satpy.readers.seviri_base import SEVIRICalibrationHandler
+from satpy.readers.seviri_base import (CHANNEL_NAMES, CALIB, SATNUM)
 from satpy.readers.eum_base import timecds2datetime
 
 logger = logging.getLogger("hdf5_msg")
@@ -105,7 +105,7 @@ def dict_merge(dct, merge_dct):
     -------
     None
     """
-    for k, v in merge_dct.iteritems():
+    for k, v in merge_dct.items():# merge_dct.iteritems():
         if (k in dct and isinstance(dct[k], dict) and isinstance(merge_dct[k], collections.Mapping)):
             dict_merge(dct[k], merge_dct[k])
         else:
@@ -128,7 +128,7 @@ def rec2dict(arr):
     """
     res = {}
     for dtuple in arr:
-        fullkey = dtuple[0].split("-")
+        fullkey = dtuple[0].decode(encoding="utf-8").split("-")
         key = fullkey[0]
         data = dtuple[1]
         ndict = subdict(fullkey, data)
@@ -366,7 +366,7 @@ class HDF5MSGFileHandler(HDF5FileHandler, SEVIRICalibrationHandler):
             res = self._vis_calibrate(res, solar_irradiance)
 
         elif calibration == "brightness_temperature":
-            cal_type_list = list(int(x) for x in self.mda["ImageDescription"]["ImageDescription_DESCR"]["Level 1_5 ImageProduction"]["PlannedChanProcessing"].split(","))
+            cal_type_list = list(int(x) for x in self.mda["ImageDescription"]["ImageDescription_DESCR"]["Level 1_5 ImageProduction"]["PlannedChanProcessing"].decode(encoding="utf-8").split(","))
             cal_type = cal_type_list[channel_id - 1]
             res = self._ir_calibrate(res, channel_name, cal_type)
 
