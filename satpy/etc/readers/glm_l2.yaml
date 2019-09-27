@@ -10,10 +10,10 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time', 'platform_shortname', 'scene_abbr']
-  
+
 # Typical filenames from Unidata THREDDS server:
 # http://thredds.unidata.ucar.edu/thredds/catalog/satellite/goes/east/
-#     products/GeostationaryLightningMapper/CONUS/current/catalog.html 
+#     products/GeostationaryLightningMapper/CONUS/current/catalog.html
 # OR_GLM-L2-GLMC-M3_G16_s20191920000000_e20191920001000_c20191920001380.nc
 
 file_types:
@@ -47,4 +47,3 @@ datasets:
   total_energy:
     name: total_energy
     file_type: glm_l2_imagery
-  
