@@ -1,3 +1,28 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Geostationary Lightning Mapper reader for the Level 2 format from glmtools.
+
+More information about `glmtools` and the files it produces can be found on
+the project's GitHub repository:
+
+    https://github.com/deeplycloudy/glmtools
+
+"""
 import logging
 from datetime import datetime
 
@@ -15,13 +40,16 @@ PLATFORM_NAMES = {
     'G17': 'GOES-17',
 }
 
-#class NC_GLM_L2_LCFA(BaseFileHandler): — add this with glmtools
+# class NC_GLM_L2_LCFA(BaseFileHandler): — add this with glmtools
 
 
 class NC_GLM_L2_IMAGERY(BaseFileHandler):
+    """File reader for individual GLM L2 NetCDF4 files."""
+
     def __init__(self, filename, filename_info, filetype_info):
+        """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_GLM_L2_IMAGERY, self).__init__(filename, filename_info, filetype_info)
-        # xarray's default netcdf4 engine. 
+        # xarray's default netcdf4 engine.
         # It includes handling of the _Unsigned attribute, so that the default
         # mask_and_scale behavior is correct.
         self.nc = xr.open_dataset(self.filename,
@@ -38,7 +66,7 @@ class NC_GLM_L2_IMAGERY(BaseFileHandler):
     def get_shape(self, key, info):
         """Get the shape of the data."""
         return self.nlines, self.ncols
-    
+
     def get_area_def(self, key):
         """Get the area definition of the data at hand."""
         projection = self.nc["goes_imager_projection"]
@@ -83,15 +111,21 @@ class NC_GLM_L2_IMAGERY(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Start time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%SZ')
 
     @property
     def end_time(self):
+        """End time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%SZ')
 
     def __getitem__(self, item):
-        """Wrapper around `self.nc[item]`. Unlike ABI, we like what xarray
-        does with our data, so just pass it through.
+        """Wrap `self.nc[item]` for better floating point precision.
+
+        Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
+        variables which causes inaccurate unscaled data values. This method
+        forces the scale factor to a 64-bit float first.
+
         """
         logger.debug(item)
         # logger.debug(self.nc)
@@ -112,7 +146,7 @@ class NC_GLM_L2_IMAGERY(BaseFileHandler):
                           'satellite_latitude': float(self['nominal_satellite_subpoint_lat']),
                           'satellite_longitude': float(self['nominal_satellite_subpoint_lon']),
                           # 'satellite_altitude': float(self['nominal_satellite_height']),
-                      })
+                          })
 
         # Add orbital parameters
         projection = self.nc["goes_imager_projection"]
@@ -146,10 +180,10 @@ class NC_GLM_L2_IMAGERY(BaseFileHandler):
                 res.attrs[key] = self.nc.attrs[key]
 
         return res
-        
+
     def __del__(self):
+        """Close the NetCDF file that may still be open."""
         try:
             self.nc.close()
         except (IOError, OSError, AttributeError):
             pass
-    
