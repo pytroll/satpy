@@ -247,6 +247,17 @@ class NC_ABI_BASE(BaseFileHandler):
         """End time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
+    def spatial_resolution_to_number(self):
+        """Convert the 'spatial_resolution' global attribute to meters."""
+        res = self.nc.attrs['spatial_resolution'].split(' ')[0]
+        if res.endswith('km'):
+            res = int(float(res[:-2]) * 1000)
+        elif res.endswith('m'):
+            res = int(res[:-1])
+        else:
+            raise ValueError("Unexpected 'spatial_resolution' attribute '{}'".format(res))
+        return res
+
     def __del__(self):
         """Close the NetCDF file that may still be open."""
         try:

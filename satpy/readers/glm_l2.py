@@ -100,3 +100,28 @@ class NC_GLM_L2_IMAGERY(NC_ABI_BASE):
                 res.attrs[attr] = self.nc.attrs[attr]
 
         return res
+
+    def available_datasets(self, configured_datasets=None):
+        """Check actual  Add information to configured datasets."""
+        # we know the actual resolution
+        res = self.spatial_resolution_to_number()
+
+        # update previously configured datasets
+        for is_avail, ds_info in (configured_datasets or []):
+            # some other file handler knows how to load this
+            # don't override what they've done
+            if is_avail is not None:
+                yield is_avail, ds_info
+
+            matches = self.file_type_matches(ds_info['file_type'])
+            if matches and ds_info.get('resolution') != res:
+                # we are meant to handle this dataset (file type matches)
+                # and the information we can provide isn't available yet
+                new_info = ds_info.copy()
+                new_info['resolution'] = res
+                exists = ds_info['name'] in self.nc
+                yield exists, new_info
+            elif is_avail is None:
+                # we don't know what to do with this
+                # see if another future file handler does
+                yield is_avail, ds_info
