@@ -750,6 +750,55 @@ class DifferenceCompositor(CompositeBase):
         return proj
 
 
+class SingleBandCompositor(CompositeBase):
+    """Basic single-band composite builder.
+
+    This preserves all the attributes of the dataset it is derived from.
+    """
+
+    def __init__(self, name, **kwargs):
+        """Collect custom configuration values."""
+        super(SingleBandCompositor, self).__init__(name, **kwargs)
+
+    def _get_sensors(self, projectables):
+        sensor = set()
+        for projectable in projectables:
+            current_sensor = projectable.attrs.get("sensor", None)
+            if current_sensor:
+                if isinstance(current_sensor, (str, bytes, six.text_type)):
+                    sensor.add(current_sensor)
+                else:
+                    sensor |= current_sensor
+        if len(sensor) == 0:
+            sensor = None
+        elif len(sensor) == 1:
+            sensor = list(sensor)[0]
+        return sensor
+
+    def __call__(self, projectables, nonprojectables=None, **attrs):
+        """Build the composite."""
+        num = len(projectables)
+        if num != 1:
+            raise ValueError("Can't have more than one band in a single-band composite")
+        mode = attrs.get('mode', 'L')
+
+        data = projectables[0]
+        new_attrs = data.attrs.copy()
+
+        new_attrs.update({key: val
+                          for (key, val) in attrs.items()
+                          if val is not None})
+        resolution = new_attrs.get('resolution', None)
+        new_attrs.update(self.attrs)
+        if resolution is not None:
+            new_attrs['resolution'] = resolution
+        new_attrs["sensor"] = self._get_sensors(projectables)
+        new_attrs["mode"] = mode
+
+        return xr.DataArray(data=data.data, attrs=new_attrs,
+                            dims=data.dims, coords=data.coords)
+
+
 class GenericCompositor(CompositeBase):
     """Basic colored composite builder."""
 
@@ -815,12 +864,11 @@ class GenericCompositor(CompositeBase):
                 data['time'] = [time]
 
         new_attrs = combine_metadata(*projectables)
-        # remove metadata that shouldn't make sense in a multiband composite
-        if len(projectables) > 1:
-            new_attrs["wavelength"] = None
-            new_attrs.pop("units", None)
-            new_attrs.pop('calibration', None)
-            new_attrs.pop('modifiers', None)
+        # remove metadata that shouldn't make sense in a composite
+        new_attrs["wavelength"] = None
+        new_attrs.pop("units", None)
+        new_attrs.pop('calibration', None)
+        new_attrs.pop('modifiers', None)
 
         new_attrs.update({key: val
                           for (key, val) in attrs.items()
