@@ -300,6 +300,8 @@ class TestEWAResampler(unittest.TestCase):
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
             self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
     @mock.patch('satpy.resample.fornav')
     @mock.patch('satpy.resample.ll2cr')
@@ -352,6 +354,8 @@ class TestEWAResampler(unittest.TestCase):
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
             np.testing.assert_equal(new_data.coords['bands'].values,
                                     ['R', 'G', 'B'])
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
 
 class TestNativeResampler(unittest.TestCase):
@@ -400,6 +404,8 @@ class TestNativeResampler(unittest.TestCase):
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
             self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_dims_3d(self):
         """Test expanding native resampling with 3D data."""
@@ -424,6 +430,8 @@ class TestNativeResampler(unittest.TestCase):
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
             self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_without_dims(self):
         """Test expanding native resampling with no dimensions specified."""
@@ -440,6 +448,8 @@ class TestNativeResampler(unittest.TestCase):
             self.assertIn('crs', new_data.coords)
             self.assertIsInstance(new_data.coords['crs'].item(), CRS)
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_without_dims_4D(self):
         """Test expanding native resampling with 4D data with no dimensions specified."""
@@ -499,6 +509,8 @@ class TestBilinearResampler(unittest.TestCase):
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
             self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
         # Test that the resampling info is tried to read from the disk
         resampler = BilinearResampler(source_swath, target_area)
@@ -625,6 +637,8 @@ class TestCoordinateHelpers(unittest.TestCase):
                 new_data_arr.coords['x'].attrs['units'], 'meter')
             self.assertIn('crs', new_data_arr.coords)
             self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+            if hasattr(area_def, 'crs'):
+                self.assertIs(area_def.crs, new_data_arr.coords['crs'].item())
 
         # already has coords
         data_arr = xr.DataArray(
@@ -643,6 +657,8 @@ class TestCoordinateHelpers(unittest.TestCase):
         if CRS is not None:
             self.assertIn('crs', new_data_arr.coords)
             self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+            if hasattr(area_def, 'crs'):
+                self.assertIs(area_def.crs, new_data_arr.coords['crs'].item())
 
         # lat/lon area
         area_def = AreaDefinition(
@@ -667,6 +683,8 @@ class TestCoordinateHelpers(unittest.TestCase):
                 new_data_arr.coords['x'].attrs['units'], 'degrees_east')
             self.assertIn('crs', new_data_arr.coords)
             self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+            if hasattr(area_def, 'crs'):
+                self.assertIs(area_def.crs, new_data_arr.coords['crs'].item())
 
     def test_swath_def_coordinates(self):
         """Test coordinates being added with an SwathDefinition."""
@@ -711,6 +729,7 @@ class TestBucketAvg(unittest.TestCase):
     """Test the bucket resampler."""
 
     def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
         from satpy.resample import BucketAvg
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
@@ -719,14 +738,14 @@ class TestBucketAvg(unittest.TestCase):
         self.bucket = BucketAvg(self.source_geo_def, self.target_geo_def)
 
     def test_init(self):
-        """Test bucket resampler initialization"""
+        """Test bucket resampler initialization."""
         self.assertIsNone(self.bucket.resampler)
         self.assertTrue(self.bucket.source_geo_def == self.source_geo_def)
         self.assertTrue(self.bucket.target_geo_def == self.target_geo_def)
 
     @mock.patch('pyresample.bucket.BucketResampler')
     def test_precompute(self, bucket):
-        """Test bucket resampler precomputation"""
+        """Test bucket resampler precomputation."""
         bucket.return_value = True
         self.bucket.precompute()
         self.assertTrue(self.bucket.resampler)
@@ -810,6 +829,7 @@ class TestBucketSum(unittest.TestCase):
     """Test the sum bucket resampler."""
 
     def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
         from satpy.resample import BucketSum
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
@@ -850,6 +870,7 @@ class TestBucketCount(unittest.TestCase):
     """Test the count bucket resampler."""
 
     def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
         from satpy.resample import BucketCount
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
@@ -886,6 +907,7 @@ class TestBucketFraction(unittest.TestCase):
     """Test the fraction bucket resampler."""
 
     def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
         from satpy.resample import BucketFraction
         get_lonlats = mock.MagicMock()
         get_lonlats.return_value = (1, 2)
