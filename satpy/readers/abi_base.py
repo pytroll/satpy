@@ -53,7 +53,8 @@ class NC_ABI_BASE(BaseFileHandler):
                                       mask_and_scale=False,
                                       chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE},)
 
-        self.nc = self.nc.rename({'t': 'time'})
+        if 't' in self.nc.dims:
+            self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'abi'
