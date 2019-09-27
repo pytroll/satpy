@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The abi_l1b reader tests package.
-"""
+"""The abi_l1b reader tests package."""
 
 import sys
 import numpy as np
@@ -34,32 +33,40 @@ except ImportError:
 
 
 class FakeDataset(object):
-    def __init__(self, info, attrs):
+    """Act like an xarray Dataset object for testing."""
+
+    def __init__(self, info, attrs, dims=None):
+        """Set properties to mimic a Dataset object."""
         for var_name, var_data in list(info.items()):
             if isinstance(var_data, np.ndarray):
                 info[var_name] = xr.DataArray(var_data)
         self.info = info
         self.attrs = attrs
+        self.dims = dims or tuple()
 
     def __getitem__(self, key):
+        """Get the info for the fake data."""
         return self.info[key]
 
     def __contains__(self, key):
+        """Check if key is in the fake data."""
         return key in self.info
 
     def rename(self, *args, **kwargs):
+        """Allow for dimension renaming."""
         return self
 
     def close(self):
+        """Pretend to close."""
         return
 
 
 class Test_NC_ABI_L1B_Base(unittest.TestCase):
-    """Common setup for NC_ABI_L1B tests"""
+    """Common setup for NC_ABI_L1B tests."""
 
     @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_, rad=None):
-        """Create a fake dataset using the given radiance data"""
+        """Create a fake dataset using the given radiance data."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
 
         x_image = xr.DataArray(0.)
@@ -123,7 +130,7 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
             {
                 "time_coverage_start": "2017-09-20T17:30:40.8Z",
                 "time_coverage_end": "2017-09-20T17:41:17.5Z",
-            })
+            }, dims=('y', 'x'))
 
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16', 'observation_type': 'Rad',
@@ -143,6 +150,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                          datetime(2017, 9, 20, 17, 41, 17, 500000))
 
     def test_get_dataset(self):
+        """Test the get_dataset method."""
         from satpy import DatasetID
         key = DatasetID(name='Rad', calibration='radiance')
         res = self.reader.get_dataset(key, {'info': 'info'})
@@ -195,8 +203,10 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
 
 
 class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
+    """Test the NC_ABI_L1B reader's IR calibration."""
+
     def setUp(self):
-        """Setup for test."""
+        """Create fake data for the tests."""
         rad_data = (np.arange(10.).reshape((2, 5)) + 1.) * 50.
         rad_data = (rad_data + 1.) / 0.5
         rad_data = rad_data.astype(np.int16)
@@ -229,8 +239,10 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
 
 
 class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
+    """Test the NC_ABI_L1B reader."""
+
     def setUp(self):
-        """Setup for test."""
+        """Create fake data for the tests."""
         rad_data = (np.arange(10.).reshape((2, 5)) + 1.)
         rad_data = (rad_data + 1.) / 0.5
         rad_data = rad_data.astype(np.int16)
@@ -263,7 +275,7 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
 
 
 def suite():
-    """The test suite for test_scene."""
+    """Create test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B))
