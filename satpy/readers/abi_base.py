@@ -81,18 +81,30 @@ class NC_ABI_BASE(BaseFileHandler):
 
         data = self.nc[item]
         attrs = data.attrs
+        
         factor = data.attrs.get('scale_factor', 1)
         offset = data.attrs.get('add_offset', 0)
         fill = data.attrs.get('_FillValue')
+        unsigned = data.attrs.get('_Unsigned', None)
+        
+        # Ref. GOESR PUG-L1B-vol3, section 5.0.2 Unsigned Integer Processing
+        if unsigned is not None and unsigned.lower() == 'true':
+            # cast the data from int to uint
+            data = data.astype('u%s' % data.dtype.itemsize)
+            
+            if fill is not None:
+                fill = fill.astype('u%s' % fill.dtype.itemsize)
+            
         if fill is not None:
             if is_int(data) and is_int(factor) and is_int(offset):
                 new_fill = fill
             else:
                 new_fill = np.nan
             data = data.where(data != fill, new_fill)
+            
         if factor != 1 and item in ('x', 'y'):
             # be more precise with x/y coordinates
-            # set get_area_def for more information
+            # see get_area_def for more information
             data = data * np.round(float(factor), 6) + np.round(float(offset), 6)
         elif factor != 1:
             # make sure the factor is a 64-bit float
@@ -101,6 +113,7 @@ class NC_ABI_BASE(BaseFileHandler):
             if not is_int(factor):
                 factor = float(factor)
             data = data * factor + offset
+            
         data.attrs = attrs
 
         # handle coordinates (and recursive fun)
