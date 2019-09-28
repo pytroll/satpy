@@ -709,7 +709,6 @@ class TestSingleBandCompositor(unittest.TestCase):
         self.assertTrue('calibration' in res.attrs)
         self.assertFalse('modifiers' in res.attrs)
         self.assertEqual(res.attrs['wavelength'], 10.8)
-        self.assertEqual(res.attrs['mode'], 'L')
         self.assertEquals(res.attrs['resolution'], 333)
 
 
