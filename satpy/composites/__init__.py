@@ -760,21 +760,6 @@ class SingleBandCompositor(CompositeBase):
         """Collect custom configuration values."""
         super(SingleBandCompositor, self).__init__(name, **kwargs)
 
-    def _get_sensors(self, projectables):
-        sensor = set()
-        for projectable in projectables:
-            current_sensor = projectable.attrs.get("sensor", None)
-            if current_sensor:
-                if isinstance(current_sensor, (str, bytes, six.text_type)):
-                    sensor.add(current_sensor)
-                else:
-                    sensor |= current_sensor
-        if len(sensor) == 0:
-            sensor = None
-        elif len(sensor) == 1:
-            sensor = list(sensor)[0]
-        return sensor
-
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
         num = len(projectables)
@@ -792,7 +777,6 @@ class SingleBandCompositor(CompositeBase):
         new_attrs.update(self.attrs)
         if resolution is not None:
             new_attrs['resolution'] = resolution
-        new_attrs["sensor"] = self._get_sensors(projectables)
         new_attrs["mode"] = mode
 
         return xr.DataArray(data=data.data, attrs=new_attrs,
