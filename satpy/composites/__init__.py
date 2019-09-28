@@ -760,7 +760,6 @@ class SingleBandCompositor(CompositeBase):
         """Build the composite."""
         if len(projectables) != 1:
             raise ValueError("Can't have more than one band in a single-band composite")
-        mode = attrs.get('mode', 'L')
 
         data = projectables[0]
         new_attrs = data.attrs.copy()
@@ -772,7 +771,6 @@ class SingleBandCompositor(CompositeBase):
         new_attrs.update(self.attrs)
         if resolution is not None:
             new_attrs['resolution'] = resolution
-        new_attrs["mode"] = mode
 
         return xr.DataArray(data=data.data, attrs=new_attrs,
                             dims=data.dims, coords=data.coords)
