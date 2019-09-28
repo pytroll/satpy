@@ -681,6 +681,38 @@ class TestPrecipCloudsCompositor(unittest.TestCase):
         np.testing.assert_allclose(res, exp)
 
 
+class TestSingleBandCompositor(unittest.TestCase):
+    """Test the single-band compositor."""
+
+    def setUp(self):
+        """Create test data."""
+        from satpy.composites import SingleBandCompositor
+        self.comp = SingleBandCompositor(name='test')
+
+        all_valid = np.ones((2, 2))
+        self.all_valid = xr.DataArray(all_valid, dims=['y', 'x'])
+
+    def test_call(self):
+        """Test calling the compositor."""
+        # Dataset with extra attributes
+        all_valid = self.all_valid
+        all_valid.attrs['sensor'] = 'foo'
+        attrs = {'foo': 'bar', 'resolution': 333, 'units': 'K',
+                 'calibration': 'BT', 'wavelength': 10.8}
+        self.comp.attrs['resolution'] = None
+        res = self.comp([self.all_valid], **attrs)
+        # Verify attributes
+        self.assertEqual(res.attrs.get('sensor'), 'foo')
+        self.assertTrue('foo' in res.attrs)
+        self.assertEqual(res.attrs.get('foo'), 'bar')
+        self.assertTrue('units' in res.attrs)
+        self.assertTrue('calibration' in res.attrs)
+        self.assertFalse('modifiers' in res.attrs)
+        self.assertEqual(res.attrs['wavelength'], 10.8)
+        self.assertEqual(res.attrs['mode'], 'L')
+        self.assertEquals(res.attrs['resolution'], 333)
+
+
 class TestGenericCompositor(unittest.TestCase):
     """Test generic compositor."""
 
@@ -884,17 +916,17 @@ class TestStaticImageCompositor(unittest.TestCase):
         get_area_def.assert_called_once_with("euro4")
 
     @mock.patch('satpy.Scene')
-    def test_call(self, Scene):
+    def test_call(self, Scene):  # noqa
         """Test the static compositing."""
         from satpy.composites import StaticImageCompositor
 
-        class mock_scene(dict):
+        class MockScene(dict):
             def load(self, arg):
                 pass
 
         img = mock.MagicMock()
         img.attrs = {}
-        scn = mock_scene()
+        scn = MockScene()
         scn['image'] = img
         Scene.return_value = scn
         comp = StaticImageCompositor("name", filename="foo.tif")
@@ -1043,6 +1075,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestColormapCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPaletteCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestCloudTopHeightCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSingleBandCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestGenericCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNIRReflectance))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPrecipCloudsCompositor))
