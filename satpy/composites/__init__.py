@@ -756,14 +756,9 @@ class SingleBandCompositor(CompositeBase):
     This preserves all the attributes of the dataset it is derived from.
     """
 
-    def __init__(self, name, **kwargs):
-        """Collect custom configuration values."""
-        super(SingleBandCompositor, self).__init__(name, **kwargs)
-
     def __call__(self, projectables, nonprojectables=None, **attrs):
         """Build the composite."""
-        num = len(projectables)
-        if num != 1:
+        if len(projectables) != 1:
             raise ValueError("Can't have more than one band in a single-band composite")
         mode = attrs.get('mode', 'L')
 
