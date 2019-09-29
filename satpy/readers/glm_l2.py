@@ -42,6 +42,11 @@ class NC_GLM_L2_IMAGERY(NC_ABI_BASE):
     """File reader for individual GLM L2 NetCDF4 files."""
 
     @property
+    def sensor(self):
+        """Get sensor name for current file handler."""
+        return 'glm'
+
+    @property
     def start_time(self):
         """Start time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%SZ')
