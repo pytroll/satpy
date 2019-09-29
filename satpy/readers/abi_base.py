@@ -57,7 +57,6 @@ class NC_ABI_BASE(BaseFileHandler):
             self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
-        self.sensor = 'abi'
 
         if 'goes_imager_projection' in self.nc:
             self.nlines = self.nc['y'].size
@@ -68,6 +67,11 @@ class NC_ABI_BASE(BaseFileHandler):
             self.nc = self.nc.rename({'lon': 'x', 'lat': 'y'})
 
         self.coords = {}
+
+    @property
+    def sensor(self):
+        """Get sensor name for current file handler."""
+        return 'abi'
 
     def __getitem__(self, item):
         """Wrap `self.nc[item]` for better floating point precision.
