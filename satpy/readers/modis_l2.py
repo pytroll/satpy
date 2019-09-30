@@ -180,13 +180,13 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         for is_avail, ds_info in (configured_datasets or []):
             yield is_avail, ds_info
 
-        res_dict = {(8120, 5416): 250, (4060, 2708): 500, (2030, 1354): 1000, (406, 270): 5000, (203, 135): 10000}
+        res_dict = {5416: 250, 2708: 500, 1354: 1000, 270: 5000, 135: 10000}
 
         # get dynamic variables known to this file (that we created)
         for var_name, val in self.sd.datasets().items():
             if len(val[0]) == 2:
-                resolution = res_dict.get(val[1])
-                if not resolution is None:
+                resolution = res_dict.get(val[1][-1])
+                if resolution is not None:
                     ds_info = {
                         'file_type': self.filetype_info['file_type'],
                         'resolution': resolution,
