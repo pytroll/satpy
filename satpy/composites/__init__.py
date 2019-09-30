@@ -750,6 +750,32 @@ class DifferenceCompositor(CompositeBase):
         return proj
 
 
+class SingleBandCompositor(CompositeBase):
+    """Basic single-band composite builder.
+
+    This preserves all the attributes of the dataset it is derived from.
+    """
+
+    def __call__(self, projectables, nonprojectables=None, **attrs):
+        """Build the composite."""
+        if len(projectables) != 1:
+            raise ValueError("Can't have more than one band in a single-band composite")
+
+        data = projectables[0]
+        new_attrs = data.attrs.copy()
+
+        new_attrs.update({key: val
+                          for (key, val) in attrs.items()
+                          if val is not None})
+        resolution = new_attrs.get('resolution', None)
+        new_attrs.update(self.attrs)
+        if resolution is not None:
+            new_attrs['resolution'] = resolution
+
+        return xr.DataArray(data=data.data, attrs=new_attrs,
+                            dims=data.dims, coords=data.coords)
+
+
 class GenericCompositor(CompositeBase):
     """Basic colored composite builder."""
 

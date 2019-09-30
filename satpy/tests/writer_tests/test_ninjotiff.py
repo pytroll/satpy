@@ -15,24 +15,68 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the NinJoTIFF writer.
-"""
+"""Tests for the NinJoTIFF writer."""
+
 import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
+import unittest
+import xarray as xr
+from dask.delayed import Delayed
+import six
+if six.PY3:
+    from unittest import mock
 else:
-    import unittest
+    import mock
 
 
+class FakeImage:
+    """Fake image."""
+
+    def __init__(self, data, mode):
+        """Init fake image."""
+        self.data = data
+        self.mode = mode
+
+
+modules = {'pyninjotiff': mock.Mock(),
+           'pyninjotiff.ninjotiff': mock.Mock()}
+
+
+@mock.patch.dict(sys.modules, modules)
 class TestNinjoTIFFWriter(unittest.TestCase):
+    """The ninjo tiff writer tests."""
+
     def test_init(self):
+        """Test the init."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
-        NinjoTIFFWriter()
+        ninjo_tags = {40000: 'NINJO'}
+        ntw = NinjoTIFFWriter(tags=ninjo_tags)
+        self.assertDictEqual(ntw.tags, ninjo_tags)
+
+    @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_dataset')
+    @mock.patch('satpy.writers.ninjotiff.convert_units')
+    def test_dataset(self, uconv, iwsd):
+        """Test saving a dataset."""
+        from satpy.writers.ninjotiff import NinjoTIFFWriter
+        ntw = NinjoTIFFWriter()
+        dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
+        ntw.save_dataset(dataset, physic_unit='CELSIUS')
+        uconv.assert_called_once_with(dataset, 'K', 'CELSIUS')
+        self.assertEqual(iwsd.call_count, 1)
+
+    @mock.patch('satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset')
+    @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_image')
+    def test_image(self, iwsi, save_dataset):
+        """Test saving an image."""
+        from satpy.writers.ninjotiff import NinjoTIFFWriter
+        ntw = NinjoTIFFWriter()
+        dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
+        img = FakeImage(dataset, 'L')
+        ret = ntw.save_image(img, filename='bla.tif', compute=False)
+        self.assertIsInstance(ret, Delayed)
 
 
 def suite():
-    """The test suite for this writer's tests."""
+    """Test suite for this writer's tests."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestNinjoTIFFWriter))

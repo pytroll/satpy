@@ -74,6 +74,7 @@ extras_require = {
     'scmi': ['netCDF4 >= 1.1.8'],
     'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
+    'ninjo': ['pyninjotiff', 'pint'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
