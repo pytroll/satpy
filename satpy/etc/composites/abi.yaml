@@ -237,6 +237,42 @@ composites:
       - name: C01
     standard_name: cimss_true_color
 
+  ash:
+    description: >
+      Ash RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/GOES_Ash_RGB.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C15
+        - name: C13
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C14
+        - name: C11
+    - name: C13
+    standard_name: ash
+
+  dust:
+    description: >
+      Dust RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/Dust_RGB_Quick_Guide.pdf
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C15
+        - name: C13
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C14
+        - name: C11
+    - name: C13
+    standard_name: dust
+
   cloud_phase_distinction:
     description: >
       Day Cloud Phase Distinction RGB, for GOESR: NASA, NOAA
