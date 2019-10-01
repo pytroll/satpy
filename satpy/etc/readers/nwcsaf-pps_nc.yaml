@@ -86,6 +86,24 @@ datasets:
     name: cmaprob_pal
     file_type: nc_nwcsaf_cmaprob
 
+  cmaprob_conditions:
+    name: cmaprob_conditions
+    file_type: nc_nwcsaf_cmaprob
+    coordinates: [lon, lat]
+    standard_name: cmaprob_conditions
+
+  cmaprob_quality:
+    name: cmaprob_quality
+    file_type: nc_nwcsaf_cmaprob
+    coordinates: [lon, lat]
+    standard_name: cmaprob_quality
+
+  cmaprob_status_flag:
+    name: cmaprob_status_flag
+    file_type: nc_nwcsaf_cmaprob
+    coordinates: [lon, lat]
+    standard_name: cmaprob_status_flag
+
 
 # ---- CT products ------------
 

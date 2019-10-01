@@ -25,6 +25,56 @@ from satpy.composites import ColormapCompositor
 from satpy.composites import GenericCompositor
 
 
+class CloudProbabilityCompositor(ColormapCompositor):
+    """Colorize values with a palette"""
+
+    @staticmethod
+    def build_colormap(palette, info):
+        """Create the colormap from the `raw_palette` and the valid_range."""
+
+        from trollimage.colormap import Colormap
+        if 'palette_meanings' in palette.attrs:
+            palette_indices = palette.attrs['palette_meanings']
+        else:
+            palette_indices = range(len(palette))
+
+        # The CMAProb stores the palette_meanings applicaple to the unscaled
+        # probabilities!
+        palette_indices = palette_indices * 0.01
+        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        tups = [(val, tuple(tup))
+                for (val, tup) in zip(palette_indices, sqpalette)]
+        colormap = Colormap(*tups)
+        if 'palette_meanings' not in palette.attrs:
+            sf = info.get('scale_factor', np.array(1))
+            colormap.set_range(
+                *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
+
+        return colormap, sqpalette
+
+    def __call__(self, projectables, **info):
+        """Create the composite."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" %
+                             (len(projectables), ))
+        data, palette = projectables
+        colormap, palette = self.build_colormap(palette, data.attrs)
+
+        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
+        channels = palette[channels]
+        mask_nan = data.notnull()
+        chans = []
+        for idx in range(channels.shape[-1]):
+            chan = xr.DataArray(channels[:, :, idx].reshape(data.shape),
+                                dims=data.dims, coords=data.coords,
+                                attrs=data.attrs).where(mask_nan)
+            chans.append(chan)
+
+        res = super(CloudProbabilityCompositor, self).__call__(chans, **data.attrs)
+        res.attrs['_FillValue'] = np.nan
+        return res
+
+
 class CloudTopHeightCompositor(ColormapCompositor):
     """Colorize with a palette, put cloud-free pixels as black."""
 
