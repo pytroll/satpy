@@ -9,7 +9,7 @@ file_types:
   seviri_l2_bufr_thu:
     file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
     file_patterns: ['THBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
-         
+
 datasets:
  thu62:
     name: thu62

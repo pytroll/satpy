@@ -43,7 +43,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_gii    
+    file_type: seviri_l2_bufr_gii
  li:
     name: li
     #index: 15
@@ -128,7 +128,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_gii                
+    file_type: seviri_l2_bufr_gii
  stza:
     name: stza
     #index: 15
@@ -162,6 +162,6 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_gii   
+    file_type: seviri_l2_bufr_gii
 
 

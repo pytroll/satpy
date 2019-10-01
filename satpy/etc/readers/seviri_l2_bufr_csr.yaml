@@ -9,7 +9,7 @@ file_types:
   seviri_l2_bufr_csr:
     file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
     file_patterns: ['CSRBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
-         
+
 datasets:
  nir39:
     name: nir39
