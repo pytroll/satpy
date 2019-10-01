@@ -9,7 +9,7 @@ file_types:
     file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
     file_patterns: ['TOZBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
 datasets:
-  toz:
+ toz:
     name: toz
     index: 15
     key: '#1#totalOzone'
@@ -25,4 +25,21 @@ datasets:
       counts:
         standard_name: dobson
         units: dobson
+    file_type: seviri_l2_bufr_toz
+ qual:
+    name: qual
+    index: 36
+    key: '#1#totalOzone->totalOzoneQuality'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+    #reflectance:
+    #  standard_name: toa_bidirectional_reflectance
+    #  units: "%"
+    #radiance:
+    #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+    #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: counts
     file_type: seviri_l2_bufr_toz

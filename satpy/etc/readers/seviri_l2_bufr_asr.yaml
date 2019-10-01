@@ -1,0 +1,880 @@
+reader:
+  description: MSG Bufr Reader
+  name: seviri_l2_bufr_asr
+  sensors: [seviri]
+  default_channels: [ir108all]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  seviri_l2_bufr_asr:
+    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
+    file_patterns: ['ASRBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
+         
+datasets:
+ nir39all:
+    name: nir39all
+    #index: 15
+    key: '#19#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ nir39clr:
+    name: nir39clr
+    #index: 15
+    key: '#20#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr 
+ nir39cld:
+    name: nir39cld
+    #index: 15
+    key: '#21#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ nir39low:
+    name: nir39low
+    #index: 15
+    key: '#22#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ nir39med:
+    name: nir39med
+    #index: 15
+    key: '#23#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ nir39high:
+    name: nir39high
+    #index: 15
+    key: '#24#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr         
+ wv62all:
+    name: wv62all
+    #index: 15
+    key: '#25#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ wv62clr:
+    name: wv62clr
+    #index: 15
+    key: '#26#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr 
+ wv62cld:
+    name: wv62cld
+    #index: 15
+    key: '#27#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ wv62low:
+    name: wv62low
+    #index: 15
+    key: '#28#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ wv62med:
+    name: wv62med
+    #index: 15
+    key: '#29#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ wv62high:
+    name: wv62high
+    #index: 15
+    key: '#30#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ wv73all:
+    name: wv73all
+    #index: 15
+    key: '#31#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ wv73clr:
+    name: wv73clr
+    #index: 15
+    key: '#32#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr 
+ wv73cld:
+    name: wv73cld
+    #index: 15
+    key: '#33#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ wv73low:
+    name: wv73low
+    #index: 15
+    key: '#34#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ wv73med:
+    name: wv73med
+    #index: 15
+    key: '#35#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ wv73high:
+    name: wv73high
+    #index: 15
+    key: '#36#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir87all:
+    name: ir87all
+    #index: 15
+    key: '#37#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir87clr:
+    name: ir87clr
+    #index: 15
+    key: '#38#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr 
+ ir87cld:
+    name: ir87cld
+    #index: 15
+    key: '#39#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir87low:
+    name: ir87low
+    #index: 15
+    key: '#40#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir87med:
+    name: ir87med
+    #index: 15
+    key: '#41#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir87high:
+    name: ir87high
+    #index: 15
+    key: '#42#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr      
+ ir97all:
+    name: ir97all
+    #index: 15
+    key: '#43#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir97clr:
+    name: ir97clr
+    #index: 15
+    key: '#44#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr 
+ ir97cld:
+    name: ir97cld
+    #index: 15
+    key: '#45#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir97low:
+    name: ir97low
+    #index: 15
+    key: '#46#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir97med:
+    name: ir97med
+    #index: 15
+    key: '#47#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir97high:
+    name: ir97high
+    #index: 15
+    key: '#48#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr      
+ ir108all:
+    name: ir108all
+    #index: 15
+    key: '#49#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir108clr:
+    name: ir108clr
+    #index: 15
+    key: '#50#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr 
+ ir108cld:
+    name: ir108cld
+    #index: 15
+    key: '#51#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir108low:
+    name: ir108low
+    #index: 15
+    key: '#52#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir108med:
+    name: ir108med
+    #index: 15
+    key: '#53#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir108high:
+    name: ir108high
+    #index: 15
+    key: '#54#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir120all:
+    name: ir120all
+    #index: 15
+    key: '#55#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir120clr:
+    name: ir120clr
+    #index: 15
+    key: '#56#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr 
+ ir120cld:
+    name: ir120cld
+    #index: 15
+    key: '#57#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir120low:
+    name: ir120low
+    #index: 15
+    key: '#58#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir120med:
+    name: ir120med
+    #index: 15
+    key: '#59#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir120high:
+    name: ir120high
+    #index: 15
+    key: '#60#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir134all:
+    name: ir134all
+    #index: 15
+    key: '#61#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir134clr:
+    name: ir134clr
+    #index: 15
+    key: '#62#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr 
+ ir134cld:
+    name: ir134cld
+    #index: 15
+    key: '#63#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir134low:
+    name: ir134low
+    #index: 15
+    key: '#64#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir134med:
+    name: ir134med
+    #index: 15
+    key: '#65#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ ir134high:
+    name: ir134high
+    #index: 15
+    key: '#66#brightnessTemperature'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ pcld:
+    name: pcld
+    #index: 15
+    key: '#1#cloudAmountInSegment'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ pclr:
+    name: pclr
+    #index: 15
+    key: '#1#amountSegmentCloudFree'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
+ pclrs:
+    name: pclrs
+    #index: 15
+    key: '#2#amountSegmentCloudFree'
+    resolution: 3000.403165817
+    wavelength: [0.5, 0.7, 0.9]
+    calibration:
+      #reflectance:
+      #  standard_name: toa_bidirectional_reflectance
+      #  units: "%"
+      #radiance:
+      #  standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #  units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+        units: count
+    file_type: seviri_l2_bufr_asr
