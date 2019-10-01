@@ -793,10 +793,12 @@ class GenericCompositor(CompositeBase):
     @classmethod
     def infer_mode(cls, data_arr):
         """Guess at the mode for a particular DataArray."""
-        if 'mode' in data_arr.attrs['mode']:
+        if 'mode' in data_arr.attrs:
             return data_arr.attrs['mode']
         if 'bands' not in data_arr.dims:
             return cls.modes[1]
+        if 'bands' in data_arr.coords and isinstance(data_arr.coords['bands'][0], str):
+            return ''.join(data_arr.coords['bands'].values)
         return cls.modes[data_arr.sizes['bands']]
 
     def _concat_datasets(self, projectables, mode):
@@ -1078,8 +1080,10 @@ def enhance2dataset(dset):
     # Clip image data to interval [0.0, 1.0]
     data = img.data.clip(0.0, 1.0)
     data.attrs = attrs
-    data.attrs.setdefault('mode', GenericCompositor.infer_mode(data))
-
+    # remove 'mode' if it is specified since it may have been updated
+    data.attrs.pop('mode', None)
+    # update mode since it may have changed (colorized/palettize)
+    data.attrs['mode'] = GenericCompositor.infer_mode(data)
     return data
 
 
