@@ -44,7 +44,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr 
+    file_type: seviri_l2_bufr_asr
  nir39cld:
     name: nir39cld
     #index: 15
@@ -112,7 +112,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr         
+    file_type: seviri_l2_bufr_asr
  wv62all:
     name: wv62all
     #index: 15
@@ -146,7 +146,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr 
+    file_type: seviri_l2_bufr_asr
  wv62cld:
     name: wv62cld
     #index: 15
@@ -248,7 +248,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr 
+    file_type: seviri_l2_bufr_asr
  wv73cld:
     name: wv73cld
     #index: 15
@@ -350,7 +350,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr 
+    file_type: seviri_l2_bufr_asr
  ir87cld:
     name: ir87cld
     #index: 15
@@ -418,7 +418,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr      
+    file_type: seviri_l2_bufr_asr
  ir97all:
     name: ir97all
     #index: 15
@@ -452,7 +452,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr 
+    file_type: seviri_l2_bufr_asr
  ir97cld:
     name: ir97cld
     #index: 15
@@ -520,7 +520,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr      
+    file_type: seviri_l2_bufr_asr
  ir108all:
     name: ir108all
     #index: 15
@@ -554,7 +554,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr 
+    file_type: seviri_l2_bufr_asr
  ir108cld:
     name: ir108cld
     #index: 15
@@ -656,7 +656,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr 
+    file_type: seviri_l2_bufr_asr
  ir120cld:
     name: ir120cld
     #index: 15
@@ -758,7 +758,7 @@ datasets:
       counts:
         standard_name: counts
         units: count
-    file_type: seviri_l2_bufr_asr 
+    file_type: seviri_l2_bufr_asr
  ir134cld:
     name: ir134cld
     #index: 15
