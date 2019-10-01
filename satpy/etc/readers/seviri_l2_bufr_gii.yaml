@@ -8,7 +8,7 @@ file_types:
   seviri_l2_bufr_gii:
     file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
     file_patterns: ['GIIBUFRProduct_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
-         
+
 datasets:
  ki:
     name: ki
