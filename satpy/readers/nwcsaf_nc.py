@@ -128,6 +128,7 @@ class NcNWCSAF(BaseFileHandler):
         The scale and offset attributes will then be removed from the resulting variable.
         """
         variable = remove_empties(variable)
+
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
@@ -174,7 +175,9 @@ class NcNWCSAF(BaseFileHandler):
                                         coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
 
             val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
-            variable.attrs['palette_meanings'] = val
+            # The palette_meanings are applicaple to the unscaled values. Need to scale them:
+            # FIXME! Scale and offset of the palete_meanings are not available!
+            variable.attrs['palette_meanings'] = val * scale + offset
             variable = variable[idx]
 
         if 'standard_name' in info:
