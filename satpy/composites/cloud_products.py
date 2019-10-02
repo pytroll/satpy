@@ -38,9 +38,9 @@ class CloudProbabilityCompositor(ColormapCompositor):
         else:
             palette_indices = range(len(palette))
 
-        # The CMAProb stores the palette_meanings applicaple to the unscaled
-        # probabilities!
+        # Scale the bloody palette_meaning:
         palette_indices = palette_indices * 0.01
+
         sqpalette = np.asanyarray(palette).squeeze() / 255.0
         tups = [(val, tuple(tup))
                 for (val, tup) in zip(palette_indices, sqpalette)]
