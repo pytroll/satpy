@@ -640,9 +640,9 @@ class TestCloudProbabilityCompositor(unittest.TestCase):
                                          [40, 40, 102],
                                          [255, 255, 255]]),
                                dims=['value', 'band'])
-        palette.attrs['palette_meanings'] = [0, 1200, 10000]
+        palette.attrs['palette_meanings'] = np.array([0, 1200, 10000])
         data = xr.DataArray(np.array([[0.0, 1.0, 2.0],
-                                      [2.0, 1200.0, 10000.0]], dtype=np.float64),
+                                      [2.0, 12.0, 100.0]], dtype=np.float64),
                             dims=['y', 'x'])
         res = cmap_comp([data, palette])
         exp = np.array([[[0.10588235, 0.10588235, 0.10588235],
