@@ -134,7 +134,7 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         area_id = 'mimic'
         proj_id = 'equirectangular'
         proj_dict = {'proj': 'longlat', 'datum': 'WGS84', 'ellps': 'WGS84', 'units': 'degrees',}
-        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent,)
+        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent, )
         return area_def
 
     def get_metadata(self, data, info):
