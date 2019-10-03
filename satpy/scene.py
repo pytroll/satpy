@@ -382,7 +382,7 @@ class Scene(MetadataObject):
 
         Returns: list of available compositor's names
         """
-        self._check_known_composites(available_only=True)
+        return self._check_known_composites(available_only=True)
 
     def available_composite_names(self):
         """All configured composites known to this Scene."""
@@ -393,7 +393,7 @@ class Scene(MetadataObject):
 
         Returns: list of configured composite names
         """
-        self._check_known_composites()
+        return self._check_known_composites()
 
     def all_composite_names(self):
         """Get all names for all configured composites.
