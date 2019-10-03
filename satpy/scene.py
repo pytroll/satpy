@@ -378,10 +378,7 @@ class Scene(MetadataObject):
         return sorted(available_comps & set(all_comps))
 
     def available_composite_ids(self):
-        """Get names of compositors that can be generated from the available datasets.
-
-        Returns: list of available compositor's names
-        """
+        """Get names of composites that can be generated from the available datasets."""
         return self._check_known_composites(available_only=True)
 
     def available_composite_names(self):
@@ -389,22 +386,11 @@ class Scene(MetadataObject):
         return sorted(set(x.name for x in self.available_composite_ids()))
 
     def all_composite_ids(self):
-        """Get all IDs for configured composites.
-
-        Returns: list of configured composite names
-        """
+        """Get all IDs for configured composites."""
         return self._check_known_composites()
 
     def all_composite_names(self):
-        """Get all names for all configured composites.
-
-        Args:
-            reader_name (str): Limit composites possible to only those created
-                with data from the specified reader.
-            sensor_names (list): Limit composites to those configured for the
-                specified sensors.
-
-        """
+        """Get all names for all configured composites."""
         return sorted(set(x.name for x in self.all_composite_ids()))
 
     def all_modifier_names(self):

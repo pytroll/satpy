@@ -157,7 +157,11 @@ class DependencyTree(Node):
             compositors (dict): Sensor name -> Composite ID -> Composite Object
             modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options)
             available_only (bool): Whether only reader's available/loadable
-                datasets should be used when searching for dependencies.
+                datasets should be used when searching for dependencies (True)
+                or use all known/configured datasets regardless of whether the
+                necessary files were provided to the reader (False).
+                Note that when ``False`` loadable variations of a dataset will
+                have priority over other known variations.
                 Default is ``False``.
 
         """
