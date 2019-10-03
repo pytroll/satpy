@@ -137,6 +137,26 @@ CF_DTYPES = [np.dtype('int8'),
 
 CF_VERSION = 'CF-1.7'
 
+def tmerc2cf(area):
+    """Return the cf grid mapping for the omerc projection."""
+    proj_dict = area.proj_dict
+    args = dict(azimuth_of_central_line=proj_dict.get('alpha'),
+                latitude_of_projection_origin=proj_dict.get('lat_0'),
+                longitude_of_projection_origin=proj_dict.get('lon_0'),
+                latitude_of_meridian_ts=proj_dict.get('lat_ts'),
+                grid_mapping_name='trasverse_mercator',
+                reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
+                prime_meridian_name=proj_dict.get('pm', 'Greenwich'),
+                horizontal_datum_name=proj_dict.get('datum', 'unknown'),
+                geographic_crs_name='unknown',
+                false_easting=0.,
+                false_northing=0.
+                )
+    if "no_rot" in proj_dict:
+        args['no_rotation'] = 1
+    if "gamma" in proj_dict:
+        args['gamma'] = proj_dict['gamma']
+    return args
 
 def omerc2cf(area):
     """Return the cf grid mapping for the omerc projection."""
@@ -186,7 +206,8 @@ def laea2cf(area):
 
 mappings = {'omerc': omerc2cf,
             'laea': laea2cf,
-            'geos': geos2cf}
+            'geos': geos2cf,
+            'tmerc': tmerc2cf}
 
 
 def create_grid_mapping(area):
