@@ -28,17 +28,16 @@ class GreenCorrector(GenericCompositor):
     """Corrector of the AHI green band to compensate for the deficit of chlorophyll signal."""
 
     def __init__(self, *args, **kwargs):
+        """Set default keyword argument values."""
         # XXX: Should this be 0.93 and 0.07
         self.fractions = kwargs.pop('fractions', [0.85, 0.15])
         super(GreenCorrector, self).__init__(*args, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **attrs):
         """Boost vegetation effect thanks to NIR (0.8µm) band."""
-
         green, nir = self.match_data_arrays(projectables)
         LOG.info('Boosting vegetation on green band')
 
         new_green = green * self.fractions[0] + nir * self.fractions[1]
         new_green.attrs = green.attrs.copy()
-        new_green.data = new_green.data.persist()
         return super(GreenCorrector, self).__call__((new_green,), **attrs)

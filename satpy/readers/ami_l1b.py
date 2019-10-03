@@ -23,6 +23,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import xarray as xr
 import dask.array as da
+import pyproj
 
 from pyresample import geometry
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
@@ -95,7 +96,7 @@ class AMIL1bNetCDF(BaseFileHandler):
         """Get area definition for this file."""
         a = self.nc.attrs['earth_equatorial_radius']
         b = self.nc.attrs['earth_polar_radius']
-        h = self.nc.attrs['nominal_satellite_height']
+        h = self.nc.attrs['nominal_satellite_height'] - a
         lon_0 = self.nc.attrs['sub_longitude'] * 180 / np.pi  # it's in radians?
         cols = self.nc.attrs['number_of_columns']
         rows = self.nc.attrs['number_of_lines']
@@ -133,6 +134,31 @@ class AMIL1bNetCDF(BaseFileHandler):
             np.asarray(area_extent))
 
         return fg_area_def
+
+    def get_orbital_parameters(self):
+        """Collect orbital parameters for this file."""
+        a = float(self.nc.attrs['earth_equatorial_radius'])
+        b = float(self.nc.attrs['earth_polar_radius'])
+        # nominal_satellite_height seems to be from the center of the earth
+        h = float(self.nc.attrs['nominal_satellite_height']) - a
+        lon_0 = self.nc.attrs['sub_longitude'] * 180 / np.pi  # it's in radians?
+        sc_position = self.nc['sc_position'].attrs['sc_position_center_pixel']
+
+        # convert ECEF coordinates to lon, lat, alt
+        ecef = pyproj.Proj(proj='geocent', a=a, b=b)
+        lla = pyproj.Proj(proj='latlong', a=a, b=b)
+        sc_position = pyproj.transform(
+            ecef, lla, sc_position[0], sc_position[1], sc_position[2])
+
+        orbital_parameters = {
+            'projection_longitude': float(lon_0),
+            'projection_latitude': 0.0,
+            'projection_altitude': h,
+            'satellite_nominal_longitude': sc_position[0],
+            'satellite_nominal_latitude': sc_position[1],
+            'satellite_nominal_altitude': sc_position[2] / 1000.0,  # km
+        }
+        return orbital_parameters
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset as a xarray DataArray."""
@@ -189,5 +215,8 @@ class AMIL1bNetCDF(BaseFileHandler):
         for attr_name in ('standard_name', 'units'):
             attrs[attr_name] = ds_info[attr_name]
         attrs.update(dataset_id.to_dict())
+        attrs['orbital_parameters'] = self.get_orbital_parameters()
+        attrs['platform_name'] = self.platform_name
+        attrs['sensor'] = self.sensor
         data.attrs = attrs
         return data
