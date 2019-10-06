@@ -137,6 +137,7 @@ CF_DTYPES = [np.dtype('int8'),
 
 CF_VERSION = 'CF-1.7'
 
+
 def tmerc2cf(area):
     """Return the cf grid mapping for the omerc projection."""
     proj_dict = area.proj_dict
@@ -157,6 +158,7 @@ def tmerc2cf(area):
     if "gamma" in proj_dict:
         args['gamma'] = proj_dict['gamma']
     return args
+
 
 def omerc2cf(area):
     """Return the cf grid mapping for the omerc projection."""
