@@ -72,6 +72,9 @@ datasets:
     wavelength: [0.450, 0.470, 0.490]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -86,6 +89,9 @@ datasets:
     wavelength: [0.495, 0.509, 0.523]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -100,6 +106,9 @@ datasets:
     wavelength: [0.599, 0.639, 0.679]
     resolution: 500
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -114,6 +123,9 @@ datasets:
     wavelength: [0.846, 0.863, 0.880]
     resolution: 1000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -128,6 +140,9 @@ datasets:
     wavelength: [1.363, 1.37, 1.377]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -142,6 +157,9 @@ datasets:
     wavelength: [1.590, 1.61, 1.630]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
@@ -156,6 +174,9 @@ datasets:
     wavelength: [3.74, 3.83, 3.92]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
@@ -170,6 +191,9 @@ datasets:
     wavelength: [5.79, 6.21, 6.63]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
@@ -184,6 +208,9 @@ datasets:
     wavelength: [6.74, 6.94, 7.14]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
@@ -198,6 +225,9 @@ datasets:
     wavelength: [7.24, 7.33, 7.42]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
@@ -212,6 +242,9 @@ datasets:
     wavelength: [8.415, 8.59, 8.765]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
@@ -226,6 +259,9 @@ datasets:
     wavelength: [9.43, 9.62, 9.81]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
@@ -240,6 +276,9 @@ datasets:
     wavelength: [10.115, 10.35, 10.585]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
@@ -254,6 +293,9 @@ datasets:
     wavelength: [10.90, 11.23, 11.56]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
@@ -268,6 +310,9 @@ datasets:
     wavelength: [11.805, 12.36, 12.915]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1
@@ -282,6 +327,9 @@ datasets:
     wavelength: [13.005, 13.29, 13.575]
     resolution: 2000
     calibration:
+      counts:
+        standard_name: counts
+        units: 1
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavenumber
         units: mW m-2 sr-1 (cm-1)-1

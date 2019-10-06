@@ -73,7 +73,7 @@ class AMIL1bNetCDF(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks={'dim_image_x': CHUNK_SIZE, 'dim_image_y': CHUNK_SIZE})
-        self.nc = self.nc.rename_dims({'dim_image_x': 'x', 'dim_image_y': 'y'})
+        self.nc = self.nc.rename({'dim_image_x': 'x', 'dim_image_y': 'y'})
 
         platform_shortname = self.nc.attrs['satellite_name']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
@@ -154,9 +154,9 @@ class AMIL1bNetCDF(BaseFileHandler):
             'projection_longitude': float(lon_0),
             'projection_latitude': 0.0,
             'projection_altitude': h,
-            'satellite_nominal_longitude': sc_position[0],
-            'satellite_nominal_latitude': sc_position[1],
-            'satellite_nominal_altitude': sc_position[2] / 1000.0,  # km
+            'satellite_actual_longitude': sc_position[0],
+            'satellite_actual_latitude': sc_position[1],
+            'satellite_actual_altitude': sc_position[2] / 1000.0,  # km
         }
         return orbital_parameters
 
@@ -179,8 +179,6 @@ class AMIL1bNetCDF(BaseFileHandler):
         # mask DQF bits
         bits = attrs['number_of_valid_bits_per_pixel']
         data &= 2**bits - 1
-        # noticing better results for some bands when using:
-        # data &= 2**14 - 1
         # only take "no error" pixels as valid
         data = data.where(qf == 0)
 
@@ -201,7 +199,7 @@ class AMIL1bNetCDF(BaseFileHandler):
         elif dataset_id.calibration == 'brightness_temperature':
             # depends on the radiance calibration above
             # Convert um to m^-1 (SI units for pyspectral)
-            wn = 1 / dataset_id.wavelength[1] / 1e6
+            wn = 1 / (dataset_id.wavelength[1] / 1e6)
             # Convert cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
             bt_data = rad2temp(wn, data.data * 1e-5)
@@ -211,6 +209,8 @@ class AMIL1bNetCDF(BaseFileHandler):
             else:
                 # new versions of pyspectral can do dask arrays
                 data.data = bt_data
+        elif dataset_id.calibration not in ('counts', 'radiance'):
+            raise ValueError("Unknown calibration: '{}'".format(dataset_id.calibration))
 
         for attr_name in ('standard_name', 'units'):
             attrs[attr_name] = ds_info[attr_name]
