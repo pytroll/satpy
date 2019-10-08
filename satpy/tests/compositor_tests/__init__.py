@@ -928,7 +928,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         scn = MockScene()
         scn['image'] = img
         Scene.return_value = scn
-        comp = StaticImageCompositor("name", filename="foo.tif")
+        comp = StaticImageCompositor("name", filename="foo.tif", area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader='generic_image',
                                       filenames=[comp.filename])
@@ -939,7 +939,8 @@ class TestStaticImageCompositor(unittest.TestCase):
         self.assertTrue('calibration' not in res.attrs)
 
         # Non-georeferenced image, no area given
-        img.area.ndim = None
+        img.attrs.pop('area')
+        comp = StaticImageCompositor("name", filename="foo.tif")
         with self.assertRaises(AttributeError):
             res = comp()
 
