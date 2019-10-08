@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Base reader classes"""
+"""Base classes and utilities for all readers configured by YAML files."""
 import glob
 import itertools
 import logging
@@ -48,7 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 def listify_string(something):
-    """Takes *something* and make it a list.
+    """Take *something* and make it a list.
 
     *something* is either a list of strings or a string, in which case the
     function returns a list containing the string.
@@ -81,8 +81,15 @@ def match_filenames(filenames, pattern):
 
 
 class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
+    """Base class for all readers that use YAML configuration files.
+
+    This class should only be used in rare cases. Its child class
+    `FileYAMLReader` should be used in most cases.
+
+    """
 
     def __init__(self, config_files):
+        """Load information from YAML configuration file about how to read data files."""
         self.config = {}
         self.config_files = config_files
         for config_file in config_files:
@@ -109,25 +116,30 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
     @property
     def sensor_names(self):
+        """Names of sensors whose data is being loaded by this reader."""
         return self.info['sensors'] or []
 
     @property
     def all_dataset_ids(self):
+        """Get DatasetIDs of all datasets known to this reader."""
         return self.all_ids.keys()
 
     @property
     def all_dataset_names(self):
+        """Get names of all datasets known to this reader."""
         # remove the duplicates from various calibration and resolutions
         return set(ds_id.name for ds_id in self.all_dataset_ids)
 
     @property
     def available_dataset_ids(self):
+        """Get DatasetIDs that are loadable by this reader."""
         logger.warning(
             "Available datasets are unknown, returning all datasets...")
         return self.all_dataset_ids
 
     @property
     def available_dataset_names(self):
+        """Get names of datasets that are loadable by this reader."""
         return (ds_id.name for ds_id in self.available_dataset_ids)
 
     @abstractproperty
@@ -246,13 +258,23 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
 
 
 class FileYAMLReader(AbstractYAMLReader):
-    """Implementation of the YAML reader."""
+    """Primary reader base class that is configured by a YAML file.
+
+    This class uses the idea of per-file "file handler" objects to read file
+    contents and determine what is available in the file. This differs from
+    the base :class:`AbstractYAMLReader` which does not depend on individual
+    file handler objects. In almost all cases this class should be used over
+    its base class and can be used as a reader by itself and requires no
+    subclassing.
+
+    """
 
     def __init__(self,
                  config_files,
                  filter_parameters=None,
                  filter_filenames=True,
                  **kwargs):
+        """Set up initial internal storage for loading file data."""
         super(FileYAMLReader, self).__init__(config_files)
 
         self.file_handlers = {}
@@ -263,6 +285,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     @property
     def sensor_names(self):
+        """Names of sensors whose data is being loaded by this reader."""
         if not self.file_handlers:
             return self.info['sensors']
 
@@ -280,23 +303,26 @@ class FileYAMLReader(AbstractYAMLReader):
 
     @property
     def available_dataset_ids(self):
+        """Get DatasetIDs that are loadable by this reader."""
         return self.available_ids.keys()
 
     @property
     def start_time(self):
+        """Start time of the earlier file used by this reader."""
         if not self.file_handlers:
             raise RuntimeError("Start time unknown until files are selected")
         return min(x[0].start_time for x in self.file_handlers.values())
 
     @property
     def end_time(self):
+        """End time of the latest file used by this reader."""
         if not self.file_handlers:
             raise RuntimeError("End time unknown until files are selected")
         return max(x[-1].end_time for x in self.file_handlers.values())
 
     @staticmethod
     def check_file_covers_area(file_handler, check_area):
-        """Checks if the file covers the current area.
+        """Check if the file covers the current area.
 
         If the file doesn't provide any bounding box information or 'area'
         was not provided in `filter_parameters`, the check returns True.
@@ -323,6 +349,7 @@ class FileYAMLReader(AbstractYAMLReader):
             KeyError, if no handler for the given requirements is available.
             RuntimeError, if there is a handler for the given requirements,
             but it doesn't match the filename info.
+
         """
         req_fh = []
         filename_info = set(filename_info.items())
@@ -360,7 +387,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     @staticmethod
     def filename_items_for_filetype(filenames, filetype_info):
-        """Iterator over the filenames matching *filetype_info*."""
+        """Iterate over the filenames matching *filetype_info*."""
         matched_files = []
         for pattern in filetype_info['file_patterns']:
             for filename in match_filenames(filenames, pattern):
@@ -399,6 +426,7 @@ class FileYAMLReader(AbstractYAMLReader):
             yield filetype_cls(filename, filename_info, filetype_info, *req_fh, **fh_kwargs)
 
     def time_matches(self, fstart, fend):
+        """Check that a file's start and end time mtach filter_parameters of this reader."""
         start_time = self.filter_parameters.get('start_time')
         end_time = self.filter_parameters.get('end_time')
         fend = fend or fstart
@@ -409,6 +437,7 @@ class FileYAMLReader(AbstractYAMLReader):
         return True
 
     def metadata_matches(self, sample_dict, file_handler=None):
+        """Check that file metadata matches filter_parameters of this reader."""
         # special handling of start/end times
         if not self.time_matches(
                 sample_dict.get('start_time'), sample_dict.get('end_time')):
@@ -460,7 +489,8 @@ class FileYAMLReader(AbstractYAMLReader):
                 yield filehandler
 
     def filter_selected_filenames(self, filenames):
-        for filetype, filetype_info in self.sorted_filetype_items():
+        """Filter provided files based on metadata in the filename."""
+        for _, filetype_info in self.sorted_filetype_items():
             filename_iter = self.filename_items_for_filetype(filenames,
                                                              filetype_info)
             if self.filter_filenames:
@@ -711,7 +741,7 @@ class FileYAMLReader(AbstractYAMLReader):
             return area
 
     def _load_dataset_with_area(self, dsid, coords):
-        """Loads *dsid* and it's area if available."""
+        """Load *dsid* and its area if available."""
         file_handlers = self._get_file_handlers(dsid)
         if not file_handlers:
             return
@@ -760,18 +790,37 @@ class FileYAMLReader(AbstractYAMLReader):
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
 
-    def get_dataset_key(self, key, prefer_available=True, **kwargs):
+    def get_dataset_key(self, key, available_only=False, **kwargs):
         """Get the fully qualified `DatasetID` matching `key`.
 
-        See `satpy.readers.get_key` for more information about kwargs.
+        This will first search through available DatasetIDs, datasets that
+        should be possible to load, and fallback to "known" datasets, those
+        that are configured but aren't loadable from the provided files.
+        Providing ``available_only=True`` will stop this fallback behavior
+        and raise a ``KeyError`` exception if no available dataset is found.
+
+        Args:
+            key (str, float, DatasetID): Key to search for in this reader.
+            available_only (bool): Search only loadable datasets for the
+                provided key. Loadable datasets are always searched first,
+                but if ``available_only=False`` (default) then all known
+                datasets will be searched.
+            kwargs: See :func:`satpy.readers.get_key` for more information about
+                kwargs.
+
+        Returns:
+            Best matching DatasetID to the provided ``key``.
+
+        Raises:
+            KeyError: if no key match is found.
 
         """
-        if prefer_available:
-            try:
-                return get_key(key, self.available_ids.keys(), **kwargs)
-            except KeyError:
-                return get_key(key, self.all_ids.keys(), **kwargs)
-        return get_key(key, self.all_ids.keys(), **kwargs)
+        try:
+            return get_key(key, self.available_ids.keys(), **kwargs)
+        except KeyError:
+            if available_only:
+                raise
+            return get_key(key, self.all_ids.keys(), **kwargs)
 
     def load(self, dataset_keys, previous_datasets=None):
         """Load `dataset_keys`.
