@@ -110,9 +110,9 @@ class AMIL1bNetCDF(BaseFileHandler):
         bit_shift = 2**16
         area_extent = (
             h * np.deg2rad((0 - coff - 0.5) * bit_shift / cfac),
-            h * np.deg2rad((0 - loff - 0.5) * bit_shift / lfac),
+            -h * np.deg2rad((0 - loff - 0.5) * bit_shift / lfac),
             h * np.deg2rad((cols - coff + 0.5) * bit_shift / cfac),
-            h * np.deg2rad((rows - loff + 0.5) * bit_shift / lfac),
+            -h * np.deg2rad((rows - loff + 0.5) * bit_shift / lfac),
         )
 
         proj_dict = {
