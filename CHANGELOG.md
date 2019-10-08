@@ -1,4 +1,4 @@
-## Version 0.17.0 (2019/10/08)
+## Version 0.17.1 (2019/10/08)
 
 ### Issues Closed
 
