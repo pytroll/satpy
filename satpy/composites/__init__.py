@@ -1469,8 +1469,8 @@ class StaticImageCompositor(GenericCompositor):
         # most important: set 'name' of the image
         img.attrs.update(self.attrs)
         # Check for proper area definition.  Non-georeferenced images
-        # have None as .ndim
-        if img.area.ndim is None:
+        # do not have `area` in the attributes
+        if 'area' not in img.attrs:
             if self.area is None:
                 raise AttributeError("Area definition needs to be configured")
             img.attrs['area'] = self.area
