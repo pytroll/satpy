@@ -214,7 +214,6 @@ class NCOLCI2(NCOLCIChannelBase):
         if self.channel is not None and self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
-
         if self.channel is not None and self.channel.startswith('Oa'):
             dataset = self.nc[self.channel + '_reflectance']
         else:
