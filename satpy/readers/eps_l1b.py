@@ -35,8 +35,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Reader for eps level 1b data. Uses xml files as a format description.
-"""
+"""Reader for eps level 1b data. Uses xml files as a format description."""
 
 import logging
 import os
@@ -59,14 +58,12 @@ C2 = 1.4387863  # K/cm-1
 
 
 def radiance_to_bt(arr, wc_, a__, b__):
-    """Convert to BT.
-    """
+    """Convert to BT."""
     return a__ + b__ * (C2 * wc_ / (da.log(1 + (C1 * (wc_ ** 3) / arr))))
 
 
 def radiance_to_refl(arr, solar_flux):
-    """Convert to reflectances.
-    """
+    """Convert to reflectances."""
     return arr * np.pi * 100.0 / solar_flux
 
 
@@ -76,9 +73,7 @@ record_class = ["Reserved", "mphr", "sphr",
 
 
 def read_raw(filename):
-    """Read *filename* without scaling it afterwards.
-    """
-
+    """Read *filename* without scaling it afterwards."""
     form = XMLFormat(os.path.join(CONFIG_PATH, "eps_avhrrl1b_6.5.xml"))
 
     grh_dtype = np.dtype([("record_class", "|i1"),
@@ -122,14 +117,15 @@ def read_raw(filename):
 
 
 def create_xarray(arr):
+    """Create a DataArray."""
     res = arr
     res = xr.DataArray(res, dims=['y', 'x'])
     return res
 
 
 class EPSAVHRRFile(BaseFileHandler):
-    """Eps level 1b reader for AVHRR data.
-    """
+    """Eps level 1b reader for AVHRR data."""
+
     spacecrafts = {"M01": "Metop-B",
                    "M02": "Metop-A",
                    "M03": "Metop-C", }
@@ -137,6 +133,7 @@ class EPSAVHRRFile(BaseFileHandler):
     sensors = {"AVHR": "avhrr-3"}
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         super(EPSAVHRRFile, self).__init__(
             filename, filename_info, filetype_info)
 
@@ -149,11 +146,14 @@ class EPSAVHRRFile(BaseFileHandler):
         self.records = None
         self.form = None
         self.mdrs = None
+        self.veadrs = None
+        self.iprs = None
         self.scanlines = None
         self.pixels = None
         self.sections = None
 
     def _read_all(self, filename):
+        """Read the whole file."""
         LOG.debug("Reading %s", filename)
         self.records, self.form = read_raw(filename)
         self.mdrs = [record
@@ -162,9 +162,13 @@ class EPSAVHRRFile(BaseFileHandler):
         self.iprs = [record
                      for record in self.records
                      if record_class[record['record_class']] == "ipr"]
+        self.veadrs = [record
+                       for record in self.records
+                       if record_class[record['record_class']] == "veadr"]
         self.scanlines = len(self.mdrs)
-        self.sections = {("mdr", 2): np.hstack(self.mdrs)}
-        self.sections[("ipr", 0)] = np.hstack(self.iprs)
+        self.sections = {("mdr", 2): np.hstack(self.mdrs),
+                         ("ipr", 0): np.hstack(self.iprs),
+                         ("veadr", 0): np.hstack(self.veadrs)}
         for record in self.records:
             rec_class = record_class[record['record_class']]
             sub_class = record["RECORD_SUBCLASS"]
@@ -177,6 +181,7 @@ class EPSAVHRRFile(BaseFileHandler):
         self.pixels = self["EARTH_VIEWS_PER_SCANLINE"]
 
     def __getitem__(self, key):
+        """Get the item for key."""
         for altkey in self.form.scales.keys():
             try:
                 try:
@@ -193,8 +198,7 @@ class EPSAVHRRFile(BaseFileHandler):
         raise KeyError("No matching value for " + str(key))
 
     def keys(self):
-        """List of reader's keys.
-        """
+        """List of reader's keys."""
         keys = []
         for val in self.form.scales.values():
             keys += val.dtype.fields.keys()
@@ -202,6 +206,7 @@ class EPSAVHRRFile(BaseFileHandler):
 
     @delayed(nout=2, pure=True)
     def _get_full_lonlats(self):
+        """Get the interpolated longitudes and latitudes."""
         lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
                           self["EARTH_LOCATIONS"][:, :, 0],
                           self["EARTH_LOCATION_LAST"][:, [0]]))
@@ -222,8 +227,7 @@ class EPSAVHRRFile(BaseFileHandler):
                                       str(earth_views_per_scanline))
 
     def get_full_lonlats(self):
-        """Get the interpolated lons/lats.
-        """
+        """Get the interpolated lons/lats."""
         if self.lons is not None and self.lats is not None:
             return self.lons, self.lats
 
@@ -236,6 +240,7 @@ class EPSAVHRRFile(BaseFileHandler):
 
     @delayed(nout=4, pure=True)
     def _get_full_angles(self):
+        """Get the interpolated angles."""
         solar_zenith = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [0]],
                                   self["ANGULAR_RELATIONS"][:, :, 0],
                                   self["ANGULAR_RELATIONS_LAST"][:, [0]]))
@@ -273,8 +278,7 @@ class EPSAVHRRFile(BaseFileHandler):
                                       str(earth_views_per_scanline))
 
     def get_full_angles(self):
-        """Get the interpolated lons/lats.
-        """
+        """Get the interpolated angles."""
         if (self.sun_azi is not None and self.sun_zen is not None and
                 self.sat_azi is not None and self.sat_zen is not None):
             return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
@@ -291,6 +295,7 @@ class EPSAVHRRFile(BaseFileHandler):
         return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
 
     def get_bounding_box(self):
+        """Get the bounding box of the data."""
         if self.mdrs is None:
             self._read_all(self.filename)
         lats = np.hstack([self["EARTH_LOCATION_FIRST"][0, [0]],
@@ -409,6 +414,7 @@ class EPSAVHRRFile(BaseFileHandler):
         return dataset
 
     def get_lonlats(self):
+        """Get the lon and lat."""
         if self.area is None:
             if self.lons is None or self.lats is None:
                 self.lons, self.lats = self.get_full_lonlats()
@@ -419,36 +425,22 @@ class EPSAVHRRFile(BaseFileHandler):
 
     @property
     def platform_name(self):
+        """Get the platform name."""
         return self.spacecrafts[self["SPACECRAFT_ID"]]
 
     @property
     def sensor_name(self):
+        """Get the sensor name."""
         return self.sensors[self["INSTRUMENT_ID"]]
 
     @property
     def start_time(self):
+        """Get the start time."""
         # return datetime.strptime(self["SENSING_START"], "%Y%m%d%H%M%SZ")
         return self._start_time
 
     @property
     def end_time(self):
+        """Get the end time."""
         # return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
         return self._end_time
-
-
-if __name__ == '__main__':
-    def norm255(a__):
-        """normalize array to uint8.
-        """
-        arr = a__ * 1.0
-        arr = (arr - arr.min()) * 255.0 / (arr.max() - arr.min())
-        return arr.astype(np.uint8)
-
-    def show(a__):
-        """show array.
-        """
-        from PIL import Image
-        Image.fromarray(norm255(a__), "L").show()
-
-    import sys
-    res = read_raw(sys.argv[1])
