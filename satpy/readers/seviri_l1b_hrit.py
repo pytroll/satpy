@@ -308,7 +308,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         """
         orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
 
-        # Find Chebyshev coefficients for the given time
+        # Find Chebyshev coefficients for the start time of the scan
         coef_idx = self._find_orbit_coefs()
         tstart = orbit_polynomial['StartTime'][0, coef_idx]
         tend = orbit_polynomial['EndTime'][0, coef_idx]
@@ -326,25 +326,45 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         return x*1000, y*1000, z*1000  # km -> m
 
     def _find_orbit_coefs(self):
-        """Find orbit coefficients for the current time.
+        """Find orbit coefficients for the start time of the scan.
 
-        The orbital Chebyshev coefficients are only valid for a certain time interval. The header entry
-        SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients for multiple time intervals. Find the
-        coefficients which are valid for the nominal timestamp of the scan.
+        The header entry SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients, each
+        of them valid for a certain time interval. Find the coefficients which are valid for the
+        start time of the scan.
+
+        A manoeuvre is a discontinuity in the orbit parameters. The flight dynamic algorithms are
+        not made to interpolate over the time-span of the manoeuvre; hence we have elements
+        describing the orbit before a manoeuvre and a new set of elements describing the orbit after
+        the manoeuvre. The flight dynamic products are created so that there is an intentional gap
+        at the time of the manoeuvre. Also the two pre-manoeuvre elements may overlap. But the
+        overlap is not of an issue as both sets of elements describe the same pre-manoeuvre orbit
+        (with negligible variations).
 
         Returns: Corresponding index in the coefficient list.
 
         """
-        # Find index of interval enclosing the nominal timestamp of the scan
         time = np.datetime64(self.prologue['ImageAcquisition']['PlannedAcquisitionTime']['TrueRepeatCycleStart'])
         intervals_tstart = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['StartTime'][0].astype(
             'datetime64[us]')
         intervals_tend = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']['EndTime'][0].astype(
             'datetime64[us]')
         try:
-            return np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0][0]
-        except IndexError:
-            raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
+            # Find index of interval enclosing the nominal timestamp of the scan. If there are
+            # multiple enclosing intervals, use the most recent one.
+            enclosing = np.where(np.logical_and(time >= intervals_tstart, time < intervals_tend))[0]
+            most_recent = np.argmax(intervals_tstart[enclosing])
+            return enclosing[most_recent]
+        except ValueError:
+            # No enclosing interval. Instead, find the interval whose centre is closest to the scan's timestamp
+            # (but not more than 6 hours apart)
+            intervals_centre = intervals_tstart + 0.5 * (intervals_tend - intervals_tstart)
+            diffs_us = (time - intervals_centre).astype('i8')
+            closest_match = np.argmin(np.fabs(diffs_us))
+            if abs(intervals_centre[closest_match] - time) < np.timedelta64(6, 'h'):
+                logger.warning('No orbit coefficients valid for {}. Using closest match.'.format(time))
+                return closest_match
+            else:
+                raise NoValidOrbitParams('Unable to find orbit coefficients valid for {}'.format(time))
 
     def get_earth_radii(self):
         """Get earth radii from prologue.
@@ -513,9 +533,10 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         self.mda['orbital_parameters']['satellite_nominal_longitude'] = self.prologue['SatelliteStatus'][
             'SatelliteDefinition']['NominalLongitude']
         self.mda['orbital_parameters']['satellite_nominal_latitude'] = 0.0
-        self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
-        self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
-        self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
+        if actual_lon is not None:
+            self.mda['orbital_parameters']['satellite_actual_longitude'] = actual_lon
+            self.mda['orbital_parameters']['satellite_actual_latitude'] = actual_lat
+            self.mda['orbital_parameters']['satellite_actual_altitude'] = actual_alt
 
         # Misc
         self.platform_id = self.prologue["SatelliteStatus"][

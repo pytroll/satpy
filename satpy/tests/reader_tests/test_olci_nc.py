@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.olci_nc module.
-"""
+"""Module for testing the satpy.readers.olci_nc module."""
 import sys
 
 if sys.version_info < (2, 7):
@@ -79,6 +78,23 @@ class TestOLCIReader(unittest.TestCase):
         # mocked_dataset.assert_called()
         # mocked_dataset.reset_mock()
 
+    @mock.patch('xarray.open_dataset')
+    def test_get_dataset(self, mocked_dataset):
+        """Test reading datasets."""
+        from satpy.readers.olci_nc import NCOLCI2
+        from satpy import DatasetID
+        import numpy as np
+        import xarray as xr
+        mocked_dataset.return_value = xr.Dataset({'mask': (['rows', 'columns'],
+                                                           np.array([1 << x for x in range(30)]).reshape(5, 6))},
+                                                 coords={'rows': np.arange(5),
+                                                         'columns': np.arange(6)})
+        ds_id = DatasetID(name='mask')
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'mask', 'start_time': 0, 'end_time': 0}
+        test = NCOLCI2('somedir/somefile.nc', filename_info, 'c')
+        res = test.get_dataset(ds_id, {'nc_key': 'mask'})
+        self.assertEqual(res.dtype, np.dtype('bool'))
+
 
 class TestBitFlags(unittest.TestCase):
     """Test the bitflag reading."""
@@ -114,7 +130,7 @@ class TestBitFlags(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_nc_slstr."""
+    """Test suite for test_nc_slstr."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestBitFlags))

@@ -40,6 +40,10 @@ _CFAC_list = [81865099.0, 40932549.0, 20466274.0, 10233137.0]
 _LOFF_list = [10991.5, 5495.5, 2747.5, 1373.5]
 _LFAC_list = [81865099.0, 40932549.0, 20466274.0, 10233137.0]
 
+PLATFORM_NAMES = {'FY4A': 'FY-4A',
+                  'FY4B': 'FY-4B',
+                  'FY4C': 'FY-4C'}
+
 
 class HDF_AGRI_L1(HDF5FileHandler):
 
@@ -97,12 +101,13 @@ class HDF_AGRI_L1(HDF5FileHandler):
             data = self.calibrate(data, lut)
             ds_info['valid_range'] = lut.attrs['valid_range']
 
-        data.attrs.update({'platform_name': self['/attr/Satellite Name'],
+        satname = PLATFORM_NAMES.get(self['/attr/Satellite Name'], self['/attr/Satellite Name'])
+        data.attrs.update({'platform_name': satname,
                            'sensor': self['/attr/Sensor Identification Code'],
                            'orbital_parameters': {
-                           'satellite_nominal_latitude': self['/attr/NOMCenterLat'],
-                           'satellite_nominal_longitude': self['/attr/NOMCenterLon'],
-                           'satellite_nominal_altitude': self['/attr/NOMSatHeight']}})
+                               'satellite_nominal_latitude': self['/attr/NOMCenterLat'],
+                               'satellite_nominal_longitude': self['/attr/NOMCenterLon'],
+                               'satellite_nominal_altitude': self['/attr/NOMSatHeight']}})
         data.attrs.update(ds_info)
 
         # remove attributes that could be confusing later

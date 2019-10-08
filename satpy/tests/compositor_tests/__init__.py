@@ -381,7 +381,7 @@ class TestDayNightCompositor(unittest.TestCase):
         lons = da.from_array(lons, lons.shape)
         lats = np.array([[40., 41.], [42., 43.]])
         lats = da.from_array(lats, lats.shape)
-        my_area.get_lonlats_dask.return_value = (lons, lats)
+        my_area.get_lonlats.return_value = (lons, lats)
         self.data_a.attrs['area'] = my_area
         self.data_b.attrs['area'] = my_area
         # not used except to check that it matches the data arrays
@@ -545,10 +545,10 @@ class TestNIRReflectance(unittest.TestCase):
         nir.attrs['platform_name'] = platform
         nir.attrs['sensor'] = sensor
         nir.attrs['name'] = chan_name
-        get_lonlats_dask = mock.MagicMock()
+        get_lonlats = mock.MagicMock()
         lons, lats = 1, 2
-        get_lonlats_dask.return_value = (lons, lats)
-        nir.attrs['area'] = mock.MagicMock(get_lonlats_dask=get_lonlats_dask)
+        get_lonlats.return_value = (lons, lats)
+        nir.attrs['area'] = mock.MagicMock(get_lonlats=get_lonlats)
         start_time = 1
         nir.attrs['start_time'] = start_time
         ir_arr = 100 * np.random.random((2, 2))
@@ -574,7 +574,7 @@ class TestNIRReflectance(unittest.TestCase):
         refl_from_tbs.reset_mock()
 
         res = comp([nir, ir_], optional_datasets=[], **info)
-        get_lonlats_dask.assert_called()
+        get_lonlats.assert_called()
         sza.assert_called_with(start_time, lons, lats)
         refl_from_tbs.assert_called_with(sunz2, nir, ir_, tb_ir_co2=None)
         refl_from_tbs.reset_mock()
@@ -679,6 +679,37 @@ class TestPrecipCloudsCompositor(unittest.TestCase):
                          [0.20728291, 0.31092437, 0.41456583, np.nan]]])
 
         np.testing.assert_allclose(res, exp)
+
+
+class TestSingleBandCompositor(unittest.TestCase):
+    """Test the single-band compositor."""
+
+    def setUp(self):
+        """Create test data."""
+        from satpy.composites import SingleBandCompositor
+        self.comp = SingleBandCompositor(name='test')
+
+        all_valid = np.ones((2, 2))
+        self.all_valid = xr.DataArray(all_valid, dims=['y', 'x'])
+
+    def test_call(self):
+        """Test calling the compositor."""
+        # Dataset with extra attributes
+        all_valid = self.all_valid
+        all_valid.attrs['sensor'] = 'foo'
+        attrs = {'foo': 'bar', 'resolution': 333, 'units': 'K',
+                 'calibration': 'BT', 'wavelength': 10.8}
+        self.comp.attrs['resolution'] = None
+        res = self.comp([self.all_valid], **attrs)
+        # Verify attributes
+        self.assertEqual(res.attrs.get('sensor'), 'foo')
+        self.assertTrue('foo' in res.attrs)
+        self.assertEqual(res.attrs.get('foo'), 'bar')
+        self.assertTrue('units' in res.attrs)
+        self.assertTrue('calibration' in res.attrs)
+        self.assertFalse('modifiers' in res.attrs)
+        self.assertEqual(res.attrs['wavelength'], 10.8)
+        self.assertEqual(res.attrs['resolution'], 333)
 
 
 class TestGenericCompositor(unittest.TestCase):
@@ -800,7 +831,7 @@ class TestGenericCompositor(unittest.TestCase):
         self.assertTrue('modifiers' not in res.attrs)
         self.assertIsNone(res.attrs['wavelength'])
         self.assertEqual(res.attrs['mode'], 'LA')
-        self.assertEquals(res.attrs['resolution'], 333)
+        self.assertEqual(res.attrs['resolution'], 333)
 
 
 class TestAddBands(unittest.TestCase):
@@ -884,20 +915,20 @@ class TestStaticImageCompositor(unittest.TestCase):
         get_area_def.assert_called_once_with("euro4")
 
     @mock.patch('satpy.Scene')
-    def test_call(self, Scene):
+    def test_call(self, Scene):  # noqa
         """Test the static compositing."""
         from satpy.composites import StaticImageCompositor
 
-        class mock_scene(dict):
+        class MockScene(dict):
             def load(self, arg):
                 pass
 
         img = mock.MagicMock()
         img.attrs = {}
-        scn = mock_scene()
+        scn = MockScene()
         scn['image'] = img
         Scene.return_value = scn
-        comp = StaticImageCompositor("name", filename="foo.tif")
+        comp = StaticImageCompositor("name", filename="foo.tif", area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader='generic_image',
                                       filenames=[comp.filename])
@@ -908,7 +939,8 @@ class TestStaticImageCompositor(unittest.TestCase):
         self.assertTrue('calibration' not in res.attrs)
 
         # Non-georeferenced image, no area given
-        img.area.ndim = None
+        img.attrs.pop('area')
+        comp = StaticImageCompositor("name", filename="foo.tif")
         with self.assertRaises(AttributeError):
             res = comp()
 
@@ -918,28 +950,23 @@ class TestStaticImageCompositor(unittest.TestCase):
         self.assertEqual(res.attrs['area'].area_id, 'euro4')
 
 
+def _enhance2dataset(dataset):
+    """Mock the enhance2dataset to return the original data."""
+    return dataset
+
+
 class TestBackgroundCompositor(unittest.TestCase):
     """Test case for the background compositor."""
 
-    @mock.patch('satpy.composites.combine_metadata')
-    @mock.patch('satpy.composites.add_bands')
-    @mock.patch('satpy.composites.enhance2dataset')
-    @mock.patch('satpy.composites.BackgroundCompositor.check_areas')
-    def test_call(self, check_areas, e2d, add_bands, combine_metadata):
+    @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
+    def test_call(self):
         """Test the background compositing."""
         from satpy.composites import BackgroundCompositor
         import numpy as np
-
-        def check_areas_side_effect(projectables):
-            return projectables
-
-        check_areas.side_effect = check_areas_side_effect
         comp = BackgroundCompositor("name")
 
         # L mode images
         attrs = {'mode': 'L', 'area': 'foo'}
-        combine_metadata.return_value = attrs
-
         foreground = xr.DataArray(np.array([[[1., 0.5],
                                              [0., np.nan]]]),
                                   dims=('bands', 'y', 'x'),
@@ -948,16 +975,13 @@ class TestBackgroundCompositor(unittest.TestCase):
         background = xr.DataArray(np.ones((1, 2, 2)), dims=('bands', 'y', 'x'),
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs)
-        add_bands.side_effect = [foreground, background]
-        res = comp([0, 1])
+        res = comp([foreground, background])
         self.assertEqual(res.attrs['area'], 'foo')
         self.assertTrue(np.all(res == np.array([[1., 0.5], [0., 1.]])))
-        self.assertEqual(res.mode, 'L')
+        self.assertEqual(res.attrs['mode'], 'L')
 
         # LA mode images
         attrs = {'mode': 'LA', 'area': 'foo'}
-        combine_metadata.return_value = attrs
-
         foreground = xr.DataArray(np.array([[[1., 0.5],
                                              [0., np.nan]],
                                             [[0.5, 0.5],
@@ -968,15 +992,12 @@ class TestBackgroundCompositor(unittest.TestCase):
         background = xr.DataArray(np.ones((2, 2, 2)), dims=('bands', 'y', 'x'),
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs)
-        add_bands.side_effect = [foreground, background]
-        res = comp([0, 1])
+        res = comp([foreground, background])
         self.assertTrue(np.all(res == np.array([[1., 0.75], [0.5, 1.]])))
-        self.assertEqual(res.mode, 'L')
+        self.assertEqual(res.attrs['mode'], 'LA')
 
         # RGB mode images
         attrs = {'mode': 'RGB', 'area': 'foo'}
-        combine_metadata.return_value = attrs
-
         foreground = xr.DataArray(np.array([[[1., 0.5],
                                              [0., np.nan]],
                                             [[1., 0.5],
@@ -990,17 +1011,14 @@ class TestBackgroundCompositor(unittest.TestCase):
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs)
 
-        add_bands.side_effect = [foreground, background]
-        res = comp([0, 1])
+        res = comp([foreground, background])
         self.assertTrue(np.all(res == np.array([[[1., 0.5], [0., 1.]],
                                                 [[1., 0.5], [0., 1.]],
                                                 [[1., 0.5], [0., 1.]]])))
-        self.assertEqual(res.mode, 'RGB')
+        self.assertEqual(res.attrs['mode'], 'RGB')
 
         # RGBA mode images
         attrs = {'mode': 'RGBA', 'area': 'foo'}
-        combine_metadata.return_value = attrs
-
         foreground = xr.DataArray(np.array([[[1., 0.5],
                                              [0., np.nan]],
                                             [[1., 0.5],
@@ -1016,12 +1034,36 @@ class TestBackgroundCompositor(unittest.TestCase):
                                   coords={'bands': [c for c in attrs['mode']]},
                                   attrs=attrs)
 
-        add_bands.side_effect = [foreground, background]
-        res = comp([0, 1])
+        res = comp([foreground, background])
         self.assertTrue(np.all(res == np.array([[[1., 0.75], [0.5, 1.]],
                                                 [[1., 0.75], [0.5, 1.]],
                                                 [[1., 0.75], [0.5, 1.]]])))
-        self.assertEqual(res.mode, 'RGB')
+        self.assertEqual(res.attrs['mode'], 'RGBA')
+
+    @mock.patch('satpy.composites.enhance2dataset', _enhance2dataset)
+    def test_multiple_sensors(self):
+        """Test the background compositing from multiple sensor data."""
+        from satpy.composites import BackgroundCompositor
+        import numpy as np
+        comp = BackgroundCompositor("name")
+
+        # L mode images
+        attrs = {'mode': 'L', 'area': 'foo'}
+        foreground = xr.DataArray(np.array([[[1., 0.5],
+                                             [0., np.nan]]]),
+                                  dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs.copy())
+        foreground.attrs['sensor'] = 'abi'
+        background = xr.DataArray(np.ones((1, 2, 2)), dims=('bands', 'y', 'x'),
+                                  coords={'bands': [c for c in attrs['mode']]},
+                                  attrs=attrs.copy())
+        background.attrs['sensor'] = 'glm'
+        res = comp([foreground, background])
+        self.assertEqual(res.attrs['area'], 'foo')
+        self.assertTrue(np.all(res == np.array([[1., 0.5], [0., 1.]])))
+        self.assertEqual(res.attrs['mode'], 'L')
+        self.assertEqual(res.attrs['sensor'], {'abi', 'glm'})
 
 
 def suite():
@@ -1043,6 +1085,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestColormapCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPaletteCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestCloudTopHeightCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSingleBandCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestGenericCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNIRReflectance))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPrecipCloudsCompositor))
