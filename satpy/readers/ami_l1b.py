@@ -110,9 +110,9 @@ class AMIL1bNetCDF(BaseFileHandler):
         bit_shift = 2**16
         area_extent = (
             h * np.deg2rad((0 - coff - 0.5) * bit_shift / cfac),
-            h * np.deg2rad((0 - loff - 0.5) * bit_shift / lfac),
+            -h * np.deg2rad((0 - loff - 0.5) * bit_shift / lfac),
             h * np.deg2rad((cols - coff + 0.5) * bit_shift / cfac),
-            h * np.deg2rad((rows - loff + 0.5) * bit_shift / lfac),
+            -h * np.deg2rad((rows - loff + 0.5) * bit_shift / lfac),
         )
 
         proj_dict = {
@@ -183,12 +183,19 @@ class AMIL1bNetCDF(BaseFileHandler):
         data = data.where(qf == 0)
 
         channel_name = attrs.get('channel_name', dataset_id.name)
-        coeffs = CALIBRATION_COEFFS.get(channel_name)
-        if coeffs is None and dataset_id.calibration is not None:
-            raise ValueError("No coefficients configured for {}".format(dataset_id))
+
+        # Calibration values from file, fall back to built-in if unavailable
+        gain = self.nc.attrs['DN_to_Radiance_Gain']
+        offset = self.nc.attrs['DN_to_Radiance_Offset']
+
         if dataset_id.calibration in ('radiance', 'reflectance', 'brightness_temperature'):
-            gain = coeffs[0]
-            offset = coeffs[1]
+            coeffs = CALIBRATION_COEFFS.get(channel_name)
+            if coeffs is None and dataset_id.calibration is not None:
+                raise ValueError("No coefficients configured for {}".format(dataset_id))
+            if (gain < -900 or offset < -900):
+                print("WARNING: No calib")
+                gain = coeffs[0]
+                offset = coeffs[1]
             data = gain * data + offset
         if dataset_id.calibration == 'reflectance':
             # depends on the radiance calibration above
