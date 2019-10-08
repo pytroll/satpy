@@ -139,7 +139,7 @@ class TestKDTreeResampler(unittest.TestCase):
     @mock.patch('satpy.resample.xr.Dataset')
     @mock.patch('satpy.resample.zarr.open')
     @mock.patch('satpy.resample.KDTreeResampler._create_cache_filename')
-    @mock.patch('satpy.resample.XArrayResamplerNN')
+    @mock.patch('pyresample.kd_tree.XArrayResamplerNN')
     def test_kd_resampling(self, resampler, create_filename, zarr_open,
                            xr_dset, cnc):
         """Test the kd resampler."""
@@ -468,7 +468,7 @@ class TestBilinearResampler(unittest.TestCase):
     @mock.patch('satpy.resample.xr.Dataset')
     @mock.patch('satpy.resample.zarr.open')
     @mock.patch('satpy.resample.BilinearResampler._create_cache_filename')
-    @mock.patch('satpy.resample.XArrayResamplerBilinear')
+    @mock.patch('pyresample.bilinear.xarr.XArrayResamplerBilinear')
     def test_bil_resampling(self, resampler, create_filename, zarr_open,
                             xr_dset, move_existing_caches):
         """Test the bilinear resampler."""
