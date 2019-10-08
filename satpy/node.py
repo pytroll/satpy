@@ -145,7 +145,7 @@ class DependencyTree(Node):
     # making it a class attribute ensures it is the same across instances
     empty_node = Node(EMPTY_LEAF_NAME)
 
-    def __init__(self, readers, compositors, modifiers):
+    def __init__(self, readers, compositors, modifiers, available_only=False):
         """Collect Dataset generating information.
 
         Collect the objects that generate and have information about Datasets
@@ -156,11 +156,19 @@ class DependencyTree(Node):
             readers (dict): Reader name -> Reader Object
             compositors (dict): Sensor name -> Composite ID -> Composite Object
             modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options)
+            available_only (bool): Whether only reader's available/loadable
+                datasets should be used when searching for dependencies (True)
+                or use all known/configured datasets regardless of whether the
+                necessary files were provided to the reader (False).
+                Note that when ``False`` loadable variations of a dataset will
+                have priority over other known variations.
+                Default is ``False``.
 
         """
         self.readers = readers
         self.compositors = compositors
         self.modifiers = modifiers
+        self._available_only = available_only
         # we act as the root node of the tree
         super(DependencyTree, self).__init__(None)
 
@@ -316,7 +324,7 @@ class DependencyTree(Node):
         too_many = False
         for reader_name, reader_instance in self.readers.items():
             try:
-                ds_id = reader_instance.get_dataset_key(dataset_key, **dfilter)
+                ds_id = reader_instance.get_dataset_key(dataset_key, available_only=self._available_only, **dfilter)
             except TooManyResults:
                 LOG.trace("Too many datasets matching key {} in reader {}".format(dataset_key, reader_name))
                 too_many = True
