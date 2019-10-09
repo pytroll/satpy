@@ -20,7 +20,7 @@
 """
 
 import logging
-
+import sys
 import numpy as np
 
 from satpy.writers import ImageWriter
@@ -51,6 +51,7 @@ class MITIFFWriter(ImageWriter):
         self.mitiff_config = {}
         self.translate_channel_name = {}
         self.channel_order = {}
+        self.palette = False
 
     def save_image(self):
         raise NotImplementedError("save_image mitiff is not implemented.")
@@ -61,6 +62,8 @@ class MITIFFWriter(ImageWriter):
 
         def _delayed_create(create_opts, dataset):
             try:
+                if 'palette' in kwargs:
+                    self.palette = kwargs['palette']
                 if 'platform_name' not in kwargs:
                     kwargs['platform_name'] = dataset.attrs['platform_name']
                 if 'name' not in kwargs:
@@ -160,6 +163,11 @@ class MITIFFWriter(ImageWriter):
                             channels.append(
                                 ds.attrs['prerequisites'][ch][0])
                             break
+            elif self.palette:
+                if 'palette_channel_name' in kwargs:
+                    channels.append(kwargs['palette_channel_name'].upper())
+                else:
+                    LOG.error("Is palette but can not find palette_channel_name to name the dataset")
             else:
                 for ch, ds in enumerate(datasets):
                     channels.append(ch + 1)
@@ -244,8 +252,8 @@ class MITIFFWriter(ImageWriter):
             if '+a=6378137.0 +b=6356752.31414' in proj4_string:
                 proj4_string = proj4_string.replace("+a=6378137.0 +b=6356752.31414",
                                                     "+ellps=WGS84")
-            if '+units=m' in proj4_string:
-                proj4_string = proj4_string.replace("+units=m", "+units=km")
+        if '+units=m' in proj4_string:
+            proj4_string = proj4_string.replace("+units=m", "+units=km")
 
         if not any(datum in proj4_string for datum in ['datum', 'towgs84']):
             proj4_string += ' +towgs84=0,0,0'
@@ -267,7 +275,13 @@ class MITIFFWriter(ImageWriter):
             proj4_string += ' +y_0=%.6f' % (
                 (-datasets.attrs['area'].area_extent[1] +
                  datasets.attrs['area'].pixel_size_y) + y_0)
-
+        elif '+x_0=0' in proj4_string and '+y_0=0' in proj4_string:
+            proj4_string = proj4_string.replace("+x_0=0", '+x_0=%.6f' % (
+                (-datasets.attrs['area'].area_extent[0] +
+                 datasets.attrs['area'].pixel_size_x) + x_0))
+            proj4_string = proj4_string.replace("+y_0=0", '+y_0=%.6f' % (
+                (-datasets.attrs['area'].area_extent[1] +
+                 datasets.attrs['area'].pixel_size_y) + y_0))
         LOG.debug("proj4_string: %s", proj4_string)
         proj4_string += '\n'
 
@@ -361,6 +375,18 @@ class MITIFFWriter(ImageWriter):
             # How to format string by passing the format
             # http://stackoverflow.com/questions/1598579/rounding-decimals-with-new-python-format-function
         return skip_calibration, _table_calibration, _reverse_offset, _reverse_scale, _decimals
+
+    def _add_palette_info(self, datasets, palette_unit, palette_description, **kwargs):
+        # mitiff key word for palette interpretion
+        _palette = '\n COLOR INFO:\n'
+        # mitiff info for the unit of the interpretion
+        _palette += ' {}\n'.format(palette_unit)
+        # The length of the palette description as needed by mitiff in DIANA
+        _palette += ' {}\n'.format(len(palette_description) + 1)
+        _palette += ' No data\n'
+        for desc in palette_description:
+            _palette += ' {}\n'.format(desc)
+        return _palette
 
     def _add_calibration(self, channels, cns, datasets, **kwargs):
 
@@ -547,7 +573,11 @@ class MITIFFWriter(ImageWriter):
         else:
             LOG.debug("Area extent: %s", datasets.attrs['area'].area_extent)
 
-        _image_description += self._add_calibration(channels, cns, datasets, **kwargs)
+        if self.palette:
+            LOG.debug("Doing palette image")
+            _image_description += self._add_palette_info(datasets, **kwargs)
+        else:
+            _image_description += self._add_calibration(channels, cns, datasets, **kwargs)
 
         return _image_description
 
@@ -572,7 +602,7 @@ class MITIFFWriter(ImageWriter):
         """
         from libtiff import TIFF
 
-        tif = TIFF.open(gen_filename, mode='w')
+        tif = TIFF.open(gen_filename, mode='wb')
 
         tif.SetField(IMAGEDESCRIPTION, (image_description).encode('utf-8'))
 
@@ -618,6 +648,34 @@ class MITIFFWriter(ImageWriter):
 
                             tif.write_image(data.astype(np.uint8), compression='deflate')
                             break
+        elif self.palette:
+            # MITIFF palette has only one data channel
+            LOG.debug("Saving dataset as palette.")
+            if len(datasets.dims) == 2:
+                LOG.debug("Palette ok with only 2 dimensions. ie only x and y")
+                # 3 = Palette color. In this model, a color is described with a single component.
+                # The value of the component is used as an index into the red, green and blue curves
+                # in the ColorMap field to retrieve an RGB triplet that defines the color. When
+                # PhotometricInterpretation=3 is used, ColorMap must be present and SamplesPerPixel must be 1.
+                tif.SetField('PHOTOMETRIC', 3)
+
+                # As write_image can not save tiff image as palette, this has to be done basicly
+                # ie. all needed tags needs to be set.
+                tif.SetField('IMAGEWIDTH', datasets.sizes['x'])
+                tif.SetField('IMAGELENGTH', datasets.sizes['y'])
+                tif.SetField('BITSPERSAMPLE', 8)
+                tif.SetField('COMPRESSION', tif.get_tag_define('deflate'))
+
+                if 'palette_color_map' in kwargs:
+                    tif.SetField('COLORMAP', kwargs['palette_color_map'])
+                else:
+                    LOG.ERROR("In a mitiff palette image a color map must be provided: palette_color_map is missing.")
+
+                data_type = np.uint8
+                # Looks like we need to pass the data to writeencodedstrip as ctypes
+                tif.WriteEncodedStrip(0, np.ascontiguousarray(datasets.data.astype(data_type), data_type).ctypes.data,
+                                      datasets.sizes['x'] * datasets.sizes['y'])
+                tif.WriteDirectory()
         else:
             LOG.debug("Saving datasets as enhanced image")
             img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
