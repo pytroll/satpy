@@ -190,7 +190,7 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
         self.assertEqual(call_args[4], self.reader.nc.attrs['number_of_columns'])
         self.assertEqual(call_args[5], self.reader.nc.attrs['number_of_lines'])
         np.testing.assert_allclose(call_args[6],
-                                   [-5511523.904082, 5511523.904082, 5511022.902, -5511022.902])
+                                   [-5511523.904082, -5511523.904082, 5511022.902, 5511022.902])
 
     def test_get_dataset_vis(self):
         """Test get visible calibrated data."""
