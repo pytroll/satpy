@@ -153,7 +153,7 @@ class EPSAVHRRFile(BaseFileHandler):
         for record in self.records:
             rec_class = record_class[record['record_class']]
             sub_class = record["RECORD_SUBCLASS"]
-            if rec_class in ["mdr", "ipr"]:
+            if rec_class in ["mdr", "ipr", "veadr"]:
                 continue
             if (rec_class, sub_class) in self.sections:
                 raise ValueError("Too many " + str((rec_class, sub_class)))
