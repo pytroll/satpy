@@ -25,6 +25,7 @@ import os
 import warnings
 
 import dask.array as da
+from dask.delayed import delayed
 import numpy as np
 import xarray as xr
 import yaml
@@ -49,7 +50,6 @@ LOG = logging.getLogger(__name__)
 
 def read_writer_config(config_files, loader=UnsafeLoader):
     """Read the writer `config_files` and return the info extracted."""
-
     conf = {}
     LOG.debug('Reading %s', str(config_files))
     for config_file in config_files:
@@ -104,7 +104,7 @@ def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
 
 
 def configs_for_writer(writer=None, ppp_config_dir=None):
-    """Generator of writer configuration files for one or more writers
+    """Generate writer configuration files for one or more writers.
 
     Args:
         writer (Optional[str]): Yield configs only for this writer
@@ -178,9 +178,18 @@ def _determine_mode(dataset):
                            str(dataset))
 
 
-def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
+@delayed(nout=1, pure=True)
+def _burn_overlay(orig_img, area, cw_, fill_value, overlays):
+    """Burn the overlay in the image array."""
+    img = orig_img.pil_image(fill_value=fill_value)
+    cw_.add_overlay_from_dict(overlays, area, background=img)
+
+    return np.array(img) / 255.0
+
+
+def add_overlay(orig_img, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
                 level_coast=1, level_borders=1, fill_value=None,
-                grid=None):
+                grid=None, overlays=None):
     """Add coastline, political borders and grid(graticules) to image.
 
     Uses ``color`` for feature colors where ``color`` is a 3-element tuple
@@ -223,64 +232,59 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
                             opacity=127, size=16)
 
     """
-
     if area is None:
         raise ValueError("Area of image is None, can't add overlay.")
 
     from pycoast import ContourWriterAGG
+    from pycoast import get_resolution_from_area
     if isinstance(area, str):
         area = get_area_def(area)
     LOG.info("Add coastlines and political borders to image.")
 
     if resolution is None:
-
-        x_resolution = ((area.area_extent[2] -
-                         area.area_extent[0]) /
-                        area.x_size)
-        y_resolution = ((area.area_extent[3] -
-                         area.area_extent[1]) /
-                        area.y_size)
-        res = min(x_resolution, y_resolution)
-
-        if res > 25000:
-            resolution = "c"
-        elif res > 5000:
-            resolution = "l"
-        elif res > 1000:
-            resolution = "i"
-        elif res > 200:
-            resolution = "h"
-        else:
-            resolution = "f"
-
+        resolution = get_resolution_from_area(area)
         LOG.debug("Automagically choose resolution %s", resolution)
 
-    if hasattr(orig, 'convert'):
+    if hasattr(orig_img, 'convert'):
         # image must be in RGB space to work with pycoast/pydecorate
-        orig = orig.convert('RGBA' if orig.mode.endswith('A') else 'RGB')
+        orig = orig_img.convert('RGBA' if orig_img.mode.endswith('A') else 'RGB')
     elif not orig.mode.startswith('RGB'):
         raise RuntimeError("'trollimage' 1.6+ required to support adding "
                            "overlays/decorations to non-RGB data.")
-    img = orig.pil_image(fill_value=fill_value)
+    # TODO: keep old defaults
+    old_args = [color, width, resolution, level_coast, level_borders]
+    any_old_args = [arg is not None for arg in old_args]
+    if any_old_args:
+        warnings.warn("'color', 'width', 'resolution', 'level_coast', 'level_borderd' have been deprecated."
+                      " Pass 'overlays' instead.", DeprecationWarning)
+        params = {'outline': color,
+                  'width': width,
+                  'resolution': resolution}
+        overlays.setdefault('coasts', {}).update(params)
+        overlays.setdefault('borders', {}).update(params)
+        overlays['coasts']['level'] = level_coast
+        overlays['borders']['level'] = level_borders
+
+    if grid is not None:
+        warnings.warn("'grid' has been deprecated. Pass 'overlays' instead.", DeprecationWarning)
+        if 'major_lonlat' in grid and grid['major_lonlat']:
+            major_lonlat = grid.pop('major_lonlat')
+            minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
+            params = {'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat}
+            params.update(grid)
+            overlays.setdefault('grid', {}).update(params)
+
     cw_ = ContourWriterAGG(coast_dir)
-    cw_.add_coastlines(img, area, outline=color,
-                       resolution=resolution, width=width, level=level_coast)
-    cw_.add_borders(img, area, outline=color,
-                    resolution=resolution, width=width, level=level_borders)
-    # Only add grid if major_lonlat is given.
-    if grid and 'major_lonlat' in grid and grid['major_lonlat']:
-        major_lonlat = grid.pop('major_lonlat')
-        minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
-
-        cw_.add_grid(img, area, major_lonlat, minor_lonlat, **grid)
-
-    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
+    arr = _burn_overlay(orig_img, area, cw_, fill_value, overlays)
+    # TODO: de-hardcode size
+    arr = da.from_delayed(arr, dtype=orig_img.data.dtype, shape=(1024, 1024, 4))
 
     new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                            coords={'y': orig.data.coords['y'],
-                                    'x': orig.data.coords['x'],
-                                    'bands': list(img.mode)},
-                            attrs=orig.data.attrs)
+                            coords={'y': orig_img.data.coords['y'],
+                                    'x': orig_img.data.coords['x'],
+                                    # TODO: de-hardcode mode
+                                    'bands': list('RGBA')},
+                            attrs=orig_img.data.attrs)
     return XRImage(new_data)
 
 
@@ -456,15 +460,14 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
 
 
 def show(dataset, **kwargs):
-    """Display the dataset as an image.
-    """
+    """Display the dataset as an image."""
     img = get_enhanced_image(dataset.squeeze(), **kwargs)
     img.show()
     return img
 
 
 def to_image(dataset):
-    """convert ``dataset`` into a :class:`~trollimage.xrimage.XRImage` instance.
+    """Convert ``dataset`` into a :class:`~trollimage.xrimage.XRImage` instance.
 
     Convert the ``dataset`` into an instance of the
     :class:`~trollimage.xrimage.XRImage` class.  This function makes no other
@@ -476,6 +479,7 @@ def to_image(dataset):
 
     Returns:
         Instance of :class:`~trollimage.xrimage.XRImage`.
+
     """
     dataset = dataset.squeeze()
     if dataset.ndim < 2:
@@ -485,8 +489,11 @@ def to_image(dataset):
 
 
 def split_results(results):
-    """Get sources, targets and delayed objects to separate lists from a
-    list of results collected from (multiple) writer(s)."""
+    """Split results.
+
+    Get sources, targets and delayed objects to separate lists from a list of
+    results collected from (multiple) writer(s).
+    """
     from dask.delayed import Delayed
 
     def flatten(results):
@@ -512,8 +519,7 @@ def split_results(results):
 
 
 def compute_writer_results(results):
-    """Compute all the given dask graphs `results` so that the files are
-    saved.
+    """Compute all the given dask graphs `results` so that the files are saved.
 
     Args:
         results (iterable): Iterable of dask graphs resulting from calls to
@@ -567,7 +573,7 @@ class Writer(Plugin):
             kwargs (dict): Additional keyword arguments to pass to the
                 :class:`~satpy.plugin_base.Plugin` class.
 
-            """
+        """
         # Load the config
         Plugin.__init__(self, **kwargs)
         self.info = self.config.get('writer', {})
@@ -592,7 +598,7 @@ class Writer(Plugin):
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
-        """Helper class method to separate arguments between init and save methods.
+        """Help separating arguments between init and save methods.
 
         Currently the :class:`~satpy.scene.Scene` is passed one set of
         arguments to represent the Writer creation and saving steps. This is
@@ -688,7 +694,7 @@ class Writer(Plugin):
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      compute=True, **kwargs):
-        """Saves the ``dataset`` to a given ``filename``.
+        """Save the ``dataset`` to a given ``filename``.
 
         This method must be overloaded by the subclass.
 
@@ -786,6 +792,7 @@ class ImageWriter(Writer):
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
+        """Separate the init kwargs."""
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(kwargs)
         for kw in ['enhancement_config', 'enhance']:
@@ -795,7 +802,7 @@ class ImageWriter(Writer):
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      overlay=None, decorate=None, compute=True, **kwargs):
-        """Saves the ``dataset`` to a given ``filename``.
+        """Save the ``dataset`` to a given ``filename``.
 
         This method creates an enhanced image using :func:`get_enhanced_image`.
         The image is then passed to :meth:`save_image`. See both of these
@@ -837,9 +844,12 @@ class ImageWriter(Writer):
 
 
 class DecisionTree(object):
+    """The decision tree."""
+
     any_key = None
 
     def __init__(self, decision_dicts, attrs, **kwargs):
+        """Init the decision tree."""
         self.attrs = attrs
         self.tree = {}
         if not isinstance(decision_dicts, (list, tuple)):
@@ -847,13 +857,15 @@ class DecisionTree(object):
         self.add_config_to_tree(*decision_dicts)
 
     def add_config_to_tree(self, *decision_dicts):
+        """Add a configuration to the tree."""
         conf = {}
         for decision_dict in decision_dicts:
             conf = recursive_dict_update(conf, decision_dict)
         self._build_tree(conf)
 
     def _build_tree(self, conf):
-        for section_name, attrs in conf.items():
+        """Build the tree."""
+        for _section_name, attrs in conf.items():
             # Set a path in the tree for each section in the configuration
             # files
             curr_level = self.tree
@@ -870,6 +882,7 @@ class DecisionTree(object):
                 curr_level = curr_level[this_attr]
 
     def _find_match(self, curr_level, attrs, kwargs):
+        """Find a match."""
         if len(attrs) == 0:
             # we're at the bottom level, we must have found something
             return curr_level
@@ -894,6 +907,7 @@ class DecisionTree(object):
         return match
 
     def find_match(self, **kwargs):
+        """Find a match."""
         try:
             match = self._find_match(self.tree, self.attrs, kwargs)
         except (KeyError, IndexError, ValueError):
@@ -908,8 +922,10 @@ class DecisionTree(object):
 
 
 class EnhancementDecisionTree(DecisionTree):
+    """The enhancement decision tree."""
 
     def __init__(self, *decision_dicts, **kwargs):
+        """Init the decision tree."""
         attrs = kwargs.pop("attrs", ("name",
                                      "platform_name",
                                      "sensor",
@@ -920,6 +936,7 @@ class EnhancementDecisionTree(DecisionTree):
             decision_dicts, attrs, **kwargs)
 
     def add_config_to_tree(self, *decision_dict):
+        """Add configuration to tree."""
         conf = {}
         for config_file in decision_dict:
             if os.path.isfile(config_file):
@@ -947,6 +964,7 @@ class EnhancementDecisionTree(DecisionTree):
         self._build_tree(conf)
 
     def find_match(self, **kwargs):
+        """Find a match."""
         try:
             return super(EnhancementDecisionTree, self).find_match(**kwargs)
         except KeyError:
@@ -986,6 +1004,7 @@ class Enhancer(object):
         self.sensor_enhancement_configs = []
 
     def get_sensor_enhancement_config(self, sensor):
+        """Get the sensor-specific config."""
         if isinstance(sensor, str):
             # one single sensor
             sensor = [sensor]
@@ -999,6 +1018,7 @@ class Enhancer(object):
                 yield config_file
 
     def add_sensor_enhancements(self, sensor):
+        """Add sensor-specific enhancements."""
         # XXX: Should we just load all enhancements from the base directory?
         new_configs = []
         for config_file in self.get_sensor_enhancement_config(sensor):
@@ -1010,6 +1030,7 @@ class Enhancer(object):
             self.enhancement_tree.add_config_to_tree(*new_configs)
 
     def apply(self, img, **info):
+        """Apply the enhancements."""
         enh_kwargs = self.enhancement_tree.find_match(**info)
 
         LOG.debug("Enhancement configuration options: %s" %
