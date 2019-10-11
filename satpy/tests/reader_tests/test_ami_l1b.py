@@ -115,6 +115,15 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
                 "number_of_lines": 22000,
                 "observation_mode": "FD",
                 "channel_spatial_resolution": "0.5",
+                "Radiance_to_Albedo_c": 1,
+                "DN_to_Radiance_Gain": -0.0144806550815701,
+                "DN_to_Radiance_Offset": 118.050903320312,
+                "Teff_to_Tbb_c0": -0.141418528203155,
+                "Teff_to_Tbb_c1": 1.00052232906885,
+                "Teff_to_Tbb_c2": -0.00000036287276076109,
+                "light_speed": 2.9979245800E+08,
+                "Boltzmann_constant_k": 1.3806488000E-23,
+                "Plank_constant_h": 6.6260695700E-34,
             }
         )
 
