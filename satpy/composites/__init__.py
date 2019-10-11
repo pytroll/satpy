@@ -761,6 +761,7 @@ class GenericCompositor(CompositeBase):
         Args:
             common_channel_mask (bool): If True, mask all the channels with
                 a mask that combines all the invalid areas of the given data.
+
         """
         self.common_channel_mask = common_channel_mask
         super(GenericCompositor, self).__init__(name, **kwargs)
@@ -974,6 +975,7 @@ class DayNightCompositor(GenericCompositor):
                              blending of the given channels
             lim_high (float): upper limit of Sun zenith angle for the
                              blending of the given channels
+
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
@@ -1172,7 +1174,7 @@ class RatioSharpenedRGB(GenericCompositor):
     footprint. Note that the input data to this compositor must already be
     resampled so all data arrays are the same shape.
 
-    Example:
+    Example::
 
         R_lo -  1000m resolution - shape=(2000, 2000)
         G - 1000m resolution - shape=(2000, 2000)
@@ -1293,7 +1295,7 @@ def _mean4(data, offset=(0, 0), block_id=None):
 class SelfSharpenedRGB(RatioSharpenedRGB):
     """Sharpen RGB with ratio of a band with a strided-version of itself.
 
-    Example:
+    Example::
 
         R -  500m resolution - shape=(4000, 4000)
         G - 1000m resolution - shape=(2000, 2000)
@@ -1402,6 +1404,7 @@ class StaticImageCompositor(GenericCompositor):
             filename (str): Filename of the image to load
             area (str): Name of area definition for the image.  Optional
                         for images with built-in area definitions (geotiff)
+
         """
         if filename is None:
             raise ValueError("No image configured for static image compositor")
@@ -1417,9 +1420,9 @@ class StaticImageCompositor(GenericCompositor):
         """Call the compositor."""
         from satpy import Scene
         # Check if filename exists, if not then try from SATPY_ANCPATH
-        if (not os.path.isfile(self.filename)):
+        if not os.path.isfile(self.filename):
             tmp_filename = os.path.join(get_environ_ancpath(), self.filename)
-            if (os.path.isfile(tmp_filename)):
+            if os.path.isfile(tmp_filename):
                 self.filename = tmp_filename
         scn = Scene(reader='generic_image', filenames=[self.filename])
         scn.load(['image'])
