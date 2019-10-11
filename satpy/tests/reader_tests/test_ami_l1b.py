@@ -115,6 +115,15 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
                 "number_of_lines": 22000,
                 "observation_mode": "FD",
                 "channel_spatial_resolution": "0.5",
+                "Radiance_to_Albedo_c": 1,
+                "DN_to_Radiance_Gain": -0.0144806550815701,
+                "DN_to_Radiance_Offset": 118.050903320312,
+                "Teff_to_Tbb_c0": -0.141418528203155,
+                "Teff_to_Tbb_c1": 1.00052232906885,
+                "Teff_to_Tbb_c2": -0.00000036287276076109,
+                "light_speed": 2.9979245800E+08,
+                "Boltzmann_constant_k": 1.3806488000E-23,
+                "Plank_constant_h": 6.6260695700E-34,
             }
         )
 
@@ -262,19 +271,26 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
     def test_ir_calibrate(self):
         """Test IR calibration."""
         from satpy import DatasetID
-        res = self.reader.get_dataset(
-            DatasetID(name='IR087', wavelength=[8.415, 8.59, 8.765],
-                      calibration='brightness_temperature'),
-            {
-                'file_key': 'image_pixel_values',
-                'wavelength': [8.415, 8.59, 8.765],
-                'standard_name': 'toa_brightness_temperature',
-                'units': 'K',
-            })
-
+        ds_id = DatasetID(name='IR087', wavelength=[8.415, 8.59, 8.765],
+                          calibration='brightness_temperature')
+        ds_info = {
+            'file_key': 'image_pixel_values',
+            'wavelength': [8.415, 8.59, 8.765],
+            'standard_name': 'toa_brightness_temperature',
+            'units': 'K',
+        }
+        res = self.reader.get_dataset(ds_id, ds_info)
         expected = np.array([[238.34385135, 238.31443527, 238.28500087, 238.25554813, 238.22607701],
                              [238.1965875, 238.16707956, 238.13755317, 238.10800829, 238.07844489]])
-        self.assertTrue(np.allclose(res.data.compute(), expected, equal_nan=True))
+        np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True)
+        # make sure the attributes from the file are in the data array
+        self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
+
+        # test builtin coefficients
+        self.reader.calib_mode = 'FILE'
+        res = self.reader.get_dataset(ds_id, ds_info)
+        # file coefficients are pretty close, give some wiggle room
+        np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.04)
         # make sure the attributes from the file are in the data array
         self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
 
