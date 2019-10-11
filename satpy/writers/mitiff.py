@@ -382,8 +382,7 @@ class MITIFFWriter(ImageWriter):
         # mitiff info for the unit of the interpretion
         _palette += ' {}\n'.format(palette_unit)
         # The length of the palette description as needed by mitiff in DIANA
-        _palette += ' {}\n'.format(len(palette_description) + 1)
-        _palette += ' No data\n'
+        _palette += ' {}\n'.format(len(palette_description))
         for desc in palette_description:
             _palette += ' {}\n'.format(desc)
         return _palette
