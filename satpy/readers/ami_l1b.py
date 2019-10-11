@@ -176,43 +176,7 @@ class AMIL1bNetCDF(BaseFileHandler):
                 rad_to_alb *= 100
             data = data * rad_to_alb
         elif dataset_id.calibration == 'brightness_temperature':
-            print(self.calib_mode)
-            if (self.calib_mode == 'PYSPECTRAL'):
-                # depends on the radiance calibration above
-                # Convert um to m^-1 (SI units for pyspectral)
-                wn = 1 / (dataset_id.wavelength[1] / 1e6)
-                # Convert cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
-                # to SI units m^-1, mW*m^-3*str^-1.
-                bt_data = rad2temp(wn, data.data * 1e-5)
-                if isinstance(bt_data, np.ndarray):
-                    # old versions of pyspectral produce numpy arrays
-                    data.data = da.from_array(bt_data, chunks=data.data.chunks)
-                else:
-                    # new versions of pyspectral can do dask arrays
-                    data.data = bt_data
-            else:
-                # IR coefficients from the file
-                # Channel specific
-                c0 = self.nc.attrs['Teff_to_Tbb_c0']
-                c1 = self.nc.attrs['Teff_to_Tbb_c1']
-                c2 = self.nc.attrs['Teff_to_Tbb_c2']
-
-                # These should be fixed, but load anyway
-                cval = self.nc.attrs['light_speed']
-                kval = self.nc.attrs['Boltzmann_constant_k']
-                hval = self.nc.attrs['Plank_constant_h']
-
-                # Compute wavenumber as cm-1
-                wn = (10000 / dataset_id.wavelength[1]) * 100
-
-                # Convert radiance to effective brightness temperature
-                e1 = (2 * hval * cval * cval) * np.power(wn, 3)
-                e2 = (data.data * 1e-5)
-                t_eff = ((hval * cval / kval) * wn) / np.log((e1 / e2) + 1)
-                
-                # Now convert to actual brightness temperature
-                bt_data = c0 + c1 * t_eff + c2 * t_eff * t_eff
-                data.data = bt_data
+            data = self._calibrate_ir(dataset_id, data)
         elif dataset_id.calibration not in ('counts', 'radiance'):
             raise ValueError("Unknown calibration: '{}'".format(dataset_id.calibration))
 
@@ -223,4 +187,44 @@ class AMIL1bNetCDF(BaseFileHandler):
         attrs['platform_name'] = self.platform_name
         attrs['sensor'] = self.sensor
         data.attrs = attrs
+        return data
+
+    def _calibrate_ir(self, dataset_id, data):
+        """Calibrate radiance data to BTs using either pyspectral or in-file coefficients."""
+        if self.calib_mode == 'PYSPECTRAL':
+            # depends on the radiance calibration above
+            # Convert um to m^-1 (SI units for pyspectral)
+            wn = 1 / (dataset_id.wavelength[1] / 1e6)
+            # Convert cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
+            # to SI units m^-1, mW*m^-3*str^-1.
+            bt_data = rad2temp(wn, data.data * 1e-5)
+            if isinstance(bt_data, np.ndarray):
+                # old versions of pyspectral produce numpy arrays
+                data.data = da.from_array(bt_data, chunks=data.data.chunks)
+            else:
+                # new versions of pyspectral can do dask arrays
+                data.data = bt_data
+        else:
+            # IR coefficients from the file
+            # Channel specific
+            c0 = self.nc.attrs['Teff_to_Tbb_c0']
+            c1 = self.nc.attrs['Teff_to_Tbb_c1']
+            c2 = self.nc.attrs['Teff_to_Tbb_c2']
+
+            # These should be fixed, but load anyway
+            cval = self.nc.attrs['light_speed']
+            kval = self.nc.attrs['Boltzmann_constant_k']
+            hval = self.nc.attrs['Plank_constant_h']
+
+            # Compute wavenumber as cm-1
+            wn = (10000 / dataset_id.wavelength[1]) * 100
+
+            # Convert radiance to effective brightness temperature
+            e1 = (2 * hval * cval * cval) * np.power(wn, 3)
+            e2 = (data.data * 1e-5)
+            t_eff = ((hval * cval / kval) * wn) / np.log((e1 / e2) + 1)
+
+            # Now convert to actual brightness temperature
+            bt_data = c0 + c1 * t_eff + c2 * t_eff * t_eff
+            data.data = bt_data
         return data
