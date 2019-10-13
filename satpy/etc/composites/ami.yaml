@@ -123,3 +123,31 @@ composites:
     compositor: !!python/name:satpy.composites.CloudCompositor
     prerequisites:
       - name: IR112
+
+  airmass:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: WV063
+          - name: WV073
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: IR096
+          - name: IR105
+      - name: WV063
+    standard_name: airmass
+
+  ash:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - IR123
+          - IR112
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - IR112
+          - IR087
+      - IR112
+    standard_name: ash
