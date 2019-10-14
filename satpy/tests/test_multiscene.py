@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit tests for multiscene.py.
-"""
+"""Unit tests for multiscene.py."""
 
 import os
 import sys
@@ -75,12 +74,12 @@ def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None):
 
 
 def _create_test_scenes(num_scenes=2, shape=DEFAULT_SHAPE, area=None):
-    """Helper to create some test scenes."""
+    """Create some test scenes for various test cases."""
     from satpy import Scene
     ds1 = _create_test_dataset('ds1', shape=shape, area=area)
     ds2 = _create_test_dataset('ds2', shape=shape, area=area)
     scenes = []
-    for scn_idx in range(num_scenes):
+    for _ in range(num_scenes):
         scn = Scene()
         scn['ds1'] = ds1.copy()
         scn['ds2'] = ds2.copy()
@@ -153,11 +152,11 @@ class TestMultiSceneSave(unittest.TestCase):
     """Test saving a MultiScene to various formats."""
 
     def setUp(self):
-        """Create temporary directory to save files to"""
+        """Create temporary directory to save files to."""
         self.base_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             shutil.rmtree(self.base_dir, ignore_errors=True)
         except OSError:
@@ -219,6 +218,7 @@ class TestMultiSceneSave(unittest.TestCase):
     def test_save_mp4_distributed(self):
         """Save a series of fake scenes to an mp4 video."""
         from satpy import MultiScene
+        from dask.distributed import LocalCluster, Client
         area = _create_test_area()
         scenes = _create_test_scenes(area=area)
 
@@ -238,13 +238,17 @@ class TestMultiSceneSave(unittest.TestCase):
             self.base_dir,
             'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
         writer_mock = mock.MagicMock()
-        client_mock = mock.MagicMock()
-        client_mock.compute.side_effect = lambda x: tuple(v.compute() for v in x)
-        client_mock.gather.side_effect = lambda x: x
+        cluster = LocalCluster(n_workers=1)
+        client = Client(cluster)
+        # client_mock = mock.MagicMock()
+        # client_mock.compute.side_effect = lambda x: tuple(v.compute() for v in x)
+        # client_mock.gather.side_effect = lambda x: x
         with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
             get_writer.return_value = writer_mock
             # force order of datasets by specifying them
-            mscn.save_animation(fn, client=client_mock, datasets=['ds1', 'ds2', 'ds3'])
+            mscn.save_animation(fn, client=client, datasets=['ds1', 'ds2', 'ds3'])
+        client.close()
+        cluster.close()
 
         # 2 saves for the first scene + 1 black frame
         # 3 for the second scene
@@ -260,14 +264,18 @@ class TestMultiSceneSave(unittest.TestCase):
             self.base_dir,
             'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
         writer_mock = mock.MagicMock()
-        client_mock = mock.MagicMock()
-        client_mock.compute.side_effect = lambda x: tuple(v.compute() for v in x)
-        client_mock.gather.side_effect = lambda x: x
+        # client_mock = mock.MagicMock()
+        # client_mock.compute.side_effect = lambda x: tuple(v.compute() for v in x)
+        # client_mock.gather.side_effect = lambda x: x
+        cluster = LocalCluster(n_workers=1)
+        client = Client(cluster)
         with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer, \
                 mock.patch('satpy.multiscene.get_client', mock.Mock(side_effect=ValueError("No client"))):
             get_writer.return_value = writer_mock
             # force order of datasets by specifying them
             mscn.save_animation(fn, datasets=['ds1', 'ds2', 'ds3'])
+        client.close()
+        cluster.close()
 
         # 2 saves for the first scene + 1 black frame
         # 3 for the second scene
@@ -461,7 +469,7 @@ class TestBlendFuncs(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_multiscene."""
+    """Create the test suite for test_multiscene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestMultiScene))
