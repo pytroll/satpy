@@ -25,7 +25,6 @@ import os
 import warnings
 
 import dask.array as da
-from dask.delayed import delayed
 import numpy as np
 import xarray as xr
 import yaml
@@ -178,17 +177,14 @@ def _determine_mode(dataset):
                            str(dataset))
 
 
-@delayed(nout=1, pure=True)
-def _burn_overlay(orig_img, area, cw_, fill_value, overlays):
+def _burn_overlay(img, area, cw_, overlays):
     """Burn the overlay in the image array."""
-    img = orig_img.pil_image(fill_value=fill_value)
     cw_.add_overlay_from_dict(overlays, area, background=img)
+    return img
 
-    return np.array(img) / 255.0
 
-
-def add_overlay(orig_img, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
-                level_coast=1, level_borders=1, fill_value=None,
+def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=None,
+                level_coast=None, level_borders=None, fill_value=None,
                 grid=None, overlays=None):
     """Add coastline, political borders and grid(graticules) to image.
 
@@ -236,14 +232,14 @@ def add_overlay(orig_img, area, coast_dir, color=(0, 0, 0), width=0.5, resolutio
         raise ValueError("Area of image is None, can't add overlay.")
 
     from pycoast import ContourWriterAGG
-    from pycoast import get_resolution_from_area
     if isinstance(area, str):
         area = get_area_def(area)
     LOG.info("Add coastlines and political borders to image.")
 
-    if resolution is None:
-        resolution = get_resolution_from_area(area)
-        LOG.debug("Automagically choose resolution %s", resolution)
+    old_args = [color, width, resolution, grid, level_coast, level_borders]
+    if any(arg is None for arg in old_args):
+        warnings.warn("'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
+                      " arguments will be deprecated soon. Please use 'overlays' instead.", DeprecationWarning)
 
     if hasattr(orig_img, 'convert'):
         # image must be in RGB space to work with pycoast/pydecorate
@@ -251,41 +247,34 @@ def add_overlay(orig_img, area, coast_dir, color=(0, 0, 0), width=0.5, resolutio
     elif not orig.mode.startswith('RGB'):
         raise RuntimeError("'trollimage' 1.6+ required to support adding "
                            "overlays/decorations to non-RGB data.")
-    # TODO: keep old defaults
-    old_args = [color, width, resolution, level_coast, level_borders]
-    any_old_args = [arg is not None for arg in old_args]
-    if any_old_args:
-        warnings.warn("'color', 'width', 'resolution', 'level_coast', 'level_borderd' have been deprecated."
-                      " Pass 'overlays' instead.", DeprecationWarning)
-        params = {'outline': color,
-                  'width': width,
-                  'resolution': resolution}
-        overlays.setdefault('coasts', {}).update(params)
-        overlays.setdefault('borders', {}).update(params)
-        overlays['coasts']['level'] = level_coast
-        overlays['borders']['level'] = level_borders
 
-    if grid is not None:
-        warnings.warn("'grid' has been deprecated. Pass 'overlays' instead.", DeprecationWarning)
-        if 'major_lonlat' in grid and grid['major_lonlat']:
+    if overlays is None:
+        # fill with sensible defaults
+        general_params = {'outline': color or (0, 0, 0),
+                          'width': width or 0.5}
+        for key, val in general_params.items():
+            if val is not None:
+                overlays.setdefault('coasts', {}).setdefault(key, val)
+                overlays.setdefault('borders', {}).setdefault(key, val)
+        if level_coast is None:
+            level_coast = 1
+        overlays.setdefault('coasts', {}).setdefault('level', level_coast)
+        if level_borders is None:
+            level_borders = 1
+        overlays.setdefault('borders', {}).setdefault('level', level_borders)
+
+        if grid is not None and 'major_lonlat' in grid and grid['major_lonlat']:
             major_lonlat = grid.pop('major_lonlat')
             minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
-            params = {'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat}
-            params.update(grid)
-            overlays.setdefault('grid', {}).update(params)
+            grid_params = {'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat}
+            for key, val in grid_params.items():
+                overlays.setdefault('grid', {}).setdefault(key, val)
 
     cw_ = ContourWriterAGG(coast_dir)
-    arr = _burn_overlay(orig_img, area, cw_, fill_value, overlays)
-    # TODO: de-hardcode size
-    arr = da.from_delayed(arr, dtype=orig_img.data.dtype, shape=(1024, 1024, 4))
-
-    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                            coords={'y': orig_img.data.coords['y'],
-                                    'x': orig_img.data.coords['x'],
-                                    # TODO: de-hardcode mode
-                                    'bands': list('RGBA')},
-                            attrs=orig_img.data.attrs)
-    return XRImage(new_data)
+    new_image = orig_img.apply_pil(_burn_overlay, 'RGBA',
+                                   None, {'fill_value': fill_value},
+                                   (area, cw_, overlays), None)
+    return new_image
 
 
 def add_text(orig, dc, img, text=None):
