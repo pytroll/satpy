@@ -122,12 +122,19 @@ class GACLACFile(BaseFileHandler):
                 _, data = self.reader.get_lonlat()
             else:
                 data, _ = self.reader.get_lonlat()
+
+            # If coordinate interpolation is disabled, only every eighth
+            # pixel has a lat/lon coordinate
+            xdim = 'x' if self.interpolate_coords else 'x_every_eighth'
         elif key.name in ANGLES:
             data = self._get_angle(key.name)
+            xdim = 'x' if self.interpolate_coords else 'x_every_eighth'
         elif key.name == 'qual_flags':
             data = self.reader.get_qual_flags()
+            xdim = 'num_flags'
         else:
             data = self._get_channel(key.name)
+            xdim = 'x'
 
         times = self.reader.get_times()
 
@@ -142,7 +149,7 @@ class GACLACFile(BaseFileHandler):
         chunk_cols = data.shape[1]
         chunk_lines = int((CHUNK_SIZE ** 2) / chunk_cols)
         res = xr.DataArray(da.from_array(data, chunks=(chunk_lines, chunk_cols)),
-                           dims=['y', 'x'], attrs=info)
+                           dims=['y', xdim], attrs=info)
         res.attrs['platform_name'] = self.reader.spacecraft_name
         res.attrs['orbit_number'] = self.filename_info['orbit_number']
         res.attrs['sensor'] = self.sensor
