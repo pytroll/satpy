@@ -243,7 +243,8 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
 
     if hasattr(orig_img, 'convert'):
         # image must be in RGB space to work with pycoast/pydecorate
-        orig = orig_img.convert('RGBA' if orig_img.mode.endswith('A') else 'RGB')
+        res_mode = ('RGBA' if orig_img.mode.endswith('A') else 'RGB')
+        orig = orig_img.convert(res_mode)
     elif not orig.mode.startswith('RGB'):
         raise RuntimeError("'trollimage' 1.6+ required to support adding "
                            "overlays/decorations to non-RGB data.")
@@ -271,7 +272,7 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
                 overlays.setdefault('grid', {}).setdefault(key, val)
 
     cw_ = ContourWriterAGG(coast_dir)
-    new_image = orig_img.apply_pil(_burn_overlay, 'RGBA',
+    new_image = orig_img.apply_pil(_burn_overlay, res_mode,
                                    None, {'fill_value': fill_value},
                                    (area, cw_, overlays), None)
     return new_image
