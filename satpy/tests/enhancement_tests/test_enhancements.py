@@ -141,37 +141,48 @@ class TestEnhancementStretch(unittest.TestCase):
         self._test_enhancement(btemp_threshold, self.ch1, expected,
                                min_in=-200, max_in=500, threshold=350)
 
-    @mock.patch('satpy.enhancements.create_colormap')
-    def test_merge_colormaps(self, create_colormap):
+    def test_merge_colormaps(self):
         """Test merging colormaps."""
         from trollimage.colormap import Colormap
-        from satpy.enhancements import _merge_colormaps as mcp
+        from satpy.enhancements import _merge_colormaps as mcp, create_colormap
         ret_map = mock.MagicMock()
-        create_colormap.return_value = ret_map
 
+        create_colormap_mock = mock.Mock(wraps=create_colormap)
         cmap1 = Colormap((1, (1., 1., 1.)))
         kwargs = {'palettes': cmap1}
-        res = mcp(kwargs)
-        self.assertTrue(res is cmap1)
-        create_colormap.assert_not_called()
 
-        cmap1 = {'colors': 'foo', 'min_value': 0,
+        with mock.patch('satpy.enhancements.create_colormap', create_colormap_mock):
+            res = mcp(kwargs)
+        self.assertTrue(res is cmap1)
+        create_colormap_mock.assert_not_called()
+        create_colormap_mock.reset_mock()
+        ret_map.reset_mock()
+
+        cmap1 = {'colors': 'blues', 'min_value': 0,
                  'max_value': 1}
         kwargs = {'palettes': [cmap1]}
-        res = mcp(kwargs)
-        create_colormap.assert_called_once()
+        with mock.patch('satpy.enhancements.create_colormap', create_colormap_mock),\
+                mock.patch('trollimage.colormap.blues', ret_map):
+            _ = mcp(kwargs)
+        create_colormap_mock.assert_called_once()
         ret_map.reverse.assert_not_called()
         ret_map.set_range.assert_called_with(0, 1)
+        create_colormap_mock.reset_mock()
+        ret_map.reset_mock()
 
-        cmap2 = {'colors': 'bar', 'min_value': 2,
+        cmap2 = {'colors': 'blues', 'min_value': 2,
                  'max_value': 3, 'reverse': True}
         kwargs = {'palettes': [cmap2]}
-        res = mcp(kwargs)
+        with mock.patch('trollimage.colormap.blues', ret_map):
+            _ = mcp(kwargs)
         ret_map.reverse.assert_called_once()
         ret_map.set_range.assert_called_with(2, 3)
+        create_colormap_mock.reset_mock()
+        ret_map.reset_mock()
 
         kwargs = {'palettes': [cmap1, cmap2]}
-        res = mcp(kwargs)
+        with mock.patch('trollimage.colormap.blues', ret_map):
+            _ = mcp(kwargs)
         ret_map.__add__.assert_called_once()
 
     def tearDown(self):
