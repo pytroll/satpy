@@ -20,3 +20,13 @@ enhancements:
       - name: gamma
         method: !!python/name:satpy.enhancements.gamma
         kwargs: {gamma: 1.5}
+  abi_brightness_temperature:
+    standard_name: toa_brightness_temperature
+    sensor: abi
+    operations:
+      - name: btemp_threshold
+        method: !!python/name:satpy.enhancements.btemp_threshold
+        kwargs:
+          threshold: 242.0
+          min_in: 163.0
+          max_in: 330.0
