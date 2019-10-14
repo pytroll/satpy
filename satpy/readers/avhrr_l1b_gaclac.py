@@ -49,13 +49,23 @@ class GACLACFile(BaseFileHandler):
     """Reader for GAC and LAC data."""
 
     def __init__(self, filename, filename_info, filetype_info,
-                 start_line=None, end_line=None, strip_invalid_coords=True):
+                 start_line=None, end_line=None, strip_invalid_coords=True,
+                 interpolate_coords=True, adjust_clock_drift=True,
+                 tle_dir=None, tle_name=None, tle_thresh=7):
         """
         Args:
             start_line: User defined start scanline
             end_line: User defined end scanline
             strip_invalid_coords: Strip scanlines with invalid coordinates in
                 the beginning/end of the orbit
+            interpolate_coords: Interpolate coordinates from every eighth pixel
+                to all pixels.
+            adjust_clock_drift: Adjust the geolocation to compensate for the
+                clock error (POD satellites only).
+            tle_dir: Directory holding Two-Line-Element (TLE) files
+            tle_name: Filename pattern of TLE files.
+            tle_thresh: Maximum number of days between observation and nearest
+                TLE
         """
         super(GACLACFile, self).__init__(
             filename, filename_info, filetype_info)
@@ -63,6 +73,11 @@ class GACLACFile(BaseFileHandler):
         self.start_line = start_line
         self.end_line = end_line
         self.strip_invalid_coords = strip_invalid_coords
+        self.interpolate_coords = interpolate_coords
+        self.adjust_clock_drift = adjust_clock_drift
+        self.tle_dir = tle_dir
+        self.tle_name = tle_name
+        self.tle_thresh = tle_thresh
         self.reader = None
         self.channels = None
         self.angles = None
@@ -93,7 +108,12 @@ class GACLACFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         if self.reader is None:
-            self.reader = self.reader_class()
+            self.reader = self.reader_class(
+                interpolate_coords=self.interpolate_coords,
+                adjust_clock_drift=self.adjust_clock_drift,
+                tle_dir=self.tle_dir,
+                tle_name=self.tle_name,
+                tle_thresh=self.tle_thresh)
             self.reader.read(self.filename)
 
         if key.name in ['latitude', 'longitude']:
