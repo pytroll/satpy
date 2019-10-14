@@ -156,6 +156,7 @@ datasets:
 
     qual_flags:
         name: qual_flags
+        long_name: Scanline Quality Flags
         resolution: 1050
         file_type: gac_lac_l1b
 
