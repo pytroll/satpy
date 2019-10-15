@@ -148,8 +148,8 @@ class GACLACFile(BaseFileHandler):
 
         # Update start/end time using the actual scanline timestamps
         times = self.reader.get_times()
-        self._start_time = times[0]
-        self._end_time = times[-1]
+        self._start_time = times[0].astype(datetime)
+        self._end_time = times[-1].astype(datetime)
 
         # Select user-defined scanlines and/or strip invalid coordinates
         self.midnight_scanline = self.reader.get_midnight_scanline()
@@ -158,8 +158,8 @@ class GACLACFile(BaseFileHandler):
                 or self.strip_invalid_coords):
             data = self.slice(data)
             times = self.slice(times)
-            self._start_time = times[0]
-            self._end_time = times[-1]
+            self._start_time = times[0].astype(datetime)
+            self._end_time = times[-1].astype(datetime)
 
         chunk_cols = data.shape[1]
         chunk_lines = int((CHUNK_SIZE ** 2) / chunk_cols)
