@@ -179,7 +179,7 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.slice')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
-    def test_get_dataset_extras(self, get_channel, get_angle, slice):
+    def test_get_dataset_extras(self, get_channel, get_angle, slc):
         """Test getting the dataset with extra options."""
         from satpy.dataset import DatasetID
 
@@ -207,10 +207,9 @@ class TestGACLACFile(TestCase):
         def slice_patched(data):
             if len(data.shape) == 2:
                 return data[1:3, :]
-            else:
-                return data[1:3]
+            return data[1:3]
 
-        slice.side_effect = slice_patched
+        slc.side_effect = slice_patched
         kwargs_list = [{'strip_invalid_coords': False,
                         'start_line': 123, 'end_line': 456},
                        {'strip_invalid_coords': True,
