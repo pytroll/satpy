@@ -104,6 +104,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         self.c_exp = da.from_array(self.geostuff["ExpansionCoefficient"])[
             np.newaxis, np.newaxis, :, np.newaxis]
 
+        self._expansion_coefs = []
+
         for key in self.h5f["All_Data"].keys():
             if key.startswith("VIIRS") and key.endswith("SDR_All"):
                 channel = key.split('-')[1]
@@ -285,7 +287,99 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         rads.attrs['units'] = unit
         return rads
 
+    def expand_angle_and_nav(self, arrays):
+        """Expand angle and navigation datasets."""
+        res = []
+        for tpz_size, nb_tpz, start, coefs in zip(self.tpz_sizes, self.nb_tpzs,
+                                                  self.group_locations, self.expansion_coefs):
+            small_arrays = [arr[:, start:start + nb_tpz + 1] for arr in arrays]
+
+            expanded = []
+            coef_a, coef_b, coef_c, coef_d = coefs
+            for data in small_arrays:
+                data_a = data[:self.scans * 2:2, np.newaxis, :-1, np.newaxis]
+                data_b = data[:self.scans * 2:2, np.newaxis, 1:, np.newaxis]
+                data_c = data[1:self.scans * 2:2, np.newaxis, 1:, np.newaxis]
+                data_d = data[1:self.scans * 2:2, np.newaxis, :-1, np.newaxis]
+                fdata = (coef_a * data_a + coef_b * data_b
+                         + coef_d * data_d + coef_c * data_c)
+                expanded.append(fdata.reshape(self.scans * self.scan_size, nb_tpz * tpz_size))
+
+            res.append(expanded)
+        return [da.hstack(arrs) for arrs in zip(*res)]
+
+    @property
+    def expansion_coefs(self):
+        """Compute the expansion coefficients."""
+        param_start = 0
+        if self._expansion_coefs != []:
+            return self._expansion_coefs
+        for tpz_size, nb_tpz, in zip(self.tpz_sizes, self.nb_tpzs):
+            nties = nb_tpz.item()
+            tpz_size = tpz_size.item()
+            s_scan, s_track = da.meshgrid(da.arange(nties * tpz_size),
+                                          da.arange(self.scans * self.scan_size))
+            s_track = (s_track.reshape(self.scans, self.scan_size, nties, tpz_size) % self.scan_size
+                       + self.track_offset) / self.scan_size
+            s_scan = (s_scan.reshape(self.scans, self.scan_size, nties, tpz_size) % tpz_size
+                      + self.scan_offset) / tpz_size
+
+            c_align = self.c_align[:, :, param_start:param_start + nb_tpz, :]
+            c_exp = self.c_exp[:, :, param_start:param_start + nb_tpz, :]
+            param_start += nb_tpz
+
+            a_scan = s_scan + s_scan * (1 - s_scan) * c_exp + s_track * (
+                1 - s_track) * c_align
+            a_track = s_track
+            coef_a = (1 - a_track) * (1 - a_scan)
+            coef_b = (1 - a_track) * a_scan
+            coef_d = a_track * (1 - a_scan)
+            coef_c = a_track * a_scan
+
+            self._expansion_coefs.append((coef_a, coef_b, coef_c, coef_d))
+        return self._expansion_coefs
+
     def navigate(self):
+        """Generate the navigation datasets."""
+        lon = da.from_array(self.geostuff["Longitude"])
+        lat = da.from_array(self.geostuff["Latitude"])
+        if self.switch_to_cart:
+            arrays = lonlat2xyz(lon, lat)
+        else:
+            arrays = (lon, lat)
+
+        expanded = self.expand_angle_and_nav(arrays)
+        if self.switch_to_cart:
+            return xyz2lonlat(*expanded)
+        else:
+            return expanded
+
+    def angles(self, azi_name, zen_name):
+        """Generate the angle datasets."""
+        azi = self.geostuff[azi_name]
+        zen = self.geostuff[zen_name]
+
+        if (np.max(azi) - np.min(azi) > 5) or (np.min(zen) < 10) or (
+                max(abs(self.min_lat), abs(self.max_lat)) > 80):
+            switch_to_cart = True
+        else:
+            switch_to_cart = False
+
+        azi = da.from_array(azi)
+        zen = da.from_array(zen)
+
+        if switch_to_cart:
+            arrays = convert_from_angles(azi, zen)
+        else:
+            arrays = (azi, zen)
+
+        expanded = self.expand_angle_and_nav(arrays)
+        if switch_to_cart:
+            return convert_to_angles(*expanded)
+        else:
+            return expanded
+
+    def navigate_old(self):
         """Generate lon and lat datasets."""
         all_lon = da.from_array(self.geostuff["Longitude"])
         all_lat = da.from_array(self.geostuff["Latitude"])
@@ -321,10 +415,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         lons, lats = zip(*res)
         return da.hstack(lons), da.hstack(lats)
 
-    def angles(self, azi_name, zen_name):
+    def angles_old(self, azi_name, zen_name):
         """Compute the angle datasets."""
-        all_lat = da.from_array(self.geostuff["Latitude"])
-        all_lon = da.from_array(self.geostuff["Longitude"])
         all_zen = da.from_array(self.geostuff[zen_name])
         all_azi = da.from_array(self.geostuff[azi_name])
 
@@ -332,8 +424,6 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         param_start = 0
         for tpz_size, nb_tpz, start in zip(self.tpz_sizes, self.nb_tpzs,
                                            self.group_locations):
-            lat = all_lat[:, start:start + nb_tpz + 1]
-            lon = all_lon[:, start:start + nb_tpz + 1]
             zen = all_zen[:, start:start + nb_tpz + 1]
             azi = all_azi[:, start:start + nb_tpz + 1]
 
@@ -343,13 +433,13 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             param_start += nb_tpz
 
             if (np.max(azi) - np.min(azi) > 5) or (np.min(zen) < 10) or (
-                    np.max(abs(lat)) > 80):
-                cart = convert_from_angles(azi, zen, lon, lat)
+                    max(abs(self.min_lat), abs(self.max_lat)) > 80):
+                cart = convert_from_angles(azi, zen)
                 expanded = expand_arrays(
                     cart, self.scans, c_align, c_exp, self.scan_size,
                     tpz_size, nb_tpz, self.track_offset, self.scan_offset)
 
-                azi, zen = convert_to_angles(*expanded, lon=self.lons, lat=self.lats)
+                azi, zen = convert_to_angles(*expanded)
                 res.append((azi, zen))
             else:
                 expanded = expand_arrays(
@@ -361,10 +451,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         return da.hstack(azi), da.hstack(zen)
 
 
-def convert_from_angles(azi, zen, lon, lat):
+def convert_from_angles(azi, zen):
     """Convert the angles to cartesian coordinates."""
-    lon = np.deg2rad(lon)
-    lat = np.deg2rad(lat)
     x, y, z, = angle2xyz(azi, zen)
     # Conversion to ECEF is recommended by the provider, but no significant
     # difference has been seen.
@@ -374,10 +462,8 @@ def convert_from_angles(azi, zen, lon, lat):
     return x, y, z
 
 
-def convert_to_angles(x, y, z, lon, lat):
+def convert_to_angles(x, y, z):
     """Convert the cartesian coordinates to angles."""
-    lon = np.deg2rad(lon)
-    lat = np.deg2rad(lat)
     # Conversion to ECEF is recommended by the provider, but no significant
     # difference has been seen.
     # x, y, z = (-np.sin(lon) * x - np.sin(lat) * np.cos(lon) * y + np.cos(lat) * np.cos(lon) * z,
