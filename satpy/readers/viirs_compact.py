@@ -310,10 +310,9 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             else:
                 arrays = (lon, lat)
 
-            for data in arrays:
-                expanded.append(expand_array(
-                    data, self.scans, c_align, c_exp, self.scan_size,
-                    tpz_size, nb_tpz, self.track_offset, self.scan_offset))
+            expanded = expand_arrays(
+                arrays, self.scans, c_align, c_exp, self.scan_size,
+                tpz_size, nb_tpz, self.track_offset, self.scan_offset)
 
             if self.switch_to_cart:
                 res.append(xyz2lonlat(*expanded))
@@ -345,21 +344,17 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
             if (np.max(azi) - np.min(azi) > 5) or (np.min(zen) < 10) or (
                     np.max(abs(lat)) > 80):
-                expanded = []
                 cart = convert_from_angles(azi, zen, lon, lat)
-                for data in cart:
-                    expanded.append(expand_array(
-                        data, self.scans, c_align, c_exp, self.scan_size,
-                        tpz_size, nb_tpz, self.track_offset, self.scan_offset))
+                expanded = expand_arrays(
+                    cart, self.scans, c_align, c_exp, self.scan_size,
+                    tpz_size, nb_tpz, self.track_offset, self.scan_offset)
 
                 azi, zen = convert_to_angles(*expanded, lon=self.lons, lat=self.lats)
                 res.append((azi, zen))
             else:
-                expanded = []
-                for data in (azi, zen):
-                    expanded.append(expand_array(
-                        data, self.scans, c_align, c_exp, self.scan_size,
-                        tpz_size, nb_tpz, self.track_offset, self.scan_offset))
+                expanded = expand_arrays(
+                    (azi, zen), self.scans, c_align, c_exp, self.scan_size,
+                    tpz_size, nb_tpz, self.track_offset, self.scan_offset)
                 res.append(expanded)
 
         azi, zen = zip(*res)
@@ -392,20 +387,20 @@ def convert_to_angles(x, y, z, lon, lat):
     return azi, zen
 
 
-def expand_array(data,
-                 scans,
-                 c_align,
-                 c_exp,
-                 scan_size=16,
-                 tpz_size=16,
-                 nties=200,
-                 track_offset=0.5,
-                 scan_offset=0.5):
+def expand_arrays(arrays,
+                  scans,
+                  c_align,
+                  c_exp,
+                  scan_size=16,
+                  tpz_size=16,
+                  nties=200,
+                  track_offset=0.5,
+                  scan_offset=0.5):
     """Expand *data* according to alignment and expansion."""
-    nties = np.asscalar(nties)
-    tpz_size = np.asscalar(tpz_size)
-    s_scan, s_track = da.meshgrid(np.arange(nties * tpz_size),
-                                  np.arange(scans * scan_size))
+    nties = nties.item()
+    tpz_size = tpz_size.item()
+    s_scan, s_track = da.meshgrid(da.arange(nties * tpz_size),
+                                  da.arange(scans * scan_size))
     s_track = (s_track.reshape(scans, scan_size, nties, tpz_size) % scan_size
                + track_offset) / scan_size
     s_scan = (s_scan.reshape(scans, scan_size, nties, tpz_size) % tpz_size
@@ -414,14 +409,17 @@ def expand_array(data,
     a_scan = s_scan + s_scan * (1 - s_scan) * c_exp + s_track * (
         1 - s_track) * c_align
     a_track = s_track
-
-    data_a = data[:scans * 2:2, np.newaxis, :-1, np.newaxis]
-    data_b = data[:scans * 2:2, np.newaxis, 1:, np.newaxis]
-    data_c = data[1:scans * 2:2, np.newaxis, 1:, np.newaxis]
-    data_d = data[1:scans * 2:2, np.newaxis, :-1, np.newaxis]
-
-    fdata = ((1 - a_track)
-             * ((1 - a_scan) * data_a + a_scan * data_b)
-             + a_track
-             * ((1 - a_scan) * data_d + a_scan * data_c))
-    return fdata.reshape(scans * scan_size, nties * tpz_size)
+    expanded = []
+    coef_a = (1 - a_track) * (1 - a_scan)
+    coef_b = (1 - a_track) * a_scan
+    coef_d = a_track * (1 - a_scan)
+    coef_c = a_track * a_scan
+    for data in arrays:
+        data_a = data[:scans * 2:2, np.newaxis, :-1, np.newaxis]
+        data_b = data[:scans * 2:2, np.newaxis, 1:, np.newaxis]
+        data_c = data[1:scans * 2:2, np.newaxis, 1:, np.newaxis]
+        data_d = data[1:scans * 2:2, np.newaxis, :-1, np.newaxis]
+        fdata = (coef_a * data_a + coef_b * data_b
+                 + coef_d * data_d + coef_c * data_c)
+        expanded.append(fdata.reshape(scans * scan_size, nties * tpz_size))
+    return expanded
