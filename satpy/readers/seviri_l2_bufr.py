@@ -1,33 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-# Copyright (c) 2017-2018 PyTroll Community
+"""SEVIRI Bufr  format reader."""
 
-# Author(s):
-
-#   Colin Duff <colin.duff@external.eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""SEVIRI Bufr  format reader.
-
-References:
-    MSG Level 1.5 Native Format File Definition
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
-    MSG Level 1.5 Image Data Format Description
-    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
-"""
 
 import logging
 from datetime import timedelta
@@ -64,12 +54,12 @@ class MSGBUFRFileHandler(BaseFileHandler):
 
         # use the following keys to determine the segment size
         # for future non mpef bufr files maybe we need to use an index here?
-        segw = self.get_attribute(0, '#1#segmentSizeAtNadirInXDirection', 1)/3000
-        segh = self.get_attribute(0, '#1#segmentSizeAtNadirInYDirection', 1)/3000
+        segw = self.get_attribute('#1#segmentSizeAtNadirInXDirection', 1)/3000
+        segh = self.get_attribute('#1#segmentSizeAtNadirInYDirection', 1)/3000
 
         # here we get the latiude and longitude arrays used for the segment geolocation
-        lats = self.get_array(0, 'latitude')
-        lons = self.get_array(0, 'longitude')
+        lats = self.get_array('latitude')
+        lons = self.get_array('longitude')
 
         # Use the subsat point to determine the area definition to use for the geo location
         # reset the wight and height based on the segment size
@@ -117,19 +107,11 @@ class MSGBUFRFileHandler(BaseFileHandler):
     def end_time(self):
         return self.rc_start+timedelta(minutes=15)
 
-    def get_array(self, index, key='None', mnbr=None):
+    def get_array(self, parameter, mnbr=None):
         ''' Get ancilliary array data eg latitudes and longitudes '''
-        try:
-            key_arr = self.keys
-        except AssertionError:
-            raise AssertionError('Unable to determine bufr product keys')
 
         with open(self.filename) as fh:
             fh = open(self.filename)
-            if key != 'None':
-                parameter = key
-            else:
-                parameter = key_arr[index + 20]
 
             if mnbr is not None:
                 bufr = ec.codes_bufr_new_from_file(fh)
@@ -166,19 +148,10 @@ class MSGBUFRFileHandler(BaseFileHandler):
 
         return arr
 
-    def get_attribute(self, index, key='None', mnbr=None):
+    def get_attribute(self, parameter, mnbr=None):
         ''' Get BUFR attributes '''
-        try:
-            key_arr = self.keys
-        except AssertionError:
-            raise AssertionError('Unable to determine bufr product keys')
 
         fh = open(self.filename, "rb")
-
-        if key != 'None':
-            parameter = key
-        else:
-            parameter = key_arr[index + 22]
 
         if mnbr is not None:
             bufr = ec.codes_bufr_new_from_file(fh)
@@ -200,17 +173,10 @@ class MSGBUFRFileHandler(BaseFileHandler):
         arr2 = np.empty((self.Ny, self.Nx)).astype(np.float)
         arr2.fill(np.nan)
 
-        # try:
-        #    key_arr = self.keys
-        # except AssertionError:
-        #    raise AssertionError('Unable to determine bufr product keys')
-
         with open(self.filename, "rb") as fh:
             fh = open(self.filename, "rb")
 
-            key = info['key']
-
-            parameter = key
+            parameter = info['key']
 
             msgCount = 0
             while True:

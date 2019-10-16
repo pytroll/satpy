@@ -1,24 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017-2018 PyTroll Community
-
-# Author(s):
-
-#   Colin Duff <colin.duff@eumetsat.external.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2017-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
 """Unittesting the  SEVIRI L2 Bufr reader.
 """
@@ -80,15 +76,15 @@ class TestMSGBufr(unittest.TestCase):
                     fh = MSGBUFRFileHandler(None, info, None)
 
             with mock.patch('eccodes.codes_bufr_new_from_file',
-                            side_effect=[buf1, buf1, buf1, buf1, buf1, None]) as ec1:
+                            side_effect=[buf1, buf1, buf1, None]) as ec1:
                 ec1.return_value = ec1.side_effect
                 with mock.patch('eccodes.codes_set') as ec2:
                     ec2.return_value = 1
                     with mock.patch('eccodes.codes_release') as ec5:
                         ec5.return_value = 1
-                        x = fh.get_array(1, '#1#orbitNumber', 1)
+                        x = fh.get_array('#1#orbitNumber', 1)
                         self.assertEqual(x, 900)
-                        y = fh.get_attribute(1, 'masterTablesVersionNumber', 1)
+                        y = fh.get_attribute('masterTablesVersionNumber', 1)
                         self.assertEqual(y, 27)
                         z = fh.get_dataset(None, info)
                         self.assertTrue(abs(np.nanmean(z) - np.nanmean(sampl) < 1.5))
