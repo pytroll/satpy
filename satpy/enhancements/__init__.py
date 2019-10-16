@@ -277,8 +277,10 @@ def create_colormap(palette):
 
     if palette.get("reverse", False):
         cmap.reverse()
-    if 'min_value' in palette:
+    if 'min_value' in palette and 'max_value' in palette:
         cmap.set_range(palette["min_value"], palette["max_value"])
+    elif 'min_value' in palette or 'max_value' in palette:
+        raise ValueError("Both 'min_value' and 'max_value' must be specified")
 
     return cmap
 
