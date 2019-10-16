@@ -224,7 +224,73 @@ def _merge_colormaps(kwargs):
 
 
 def create_colormap(palette):
-    """Create colormap of the given numpy file, color vector or colormap."""
+    """Create colormap of the given numpy file, color vector, or colormap.
+
+    Args:
+        palette (dict): Information describing how to create a colormap
+            object. See below for more details.
+
+    **From a file**
+
+    Colormaps can be loaded from ``.npy`` files as 2D raw arrays with rows for
+    each color. The filename to load can be provided with the ``filename`` key
+    in the provided palette information. The colormap is interpreted as 1 of 4
+    different "colormap modes": ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
+    colormap mode can be forced with the ``colormap_mode`` key in the provided
+    palette information. If it is not provided then a default will be chosen
+    based on the number of columns in the array (3: RGB, 4: VRGB, 5: VRGBA).
+
+    The "V" in the possible colormap modes represents the control value of
+    where that color should be applied. If "V" is not provided in the colormap
+    data it defaults to the row index in the colormap array (0, 1, 2, ...)
+    divided by the total number of colors to produce a number between 0 and 1.
+    See the "Set Range" section below for more information.
+    The remaining elements in the colormap array represent the Red (R),
+    Green (G), and Blue (B) color to be mapped to.
+
+    See the "Color Scale" section below for more information on the value
+    range of provided numbers.
+
+    **From a list**
+
+    Colormaps can be loaded from lists of colors provided by the ``colors``
+    key in the provided dictionary. Each element in the list represents a
+    single color to be mapped to and can be 3 (RGB) or 4 (RGBA) elements long.
+    By default the value or control point for a color is determined by the
+    index in the list (0, 1, 2, ...) divided by the total number of colors
+    to produce a number between 0 and 1. This can be overridden by providing a
+    ``values`` key in the provided dictionary. See the "Set Range" section
+    below for more information.
+
+    See the "Color Scale" section below for more information on the value
+    range of provided numbers.
+
+    **From a builtin colormap**
+
+    Colormaps can be loaded by name from the builtin colormaps in the
+    ``trollimage``` package. Specify the name with the ``colors``
+    key in the provided dictionary (ex. ``{'colors': 'blues'}``).
+    See :doc:`trollimage:colormap` for the full list of available colormaps.
+
+    **Color Scale**
+
+    By default colors are expected to be in a 0-255 range. This
+    can be overridden by specifying ``color_scale`` in the provided colormap
+    information. A common alternative to 255 is ``1`` to specify floating
+    point numbers between 0 and 1. The resulting Colormap uses the normalized
+    color values (0-1).
+
+    **Set Range**
+
+    By default the control points or values of the Colormap are between 0 and
+    1. This means that data values being mapped to a color must also be
+    between 0 and 1. When this is not the case, the expected input range of
+    the data can be used to configure the Colormap and change the control point
+    values. To do this specify the input data range with ``min_value`` and
+    ``max_value``. See :meth:`trollimage.colormap.Colormap.set_range` for more
+    information.
+
+    """
     from trollimage.colormap import Colormap
     fname = palette.get('filename', None)
     colors = palette.get('colors', None)
