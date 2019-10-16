@@ -88,10 +88,10 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             raise IOError('Compact Viirs file type not recognized.')
 
         geo_data = self.h5f["Data_Products"]["VIIRS-%s-GEO" % self.ch_type]["VIIRS-%s-GEO_Gran_0" % self.ch_type]
-        self.min_lat = np.asscalar(geo_data.attrs['South_Bounding_Coordinate'])
-        self.max_lat = np.asscalar(geo_data.attrs['North_Bounding_Coordinate'])
-        self.min_lon = np.asscalar(geo_data.attrs['West_Bounding_Coordinate'])
-        self.max_lon = np.asscalar(geo_data.attrs['East_Bounding_Coordinate'])
+        self.min_lat = geo_data.attrs['South_Bounding_Coordinate'].item()
+        self.max_lat = geo_data.attrs['North_Bounding_Coordinate'].item()
+        self.min_lon = geo_data.attrs['West_Bounding_Coordinate'].item()
+        self.max_lon = geo_data.attrs['East_Bounding_Coordinate'].item()
 
         self.switch_to_cart = ((abs(self.max_lon - self.min_lon) > 90)
                                or (max(abs(self.min_lat), abs(self.max_lat)) > 60))
