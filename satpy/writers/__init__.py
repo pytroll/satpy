@@ -237,7 +237,7 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
     LOG.info("Add coastlines and political borders to image.")
 
     old_args = [color, width, resolution, grid, level_coast, level_borders]
-    if any(arg is None for arg in old_args):
+    if any(arg is not None for arg in old_args):
         warnings.warn("'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
                       " arguments will be deprecated soon. Please use 'overlays' instead.", DeprecationWarning)
 
@@ -250,6 +250,7 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
                            "overlays/decorations to non-RGB data.")
 
     if overlays is None:
+        overlays = dict()
         # fill with sensible defaults
         general_params = {'outline': color or (0, 0, 0),
                           'width': width or 0.5}

@@ -43,7 +43,7 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
             'dask[array] >=0.17.1', 'pyproj', 'zarr']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews', 'pycoast', 'pydecorate', 'trollimage']
+                 'rasterio', 'geoviews', 'trollimage']
 
 if sys.version < '3.0':
     test_requires.append('mock')
