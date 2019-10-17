@@ -121,6 +121,10 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
         self.tpz_sizes = da.from_array(self.h5f["All_Data/VIIRS-%s-SDR_All" % channel].attrs["TiePointZoneSizeScan"],
                                        chunks=1)
+        if len(self.tpz_sizes.shape) == 2:
+            if self.tpz_sizes.shape[1] != 1:
+                raise NotImplementedError("Can't handle 2 dimensional tiepoint zones.")
+            self.tpz_sizes = self.tpz_sizes.squeeze(1)
         self.nb_tpzs = self.geostuff["NumberOfTiePointZonesScan"]
         self.c_align = da.from_array(self.geostuff["AlignmentCoefficient"],
                                      chunks=tuple(self.nb_tpzs))
