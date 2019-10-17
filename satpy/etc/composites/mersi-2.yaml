@@ -72,12 +72,12 @@ composites:
     prerequisites:
       - name: '6'
         modifiers: [sunz_corrected]
-      - name: '4'
+      - name: '15'
         modifiers: [sunz_corrected]
       - name: '3'
         modifiers: [sunz_corrected]
     optional_prerequisites:
-      - name: '15'
+      - name: '4'
         modifiers: [sunz_corrected]
     standard_name: natural_color
     high_resolution_band: green
