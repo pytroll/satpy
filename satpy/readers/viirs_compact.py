@@ -352,37 +352,6 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
         return self._expansion_coefs
 
-    @property
-    def expansion_coefs_old(self):
-        """Compute the expansion coefficients."""
-        param_start = 0
-        if self._expansion_coefs != []:
-            return self._expansion_coefs
-        for tpz_size, nb_tpz, in zip(self.tpz_sizes, self.nb_tpzs):
-            nties = nb_tpz.item()
-            tpz_size = tpz_size.item()
-            s_scan, s_track = da.meshgrid(da.arange(nties * tpz_size),
-                                          da.arange(self.scans * self.scan_size))
-            s_track = (s_track.reshape(self.scans, self.scan_size, nties, tpz_size) % self.scan_size
-                       + self.track_offset) / self.scan_size
-            s_scan = (s_scan.reshape(self.scans, self.scan_size, nties, tpz_size) % tpz_size
-                      + self.scan_offset) / tpz_size
-
-            c_align = self.c_align[:, :, param_start:param_start + nb_tpz, :]
-            c_exp = self.c_exp[:, :, param_start:param_start + nb_tpz, :]
-            param_start += nb_tpz
-
-            a_scan = s_scan + s_scan * (1 - s_scan) * c_exp + s_track * (
-                1 - s_track) * c_align
-            a_track = s_track
-            coef_a = (1 - a_track) * (1 - a_scan)
-            coef_b = (1 - a_track) * a_scan
-            coef_d = a_track * (1 - a_scan)
-            coef_c = a_track * a_scan
-
-            self._expansion_coefs.append((coef_a, coef_b, coef_c, coef_d))
-        return self._expansion_coefs
-
     def navigate(self):
         """Generate the navigation datasets."""
         shape = self.geostuff['Longitude'].shape
@@ -429,77 +398,6 @@ class VIIRSCompactFileHandler(BaseFileHandler):
             return convert_to_angles(*expanded)
         else:
             return expanded
-
-    def navigate_old(self):
-        """Generate lon and lat datasets."""
-        all_lon = da.from_array(self.geostuff["Longitude"])
-        all_lat = da.from_array(self.geostuff["Latitude"])
-
-        res = []
-        param_start = 0
-        for tpz_size, nb_tpz, start in zip(self.tpz_sizes, self.nb_tpzs,
-                                           self.group_locations):
-
-            lon = all_lon[:, start:start + nb_tpz + 1]
-            lat = all_lat[:, start:start + nb_tpz + 1]
-
-            c_align = self.c_align[:, :, param_start:param_start + nb_tpz, :]
-            c_exp = self.c_exp[:, :, param_start:param_start + nb_tpz, :]
-
-            param_start += nb_tpz
-
-            expanded = []
-
-            if self.switch_to_cart:
-                arrays = lonlat2xyz(lon, lat)
-            else:
-                arrays = (lon, lat)
-
-            expanded = expand_arrays(
-                arrays, self.scans, c_align, c_exp, self.scan_size,
-                tpz_size, nb_tpz, self.track_offset, self.scan_offset)
-
-            if self.switch_to_cart:
-                res.append(xyz2lonlat(*expanded))
-            else:
-                res.append(expanded)
-        lons, lats = zip(*res)
-        return da.hstack(lons), da.hstack(lats)
-
-    def angles_old(self, azi_name, zen_name):
-        """Compute the angle datasets."""
-        all_zen = da.from_array(self.geostuff[zen_name])
-        all_azi = da.from_array(self.geostuff[azi_name])
-
-        res = []
-        param_start = 0
-        for tpz_size, nb_tpz, start in zip(self.tpz_sizes, self.nb_tpzs,
-                                           self.group_locations):
-            zen = all_zen[:, start:start + nb_tpz + 1]
-            azi = all_azi[:, start:start + nb_tpz + 1]
-
-            c_align = self.c_align[:, :, param_start:param_start + nb_tpz, :]
-            c_exp = self.c_exp[:, :, param_start:param_start + nb_tpz, :]
-
-            param_start += nb_tpz
-
-            if (np.max(azi) - np.min(azi) > 5) or (np.min(zen) < 10) or (
-                    max(abs(self.min_lat), abs(self.max_lat)) > 80):
-                cart = convert_from_angles(azi, zen)
-                expanded = expand_arrays(
-                    cart, self.scans, c_align, c_exp, self.scan_size,
-                    tpz_size, nb_tpz, self.track_offset, self.scan_offset)
-
-                azi, zen = convert_to_angles(*expanded)
-                res.append((azi, zen))
-            else:
-                expanded = expand_arrays(
-                    (azi, zen), self.scans, c_align, c_exp, self.scan_size,
-                    tpz_size, nb_tpz, self.track_offset, self.scan_offset)
-                res.append(expanded)
-
-        azi, zen = zip(*res)
-        return da.hstack(azi), da.hstack(zen)
 
 
 def convert_from_angles(azi, zen):
