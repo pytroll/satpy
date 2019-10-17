@@ -99,13 +99,6 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         self.scans = self.h5f["All_Data"]["NumberOfScans"][0]
         self.geostuff = self.h5f["All_Data"]['VIIRS-%s-GEO_All' % self.ch_type]
 
-        self.c_align = da.from_array(self.geostuff["AlignmentCoefficient"])[
-            np.newaxis, np.newaxis, :, np.newaxis]
-        self.c_exp = da.from_array(self.geostuff["ExpansionCoefficient"])[
-            np.newaxis, np.newaxis, :, np.newaxis]
-
-        self._expansion_coefs = []
-
         for key in self.h5f["All_Data"].keys():
             if key.startswith("VIIRS") and key.endswith("SDR_All"):
                 channel = key.split('-')[1]
@@ -114,8 +107,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         # FIXME:  this supposes  there is  only one  tiepoint zone  in the
         # track direction
         self.scan_size = self.h5f["All_Data/VIIRS-%s-SDR_All" %
-                                  channel].attrs["TiePointZoneSizeTrack"]
-        self.scan_size = np.asscalar(self.scan_size)
+                                  channel].attrs["TiePointZoneSizeTrack"].item()
         self.track_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" %
                                      channel].attrs["PixelOffsetTrack"]
         self.scan_offset = self.h5f["All_Data/VIIRS-%s-SDR_All" %
@@ -123,13 +115,19 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
         try:
             self.group_locations = self.geostuff[
-                "TiePointZoneGroupLocationScanCompact"].value
+                "TiePointZoneGroupLocationScanCompact"][()]
         except KeyError:
             self.group_locations = [0]
 
-        self.tpz_sizes = self.h5f["All_Data/VIIRS-%s-SDR_All" %
-                                  channel].attrs["TiePointZoneSizeScan"]
-        self.nb_tpzs = self.geostuff["NumberOfTiePointZonesScan"].value
+        self.tpz_sizes = da.from_array(self.h5f["All_Data/VIIRS-%s-SDR_All" % channel].attrs["TiePointZoneSizeScan"],
+                                       chunks=1)
+        self.nb_tpzs = self.geostuff["NumberOfTiePointZonesScan"]
+        self.c_align = da.from_array(self.geostuff["AlignmentCoefficient"],
+                                     chunks=tuple(self.nb_tpzs))
+        self.c_exp = da.from_array(self.geostuff["ExpansionCoefficient"],
+                                   chunks=tuple(self.nb_tpzs))
+        self.nb_tpzs = da.from_array(self.nb_tpzs, chunks=1)
+        self._expansion_coefs = None
 
         self.cache = {}
 
@@ -287,29 +285,71 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         rads.attrs['units'] = unit
         return rads
 
+    def expand(self, data, coefs):
+        """Perform the expansion in numpy domain."""
+        data = data.reshape(data.shape[:-1])
+
+        coefs = coefs.reshape(self.scans, self.scan_size, data.shape[1] - 1, -1, 4)
+
+        coef_a = coefs[:, :, :, :, 0]
+        coef_b = coefs[:, :, :, :, 1]
+        coef_c = coefs[:, :, :, :, 2]
+        coef_d = coefs[:, :, :, :, 3]
+
+        data_a = data[:self.scans * 2:2, np.newaxis, :-1, np.newaxis]
+        data_b = data[:self.scans * 2:2, np.newaxis, 1:, np.newaxis]
+        data_c = data[1:self.scans * 2:2, np.newaxis, 1:, np.newaxis]
+        data_d = data[1:self.scans * 2:2, np.newaxis, :-1, np.newaxis]
+
+        fdata = (coef_a * data_a + coef_b * data_b + coef_d * data_d + coef_c * data_c)
+
+        return fdata.reshape(self.scans * self.scan_size, -1)
+
     def expand_angle_and_nav(self, arrays):
         """Expand angle and navigation datasets."""
         res = []
-        for tpz_size, nb_tpz, start, coefs in zip(self.tpz_sizes, self.nb_tpzs,
-                                                  self.group_locations, self.expansion_coefs):
-            small_arrays = [arr[:, start:start + nb_tpz + 1] for arr in arrays]
+        for array in arrays:
+            res.append(da.map_blocks(self.expand, array[:, :, np.newaxis], self.expansion_coefs,
+                                     dtype=array.dtype, drop_axis=2, chunks=self.expansion_coefs.chunks[:-1]))
+        return res
 
-            expanded = []
-            coef_a, coef_b, coef_c, coef_d = coefs
-            for data in small_arrays:
-                data_a = data[:self.scans * 2:2, np.newaxis, :-1, np.newaxis]
-                data_b = data[:self.scans * 2:2, np.newaxis, 1:, np.newaxis]
-                data_c = data[1:self.scans * 2:2, np.newaxis, 1:, np.newaxis]
-                data_d = data[1:self.scans * 2:2, np.newaxis, :-1, np.newaxis]
-                fdata = (coef_a * data_a + coef_b * data_b
-                         + coef_d * data_d + coef_c * data_c)
-                expanded.append(fdata.reshape(self.scans * self.scan_size, nb_tpz * tpz_size))
+    def get_coefs(self, c_align, c_exp, tpz_size, nb_tpz, v_track):
+        """Compute the coeffs in numpy domain."""
+        nties = nb_tpz.item()
+        tpz_size = tpz_size.item()
+        v_scan = (np.arange(nties * tpz_size) % tpz_size + self.scan_offset) / tpz_size
+        s_scan, s_track = np.meshgrid(v_scan, v_track)
+        s_track = s_track.reshape(self.scans, self.scan_size, nties, tpz_size)
+        s_scan = s_scan.reshape(self.scans, self.scan_size, nties, tpz_size)
 
-            res.append(expanded)
-        return [da.hstack(arrs) for arrs in zip(*res)]
+        c_align = c_align[np.newaxis, np.newaxis, :, np.newaxis]
+        c_exp = c_exp[np.newaxis, np.newaxis, :, np.newaxis]
+
+        a_scan = s_scan + s_scan * (1 - s_scan) * c_exp + s_track * (
+            1 - s_track) * c_align
+        a_track = s_track
+        coef_a = (1 - a_track) * (1 - a_scan)
+        coef_b = (1 - a_track) * a_scan
+        coef_d = a_track * (1 - a_scan)
+        coef_c = a_track * a_scan
+        res = np.stack([coef_a, coef_b, coef_c, coef_d], axis=4).reshape(self.scans * self.scan_size, -1, 4)
+        return res
 
     @property
     def expansion_coefs(self):
+        """Compute the expansion coefficients."""
+        if self._expansion_coefs is not None:
+            return self._expansion_coefs
+        v_track = (np.arange(self.scans * self.scan_size) % self.scan_size + self.track_offset) / self.scan_size
+        self._expansion_coefs = da.map_blocks(self.get_coefs, self.c_align, self.c_exp, self.tpz_sizes, self.nb_tpzs,
+                                              dtype=np.float64, v_track=v_track,  new_axis=[0, 2],
+                                              chunks=(self.scans * self.scan_size,
+                                                      tuple(self.tpz_sizes * self.nb_tpzs), 4))
+
+        return self._expansion_coefs
+
+    @property
+    def expansion_coefs_old(self):
         """Compute the expansion coefficients."""
         param_start = 0
         if self._expansion_coefs != []:
@@ -341,8 +381,11 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
     def navigate(self):
         """Generate the navigation datasets."""
-        lon = da.from_array(self.geostuff["Longitude"])
-        lat = da.from_array(self.geostuff["Latitude"])
+        shape = self.geostuff['Longitude'].shape
+        hchunks = (self.nb_tpzs + 1).compute()
+        chunks = (shape[0], tuple(hchunks))
+        lon = da.from_array(self.geostuff["Longitude"], chunks=chunks)
+        lat = da.from_array(self.geostuff["Latitude"], chunks=chunks)
         if self.switch_to_cart:
             arrays = lonlat2xyz(lon, lat)
         else:
@@ -356,6 +399,10 @@ class VIIRSCompactFileHandler(BaseFileHandler):
 
     def angles(self, azi_name, zen_name):
         """Generate the angle datasets."""
+        shape = self.geostuff['Longitude'].shape
+        hchunks = (self.nb_tpzs + 1).compute()
+        chunks = (shape[0], tuple(hchunks))
+
         azi = self.geostuff[azi_name]
         zen = self.geostuff[zen_name]
 
@@ -365,8 +412,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         else:
             switch_to_cart = False
 
-        azi = da.from_array(azi)
-        zen = da.from_array(zen)
+        azi = da.from_array(azi, chunks=chunks)
+        zen = da.from_array(zen, chunks=chunks)
 
         if switch_to_cart:
             arrays = convert_from_angles(azi, zen)
