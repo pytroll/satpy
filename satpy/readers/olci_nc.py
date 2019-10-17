@@ -80,7 +80,6 @@ class NCOLCIBase(BaseFileHandler):
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
-                                  engine='h5netcdf',
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
 
@@ -108,6 +107,13 @@ class NCOLCIBase(BaseFileHandler):
         variable = self.nc[key.name]
 
         return variable
+
+    def __del__(self):
+        """Close the NetCDF file that may still be open."""
+        try:
+            self.nc.close()
+        except (IOError, OSError, AttributeError):
+            pass
 
 
 class NCOLCICal(NCOLCIBase):
@@ -184,7 +190,8 @@ class NCOLCI1B(NCOLCIChannelBase):
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
         d_index = self.cal['detector_index'].fillna(0).astype(int)
 
-        return da.map_blocks(self._get_items, d_index.data, solar_flux=solar_flux, dtype=solar_flux.dtype)
+        return da.map_blocks(self._get_items, d_index.data,
+                             solar_flux=solar_flux, dtype=solar_flux.dtype)
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -268,7 +275,6 @@ class NCOLCIAngles(BaseFileHandler):
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=True,
-                                      engine='h5netcdf',
                                       chunks={'tie_columns': CHUNK_SIZE,
                                               'tie_rows': CHUNK_SIZE})
 
@@ -356,3 +362,10 @@ class NCOLCIAngles(BaseFileHandler):
     def end_time(self):
         """End the file handler."""
         return self._end_time
+
+    def __del__(self):
+        """Close the NetCDF file that may still be open."""
+        try:
+            self.nc.close()
+        except (IOError, OSError, AttributeError):
+            pass
