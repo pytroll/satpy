@@ -103,9 +103,8 @@ def apply_enhancement(data, func, exclude=None, separate=False,
     return data
 
 
-# pointed to by generic.yaml
 def crefl_scaling(img, **kwargs):
-    """Apply CREFL scaling."""
+    """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
 
     def func(band_data, index=None):
@@ -216,9 +215,6 @@ def _merge_colormaps(kwargs):
     else:
         for itm in palette:
             cmap = create_colormap(itm)
-            if itm.get("reverse", False):
-                cmap.reverse()
-            cmap.set_range(itm["min_value"], itm["max_value"])
             if full_cmap is None:
                 full_cmap = cmap
             else:
@@ -228,20 +224,105 @@ def _merge_colormaps(kwargs):
 
 
 def create_colormap(palette):
-    """Create colormap of the given numpy file, color vector or colormap."""
+    """Create colormap of the given numpy file, color vector, or colormap.
+
+    Args:
+        palette (dict): Information describing how to create a colormap
+            object. See below for more details.
+
+    **From a file**
+
+    Colormaps can be loaded from ``.npy`` files as 2D raw arrays with rows for
+    each color. The filename to load can be provided with the ``filename`` key
+    in the provided palette information. The colormap is interpreted as 1 of 4
+    different "colormap modes": ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
+    colormap mode can be forced with the ``colormap_mode`` key in the provided
+    palette information. If it is not provided then a default will be chosen
+    based on the number of columns in the array (3: RGB, 4: VRGB, 5: VRGBA).
+
+    The "V" in the possible colormap modes represents the control value of
+    where that color should be applied. If "V" is not provided in the colormap
+    data it defaults to the row index in the colormap array (0, 1, 2, ...)
+    divided by the total number of colors to produce a number between 0 and 1.
+    See the "Set Range" section below for more information.
+    The remaining elements in the colormap array represent the Red (R),
+    Green (G), and Blue (B) color to be mapped to.
+
+    See the "Color Scale" section below for more information on the value
+    range of provided numbers.
+
+    **From a list**
+
+    Colormaps can be loaded from lists of colors provided by the ``colors``
+    key in the provided dictionary. Each element in the list represents a
+    single color to be mapped to and can be 3 (RGB) or 4 (RGBA) elements long.
+    By default the value or control point for a color is determined by the
+    index in the list (0, 1, 2, ...) divided by the total number of colors
+    to produce a number between 0 and 1. This can be overridden by providing a
+    ``values`` key in the provided dictionary. See the "Set Range" section
+    below for more information.
+
+    See the "Color Scale" section below for more information on the value
+    range of provided numbers.
+
+    **From a builtin colormap**
+
+    Colormaps can be loaded by name from the builtin colormaps in the
+    ``trollimage``` package. Specify the name with the ``colors``
+    key in the provided dictionary (ex. ``{'colors': 'blues'}``).
+    See :doc:`trollimage:colormap` for the full list of available colormaps.
+
+    **Color Scale**
+
+    By default colors are expected to be in a 0-255 range. This
+    can be overridden by specifying ``color_scale`` in the provided colormap
+    information. A common alternative to 255 is ``1`` to specify floating
+    point numbers between 0 and 1. The resulting Colormap uses the normalized
+    color values (0-1).
+
+    **Set Range**
+
+    By default the control points or values of the Colormap are between 0 and
+    1. This means that data values being mapped to a color must also be
+    between 0 and 1. When this is not the case, the expected input range of
+    the data can be used to configure the Colormap and change the control point
+    values. To do this specify the input data range with ``min_value`` and
+    ``max_value``. See :meth:`trollimage.colormap.Colormap.set_range` for more
+    information.
+
+    """
     from trollimage.colormap import Colormap
     fname = palette.get('filename', None)
+    colors = palette.get('colors', None)
+    # are colors between 0-255 or 0-1
+    color_scale = palette.get('color_scale', 255)
     if fname:
         data = np.load(fname)
-        cmap = []
-        num = 1.0 * data.shape[0]
-        for i in range(int(num)):
-            cmap.append((i / num, (data[i, 0] / 255., data[i, 1] / 255.,
-                                   data[i, 2] / 255.)))
-        return Colormap(*cmap)
+        cols = data.shape[1]
+        default_modes = {
+            3: 'RGB',
+            4: 'VRGB',
+            5: 'VRGBA'
+        }
+        default_mode = default_modes.get(cols)
+        mode = palette.setdefault('colormap_mode', default_mode)
+        if mode is None or len(mode) != cols:
+            raise ValueError(
+                "Unexpected colormap shape for mode '{}'".format(mode))
 
-    colors = palette.get('colors', None)
-    if isinstance(colors, (tuple, list)):
+        rows = data.shape[0]
+        if mode[0] == 'V':
+            colors = data[:, 1:]
+            if color_scale != 1:
+                colors = data[:, 1:] / float(color_scale)
+            values = data[:, 0]
+        else:
+            colors = data
+            if color_scale != 1:
+                colors = colors / float(color_scale)
+            values = np.arange(rows) / float(rows - 1)
+        cmap = Colormap(*zip(values, colors))
+    elif isinstance(colors, (tuple, list)):
         cmap = []
         values = palette.get('values', None)
         for idx, color in enumerate(colors):
@@ -249,15 +330,25 @@ def create_colormap(palette):
                 value = values[idx]
             else:
                 value = idx / float(len(colors) - 1)
+            if color_scale != 1:
+                color = tuple(elem / float(color_scale) for elem in color)
             cmap.append((value, tuple(color)))
-        return Colormap(*cmap)
-
-    if isinstance(colors, str):
+        cmap = Colormap(*cmap)
+    elif isinstance(colors, str):
         from trollimage import colormap
         import copy
-        return copy.copy(getattr(colormap, colors))
+        cmap = copy.copy(getattr(colormap, colors))
+    else:
+        raise ValueError("Unknown colormap format: {}".format(palette))
 
-    return None
+    if palette.get("reverse", False):
+        cmap.reverse()
+    if 'min_value' in palette and 'max_value' in palette:
+        cmap.set_range(palette["min_value"], palette["max_value"])
+    elif 'min_value' in palette or 'max_value' in palette:
+        raise ValueError("Both 'min_value' and 'max_value' must be specified")
+
+    return cmap
 
 
 def _three_d_effect_delayed(band_data, kernel, mode):
