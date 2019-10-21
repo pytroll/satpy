@@ -15,9 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""GeoTIFF writer objects for creating GeoTIFF files from `Dataset` objects.
-
-"""
+"""GeoTIFF writer objects for creating GeoTIFF files from `Dataset` objects."""
 
 import logging
 import numpy as np
@@ -25,6 +23,7 @@ from satpy.writers import ImageWriter
 # make sure we have rasterio even though we don't use it until trollimage
 # saves the image
 import rasterio  # noqa
+from satpy.writers.utils import get_scale_offset
 
 LOG = logging.getLogger(__name__)
 
@@ -74,6 +73,7 @@ class GeoTIFFWriter(ImageWriter):
                     "copy_src_overviews",)
 
     def __init__(self, dtype=None, tags=None, **kwargs):
+        """Init the writer."""
         super(GeoTIFFWriter, self).__init__(default_config_filename="writers/geotiff.yaml", **kwargs)
         self.dtype = self.info.get("dtype") if dtype is None else dtype
         self.tags = self.info.get("tags", None) if tags is None else tags
@@ -91,6 +91,7 @@ class GeoTIFFWriter(ImageWriter):
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
+        """Separate the init keyword args."""
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(GeoTIFFWriter, cls).separate_init_kwargs(
             kwargs)
@@ -183,6 +184,10 @@ class GeoTIFFWriter(ImageWriter):
 
         tags = kwargs.get('tags', {})
         tags.update(self.tags)
+        if kwargs.get('include_scale_offset', False):
+            scale, offset = get_scale_offset(img)
+            tags.setdefault('scale', scale)
+            tags.setdefault('offset', offset)
         return img.save(filename, fformat='tif', fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
