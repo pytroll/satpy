@@ -271,6 +271,7 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
     def test_ir_calibrate(self):
         """Test IR calibration."""
         from satpy import DatasetID
+        from satpy.readers.ami_l1b import rad2temp
         ds_id = DatasetID(name='IR087', wavelength=[8.415, 8.59, 8.765],
                           calibration='brightness_temperature')
         ds_info = {
@@ -279,7 +280,9 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
             'standard_name': 'toa_brightness_temperature',
             'units': 'K',
         }
-        res = self.reader.get_dataset(ds_id, ds_info)
+        with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
+            res = self.reader.get_dataset(ds_id, ds_info)
+            r2t_mock.assert_called_once()
         expected = np.array([[238.34385135, 238.31443527, 238.28500087, 238.25554813, 238.22607701],
                              [238.1965875, 238.16707956, 238.13755317, 238.10800829, 238.07844489]])
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True)
@@ -288,7 +291,9 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
 
         # test builtin coefficients
         self.reader.calib_mode = 'FILE'
-        res = self.reader.get_dataset(ds_id, ds_info)
+        with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
+            res = self.reader.get_dataset(ds_id, ds_info)
+            r2t_mock.assert_not_called()
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.04)
         # make sure the attributes from the file are in the data array
