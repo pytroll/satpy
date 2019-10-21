@@ -166,38 +166,6 @@ class NCOLCI1B(NCOLCIChannelBase):
                                        filetype_info)
         self.cal = cal.nc
 
-    def _get_solar_flux_old(self, band):
-        """Get the solar flux."""
-        # TODO: this could be replaced with vectorized indexing in the future.
-        from dask.base import tokenize
-        blocksize = CHUNK_SIZE
-
-        solar_flux = self.cal['solar_flux'].isel(bands=band).values
-        d_index = self.cal['detector_index'].fillna(0).astype(int)
-
-        shape = d_index.shape
-        vchunks = range(0, shape[0], blocksize)
-        hchunks = range(0, shape[1], blocksize)
-
-        token = tokenize(band, d_index, solar_flux)
-        name = 'solar_flux_' + token
-
-        def get_items(array, slices):
-            return solar_flux[d_index[slices].values]
-
-        dsk = {(name, i, j): (get_items,
-                              d_index,
-                              (slice(vcs, min(vcs + blocksize, shape[0])),
-                               slice(hcs, min(hcs + blocksize, shape[1]))))
-               for i, vcs in enumerate(vchunks)
-               for j, hcs in enumerate(hchunks)
-               }
-
-        res = da.Array(dsk, name, shape=shape,
-                       chunks=(blocksize, blocksize),
-                       dtype=solar_flux.dtype)
-        return res
-
     @staticmethod
     def _get_items(idx, solar_flux):
         """Get items."""
