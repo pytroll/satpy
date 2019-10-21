@@ -88,7 +88,7 @@ class NCOLCIBase(BaseFileHandler):
     """The OLCI reader base."""
 
     def __init__(self, filename, filename_info, filetype_info,
-                 engine='netcdf4'):
+                 engine=None):
         """Init the olci reader base."""
         super(NCOLCIBase, self).__init__(filename, filename_info,
                                          filetype_info)
@@ -148,7 +148,7 @@ class NCOLCIChannelBase(NCOLCIBase):
     """Base class for channel reading."""
 
     def __init__(self, filename, filename_info, filetype_info,
-                 engine='netcdf4'):
+                 engine=None):
         """Init the file handler."""
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -160,7 +160,7 @@ class NCOLCI1B(NCOLCIChannelBase):
     """File handler for OLCI l1b."""
 
     def __init__(self, filename, filename_info, filetype_info, cal,
-                 engine='netcdf4'):
+                 engine=None):
         """Init the file handler."""
         super(NCOLCI1B, self).__init__(filename, filename_info,
                                        filetype_info)
@@ -241,7 +241,7 @@ class NCOLCIAngles(BaseFileHandler):
                 'solar_zenith_angle': 'SZA'}
 
     def __init__(self, filename, filename_info, filetype_info,
-                 engine='netcdf4'):
+                 engine=None):
         """Init the file handler."""
         super(NCOLCIAngles, self).__init__(filename, filename_info,
                                            filetype_info)
