@@ -92,7 +92,8 @@ class GACLACFile(BaseFileHandler):
         if self._end_time < self._start_time:
             self._end_time += timedelta(days=1)
         self.platform_id = filename_info['platform_id']
-        if self.platform_id in ['NK', 'NL', 'NM', 'NN', 'NP']:
+        if self.platform_id in ['NK', 'NL', 'NM', 'NN', 'NP', 'M1', 'M2',
+                                'M3']:
             self.reader_class = GACKLMReader
             self.chn_dict = AVHRR3_CHANNEL_NAMES
             self.sensor = 'avhrr-3'
