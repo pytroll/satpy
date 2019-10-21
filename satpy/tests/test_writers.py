@@ -599,16 +599,24 @@ class TestOverlays(unittest.TestCase):
 
     def test_add_overlay_basic_rgb(self):
         """Test basic add_overlay usage with RGB data."""
-        from satpy.writers import add_overlay
+        from satpy.writers import add_overlay, _burn_overlay
         from pycoast import ContourWriterAGG
         coast_dir = '/path/to/coast/data'
-        new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir)
-        self.assertEqual('RGB', new_img.mode)
+        with mock.patch.object(self.orig_rgb_img, "apply_pil") as apply_pil:
+            apply_pil.return_value = self.orig_rgb_img
+            new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir)
+            self.assertEqual(self.orig_rgb_img.mode, new_img.mode)
 
-        overlays = {'coasts': {'outline': 'red'}}
-        new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir,
-                              overlays=overlays)
-        ContourWriterAGG.assert_called_with(coast_dir)
+            overlays = {'coasts': {'outline': 'red'}}
+            new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir,
+                                  overlays=overlays)
+            pil_args = None
+            pil_kwargs = {'fill_value': None}
+            fun_args = (self.orig_rgb_img.data.area, ContourWriterAGG.return_value, overlays)
+            fun_kwargs = None
+            apply_pil.assert_called_with(_burn_overlay, self.orig_rgb_img.mode,
+                                         pil_args, pil_kwargs, fun_args, fun_kwargs)
+            ContourWriterAGG.assert_called_with(coast_dir)
 
     def test_add_overlay_basic_l(self):
         """Test basic add_overlay usage with L data."""

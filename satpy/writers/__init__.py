@@ -177,8 +177,9 @@ def _determine_mode(dataset):
                            str(dataset))
 
 
-def _burn_overlay(img, area, cw_, overlays):
+def _burn_overlay(img, area, cw_, overlays, image_mda=None):
     """Burn the overlay in the image array."""
+    del image_mda
     cw_.add_overlay_from_dict(overlays, area, background=img)
     return img
 
