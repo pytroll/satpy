@@ -15,7 +15,21 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Sentinel-3 OLCI reader."""
+"""Sentinel-3 OLCI reader.
+This reader supports an optional argument to choose the 'engine' for reading
+OLCI netCDF4 files. By default, the 'netcdf4' engine is used. As an
+alternative, the user may wish to use the 'h5netcdf' engine, but that is
+not default as it typically prints many non-fatal but confusing error
+messages to the terminal.
+To choose between engines the user can  do as follows for the default:
+scn = satpyScene(filenames=my_files,
+                 reader='olci_l1b')
+or as follows for the h5netcdf engine:
+scn = Scene(filenames=my_files,
+            reader='olci_l1b'),
+            reader_kwargs={'engine': 'h5netcdf'})
+
+"""
 
 import logging
 from datetime import datetime
