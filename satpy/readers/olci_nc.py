@@ -73,13 +73,15 @@ class BitFlags(object):
 class NCOLCIBase(BaseFileHandler):
     """The OLCI reader base."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 engine='netcdf4'):
         """Init the olci reader base."""
         super(NCOLCIBase, self).__init__(filename, filename_info,
                                          filetype_info)
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
+                                  engine=engine,
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
 
@@ -131,7 +133,8 @@ class NCOLCIGeo(NCOLCIBase):
 class NCOLCIChannelBase(NCOLCIBase):
     """Base class for channel reading."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 engine='netcdf4'):
         """Init the file handler."""
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -142,7 +145,8 @@ class NCOLCIChannelBase(NCOLCIBase):
 class NCOLCI1B(NCOLCIChannelBase):
     """File handler for OLCI l1b."""
 
-    def __init__(self, filename, filename_info, filetype_info, cal):
+    def __init__(self, filename, filename_info, filetype_info, cal,
+                 engine='netcdf4'):
         """Init the file handler."""
         super(NCOLCI1B, self).__init__(filename, filename_info,
                                        filetype_info)
@@ -254,7 +258,8 @@ class NCOLCIAngles(BaseFileHandler):
                 'solar_azimuth_angle': 'SAA',
                 'solar_zenith_angle': 'SZA'}
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 engine='netcdf4'):
         """Init the file handler."""
         super(NCOLCIAngles, self).__init__(filename, filename_info,
                                            filetype_info)
@@ -265,6 +270,7 @@ class NCOLCIAngles(BaseFileHandler):
         self.cache = {}
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
+        self.engine = engine
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -275,6 +281,7 @@ class NCOLCIAngles(BaseFileHandler):
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=True,
+                                      engine=self.engine,
                                       chunks={'tie_columns': CHUNK_SIZE,
                                               'tie_rows': CHUNK_SIZE})
 
