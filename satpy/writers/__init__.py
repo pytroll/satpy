@@ -243,10 +243,7 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
                       " arguments will be deprecated soon. Please use 'overlays' instead.", DeprecationWarning)
     if hasattr(orig_img, 'convert'):
         # image must be in RGB space to work with pycoast/pydecorate
-        if fill_value is None:
-            res_mode = 'RGBA'
-        else:
-            res_mode = ('RGBA' if orig_img.mode.endswith('A') else 'RGB')
+        res_mode = ('RGBA' if orig_img.final_mode(fill_value).endswith('A') else 'RGB')
         orig_img = orig_img.convert(res_mode)
     elif not orig_img.mode.startswith('RGB'):
         raise RuntimeError("'trollimage' 1.6+ required to support adding "
