@@ -120,6 +120,7 @@ class TestGACLACFile(TestCase):
         GACPODReader.return_value.get_qual_flags.return_value = qualflags_ones
         GACPODReader.return_value.get_miss_lines.return_value = miss_lines
         GACPODReader.return_value.get_midnight_scanline.return_value = 'midn_line'
+        GACPODReader.return_value.mask = [0]
 
         res = fh.get_dataset(key, info)
         np.testing.assert_allclose(res.data, ch_ones)
@@ -199,6 +200,7 @@ class TestGACLACFile(TestCase):
 
         # Mock reading
         reader = mock.MagicMock()
+        reader.mask = [0]
         reader.get_lonlat.return_value = lons, lats
         reader.get_times.return_value = acq
         get_channel.return_value = ch
