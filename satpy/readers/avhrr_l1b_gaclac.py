@@ -27,6 +27,7 @@ import logging
 from datetime import datetime, timedelta
 import xarray as xr
 import dask.array as da
+import numpy as np
 from pygac.gac_klm import GACKLMReader
 from pygac.gac_pod import GACPODReader
 import pygac.utils
@@ -116,6 +117,8 @@ class GACLACFile(BaseFileHandler):
                 tle_name=self.tle_name,
                 tle_thresh=self.tle_thresh)
             self.reader.read(self.filename)
+        if np.all(self.reader.mask):
+            raise ValueError('All data is masked out')
 
         if key.name in ['latitude', 'longitude']:
             # Lats/lons are buffered by the reader
