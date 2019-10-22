@@ -177,9 +177,9 @@ def _determine_mode(dataset):
                            str(dataset))
 
 
-def _burn_overlay(img, area, cw_, overlays, image_mda=None):
+def _burn_overlay(img, image_metadata, area, cw_, overlays):
     """Burn the overlay in the image array."""
-    del image_mda
+    del image_metadata
     cw_.add_overlay_from_dict(overlays, area, background=img)
     return img
 
@@ -241,12 +241,14 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
     if any(arg is not None for arg in old_args):
         warnings.warn("'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
                       " arguments will be deprecated soon. Please use 'overlays' instead.", DeprecationWarning)
-
     if hasattr(orig_img, 'convert'):
         # image must be in RGB space to work with pycoast/pydecorate
-        res_mode = ('RGBA' if orig_img.mode.endswith('A') else 'RGB')
-        orig = orig_img.convert(res_mode)
-    elif not orig.mode.startswith('RGB'):
+        if fill_value is None:
+            res_mode = 'RGBA'
+        else:
+            res_mode = ('RGBA' if orig_img.mode.endswith('A') else 'RGB')
+        orig_img = orig_img.convert(res_mode)
+    elif not orig_img.mode.startswith('RGB'):
         raise RuntimeError("'trollimage' 1.6+ required to support adding "
                            "overlays/decorations to non-RGB data.")
 
