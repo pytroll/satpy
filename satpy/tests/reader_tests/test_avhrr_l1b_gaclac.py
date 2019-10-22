@@ -108,6 +108,7 @@ class TestGACLACFile(TestCase):
         acq_ones = np.ones((10, ), dtype='datetime64[us]')
         angle_ones = np.ones((10, 10))
         qualflags_ones = np.ones((10, 7))
+        miss_lines = np.array([1, 2])
 
         # Channel
         key = DatasetID('1')
@@ -117,7 +118,7 @@ class TestGACLACFile(TestCase):
         GACPODReader.return_value.get_times.return_value = acq_ones
         GACPODReader.return_value.get_lonlat.return_value = lon_ones, lat_ones
         GACPODReader.return_value.get_qual_flags.return_value = qualflags_ones
-        GACPODReader.return_value.get_miss_lines.return_value = 'miss_lines'
+        GACPODReader.return_value.get_miss_lines.return_value = miss_lines
         GACPODReader.return_value.get_midnight_scanline.return_value = 'midn_line'
 
         res = fh.get_dataset(key, info)
@@ -126,7 +127,7 @@ class TestGACLACFile(TestCase):
         self.assertTupleEqual(res.dims, ('y', 'x'))
         self.assertEqual(fh.start_time, datetime(1970, 1, 1, 0, 0, 0, 1))
         self.assertEqual(fh.end_time, datetime(1970, 1, 1, 0, 0, 0, 1))
-        self.assertEqual(res.attrs['missing_scanlines'], 'miss_lines')
+        np.testing.assert_array_equal(res.attrs['missing_scanlines'], miss_lines)
         self.assertEqual(res.attrs['midnight_scanline'], 'midn_line')
 
         # Angles
@@ -204,10 +205,10 @@ class TestGACLACFile(TestCase):
         get_angle.return_value = angles
 
         # Test slicing/stripping
-        def slice_patched(data):
+        def slice_patched(data, times):
             if len(data.shape) == 2:
-                return data[1:3, :]
-            return data[1:3]
+                return data[1:3, :], times[1:3]
+            return data[1:3], times[1:3]
 
         slc.side_effect = slice_patched
         kwargs_list = [{'strip_invalid_coords': False,
@@ -225,8 +226,7 @@ class TestGACLACFile(TestCase):
             res = fh.get_dataset(key, info)
             np.testing.assert_array_equal(res.data, ch[1:3, :])
             np.testing.assert_array_equal(res.coords['acq_time'].data, acq[1:3])
-            self.assertEqual(fh.start_time, datetime(1970, 1, 1, 0, 0, 0, 2))
-            self.assertEqual(fh.end_time, datetime(1970, 1, 1, 0, 0, 0, 3))
+            slc.assert_called_with(data=ch, times=acq)
 
         # Renaming of coordinates if interpolation is switched off
         fh = self._get_fh(interpolate_coords=False)
@@ -280,9 +280,31 @@ class TestGACLACFile(TestCase):
         fh._strip_invalid_lat()
         pygac.utils.strip_invalid_lat.assert_called_once()
 
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._slice')
+    def test_slice(self, _slice):
+        """Test slicing."""
+        def slice_patched(data):
+            if len(data.shape) == 2:
+                return data[1:3, :], 'midn_line', np.array([1., 2., 3.])
+            return data[1:3], 'foo', np.array([0, 0, 0])
+
+        _slice.side_effect = slice_patched
+        data = np.zeros((4, 2))
+        times = np.array([1, 2, 3, 4], dtype='datetime64[us]')
+
+        fh = self._get_fh()
+        data_slc, times_slc = fh.slice(data, times)
+        np.testing.assert_array_equal(data_slc, data[1:3])
+        np.testing.assert_array_equal(times_slc, times[1:3])
+        self.assertEqual(fh.start_time, datetime(1970, 1, 1, 0, 0, 0, 2))
+        self.assertEqual(fh.end_time, datetime(1970, 1, 1, 0, 0, 0, 3))
+        self.assertEqual(fh.midnight_scanline, 'midn_line')
+        np.testing.assert_array_equal(fh.missing_scanlines, np.array([1, 2, 3]))
+        self.assertEqual(fh.missing_scanlines.dtype, int)
+
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_qual_flags')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._strip_invalid_lat')
-    def test_slice(self, strip_invalid_lat, get_qual_flags):
+    def test__slice(self, strip_invalid_lat, get_qual_flags):
         """Test slicing."""
         import pygac.utils
         pygac.utils.check_user_scanlines.return_value = 1, 2
@@ -294,8 +316,10 @@ class TestGACLACFile(TestCase):
 
         # a) Only start/end line given
         fh = self._get_fh(start_line=5, end_line=6, strip_invalid_coords=False)
-        res = fh.slice(data)
-        self.assertEqual(res, 'sliced')
+        data_slc, midn_line, miss_lines = fh._slice(data)
+        self.assertEqual(data_slc, 'sliced')
+        self.assertEqual(midn_line, 'midn_line')
+        self.assertEqual(miss_lines, 'miss_lines')
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,
             first_valid_lat=None, last_valid_lat=None, along_track=2)
@@ -303,19 +327,17 @@ class TestGACLACFile(TestCase):
             data, start_line=1, end_line=2,
             first_valid_lat=None, last_valid_lat=None,
             midnight_scanline=None, miss_lines=None, qual_flags='qual_flags')
-        self.assertEqual(fh.midnight_scanline, 'midn_line')
-        self.assertEqual(fh.missing_scanlines, 'miss_lines')
 
         # b) Only strip_invalid_coords=True
         fh = self._get_fh(strip_invalid_coords=True)
-        fh.slice(data)
+        fh._slice(data)
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=0, end_line=0,
             first_valid_lat=3, last_valid_lat=4, along_track=2)
 
         # c) Both
         fh = self._get_fh(start_line=5, end_line=6, strip_invalid_coords=True)
-        fh.slice(data)
+        fh._slice(data)
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,
             first_valid_lat=3, last_valid_lat=4, along_track=2)
