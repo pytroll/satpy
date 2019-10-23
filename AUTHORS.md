@@ -9,6 +9,7 @@ The following people have made contributions to this project:
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
 - [Barry Baker (bbakernoaa)](https://github.com/bbakernoaa)
+- [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
@@ -19,7 +20,7 @@ The following people have made contributions to this project:
 - [Ulrik Egede (egede)](https://github.com/egede)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens)
-- [Nina Håkansson](https://github.com/)
+- [Nina Håkansson (ninahakansson)](https://github.com/ninahakansson)
 - [Ulrich Hamann](https://github.com/)
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [David Hoese (djhoese)](https://github.com/djhoese)
@@ -44,6 +45,7 @@ The following people have made contributions to this project:
 - [Kristian Rune Larsen](https://github.com/)
 - [RutgerK (RutgerK)](https://github.com/RutgerK)
 - Marco Sassi - meteoswiss
+- [Stefan Scheiblauer (StefanSnippetCoder)](https://github.com/StefanSnippetCoder)
 - [Ronald Scheirer](https://github.com/)
 - [Hauke Schulz (observingClouds)](https://github.com/observingClouds)
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
@@ -51,3 +53,6 @@ The following people have made contributions to this project:
 - [hazbottles (hazbottles)](https://github.com/hazbottles)
 - [oananicola (oananicola)](https://github.com/oananicola)
 - [praerien (praerien)](https://github.com/praerien)
+- [Xin Zhang (zxdawn)](https://github.com/zxdawn)
+- [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
+

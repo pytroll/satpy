@@ -35,6 +35,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
+from satpy.config import get_environ_ancpath
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
@@ -390,7 +391,7 @@ class SunZenithCorrectorBase(CompositeBase):
             # we were not given SZA, generate SZA then calculate cos(SZA)
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
-            lons, lats = vis.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
+            lons, lats = vis.attrs["area"].get_lonlats(chunks=CHUNK_SIZE)
 
             coords = {}
             if 'y' in vis.coords and 'x' in vis.coords:
@@ -511,9 +512,7 @@ class PSPRayleighReflectance(CompositeBase):
         from pyorbital.astronomy import get_alt_az, sun_zenith_angle
         from pyorbital.orbital import get_observer_look
 
-        lons, lats = vis.attrs['area'].get_lonlats_dask(
-            chunks=vis.data.chunks)
-
+        lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
         sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
         suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
@@ -634,7 +633,7 @@ class NIRReflectance(CompositeBase):
         if sun_zenith is None:
             if sun_zenith_angle is None:
                 raise ImportError("No module named pyorbital.astronomy")
-            lons, lats = _nir.attrs["area"].get_lonlats_dask(CHUNK_SIZE)
+            lons, lats = _nir.attrs["area"].get_lonlats(chunks=CHUNK_SIZE)
             sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
 
         return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
@@ -681,7 +680,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
             satz = optional_datasets[0]
         else:
             from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats_dask(CHUNK_SIZE)
+            lons, lats = band.attrs['area'].get_lonlats(chunks=CHUNK_SIZE)
             sat_lon, sat_lat, sat_alt = get_satpos(band)
             try:
                 dummy, satel = get_observer_look(sat_lon,
@@ -749,6 +748,32 @@ class DifferenceCompositor(CompositeBase):
         return proj
 
 
+class SingleBandCompositor(CompositeBase):
+    """Basic single-band composite builder.
+
+    This preserves all the attributes of the dataset it is derived from.
+    """
+
+    def __call__(self, projectables, nonprojectables=None, **attrs):
+        """Build the composite."""
+        if len(projectables) != 1:
+            raise ValueError("Can't have more than one band in a single-band composite")
+
+        data = projectables[0]
+        new_attrs = data.attrs.copy()
+
+        new_attrs.update({key: val
+                          for (key, val) in attrs.items()
+                          if val is not None})
+        resolution = new_attrs.get('resolution', None)
+        new_attrs.update(self.attrs)
+        if resolution is not None:
+            new_attrs['resolution'] = resolution
+
+        return xr.DataArray(data=data.data, attrs=new_attrs,
+                            dims=data.dims, coords=data.coords)
+
+
 class GenericCompositor(CompositeBase):
     """Basic colored composite builder."""
 
@@ -760,9 +785,21 @@ class GenericCompositor(CompositeBase):
         Args:
             common_channel_mask (bool): If True, mask all the channels with
                 a mask that combines all the invalid areas of the given data.
+
         """
         self.common_channel_mask = common_channel_mask
         super(GenericCompositor, self).__init__(name, **kwargs)
+
+    @classmethod
+    def infer_mode(cls, data_arr):
+        """Guess at the mode for a particular DataArray."""
+        if 'mode' in data_arr.attrs:
+            return data_arr.attrs['mode']
+        if 'bands' not in data_arr.dims:
+            return cls.modes[1]
+        if 'bands' in data_arr.coords and isinstance(data_arr.coords['bands'][0], str):
+            return ''.join(data_arr.coords['bands'].values)
+        return cls.modes[data_arr.sizes['bands']]
 
     def _concat_datasets(self, projectables, mode):
         try:
@@ -823,7 +860,10 @@ class GenericCompositor(CompositeBase):
         new_attrs.update({key: val
                           for (key, val) in attrs.items()
                           if val is not None})
+        resolution = new_attrs.get('resolution', None)
         new_attrs.update(self.attrs)
+        if resolution is not None:
+            new_attrs['resolution'] = resolution
         new_attrs["sensor"] = self._get_sensors(projectables)
         new_attrs["mode"] = mode
 
@@ -836,6 +876,7 @@ class FillingCompositor(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
         projectables[1] = projectables[1].fillna(projectables[0])
         projectables[2] = projectables[2].fillna(projectables[0])
         projectables[3] = projectables[3].fillna(projectables[0])
@@ -847,8 +888,9 @@ class Filler(GenericCompositor):
 
     def __call__(self, projectables, nonprojectables=None, **info):
         """Generate the composite."""
-        projectables[0] = projectables[0].fillna(projectables[1])
-        return super(Filler, self).__call__([projectables[0]], **info)
+        projectables = self.match_data_arrays(projectables)
+        filled_projectable = projectables[0].fillna(projectables[1])
+        return super(Filler, self).__call__([filled_projectable], **info)
 
 
 class RGBCompositor(GenericCompositor):
@@ -968,6 +1010,7 @@ class DayNightCompositor(GenericCompositor):
                              blending of the given channels
             lim_high (float): upper limit of Sun zenith angle for the
                              blending of the given channels
+
         """
         self.lim_low = lim_low
         self.lim_high = lim_high
@@ -992,7 +1035,7 @@ class DayNightCompositor(GenericCompositor):
                 chunks = day_data.sel(bands=day_data['bands'][0]).chunks
             except KeyError:
                 chunks = day_data.chunks
-            lons, lats = day_data.attrs["area"].get_lonlats_dask(chunks)
+            lons, lats = day_data.attrs["area"].get_lonlats(chunks=chunks)
             coszen = xr.DataArray(cos_zen(day_data.attrs["start_time"],
                                           lons, lats),
                                   dims=['y', 'x'],
@@ -1037,7 +1080,10 @@ def enhance2dataset(dset):
     # Clip image data to interval [0.0, 1.0]
     data = img.data.clip(0.0, 1.0)
     data.attrs = attrs
-
+    # remove 'mode' if it is specified since it may have been updated
+    data.attrs.pop('mode', None)
+    # update mode since it may have changed (colorized/palettize)
+    data.attrs['mode'] = GenericCompositor.infer_mode(data)
     return data
 
 
@@ -1166,7 +1212,7 @@ class RatioSharpenedRGB(GenericCompositor):
     footprint. Note that the input data to this compositor must already be
     resampled so all data arrays are the same shape.
 
-    Example:
+    Example::
 
         R_lo -  1000m resolution - shape=(2000, 2000)
         G - 1000m resolution - shape=(2000, 2000)
@@ -1287,7 +1333,7 @@ def _mean4(data, offset=(0, 0), block_id=None):
 class SelfSharpenedRGB(RatioSharpenedRGB):
     """Sharpen RGB with ratio of a band with a strided-version of itself.
 
-    Example:
+    Example::
 
         R -  500m resolution - shape=(4000, 4000)
         G - 1000m resolution - shape=(2000, 2000)
@@ -1382,7 +1428,12 @@ class SandwichCompositor(GenericCompositor):
 
 
 class StaticImageCompositor(GenericCompositor):
-    """A compositor that loads a static image from disk."""
+    """A compositor that loads a static image from disk.
+
+    If the filename passed to this compositor is not valid then
+    the SATPY_ANCPATH environment variable will be checked to see
+    if the image is located there
+    """
 
     def __init__(self, name, filename=None, area=None, **kwargs):
         """Collect custom configuration values.
@@ -1391,6 +1442,7 @@ class StaticImageCompositor(GenericCompositor):
             filename (str): Filename of the image to load
             area (str): Name of area definition for the image.  Optional
                         for images with built-in area definitions (geotiff)
+
         """
         if filename is None:
             raise ValueError("No image configured for static image compositor")
@@ -1403,7 +1455,13 @@ class StaticImageCompositor(GenericCompositor):
         super(StaticImageCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, *args, **kwargs):
+        """Call the compositor."""
         from satpy import Scene
+        # Check if filename exists, if not then try from SATPY_ANCPATH
+        if not os.path.isfile(self.filename):
+            tmp_filename = os.path.join(get_environ_ancpath(), self.filename)
+            if os.path.isfile(tmp_filename):
+                self.filename = tmp_filename
         scn = Scene(reader='generic_image', filenames=[self.filename])
         scn.load(['image'])
         img = scn['image']
@@ -1411,8 +1469,8 @@ class StaticImageCompositor(GenericCompositor):
         # most important: set 'name' of the image
         img.attrs.update(self.attrs)
         # Check for proper area definition.  Non-georeferenced images
-        # have None as .ndim
-        if img.area.ndim is None:
+        # do not have `area` in the attributes
+        if 'area' not in img.attrs:
             if self.area is None:
                 raise AttributeError("Area definition needs to be configured")
             img.attrs['area'] = self.area
@@ -1435,7 +1493,8 @@ class BackgroundCompositor(GenericCompositor):
     """A compositor that overlays one composite on top of another."""
 
     def __call__(self, projectables, *args, **kwargs):
-        projectables = self.check_areas(projectables)
+        """Call the compositor."""
+        projectables = self.match_data_arrays(projectables)
 
         # Get enhanced datasets
         foreground = enhance2dataset(projectables[0])
@@ -1450,9 +1509,12 @@ class BackgroundCompositor(GenericCompositor):
 
         # Get merged metadata
         attrs = combine_metadata(foreground, background)
+        if attrs.get('sensor') is None:
+            # sensor can be a set
+            attrs['sensor'] = self._get_sensors(projectables)
 
         # Stack the images
-        if 'A' in foreground.mode:
+        if 'A' in foreground.attrs['mode']:
             # Use alpha channel as weight and blend the two composites
             alpha = foreground.sel(bands='A')
             data = []
@@ -1470,6 +1532,5 @@ class BackgroundCompositor(GenericCompositor):
             data = [data.sel(bands=b) for b in data['bands']]
 
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
-        res.attrs['area'] = attrs['area']
-
+        res.attrs.update(attrs)
         return res
