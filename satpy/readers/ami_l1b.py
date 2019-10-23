@@ -137,7 +137,7 @@ class AMIL1bNetCDF(BaseFileHandler):
             'projection_altitude': h,
             'satellite_actual_longitude': sc_position[0],
             'satellite_actual_latitude': sc_position[1],
-            'satellite_actual_altitude': sc_position[2] / 1000.0,  # km
+            'satellite_actual_altitude': sc_position[2],  # meters
         }
         return orbital_parameters
 

@@ -141,7 +141,7 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
             'projection_altitude': 35785863.0,
             'projection_latitude': 0.0,
             'projection_longitude': 128.2,
-            'satellite_actual_altitude': 35782.65456070405,
+            'satellite_actual_altitude': 35782654.56070405,
             'satellite_actual_latitude': 0.005364927,
             'satellite_actual_longitude': 128.2707,
         }
