@@ -249,16 +249,17 @@ latex_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None),
-    'numpy': ('https://docs.scipy.org/doc/numpy', None),
-    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
-    'xarray': ('https://xarray.pydata.org/en/stable', None),
     'dask': ('https://docs.dask.org/en/latest', None),
-    'jobqueue': ('https://jobqueue.dask.org/en/latest', None),
-    'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
-    'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
-    'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
-    'pydecorate': ('https://pydecorate.readthedocs.io/en/stable', None),
     'geoviews': ('http://geoviews.org', None),
-    'pyproj': ('https://pyproj4.github.io/pyproj/dev', None)
+    'jobqueue': ('https://jobqueue.dask.org/en/latest', None),
+    'numpy': ('https://docs.scipy.org/doc/numpy', None),
+    'pydecorate': ('https://pydecorate.readthedocs.io/en/stable', None),
+    'pyorbital': ('https://pyorbital.readthedocs.io/en/stable', None),
+    'pyproj': ('https://pyproj4.github.io/pyproj/dev', None),
+    'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
+    'python': ('https://docs.python.org/3', None),
+    'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
+    'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
+    'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
+    'xarray': ('https://xarray.pydata.org/en/stable', None)
 }
