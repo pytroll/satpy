@@ -131,15 +131,15 @@ following attributes are standardized across all readers:
     * ``satellite_actual_longitude/latitude/altitude``: Current position of the satellite at the
       time of observation in geodetic coordinates (i.e. altitude is relative and normal to the
       surface of the ellipsoid).
-    * ``satellite_nominal_longitude/latitude/altitude``: Centre of the station keeping box (a
+    * ``satellite_nominal_longitude/latitude/altitude``: Center of the station keeping box (a
       confined area in which the satellite is actively maintained in using maneuvres). Inbetween
       major maneuvres, when the satellite is permanently moved, the nominal position is constant.
     * ``nadir_longitude/latitude``: Intersection of the instrument's Nadir with the surface of the
-      earth. May differ from the actual satellite position, if the instrument is poiting slightly
-      off the axis (satellite, earth-centre). If available, this should be used to compute viewing
+      earth. May differ from the actual satellite position, if the instrument is pointing slightly
+      off the axis (satellite, earth-center). If available, this should be used to compute viewing
       angles etc. Otherwise, use the actual satellite position.
-    * ``projection_longitude/latitude/altitude``: Projection centre of the re-projected data. This
-      should be used to compute lat/lon coordinates. Note that the projection centre can differ
+    * ``projection_longitude/latitude/altitude``: Projection center of the re-projected data. This
+      should be used to compute lat/lon coordinates. Note that the projection center can differ
       considerably from the actual satellite position. For example MSG-1 was at times positioned
       at 3.4 degrees west, while the image data was re-projected to 0 degrees.
     * [DEPRECATED] ``satellite_longitude/latitude/altitude``: Current position of the satellite at
