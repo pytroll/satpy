@@ -9,6 +9,7 @@ The following people have made contributions to this project:
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
 - [Barry Baker (bbakernoaa)](https://github.com/bbakernoaa)
+- [Jonathan Beavers (jon4than)](https://github.com/jon4than)
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
