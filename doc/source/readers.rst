@@ -114,16 +114,17 @@ Metadata
 
 .. _dataset_metadata:
 
-The datasets held by a scene also provide vital metadata such as dataset name, units, observation time etc. The
-following attributes are standardized across all readers:
+The datasets held by a scene also provide vital metadata such as dataset name, units, observation
+time etc. The following attributes are standardized across all readers:
 
-* ``name``, ``wavelength``, ``resolution``, ``polarization``, ``calibration``, ``level``, ``modifiers``: See
-  :class:`satpy.dataset.DatasetID`.
+* ``name``, ``wavelength``, ``resolution``, ``polarization``, ``calibration``, ``level``,
+  ``modifiers``: See :class:`satpy.dataset.DatasetID`.
 * ``start_time``: Left boundary of the time interval covered by the dataset.
 * ``end_time``: Right boundary of the time interval covered by the dataset.
-* ``area``: :class:`~pyresample.geometry.AreaDefinition` or :class:`~pyresample.geometry.SwathDefinition` if
-  if data is geolocated. Areas are used for gridded projected data and Swaths when data must be
-  described by individual longitude/latitude coordinates. See the Coordinates section below.
+* ``area``: :class:`~pyresample.geometry.AreaDefinition` or
+  :class:`~pyresample.geometry.SwathDefinition` if data is geolocated. Areas are used for gridded
+  projected data and Swaths when data must be described by individual longitude/latitude
+  coordinates. See the Coordinates section below.
 * ``orbital_parameters``: Dictionary of orbital parameters describing the satellite's position.
 
   * For *geostationary* satellites it is described using the following scalar attributes:
@@ -149,8 +150,8 @@ following attributes are standardized across all readers:
               pyorbital, the altitude has to be converted to kilometers, see for example
               :func:`pyorbital.orbital.get_observer_look`.
 
-  * For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of the swath as
-    ancillary datasets. Additional metadata related to the satellite position include:
+  * For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of
+    the swath as ancillary datasets. Additional metadata related to the satellite position include:
 
       * ``tle``: Two-Line Element (TLE) set used to compute the satellite's orbit
 
