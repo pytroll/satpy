@@ -147,7 +147,7 @@ following attributes are standardized across all readers:
 
     .. note:: Longitudes and latitudes are given in degrees, altitude in meters. For use in
               pyorbital, the altitude has to be converted to kilometers, see for example
-              `get_observer_look`_.
+              :func:`pyorbital.orbital.get_observer_look`.
 
   * For *polar orbiting* satellites the readers usually provide coordinates and viewing angles of the swath as
     ancillary datasets. Additional metadata related to the satellite position include:
@@ -157,8 +157,6 @@ following attributes are standardized across all readers:
 * ``raw_metadata``: Raw, unprocessed metadata from the reader.
 
 Note that the above attributes are not necessarily available for each dataset.
-
-.. _get_observer_look: https://pyorbital.readthedocs.io/en/latest/#pyorbital.orbital.get_observer_look
 
 Coordinates
 ===========
