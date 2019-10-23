@@ -1,0 +1,153 @@
+sensor_name: visir/ami
+
+composites:
+  green_raw:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    prerequisites:
+      - name: VI005
+        modifiers: [sunz_corrected]
+      - name: VI008
+        modifiers: [sunz_corrected]
+    standard_name: toa_bidirectional_reflectance
+    fractions: [0.85, 0.15]
+
+  green:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    prerequisites:
+      - name: VI005
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: VI008
+        modifiers: [sunz_corrected]
+    standard_name: toa_bidirectional_reflectance
+    fractions: [0.85, 0.15]
+
+  true_color_raw:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: VI006
+        modifiers: [sunz_corrected]
+      - name: green_raw
+      - name: VI004
+        modifiers: [sunz_corrected]
+    standard_name: true_color
+
+  true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: VI006
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green
+      - name: VI004
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color
+
+  overview:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - 0.65
+      - 0.85
+      - 10.4
+    standard_name: overview
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: NR016
+        modifiers: [sunz_corrected] #, rayleigh_corrected]
+      - name: VI008
+        modifiers: [sunz_corrected] #, rayleigh_corrected]
+      - name: VI006
+        modifiers: [sunz_corrected] #, rayleigh_corrected]
+    high_resolution_band: blue
+    standard_name: natural_color
+
+  day_microphysics_eum:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 0.86
+      - wavelength: 3.9
+        modifiers: [nir_reflectance]
+      - wavelength: 10.4
+    standard_name: day_microphysics
+
+  cloud_phase_distinction:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 10.4
+      - wavelength: 0.64
+      - wavelength: 1.6
+    standard_name: cloud_phase_distinction
+
+  water_vapors1:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - wavelength: 10.4
+      - wavelength: 6.2
+      - wavelength: 7.3
+    standard_name: water_vapors1
+
+  mid_vapor:
+    compositor: !!python/name:satpy.composites.DifferenceCompositor
+    prerequisites:
+      - wavelength: 7.3
+      - wavelength: 6.2
+    standard_name: mid_vapor
+
+  water_vapors2:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: mid_vapor
+      - wavelength: 7.3
+      - wavelength: 6.2
+    standard_name: water_vapors2
+
+  convection:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - WV069
+          - WV073
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - SW038
+          - IR105
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - NR016
+          - VI006
+    standard_name: convection
+
+  ir_cloud_day:
+    standard_name: ir_cloud_day
+    compositor: !!python/name:satpy.composites.CloudCompositor
+    prerequisites:
+      - name: IR112
+
+  airmass:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: WV063
+          - name: WV073
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: IR096
+          - name: IR105
+      - name: WV063
+    standard_name: airmass
+
+  ash:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - IR123
+          - IR112
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - IR112
+          - IR087
+      - IR112
+    standard_name: ash
