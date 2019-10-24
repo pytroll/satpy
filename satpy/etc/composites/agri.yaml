@@ -1,0 +1,26 @@
+sensor_name: visir/agri
+
+composites:
+  green:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    - name: C01
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: C03
+      modifiers: [sunz_corrected]
+    standard_name: toa_bidirectional_reflectance
+
+  true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C02
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    - name: green
+    - name: C01
+      modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: true_color

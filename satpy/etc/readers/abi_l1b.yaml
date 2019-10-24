@@ -4,9 +4,14 @@
 # Note: Channels < 3 microns have different units than channels > 3 microns
 
 reader:
-  # PUG: https://www.goes-r.gov/users/docs/PUG-L1b-vol3.pdf
-  description: NC Reader for ABI data
   name: abi_l1b
+  short_name: ABI L1b
+  long_name: GOES-R ABI Level 1b
+  description: >
+    GOES-R ABI Level 1b data reader in the NetCDF4 format. The file format is
+    described in the GOES-R Product Definition and Users' Guide (PUG). Volume
+    4 of this document can be found
+    `here <https://www.goes-r.gov/users/docs/PUG-GRB-vol4.pdf>`_.
   sensors: [abi]
   default_channels:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader

@@ -1,33 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017, 2018 PyTroll Community
-
-# Author(s):
-
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Sauli.Joro <sauli.joro@eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# Copyright (c) 2017-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Utilities and eventually also base classes for MSG HRIT/Native data reading
 """
 
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
-import xarray.ufuncs as xu
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
@@ -301,7 +294,7 @@ class SEVIRICalibrationHandler(object):
         """Compute the L15 temperature."""
 
         return ((C2 * wavenumber) /
-                xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
+                np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
     def _vis_calibrate(self, data, solar_irradiance):
         """Calibrate to reflectance."""

@@ -1,26 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2014-2018 Pytroll developpers
-
-# Author(s):
-
-#   Andrew Brooks
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# Copyright (c) 2014-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """GOES HRIT format reader
 ****************************
 
@@ -389,6 +383,9 @@ class HRITGOESFileHandler(HRITFileHandler):
         res.attrs = new_attrs
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'goes_imager'
+        res.attrs['orbital_parameters'] = {'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+                                           'projection_latitude': 0.0,
+                                           'projection_altitude': ALTITUDE}
         return res
 
     def _get_calibration_params(self):
@@ -437,7 +434,7 @@ class HRITGOESFileHandler(HRITFileHandler):
                            dims=data.dims, attrs=data.attrs,
                            coords=data.coords)
         res = res.clip(min=0)
-        units = {'percent': '%'}
+        units = {b'percent': '%', b'degree Kelvin': 'K'}
         unit = self.mda['calibration_parameters'][b'_UNIT']
         res.attrs['units'] = units.get(unit, unit)
         return res

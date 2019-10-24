@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018 PyTroll developers
-
+# Copyright (c) 2018 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Reader for GOES 8-15 imager data in netCDF format from NOAA CLASS
    Also handles GOES 15 data in netCDF format reformated by Eumetsat
 
@@ -194,7 +193,6 @@ import re
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 
 import pyresample.geometry
 from satpy import CHUNK_SIZE
@@ -651,7 +649,7 @@ class GOESNCBaseFileHandler(BaseFileHandler):
             Mask (1=earth, 0=space)
         """
         logger.debug('Computing earth mask')
-        return xu.fabs(lat) <= 90
+        return np.fabs(lat) <= 90
 
     @staticmethod
     def _get_nadir_pixel(earth_mask, sector):
@@ -873,11 +871,11 @@ class GOESNCBaseFileHandler(BaseFileHandler):
 
         # Compute brightness temperature using inverse Planck formula
         n = coefs['n']
-        bteff = C2 * n / xu.log(1 + C1 * n**3 / radiance.where(radiance > 0))
+        bteff = C2 * n / np.log(1 + C1 * n ** 3 / radiance.where(radiance > 0))
         bt = xr.DataArray(bteff * coefs['b'] + coefs['a'])
 
         # Apply BT threshold
-        return bt.where(xu.logical_and(bt >= coefs['btmin'],
+        return bt.where(np.logical_and(bt >= coefs['btmin'],
                                        bt <= coefs['btmax']))
 
     @staticmethod
@@ -934,12 +932,12 @@ class GOESNCBaseFileHandler(BaseFileHandler):
         if 'file_type' in data.attrs:
             data.attrs.pop('file_type')
 
-        # Metadata discovered from the file
+        # Metadata discovered from the file.
         data.attrs.update(
             {'platform_name': self.platform_name,
              'sensor': self.sensor,
              'sector': self.sector,
-             'yaw_flip': self.meta['yaw_flip']}
+             'orbital_parameters': {'yaw_flip': self.meta['yaw_flip']}}
         )
         if self.meta['lon0'] is not None:
             # Attributes only available for full disc images. YAML reader
@@ -951,6 +949,11 @@ class GOESNCBaseFileHandler(BaseFileHandler):
                  'nadir_row': self.meta['nadir_row'],
                  'nadir_col': self.meta['nadir_col'],
                  'area_def_uniform_sampling': self.meta['area_def_uni']}
+            )
+            data.attrs['orbital_parameters'].update(
+                {'projection_longitude': self.meta['lon0'],
+                 'projection_latitude': self.meta['lat0'],
+                 'projection_altitude': ALTITUDE}
             )
 
     def __del__(self):
