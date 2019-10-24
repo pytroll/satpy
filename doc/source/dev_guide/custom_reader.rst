@@ -391,8 +391,8 @@ needs to implement a few methods:
    - the dataset info that is the description of the channel in the YAML file
 
   This method has to return an xarray.DataArray instance if the loading is
-  successful, containing the data and metadata of the loaded dataset, or
-  return None if the loading was unsuccessful.
+  successful, containing the data and :ref:`metadata <dataset_metadata>` of the
+  loaded dataset, or return None if the loading was unsuccessful.
 
  - the ``get_area_def`` method, that takes as single argument the dataset ID for which we want
    the area. For the data that cannot be geolocated with an area

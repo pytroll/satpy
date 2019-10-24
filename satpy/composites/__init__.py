@@ -508,7 +508,7 @@ class PSPRayleighReflectance(CompositeBase):
     _rayleigh_cache = WeakValueDictionary()
 
     def get_angles(self, vis):
-        """Get the sun and satellite angles fro the current dataarray."""
+        """Get the sun and satellite angles from the current dataarray."""
         from pyorbital.astronomy import get_alt_az, sun_zenith_angle
         from pyorbital.orbital import get_observer_look
 
@@ -521,7 +521,7 @@ class PSPRayleighReflectance(CompositeBase):
         sata, satel = get_observer_look(
             sat_lon,
             sat_lat,
-            sat_alt,
+            sat_alt / 1000.0,  # km
             vis.attrs['start_time'],
             lons, lats, 0)
         satz = 90 - satel
@@ -685,7 +685,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
             try:
                 dummy, satel = get_observer_look(sat_lon,
                                                  sat_lat,
-                                                 sat_alt,
+                                                 sat_alt / 1000.0,  # km
                                                  band.attrs['start_time'],
                                                  lons, lats, 0)
             except KeyError:
