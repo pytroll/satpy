@@ -30,17 +30,23 @@ from satpy.resample import get_area_def
 import eccodes as ec
 
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger('BufrProductClasses')
 
 
 sub_sat_dict = {"E0000": 0.0, "E0415": 41.5, "E0095": 9.5}
 seg_area_dict = {"E0000": 'seviri_0deg', "E0415": 'seviri_iodc', "E0095": 'seviri_rss'}
+seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
+                 'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
+                 'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
 
 
 class MSGBUFRFileHandler(BaseFileHandler):
-    """File handler for MSG BUFR data"""
+    """File handler for MSG BUFR data."""
+
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
+        """Initialise the File handler for MSG BUFR data."""
         super(MSGBUFRFileHandler, self).__init__(filename,
                                                  filename_info,
                                                  filetype_info)
@@ -49,138 +55,42 @@ class MSGBUFRFileHandler(BaseFileHandler):
         self.rc_start = filename_info['start_time']
         self.filename = filename
         self.mda = {}
-
         self.ssp_lon = sub_sat_dict[filename_info['subsat']]
 
-        # use the following keys to determine the segment size
-        # for future non mpef bufr files maybe we need to use an index here?
-        segw = self.get_attribute('#1#segmentSizeAtNadirInXDirection', 1)/3000
-        segh = self.get_attribute('#1#segmentSizeAtNadirInYDirection', 1)/3000
-
-        # here we get the latiude and longitude arrays used for the segment geolocation
+        seg_size = seg_size_dict[filetype_info['file_type']]
+        # here we get the latitude and longitude arrays used for the
+        # segment geolocation
         lats = self.get_array('latitude')
         lons = self.get_array('longitude')
 
-        # Use the subsat point to determine the area definition to use for the geo location
+        # Use the subsat point to determine the area definition to use for
+        # the geo location
         # reset the wight and height based on the segment size
         adef = get_area_def(seg_area_dict[self.subsat])
-        adef.height = int(3712/segh)
-        adef.width = int(3712/segw)
+        adef.height = int(3712/seg_size)
+        adef.width = int(3712/seg_size)
+
         # convert the lons/lats to rows and columns
-        self.rows, self.cols = adef.lonlat2colrow(lons, lats)
-
-        # Some bufr products may return a list of segment sizes so we use the largest
-        # one to then calculate the number of lines and columns
-        if isinstance(segw, (list, np.ndarray)):
-            self.Nx = int(np.ceil(3712.0/max(segw)))
-        else:
-            self.Nx = int(np.ceil(3712.0/segw))
-
-        if isinstance(segh, (list, np.ndarray)):
-            self.Ny = int(np.ceil(3712.0/max(segh)))
-        else:
-            self.Ny = int(np.ceil(3712.0/segh))
-
-    @property
-    def keys(self):
-        """Get all of the keys present in the BUFR file"""
-        fh = open(self.filename)
-
-        bufr = ec.codes_bufr_new_from_file(fh)
-        ec.codes_set(bufr, 'unpack', 1)
-
-        key_arr = []
-        iterid = ec.codes_bufr_keys_iterator_new(bufr)
-        while ec.codes_bufr_keys_iterator_next(iterid):
-            key_arr.append(ec.codes_bufr_keys_iterator_get_name(iterid))
-        ec.codes_bufr_keys_iterator_delete(iterid)
-        ec.codes_release(bufr)
-
-        fh.close()
-        return key_arr
+        # compute is required as the lonlat2colrow function is not dask ready
+        self.rows, self.cols = adef.lonlat2colrow(lons.compute(), lats.compute())
+        self.nrows = int(np.ceil(3712.0/seg_size))
+        self.ncols = int(np.ceil(3712.0/seg_size))
 
     @property
     def start_time(self):
+        """Return the repeat cycle start time."""
         return self.rc_start
 
     @property
     def end_time(self):
+        """Return the repeat cycle end time."""
         return self.rc_start+timedelta(minutes=15)
 
-    def get_array(self, parameter, mnbr=None):
-        ''' Get ancilliary array data eg latitudes and longitudes '''
-
-        with open(self.filename) as fh:
-            fh = open(self.filename)
-
-            if mnbr is not None:
-                bufr = ec.codes_bufr_new_from_file(fh)
-                ec.codes_set(bufr, 'unpack', 1)
-                arr = ec.codes_get_array(bufr, parameter)
-                ec.codes_release(bufr)
-
-            else:
-                msgCount = 0
-                while True:
-
-                    bufr = ec.codes_bufr_new_from_file(fh)
-                    if bufr is None:
-                        break
-
-                    ec.codes_set(bufr, 'unpack', 1)
-                    # if is the first message initialise our final array with
-                    # the number of subsets contained in the first message
-                    if (msgCount == 0):
-                        arr = np.zeros(ec.codes_get(bufr, 'numberOfSubsets'), np.float)
-                        arr[:] = ec.codes_get_array(bufr, parameter, float)
-
-                    else:
-                        tmpArr = np.zeros(ec.codes_get(bufr, 'numberOfSubsets'), np.float)
-                        tmpArr[:] = ec.codes_get_array(bufr, parameter, float)
-                        arr = np.concatenate((arr, tmpArr))
-
-                    msgCount = msgCount+1
-                    ec.codes_release(bufr)
-
-        fh.close()
-        if arr.size == 1:
-            arr = arr[0]
-
-        return arr
-
-    def get_attribute(self, parameter, mnbr=None):
-        ''' Get BUFR attributes '''
-
-        fh = open(self.filename, "rb")
-
-        if mnbr is not None:
-            bufr = ec.codes_bufr_new_from_file(fh)
-            ec.codes_set(bufr, 'unpack', 1)
-            arr = ec.codes_get_array(bufr, parameter)
-            ec.codes_release(bufr)
-
-        fh.close()
-
-        if arr.size == 1:
-            arr = arr[0]
-
-        return arr
-
-    def get_dataset(self, dsid, info):
-        ''' here we loop through the BUFR file and for the required key
-        append the data vlues to the dataset area'''
-
-        arr2 = np.empty((self.Ny, self.Nx)).astype(np.float)
-        arr2.fill(np.nan)
-
+    def get_array(self, parameter):
+        """Get data from BUFR file."""
         with open(self.filename, "rb") as fh:
-            fh = open(self.filename, "rb")
-
-            parameter = info['key']
-
             msgCount = 0
             while True:
-
                 bufr = ec.codes_bufr_new_from_file(fh)
                 if bufr is None:
                     break
@@ -189,27 +99,37 @@ class MSGBUFRFileHandler(BaseFileHandler):
                 # if is the first message initialise our final array with
                 # the number of subsets contained in the first message
                 if (msgCount == 0):
-                    arr = np.zeros(ec.codes_get(bufr, 'numberOfSubsets'), np.float)
-                    arr[:] = ec.codes_get_array(bufr, parameter, float)
-
+                    arr = da.from_array(ec.codes_get_array(bufr, parameter, float))
                 else:
-                    tmpArr = np.zeros(ec.codes_get(bufr, 'numberOfSubsets'), np.float)
-                    tmpArr[:] = ec.codes_get_array(bufr, parameter, float)
+                    tmpArr = da.from_array(ec.codes_get_array(bufr, parameter, float))
                     arr = np.concatenate((arr, tmpArr))
 
                 msgCount = msgCount+1
                 ec.codes_release(bufr)
 
-        fh.close()
-
         if arr.size == 1:
             arr = arr[0]
 
-        arr[arr <= 0] = np.nan
+        return arr
 
-        arr2[self.cols, self.rows] = da.from_array(arr, chunks=(1000))
+    def get_dataset(self, dsid, info):
+        """Loop through the BUFR file and for the required key."""
+        """append the data values to the dataset area."""
+        arr2 = np.empty((self.ncols, self.nrows)).astype(np.float)
+        arr2.fill(np.nan)
 
-        xarr = xr.DataArray(arr2, dims=['y', 'x'])
+        parameter = info['key']
+        arr = self.get_array(parameter)
+        arr[arr == info['fill_value']] = np.nan
+
+        try:
+            arr2[self.cols, self.rows] = da.from_array(arr.compute(), chunks=(CHUNK_SIZE))
+            xarr = xr.DataArray(arr2, dims=['y', 'x'])
+        except ValueError:
+            print('mismatch in the BUFR data, lat/lon array has more entries than data array')
+            print('This can happen if some but not all parameters have valid data')
+        except Exception:
+            print('BUFR data is corrupt')
 
         if xarr is None:
             dataset = None
