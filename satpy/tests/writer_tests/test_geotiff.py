@@ -151,8 +151,8 @@ class TestGeoTIFFWriter(unittest.TestCase):
         with mock.patch('satpy.writers.XRImage.save') as save_method:
             save_method.return_value = None
             w.save_datasets(datasets, tags={'test2': 2}, compute=False, include_scale_offset=True)
-            called_tags = save_method.call_args[1]['tags']
-            self.assertEqual(set(called_tags.keys()), set(('test1', 'test2', 'scale', 'offset')))
+            called_include = save_method.call_args[1]['include_scale_offset_tags']
+            self.assertTrue(called_include)
 
 
 def suite():
