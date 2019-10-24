@@ -31,26 +31,3 @@ def flatten_dict(d, parent_key='', sep='_'):
         else:
             items.append((new_key, v))
     return dict(items)
-
-
-def get_scale_offset(img):
-    """Get the scale and offset from the images's enhancement history.
-
-    The values can be used to restore the data to it's original span with::
-
-      original_data = scale * data + offset
-
-    """
-    try:
-        history = img.data.attrs["enhancement_history"]
-    except KeyError:
-        raise ValueError("Cannot find information on previous scaling for image.")
-    else:
-        if len(history) > 1:
-            raise NotImplementedError("Don't know how to process large enhancement_history yet")
-
-        scale, offset = history[0]["scale"], history[0]["offset"]
-
-        new_offset = -offset / scale
-        new_scale = 1 / scale
-        return new_scale, new_offset

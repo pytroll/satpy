@@ -23,7 +23,6 @@ from satpy.writers import ImageWriter
 # make sure we have rasterio even though we don't use it until trollimage
 # saves the image
 import rasterio  # noqa
-from satpy.writers.utils import get_scale_offset
 
 LOG = logging.getLogger(__name__)
 
@@ -102,7 +101,9 @@ class GeoTIFFWriter(ImageWriter):
         return init_kwargs, kwargs
 
     def save_image(self, img, filename=None, dtype=None, fill_value=None,
-                   compute=True, keep_palette=False, cmap=None, **kwargs):
+                   compute=True, keep_palette=False, cmap=None, tags=None,
+                   include_scale_offset=False,
+                   **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note for faster output and reduced memory usage the ``rasterio``
@@ -146,6 +147,9 @@ class GeoTIFFWriter(ImageWriter):
                 the index range of the palette
                 (ex. `cmap.set_range(0, len(colors))`).
             tags (dict): Extra metadata to store in geotiff.
+            include_scale_offset (bool): Activate inclusion of scale and offset
+                factors in the geotiff to allow retrieving original values from
+                the pixel values. ``False`` by default.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
@@ -182,14 +186,11 @@ class GeoTIFFWriter(ImageWriter):
             cmap = create_colormap({'colors': img.palette})
             cmap.set_range(0, len(img.palette) - 1)
 
-        tags = kwargs.get('tags', {})
+        if tags is None:
+            tags = {}
         tags.update(self.tags)
-        if kwargs.get('include_scale_offset', False):
-            scale, offset = get_scale_offset(img)
-            tags.setdefault('scale', scale)
-            tags.setdefault('offset', offset)
         return img.save(filename, fformat='tif', fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
-                        tags=tags,
+                        tags=tags, include_scale_offset_tags=include_scale_offset,
                         **gdal_options)
