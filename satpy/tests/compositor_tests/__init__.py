@@ -1174,6 +1174,8 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestAddBands))
     mysuite.addTest(loader.loadTestsFromTestCase(TestBackgroundCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestStaticImageCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPSPAtmosphericalCorrection))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPSPRayleighReflectance))
 
     return mysuite
 
