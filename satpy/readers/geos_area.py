@@ -29,11 +29,12 @@ import numpy as np
 from pyresample import geometry
 
 
-def get_xy_from_linecol(self, line, col, offsets, factors):
+def get_xy_from_linecol(line, col, offsets, factors):
     """Get the intermediate coordinates from line & col.
 
     Intermediate coordinates are actually the instruments scanning angles.
     """
+
     loff, coff = offsets
     lfac, cfac = factors
     x__ = (col - coff) / cfac * 2**16
@@ -42,58 +43,80 @@ def get_xy_from_linecol(self, line, col, offsets, factors):
     return x__, y__
 
 
-def get_area_extent(self, size, offsets, factors, platform_height):
-    """Get the area extent of the file."""
-    nlines, ncols = size
-    h = platform_height
+def get_area_extent(pdict):
+    """Get the area extent seen by a geostationary satellite.
+
+    Inputs:
+    - pdict: A dictionary containing common parameters:
+            nlines: Number of lines in image
+            ncols: Number of columns in image
+            cfac: Column scaling factor
+            lfac: Line scaling factor
+            coff: Column offset factor
+            loff: Line offset factor
+
+    """
 
     # count starts at 1
     cols = 1 - 0.5
     lines = 1 - 0.5
-    ll_x, ll_y = self.get_xy_from_linecol(lines, cols, offsets, factors)
 
-    cols += ncols
-    lines += nlines
-    ur_x, ur_y = self.get_xy_from_linecol(lines, cols, offsets, factors)
+    # Lower left x, y scanning angles in degrees
+    ll_x, ll_y = get_xy_from_linecol(lines,
+                                     cols,
+                                     (10,10),
+                                     (20,20))
 
-    return (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
-            np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
+    cols += pdict['ncols']
+    lines += pdict['nlines']
+
+    # Upper right x, y scanning angles in degrees
+    ur_x, ur_y = get_xy_from_linecol(lines,
+                                     cols,
+                                     (pdict['loff'], pdict['coff']),
+                                     (pdict['lfac'], pdict['cfac']))
+
+    # Convert degrees to radians and create area extent
+    return (np.deg2rad(ll_x) * pdict['h'], np.deg2rad(ll_y) * pdict['h'],
+            np.deg2rad(ur_x) * pdict['h'], np.deg2rad(ur_y) * pdict['h'])
 
 
-def get_area_def(self, dsid):
-    """Get the area definition of the band."""
-    cfac = np.int32(self.mda['cfac'])
-    lfac = np.int32(self.mda['lfac'])
-    coff = np.float32(self.mda['coff'])
-    loff = np.float32(self.mda['loff'])
+def get_area_definition(pdict, a_ext):
+    """Get the area definition for a geo-sat
 
-    a = self.mda['projection_parameters']['a']
-    b = self.mda['projection_parameters']['b']
-    h = self.mda['projection_parameters']['h']
-    lon_0 = self.mda['projection_parameters']['SSP_longitude']
-    nlines = int(self.mda['number_of_lines'])
-    ncols = int(self.mda['number_of_columns'])
+    Inputs:
+    - pdict: A dictionary containing common parameters:
+                nlines: Number of lines in image
+                ncols: Number of columns in image
+                ssp_lon: Subsatellite point longitude (deg)
+                a: Earth equatorial radius (m)
+                b: Earth polar radius (m)
+                h: Platform height (m)
+                a_name: Area name
+                a_desc: Area description
+                p_id: Projection id
 
-    area_extent = self.get_area_extent((nlines, ncols),
-                                       (loff, coff),
-                                       (lfac, cfac),
-                                       h)
+    - a_ext: A four element tuple containing the area extent (scan angle)
+             for the scene in radians
 
-    proj_dict = {'a': float(a),
-                 'b': float(b),
-                 'lon_0': float(lon_0),
-                 'h': float(h),
+    Returns:
+    - a_def: An area definition for the scene
+    """
+
+    proj_dict = {'a': float(pdict['a']),
+                 'b': float(pdict['b']),
+                 'lon_0': float(pdict['ssp_lon']),
+                 'h': float(pdict['h']),
                  'proj': 'geos',
                  'units': 'm'}
 
-    area = geometry.AreaDefinition(
-        'some_area_name',
-        "On-the-fly area",
-        'geosmsg',
+    a_def = geometry.AreaDefinition(
+        pdict['a_name'],
+        pdict['a_desc'],
+        pdict['p_id'],
         proj_dict,
-        ncols,
-        nlines,
-        area_extent)
+        int(pdict['ncols']),
+        int(pdict['nlines']),
+        a_ext)
 
-    self.area = area
-    return area
+    return a_def
