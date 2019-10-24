@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 # Copyright (c) 2016.
 
 # Author(s):
@@ -85,6 +100,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
          - satellite_altitude
          - satellite_latitude
          - satellite_longitude
+         - orbital_parameters
 
          Also, concatenate the areas.
 
@@ -97,6 +113,22 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                                       'satellite_longitude',
                                       'satellite_latitude',
                                       'satellite_altitude'))
+
+        # Average orbital parameters
+        orb_params = [info.get('orbital_parameters', {}) for info in all_infos]
+        if all(orb_params):
+            # Collect all available keys
+            orb_params_comb = {}
+            for d in orb_params:
+                orb_params_comb.update(d)
+
+            # Average known keys
+            keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
+                    'satellite_nominal_longitude', 'satellite_nominal_latitude',
+                    'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
+                    'nadir_longitude', 'nadir_latitude']
+            orb_params_comb.update(self._combine(orb_params, np.mean, *keys))
+            new_dict['orbital_parameters'] = orb_params_comb
 
         try:
             area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),

@@ -1,25 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018.
+# Copyright (c) 2018 Satpy developers
 #
-# Author(s):
+# This file is part of satpy.
 #
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit tests for multiscene.py.
-"""
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Unit tests for multiscene.py."""
 
 import os
 import sys
@@ -78,12 +74,12 @@ def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None):
 
 
 def _create_test_scenes(num_scenes=2, shape=DEFAULT_SHAPE, area=None):
-    """Helper to create some test scenes."""
+    """Create some test scenes for various test cases."""
     from satpy import Scene
     ds1 = _create_test_dataset('ds1', shape=shape, area=area)
     ds2 = _create_test_dataset('ds2', shape=shape, area=area)
     scenes = []
-    for scn_idx in range(num_scenes):
+    for _ in range(num_scenes):
         scn = Scene()
         scn['ds1'] = ds1.copy()
         scn['ds2'] = ds2.copy()
@@ -156,11 +152,11 @@ class TestMultiSceneSave(unittest.TestCase):
     """Test saving a MultiScene to various formats."""
 
     def setUp(self):
-        """Create temporary directory to save files to"""
+        """Create temporary directory to save files to."""
         self.base_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             shutil.rmtree(self.base_dir, ignore_errors=True)
         except OSError:
@@ -464,7 +460,7 @@ class TestBlendFuncs(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_multiscene."""
+    """Create the test suite for test_multiscene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestMultiScene))
