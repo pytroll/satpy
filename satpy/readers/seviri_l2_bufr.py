@@ -113,8 +113,7 @@ class MSGBUFRFileHandler(BaseFileHandler):
         return arr
 
     def get_dataset(self, dsid, info):
-        """Loop through the BUFR file and for the required key."""
-        """append the data values to the dataset area."""
+        """Loop through the BUFR file for the required key and read array."""
         arr2 = np.empty((self.ncols, self.nrows)).astype(np.float)
         arr2.fill(np.nan)
 

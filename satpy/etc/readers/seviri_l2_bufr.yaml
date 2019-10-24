@@ -456,7 +456,7 @@ datasets:
     key: '#1#amountOfLowClouds'
     resolution: 3000.403165817
     standard_name: cloud_area_fraction
-    units: '%' 
+    units: '%'
     file_type:  seviri_l2_bufr_cla
     fill_value: 0
  mca:
@@ -475,7 +475,7 @@ datasets:
     units: '%'
     file_type:  seviri_l2_bufr_cla
     fill_value: 0
- 
+
  # ---- CSR products ------------
  nir39:
     name: nir39
@@ -711,8 +711,8 @@ datasets:
     name: qual
     key: '#1#totalOzone->totalOzoneQuality'
     resolution: 3000.403165817
-    standard_name: 
-    units: 'total_ozone_quality'
+    standard_name: total_ozone_quality
+    units: ''
     file_type: seviri_l2_bufr_toz
     fill_value: 0
 
