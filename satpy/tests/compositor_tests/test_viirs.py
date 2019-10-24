@@ -523,4 +523,5 @@ def suite():
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSComposites))
+    mysuite.addTest(loader.loadTestsFromTestCase(ViirsReflectanceCorrectorTest))
     return mysuite
