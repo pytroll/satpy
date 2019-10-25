@@ -324,19 +324,14 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             header_attrs = {'sensor': 'SEVIRI',
-                            'orbit': None,
-                            'empty': [],
-                            'num': 1.1,
-                            'zero': 0}
+                            'orbit': None}
             scn.save_datasets(filename=filename,
                               header_attrs=header_attrs,
                               writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertEqual(f.attrs['sensor'], 'SEVIRI')
-                self.assertEqual(f.attrs['num'], 1.1)
-                self.assertEqual(f.attrs['zero'], 0)
-                self.assertNotIn('orbit', f.attrs)
-                self.assertNotIn('empty', f.attrs)
+                self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
+                self.assertTrue('sensor' in f.attrs.keys())
+                self.assertTrue('orbit' not in f.attrs.keys())
 
     def get_test_attrs(self):
         """Create some dataset attributes for testing purpose.
