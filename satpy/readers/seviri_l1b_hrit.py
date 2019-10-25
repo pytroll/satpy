@@ -609,7 +609,11 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         pdict['nlines'] = nlines
         pdict['ncols'] = int(self.mda['number_of_columns'])
-        pdict['scandir'] = -1
+        if (self.prologue['ImageDescription']['Level15ImageProduction']
+                         ['ImageProcDirection'] == 0):
+            pdict['scandir'] = 'N2S'
+        else:
+            pdict['scandir'] = 'S2N'
 
         # Compute area definition for non-HRV channels:
         if dsid.name != 'HRV':

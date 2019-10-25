@@ -37,8 +37,8 @@ def get_xy_from_linecol(line, col, offsets, factors):
 
     loff, coff = offsets
     lfac, cfac = factors
-    x__ = float(col - coff) / (float(cfac) / 2**16)
-    y__ = float(line - loff) / (float(lfac) / 2**16)
+    x__ = (col - coff) / (cfac / 2**16)
+    y__ = (line - loff) / (lfac / 2**16)
 
     return x__, y__
 
@@ -54,32 +54,33 @@ def get_area_extent(pdict):
             lfac: Line scaling factor
             coff: Column offset factor
             loff: Line offset factor
-            scandir: 1 for standard (N->S), -1 for inverse (S->N)
+            scandir: 'N2S' for standard (N->S), 'S2N' for inverse (S->N)
 
     """
 
     # count starts at 1
     cols = 1 - 0.5
 
-    if (pdict['scandir'] == -1):
+    if (pdict['scandir'] == 'S2N'):
         lines = 0.5 - 1
+        scanmult = -1
     else:
         lines = 1 - 0.5
+        scanmult = 1
     # Lower left x, y scanning angles in degrees
-    ll_x, ll_y = get_xy_from_linecol(lines * pdict['scandir'],
+    ll_x, ll_y = get_xy_from_linecol(lines * scanmult,
                                      cols,
                                      (pdict['loff'], pdict['coff']),
                                      (pdict['lfac'], pdict['cfac']))
 
     cols += pdict['ncols']
     lines += pdict['nlines']
-
     # Upper right x, y scanning angles in degrees
-    ur_x, ur_y = get_xy_from_linecol(lines * pdict['scandir'],
+    ur_x, ur_y = get_xy_from_linecol(lines * scanmult,
                                      cols,
                                      (pdict['loff'], pdict['coff']),
                                      (pdict['lfac'], pdict['cfac']))
-    if (pdict['scandir'] == -1):
+    if (pdict['scandir'] == 'S2N'):
         ll_y *= -1
         ur_y *= -1
 
