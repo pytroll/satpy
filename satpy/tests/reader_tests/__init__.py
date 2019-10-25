@@ -94,5 +94,6 @@ def suite():
     mysuite.addTests(test_fci_l1c_fdhsi.suite())
     mysuite.addTests(test_tropomi_l2.suite())
     mysuite.addTests(test_hsaf_grib.suite())
+    mysuite.addTests(test_mimic_TPW2_nc.suite())
 
     return mysuite
