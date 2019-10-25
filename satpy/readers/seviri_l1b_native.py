@@ -32,7 +32,6 @@ import xarray as xr
 import dask.array as da
 
 from satpy import CHUNK_SIZE
-from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.eum_base import recarray2dict
@@ -242,7 +241,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.trailer.update(recarray2dict(data))
 
     def get_area_def(self, dsid):
-        
+
         pdict = {}
         pdict['a'] = self.mda['projection_parameters']['a']
         pdict['b'] = self.mda['projection_parameters']['b']
