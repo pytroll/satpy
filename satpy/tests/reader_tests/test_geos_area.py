@@ -84,13 +84,12 @@ class TestGEOSProjectionUtil(unittest.TestCase):
     def test_get_area_definition(self):
         """ Test the retrieval of the area definition """
         good_res = (-3000.4032785810186, -3000.4032785810186)
-        proj_str = '+proj=geos +a=6378169.0 +b=6356583.8 +lon_0=0.0 +h=35785831.0 +units=m +type=crs'
+        proj_str = '+a=6378169 +b=6356583.8 +h=35785831 +lon_0=0 +no_defs +proj=geos +type=crs +units=m +x_0=0 +y_0=0'
 
         a_def = get_area_definition(self.pdict, self.good_ext)
-
         self.assertEqual(a_def.area_id, self.pdict['a_name'])
         self.assertEqual(a_def.resolution, good_res)
-        self.assertEqual(a_def.crs.to_string(), proj_str)
+        self.assertEqual(a_def.proj_str, proj_str)
 
 
 def suite():
