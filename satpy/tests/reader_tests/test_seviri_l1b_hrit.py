@@ -74,7 +74,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
                                                                                 'SouthPolarRadius': 10,
                                                                                 'EquatorialRadius': 10}},
                                          'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0},
-                                                              'Level15ImageProduction': {'ImageProcDirection':1}}}
+                                                              'Level15ImageProduction': {'ImageProcDirection': 1}}}
                     prologue.get_satpos.return_value = None, None, None
                     prologue.get_earth_radii.return_value = None, None
                     epilogue = mock.MagicMock()
@@ -289,7 +289,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                                                                                 'SouthPolarRadius': 10,
                                                                                 'EquatorialRadius': 10}},
                                          'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0},
-                                                              'Level15ImageProduction': {'ImageProcDirection':1}}}
+                                                              'Level15ImageProduction': {'ImageProcDirection': 1}}}
                     prologue.get_satpos.return_value = None, None, None
                     prologue.get_earth_radii.return_value = None, None
 
