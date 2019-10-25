@@ -37,8 +37,8 @@ def get_xy_from_linecol(line, col, offsets, factors):
 
     loff, coff = offsets
     lfac, cfac = factors
-    x__ = (col - coff) / (cfac / 2**16)
-    y__ = (line - loff) / (lfac / 2**16)
+    x__ = float(col - coff) / (float(cfac) / 2**16)
+    y__ = float(line - loff) / (float(lfac) / 2**16)
 
     return x__, y__
 
