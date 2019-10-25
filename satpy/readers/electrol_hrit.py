@@ -360,7 +360,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         pdict['a'] = 6378169.00
         pdict['b'] = 6356583.80
         pdict['h'] = 35785831.00
-        pdict['scandir'] = 1
+        pdict['scandir'] = 'N2S'
 
         pdict['ssp_lon'] = self.mda['projection_parameters']['SSP_longitude']
 
