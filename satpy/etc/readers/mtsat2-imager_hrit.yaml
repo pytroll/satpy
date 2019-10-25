@@ -1,14 +1,16 @@
-# References:
-#   - https://www.wmo-sat.info/oscar/instruments/view/219
-#   - http://www.data.jma.go.jp/mscweb/notice/Himawari7_e.html
-#
-# Note that the there exist two versions of the dataset. A segmented (data
-# split into multiple files) and a non-segmented version (all data in one
-# file).
-
 reader:
-  description: Reader for MTSAT-2 data in JMA HRIT Format
   name: mtsat2-imager_hrit
+  short_name: MTSAT-2 Imager HRIT
+  long_name: MTSAT-2 Imager Level 1 (HRIT)
+  description: >
+    Reader for MTSAT-2 Imager data in JMA HRIT format. Note that there
+    exist two versions of the dataset. A segmented (data split into
+    multiple files) and a non-segmented version (all data in one file).
+    References:
+
+    - https://www.wmo-sat.info/oscar/instruments/view/219
+    - http://www.data.jma.go.jp/mscweb/notice/Himawari7_e.html
+
   sensors: [mtsat2_imager]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
