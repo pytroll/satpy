@@ -374,8 +374,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         expanded = self.expand_angle_and_nav(arrays)
         if self.switch_to_cart:
             return xyz2lonlat(*expanded)
-        else:
-            return expanded
+
+        return expanded
 
     def angles(self, azi_name, zen_name):
         """Generate the angle datasets."""
@@ -386,11 +386,9 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         azi = self.geostuff[azi_name]
         zen = self.geostuff[zen_name]
 
-        if (np.max(azi) - np.min(azi) > 5) or (np.min(zen) < 10) or (
-                max(abs(self.min_lat), abs(self.max_lat)) > 80):
-            switch_to_cart = True
-        else:
-            switch_to_cart = False
+        switch_to_cart = ((np.max(azi) - np.min(azi) > 5)
+                          or (np.min(zen) < 10)
+                          or (max(abs(self.min_lat), abs(self.max_lat)) > 80))
 
         azi = da.from_array(azi, chunks=chunks)
         zen = da.from_array(zen, chunks=chunks)
@@ -403,8 +401,8 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         expanded = self.expand_angle_and_nav(arrays)
         if switch_to_cart:
             return convert_to_angles(*expanded)
-        else:
-            return expanded
+
+        return expanded
 
 
 def convert_from_angles(azi, zen):
