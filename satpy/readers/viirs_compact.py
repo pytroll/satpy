@@ -17,8 +17,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Compact viirs format.
 
-.. note:: It should be possible to further enhance this reader by performing the
-   interpolation of the angles and lon/lats at the native dask chunk level.
+This is a reader for the Compact VIIRS format shipped on Eumetcast for the
+VIIRS SDR. The format is compressed in multiple ways, notably by shipping only
+tie-points for geographical data. The interpolation of this data is done using
+dask operations, so it should be relatively performant.
+
+For more information on this format, the reader can refer to the
+`Compact VIIRS SDR Product Format User Guide` that can be found on this EARS_ page.
+
+.. _EARS: https://www.eumetsat.int/website/home/Data/RegionalDataServiceEARS/EARSVIIRS/index.html
 
 """
 

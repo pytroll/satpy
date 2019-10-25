@@ -2456,7 +2456,10 @@ class TestCompact(unittest.TestCase):
 
     def tearDown(self):
         """Destroy."""
-        os.remove(self.filename)
+        try:
+            os.remove(self.filename)
+        except OSError:
+            pass
 
 
 def suite():
