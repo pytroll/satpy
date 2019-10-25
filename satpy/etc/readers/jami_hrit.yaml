@@ -1,14 +1,16 @@
-# References:
-#   - https://www.wmo-sat.info/oscar/instruments/view/236
-#   - http://www.data.jma.go.jp/mscweb/notice/Himawari7_e.html
-#
-# Note that the there exist two versions of the dataset. A segmented (data
-# split into multiple files) and a non-segmented version (all data in one
-# file).
-
 reader:
-  description: Reader for MTSAT-1R JAMI data in JMA HRIT Format
   name: jami_hrit
+  short_name: JAMI HRIT
+  long_name: MTSAT-1R JAMI Level 1 (HRIT)
+  description: >
+    Reader for MTSAT-1R JAMI data in JMA HRIT format. Note that there
+    exist two versions of the dataset. A segmented (data split into
+    multiple files) and a non-segmented version (all data in one file).
+    References:
+
+    - https://www.wmo-sat.info/oscar/instruments/view/236
+    - http://www.data.jma.go.jp/mscweb/notice/Himawari7_e.html
+
   sensors: [jami]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
