@@ -1,29 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2012, 2013, 2014, 2015, 2016, 2017
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   Nina Håkansson <nina.hakansson@smhi.se>
-#   Oana Nicola <oananicola@yahoo.com>
-#   Lars Ørum Rasmussen <ras@dmi.dk>
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2012-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for aapp level 1b data.
 
 Options for loading:
@@ -81,6 +72,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self._data = None
         self._header = None
         self._is3b = None
+        self._is3a = None
         self._shape = None
         self.lons = None
         self.lats = None
@@ -237,10 +229,11 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         if dataset_id.name in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
-            is3b = np.expand_dims(
-                np.bitwise_and(
-                    np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
+            is3b = np.expand_dims(np.bitwise_and(self._data['scnlinbit'], 3) == 1, 1)
             self._is3b = np.repeat(is3b,
+                                   self._data['hrpt'][0].shape[0], axis=1)
+            is3a = np.expand_dims(np.bitwise_and(self._data['scnlinbit'], 3) == 0, 1)
+            self._is3a = np.repeat(is3a,
                                    self._data['hrpt'][0].shape[0], axis=1)
 
         try:
@@ -258,7 +251,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                                dataset_id.calibration,
                                pre_launch_coeffs,
                                coeffs,
-                               mask=(dataset_id.name == '3a' and self._is3b)))
+                               mask=(dataset_id.name == '3a' and np.logical_not(self._is3a))))
         else:
             ds = create_xarray(
                 _ir_calibrate(self._header,

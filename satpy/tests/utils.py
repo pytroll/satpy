@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Utilities for various satpy tests.
-"""
+"""Utilities for various satpy tests."""
 
 from datetime import datetime
 from satpy.readers.yaml_reader import FileYAMLReader
@@ -26,8 +25,72 @@ except ImportError:
     import mock
 
 
+def spy_decorator(method_to_decorate):
+    """Fancy decorate to wrap an object while still calling it.
+
+    See https://stackoverflow.com/a/41599695/433202
+
+    """
+    tmp_mock = mock.MagicMock()
+
+    def wrapper(self, *args, **kwargs):
+        tmp_mock(*args, **kwargs)
+        return method_to_decorate(self, *args, **kwargs)
+
+    wrapper.mock = tmp_mock
+    return wrapper
+
+
+def convert_file_content_to_data_array(file_content, attrs=tuple(),
+                                       dims=('z', 'y', 'x')):
+    """Help old reader tests that still use numpy arrays.
+
+    A lot of old reader tests still use numpy arrays and depend on the
+    "var_name/attr/attr_name" convention established before Satpy used xarray
+    and dask. While these conventions are still used and should be supported,
+    readers need to use xarray DataArrays instead.
+
+    If possible, new tests should be based on pure DataArray objects instead
+    of the "var_name/attr/attr_name" style syntax provided by the utility
+    file handlers.
+
+    Args:
+        file_content (dict): Dictionary of string file keys to fake file data.
+        attrs (iterable): Series of attributes to copy to DataArray object from
+            file content dictionary. Defaults to no attributes.
+        dims (iterable): Dimension names to use for resulting DataArrays.
+            The second to last dimension is used for 1D arrays, so for
+            dims of ``('z', 'y', 'x')`` this would use ``'y'``. Otherwise, the
+            dimensions are used starting with the last, so 2D arrays are
+            ``('y', 'x')``
+            Dimensions are used in reverse order so the last dimension
+            specified is used as the only dimension for 1D arrays and the
+            last dimension for other arrays.
+
+    """
+    from xarray import DataArray
+    import dask.array as da
+    import numpy as np
+    for key, val in file_content.items():
+        da_attrs = {}
+        for a in attrs:
+            if key + '/attr/' + a in file_content:
+                da_attrs[a] = file_content[key + '/attr/' + a]
+
+        if isinstance(val, np.ndarray):
+            val = da.from_array(val, chunks=4096)
+            if val.ndim == 1:
+                da_dims = dims[-2]
+            elif val.ndim > 1:
+                da_dims = tuple(dims[-val.ndim:])
+            else:
+                da_dims = None
+
+            file_content[key] = DataArray(val, dims=da_dims, attrs=da_attrs)
+
+
 def test_datasets():
-    """Get list of various test datasets"""
+    """Get list of various test datasets."""
     from satpy import DatasetID
     d = [
         DatasetID(name='ds1'),
@@ -43,6 +106,10 @@ def test_datasets():
         DatasetID(name='ds8', wavelength=(0.7, 0.8, 0.9)),
         DatasetID(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
         DatasetID(name='ds10', wavelength=(0.75, 0.85, 0.95)),
+        DatasetID(name='ds11', resolution=500),
+        DatasetID(name='ds11', resolution=1000),
+        DatasetID(name='ds12', resolution=500),
+        DatasetID(name='ds12', resolution=1000),
     ]
     return d
 
@@ -125,6 +192,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
 
 
 def test_composites(sensor_name):
+    """Create some test composites."""
     from satpy import DatasetID, DatasetDict
     # Composite ID -> (prereqs, optional_prereqs)
     comps = {
@@ -158,6 +226,15 @@ def test_composites(sensor_name):
         DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
         DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
         DatasetID(name='comp23'): ([0.8], []),
+        DatasetID(name='static_image'): ([], []),
+        DatasetID(name='comp24', resolution=500): ([DatasetID(name='ds11', resolution=500),
+                                                    DatasetID(name='ds12', resolution=500)], []),
+        DatasetID(name='comp24', resolution=1000): ([DatasetID(name='ds11', resolution=1000),
+                                                     DatasetID(name='ds12', resolution=1000)], []),
+        DatasetID(name='comp25', resolution=500): ([DatasetID(name='comp24', resolution=500),
+                                                    DatasetID(name='ds5', resolution=500)], []),
+        DatasetID(name='comp25', resolution=1000): ([DatasetID(name='comp24', resolution=1000),
+                                                     DatasetID(name='ds5', resolution=1000)], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -180,7 +257,7 @@ def test_composites(sensor_name):
 
 
 def _filter_datasets(all_ds, names_or_ids):
-    """Helper function for filtering DatasetIDs by name or DatasetID."""
+    """Help filtering DatasetIDs by name or DatasetID."""
     # DatasetID will match a str to the name
     # need to separate them out
     str_filter = [ds_name for ds_name in names_or_ids if isinstance(ds_name, str)]
@@ -194,8 +271,15 @@ class FakeReader(FileYAMLReader):
     """Fake reader to make testing basic Scene/reader functionality easier."""
 
     def __init__(self, name, sensor_name='fake_sensor', datasets=None,
-                 available_datasets=None, start_time=None, end_time=None):
-        """Initialize reader and mock necessary properties and methods."""
+                 available_datasets=None, start_time=None, end_time=None,
+                 filter_datasets=True):
+        """Initialize reader and mock necessary properties and methods.
+
+        By default any 'datasets' provided will be filtered by what datasets
+        are configured at the top of this module in 'test_datasets'. This can
+        be disabled by specifying `filter_datasets=False`.
+
+        """
         with mock.patch('satpy.readers.yaml_reader.recursive_dict_update') as rdu, \
                 mock.patch('satpy.readers.yaml_reader.open'), \
                 mock.patch('satpy.readers.yaml_reader.yaml.load'):
@@ -211,8 +295,10 @@ class FakeReader(FileYAMLReader):
         self._sensor_name = set([sensor_name])
 
         all_ds = test_datasets()
-        if datasets is not None:
+        if datasets is not None and filter_datasets:
             all_ds = list(_filter_datasets(all_ds, datasets))
+        elif datasets:
+            all_ds = datasets
         if available_datasets is not None:
             available_datasets = list(_filter_datasets(all_ds, available_datasets))
         else:
@@ -226,17 +312,21 @@ class FakeReader(FileYAMLReader):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self._end_time
 
     @property
     def sensor_names(self):
+        """Get the sensor names."""
         return self._sensor_name
 
     def load(self, dataset_keys):
+        """Load some data."""
         from satpy import DatasetDict
         from xarray import DataArray
         import numpy as np
