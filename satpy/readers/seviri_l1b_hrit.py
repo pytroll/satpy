@@ -601,7 +601,6 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         pdict['cfac'] = np.int32(self.mda['cfac'])
         pdict['lfac'] = np.int32(self.mda['lfac'])
         pdict['coff'] = np.float32(self.mda['coff'])
-        pdict['loff'] = loff - nlines
 
         pdict['a'] = self.mda['projection_parameters']['a']
         pdict['b'] = self.mda['projection_parameters']['b']
@@ -612,14 +611,9 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         pdict['ncols'] = int(self.mda['number_of_columns'])
         pdict['scandir'] = -1
 
-        segment_number = self.mda['segment_sequence_number']
-
-        current_first_line = (segment_number
-                              - (self.mda['planned_start_segment_number']
-                                 * pdict['nlines']))
-
         # Compute area definition for non-HRV channels:
         if dsid.name != 'HRV':
+            pdict['loff'] = loff - nlines
             aex = self._get_area_extent(pdict)
             pdict['a_name'] = 'geosmsg'
             pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
@@ -627,6 +621,12 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             area = get_area_definition(pdict, aex)
             self.area = area
             return self.area
+
+        segment_number = self.mda['segment_sequence_number']
+
+        current_first_line = ((segment_number -
+                               self.mda['planned_start_segment_number'])
+                              * pdict['nlines'])
 
         # Or, if we are processing HRV:
         pdict['a_name'] = 'geosmsg_hrv'
@@ -647,6 +647,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         # First we look at the lower window
         pdict['nlines'] = upper_south_line
+        pdict['loff'] = loff - upper_south_line
         pdict['coff'] = lower_coff
         pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, lower window'
         lower_area_extent = self._get_area_extent(pdict)
@@ -654,14 +655,13 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         # Now the upper window
         pdict['nlines'] = nlines - upper_south_line
-        pdict['loff'] = loff - upper_south_line
+        pdict['loff'] = loff - pdict['nlines'] - upper_south_line
         pdict['coff'] = upper_coff
         pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, upper window'
         upper_area_extent = self._get_area_extent(pdict)
         upper_area = get_area_definition(pdict, upper_area_extent)
 
         area = geometry.StackedAreaDefinition(lower_area, upper_area)
-
         self.area = area.squeeze()
         return self.area
 
