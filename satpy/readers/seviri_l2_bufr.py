@@ -54,7 +54,6 @@ class MSGBUFRFileHandler(BaseFileHandler):
         self.subsat = filename_info['subsat']
         self.rc_start = filename_info['start_time']
         self.filename = filename
-        self.mda = {}
         self.ssp_lon = sub_sat_dict[filename_info['subsat']]
 
         seg_size = seg_size_dict[filetype_info['file_type']]
@@ -96,8 +95,7 @@ class MSGBUFRFileHandler(BaseFileHandler):
                     break
 
                 ec.codes_set(bufr, 'unpack', 1)
-                # if is the first message initialise our final array with
-                # the number of subsets contained in the first message
+                # if is the first message initialise our final array
                 if (msgCount == 0):
                     arr = da.from_array(ec.codes_get_array(bufr, parameter, float))
                 else:
