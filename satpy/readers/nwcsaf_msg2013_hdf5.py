@@ -67,9 +67,26 @@ class Hdf5NWCSAF(HDF5FileHandler):
         """Load a dataset."""
         file_key = ds_info.get('file_key', dataset_id.name)
         data = self[file_key]
+
+        nodata = None
         if 'SCALING_FACTOR' in data.attrs and 'OFFSET' in data.attrs:
             dtype = np.dtype(data.data)
-            data.data = (data.data * data.attrs['SCALING_FACTOR'] + data.attrs['OFFSET']).astype(dtype)
+            if dataset_id.name in ['ctth_alti']:
+                data.attrs['valid_range'] = (0, 27000)
+                data.attrs['_FillValue'] = np.nan
+                #data.attrs['_FillValue'] = 65535
+
+            if dataset_id.name in ['ctth_alti', 'ctth_pres', 'ctth_tempe', 'ctth_effective_cloudiness']:
+                #dtype = np.dtype('uint16')
+                dtype = np.dtype('float32')
+                nodata = 255
+
+            scaled_data = (data.data * data.attrs['SCALING_FACTOR'] + data.attrs['OFFSET']).astype(dtype)
+            if nodata:
+                scaled_data = np.where(data.data == nodata, np.nan, scaled_data)
+                scaled_data = np.where(scaled_data < 0, np.nan, scaled_data)
+
+            data.data = scaled_data
 
         for key in list(data.attrs.keys()):
             val = data.attrs[key]
@@ -119,11 +136,6 @@ class Hdf5NWCSAF(HDF5FileHandler):
     def start_time(self):
         """Return the start time of the object."""
         return datetime.strptime(self.file_content['/attr/IMAGE_ACQUISITION_TIME'], '%Y%m%d%H%M')
-
-    @property
-    def end_time(self):
-        """Return the end time of the object."""
-        return None
 
 
 def get_area_extent(cfac, lfac, coff, loff, numcols, numlines):

@@ -168,11 +168,11 @@ datasets:
     file_key: 03-PALETTE
 
   ctth_effective_cloudiness:
-    name: ctth_eff
+    name: ctth_effective_cloudiness
     sensor: seviri
     resolution: 3000
     file_type: h5_nwcsaf_ctth
-    file_key: CTTH_TEMPER
+    file_key: CTTH_EFFECT
 
   ctth_effective_cloudiness_pal:
     name: ctth_eff_pal
