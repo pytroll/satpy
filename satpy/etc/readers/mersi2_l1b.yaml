@@ -144,7 +144,6 @@ datasets:
       counts:
         units: "1"
         standard_name: counts
-
   '5':
     name: '5'
     wavelength: [1.37, 1.38, 1.39]  # or 30nm bandwidth?
