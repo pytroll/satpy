@@ -61,13 +61,13 @@ class TestGEOSProjectionUtil(unittest.TestCase):
     def test_geos_area(self):
         """ Test area extent calculation with N->S scan then S->N scan"""
         # North -> South
-        self.pdict['scandir'] = 1
+        self.pdict['scandir'] = 'N2S'
         self.pdict['loff'] = 1856
         aex = get_area_extent(self.pdict)
         self.assertEqual(aex, self.good_ext_s)
 
         # South -> North
-        self.pdict['scandir'] = -1
+        self.pdict['scandir'] = 'S2N'
         self.pdict['loff'] = -1856
         aex = get_area_extent(self.pdict)
         self.assertEqual(aex, self.good_ext)
