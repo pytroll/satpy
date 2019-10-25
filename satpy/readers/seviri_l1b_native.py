@@ -43,6 +43,7 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        VIS_CHANNELS)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
+from satpy.readers.geos_area import get_area_definition
 
 
 logger = logging.getLogger('native_msg')
@@ -241,35 +242,27 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.trailer.update(recarray2dict(data))
 
     def get_area_def(self, dsid):
-
-        a = self.mda['projection_parameters']['a']
-        b = self.mda['projection_parameters']['b']
-        h = self.mda['projection_parameters']['h']
-        lon_0 = self.mda['projection_parameters']['ssp_longitude']
-
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
+        
+        pdict = {}
+        pdict['a'] = self.mda['projection_parameters']['a']
+        pdict['b'] = self.mda['projection_parameters']['b']
+        pdict['h'] = self.mda['projection_parameters']['h']
+        pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
         if dsid.name == 'HRV':
-            nlines = self.mda['hrv_number_of_lines']
-            ncols = self.mda['hrv_number_of_columns']
+            pdict['nlines'] = self.mda['hrv_number_of_lines']
+            pdict['ncols'] = self.mda['hrv_number_of_columns']
+            pdict['a_name'] = 'geosmsg_hrv'
+            pdict['a_desc'] = 'MSG/SEVIRI high resolution channel area'
+            pdict['p_id'] = 'msg_hires'
         else:
-            nlines = self.mda['number_of_lines']
-            ncols = self.mda['number_of_columns']
+            pdict['nlines'] = self.mda['number_of_lines']
+            pdict['ncols'] = self.mda['number_of_columns']
+            pdict['a_name'] = 'geosmsg'
+            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
+            pdict['p_id'] = 'msg_lowres'
 
-        area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosmsg',
-            proj_dict,
-            ncols,
-            nlines,
-            self.get_area_extent(dsid))
-
+        area = get_area_definition(pdict, self.get_area_extent(dsid))
         return area
 
     def get_area_extent(self, dsid):
