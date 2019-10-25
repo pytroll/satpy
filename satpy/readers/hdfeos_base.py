@@ -1,20 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019
-
+# Copyright (c) 2019 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Base HDF-EOS reader."""
+
 import re
 import logging
 
@@ -32,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 
 def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
+    """Interpolate two parallel datasets jointly."""
     from geotiepoints.modisinterpolator import modis_1km_to_250m, modis_1km_to_500m, modis_5km_to_1km
 
     interpolation_functions = {
@@ -53,8 +56,10 @@ def interpolate(clons, clats, csatz, src_resolution, dst_resolution):
 
 
 class HDFEOSBaseFileReader(BaseFileHandler):
-    """Base file handler for HDF EOS data for both L1b and L2 products. """
+    """Base file handler for HDF EOS data for both L1b and L2 products."""
+
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the base reader."""
         BaseFileHandler.__init__(self, filename, filename_info, filetype_info)
         try:
             self.sd = SD(self.filename)
@@ -73,6 +78,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
     @staticmethod
     def read_mda(attribute):
+        """Read the EOS metadata."""
         lines = attribute.split('\n')
         mda = {}
         current_dict = mda
@@ -116,12 +122,14 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time of the dataset."""
         date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGDATE']['VALUE'] + ' ' +
                 self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEBEGINNINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
 
     @property
     def end_time(self):
+        """Get the end time of the dataset."""
         date = (self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGDATE']['VALUE'] + ' ' +
                 self.metadata['INVENTORYMETADATA']['RANGEDATETIME']['RANGEENDINGTIME']['VALUE'])
         return datetime.strptime(date, '%Y-%m-%d %H:%M:%S.%f')
@@ -137,7 +145,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
         return dataset
 
     def load_dataset(self, dataset_name):
-        """Load the dataset from HDF EOS file. """
+        """Load the dataset from HDF EOS file."""
         from satpy.readers.hdf4_utils import from_sds
 
         dataset = self._read_dataset_in_file(dataset_name)
@@ -164,7 +172,7 @@ class HDFEOSBaseFileReader(BaseFileHandler):
 
 
 class HDFEOSGeoReader(HDFEOSBaseFileReader):
-    """Handler for the geographical datasets. """
+    """Handler for the geographical datasets."""
 
     # list of geographical datasets handled by the georeader
     # mapping to the default variable name if not specified in YAML
@@ -178,11 +186,13 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
     }
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the geographical reader."""
         HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
+        self.cache = {}
 
     @staticmethod
     def read_geo_resolution(metadata):
-        """Parses metadata to find the geolocation resolution.
+        """Parse metadata to find the geolocation resolution.
 
         It is implemented as a staticmethod to match read_mda pattern.
 
@@ -217,7 +227,7 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
         return self.read_geo_resolution(self.metadata)
 
     def _load_ds_by_name(self, ds_name):
-        """Helper to attempt loading using multiple common names."""
+        """Attempt loading using multiple common names."""
         var_names = self.DATASET_NAMES[ds_name]
         if isinstance(var_names, (list, tuple)):
             try:
@@ -225,6 +235,21 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
             except KeyError:
                 return self.load_dataset(var_names[1])
         return self.load_dataset(var_names)
+
+    def get_interpolated_dataset(self, name1, name2, resolution, sensor_zenith, offset=0):
+        """Load and interpolate datasets."""
+        try:
+            result1 = self.cache[(name1, resolution)]
+            result2 = self.cache[(name2, resolution)]
+        except KeyError:
+            result1 = self._load_ds_by_name(name1)
+            result2 = self._load_ds_by_name(name2) - offset
+            result1, result2 = interpolate(
+                result1, result2, sensor_zenith,
+                self.geo_resolution, resolution
+            )
+            self.cache[(name1, resolution)] = result1
+            self.cache[(name2, resolution)] = result2 + offset
 
     def get_dataset(self, dataset_keys, dataset_info):
         """Get the geolocation dataset."""
@@ -249,39 +274,21 @@ class HDFEOSGeoReader(HDFEOSBaseFileReader):
                     "configured".format(dataset_name))
 
             # The data must be interpolated
-            interpolated_dataset = {}
-            sensor_zenith = self._load_ds_by_name(dataset_name)
+            sensor_zenith = self._load_ds_by_name('satellite_zenith_angle')
+            logger.debug("Loading %s", dataset_name)
             if dataset_name in ['longitude', 'latitude']:
-                latitude = self._load_ds_by_name('longitude')
-                longitude = self._load_ds_by_name('latitude')
-                longitude, latitude = interpolate(
-                    longitude, latitude, sensor_zenith,
-                    self.geo_resolution, resolution
-                )
-                interpolated_dataset['longitude'] = longitude
-                interpolated_dataset['latitude'] = latitude
+                self.get_interpolated_dataset('longitude', 'latitude',
+                                              resolution, sensor_zenith)
             elif dataset_name in ['satellite_azimuth_angle', 'satellite_zenith_angle']:
                 # Sensor dataset names differs between L1b and L2 products
-                sensor_azimuth_a = self._load_ds_by_name('satellite_azimuth_angle')
-                sensor_azimuth_b = self._load_ds_by_name('satellite_zenith_angle') - 90
-                sensor_azimuth_a, sensor_azimuth_b = interpolate(
-                    sensor_azimuth_a, sensor_azimuth_b, sensor_zenith,
-                    self.geo_resolution, resolution
-                )
-                interpolated_dataset['satellite_azimuth_angle'] = sensor_azimuth_a
-                interpolated_dataset['satellite_zenith_angle'] = sensor_azimuth_b + 90
+                self.get_interpolated_dataset('satellite_azimuth_angle', 'satellite_zenith_angle',
+                                              resolution, sensor_zenith, offset=90)
             elif dataset_name in ['solar_azimuth_angle', 'solar_zenith_angle']:
                 # Sensor dataset names differs between L1b and L2 products
-                solar_azimuth_a = self._load_ds_by_name('solar_azimuth_angle')
-                solar_azimuth_b = self._load_ds_by_name('solar_zenith_angle') - 90
-                solar_azimuth_a, solar_azimuth_b = interpolate(
-                    solar_azimuth_a, solar_azimuth_b, sensor_zenith,
-                    self.geo_resolution, resolution
-                )
-                interpolated_dataset['solar_azimuth_angle'] = solar_azimuth_a
-                interpolated_dataset['solar_zenith_angle'] = solar_azimuth_b + 90
+                self.get_interpolated_dataset('solar_azimuth_angle', 'solar_zenith_angle',
+                                              resolution, sensor_zenith, offset=90)
 
-            data = interpolated_dataset[dataset_name]
+            data = self.cache[dataset_name, resolution]
 
         for key in ('standard_name', 'units'):
             if key in dataset_info:

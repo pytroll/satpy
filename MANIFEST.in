@@ -3,5 +3,3 @@ include doc/source/*
 include doc/examples/*.py
 include LICENSE.txt
 include README.rst
-include versioneer.py
-include satpy/version.py

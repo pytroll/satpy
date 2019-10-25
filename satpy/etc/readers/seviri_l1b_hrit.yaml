@@ -4,8 +4,11 @@
 #   Spectral Blackbody Radiance
 
 reader:
-  description: MSG Seviri HRIT Reader
   name: seviri_l1b_hrit
+  short_name: SEVIRI L1b HRIT
+  long_name: MSG SEVIRI Level 1b (HRIT)
+  description: >
+    HRIT reader for EUMETSAT MSG SEVIRI Level 1b files.
   sensors: [seviri]
   default_channels: [HRV, IR_016, IR_039, IR_087, IR_097, IR_108, IR_120, IR_134, VIS006, VIS008, WV_062, WV_073]
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
