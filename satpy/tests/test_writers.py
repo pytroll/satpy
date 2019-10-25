@@ -604,25 +604,31 @@ class TestOverlays(unittest.TestCase):
         coast_dir = '/path/to/coast/data'
         with mock.patch.object(self.orig_rgb_img, "apply_pil") as apply_pil:
             apply_pil.return_value = self.orig_rgb_img
-            new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir)
+            new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir, fill_value=0)
             self.assertEqual(self.orig_rgb_img.mode, new_img.mode)
+            new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir)
+            self.assertEqual(self.orig_rgb_img.mode + 'A', new_img.mode)
 
-            overlays = {'coasts': {'outline': 'red'}}
-            new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir,
-                                  overlays=overlays)
-            pil_args = None
-            pil_kwargs = {'fill_value': None}
-            fun_args = (self.orig_rgb_img.data.area, ContourWriterAGG.return_value, overlays)
-            fun_kwargs = None
-            apply_pil.assert_called_with(_burn_overlay, self.orig_rgb_img.mode,
-                                         pil_args, pil_kwargs, fun_args, fun_kwargs)
-            ContourWriterAGG.assert_called_with(coast_dir)
+            with mock.patch.object(self.orig_rgb_img, "convert") as convert:
+                convert.return_value = self.orig_rgb_img
+                overlays = {'coasts': {'outline': 'red'}}
+                new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir,
+                                      overlays=overlays, fill_value=0)
+                pil_args = None
+                pil_kwargs = {'fill_value': 0}
+                fun_args = (self.orig_rgb_img.data.area, ContourWriterAGG.return_value, overlays)
+                fun_kwargs = None
+                apply_pil.assert_called_with(_burn_overlay, self.orig_rgb_img.mode,
+                                             pil_args, pil_kwargs, fun_args, fun_kwargs)
+                ContourWriterAGG.assert_called_with(coast_dir)
 
     def test_add_overlay_basic_l(self):
         """Test basic add_overlay usage with L data."""
         from satpy.writers import add_overlay
-        new_img = add_overlay(self.orig_l_img, self.area_def, '')
+        new_img = add_overlay(self.orig_l_img, self.area_def, '', fill_value=0)
         self.assertEqual('RGB', new_img.mode)
+        new_img = add_overlay(self.orig_l_img, self.area_def, '')
+        self.assertEqual('RGBA', new_img.mode)
 
     def test_add_decorate_basic_rgb(self):
         """Test basic add_decorate usage with RGB data."""
