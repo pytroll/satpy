@@ -27,7 +27,7 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM)
 import xarray as xr
 
-from pyresample import geometry
+from satpy.readers.geos_area import get_area_definition
 
 import datetime
 
@@ -139,33 +139,27 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return dataset
 
     def get_area_def(self, dataset_id):
-        a = self.mda['projection_parameters']['a']
-        b = self.mda['projection_parameters']['b']
-        h = self.mda['projection_parameters']['h']
-        lon_0 = self.mda['projection_parameters']['ssp_longitude']
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
+        pdict = {}
+        pdict['a'] = self.mda['projection_parameters']['a']
+        pdict['b'] = self.mda['projection_parameters']['b']
+        pdict['h'] = self.mda['projection_parameters']['h']
+        pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
         if dataset_id.name == 'HRV':
-            nlines = self.mda['hrv_number_of_lines']
-            ncols = self.mda['hrv_number_of_columns']
+            pdict['nlines'] = self.mda['hrv_number_of_lines']
+            pdict['ncols'] = self.mda['hrv_number_of_columns']
+            pdict['a_name'] = 'geosmsg_hrv'
+            pdict['a_desc'] = 'MSG/SEVIRI high resolution channel area'
+            pdict['p_id'] = 'msg_hires'
         else:
-            nlines = self.mda['number_of_lines']
-            ncols = self.mda['number_of_columns']
+            pdict['nlines'] = self.mda['number_of_lines']
+            pdict['ncols'] = self.mda['number_of_columns']
+            pdict['a_name'] = 'geosmsg'
+            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
+            pdict['p_id'] = 'msg_lowres'
 
-        area = geometry.AreaDefinition(
-             'some_area_name',
-             "On-the-fly area",
-             'geosmsg',
-             proj_dict,
-             ncols,
-             nlines,
-             self.get_area_extent(dataset_id))
+        area = get_area_definition(pdict, self.get_area_extent(dataset_id))
 
         return area
 
