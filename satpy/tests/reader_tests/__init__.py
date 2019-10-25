@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
 #
-# This file is part of satpy.
+# Copyright (c) 2019 Satpy developers
 #
-# satpy is free software: you can redistribute it and/or modify it under the
+# This file is part of Satpy.
+#
+# Satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
 #
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
@@ -39,7 +40,7 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_agri_l1, test_hrit_base
                                       test_avhrr_l1b_gaclac, test_vaisala_gld360,
                                       test_fci_l1c_fdhsi, test_tropomi_l2,
                                       test_hsaf_grib, test_abi_l2_nc, test_eum_base,
-                                      test_ami_l1b)
+                                      test_ami_l1b, test_viirs_edr_gran)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -95,6 +96,7 @@ def suite():
     mysuite.addTests(test_abi_l2_nc.suite())
     mysuite.addTests(test_tropomi_l2.suite())
     mysuite.addTests(test_hsaf_grib.suite())
+    mysuite.addTests(test_viirs_edr_gran.suite())
     mysuite.addTests(test_eum_base.suite())
     mysuite.addTests(test_ami_l1b.suite())
 

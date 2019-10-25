@@ -8,6 +8,8 @@ The following people have made contributions to this project:
 <!--- See https://gist.github.com/djhoese/52220272ec73b12eb8f4a29709be110d for auto-generating parts of this list --->
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
+- [Barry Baker (bbakernoaa)](https://github.com/bbakernoaa)
+- [Jonathan Beavers (jon4than)](https://github.com/jon4than)
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
@@ -24,6 +26,7 @@ The following people have made contributions to this project:
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
+- [Daniel Hueholt (dhueholt)](https://github.com/dhueholt)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [JohannesSMHI (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
