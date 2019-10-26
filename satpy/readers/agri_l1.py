@@ -164,7 +164,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
         pdict['loff'] = (pdict['loff'] - self.file_content['/attr/End Line Number'] + 0.5)
         area_extent = get_area_extent(pdict)
         area_extent = (area_extent[0] + 2000, area_extent[1], area_extent[2] + 2000, area_extent[3])
-        
+
         pdict['nlines'] = pdict['nlines'] + 1
         pdict['ncols'] = pdict['ncols'] + 1
         area = get_area_definition(pdict, area_extent)
