@@ -51,7 +51,8 @@ import os
 os.environ['PPP_CONFIG_DIR'] = '/my_local_path/for_satpy_configuration'
 
 As a further functionality this script may give a quick display of the defined area,
-provided the path for the GSHHG library is supplied via the "-s" option.
+provided the path for the GSHHG library is supplied via the "-s" option
+and the modules PyCoast, Pillow and AggDraw have been installed.
 
 python coord2area_def.py france stere 42.0 51.5 -5.5 8.0 1.5 -s /path/for/gshhs/library
 
