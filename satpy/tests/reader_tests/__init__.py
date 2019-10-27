@@ -39,7 +39,7 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_agri_l1, test_hrit_base
                                       test_avhrr_l1b_gaclac, test_vaisala_gld360,
                                       test_fci_l1c_fdhsi, test_tropomi_l2,
                                       test_hsaf_grib, test_abi_l2_nc, test_eum_base,
-                                      test_ami_l1b)
+                                      test_ami_l1b, test_seviri_l2_bufr)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -97,5 +97,6 @@ def suite():
     mysuite.addTests(test_hsaf_grib.suite())
     mysuite.addTests(test_eum_base.suite())
     mysuite.addTests(test_ami_l1b.suite())
+    mysuite.addTests(test_seviri_l2_bufr.suite())
 
     return mysuite
