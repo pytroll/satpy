@@ -22,9 +22,6 @@ import sys
 
 import numpy as np
 
-from satpy.readers.seviri_l2_bufr import (
-    MSGBUFRFileHandler,
-)
 import dask.array as da
 
 if sys.version_info < (2, 7):
@@ -44,6 +41,7 @@ class TestMSGBufr(unittest.TestCase):
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def msg_bufr_test(self,):
         """Test the MSG Bufr Handler."""
+        from satpy.readers.seviri_l2_bufr import MSGBUFRFileHandler
         import eccodes as ec
         buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
         ec.codes_set(buf1, 'unpack', 1)
