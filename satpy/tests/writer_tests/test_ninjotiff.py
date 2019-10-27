@@ -36,6 +36,10 @@ class FakeImage:
         self.data = data
         self.mode = mode
 
+    def get_scaling_from_history(self):
+        """Return dummy scale and offset."""
+        return xr.DataArray(1), xr.DataArray(0)
+
 
 modules = {'pyninjotiff': mock.Mock(),
            'pyninjotiff.ninjotiff': mock.Mock()}
