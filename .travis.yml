@@ -5,7 +5,7 @@ env:
         - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
         - NUMPY_VERSION=stable
         - MAIN_CMD='python setup.py'
-        - CONDA_DEPENDENCIES='xarray!=0.13.0 dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff pycoast pydecorate geoviews zarr six'
+        - CONDA_DEPENDENCIES='xarray!=0.13.0 dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff pycoast pydecorate geoviews zarr six python-eccodes'
         - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
