@@ -642,7 +642,9 @@ class CFWriter(Writer):
 
         root = xr.Dataset({}, attrs={'history': 'Created by pytroll/satpy on {}'.format(datetime.utcnow())})
         if header_attrs is not None:
-            root.attrs.update({k: v for k, v in header_attrs.items() if v})
+            if flatten_attrs:
+                header_attrs = flatten_dict(header_attrs)
+            root.attrs = encode_attrs_nc(header_attrs)
         if groups is None:
             # Groups are not CF-1.7 compliant
             root.attrs['Conventions'] = CF_VERSION
