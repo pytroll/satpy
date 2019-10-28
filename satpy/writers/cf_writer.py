@@ -385,7 +385,7 @@ class AttributeEncoder(json.JSONEncoder):
         """Encode the given object as a json-serializable datatype."""
         if isinstance(obj, (bool, np.bool_)):
             # Bool has to be checked first, because it is a subclass of int
-            return str(obj)
+            return str(obj).lower()
         elif isinstance(obj, (int, float, str)):
             return obj
         elif isinstance(obj, np.integer):
@@ -407,7 +407,9 @@ def _encode_nc(obj):
         ValueError if no such datatype could be found
 
     """
-    if isinstance(obj, (int, float, str, np.integer, np.floating)):
+    if isinstance(obj, int) and not isinstance(obj, (bool, np.bool_)):
+        return obj
+    elif isinstance(obj, (float, str, np.integer, np.floating)):
         return obj
     elif isinstance(obj, np.ndarray):
         # Only plain 1-d arrays are supported. Skip record arrays and multi-dimensional arrays.
@@ -417,8 +419,9 @@ def _encode_nc(obj):
                 return obj
             elif obj.dtype == np.bool_:
                 # Boolean arrays are not supported, convert to array of strings.
-                obj = obj.astype(str)
-            return obj.tolist()
+                return [s.lower() for s in obj.astype(str)]
+            else:
+                return obj.tolist()
 
     raise ValueError('Unable to encode')
 
