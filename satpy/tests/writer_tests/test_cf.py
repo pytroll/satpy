@@ -345,6 +345,7 @@ class TestCFWriter(unittest.TestCase):
                  'end_time': datetime(2018, 1, 1, 0, 15),
                  'int': 1,
                  'float': 1.0,
+                 'none': None,  # should be dropped
                  'numpy_int': np.uint8(1),
                  'numpy_float': np.float32(1),
                  'numpy_bool': np.bool(True),
