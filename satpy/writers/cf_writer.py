@@ -456,7 +456,8 @@ def encode_attrs_nc(attrs):
     """
     encoded_attrs = []
     for key, val in sorted(attrs.items()):
-        encoded_attrs.append((key, encode_nc(val)))
+        if val is not None:
+            encoded_attrs.append((key, encode_nc(val)))
     return OrderedDict(encoded_attrs)
 
 
