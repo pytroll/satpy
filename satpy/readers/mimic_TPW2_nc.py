@@ -133,7 +133,7 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
         description = "MIMIC TPW Equirectangular Projection"
         area_id = 'mimic'
         proj_id = 'equirectangular'
-        proj_dict = {'proj': 'longlat', 'datum': 'WGS84', 'ellps': 'WGS84', 'units': 'degrees', }
+        proj_dict = {'proj': 'longlat', 'datum': 'WGS84', 'ellps': 'WGS84', }
         area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent, )
         return area_def
 
