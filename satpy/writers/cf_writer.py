@@ -420,8 +420,7 @@ def _encode_nc(obj):
             elif obj.dtype == np.bool_:
                 # Boolean arrays are not supported, convert to array of strings.
                 return [s.lower() for s in obj.astype(str)]
-            else:
-                return obj.tolist()
+            return obj.tolist()
 
     raise ValueError('Unable to encode')
 
