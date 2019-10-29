@@ -27,7 +27,10 @@ import dask.array as da
 
 from satpy.resample import get_area_def
 
-import eccodes as ec
+try:
+    import eccodes as ec
+except ImportError:
+    raise ImportError("Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
