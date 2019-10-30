@@ -108,7 +108,7 @@ datasets:
     resolution: 3000
     file_type: h5_nwcsaf_ct
     file_key: CT_QUALITY
-    
+
   ct_phase:
     name: ct_phase
     sensor: seviri
