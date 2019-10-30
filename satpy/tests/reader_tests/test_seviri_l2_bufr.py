@@ -72,8 +72,8 @@ class TestMSGBufr(unittest.TestCase):
                         ec5.return_value = 1
                         z = fh.get_dataset(None, info)
                         # There may be some error introduced due to floating point
-                        # rounding so an error of 1.5 should be ok
-                        self.assertTrue(abs(np.nanmean(z) - np.nanmean(sampl) < 1.5))
+                        # rounding so an error of 2 should be ok
+                        self.assertTrue(abs(np.nanmean(z) - np.nanmean(sampl) < 2.0))
 
     def test_msg_bufr(self):
         """Call the test function."""
