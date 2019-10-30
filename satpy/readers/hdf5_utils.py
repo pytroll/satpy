@@ -71,11 +71,9 @@ class HDF5FileHandler(BaseFileHandler):
     def get_reference(self, name, key):
 
         with h5py.File(self.filename, 'r') as hf:
-            if type(hf[name].attrs[key]) is h5py.h5r.Reference:
+            if isinstance(hf[name].attrs[key], h5py.h5r.Reference):
                 ref_name = h5py.h5r.get_name(hf[name].attrs[key], hf.id)
                 return hf[ref_name][()]
-            else:
-                return None
 
     def collect_metadata(self, name, obj):
         if isinstance(obj, h5py.Dataset):

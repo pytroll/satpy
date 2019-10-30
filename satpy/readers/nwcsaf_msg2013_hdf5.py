@@ -35,12 +35,8 @@ References:
 """
 
 import logging
-import os
 from datetime import datetime
-import dask.array as da
 import numpy as np
-from pyresample.utils import get_area_def
-from satpy import CHUNK_SIZE
 from satpy.readers.hdf5_utils import HDF5FileHandler
 from pyresample.geometry import AreaDefinition
 import h5py
@@ -74,10 +70,8 @@ class Hdf5NWCSAF(HDF5FileHandler):
             if dataset_id.name in ['ctth_alti']:
                 data.attrs['valid_range'] = (0, 27000)
                 data.attrs['_FillValue'] = np.nan
-                #data.attrs['_FillValue'] = 65535
 
             if dataset_id.name in ['ctth_alti', 'ctth_pres', 'ctth_tempe', 'ctth_effective_cloudiness']:
-                #dtype = np.dtype('uint16')
                 dtype = np.dtype('float32')
                 nodata = 255
 
