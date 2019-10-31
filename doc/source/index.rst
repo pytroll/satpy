@@ -215,6 +215,9 @@ the base Satpy installation.
       - `hsaf_grib`
       - | Beta
         | Only the h03, h03b, h05 and h05B products are supported at-present
+    * - GEO-KOMPSAT-2 AMI L1B data in NetCDF4 format
+      - `ami_l1b`
+      - Beta
 
 
 Indices and tables

@@ -143,9 +143,6 @@ import six
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
-from pyresample.kd_tree import XArrayResamplerNN
-from pyresample.bilinear.xarr import XArrayResamplerBilinear
-from pyresample import bucket
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
 
@@ -276,8 +273,11 @@ def add_crs_xy_coords(data_arr, area):
         # default lat/lon projection
         latlon_proj = "+proj=latlong +datum=WGS84 +ellps=WGS84"
         # otherwise get it from the area definition
-        proj_str = getattr(area, 'proj_str', latlon_proj)
-        crs = CRS.from_string(proj_str)
+        if hasattr(area, 'crs'):
+            crs = area.crs
+        else:
+            proj_str = getattr(area, 'proj_str', latlon_proj)
+            crs = CRS.from_string(proj_str)
         data_arr = data_arr.assign_coords(crs=crs)
 
     # Add x/y coordinates if possible
@@ -463,6 +463,8 @@ class KDTreeResampler(BaseResampler):
         where data points are invalid.
 
         """
+        from pyresample.kd_tree import XArrayResamplerNN
+
         del kwargs
         source_geo_def = self.source_geo_def
 
@@ -821,6 +823,8 @@ class BilinearResampler(BaseResampler):
     def precompute(self, mask=None, radius_of_influence=50000, epsilon=0,
                    reduce_data=True, cache_dir=False, **kwargs):
         """Create bilinear coefficients and store them for later use."""
+        from pyresample.bilinear.xarr import XArrayResamplerBilinear
+
         del kwargs
         del mask
 
@@ -1032,15 +1036,17 @@ class NativeResampler(BaseResampler):
 
 
 class BucketResamplerBase(BaseResampler):
-    """Base class for bucket resampling which implements averaging.
-    """
+    """Base class for bucket resampling which implements averaging."""
 
     def __init__(self, source_geo_def, target_geo_def):
+        """Initialize bucket resampler."""
         super(BucketResamplerBase, self).__init__(source_geo_def, target_geo_def)
         self.resampler = None
 
     def precompute(self, **kwargs):
         """Create X and Y indices and store them for later use."""
+        from pyresample import bucket
+
         LOG.debug("Initializing bucket resampler.")
         source_lons, source_lats = self.source_geo_def.get_lonlats(
             chunks=CHUNK_SIZE)
@@ -1059,6 +1065,7 @@ class BucketResamplerBase(BaseResampler):
             data (xarray.DataArray): Data to be resampled
 
         Returns (xarray.DataArray): Data resampled to the target area
+
         """
         self.precompute(**kwargs)
         attrs = data.attrs.copy()
@@ -1113,6 +1120,7 @@ class BucketAvg(BucketResamplerBase):
         Fill value for missing data
     mask_all_nans : boolean (default: False)
         Mask all locations with all-NaN values
+
     """
 
     def compute(self, data, fill_value=np.nan, mask_all_nan=False, **kwargs):
@@ -1144,6 +1152,7 @@ class BucketSum(BucketResamplerBase):
         Fill value for missing data
     mask_all_nans : boolean (default: False)
         Mask all locations with all-NaN values
+
     """
 
     def compute(self, data, mask_all_nan=False, **kwargs):
@@ -1167,6 +1176,7 @@ class BucketCount(BucketResamplerBase):
 
     This resampler calculates the number of occurences of the input
     data closest to each bin and inside the target area.
+
     """
 
     def compute(self, data, **kwargs):
@@ -1174,7 +1184,7 @@ class BucketCount(BucketResamplerBase):
         LOG.debug("Resampling %s", str(data.name))
         results = []
         if data.ndim == 3:
-            for i in range(data.shape[0]):
+            for _i in range(data.shape[0]):
                 res = self.resampler.get_count()
                 results.append(res)
         else:
@@ -1185,10 +1195,11 @@ class BucketCount(BucketResamplerBase):
 
 
 class BucketFraction(BucketResamplerBase):
-    """Class for bucket resampling to compute category fractions
+    """Class for bucket resampling to compute category fractions.
 
     This resampler calculates the fraction of occurences of the input
     data per category.
+
     """
 
     def compute(self, data, fill_value=np.nan, categories=None, **kwargs):

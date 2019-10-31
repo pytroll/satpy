@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI HRIT format reader
-============================
+r"""SEVIRI HRIT format reader.
 
 Introduction
 ------------
@@ -42,8 +41,8 @@ Each image is decomposed into 24 segments (files) for the high-resolution-visibl
 visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
 which contain global metadata valid for all channels.
 
-Arguments
----------
+Reader Arguments
+----------------
 Some arguments can be provided to the reader to change it's behaviour. These are
 provided through the `Scene` instantiation, eg::
 
@@ -219,10 +218,10 @@ class NoValidOrbitParams(Exception):
 
 
 class HRITMSGPrologueEpilogueBase(HRITFileHandler):
-    """Base reader for *logue files."""
+    """Base reader for prologue and epilogue files."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
-        """Initialize the *logue readers."""
+        """Initialize the file handler for prologue and epilogue files."""
         super(HRITMSGPrologueEpilogueBase, self).__init__(filename, filename_info, filetype_info, hdr_info)
         self._reduced = None
 
@@ -308,7 +307,7 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         """
         orbit_polynomial = self.prologue['SatelliteStatus']['Orbit']['OrbitPolynomial']
 
-        # Find Chebyshev coefficients for the given time
+        # Find Chebyshev coefficients for the start time of the scan
         coef_idx = self._find_orbit_coefs()
         tstart = orbit_polynomial['StartTime'][0, coef_idx]
         tend = orbit_polynomial['EndTime'][0, coef_idx]
@@ -326,11 +325,19 @@ class HRITMSGPrologueFileHandler(HRITMSGPrologueEpilogueBase):
         return x*1000, y*1000, z*1000  # km -> m
 
     def _find_orbit_coefs(self):
-        """Find orbit coefficients for the current time.
+        """Find orbit coefficients for the start time of the scan.
 
-        The orbital Chebyshev coefficients are only valid for a certain time interval. The header entry
-        SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients for multiple time intervals. Find the
-        coefficients which are valid for the nominal timestamp of the scan.
+        The header entry SatelliteStatus/Orbit/OrbitPolynomial contains multiple coefficients, each
+        of them valid for a certain time interval. Find the coefficients which are valid for the
+        start time of the scan.
+
+        A manoeuvre is a discontinuity in the orbit parameters. The flight dynamic algorithms are
+        not made to interpolate over the time-span of the manoeuvre; hence we have elements
+        describing the orbit before a manoeuvre and a new set of elements describing the orbit after
+        the manoeuvre. The flight dynamic products are created so that there is an intentional gap
+        at the time of the manoeuvre. Also the two pre-manoeuvre elements may overlap. But the
+        overlap is not of an issue as both sets of elements describe the same pre-manoeuvre orbit
+        (with negligible variations).
 
         Returns: Corresponding index in the coefficient list.
 
