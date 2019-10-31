@@ -25,8 +25,6 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
-from satpy.resample import get_area_def
-
 try:
     import eccodes as ec
 except ImportError:
@@ -59,24 +57,7 @@ class MSGBUFRFileHandler(BaseFileHandler):
         self.filename = filename
         self.ssp_lon = sub_sat_dict[filename_info['subsat']]
 
-        seg_size = seg_size_dict[filetype_info['file_type']]
-        # here we get the latitude and longitude arrays used for the
-        # segment geolocation
-        lats = self.get_array('latitude')
-        lons = self.get_array('longitude')
-
-        # Use the subsat point to determine the area definition to use for
-        # the geo location
-        # reset the wight and height based on the segment size
-        adef = get_area_def(seg_area_dict[self.subsat])
-        adef.height = int(3712/seg_size)
-        adef.width = int(3712/seg_size)
-
-        # convert the lons/lats to rows and columns
-        # compute is required as the lonlat2colrow function is not dask ready
-        self.rows, self.cols = adef.lonlat2colrow(lons.compute(), lats.compute())
-        self.nrows = int(np.ceil(3712.0/seg_size))
-        self.ncols = int(np.ceil(3712.0/seg_size))
+        self.seg_size = seg_size_dict[filetype_info['file_type']]
 
     @property
     def start_time(self):
@@ -98,11 +79,12 @@ class MSGBUFRFileHandler(BaseFileHandler):
                     break
 
                 ec.codes_set(bufr, 'unpack', 1)
+
                 # if is the first message initialise our final array
                 if (msgCount == 0):
-                    arr = da.from_array(ec.codes_get_array(bufr, parameter, float))
+                    arr = da.from_array(ec.codes_get_array(bufr, parameter, float), chunks=CHUNK_SIZE)
                 else:
-                    tmpArr = da.from_array(ec.codes_get_array(bufr, parameter, float))
+                    tmpArr = da.from_array(ec.codes_get_array(bufr, parameter, float), chunks=CHUNK_SIZE)
                     arr = np.concatenate((arr, tmpArr))
 
                 msgCount = msgCount+1
@@ -115,31 +97,16 @@ class MSGBUFRFileHandler(BaseFileHandler):
 
     def get_dataset(self, dsid, info):
         """Loop through the BUFR file for the required key and read array."""
-        arr2 = np.empty((self.ncols, self.nrows)).astype(np.float)
-        arr2.fill(np.nan)
-
-        parameter = info['key']
-        arr = self.get_array(parameter)
+        arr = self.get_array(info['key'])
         arr[arr == info['fill_value']] = np.nan
 
-        try:
-            arr2[self.cols, self.rows] = da.from_array(arr.compute(), chunks=(CHUNK_SIZE))
-            xarr = xr.DataArray(arr2, dims=['y', 'x'])
-        except ValueError:
-            print('mismatch in the BUFR data, lat/lon array has more entries than data array')
-            print('This can happen if some but not all parameters have valid data')
-        except Exception:
-            print('BUFR data is corrupt')
+        xarr = xr.DataArray(arr, dims=["y"])
 
-        if xarr is None:
-            dataset = None
-        else:
-            dataset = xarr
+        xarr['latitude'] = ('y', self.get_array('latitude'))
+        xarr['longitude'] = ('y', self.get_array('longitude'))
+        xarr.attrs['platform_name'] = self.platform_name
+        xarr.attrs['sensor'] = 'seviri'
+        xarr.attrs['seg_size'] = self.seg_size
+        xarr.attrs.update(info)
 
-            dataset.attrs['units'] = info['units']
-            dataset.attrs['wavelength'] = info['wavelength']
-            dataset.attrs['standard_name'] = info['standard_name']
-            dataset.attrs['platform_name'] = self.platform_name
-            dataset.attrs['sensor'] = 'seviri'
-
-        return dataset
+        return xarr
