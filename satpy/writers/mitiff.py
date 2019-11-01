@@ -275,6 +275,13 @@ class MITIFFWriter(ImageWriter):
             proj4_string += ' +y_0=%.6f' % (
                 (-datasets.attrs['area'].area_extent[1] +
                  datasets.attrs['area'].pixel_size_y) + y_0)
+        elif '+x_0=0' in proj4_string and '+y_0=0' in proj4_string and isinstance(datasets, list):
+            proj4_string = proj4_string.replace("+x_0=0", '+x_0=%.6f' % (
+                (-first_dataset.attrs['area'].area_extent[0] +
+                 first_dataset.attrs['area'].pixel_size_x) + x_0))
+            proj4_string = proj4_string.replace("+y_0=0", '+y_0=%.6f' % (
+                (-first_dataset.attrs['area'].area_extent[1] +
+                 first_dataset.attrs['area'].pixel_size_y) + y_0))
         elif '+x_0=0' in proj4_string and '+y_0=0' in proj4_string:
             proj4_string = proj4_string.replace("+x_0=0", '+x_0=%.6f' % (
                 (-datasets.attrs['area'].area_extent[0] +
