@@ -20,7 +20,6 @@
 """
 
 import logging
-import sys
 import numpy as np
 
 from satpy.writers import ImageWriter
