@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
+# Copyright (c) 2018, 2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -600,6 +600,34 @@ class MITIFFWriter(ImageWriter):
                                                   (float(max_val) - float(min_val))) * 255.
         return _data.clip(0, 255)
 
+    def _save_as_palette(self, tif, datasets, **kwargs):
+        # MITIFF palette has only one data channel
+        if len(datasets.dims) == 2:
+            LOG.debug("Palette ok with only 2 dimensions. ie only x and y")
+            # 3 = Palette color. In this model, a color is described with a single component.
+            # The value of the component is used as an index into the red, green and blue curves
+            # in the ColorMap field to retrieve an RGB triplet that defines the color. When
+            # PhotometricInterpretation=3 is used, ColorMap must be present and SamplesPerPixel must be 1.
+            tif.SetField('PHOTOMETRIC', 3)
+
+            # As write_image can not save tiff image as palette, this has to be done basicly
+            # ie. all needed tags needs to be set.
+            tif.SetField('IMAGEWIDTH', datasets.sizes['x'])
+            tif.SetField('IMAGELENGTH', datasets.sizes['y'])
+            tif.SetField('BITSPERSAMPLE', 8)
+            tif.SetField('COMPRESSION', tif.get_tag_define('deflate'))
+
+            if 'palette_color_map' in kwargs:
+                tif.SetField('COLORMAP', kwargs['palette_color_map'])
+            else:
+                LOG.ERROR("In a mitiff palette image a color map must be provided: palette_color_map is missing.")
+
+            data_type = np.uint8
+            # Looks like we need to pass the data to writeencodedstrip as ctypes
+            tif.WriteEncodedStrip(0, np.ascontiguousarray(datasets.data.astype(data_type), data_type).ctypes.data,
+                                  datasets.sizes['x'] * datasets.sizes['y'])
+            tif.WriteDirectory()
+
     def _save_datasets_as_mitiff(self, datasets, image_description,
                                  gen_filename, **kwargs):
         """Put all togehter and save as a tiff file with the special tag
@@ -654,33 +682,8 @@ class MITIFFWriter(ImageWriter):
                             tif.write_image(data.astype(np.uint8), compression='deflate')
                             break
         elif self.palette:
-            # MITIFF palette has only one data channel
             LOG.debug("Saving dataset as palette.")
-            if len(datasets.dims) == 2:
-                LOG.debug("Palette ok with only 2 dimensions. ie only x and y")
-                # 3 = Palette color. In this model, a color is described with a single component.
-                # The value of the component is used as an index into the red, green and blue curves
-                # in the ColorMap field to retrieve an RGB triplet that defines the color. When
-                # PhotometricInterpretation=3 is used, ColorMap must be present and SamplesPerPixel must be 1.
-                tif.SetField('PHOTOMETRIC', 3)
-
-                # As write_image can not save tiff image as palette, this has to be done basicly
-                # ie. all needed tags needs to be set.
-                tif.SetField('IMAGEWIDTH', datasets.sizes['x'])
-                tif.SetField('IMAGELENGTH', datasets.sizes['y'])
-                tif.SetField('BITSPERSAMPLE', 8)
-                tif.SetField('COMPRESSION', tif.get_tag_define('deflate'))
-
-                if 'palette_color_map' in kwargs:
-                    tif.SetField('COLORMAP', kwargs['palette_color_map'])
-                else:
-                    LOG.ERROR("In a mitiff palette image a color map must be provided: palette_color_map is missing.")
-
-                data_type = np.uint8
-                # Looks like we need to pass the data to writeencodedstrip as ctypes
-                tif.WriteEncodedStrip(0, np.ascontiguousarray(datasets.data.astype(data_type), data_type).ctypes.data,
-                                      datasets.sizes['x'] * datasets.sizes['y'])
-                tif.WriteDirectory()
+            self._save_as_palette(tif, datasets, **kwargs)
         else:
             LOG.debug("Saving datasets as enhanced image")
             img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
