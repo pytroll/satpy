@@ -69,6 +69,7 @@ extras_require = {
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
+    'seviri_l2_bufr': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
