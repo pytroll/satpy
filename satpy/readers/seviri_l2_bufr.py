@@ -37,7 +37,6 @@ logger = logging.getLogger('BufrProductClasses')
 
 
 sub_sat_dict = {"E0000": 0.0, "E0415": 41.5, "E0095": 9.5}
-seg_area_dict = {"E0000": 'seviri_0deg', "E0415": 'seviri_iodc', "E0095": 'seviri_rss'}
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
