@@ -15,11 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Writer utilities"""
+"""Writer utilities."""
 
 
 def flatten_dict(d, parent_key='', sep='_'):
-    """Flatten a nested dictionary
+    """Flatten a nested dictionary.
 
     Based on https://stackoverflow.com/a/6027615/5703449
     """
