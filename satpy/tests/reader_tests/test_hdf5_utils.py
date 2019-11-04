@@ -18,7 +18,6 @@
 """Module for testing the satpy.readers.hdf5_utils module."""
 
 import os
-import sys
 import numpy as np
 
 try:
@@ -27,10 +26,7 @@ except ImportError:
     # fake the import so we can at least run the tests in this file
     HDF5FileHandler = object
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 
 class FakeHDF5FileHandler(HDF5FileHandler):
