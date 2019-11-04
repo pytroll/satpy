@@ -145,6 +145,247 @@ fake_ct = {
 
 fake_ct = OrderedDict(sorted(fake_ct.items(), key=lambda t: t[0]))
 
+fake_ctth = {
+    "01-PALETTE": {
+        "attrs": {
+            "CLASS": b"PALETTE",
+            "PAL_COLORMODEL": b"RGB",
+            "PAL_TYPE": b"DIRECTINDEX",
+        },
+        "value": np.array(
+            [
+                [0, 0, 0],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [255, 255, 255],
+                [239, 239, 223],
+                [239, 239, 223],
+                [238, 214, 210],
+                [238, 214, 210],
+                [0, 255, 255],
+                [0, 255, 255],
+                [0, 216, 255],
+                [0, 216, 255],
+                [0, 178, 255],
+                [0, 178, 255],
+                [0, 140, 48],
+                [0, 140, 48],
+                [0, 255, 0],
+                [0, 255, 0],
+                [153, 255, 0],
+                [153, 255, 0],
+                [178, 255, 0],
+                [178, 255, 0],
+                [216, 255, 0],
+                [216, 255, 0],
+                [255, 255, 0],
+                [255, 255, 0],
+                [255, 216, 0],
+                [255, 216, 0],
+                [255, 164, 0],
+                [255, 164, 0],
+                [255, 102, 0],
+                [255, 102, 0],
+                [255, 76, 0],
+                [255, 76, 0],
+                [178, 51, 0],
+                [178, 51, 0],
+                [153, 20, 47],
+                [153, 20, 47],
+                [126, 0, 43],
+                [126, 0, 43],
+                [255, 0, 216],
+                [255, 0, 216],
+                [255, 0, 128],
+                [255, 0, 128],
+                [255, 0, 128],
+                [255, 0, 128],
+                [255, 0, 128],
+                [255, 0, 128],
+                [255, 0, 128],
+                [255, 0, 128],
+                [255, 0, 128],
+                [255, 0, 128],
+                [255, 0, 128],
+            ],
+            dtype=np.uint8,
+        ),
+    },
+    "02-PALETTE": {
+        "attrs": {
+            "CLASS": b"PALETTE",
+            "PAL_COLORMODEL": b"RGB",
+            "PAL_TYPE": b"DIRECTINDEX",
+        },
+        "value": (np.random.rand(128, 3) * 255).astype(np.uint8),
+    },
+    "03-PALETTE": {
+        "attrs": {
+            "CLASS": b"PALETTE",
+            "PAL_COLORMODEL": b"RGB",
+            "PAL_TYPE": b"DIRECTINDEX",
+        },
+        "value": (np.random.rand(256, 3) * 255).astype(np.uint8),
+    },
+    "04-PALETTE": {
+        "attrs": {
+            "CLASS": b"PALETTE",
+            "PAL_COLORMODEL": b"RGB",
+            "PAL_TYPE": b"DIRECTINDEX",
+        },
+        "value": np.array(
+            [
+                [78, 119, 145],
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+                [0, 0, 0],
+                [12, 12, 12],
+                [24, 24, 24],
+                [36, 36, 36],
+                [48, 48, 48],
+                [60, 60, 60],
+                [72, 72, 72],
+                [84, 84, 84],
+                [96, 96, 96],
+                [108, 108, 108],
+                [120, 120, 120],
+                [132, 132, 132],
+                [144, 144, 144],
+                [156, 156, 156],
+                [168, 168, 168],
+                [180, 180, 180],
+                [192, 192, 192],
+                [204, 204, 204],
+                [216, 216, 216],
+                [228, 228, 228],
+                [240, 240, 240],
+                [240, 240, 240],
+            ],
+            dtype=np.uint8,
+        ),
+    },
+    "CTTH_EFFECT": {
+        "attrs": {
+            "CLASS": b"IMAGE",
+            "ID": b"CTTH_EFFECT",
+            "IMAGE_COLORMODEL": b"RGB",
+            "IMAGE_SUBCLASS": b"IMAGE_INDEXED",
+            "IMAGE_VERSION": b"1.0",
+            "N_COLS": 3712,
+            "N_LINES": 1856,
+            "OFFSET": -50.0,
+            "PALETTE": "<HDF5 object reference> 04-PALETTE",
+            "PRODUCT": b"CTTH",
+            "SCALING_FACTOR": 5.0,
+        },
+        "value": (np.random.rand(1856, 3712) * 255).astype(np.uint8),
+    },
+    "CTTH_HEIGHT": {
+        "attrs": {
+            "CLASS": b"IMAGE",
+            "ID": b"CTTH_HEIGHT",
+            "IMAGE_COLORMODEL": b"RGB",
+            "IMAGE_SUBCLASS": b"IMAGE_INDEXED",
+            "IMAGE_VERSION": b"1.0",
+            "N_COLS": 3712,
+            "N_LINES": 1856,
+            "OFFSET": -2000.0,
+            "PALETTE": "<HDF5 object reference> 02-PALETTE",
+            "PRODUCT": b"CTTH",
+            "SCALING_FACTOR": 200.0,
+        },
+        "value": (np.random.rand(1856, 3712) * 255).astype(np.uint8),
+    },
+    "CTTH_PRESS": {
+        "attrs": {
+            "CLASS": b"IMAGE",
+            "ID": b"CTTH_PRESS",
+            "IMAGE_COLORMODEL": b"RGB",
+            "IMAGE_SUBCLASS": b"IMAGE_INDEXED",
+            "IMAGE_VERSION": b"1.0",
+            "N_COLS": 3712,
+            "N_LINES": 1856,
+            "OFFSET": -250.0,
+            "PALETTE": "<HDF5 object reference> 01-PALETTE",
+            "PRODUCT": b"CTTH",
+            "SCALING_FACTOR": 25.0,
+        },
+        "value": (np.random.rand(1856, 3712) * 255).astype(np.uint8),
+    },
+    "CTTH_QUALITY": {
+        "attrs": {
+            "CLASS": b"IMAGE",
+            "ID": b"CTTH_QUALITY",
+            "IMAGE_COLORMODEL": b"RGB",
+            "IMAGE_SUBCLASS": b"IMAGE_INDEXED",
+            "IMAGE_VERSION": b"1.0",
+            "N_COLS": 3712,
+            "N_LINES": 1856,
+            "OFFSET": 0.0,
+            "PRODUCT": b"CTTH",
+            "SCALING_FACTOR": 1.0,
+        },
+        "value": (np.random.rand(1856, 3712) * 65535).astype(np.uint16),
+    },
+    "CTTH_TEMPER": {
+        "attrs": {
+            "CLASS": b"IMAGE",
+            "ID": b"CTTH_TEMPER",
+            "IMAGE_COLORMODEL": b"RGB",
+            "IMAGE_SUBCLASS": b"IMAGE_INDEXED",
+            "IMAGE_VERSION": b"1.0",
+            "N_COLS": 3712,
+            "N_LINES": 1856,
+            "OFFSET": 150.0,
+            "PALETTE": "<HDF5 object reference> 03-PALETTE",
+            "PRODUCT": b"CTTH",
+            "SCALING_FACTOR": 1.0,
+        },
+        "value": (np.random.rand(1856, 3712) * 255).astype(np.uint8),
+    },
+    "attrs": {
+        "CFAC": 13642337,
+        "COFF": 1856,
+        "GP_SC_ID": 323,
+        "IMAGE_ACQUISITION_TIME": b"201611090800",
+        "LFAC": 13642337,
+        "LOFF": 1856,
+        "NB_PARAMETERS": 5,
+        "NC": 3712,
+        "NL": 1856,
+        "NOMINAL_PRODUCT_TIME": b"201611090816",
+        "PACKAGE": b"SAFNWC/MSG",
+        "PRODUCT_ALGORITHM_VERSION": b"             2.2",
+        "PRODUCT_NAME": b"CTTH",
+        "PROJECTION_NAME": b"GEOS<+000.0>",
+        "REGION_NAME": b"MSG-N",
+        "SAF": b"NWC",
+        "SGS_PRODUCT_COMPLETENESS": 87,
+        "SGS_PRODUCT_QUALITY": 69,
+        "SPECTRAL_CHANNEL_ID": 0,
+    },
+}
+
+fake_ctth = OrderedDict(sorted(fake_ctth.items(), key=lambda t: t[0]))
+
 PROJ_KM = {
     "gdal_projection": "+proj=geos +a=6378.137000 +b=6356.752300 +lon_0=0.000000 +h=35785.863000",
     "gdal_xgeo_up_left": -5569500.0,
@@ -166,9 +407,15 @@ class TestH5NWCSAF(unittest.TestCase):
 
     def setUp(self):
         """Set up the tests."""
-        self.filename = os.path.join(
+        self.filename_ct = os.path.join(
             tempfile.gettempdir(),
-            "SAFNWC_MSG3_CT___201611090800_MSG-N_______.PLAX.CTTH.0.h5")
+            "SAFNWC_MSG3_CT___201611090800_MSG-N_______.PLAX.CTTH.0.h5",
+        )
+
+        self.filename_ctth = os.path.join(
+            tempfile.gettempdir(),
+            "SAFNWC_MSG3_CTTH_201611090800_MSG-N_______.PLAX.CTTH.0.h5",
+        )
 
         def fill_h5(root, stuff):
             for key, val in stuff.items():
@@ -181,14 +428,22 @@ class TestH5NWCSAF(unittest.TestCase):
                     fill_h5(grp, stuff[key])
                 if "attrs" in val:
                     for attrs, val in val["attrs"].items():
-                        if isinstance(val, str) and val.startswith("<HDF5 object reference>"):
+                        if isinstance(val, str) and val.startswith(
+                            "<HDF5 object reference>"
+                        ):
                             root[key].attrs[attrs] = root[val[24:]].ref
                         else:
                             root[key].attrs[attrs] = val
 
-        h5f = h5py.File(self.filename, mode="w")
+        h5f = h5py.File(self.filename_ct, mode="w")
         fill_h5(h5f, fake_ct)
         for attr, val in fake_ct["attrs"].items():
+            h5f.attrs[attr] = val
+        h5f.close()
+
+        h5f = h5py.File(self.filename_ctth, mode="w")
+        fill_h5(h5f, fake_ctth)
+        for attr, val in fake_ctth["attrs"].items():
             h5f.attrs[attr] = val
         h5f.close()
 
@@ -199,16 +454,25 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name='ct')
-        test = Hdf5NWCSAF(self.filename, filename_info, filetype_info)
-        ds = test.get_dataset(dsid, {'file_key': 'CT'})
+        dsid = DatasetID(name="ct")
+        test = Hdf5NWCSAF(self.filename_ct, filename_info, filetype_info)
+        ds = test.get_dataset(dsid, {"file_key": "CT"})
         self.assertEqual(ds.shape, (1856, 3712))
         self.assertEqual(ds.dtype, np.uint8)
+
+        filename_info = {}
+        filetype_info = {}
+        dsid = DatasetID(name="ctth_alti")
+        test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
+        ds = test.get_dataset(dsid, {"file_key": "CTTH_HEIGHT"})
+        self.assertEqual(ds.shape, (1856, 3712))
+        self.assertEqual(ds.dtype, np.float32)
 
     def tearDown(self):
         """Destroy."""
         try:
-            os.remove(self.filename)
+            os.remove(self.filename_ct)
+            os.remove(self.filename_ctth)
         except OSError:
             pass
 
