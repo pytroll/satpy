@@ -21,6 +21,7 @@ import numpy as np
 import tempfile
 import os
 import h5py
+from collections import OrderedDict
 
 try:
     from unittest import mock
@@ -142,6 +143,7 @@ fake_ct = {
     },
 }
 
+fake_ct = OrderedDict(sorted(fake_ct.items(), key=lambda t: t[0]))
 
 PROJ_KM = {
     "gdal_projection": "+proj=geos +a=6378.137000 +b=6356.752300 +lon_0=0.000000 +h=35785.863000",
