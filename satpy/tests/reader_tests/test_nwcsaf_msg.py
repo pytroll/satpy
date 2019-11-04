@@ -14,6 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+#
 """Unittests for NWC SAF MSG (2013) reader."""
 
 import unittest
@@ -28,6 +29,17 @@ try:
 except ImportError:
     import mock  # noqa
 
+CTYPE_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
+CTYPE_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 20).astype(np.uint8)
+CTYPE_TEST_ARRAY[1000:1010, 1000:1010] = CTYPE_TEST_FRAME
+
+CTTH_HEIGHT_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
+_CTTH_HEIGHT_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 80).astype(np.uint8)
+CTTH_HEIGHT_TEST_ARRAY[1000:1010, 1000:1010] = _CTTH_HEIGHT_TEST_FRAME
+
+CTTH_HEIGHT_TEST_FRAME_RES = _CTTH_HEIGHT_TEST_FRAME.astype(np.float32) * 200 - 2000
+CTTH_HEIGHT_TEST_FRAME_RES[0, 0:10] = np.nan
+CTTH_HEIGHT_TEST_FRAME_RES[1, 0:3] = np.nan
 
 fake_ct = {
     "01-PALETTE": {
@@ -87,7 +99,7 @@ fake_ct = {
             "PRODUCT": b"CT__",
             "SCALING_FACTOR": 1.0,
         },
-        "value": (np.random.rand(1856, 3712) * 255).astype(np.uint8),
+        "value": (CTYPE_TEST_ARRAY),
     },
     "CT_PHASE": {
         "attrs": {
@@ -312,7 +324,7 @@ fake_ctth = {
             "PRODUCT": b"CTTH",
             "SCALING_FACTOR": 200.0,
         },
-        "value": (np.random.rand(1856, 3712) * 255).astype(np.uint8),
+        "value": (CTTH_HEIGHT_TEST_ARRAY),
     },
     "CTTH_PRESS": {
         "attrs": {
@@ -401,6 +413,15 @@ PROJ = {
     "gdal_ygeo_low_right": 2653500.0,
 }
 
+AREA_DEF_DICT = {
+    "proj_dict": {'proj': 'geos', 'lon_0': 0, 'h': 35785831, 'x_0': 0, 'y_0': 0,
+                  'a': 6378169, 'b': 6356583.8, 'units': 'm', 'no_defs': None, 'type': 'crs'},
+    "area_id": 'MSG-N',
+    "x_size": 3712,
+    "y_size": 1856,
+    "area_extent": (-5570248.2825, 1501.0099, 5567247.8793, 5570247.8784)
+}
+
 
 class TestH5NWCSAF(unittest.TestCase):
     """Test the nwcsaf msg reader."""
@@ -447,8 +468,28 @@ class TestH5NWCSAF(unittest.TestCase):
             h5f.attrs[attr] = val
         h5f.close()
 
+    def test_get_area_def(self):
+        """Get the area definition."""
+        from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
+        from satpy import DatasetID
+
+        filename_info = {}
+        filetype_info = {}
+        dsid = DatasetID(name="ct")
+        test = Hdf5NWCSAF(self.filename_ct, filename_info, filetype_info)
+
+        area_def = test.get_area_def(dsid)
+
+        aext_res = AREA_DEF_DICT['area_extent']
+        for i in range(4):
+            self.assertAlmostEqual(area_def.area_extent[i], aext_res[i], 4)
+
+        proj_dict = AREA_DEF_DICT['proj_dict']
+        for key in proj_dict:
+            self.assertEqual(proj_dict[key], area_def.proj_dict[key])
+
     def test_get_dataset(self):
-        """Retrieve datasets from a DNB file."""
+        """Retrieve datasets from a NWCSAF msgv2013 hdf5 file."""
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
         from satpy import DatasetID
 
@@ -459,6 +500,7 @@ class TestH5NWCSAF(unittest.TestCase):
         ds = test.get_dataset(dsid, {"file_key": "CT"})
         self.assertEqual(ds.shape, (1856, 3712))
         self.assertEqual(ds.dtype, np.uint8)
+        np.testing.assert_allclose(ds.data.compute()[1000:1010, 1000:1010], CTYPE_TEST_FRAME)
 
         filename_info = {}
         filetype_info = {}
@@ -467,6 +509,7 @@ class TestH5NWCSAF(unittest.TestCase):
         ds = test.get_dataset(dsid, {"file_key": "CTTH_HEIGHT"})
         self.assertEqual(ds.shape, (1856, 3712))
         self.assertEqual(ds.dtype, np.float32)
+        np.testing.assert_allclose(ds.data.compute()[1000:1010, 1000:1010], CTTH_HEIGHT_TEST_FRAME_RES)
 
     def tearDown(self):
         """Destroy."""
