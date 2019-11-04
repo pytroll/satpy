@@ -75,6 +75,11 @@ class Hdf5NWCSAF(HDF5FileHandler):
                 dtype = np.dtype('float32')
                 nodata = 255
 
+            if dataset_id.name in ['ct']:
+                data.attrs['valid_range'] = (0, 20)
+                data.attrs['_FillValue'] = 255
+                # data.attrs['palette_meanings'] = list(range(21))
+
             scaled_data = (data.data * data.attrs['SCALING_FACTOR'] + data.attrs['OFFSET']).astype(dtype)
             if nodata:
                 scaled_data = np.where(data.data == nodata, np.nan, scaled_data)
