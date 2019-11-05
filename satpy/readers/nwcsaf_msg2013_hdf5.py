@@ -77,12 +77,13 @@ class Hdf5NWCSAF(HDF5FileHandler):
                 data.attrs['valid_range'] = (0, 20)
                 data.attrs['_FillValue'] = 255
                 # data.attrs['palette_meanings'] = list(range(21))
-            attrs = data.attrs
-            data = (data * data.attrs['SCALING_FACTOR'] + data.attrs['OFFSET']).astype(dtype)
-            if nodata:
-                data = data.where(data != nodata)
-                data = data.where(data >= 0)
 
+            attrs = data.attrs
+            scaled_data = (data * data.attrs['SCALING_FACTOR'] + data.attrs['OFFSET']).astype(dtype)
+            if nodata:
+                scaled_data = scaled_data.where(data != nodata)
+                scaled_data = scaled_data.where(scaled_data >= 0)
+            data = scaled_data
             data.attrs = attrs
 
         for key in list(data.attrs.keys()):
