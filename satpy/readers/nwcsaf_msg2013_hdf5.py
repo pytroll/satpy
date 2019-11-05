@@ -20,17 +20,15 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Reader for the old NWCSAF/Geo (v2013 and earlier) cloud product format
+"""Reader for the old NWCSAF/Geo (v2013 and earlier) cloud product format.
 
 References:
-
    - The NWCSAF GEO 2013 products documentation:
      http://www.nwcsaf.org/web/guest/archive - Search for Code "ICD/3"; Type
      "MSG" and the box to the right should say 'Status' (which means any
      status). Version 7.0 seems to be for v2013
 
      http://www.nwcsaf.org/aemetRest/downloadAttachment/2623
-
 
 """
 
@@ -79,13 +77,13 @@ class Hdf5NWCSAF(HDF5FileHandler):
                 data.attrs['valid_range'] = (0, 20)
                 data.attrs['_FillValue'] = 255
                 # data.attrs['palette_meanings'] = list(range(21))
-
-            scaled_data = (data.data * data.attrs['SCALING_FACTOR'] + data.attrs['OFFSET']).astype(dtype)
+            attrs = data.attrs
+            data = (data * data.attrs['SCALING_FACTOR'] + data.attrs['OFFSET']).astype(dtype)
             if nodata:
-                scaled_data = np.where(data.data == nodata, np.nan, scaled_data)
-                scaled_data = np.where(scaled_data < 0, np.nan, scaled_data)
+                data = data.where(data != nodata)
+                data = data.where(data >= 0)
 
-            data.data = scaled_data
+            data.attrs = attrs
 
         for key in list(data.attrs.keys()):
             val = data.attrs[key]
@@ -95,10 +93,7 @@ class Hdf5NWCSAF(HDF5FileHandler):
         return data
 
     def get_area_def(self, dsid):
-        """Get the area definition of the datasets in the file.
-
-        """
-
+        """Get the area definition of the datasets in the file."""
         if dsid.name.endswith('_pal'):
             raise NotImplementedError
 
@@ -138,9 +133,7 @@ class Hdf5NWCSAF(HDF5FileHandler):
 
 
 def get_area_extent(cfac, lfac, coff, loff, numcols, numlines):
-    """Get the area extent from msg parameters.
-    """
-
+    """Get the area extent from msg parameters."""
     xur = (numcols - coff) * 2 ** 16 / (cfac * 1.0)
     xur = np.deg2rad(xur) * 35785831.0
     xll = (-1 - coff) * 2 ** 16 / (cfac * 1.0)
