@@ -488,6 +488,11 @@ class TestH5NWCSAF(unittest.TestCase):
         for key in proj_dict:
             self.assertEqual(proj_dict[key], area_def.proj_dict[key])
 
+        self.assertEqual(AREA_DEF_DICT['x_size'], area_def.width)
+        self.assertEqual(AREA_DEF_DICT['y_size'], area_def.height)
+
+        self.assertEqual(AREA_DEF_DICT['area_id'], area_def.area_id)
+
     def test_get_dataset(self):
         """Retrieve datasets from a NWCSAF msgv2013 hdf5 file."""
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
