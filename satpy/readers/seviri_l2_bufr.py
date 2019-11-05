@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""SEVIRI Bufr  format reader."""
+"""SEVIRI L2 BUFR format reader."""
 
 
 import logging
@@ -47,7 +47,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
     """File handler for SEVIRI L2 BUFR products."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Initialise the File handler for MSG BUFR data."""
+        """Initialise the file handler for SEVIRI L2 BUFR data."""
         super(SeviriL2BufrFileHandler, self).__init__(filename,
                                                       filename_info,
                                                       filetype_info)
