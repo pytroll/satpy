@@ -28,7 +28,8 @@ import dask.array as da
 try:
     import eccodes as ec
 except ImportError:
-    raise ImportError("Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
+    raise ImportError(
+        "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
@@ -42,14 +43,14 @@ seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
 
 
-class MSGBUFRFileHandler(BaseFileHandler):
-    """File handler for MSG BUFR data."""
+class SeviriL2BufrFileHandler(BaseFileHandler):
+    """File handler for SEVIRI L2 BUFR products."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialise the File handler for MSG BUFR data."""
-        super(MSGBUFRFileHandler, self).__init__(filename,
-                                                 filename_info,
-                                                 filetype_info)
+        super(SeviriL2BufrFileHandler, self).__init__(filename,
+                                                      filename_info,
+                                                      filetype_info)
         self.platform_name = filename_info['satellite']
         self.subsat = filename_info['subsat']
         self.rc_start = filename_info['start_time']
@@ -81,9 +82,11 @@ class MSGBUFRFileHandler(BaseFileHandler):
 
                 # if is the first message initialise our final array
                 if (msgCount == 0):
-                    arr = da.from_array(ec.codes_get_array(bufr, parameter, float), chunks=CHUNK_SIZE)
+                    arr = da.from_array(ec.codes_get_array(
+                        bufr, parameter, float), chunks=CHUNK_SIZE)
                 else:
-                    tmpArr = da.from_array(ec.codes_get_array(bufr, parameter, float), chunks=CHUNK_SIZE)
+                    tmpArr = da.from_array(ec.codes_get_array(
+                        bufr, parameter, float), chunks=CHUNK_SIZE)
                     arr = np.concatenate((arr, tmpArr))
 
                 msgCount = msgCount+1
