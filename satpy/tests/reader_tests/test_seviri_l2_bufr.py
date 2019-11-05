@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Unittesting the  SEVIRI L2 Bufr reader."""
+"""Unittesting the  SEVIRI L2 BUFR reader."""
 
 import sys
 
@@ -33,13 +33,13 @@ except ImportError:
     import mock
 
 
-class TestMSGBufr(unittest.TestCase):
+class TestSeviriL2Bufr(unittest.TestCase):
     """Test NativeMSGBufrHandler."""
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def msg_bufr_test(self,):
         """Test the MSG Bufr Handler."""
-        from satpy.readers.seviri_l2_bufr import MSGBUFRFileHandler
+        from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
         import eccodes as ec
         buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
         ec.codes_set(buf1, 'unpac'
@@ -62,7 +62,7 @@ class TestMSGBufr(unittest.TestCase):
                 }
         info2 = {'file_type':  'seviri_l2_bufr_csr'}
 
-        fh = MSGBUFRFileHandler(None, info, info2)
+        fh = SeviriL2BufrFileHandler(None, info, info2)
         m = mock.mock_open()
         with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
             with mock.patch('eccodes.codes_bufr_new_from_file',
@@ -93,7 +93,7 @@ def suite():
     """Test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMSGBufr))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSeviriL2Bufr))
     return mysuite
 
 
