@@ -1,5 +1,5 @@
 reader:
-  description: Seviri L2 Bufr Products Reader
+  description: SEVIRI L2 BUFR Product Reader
   name: seviri_l2_bufr
   sensors: [seviri]
   default_channels: []
@@ -7,51 +7,51 @@ reader:
 
 file_types:
   seviri_l2_bufr_asr:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
+    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
     file_patterns: ['ASRBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
 
   seviri_l2_bufr_cla:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
+    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
     file_patterns: ['CLABUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
 
   seviri_l2_bufr_csr:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
+    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
     file_patterns: ['CSRBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
 
   seviri_l2_bufr_gii:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
+    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
     file_patterns: ['GIIBUFRProduct_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
 
   seviri_l2_bufr_thu:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
+    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
     file_patterns: ['THBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
 
   seviri_l2_bufr_toz:
-    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.MSGBUFRFileHandler
+    file_reader: !!python/name:satpy.readers.seviri_l2_bufr.SeviriL2BufrFileHandler
     file_patterns: ['TOZBUFRProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:s}_{satellite:s}_{mission:s}_{subsat:s}']
 
 datasets:
 
- latitude:
-   name: latitude
-   key: 'latitude'
-   resolution: [48000,9000]
-   file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
-   standard_name: latitude
-   units: degree_north
-   fill_value: -1.e+100
+  latitude:
+    name: latitude
+    key: 'latitude'
+    resolution: [48000,9000]
+    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
+    standard_name: latitude
+    units: degree_north
+    fill_value: -1.e+100
 
- longitude:
-   name: longitude
-   key: 'longitude'
-   resolution: [48000,9000]
-   file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
-   standard_name: longitude
-   units: degree_east
-   fill_value: -1.e+100
+  longitude:
+    name: longitude
+    key: 'longitude'
+    resolution: [48000,9000]
+    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz]
+    standard_name: longitude
+    units: degree_east
+    fill_value: -1.e+100
 
- # ---- ASR products ------------
- nir39all:
+  # ---- ASR products ------------
+  nir39all:
     name: nir39all
     key: '#19#brightnessTemperature'
     resolution: 48000
@@ -62,7 +62,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- nir39clr:
+
+  nir39clr:
     name: nir39clr
     key: '#20#brightnessTemperature'
     resolution: 48000
@@ -73,7 +74,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- nir39cld:
+
+  nir39cld:
     name: nir39cld
     key: '#21#brightnessTemperature'
     resolution: 48000
@@ -84,7 +86,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- nir39low:
+
+  nir39low:
     name: nir39low
     key: '#22#brightnessTemperature'
     resolution: 48000
@@ -95,7 +98,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- nir39med:
+
+  nir39med:
     name: nir39med
     key: '#23#brightnessTemperature'
     resolution: 48000
@@ -106,7 +110,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- nir39high:
+
+  nir39high:
     name: nir39high
     key: '#24#brightnessTemperature'
     resolution: 48000
@@ -117,7 +122,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv62all:
+
+  wv62all:
     name: wv62all
     key: '#25#brightnessTemperature'
     resolution: 48000
@@ -128,7 +134,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv62clr:
+
+  wv62clr:
     name: wv62clr
     key: '#26#brightnessTemperature'
     resolution: 48000
@@ -139,7 +146,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv62cld:
+
+  wv62cld:
     name: wv62cld
     key: '#27#brightnessTemperature'
     resolution: 48000
@@ -150,7 +158,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv62low:
+
+  wv62low:
     name: wv62low
     key: '#28#brightnessTemperature'
     resolution: 48000
@@ -161,7 +170,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv62med:
+
+  wv62med:
     name: wv62med
     key: '#29#brightnessTemperature'
     resolution: 48000
@@ -172,7 +182,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv62high:
+
+  wv62high:
     name: wv62high
     key: '#30#brightnessTemperature'
     resolution: 48000
@@ -183,7 +194,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv73all:
+
+  wv73all:
     name: wv73all
     key: '#31#brightnessTemperature'
     resolution: 48000
@@ -194,7 +206,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv73clr:
+
+  wv73clr:
     name: wv73clr
     key: '#32#brightnessTemperature'
     resolution: 48000
@@ -205,7 +218,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv73cld:
+
+  wv73cld:
     name: wv73cld
     key: '#33#brightnessTemperature'
     resolution: 48000
@@ -216,7 +230,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv73low:
+
+  wv73low:
     name: wv73low
     key: '#34#brightnessTemperature'
     resolution: 48000
@@ -227,7 +242,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv73med:
+
+  wv73med:
     name: wv73med
     key: '#35#brightnessTemperature'
     resolution: 48000
@@ -238,7 +254,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv73high:
+
+  wv73high:
     name: wv73high
     key: '#36#brightnessTemperature'
     resolution: 48000
@@ -249,7 +266,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir87all:
+
+  ir87all:
     name: ir87all
     key: '#37#brightnessTemperature'
     resolution: 48000
@@ -260,7 +278,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir87clr:
+
+  ir87clr:
     name: ir87clr
     key: '#38#brightnessTemperature'
     resolution: 48000
@@ -271,7 +290,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir87cld:
+
+  ir87cld:
     name: ir87cld
     key: '#39#brightnessTemperature'
     resolution: 48000
@@ -282,7 +302,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir87low:
+
+  ir87low:
     name: ir87low
     key: '#40#brightnessTemperature'
     resolution: 48000
@@ -293,7 +314,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir87med:
+
+  ir87med:
     name: ir87med
     key: '#41#brightnessTemperature'
     resolution: 48000
@@ -304,7 +326,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir87high:
+
+  ir87high:
     name: ir87high
     key: '#42#brightnessTemperature'
     resolution: 48000
@@ -315,7 +338,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir97all:
+
+  ir97all:
     name: ir97all
     key: '#43#brightnessTemperature'
     resolution: 48000
@@ -326,7 +350,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir97clr:
+
+  ir97clr:
     name: ir97clr
     key: '#44#brightnessTemperature'
     resolution: 48000
@@ -337,7 +362,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir97cld:
+
+  ir97cld:
     name: ir97cld
     key: '#45#brightnessTemperature'
     resolution: 48000
@@ -348,7 +374,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir97low:
+
+  ir97low:
     name: ir97low
     key: '#46#brightnessTemperature'
     resolution: 48000
@@ -359,7 +386,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir97med:
+
+  ir97med:
     name: ir97med
     key: '#47#brightnessTemperature'
     resolution: 48000
@@ -370,7 +398,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir97high:
+
+  ir97high:
     name: ir97high
     key: '#48#brightnessTemperature'
     resolution: 48000
@@ -381,7 +410,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir108all:
+
+  ir108all:
     name: ir108all
     key: '#49#brightnessTemperature'
     resolution: 48000
@@ -392,7 +422,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir108clr:
+
+  ir108clr:
     name: ir108clr
     key: '#50#brightnessTemperature'
     resolution: 48000
@@ -403,7 +434,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir108cld:
+
+  ir108cld:
     name: ir108cld
     key: '#51#brightnessTemperature'
     resolution: 48000
@@ -414,7 +446,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir108low:
+
+  ir108low:
     name: ir108low
     key: '#52#brightnessTemperature'
     resolution: 48000
@@ -425,7 +458,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir108med:
+
+  ir108med:
     name: ir108med
     key: '#53#brightnessTemperature'
     resolution: 48000
@@ -436,7 +470,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir108high:
+
+  ir108high:
     name: ir108high
     key: '#54#brightnessTemperature'
     resolution: 48000
@@ -447,7 +482,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir120all:
+
+  ir120all:
     name: ir120all
     key: '#55#brightnessTemperature'
     resolution: 48000
@@ -458,7 +494,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir120clr:
+
+  ir120clr:
     name: ir120clr
     key: '#56#brightnessTemperature'
     resolution: 48000
@@ -469,7 +506,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir120cld:
+
+  ir120cld:
     name: ir120cld
     key: '#57#brightnessTemperature'
     resolution: 48000
@@ -480,7 +518,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir120low:
+
+  ir120low:
     name: ir120low
     key: '#58#brightnessTemperature'
     resolution: 48000
@@ -491,7 +530,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir120med:
+
+  ir120med:
     name: ir120med
     key: '#59#brightnessTemperature'
     resolution: 48000
@@ -502,7 +542,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir120high:
+
+  ir120high:
     name: ir120high
     key: '#60#brightnessTemperature'
     resolution: 48000
@@ -513,7 +554,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir134all:
+
+  ir134all:
     name: ir134all
     key: '#61#brightnessTemperature'
     resolution: 48000
@@ -524,7 +566,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir134clr:
+
+  ir134clr:
     name: ir134clr
     key: '#62#brightnessTemperature'
     resolution: 48000
@@ -535,7 +578,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir134cld:
+
+  ir134cld:
     name: ir134cld
     key: '#63#brightnessTemperature'
     resolution: 48000
@@ -546,7 +590,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir134low:
+
+  ir134low:
     name: ir134low
     key: '#64#brightnessTemperature'
     resolution: 48000
@@ -557,7 +602,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir134med:
+
+  ir134med:
     name: ir134med
     key: '#65#brightnessTemperature'
     resolution: 48000
@@ -568,7 +614,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir134high:
+
+  ir134high:
     name: ir134high
     key: '#66#brightnessTemperature'
     resolution: 48000
@@ -579,7 +626,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- pcld:
+
+  pcld:
     name: pcld
     key: '#1#cloudAmountInSegment'
     resolution: 48000
@@ -590,7 +638,8 @@ datasets:
        - longitude
        - latitude
     fill_value: 0
- pclr:
+
+  pclr:
     name: pclr
     key: '#1#amountSegmentCloudFree'
     resolution: 48000
@@ -601,7 +650,8 @@ datasets:
        - longitude
        - latitude
     fill_value: 0
- pclrs:
+
+  pclrs:
     name: pclrs
     key: '#2#amountSegmentCloudFree'
     resolution: 48000
@@ -613,8 +663,8 @@ datasets:
        - latitude
     fill_value: 0
 
- # ---- CLA products ------------
- hca:
+  # ---- CLA products ------------
+  hca:
     name: hca
     key: '#1#amountOfHighClouds'
     resolution: 48000
@@ -625,7 +675,8 @@ datasets:
        - longitude
        - latitude
     fill_value: 0
- lca:
+
+  lca:
     name: lca
     key: '#1#amountOfLowClouds'
     resolution: 48000
@@ -633,7 +684,8 @@ datasets:
     units: '%'
     file_type:  seviri_l2_bufr_cla
     fill_value: 0
- mca:
+
+  mca:
     name: mca
     key: '#1#amountOfMiddleClouds'
     resolution: 48000
@@ -644,7 +696,8 @@ datasets:
        - longitude
        - latitude
     fill_value: 0
- tca:
+
+  tca:
     name: tca
     key: '#1#cloudAmountInSegment'
     resolution: 48000
@@ -656,8 +709,8 @@ datasets:
        - latitude
     fill_value: 0
 
- # ---- CSR products ------------
- nir39:
+  # ---- CSR products ------------
+  nir39:
     name: nir39
     key: '#4#brightnessTemperature'
     resolution: 48000
@@ -668,7 +721,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- cld39:
+
+  cld39:
     name: cld39
     key: '#4#cloudAmountInSegment'
     resolution: 48000
@@ -679,7 +733,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv62:
+
+  wv62:
     name: wv62
     key: '#5#brightnessTemperature'
     resolution: 48000
@@ -690,7 +745,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- cld62:
+
+  cld62:
     name: cld62
     key: '#5#cloudAmountInSegment'
     resolution: 48000
@@ -701,7 +757,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- wv73:
+
+  wv73:
     name: wv73
     key: '#6#brightnessTemperature'
     resolution: 48000
@@ -712,7 +769,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- cld73:
+
+  cld73:
     name: cld73
     key: '#6#cloudAmountInSegment'
     resolution: 48000
@@ -723,7 +781,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir87:
+
+  ir87:
     name: ir87
     key: '#7#brightnessTemperature'
     resolution: 48000
@@ -734,7 +793,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- cld87:
+
+  cld87:
     name: cld87
     key: '#7#cloudAmountInSegment'
     resolution: 48000
@@ -745,7 +805,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir97:
+
+  ir97:
     name: ir97
     key: '#8#brightnessTemperature'
     resolution: 48000
@@ -756,7 +817,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- cld97:
+
+  cld97:
     name: cld97
     key: '#8#cloudAmountInSegment'
     resolution: 48000
@@ -767,7 +829,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir108:
+
+  ir108:
     name: ir108
     key: '#9#brightnessTemperature'
     resolution: 48000
@@ -778,7 +841,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- cld108:
+
+  cld108:
     name: cld108
     key: '#9#cloudAmountInSegment'
     resolution: 48000
@@ -789,7 +853,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir120:
+
+  ir120:
     name: ir120
     key: '#10#brightnessTemperature'
     resolution: 48000
@@ -800,7 +865,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- cld120:
+
+  cld120:
     name: cld120
     key: '#10#cloudAmountInSegment'
     resolution: 48000
@@ -811,7 +877,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- ir134:
+
+  ir134:
     name: ir134
     key: '#11#brightnessTemperature'
     resolution: 48000
@@ -822,7 +889,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- cld134:
+
+  cld134:
     name: cld134
     key: '#11#cloudAmountInSegment'
     resolution: 48000
@@ -834,9 +902,9 @@ datasets:
        - latitude
     fill_value: -1.e+100
 
- # ---- GII products ------------
+  # ---- GII products ------------
 
- ki:
+  ki:
     name: ki
     key: '#1#kIndex'
     resolution: 9000
@@ -847,7 +915,8 @@ datasets:
     units: ""
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
- ko:
+
+  ko:
     name: ko
     key: '#1#koIndex'
     resolution: 9000
@@ -858,7 +927,8 @@ datasets:
     units: ""
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
- li:
+
+  li:
     name: li
     key: '#1#parcelLiftedIndexTo500Hpa'
     resolution: 9000
@@ -869,7 +939,8 @@ datasets:
     units: ""
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
- lpw1:
+
+  lpw1:
     name: lpw1
     key: '#2#precipitableWater'
     resolution: 9000
@@ -880,7 +951,8 @@ datasets:
     units: mm
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
- lpw2:
+
+  lpw2:
     name: lpw2
     key: '#3#precipitableWater'
     resolution: 9000
@@ -891,7 +963,8 @@ datasets:
     units: mm
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
- lpw3:
+
+  lpw3:
     name: lpw3
     key: '#4#precipitableWater'
     resolution: 9000
@@ -902,7 +975,8 @@ datasets:
     units: mm
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
- mb:
+
+  mb:
     name: mb
     key: '#1#maximumBuoyancy'
     resolution: 9000
@@ -913,7 +987,8 @@ datasets:
     units: ""
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
- stza:
+
+  stza:
     name: stza
     key: '#1#satelliteZenithAngle'
     resolution: 9000
@@ -924,7 +999,8 @@ datasets:
     units: degrees
     file_type: seviri_l2_bufr_gii
     fill_value: 0
- tpw:
+
+  tpw:
     name: tpw
     key: '#1#precipitableWater'
     resolution: 9000
@@ -936,8 +1012,8 @@ datasets:
     file_type: seviri_l2_bufr_gii
     fill_value: -1.e+100
 
- # ---- THU products ------------
- thu62:
+  # ---- THU products ------------
+  thu62:
     name: thu62
     key: '#1#relativeHumidity'
     resolution: 48000
@@ -948,7 +1024,8 @@ datasets:
        - longitude
        - latitude
     fill_value: -1.e+100
- thu73:
+
+  thu73:
     name: thu73
     key: '#2#relativeHumidity'
     resolution: 48000
@@ -960,8 +1037,8 @@ datasets:
        - latitude
     fill_value: -1.e+100
 
- # ---- TOZ products ------------
- toz:
+  # ---- TOZ products ------------
+  toz:
     name: toz
     key: '#1#totalOzone'
     resolution: 9000
@@ -972,7 +1049,8 @@ datasets:
        - longitude
        - latitude
     fill_value: 0
- qual:
+
+  qual:
     name: qual
     key: '#1#totalOzone->totalOzoneQuality'
     resolution: 9000
