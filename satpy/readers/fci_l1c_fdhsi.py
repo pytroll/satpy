@@ -46,6 +46,39 @@ Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.  FCI will fly
 on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
 in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 
+Geolocation is based on a combination of information from the Product User
+Guide (`PUG`_) and from the data files.  It uses:
+
+    * Extent information from the PUG for the three different possible
+      resolutions.  In the PUG dated 2019-06-27 (EUM/MTG/USR/13/719113),
+      this is Table 3.
+    * From the shape of the data variable ``data/<channel>/measured/effective_radiance``,
+      start and end line columns of current swath.
+    * From the data variable ``data/<channel>/measured/x``, the x-coordinates
+      for the grid, in radians
+    * From the data variable ``data/<channel>/measured/y``, the y-coordinates
+      for the grid, in radians
+    * From the attribute ``semi_major_axis`` on the data variable
+      ``data/mtg_geos_projection``, the Earth equatorial radius
+    * From the attribute ``semi_minor_axis`` on the same, the Earth polar
+      radius
+    * From the attribute ``perspective_point_height`` on the same data
+      variable, the geostationary altitude in the normalised geostationary
+      projection (see PUG §5.2)
+    * From the attribute ``longitude_of_projection_origin`` on the same
+      data variable, the longitude of the projection origin
+    * From the attribute ``sweep_angle_axis`` on the same, the sweep angle
+      axis, see https://proj.org/operations/projections/geos.html
+
+From the pixel centre angles in radians and the geostationary altitude, the
+extremities of the lower left and upper right corners are calculated in units
+of arc length in m.  This extent along with the number of columns and rows, the
+sweep angle axis, and a dictionary with equatorial radius, polar radius,
+geostationary altitude, and longitude of projection origin, are passed on to
+``pyresample.geometry.AreaDefinition``, which then uses proj4 for the actual
+geolocation calculations.
+
+.. _PUG: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_DMT_719113&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci  # noqa: E501
 """
 
@@ -154,7 +187,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         C"""
         # Calculate the area extent of the swath based on start line and column
         # information, total number of segments and channel resolution
-        # numbers from Package Description, Table 8
+        # numbers from PUG, Table 3
         xyres = {500: 22272, 1000: 11136, 2000: 5568}
         chkres = xyres[key.resolution]
 
