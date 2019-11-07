@@ -83,6 +83,9 @@ the base Satpy installation.
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata
         | in the files. EUMETSAT has been notified.
+    * - MSG (Meteosat 8 to 11) L2 products in BUFR format
+      - `seviri_l2_bufr`
+      - AMV Bufr products not available yet.
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
@@ -215,6 +218,9 @@ the base Satpy installation.
       - `hsaf_grib`
       - | Beta
         | Only the h03, h03b, h05 and h05B products are supported at-present
+    * - GEO-KOMPSAT-2 AMI L1B data in NetCDF4 format
+      - `ami_l1b`
+      - Beta
 
 
 Indices and tables

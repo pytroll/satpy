@@ -49,7 +49,7 @@ DEFAULT_LATLON_FILE_DTYPE = np.float32
 DEFAULT_LATLON_FILE_DATA = np.arange(start=43, stop=45, step=0.02,
                                      dtype=DEFAULT_LATLON_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
-DEFAULT_DETECTION_FILE_DTYPE = np.ubyte
+DEFAULT_DETECTION_FILE_DTYPE = np.uint8
 DEFAULT_DETECTION_FILE_DATA = np.arange(start=60, stop=100, step=0.4,
                                         dtype=DEFAULT_DETECTION_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
@@ -203,6 +203,8 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], '%')
+            self.assertEqual(v.attrs['_FillValue'], 255)
+            self.assertTrue(np.issubdtype(v.dtype, DEFAULT_DETECTION_FILE_DTYPE))
 
         datasets = r.load(['T13'])
         self.assertEqual(len(datasets), 1)
