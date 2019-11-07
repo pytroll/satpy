@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-"""SEVIRI Bufr  format reader."""
+"""SEVIRI L2 BUFR format reader."""
 
 
 import logging
@@ -25,10 +24,14 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 
+from satpy.readers.seviri_base import mpef_product_header
+from satpy.readers.eum_base import recarray2dict
+
 try:
     import eccodes as ec
 except ImportError:
-    raise ImportError("Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
+    raise ImportError(
+        "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
@@ -42,34 +45,48 @@ seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
 
 
-class MSGBUFRFileHandler(BaseFileHandler):
-    """File handler for MSG BUFR data."""
+class SeviriL2BufrFileHandler(BaseFileHandler):
+    """File handler for SEVIRI L2 BUFR products."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Initialise the File handler for MSG BUFR data."""
-        super(MSGBUFRFileHandler, self).__init__(filename,
-                                                 filename_info,
-                                                 filetype_info)
-        self.platform_name = filename_info['satellite']
-        self.subsat = filename_info['subsat']
-        self.rc_start = filename_info['start_time']
-        self.filename = filename
-        self.ssp_lon = sub_sat_dict[filename_info['subsat']]
+        """Initialise the file handler for SEVIRI L2 BUFR data."""
+        super(SeviriL2BufrFileHandler, self).__init__(filename,
+                                                      filename_info,
+                                                      filetype_info)
 
+        self.filename = filename
+        self.mpef_header = self._read_mpef_header()
         self.seg_size = seg_size_dict[filetype_info['file_type']]
 
     @property
     def start_time(self):
         """Return the repeat cycle start time."""
-        return self.rc_start
+        return self.mpef_header['NominalTime']
 
     @property
     def end_time(self):
         """Return the repeat cycle end time."""
-        return self.rc_start+timedelta(minutes=15)
+        return self.start_time + timedelta(minutes=15)
 
-    def get_array(self, parameter):
-        """Get data from BUFR file."""
+    @property
+    def spacecraft_name(self):
+        """Return spacecraft name."""
+        return 'MET{}'.format(self.mpef_header['SpacecraftName'])
+
+    @property
+    def ssp_lon(self):
+        """Return subsatellite point longitude."""
+        # e.g. E0415
+        ssp_lon = self.mpef_header['RectificationLongitude']
+        return float(ssp_lon[1:])/10.
+
+    def _read_mpef_header(self):
+        """Read MPEF header."""
+        hdr = np.fromfile(self.filename, mpef_product_header, 1)
+        return recarray2dict(hdr)
+
+    def get_array(self, key):
+        """Get all data from file for the given BUFR key."""
         with open(self.filename, "rb") as fh:
             msgCount = 0
             while True:
@@ -81,10 +98,12 @@ class MSGBUFRFileHandler(BaseFileHandler):
 
                 # if is the first message initialise our final array
                 if (msgCount == 0):
-                    arr = da.from_array(ec.codes_get_array(bufr, parameter, float), chunks=CHUNK_SIZE)
+                    arr = da.from_array(ec.codes_get_array(
+                        bufr, key, float), chunks=CHUNK_SIZE)
                 else:
-                    tmpArr = da.from_array(ec.codes_get_array(bufr, parameter, float), chunks=CHUNK_SIZE)
-                    arr = np.concatenate((arr, tmpArr))
+                    tmpArr = da.from_array(ec.codes_get_array(
+                        bufr, key, float), chunks=CHUNK_SIZE)
+                    arr = da.concatenate((arr, tmpArr))
 
                 msgCount = msgCount+1
                 ec.codes_release(bufr)
@@ -94,18 +113,19 @@ class MSGBUFRFileHandler(BaseFileHandler):
 
         return arr
 
-    def get_dataset(self, dsid, info):
-        """Loop through the BUFR file for the required key and read array."""
-        arr = self.get_array(info['key'])
-        arr[arr == info['fill_value']] = np.nan
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get dataset using the BUFR key in dataset_info."""
+        arr = self.get_array(dataset_info['key'])
+        arr[arr == dataset_info['fill_value']] = np.nan
 
         xarr = xr.DataArray(arr, dims=["y"])
 
         xarr['latitude'] = ('y', self.get_array('latitude'))
         xarr['longitude'] = ('y', self.get_array('longitude'))
-        xarr.attrs['platform_name'] = self.platform_name
-        xarr.attrs['sensor'] = 'seviri'
+        xarr.attrs['sensor'] = 'SEVIRI'
+        xarr.attrs['spacecraft_name'] = self.spacecraft_name
+        xarr.attrs['ssp_lon'] = self.ssp_lon
         xarr.attrs['seg_size'] = self.seg_size
-        xarr.attrs.update(info)
+        xarr.attrs.update(dataset_info)
 
         return xarr

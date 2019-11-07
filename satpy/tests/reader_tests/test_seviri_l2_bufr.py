@@ -16,11 +16,12 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Unittesting the  SEVIRI L2 Bufr reader."""
+"""Unittesting the SEVIRI L2 BUFR reader."""
 
 import sys
 
 import numpy as np
+from datetime import datetime
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -32,14 +33,33 @@ try:
 except ImportError:
     import mock
 
+FILETYPE_INFO = {'file_type':  'seviri_l2_bufr_csr'}
 
-class TestMSGBufr(unittest.TestCase):
+MPEF_PRODUCT_HEADER = {
+    'NominalTime': datetime(2019, 11, 6, 18, 0),
+    'SpacecraftName': '08',
+    'RectificationLongitude': 'E0415'
+}
+
+DATASET_INFO = {
+    'key': '#1#brightnessTemperature',
+    'fill_value': 0
+}
+
+DATASET_ATTRS = {
+    'spacecraft_name': 'MET08',
+    'ssp_lon': 41.5,
+    'seg_size': 16
+}
+
+
+class TestSeviriL2Bufr(unittest.TestCase):
     """Test NativeMSGBufrHandler."""
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
-    def msg_bufr_test(self,):
-        """Test the MSG Bufr Handler."""
-        from satpy.readers.seviri_l2_bufr import MSGBUFRFileHandler
+    def seviri_l2_bufr_test(self,):
+        """Test the SEVIRI BUFR handler."""
+        from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
         import eccodes as ec
         buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
         ec.codes_set(buf1, 'unpac'
@@ -54,46 +74,48 @@ class TestMSGBufr(unittest.TestCase):
         ec.codes_set_array(buf1, 'latitude', samp2)
         ec.codes_set_array(buf1, 'longitude', samp3)
         ec.codes_set_array(buf1, 'longitude', samp3)
-        info = {'satellite': 'meteosat9', 'subsat': 'E0000',
-                'start_time': '201909180000',
-                'key': '#1#brightnessTemperature', 'units': 'm',
-                'wavelength': 10, 'standard_name': 'met9',
-                'fill_value': 0
-                }
-        info2 = {'file_type':  'seviri_l2_bufr_csr'}
 
-        fh = MSGBUFRFileHandler(None, info, info2)
         m = mock.mock_open()
-        with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
-            with mock.patch('eccodes.codes_bufr_new_from_file',
-                            side_effect=[buf1, buf1, None, buf1, buf1, None, buf1, buf1, None]) as ec1:
-                ec1.return_value = ec1.side_effect
-                with mock.patch('eccodes.codes_set') as ec2:
-                    ec2.return_value = 1
-                    with mock.patch('eccodes.codes_release') as ec5:
-                        ec5.return_value = 1
-                        z = fh.get_dataset(None, info)
-                        # concatenate the original test arrays as
-                        # get dataset will have read and concatented the data
-                        x1 = np.concatenate((samp1, samp1), axis=0)
-                        x2 = np.concatenate((samp2, samp2), axis=0)
-                        x3 = np.concatenate((samp3, samp3), axis=0)
-                        np.testing.assert_array_equal(z.values, x1)
-                        np.testing.assert_array_equal(z.coords['latitude'].values, x2)
-                        np.testing.assert_array_equal(z.coords['longitude'].values, x3)
-                        self.assertEqual(z.attrs['satellite'], info['satellite'])
-                        self.assertEqual(z.attrs['standard_name'], info['standard_name'])
+        with mock.patch('satpy.readers.seviri_l2_bufr.np.fromfile') as fromfile:
+            fromfile.return_value = MPEF_PRODUCT_HEADER
+            with mock.patch('satpy.readers.seviri_l2_bufr.recarray2dict') as recarray2dict:
+                recarray2dict.side_effect = (lambda x: x)
+                fh = SeviriL2BufrFileHandler(None, {}, FILETYPE_INFO)
+                fh.mpef_header = MPEF_PRODUCT_HEADER
+                with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
+                    with mock.patch('eccodes.codes_bufr_new_from_file',
+                                    side_effect=[buf1, buf1, None, buf1, buf1, None, buf1, buf1, None]) as ec1:
+                        ec1.return_value = ec1.side_effect
+                        with mock.patch('eccodes.codes_set') as ec2:
+                            ec2.return_value = 1
+                            with mock.patch('eccodes.codes_release') as ec5:
+                                ec5.return_value = 1
+                                z = fh.get_dataset(None, DATASET_INFO)
+                                # concatenate the original test arrays as
+                                # get dataset will have read and concatented the data
+                                x1 = np.concatenate((samp1, samp1), axis=0)
+                                x2 = np.concatenate((samp2, samp2), axis=0)
+                                x3 = np.concatenate((samp3, samp3), axis=0)
+                                np.testing.assert_array_equal(z.values, x1)
+                                np.testing.assert_array_equal(z.coords['latitude'].values, x2)
+                                np.testing.assert_array_equal(z.coords['longitude'].values, x3)
+                                self.assertEqual(z.attrs['spacecraft_name'],
+                                                 DATASET_ATTRS['spacecraft_name'])
+                                self.assertEqual(z.attrs['ssp_lon'],
+                                                 DATASET_ATTRS['ssp_lon'])
+                                self.assertEqual(z.attrs['seg_size'],
+                                                 DATASET_ATTRS['seg_size'])
 
-    def test_msg_bufr(self):
+    def test_seviri_l2_bufr(self):
         """Call the test function."""
-        self.msg_bufr_test()
+        self.seviri_l2_bufr_test()
 
 
 def suite():
     """Test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMSGBufr))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSeviriL2Bufr))
     return mysuite
 
 
