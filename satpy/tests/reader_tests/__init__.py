@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The reader tests package.
-"""
+"""The reader tests package."""
 
 import sys
 
@@ -39,8 +38,9 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_agri_l1, test_hrit_base
                                       test_electrol_hrit, test_mersi2_l1b,
                                       test_avhrr_l1b_gaclac, test_vaisala_gld360,
                                       test_fci_l1c_fdhsi, test_tropomi_l2,
-                                      test_hsaf_grib)
-
+                                      test_hsaf_grib, test_abi_l2_nc, test_eum_base,
+                                      test_ami_l1b, test_viirs_compact, test_seviri_l2_bufr,
+                                      test_nwcsaf_msg)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -49,7 +49,7 @@ else:
 
 
 def suite():
-    """Test suite for all reader tests"""
+    """Test suite for all reader tests."""
     mysuite = unittest.TestSuite()
     mysuite.addTests(test_abi_l1b.suite())
     mysuite.addTests(test_agri_l1.suite())
@@ -93,7 +93,13 @@ def suite():
     mysuite.addTests(test_avhrr_l1b_gaclac.suite())
     mysuite.addTests(test_vaisala_gld360.suite())
     mysuite.addTests(test_fci_l1c_fdhsi.suite())
+    mysuite.addTests(test_abi_l2_nc.suite())
     mysuite.addTests(test_tropomi_l2.suite())
     mysuite.addTests(test_hsaf_grib.suite())
+    mysuite.addTests(test_eum_base.suite())
+    mysuite.addTests(test_viirs_compact.suite())
+    mysuite.addTests(test_ami_l1b.suite())
+    mysuite.addTests(test_seviri_l2_bufr.suite())
+    mysuite.addTests(test_nwcsaf_msg.suite())
 
     return mysuite
