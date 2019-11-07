@@ -1,3 +1,14 @@
+## Version 0.18.1 (2019/11/07)
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 959](https://github.com/pytroll/satpy/pull/959) - Fix `grid` argument handling in overlaying
+
+In this release 1 pull request was closed.
+
+
 ## Version 0.18.0 (2019/11/06)
 
 ### Issues Closed
