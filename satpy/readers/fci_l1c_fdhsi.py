@@ -231,7 +231,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         b = float(self["data/mtg_geos_projection"].semi_minor_axis)
         h = float(self["data/mtg_geos_projection"].perspective_point_height)
         lon_0 = float(self["data/mtg_geos_projection"].longitude_of_projection_origin)
-        sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
+        #sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
+        sweep = "y" # see email KH to GH 2019-11-07
         # Channel dependent swath resoultion
         area_extent = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
