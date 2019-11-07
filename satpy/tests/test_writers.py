@@ -20,6 +20,7 @@ import os
 import errno
 import shutil
 import unittest
+import warnings
 
 import numpy as np
 import xarray as xr
@@ -617,6 +618,29 @@ class TestOverlays(unittest.TestCase):
                 pil_args = None
                 pil_kwargs = {'fill_value': 0}
                 fun_args = (self.orig_rgb_img.data.area, ContourWriterAGG.return_value, overlays)
+                fun_kwargs = None
+                apply_pil.assert_called_with(_burn_overlay, self.orig_rgb_img.mode,
+                                             pil_args, pil_kwargs, fun_args, fun_kwargs)
+                ContourWriterAGG.assert_called_with(coast_dir)
+
+                # test legacy call
+
+                grid = {'minor_is_tick': True}
+                color = 'red'
+                expected_overlays = {'coasts': {'outline': color, 'width': 0.5, 'level': 1},
+                                     'borders': {'outline': color, 'width': 0.5, 'level': 1},
+                                     'grid': grid}
+                with warnings.catch_warnings(record=True) as wns:
+                    warnings.simplefilter("always")
+                    new_img = add_overlay(self.orig_rgb_img, self.area_def, coast_dir,
+                                          color=color, grid=grid, fill_value=0)
+                    assert len(wns) == 1
+                    assert issubclass(wns[0].category, DeprecationWarning)
+                    assert "deprecated" in str(wns[0].message)
+
+                pil_args = None
+                pil_kwargs = {'fill_value': 0}
+                fun_args = (self.orig_rgb_img.data.area, ContourWriterAGG.return_value, expected_overlays)
                 fun_kwargs = None
                 apply_pil.assert_called_with(_burn_overlay, self.orig_rgb_img.mode,
                                              pil_args, pil_kwargs, fun_args, fun_kwargs)
