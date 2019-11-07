@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unittesting the Native SEVIRI reader.
-"""
+"""Unittesting the Native SEVIRI reader."""
 
 import sys
 
@@ -67,7 +66,18 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
     'expected_area_extent': (
         -5568748.275756836, -5568748.275756836,
         5568748.275756836, 5568748.275756836
-    )
+    ),
+    'expected_area_def': {
+        'Area ID': 'geosmsg',
+        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Projection ID': 'msg_lowres',
+        'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
+                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
+        'Number of columns': 3712,
+        'Number of rows': 3712,
+        'Area extent': (-5568748.2758, -5568748.2758, 5568748.2758, 5568748.2758)
+    }
 }
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
@@ -77,7 +87,18 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
     'expected_area_extent': (
         -2205296.3268756866, -333044.75140571594,
         5337717.231988907, 5154692.638874054
-    )
+    ),
+    'expected_area_def': {
+        'Area ID': 'geosmsg',
+        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Projection ID': 'msg_lowres',
+        'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
+                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
+        'Number of columns': 2516,
+        'Number of rows': 1829,
+        'Area extent': (-2205296.3269, -333044.7514, 5337717.232, 5154692.6389)
+    }
 }
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = None
@@ -89,7 +110,18 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
     'expected_area_extent': (
         -2204296.1049079895, -332044.6038246155,
         5336716.885566711, 5153692.299723625
-    )
+    ),
+    'expected_area_def': {
+        'Area ID': 'geosmsg_hrv',
+        'Description': 'MSG/SEVIRI high resolution channel area',
+        'Projection ID': 'msg_hires',
+        'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
+                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
+        'Number of columns': 11136,
+        'Number of rows': 11136,
+        'Area extent': (-2204296.1049, -332044.6038, 5336716.8856, 5153692.2997)
+    }
 }
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
@@ -99,7 +131,18 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
     'expected_area_extent': (
         -5570248.477339745, -5567248.074173927,
         5567248.074173927, 5570248.477339745
-    )
+    ),
+    'expected_area_def': {
+        'Area ID': 'geosmsg',
+        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Projection ID': 'msg_lowres',
+        'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
+                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
+        'Number of columns': 3712,
+        'Number of rows': 3712,
+        'Area extent': (-5570248.4773, -5567248.0742, 5567248.0742, 5570248.4773)
+    }
 }
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = None
@@ -111,7 +154,18 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
     'expected_area_extent': (
         -2206796.5284585953, -331544.5498228073,
         5336217.030405998, 5156192.840456963
-    )
+    ),
+    'expected_area_def': {
+        'Area ID': 'geosmsg',
+        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Projection ID': 'msg_lowres',
+        'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
+                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
+        'Number of columns': 2516,
+        'Number of rows': 1829,
+        'Area extent': (-2206796.5285, -331544.5498, 5336217.0304, 5156192.8405)
+    }
 }
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
@@ -121,7 +175,18 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
     'expected_area_extent': (
         -2205796.3064312935, -330544.4023013115,
         5335216.684043407, 5155192.501246929
-    )
+    ),
+    'expected_area_def': {
+        'Area ID': 'geosmsg_hrv',
+        'Description': 'MSG/SEVIRI high resolution channel area',
+        'Projection ID': 'msg_hires',
+        'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
+                       'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
+                       'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
+        'Number of columns': 11136,
+        'Number of rows': 11136,
+        'Area extent': (-2205796.3064, -330544.4023, 5335216.684, 5155192.5012)
+    }
 }
 
 TEST_CALIBRATION_MODE = {
@@ -185,7 +250,7 @@ class TestNativeMSGFileHandler(unittest.TestCase):
         pass
 
 
-class TestNativeMSGAreaExtent(unittest.TestCase):
+class TestNativeMSGArea(unittest.TestCase):
     """Test NativeMSGFileHandler.get_area_extent
     The expected results have been verified by manually
     inspecting the output of geoferenced imagery.
@@ -270,9 +335,7 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
         is_full_disk = test_dict['is_full_disk']
         header = self.create_test_header(earth_model, dsid, is_full_disk)
 
-        expected_area_extent = (
-            np.array(test_dict['expected_area_extent'])
-        )
+        expected_area_def = test_dict['expected_area_def']
 
         with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
             fromfile.return_value = header
@@ -284,11 +347,9 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
 
                         fh = NativeMSGFileHandler(None, {}, None)
                         fh.header = header
-                        calc_area_extent = np.array(
-                            fh.get_area_extent(dsid)
-                        )
+                        calc_area_def = fh.get_area_def(dsid)
 
-        return (calc_area_extent, expected_area_extent)
+        return (calc_area_def, expected_area_def)
 
     def setUp(self):
         pass
@@ -299,7 +360,11 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
         calculated, expected = self.prepare_area_extents(
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK
         )
-        assertNumpyArraysEqual(calculated, expected)
+        assertNumpyArraysEqual(np.array(calculated.area_extent),
+                               np.array(expected['Area extent']))
+        self.assertEqual(calculated.width, expected['Number of columns'])
+        self.assertEqual(calculated.height, expected['Number of rows'])
+        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
 
     # def test_earthmodel1_hrv_fulldisk(self):
     #     # Not implemented
@@ -310,14 +375,22 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
         calculated, expected = self.prepare_area_extents(
             TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI
         )
-        assertNumpyArraysEqual(calculated, expected)
+        assertNumpyArraysEqual(np.array(calculated.area_extent),
+                               np.array(expected['Area extent']))
+        self.assertEqual(calculated.width, expected['Number of columns'])
+        self.assertEqual(calculated.height, expected['Number of rows'])
+        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
 
     def test_earthmodel1_hrv_roi(self):
 
         calculated, expected = self.prepare_area_extents(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI
         )
-        assertNumpyArraysEqual(calculated, expected)
+        assertNumpyArraysEqual(np.array(calculated.area_extent),
+                               np.array(expected['Area extent']))
+        self.assertEqual(calculated.width, expected['Number of columns'])
+        self.assertEqual(calculated.height, expected['Number of rows'])
+        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
 
     # Earth model 2 tests
     def test_earthmodel2_visir_fulldisk(self):
@@ -325,7 +398,11 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
         calculated, expected = self.prepare_area_extents(
             TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK
         )
-        assertNumpyArraysEqual(calculated, expected)
+        assertNumpyArraysEqual(np.array(calculated.area_extent),
+                               np.array(expected['Area extent']))
+        self.assertEqual(calculated.width, expected['Number of columns'])
+        self.assertEqual(calculated.height, expected['Number of rows'])
+        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
 
     # def test_earthmodel2_hrv_fulldisk(self):
     #     # Not implemented
@@ -336,14 +413,22 @@ class TestNativeMSGAreaExtent(unittest.TestCase):
         calculated, expected = self.prepare_area_extents(
             TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI
         )
-        assertNumpyArraysEqual(calculated, expected)
+        assertNumpyArraysEqual(np.array(calculated.area_extent),
+                               np.array(expected['Area extent']))
+        self.assertEqual(calculated.width, expected['Number of columns'])
+        self.assertEqual(calculated.height, expected['Number of rows'])
+        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
 
     def test_earthmodel2_hrv_roi(self):
 
         calculated, expected = self.prepare_area_extents(
             TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI
         )
-        assertNumpyArraysEqual(calculated, expected)
+        assertNumpyArraysEqual(np.array(calculated.area_extent),
+                               np.array(expected['Area extent']))
+        self.assertEqual(calculated.width, expected['Number of columns'])
+        self.assertEqual(calculated.height, expected['Number of rows'])
+        self.assertEqual(calculated.proj_id,  expected['Projection ID'])
 
     def tearDown(self):
         pass
@@ -360,7 +445,6 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
         Mocked NativeMSGFileHandler with sufficient attributes for
         NativeMSGFileHandler.get_area_extent to be able to execute.
         """
-
         if dsid.name == 'HRV':
             # reference_grid = 'ReferenceGridHRV'
             column_dir_grid_step = 1.0001343488693237
@@ -515,12 +599,11 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_scene.
-    """
+    """The test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGAreaExtent))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGArea))
     mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGCalibrationMode))
     return mysuite
 
