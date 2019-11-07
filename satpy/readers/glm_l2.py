@@ -38,7 +38,7 @@ PLATFORM_NAMES = {
 # class NC_GLM_L2_LCFA(BaseFileHandler): — add this with glmtools
 
 
-class NC_GLM_L2_IMAGERY(NC_ABI_BASE):
+class NCGriddedGLML2(NC_ABI_BASE):
     """File reader for individual GLM L2 NetCDF4 files."""
 
     @property
@@ -60,18 +60,9 @@ class NC_GLM_L2_IMAGERY(NC_ABI_BASE):
         """Load a dataset."""
         logger.debug('Reading in get_dataset %s.', key.name)
         res = self[key.name]
-
-        # convert to satpy standard units
-        if res.attrs['units'] == '1':
-            res *= 100
-            res.attrs['units'] = '%'
-
         res.attrs.update({'platform_name': self.platform_name,
-                          'sensor': self.sensor,
-                          'satellite_latitude': float(self['nominal_satellite_subpoint_lat']),
-                          'satellite_longitude': float(self['nominal_satellite_subpoint_lon']),
-                          # 'satellite_altitude': float(self['nominal_satellite_height']),
-                          })
+                          'sensor': self.sensor})
+        res.attrs.update(self.filename_info)
 
         # Add orbital parameters
         projection = self.nc["goes_imager_projection"]
@@ -82,7 +73,6 @@ class NC_GLM_L2_IMAGERY(NC_ABI_BASE):
             'satellite_nominal_latitude': float(self['nominal_satellite_subpoint_lat']),
             'satellite_nominal_longitude': float(self['nominal_satellite_subpoint_lon']),
             # 'satellite_nominal_altitude': float(self['nominal_satellite_height']),
-            'yaw_flip': False,
         }
 
         res.attrs.update(key.to_dict())
@@ -99,11 +89,6 @@ class NC_GLM_L2_IMAGERY(NC_ABI_BASE):
         # copy global attributes to metadata
         for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
             res.attrs[attr] = self.nc.attrs.get(attr)
-        # only include these if they are present
-        for attr in ('fusion_args',):
-            if attr in self.nc.attrs:
-                res.attrs[attr] = self.nc.attrs[attr]
-
         return res
 
     def available_datasets(self, configured_datasets=None):

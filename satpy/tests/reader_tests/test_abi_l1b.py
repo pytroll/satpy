@@ -17,14 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The abi_l1b reader tests package."""
 
-import sys
 import numpy as np
 import xarray as xr
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 try:
     from unittest import mock
@@ -170,9 +165,6 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                'platform_name': 'GOES-16',
                'platform_shortname': 'G16',
                'production_site': None,
-               'satellite_altitude': 35786.02,
-               'satellite_latitude': 0.0,
-               'satellite_longitude': -89.5,
                'scan_mode': 'M3',
                'scene_abbr': 'C',
                'scene_id': None,
