@@ -15,13 +15,16 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Satpy Configuration directory and file handling
-"""
+"""Satpy Configuration directory and file handling."""
 from __future__ import print_function
 import glob
 import logging
 import os
-from collections import Mapping, OrderedDict
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
+from collections import OrderedDict
 
 import yaml
 from six.moves import configparser
@@ -40,12 +43,14 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 
 def get_environ_config_dir(default=None):
+    """Get the config dir."""
     if default is None:
         default = PACKAGE_CONFIG_PATH
     return os.environ.get('PPP_CONFIG_DIR', default)
 
 
 def get_environ_ancpath(default='.'):
+    """Get the ancpath."""
     return os.environ.get('SATPY_ANCPATH', default)
 
 
@@ -61,9 +66,9 @@ def runtime_import(object_path):
 
 
 def config_search_paths(filename, *search_dirs, **kwargs):
-    # Get the environment variable value every time (could be set dynamically)
+    """Get the environment variable value every time (could be set dynamically)."""
     # FIXME: Consider removing the 'magic' environment variable all together
-    CONFIG_PATH = get_environ_config_dir()
+    CONFIG_PATH = get_environ_config_dir()  # noqa
 
     paths = [filename, os.path.basename(filename)]
     paths += [os.path.join(search_dir, filename) for search_dir in search_dirs]

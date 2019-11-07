@@ -157,7 +157,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                'orbital_parameters': {'projection_altitude': 1.0,
                                       'projection_latitude': 0.0,
                                       'projection_longitude': -90.0,
-                                      'satellite_nominal_altitude': 35786.02,
+                                      'satellite_nominal_altitude': 35786020.,
                                       'satellite_nominal_latitude': 0.0,
                                       'satellite_nominal_longitude': -89.5,
                                       'yaw_flip': True},

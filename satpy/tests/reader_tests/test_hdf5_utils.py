@@ -15,11 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.hdf5_utils module.
-"""
+"""Module for testing the satpy.readers.hdf5_utils module."""
 
 import os
-import sys
 import numpy as np
 
 try:
@@ -28,17 +26,14 @@ except ImportError:
     # fake the import so we can at least run the tests in this file
     HDF5FileHandler = object
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 
 class FakeHDF5FileHandler(HDF5FileHandler):
-    """Swap-in HDF5 File Handler for reader tests to use"""
+    """Swap  HDF5 File Handler for reader tests to use."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Get fake file content from 'get_test_content'"""
+        """Get fake file content from 'get_test_content'."""
         if HDF5FileHandler is object:
             raise ImportError("Base 'HDF5FileHandler' could not be "
                               "imported.")
@@ -48,7 +43,7 @@ class FakeHDF5FileHandler(HDF5FileHandler):
         self.file_content.update(kwargs)
 
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content
+        """Mimic reader input file content.
 
         Args:
             filename (str): input filename
@@ -67,9 +62,10 @@ class FakeHDF5FileHandler(HDF5FileHandler):
 
 
 class TestHDF5FileHandler(unittest.TestCase):
-    """Test HDF5 File Handler Utility class"""
+    """Test HDF5 File Handler Utility class."""
+
     def setUp(self):
-        """Create a test HDF5 file"""
+        """Create a test HDF5 file."""
         import h5py
         h = h5py.File('test.h5', 'w')
         # Create Group
@@ -107,15 +103,16 @@ class TestHDF5FileHandler(unittest.TestCase):
             d.attrs['test_attr_str'] = 'test_string'
             d.attrs['test_attr_int'] = 0
             d.attrs['test_attr_float'] = 1.2
+            d.attrs['test_ref'] = d.ref
 
         h.close()
 
     def tearDown(self):
-        """Remove the previously created test file"""
+        """Remove the previously created test file."""
         os.remove('test.h5')
 
     def test_all_basic(self):
-        """Test everything about the HDF5 class"""
+        """Test everything about the HDF5 class."""
         from satpy.readers.hdf5_utils import HDF5FileHandler
         import xarray as xr
         file_handler = HDF5FileHandler('test.h5', {}, {})
@@ -139,9 +136,11 @@ class TestHDF5FileHandler(unittest.TestCase):
         self.assertTrue('ds2_f' in file_handler)
         self.assertFalse('fake_ds' in file_handler)
 
+        self.assertIsInstance(file_handler['ds2_f/attr/test_ref'], np.ndarray)
+
 
 def suite():
-    """The test suite for test_hdf5_utils."""
+    """Test suite for test_hdf5_utils."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHDF5FileHandler))
