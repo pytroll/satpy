@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Geostationary Projection / Area computations
-***************************
+"""Geostationary Projection / Area computations.
 
 This module computes properties and area definitions for geostationary
 satellites. It is designed to be a common module that can be called by
@@ -34,13 +33,31 @@ def get_xy_from_linecol(line, col, offsets, factors):
 
     Intermediate coordinates are actually the instruments scanning angles.
     """
-
     loff, coff = offsets
     lfac, cfac = factors
     x__ = float(col - coff) / (float(cfac) / 2**16)
     y__ = float(line - loff) / (float(lfac) / 2**16)
 
     return x__, y__
+
+
+def make_ext(ll_x, ur_x, ll_y, ur_y, h):
+    """Create the area extent from computed ll and ur.
+
+    Inputs (all in metres):
+    - ll_x: The lower left x coordinate
+    - ur_x: The upper right x coordinate
+    - ll_y: The lower left y coordinate
+    - ur_y: The upper right y coordinate
+    - h: The satellite altitude above the Earth's surface
+    Returns:
+    - aex: An area extent for the scene
+
+    """
+    aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
+           np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
+
+    return aex
 
 
 def get_area_extent(pdict):
@@ -55,9 +72,10 @@ def get_area_extent(pdict):
             coff: Column offset factor
             loff: Line offset factor
             scandir: 'N2S' for standard (N->S), 'S2N' for inverse (S->N)
+    Returns:
+    - aex: An area extent for the scene
 
     """
-
     # count starts at 1
     cols = 1 - 0.5
 
@@ -85,13 +103,13 @@ def get_area_extent(pdict):
         ur_y *= -1
 
     # Convert degrees to radians and create area extent
-    aex = (np.deg2rad(ll_x) * pdict['h'], np.deg2rad(ll_y) * pdict['h'],
-           np.deg2rad(ur_x) * pdict['h'], np.deg2rad(ur_y) * pdict['h'])
+    aex = make_ext(ll_x, ur_x, ll_y, ur_y, pdict['h'])
+
     return aex
 
 
 def get_area_definition(pdict, a_ext):
-    """Get the area definition for a geo-sat
+    """Get the area definition for a geo-sat.
 
     Inputs:
     - pdict: A dictionary containing common parameters:
@@ -104,14 +122,11 @@ def get_area_definition(pdict, a_ext):
                 a_name: Area name
                 a_desc: Area description
                 p_id: Projection id
-
     - a_ext: A four element tuple containing the area extent (scan angle)
              for the scene in radians
-
     Returns:
     - a_def: An area definition for the scene
     """
-
     proj_dict = {'a': float(pdict['a']),
                  'b': float(pdict['b']),
                  'lon_0': float(pdict['ssp_lon']),
