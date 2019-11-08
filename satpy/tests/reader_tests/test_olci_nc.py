@@ -134,6 +134,38 @@ class TestOLCIReader(unittest.TestCase):
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
+    @mock.patch('xarray.open_dataset')
+    def test_olci_meteo(self, mocked_dataset):
+        """Test reading datasets."""
+        from satpy.readers.olci_nc import NCOLCIMeteo
+        from satpy import DatasetID
+        import numpy as np
+        import xarray as xr
+        attr_dict = {
+            'ac_subsampling_factor': 1,
+            'al_subsampling_factor': 2,
+        }
+        mocked_dataset.return_value = xr.Dataset({'humidity': (['tie_rows', 'tie_columns'],
+                                                  np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                                  'total_ozone': (['tie_rows', 'tie_columns'],
+                                                          np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                                  'sea_level_pressure': (['tie_rows', 'tie_columns'],
+                                                          np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                                  'total_columnar_water_vapour': (['tie_rows', 'tie_columns'],
+                                                          np.array([1 << x for x in range(30)]).reshape(5, 6))},
+                                                 coords={'rows': np.arange(5),
+                                                         'columns': np.arange(6)},
+                                                 attrs=attr_dict)
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'humidity', 'start_time': 0, 'end_time': 0}
+
+        ds_id = DatasetID(name='humidity')
+        ds_id2 = DatasetID(name='total_ozone')
+        test = NCOLCIMeteo('somedir/somefile.nc', filename_info, 'c')
+        test.get_dataset(ds_id, filename_info)
+        test.get_dataset(ds_id2, filename_info)
+        mocked_dataset.assert_called()
+        mocked_dataset.reset_mock()
+
 
 class TestBitFlags(unittest.TestCase):
     """Test the bitflag reading."""
