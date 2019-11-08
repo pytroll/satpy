@@ -41,12 +41,12 @@ class TestOLCIReader(unittest.TestCase):
         import xarray as xr
 
         cal_data = xr.Dataset(
-                   {
-                       'solar_flux': (('bands'), [0, 1, 2]),
-                       'detector_index': (('bands'), [0, 1, 2]),
-                   },
-                   {'bands': [0, 1, 2], },
-                   )
+            {
+                'solar_flux': (('bands'), [0, 1, 2]),
+                'detector_index': (('bands'), [0, 1, 2]),
+            },
+            {'bands': [0, 1, 2], },
+        )
 
         ds_id = DatasetID(name='Oa01', calibration='reflectance')
         ds_id2 = DatasetID(name='wsqf', calibration='reflectance')
@@ -114,7 +114,7 @@ class TestOLCIReader(unittest.TestCase):
             'al_subsampling_factor': 2,
         }
         mocked_dataset.return_value = xr.Dataset({'SAA': (['tie_rows', 'tie_columns'],
-                                                  np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                                          np.array([1 << x for x in range(30)]).reshape(5, 6)),
                                                   'SZA': (['tie_rows', 'tie_columns'],
                                                           np.array([1 << x for x in range(30)]).reshape(5, 6)),
                                                   'OAA': (['tie_rows', 'tie_columns'],
@@ -145,14 +145,15 @@ class TestOLCIReader(unittest.TestCase):
             'ac_subsampling_factor': 1,
             'al_subsampling_factor': 2,
         }
-        mocked_dataset.return_value = xr.Dataset({'humidity': (['tie_rows', 'tie_columns'],
-                                                  np.array([1 << x for x in range(30)]).reshape(5, 6)),
-                                                  'total_ozone': (['tie_rows', 'tie_columns'],
-                                                          np.array([1 << x for x in range(30)]).reshape(5, 6)),
-                                                  'sea_level_pressure': (['tie_rows', 'tie_columns'],
-                                                          np.array([1 << x for x in range(30)]).reshape(5, 6)),
-                                                  'total_columnar_water_vapour': (['tie_rows', 'tie_columns'],
-                                                          np.array([1 << x for x in range(30)]).reshape(5, 6))},
+        data = {'humidity': (['tie_rows', 'tie_columns'],
+                             np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                'total_ozone': (['tie_rows', 'tie_columns'],
+                                np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                'sea_level_pressure': (['tie_rows', 'tie_columns'],
+                                       np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                'total_columnar_water_vapour': (['tie_rows', 'tie_columns'],
+                                                np.array([1 << x for x in range(30)]).reshape(5, 6))}
+        mocked_dataset.return_value = xr.Dataset(data,
                                                  coords={'rows': np.arange(5),
                                                          'columns': np.arange(6)},
                                                  attrs=attr_dict)

@@ -247,8 +247,7 @@ class NCOLCILowResData(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
         """Init the file handler."""
-        super(NCOLCILowResData, self).__init__(filename, filename_info,
-                                           filetype_info)
+        super(NCOLCILowResData, self).__init__(filename, filename_info, filetype_info)
         self.nc = None
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
