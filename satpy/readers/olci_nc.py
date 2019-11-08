@@ -242,18 +242,12 @@ class NCOLCI2(NCOLCIChannelBase):
         return reduce(np.logical_or, [bflags[item] for item in items])
 
 
-class NCOLCIAngles(BaseFileHandler):
-    """File handler for the OLCI angles."""
-
-    datasets = {'satellite_azimuth_angle': 'OAA',
-                'satellite_zenith_angle': 'OZA',
-                'solar_azimuth_angle': 'SAA',
-                'solar_zenith_angle': 'SZA'}
+class NCOLCILowResData(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
         """Init the file handler."""
-        super(NCOLCIAngles, self).__init__(filename, filename_info,
+        super(NCOLCILowResData, self).__init__(filename, filename_info,
                                            filetype_info)
         self.nc = None
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
@@ -264,11 +258,7 @@ class NCOLCIAngles(BaseFileHandler):
         self._end_time = filename_info['end_time']
         self.engine = engine
 
-    def get_dataset(self, key, info):
-        """Load a dataset."""
-        if key.name not in self.datasets:
-            return
-
+    def _open_dataset(self):
         if self.nc is None:
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
@@ -278,12 +268,74 @@ class NCOLCIAngles(BaseFileHandler):
                                               'tie_rows': CHUNK_SIZE})
 
             self.nc = self.nc.rename({'tie_columns': 'x', 'tie_rows': 'y'})
+
+            self.l_step = self.nc.attrs['al_subsampling_factor']
+            self.c_step = self.nc.attrs['ac_subsampling_factor']
+
+    def _do_interpolate(self, data):
+
+        if not isinstance(data, tuple):
+            data = (data,)
+
+        shape = data[0].shape
+
+        from geotiepoints.interpolator import Interpolator
+        tie_lines = np.arange(0, (shape[0] - 1) * self.l_step + 1, self.l_step)
+        tie_cols = np.arange(0, (shape[1] - 1) * self.c_step + 1, self.c_step)
+        lines = np.arange((shape[0] - 1) * self.l_step + 1)
+        cols = np.arange((shape[1] - 1) * self.c_step + 1)
+        along_track_order = 1
+        cross_track_order = 3
+        satint = Interpolator([x.values for x in data],
+                              (tie_lines, tie_cols),
+                              (lines, cols),
+                              along_track_order,
+                              cross_track_order)
+        int_data = satint.interpolate()
+
+        return [xr.DataArray(da.from_array(x, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
+                             dims=['y', 'x']) for x in int_data]
+
+    def _need_interpolation(self):
+
+        return (self.c_step != 1 or self.l_step != 1)
+
+    @property
+    def start_time(self):
+        """Start the file handler."""
+        return self._start_time
+
+    @property
+    def end_time(self):
+        """End the file handler."""
+        return self._end_time
+
+    def __del__(self):
+        """Close the NetCDF file that may still be open."""
+        try:
+            self.nc.close()
+        except (IOError, OSError, AttributeError):
+            pass
+
+
+class NCOLCIAngles(NCOLCILowResData):
+    """File handler for the OLCI angles."""
+
+    datasets = {'satellite_azimuth_angle': 'OAA',
+                'satellite_zenith_angle': 'OZA',
+                'solar_azimuth_angle': 'SAA',
+                'solar_zenith_angle': 'SZA'}
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        if key.name not in self.datasets:
+            return
+
+        self._open_dataset()
+
         logger.debug('Reading %s.', key.name)
 
-        l_step = self.nc.attrs['al_subsampling_factor']
-        c_step = self.nc.attrs['ac_subsampling_factor']
-
-        if (c_step != 1 or l_step != 1) and self.cache.get(key.name) is None:
+        if self._need_interpolation() and self.cache.get(key.name) is None:
 
             if key.name.startswith('satellite'):
                 zen = self.nc[self.datasets['satellite_zenith_angle']]
@@ -299,29 +351,8 @@ class NCOLCIAngles(BaseFileHandler):
                 raise NotImplementedError("Don't know how to read " + key.name)
 
             x, y, z = angle2xyz(azi, zen)
-            shape = x.shape
 
-            from geotiepoints.interpolator import Interpolator
-            tie_lines = np.arange(
-                0, (shape[0] - 1) * l_step + 1, l_step)
-            tie_cols = np.arange(0, (shape[1] - 1) * c_step + 1, c_step)
-            lines = np.arange((shape[0] - 1) * l_step + 1)
-            cols = np.arange((shape[1] - 1) * c_step + 1)
-            along_track_order = 1
-            cross_track_order = 3
-            satint = Interpolator([x.values, y.values, z.values],
-                                  (tie_lines, tie_cols),
-                                  (lines, cols),
-                                  along_track_order,
-                                  cross_track_order)
-            (x, y, z, ) = satint.interpolate()
-            del satint
-            x = xr.DataArray(da.from_array(x, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                             dims=['y', 'x'])
-            y = xr.DataArray(da.from_array(y, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                             dims=['y', 'x'])
-            z = xr.DataArray(da.from_array(z, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
-                             dims=['y', 'x'])
+            x, y, z = self._do_interpolate((x, y, z))
 
             azi, zen = xyz2angle(x, y, z)
             azi.attrs = aattrs
@@ -368,3 +399,43 @@ class NCOLCIAngles(BaseFileHandler):
             self.nc.close()
         except (IOError, OSError, AttributeError):
             pass
+
+
+class NCOLCIMeteo(NCOLCILowResData):
+    """File handler for the OLCI meteo data: """
+
+    datasets = ['humidity', 'sea_level_pressure', 'total_columnar_water_vapour', 'total_ozone']
+
+    # TODO: the following depends on more than columns, rows
+    # float atmospheric_temperature_profile(tie_rows, tie_columns, tie_pressure_levels) ;
+    # float horizontal_wind(tie_rows, tie_columns, wind_vectors) ;
+    # float reference_pressure_level(tie_pressure_levels) ;
+
+    def get_dataset(self, key, info):
+        """Load a dataset."""
+        if key.name not in self.datasets:
+            return
+
+        self._open_dataset()
+
+        logger.debug('Reading %s.', key.name)
+
+        if self._need_interpolation() and self.cache.get(key.name) is None:
+
+            data = self.nc[key.name]
+
+            values, = self._do_interpolate(data)
+            values.attrs = data.attrs
+
+            self.cache[key.name] = values
+
+        elif key.name in self.cache:
+            values = self.cache[key.name]
+        else:
+            values = self.nc[key.name]
+
+        values.attrs['platform_name'] = self.platform_name
+        values.attrs['sensor'] = self.sensor
+
+        values.attrs.update(key.to_dict())
+        return values
