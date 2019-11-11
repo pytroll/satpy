@@ -29,6 +29,7 @@ if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
+import numpy as np
 
 
 class TestGEOSProjectionUtil(unittest.TestCase):
@@ -64,13 +65,13 @@ class TestGEOSProjectionUtil(unittest.TestCase):
         self.pdict['scandir'] = 'N2S'
         self.pdict['loff'] = 1856
         aex = get_area_extent(self.pdict)
-        self.assertEqual(aex, self.good_ext_s)
+        np.testing.assert_allclose(aex, self.good_ext_s)
 
         # South -> North
         self.pdict['scandir'] = 'S2N'
         self.pdict['loff'] = -1856
         aex = get_area_extent(self.pdict)
-        self.assertEqual(aex, self.good_ext)
+        np.testing.assert_allclose(aex, self.good_ext)
 
     def test_get_xy_from_linecol(self):
         """ Test the scan angle calculation """
