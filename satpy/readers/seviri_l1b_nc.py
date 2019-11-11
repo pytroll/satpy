@@ -27,7 +27,7 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM)
 import xarray as xr
 
-from satpy.readers.geos_area import get_area_definition
+from satpy.readers._geos_area import get_area_definition
 
 import datetime
 
