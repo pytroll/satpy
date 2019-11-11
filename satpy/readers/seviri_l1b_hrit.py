@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI HRIT format reader
+"""SEVIRI HRIT format reader.
 ============================
 
 Introduction
@@ -43,7 +43,7 @@ visible (VIS) and infrared (IR) channels. Additionally there is one prologue and
 which contain global metadata valid for all channels.
 
 Arguments
----------
+----------------
 Some arguments can be provided to the reader to change it's behaviour. These are
 provided through the `Scene` instantiation, eg::
 
@@ -221,7 +221,7 @@ class NoValidOrbitParams(Exception):
 
 
 class HRITMSGPrologueEpilogueBase(HRITFileHandler):
-    """Base reader for *logue files."""
+    """Base reader for prologue and epilogue files."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
         """Initialize the *logue readers."""
