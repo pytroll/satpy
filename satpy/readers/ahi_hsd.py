@@ -321,16 +321,16 @@ class AHIHSDFileHandler(BaseFileHandler):
         pdict['cfac'] = np.uint32(self.proj_info['CFAC'])
         pdict['lfac'] = np.uint32(self.proj_info['LFAC'])
         pdict['coff'] = np.float32(self.proj_info['COFF'])
-        pdict['loff'] = np.float32(self.proj_info['LOFF'])
+        pdict['loff'] = -np.float32(self.proj_info['LOFF']) + 1
         pdict['a'] = float(self.proj_info['earth_equatorial_radius'] * 1000)
         pdict['h'] = float(self.proj_info['distance_from_earth_center'] * 1000 - pdict['a'])
         pdict['b'] = float(self.proj_info['earth_polar_radius'] * 1000)
         pdict['ssp_lon'] = float(self.proj_info['sub_lon'])
         pdict['nlines'] = int(self.data_info['number_of_lines'])
         pdict['ncols'] = int(self.data_info['number_of_columns'])
-        pdict['scandir'] = 'S2N'
+        pdict['scandir'] = 'N2S'
 
-        pdict['loff'] = pdict['loff'] - (self.segment_number * pdict['nlines'])
+        pdict['loff'] = pdict['loff'] + (self.segment_number * pdict['nlines'])
 
         aex = get_area_extent(pdict)
 
