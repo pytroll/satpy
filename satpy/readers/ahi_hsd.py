@@ -43,7 +43,7 @@ import warnings
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import get_geostationary_mask, np2str, get_earth_radius
-from satpy.readers.geos_area import get_area_extent, get_area_definition
+from satpy.readers._geos_area import get_area_extent, get_area_definition
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",

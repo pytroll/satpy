@@ -25,7 +25,7 @@ import xarray as xr
 import dask.array as da
 import pyproj
 
-from satpy.readers.geos_area import make_ext, get_area_definition
+from satpy.readers._geos_area import make_ext, get_area_definition
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE

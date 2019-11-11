@@ -42,7 +42,7 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        VIS_CHANNELS)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
-from satpy.readers.geos_area import get_area_definition
+from satpy.readers._geos_area import get_area_definition
 
 
 logger = logging.getLogger('native_msg')

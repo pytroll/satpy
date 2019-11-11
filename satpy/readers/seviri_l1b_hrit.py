@@ -157,7 +157,7 @@ from satpy.readers.seviri_base import (CALIB, CHANNEL_NAMES, SATNUM,
                                        chebyshev, get_cds_time)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
-from satpy.readers.geos_area import get_area_extent, get_area_definition
+from satpy.readers._geos_area import get_area_extent, get_area_definition
 
 
 logger = logging.getLogger('hrit_msg')
