@@ -664,16 +664,6 @@ class TestScene(unittest.TestCase):
         name_list = scene.available_dataset_names(composites=True)
         self.assertListEqual(name_list, [])
 
-    def test_available_composites_no_datasets(self):
-        """Test the available composites with no datasets."""
-        from satpy import Scene
-        scene = Scene()
-        id_list = scene.available_composite_ids(available_datasets=[])
-        self.assertListEqual(id_list, [])
-        # no sensors are loaded so we shouldn't get any comps either
-        id_list = scene.available_composite_names(available_datasets=[])
-        self.assertListEqual(id_list, [])
-
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_all_datasets_one_reader(self, cri, cl):
@@ -694,7 +684,7 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list), len(r.all_ids))
         id_list = scene.all_dataset_ids(composites=True)
         self.assertEqual(len(id_list),
-                         len(r.all_ids) + len(scene.cpl.compositors['fake_sensor'].keys()))
+                         len(r.all_ids) + 28)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -717,8 +707,9 @@ class TestScene(unittest.TestCase):
         id_list = scene.all_dataset_ids()
         self.assertEqual(len(id_list), 2)
         id_list = scene.all_dataset_ids(composites=True)
-        self.assertEqual(len(id_list),
-                         2 + len(scene.cpl.compositors['fake_sensor'].keys()))
+        # ds1 and ds2 => 2
+        # composites that use these two datasets => 10
+        self.assertEqual(len(id_list), 2 + 10)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -742,19 +733,26 @@ class TestScene(unittest.TestCase):
         # ds1, comp1, comp14, comp16, static_image
         self.assertEqual(len(id_list), 5)
 
-    def test_available_composite_ids_bad_available(self):
-        """Test the available composite ids."""
-        from satpy import Scene
-        scn = Scene()
-        self.assertRaises(ValueError, scn.available_composite_ids,
-                          available_datasets=['bad'])
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_available_composite_ids_missing_available(self, cri, cl):
+        """Test available_composite_ids when a composites dep is missing."""
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
 
-    def test_available_composite_names_bad_available(self):
-        """Test the available composite names."""
-        from satpy import Scene
-        scn = Scene()
-        self.assertRaises(
-            ValueError, scn.available_composite_names, available_datasets=['bad'])
+        # only the 500m is available
+        available_datasets = ['ds1']
+        cri.return_value = {
+            'fake_reader': FakeReader(
+                'fake_reader', 'fake_sensor',
+                available_datasets=available_datasets),
+        }
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        self.assertNotIn('comp2', scene.available_composite_names())
 
 
 class TestSceneLoading(unittest.TestCase):
@@ -1046,6 +1044,28 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(loaded_ids[0].resolution, 500)
         self.assertEqual(loaded_ids[1].name, 'comp25')
         self.assertEqual(loaded_ids[1].resolution, 1000)
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_same_subcomposite(self, cri, cl):
+        """Test loading a composite and one of it's subcomposites at the same time."""
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+
+        scene.load(['comp24', 'comp25'], resolution=500)
+        loaded_ids = list(scene.datasets.keys())
+        self.assertEqual(len(loaded_ids), 2)
+        self.assertEqual(loaded_ids[0].name, 'comp24')
+        self.assertEqual(loaded_ids[0].resolution, 500)
+        self.assertEqual(loaded_ids[1].name, 'comp25')
+        self.assertEqual(loaded_ids[1].resolution, 500)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1733,8 +1753,8 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['comp11', 'comp23'])
         comp11_node = scene.dep_tree['comp11']
         comp23_node = scene.dep_tree['comp23']
-        self.assertEqual(comp11_node.data[1][-1].name, 'ds10')
-        self.assertEqual(comp23_node.data[1][0].name, 'ds8')
+        self.assertEqual(comp11_node.data[1][-1].name.name, 'ds10')
+        self.assertEqual(comp23_node.data[1][0].name.name, 'ds8')
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
         self.assertIn('comp11', scene.datasets)
@@ -1757,7 +1777,8 @@ class TestSceneLoading(unittest.TestCase):
         scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
         # mock the available comps/mods in the compositor loader
         avail_comps = scene.available_composite_ids()
-        self.assertEqual(len(avail_comps), 0)
+        # static image => 1
+        self.assertEqual(len(avail_comps), 1)
         self.assertRaises(KeyError, scene.load, [0.21])
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)

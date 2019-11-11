@@ -73,19 +73,37 @@ The ``reader`` section
 The ``reader`` section, that provides basic parameters for the reader.
 
 The parameters to provide in this section are:
- - description: General description of the reader
- - name: this is the name of the reader, it should be the same as the
+ - name: This is the name of the reader, it should be the same as the
    filename (without the .yaml extension). The naming convention for
    this is described above in the :ref:`reader_naming` section above.
- - sensors: the list of sensors this reader will support
- - reader: the metareader to use, in most cases the
+ - short_name (optional): Human-readable version of the reader 'name'.
+   If not provided, applications using this can default to taking the 'name',
+   replacing ``_`` with spaces and uppercasing every letter.
+ - long_name: Human-readable title for the reader. This may be used as a
+   section title on a website or in GUI applications using Satpy. Default
+   naming scheme is ``<space program> <sensor> Level <level> [<format>]``.
+   For example, for the ``abi_l1b`` reader this is ``"GOES-R ABI Level 1b"``
+   where "GOES-R" is the name of the program and **not** the name of the
+   platform/satellite. This scheme may not work for all readers, but in
+   general should be followed. See existing readers for more examples.
+ - description: General description of the reader. This may include any
+   `restructuredtext <http://docutils.sourceforge.net/docs/user/rst/quickref.html>`_
+   formatted text like links to PDFs or sites with more information on the
+   file format. This can be multiline if formatted properly in YAML (see
+   example below).
+ - sensors: The list of sensors this reader will support. This must be
+   all lowercase letters for full support throughout in Satpy.
+ - reader: The main python reader class to use, in most cases the
    ``FileYAMLReader`` is a good choice.
 
 .. code:: yaml
 
     reader:
-      description: NetCDF4 reader for the Eumetsat MSG format
-      name: nc_seviri_l1b
+      name: seviri_l1b_nc
+      short_name: SEVIRI L1b NetCDF4
+      long_name: MSG SEVIRI Level 1b (NetCDF4)
+      description: >
+        NetCDF4 reader for EUMETSAT MSG SEVIRI Level 1b files.
       sensors: [seviri]
       reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
@@ -373,8 +391,8 @@ needs to implement a few methods:
    - the dataset info that is the description of the channel in the YAML file
 
   This method has to return an xarray.DataArray instance if the loading is
-  successful, containing the data and metadata of the loaded dataset, or
-  return None if the loading was unsuccessful.
+  successful, containing the data and :ref:`metadata <dataset_metadata>` of the
+  loaded dataset, or return None if the loading was unsuccessful.
 
  - the ``get_area_def`` method, that takes as single argument the dataset ID for which we want
    the area. For the data that cannot be geolocated with an area

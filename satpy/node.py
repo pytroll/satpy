@@ -20,6 +20,7 @@
 from satpy import DatasetDict, DatasetID, DATASET_KEYS
 from satpy.readers import TooManyResults
 from satpy.utils import get_logger
+from satpy.dataset import create_filtered_dsid
 
 LOG = get_logger(__name__)
 # Empty leaf used for marking composites with no prerequisites
@@ -144,7 +145,7 @@ class DependencyTree(Node):
     # making it a class attribute ensures it is the same across instances
     empty_node = Node(EMPTY_LEAF_NAME)
 
-    def __init__(self, readers, compositors, modifiers):
+    def __init__(self, readers, compositors, modifiers, available_only=False):
         """Collect Dataset generating information.
 
         Collect the objects that generate and have information about Datasets
@@ -155,11 +156,19 @@ class DependencyTree(Node):
             readers (dict): Reader name -> Reader Object
             compositors (dict): Sensor name -> Composite ID -> Composite Object
             modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options)
+            available_only (bool): Whether only reader's available/loadable
+                datasets should be used when searching for dependencies (True)
+                or use all known/configured datasets regardless of whether the
+                necessary files were provided to the reader (False).
+                Note that when ``False`` loadable variations of a dataset will
+                have priority over other known variations.
+                Default is ``False``.
 
         """
         self.readers = readers
         self.compositors = compositors
         self.modifiers = modifiers
+        self._available_only = available_only
         # we act as the root node of the tree
         super(DependencyTree, self).__init__(None)
 
@@ -315,7 +324,7 @@ class DependencyTree(Node):
         too_many = False
         for reader_name, reader_instance in self.readers.items():
             try:
-                ds_id = reader_instance.get_dataset_key(dataset_key, **dfilter)
+                ds_id = reader_instance.get_dataset_key(dataset_key, available_only=self._available_only, **dfilter)
             except TooManyResults:
                 LOG.trace("Too many datasets matching key {} in reader {}".format(dataset_key, reader_name))
                 too_many = True
@@ -410,7 +419,7 @@ class DependencyTree(Node):
             compositor = self.get_compositor(dataset_key)
         except KeyError:
             raise KeyError("Can't find anything called {}".format(str(dataset_key)))
-        dataset_key = compositor.id
+        dataset_key = create_filtered_dsid(compositor.id, **dfilter)
         root = Node(dataset_key, data=(compositor, [], []))
         if src_node is not None:
             self.add_child(root, src_node)
@@ -434,16 +443,7 @@ class DependencyTree(Node):
 
     def get_filtered_item(self, dataset_key, **dfilter):
         """Get the item matching *dataset_key* and *dfilter*."""
-        try:
-            ds_dict = dataset_key.to_dict()
-        except AttributeError:
-            if isinstance(dataset_key, str):
-                ds_dict = {'name': dataset_key}
-            elif isinstance(dataset_key, float):
-                ds_dict = {'wavelength': dataset_key}
-        clean_filter = {key: value for key, value in dfilter.items() if value is not None}
-        ds_dict.update(clean_filter)
-        dsid = DatasetID.from_dict(ds_dict)
+        dsid = create_filtered_dsid(dataset_key, **dfilter)
         return self[dsid]
 
     def _find_dependencies(self, dataset_key, **dfilter):
@@ -463,7 +463,8 @@ class DependencyTree(Node):
 
         # 0 check if the *exact* dataset is already loaded
         try:
-            node = self.getitem(dataset_key)
+            dsid = create_filtered_dsid(dataset_key, **dfilter)
+            node = self.getitem(dsid)
             LOG.trace("Found exact dataset already loaded: {}".format(node.name))
             return node, set()
         except KeyError:
