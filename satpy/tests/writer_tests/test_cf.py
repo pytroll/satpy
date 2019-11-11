@@ -83,13 +83,12 @@ class TestCFWriter(unittest.TestCase):
                                                     prerequisites=[DatasetID('hej')]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
                 expected_prereq = ("DatasetID(name='hej', wavelength=None, "
                                    "resolution=None, polarization=None, "
                                    "calibration=None, level=None, modifiers=())")
-                self.assertEqual(f['test-array'].attrs['prerequisites'][0],
+                self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
     def test_save_with_compression(self):
@@ -136,8 +135,7 @@ class TestCFWriter(unittest.TestCase):
                                                     prerequisites=[DatasetID('hej')]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
                 self.assertTrue(np.all(f['x'][:] == [0, 1, 2]))
                 self.assertTrue(np.all(f['y'][:] == [0]))
@@ -147,7 +145,7 @@ class TestCFWriter(unittest.TestCase):
                 expected_prereq = ("DatasetID(name='hej', wavelength=None, "
                                    "resolution=None, polarization=None, "
                                    "calibration=None, level=None, modifiers=())")
-                self.assertEqual(f['test-array'].attrs['prerequisites'][0],
+                self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
     def test_groups(self):
@@ -222,8 +220,7 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, decode_cf=False) as f:
                 self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_bounds(self):
@@ -241,8 +238,7 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, decode_cf=False) as f:
                 self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_bounds_minimum(self):
@@ -268,8 +264,7 @@ class TestCFWriter(unittest.TestCase):
                                                      end_time=end_timeB))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, decode_cf=False) as f:
                 self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_bounds_missing_time_info(self):
@@ -291,8 +286,7 @@ class TestCFWriter(unittest.TestCase):
                                           coords={'time': [np.datetime64('2018-05-30T10:05:00')]})
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, decode_cf=False) as f:
                 self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
     def test_encoding_kwarg(self):
@@ -311,8 +305,7 @@ class TestCFWriter(unittest.TestCase):
                                        'add_offset': 0.0,
                                        '_FillValue': 3}}
             scn.save_datasets(filename=filename, encoding=encoding, writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
+            with xr.open_dataset(filename, mask_and_scale=False) as f:
                 self.assertTrue(np.all(f['test-array'][:] == [10, 20, 30]))
                 self.assertTrue(f['test-array'].attrs['scale_factor'] == 0.1)
                 self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
@@ -331,15 +324,35 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             header_attrs = {'sensor': 'SEVIRI',
-                            'orbit': None}
+                            'orbit': 99999,
+                            'none': None,
+                            'list': [1, 2, 3],
+                            'set': {1, 2, 3},
+                            'dict': {'a': 1, 'b': 2},
+                            'nested': {'outer': {'inner1': 1, 'inner2': 2}},
+                            'bool': True,
+                            'bool_': np.bool_(True)}
             scn.save_datasets(filename=filename,
                               header_attrs=header_attrs,
+                              flatten_attrs=True,
                               writer='cf')
-            import h5netcdf as nc4
-            with nc4.File(filename) as f:
-                self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
-                self.assertTrue('sensor' in f.attrs.keys())
-                self.assertTrue('orbit' not in f.attrs.keys())
+            with xr.open_dataset(filename) as f:
+                self.assertEqual(f.attrs['sensor'], 'SEVIRI')
+                self.assertEqual(f.attrs['orbit'], 99999)
+                np.testing.assert_array_equal(f.attrs['list'], [1, 2, 3])
+                if sys.version_info.major == 3:
+                    self.assertEqual(f.attrs['set'], '{1, 2, 3}')
+                else:
+                    # json module seems to encode sets differently in
+                    # Python 2 and 3
+                    self.assertEqual(f.attrs['set'], u'set([1, 2, 3])')
+                self.assertEqual(f.attrs['dict_a'], 1)
+                self.assertEqual(f.attrs['dict_b'], 2)
+                self.assertEqual(f.attrs['nested_outer_inner1'], 1)
+                self.assertEqual(f.attrs['nested_outer_inner2'], 2)
+                self.assertEqual(f.attrs['bool'], 'true')
+                self.assertEqual(f.attrs['bool_'], 'true')
+                self.assertTrue('none' not in f.attrs.keys())
 
     def get_test_attrs(self):
         """Create some dataset attributes for testing purpose.
@@ -353,6 +366,13 @@ class TestCFWriter(unittest.TestCase):
                  'end_time': datetime(2018, 1, 1, 0, 15),
                  'int': 1,
                  'float': 1.0,
+                 'none': None,  # should be dropped
+                 'numpy_int': np.uint8(1),
+                 'numpy_float': np.float32(1),
+                 'numpy_bool': np.bool(True),
+                 'numpy_void': np.void(0),
+                 'numpy_bytes': np.bytes_('test'),
+                 'numpy_string': np.string_('test'),
                  'list': [1, 2, np.float64(3)],
                  'nested_list': ["1", ["2", [3]]],
                  'bool': True,
@@ -372,34 +392,46 @@ class TestCFWriter(unittest.TestCase):
                    'end_time': '2018-01-01 00:15:00',
                    'int': 1,
                    'float': 1.0,
-                   'list': [1, 2, 3.0],
+                   'numpy_int': np.uint8(1),
+                   'numpy_float': np.float32(1),
+                   'numpy_bool': 'true',
+                   'numpy_void': '[]',
+                   'numpy_bytes': 'test',
+                   'numpy_string': 'test',
+                   'list': [1, 2, np.float64(3)],
                    'nested_list': '["1", ["2", [3]]]',
-                   'bool': 'True',
+                   'bool': 'true',
                    'array': np.array([1, 2, 3], dtype='uint8'),
-                   'array_bool': ['True', 'False', 'True'],
+                   'array_bool': ['true', 'false', 'true'],
                    'array_2d': '[[1, 2], [3, 4]]',
                    'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
                    'dict': '{"a": 1, "b": 2}',
                    'nested_dict': '{"l1": {"l2": {"l3": [1, 2, 3]}}}',
                    'raw_metadata': '{"recarray": [[0, 0], [0, 0], [0, 0]], '
-                                   '"flag": "True", "dict": {"a": 1, "b": [1, 2, 3]}}'}
+                                   '"flag": "true", "dict": {"a": 1, "b": [1, 2, 3]}}'}
         encoded_flat = {'name': 'IR_108',
                         'start_time': '2018-01-01 00:00:00',
                         'end_time': '2018-01-01 00:15:00',
                         'int': 1,
                         'float': 1.0,
-                        'list': [1, 2, 3.0],
+                        'numpy_int': np.uint8(1),
+                        'numpy_float': np.float32(1),
+                        'numpy_bool': 'true',
+                        'numpy_void': '[]',
+                        'numpy_bytes': 'test',
+                        'numpy_string': 'test',
+                        'list': [1, 2, np.float64(3)],
                         'nested_list': '["1", ["2", [3]]]',
-                        'bool': 'True',
+                        'bool': 'true',
                         'array': np.array([1, 2, 3], dtype='uint8'),
-                        'array_bool': ['True', 'False', 'True'],
+                        'array_bool': ['true', 'false', 'true'],
                         'array_2d': '[[1, 2], [3, 4]]',
                         'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
                         'dict_a': 1,
                         'dict_b': 2,
                         'nested_dict_l1_l2_l3': np.array([1, 2, 3], dtype='uint8'),
                         'raw_metadata_recarray': '[[0, 0], [0, 0], [0, 0]]',
-                        'raw_metadata_flag': 'True',
+                        'raw_metadata_flag': 'true',
                         'raw_metadata_dict_a': 1,
                         'raw_metadata_dict_b': np.array([1, 2, 3], dtype='uint8')}
         return attrs, encoded, encoded_flat
@@ -414,6 +446,9 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(val1.dtype, val2.dtype)
             else:
                 self.assertEqual(val1, val2)
+                if isinstance(val1, (np.floating, np.integer, np.bool_)):
+                    self.assertTrue(isinstance(val2, np.generic))
+                    self.assertEqual(val1.dtype, val2.dtype)
 
     def test_encode_attrs_nc(self):
         """Test attributes encoding."""
@@ -424,11 +459,11 @@ class TestCFWriter(unittest.TestCase):
 
         # Test encoding
         encoded = encode_attrs_nc(attrs)
-        self.assertDictWithArraysEqual(encoded, expected)
+        self.assertDictWithArraysEqual(expected, encoded)
 
         # Test decoding of json-encoded attributes
         raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],
-                            'flag': "True",
+                            'flag': 'true',
                             'dict': {'a': 1, 'b': [1, 2, 3]}}
         self.assertDictEqual(json.loads(encoded['raw_metadata']), raw_md_roundtrip)
         self.assertListEqual(json.loads(encoded['array_3d']), [[[1, 2], [3, 4]], [[1, 2], [3, 4]]])
@@ -720,8 +755,14 @@ class TestCFWriter(unittest.TestCase):
         with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
             res, grid_mapping = area2gridmapping(ds)
             warn.assert_called()
-            self.assertDictEqual(dict(pyresample.geometry.proj4_str_to_dict(res.attrs['grid_proj4'])),
-                                 dict(pyresample.geometry.proj4_str_to_dict(proj_str)))
+            proj_dict = pyresample.geometry.proj4_str_to_dict(res.attrs['grid_proj4'])
+            self.assertEqual(proj_dict['lon_0'], 4.535)
+            self.assertEqual(proj_dict['lat_0'], 46.0)
+            self.assertEqual(proj_dict['o_lon_p'], -5.465)
+            self.assertEqual(proj_dict['o_lat_p'], 90.0)
+            self.assertEqual(proj_dict['proj'], 'ob_tran')
+            self.assertEqual(proj_dict['o_proj'], 'stere')
+            self.assertEqual(proj_dict['ellps'], 'WGS84')
             self.assertEqual(grid_mapping, cosmo_expected)
 
     def test_area2lonlat(self):

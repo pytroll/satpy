@@ -46,6 +46,10 @@ datasets:
         file_key: "{variable_prefix}FP_confidence"
         coordinates: [longitude, latitude]
         units: '%'
+        # this is not a category product but we should define a fill value
+        # since we aren't going to scale the data to a float data type in
+        # the python code
+        _FillValue: 255
     longitude:
         name: longitude
         standard_name: longitude
@@ -69,10 +73,12 @@ datasets:
         file_type: [fires_netcdf, fires_text]
         file_key: "{variable_prefix}FP_T13"
         coordinates: [longitude, latitude]
+        standard_name: toa_brightness_temperature
         units: 'K'
     T4:
         name: T4
         file_type: [fires_netcdf_img, fires_text_img]
         file_key: "{variable_prefix}FP_T4"
         coordinates: [longitude, latitude]
+        standard_name: toa_brightness_temperature
         units: 'K'

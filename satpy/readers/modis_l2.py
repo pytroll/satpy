@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Modis level 2 hdf-eos format reader
-=========================================
+"""Modis level 2 hdf-eos format reader.
 
 Introduction
 ------------
@@ -29,13 +28,13 @@ Currently the reader supports:
     - m[o/y]d35_l2: cloud_mask dataset
     - some datasets in m[o/y]d06 files
 
-To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`readers`.
+To get a list of the available datasets for a given file refer to the "Load data" section in :doc:`../readers`.
 
 
 Geolocation files
 -----------------
 
-Similar to the ``modis_l1b` reader the geolocation files (mod03) for the 1km data are optional and if not
+Similar to the ``modis_l1b`` reader the geolocation files (mod03) for the 1km data are optional and if not
 given 1km geolocations will be interpolated from the 5km geolocation contained within the file.
 
 For the 500m and 250m data geolocation files are needed.
@@ -43,6 +42,7 @@ For the 500m and 250m data geolocation files are needed.
 
 References:
     - Documentation about the format: https://modis-atmos.gsfc.nasa.gov/products
+
 """
 import logging
 
@@ -58,12 +58,10 @@ logger = logging.getLogger(__name__)
 
 
 class ModisL2HDFFileHandler(HDFEOSGeoReader):
+    """File handler for MODIS HDF-EOS Level 2 files."""
 
     def _select_hdf_dataset(self, hdf_dataset_name, byte_dimension):
-        """Load a dataset from HDF EOS file whose information is contained in a byte in
-        the given dimension.
-
-        """
+        """Load a dataset from HDF-EOS level 2 file."""
         hdf_dataset = self.sd.select(hdf_dataset_name)
         if byte_dimension == 0:
             dataset = xr.DataArray(from_sds(hdf_dataset, chunks=CHUNK_SIZE),
@@ -92,7 +90,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
         return info
 
     def get_dataset(self, dataset_id, dataset_info):
-
+        """Get DataArray for specified dataset."""
         dataset_name = dataset_id.name
         if dataset_name in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, dataset_id, dataset_info)
@@ -185,7 +183,7 @@ def bits_strip(bit_start, bit_count, value):
     -------
         int
         Value of the extracted bits
-    """
 
+    """
     bit_mask = pow(2, bit_start + bit_count) - 1
     return np.right_shift(np.bitwise_and(value, bit_mask), bit_start)
