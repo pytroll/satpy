@@ -44,14 +44,14 @@ def get_xy_from_linecol(line, col, offsets, factors):
 def make_ext(ll_x, ur_x, ll_y, ur_y, h):
     """Create the area extent from computed ll and ur.
 
-    Inputs (all in metres):
-    - ll_x: The lower left x coordinate
-    - ur_x: The upper right x coordinate
-    - ll_y: The lower left y coordinate
-    - ur_y: The upper right y coordinate
-    - h: The satellite altitude above the Earth's surface
+    Args:
+        ll_x: The lower left x coordinate (m)
+        ur_x: The upper right x coordinate (m)
+        ll_y: The lower left y coordinate (m)
+        ur_y: The upper right y coordinate (m)
+        h: The satellite altitude above the Earth's surface
     Returns:
-    - aex: An area extent for the scene
+        aex: An area extent for the scene
 
     """
     aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
@@ -63,8 +63,8 @@ def make_ext(ll_x, ur_x, ll_y, ur_y, h):
 def get_area_extent(pdict):
     """Get the area extent seen by a geostationary satellite.
 
-    Inputs:
-    - pdict: A dictionary containing common parameters:
+    Args:
+        pdict: A dictionary containing common parameters:
             nlines: Number of lines in image
             ncols: Number of columns in image
             cfac: Column scaling factor
@@ -73,7 +73,7 @@ def get_area_extent(pdict):
             loff: Line offset factor
             scandir: 'N2S' for standard (N->S), 'S2N' for inverse (S->N)
     Returns:
-    - aex: An area extent for the scene
+        aex: An area extent for the scene
 
     """
     # count starts at 1
@@ -98,12 +98,12 @@ def get_area_extent(pdict):
                                      cols,
                                      (pdict['loff'], pdict['coff']),
                                      (pdict['lfac'], pdict['cfac']))
-    if (pdict['scandir'] == 'S2N'):
+    if pdict['scandir'] == 'S2N':
         ll_y *= -1
         ur_y *= -1
 
     # Convert degrees to radians and create area extent
-    aex = make_ext(ll_x, ur_x, ll_y, ur_y, pdict['h'])
+    aex = make_ext(ll_x=ll_x, ur_x=ur_x, ll_y=ll_y, ur_y=ur_y, h=pdict['h'])
 
     return aex
 
@@ -111,21 +111,21 @@ def get_area_extent(pdict):
 def get_area_definition(pdict, a_ext):
     """Get the area definition for a geo-sat.
 
-    Inputs:
-    - pdict: A dictionary containing common parameters:
-                nlines: Number of lines in image
-                ncols: Number of columns in image
-                ssp_lon: Subsatellite point longitude (deg)
-                a: Earth equatorial radius (m)
-                b: Earth polar radius (m)
-                h: Platform height (m)
-                a_name: Area name
-                a_desc: Area description
-                p_id: Projection id
-    - a_ext: A four element tuple containing the area extent (scan angle)
-             for the scene in radians
+    Args:
+        pdict: A dictionary containing common parameters:
+            nlines: Number of lines in image
+            ncols: Number of columns in image
+            ssp_lon: Subsatellite point longitude (deg)
+            a: Earth equatorial radius (m)
+            b: Earth polar radius (m)
+            h: Platform height (m)
+            a_name: Area name
+            a_desc: Area description
+            p_id: Projection id
+        a_ext: A four element tuple containing the area extent (scan angle)
+               for the scene in radians
     Returns:
-    - a_def: An area definition for the scene
+        a_def: An area definition for the scene
     """
     proj_dict = {'a': float(pdict['a']),
                  'b': float(pdict['b']),
