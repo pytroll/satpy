@@ -318,6 +318,6 @@ class HRITJMAFileHandler(HRITFileHandler):
             res = xr.DataArray(res,
                                dims=data.dims, attrs=data.attrs,
                                coords=data.coords)
-        res = res.where(data < 65635)
+        res = res.where(data < 65535)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
