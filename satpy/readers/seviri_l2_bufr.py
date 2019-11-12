@@ -23,9 +23,10 @@ from datetime import timedelta
 import numpy as np
 import xarray as xr
 import dask.array as da
-
+from fnmatch import fnmatch
 from satpy.readers.seviri_base import mpef_product_header
 from satpy.readers.eum_base import recarray2dict
+import os
 
 try:
     import eccodes as ec
@@ -38,8 +39,9 @@ from satpy import CHUNK_SIZE
 
 logger = logging.getLogger('BufrProductClasses')
 
+umarf_dict = {'MSG1': {'ssp': 'E0415', 'name': 'MET08'}, 'MSG2':  {'ssp': 'E0000', 'name': 'MET09'},
+              'MSG3': {'ssp': 'E0095', 'name': 'MET10'}, 'MSG4': {'ssp': 'E0000', 'name': 'MET11'}}
 
-sub_sat_dict = {"E0000": 0.0, "E0415": 41.5, "E0095": 9.5}
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
@@ -54,8 +56,18 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
                                                       filename_info,
                                                       filetype_info)
 
-        self.filename = filename
-        self.mpef_header = self._read_mpef_header()
+        # Offline filenames are in the following naming convention
+        # GIIBUFRProduct_20190515151500Z_00_OMPEFS04_MET11_FES_E0000
+        if (fnmatch(os.path.basename(filename), '*BUFRProd*MPEFS*')):
+            # EUMETSAT Offline Bufr product
+            self.mpef_header = self._read_mpef_header()
+        else:
+            # Product was retrieved from the UMARF
+            self.mpef_header = {}
+            self.mpef_header['NominalTime'] = filename_info['start_time']
+            self.mpef_header['SpacecraftName'] = umarf_dict[filename_info['spacecraft']]['name']
+            self.mpef_header['RectificationLongitude'] = umarf_dict[filename_info['spacecraft']]['ssp']
+
         self.seg_size = seg_size_dict[filetype_info['file_type']]
 
     @property
