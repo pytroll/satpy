@@ -87,8 +87,7 @@ class Test_NC_ABI_L2_base(unittest.TestCase):
                                     'add_offset': 0.,
                                     '_FillValue': np.array(-1).astype(np.int16),
                                     '_Unsigned': 'True',
-                                    'units': 'm'},
-        )
+                                    'units': 'm'},)
 
         xr_.open_dataset.return_value = FakeDataset({
             'goes_imager_projection': proj,
