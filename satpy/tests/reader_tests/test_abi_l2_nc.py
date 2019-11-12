@@ -81,13 +81,13 @@ class Test_NC_ABI_L2_base(unittest.TestCase):
             attrs={'scale_factor': -2., 'add_offset': 1.},
         )
 
-        ht_da = xr.DataArray(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2,2)),
-            dims=('y', 'x'),
-            attrs={'scale_factor': 0.3052037,
-                'add_offset': 0.,
-                '_FillValue': np.array(-1).astype(np.int16),
-                '_Unsigned': 'True',
-                'units': 'm'},
+        ht_da = xr.DataArray(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2, 2)),
+                             dims=('y', 'x'),
+                             attrs={'scale_factor': 0.3052037,
+                                    'add_offset': 0.,
+                                    '_FillValue': np.array(-1).astype(np.int16),
+                                    '_Unsigned': 'True',
+                                    'units': 'm'},
         )
 
         xr_.open_dataset.return_value = FakeDataset({
@@ -124,20 +124,20 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
                              [32768 * 0.3052037, 32767 * 0.3052037]])
 
         exp_attrs = {'instrument_ID': None,
-            'modifiers': (),
-            'name': 'HT',
-            'orbital_slot': None,
-            'platform_name': 'GOES-16',
-            'platform_shortname': 'G16',
-            'production_site': None,
-            'satellite_altitude': 35786020.,
-            'satellite_latitude': 0.0,
-            'satellite_longitude': -89.5,
-            'scan_mode': 'M3',
-            'scene_id': None,
-            'sensor': 'abi',
-            'timeline_ID': None,
-            'units': 'm'}
+                     'modifiers': (),
+                     'name': 'HT',
+                     'orbital_slot': None,
+                     'platform_name': 'GOES-16',
+                     'platform_shortname': 'G16',
+                     'production_site': None,
+                     'satellite_altitude': 35786020.,
+                     'satellite_latitude': 0.0,
+                     'satellite_longitude': -89.5,
+                     'scan_mode': 'M3',
+                     'scene_id': None,
+                     'sensor': 'abi',
+                     'timeline_ID': None,
+                     'units': 'm'}
 
         self.assertTrue(np.allclose(res.data, exp_data, equal_nan=True))
         self.assertDictEqual(dict(res.attrs), exp_attrs)
