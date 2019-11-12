@@ -120,7 +120,7 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
         key = DatasetID(name='HT')
         res = self.reader.get_dataset(key, {'file_key': 'HT'})
 
-        exp_data = np.array([[2 * 0.3052037 , np.nan],
+        exp_data = np.array([[2 * 0.3052037, np.nan],
                              [32768 * 0.3052037, 32767 * 0.3052037]])
 
         exp_attrs = {'instrument_ID': None,
