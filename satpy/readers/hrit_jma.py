@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""HRIT format reader for JMA data
-************************************
+"""HRIT format reader for JMA data.
 
 References:
     JMA HRIT - Mission Specific Implementation
@@ -152,7 +151,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         self.area = self._get_area_def()
 
     def _get_platform(self):
-        """Get the platform name
+        """Get the platform name.
 
         The platform is not specified explicitly in JMA HRIT files. For
         segmented data it is not even specified in the filename. But it
@@ -175,6 +174,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         References:
         [MTSAT] http://www.data.jma.go.jp/mscweb/notice/Himawari7_e.html
         [HIMAWARI] http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
+
         """
         try:
             return PLATFORMS[self.projection_name]
@@ -184,13 +184,14 @@ class HRITJMAFileHandler(HRITFileHandler):
             return UNKNOWN_PLATFORM
 
     def _check_sensor_platform_consistency(self, sensor):
-        """Make sure sensor and platform are consistent
+        """Make sure sensor and platform are consistent.
 
         Args:
             sensor (str) : Sensor name from YAML dataset definition
 
         Raises:
             ValueError if they don't match
+
         """
         ref_sensor = SENSORS.get(self.platform, None)
         if ref_sensor and not sensor == ref_sensor:
@@ -199,7 +200,7 @@ class HRITJMAFileHandler(HRITFileHandler):
                          .format(sensor, self.platform))
 
     def _get_line_offset(self):
-        """Get line offset for the current segment
+        """Get line offset for the current segment.
 
         Read line offset from the file and adapt it to the current segment
         or half disk scan so that
@@ -295,7 +296,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         return res
 
     def _mask_space(self, data):
-        """Mask space pixels"""
+        """Mask space pixels."""
         geomask = get_geostationary_mask(area=self.area)
         return data.where(geomask)
 
@@ -317,6 +318,6 @@ class HRITJMAFileHandler(HRITFileHandler):
             res = xr.DataArray(res,
                                dims=data.dims, attrs=data.attrs,
                                coords=data.coords)
-        res = res.where(data > 0)
+        res = res.where(data < 65635)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
