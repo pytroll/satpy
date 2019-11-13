@@ -19,7 +19,7 @@
 
 
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 import numpy as np
 import xarray as xr
 import dask.array as da
@@ -39,8 +39,8 @@ from satpy import CHUNK_SIZE
 
 logger = logging.getLogger('BufrProductClasses')
 
-umarf_dict = {'MSG1': {'ssp': 'E0415', 'name': 'MET08'}, 'MSG2':  {'ssp': 'E0000', 'name': 'MET09'},
-              'MSG3': {'ssp': 'E0095', 'name': 'MET10'}, 'MSG4': {'ssp': 'E0000', 'name': 'MET11'}}
+umarf_dict = {55: {'ssp': 'E0415', 'name': 'MET08'}, 56:  {'ssp': 'E0000', 'name': 'MET09'},
+              57: {'ssp': 'E0095', 'name': 'MET10'}, 70: {'ssp': 'E0000', 'name': 'MET11'}}
 
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
@@ -63,10 +63,13 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             self.mpef_header = self._read_mpef_header()
         else:
             # Product was retrieved from the UMARF
+            timeStr = self.get_attribute('typicalDate')+self.get_attribute('typicalTime')
+            buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
+            sc_id = self.get_attribute('satelliteIdentifier')
             self.mpef_header = {}
-            self.mpef_header['NominalTime'] = filename_info['start_time']
-            self.mpef_header['SpacecraftName'] = umarf_dict[filename_info['spacecraft']]['name']
-            self.mpef_header['RectificationLongitude'] = umarf_dict[filename_info['spacecraft']]['ssp']
+            self.mpef_header['NominalTime'] = buf_start_time
+            self.mpef_header['SpacecraftName'] = umarf_dict[sc_id]['name']
+            self.mpef_header['RectificationLongitude'] = umarf_dict[sc_id]['ssp']
 
         self.seg_size = seg_size_dict[filetype_info['file_type']]
 
@@ -96,6 +99,24 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         """Read MPEF header."""
         hdr = np.fromfile(self.filename, mpef_product_header, 1)
         return recarray2dict(hdr)
+
+    def get_attribute(self, key):
+        ''' Get BUFR attributes '''
+        fh = open(self.filename, "rb")
+
+        'satelliteIdentifier'
+        while 1:
+            # get handle for message
+            bufr = ec.codes_bufr_new_from_file(fh)
+            if bufr is None:
+                break
+            ec.codes_set(bufr, 'unpack', 1)
+            attr = ec.codes_get(bufr, key)
+            ec.codes_release(bufr)
+
+        fh.close()
+
+        return attr
 
     def get_array(self, key):
         """Get all data from file for the given BUFR key."""
