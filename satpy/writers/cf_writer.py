@@ -639,11 +639,12 @@ class CFWriter(Writer):
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
 
-        root = xr.Dataset({}, attrs={'history': 'Created by pytroll/satpy on {}'.format(datetime.utcnow())})
+        root = xr.Dataset({}, attrs={})
         if header_attrs is not None:
             if flatten_attrs:
                 header_attrs = flatten_dict(header_attrs)
             root.attrs = encode_attrs_nc(header_attrs)
+        root.attrs['history'] = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
         if groups is None:
             # Groups are not CF-1.7 compliant
             root.attrs['Conventions'] = CF_VERSION
