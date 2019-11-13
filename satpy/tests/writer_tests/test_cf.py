@@ -337,6 +337,7 @@ class TestCFWriter(unittest.TestCase):
                               flatten_attrs=True,
                               writer='cf')
             with xr.open_dataset(filename) as f:
+                self.assertIn('history', f.attrs)
                 self.assertEqual(f.attrs['sensor'], 'SEVIRI')
                 self.assertEqual(f.attrs['orbit'], 99999)
                 np.testing.assert_array_equal(f.attrs['list'], [1, 2, 3])
