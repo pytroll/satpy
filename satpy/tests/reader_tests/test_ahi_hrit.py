@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The hrit msg reader tests package."""
+"""The hrit ahi reader tests package."""
 
 import sys
 import numpy as np
