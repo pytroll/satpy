@@ -16,12 +16,16 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 r"""SEVIRI HRIT format reader.
+
 Introduction
 ------------
+
 The ``seviri_l1b_hrit`` reader reads and calibrates MSG-SEVIRI L1.5 image data in HRIT format. The format is explained
 in the `MSG Level 1.5 Image Format Description`_. The files are usually named as
 follows:
+
 .. code-block:: none
+
     H-000-MSG4__-MSG4________-_________-PRO______-201903011200-__
     H-000-MSG4__-MSG4________-IR_108___-000001___-201903011200-__
     H-000-MSG4__-MSG4________-IR_108___-000002___-201903011200-__
@@ -32,28 +36,40 @@ follows:
     H-000-MSG4__-MSG4________-IR_108___-000007___-201903011200-__
     H-000-MSG4__-MSG4________-IR_108___-000008___-201903011200-__
     H-000-MSG4__-MSG4________-_________-EPI______-201903011200-__
+
 Each image is decomposed into 24 segments (files) for the high-resolution-visible (HRV) channel and 8 segments for other
 visible (VIS) and infrared (IR) channels. Additionally there is one prologue and one epilogue file for the entire scan
 which contain global metadata valid for all channels.
+
 Reader Arguments
 ----------------
 Some arguments can be provided to the reader to change it's behaviour. These are
 provided through the `Scene` instantiation, eg::
+
   Scene(reader="seviri_l1b_hrit", filenames=fnames, reader_kwargs={'fill_hrv': False})
+
 To see the full list of arguments that can be provided, look into the documentation
 of `:class:HRITMSGFileHandler`.
+
 Example
 -------
 Here is an example how to read the data in satpy:
+
 .. code-block:: python
+
     from satpy import Scene
     import glob
+
     filenames = glob.glob('data/H-000-MSG4__-MSG4________-*201903011200*')
     scn = Scene(filenames=filenames, reader='seviri_l1b_hrit')
     scn.load(['VIS006', 'IR_108'])
     print(scn['IR_108'])
+
+
 Output:
+
 .. code-block:: none
+
     <xarray.DataArray (y: 3712, x: 3712)>
     dask.array<shape=(3712, 3712), dtype=float32, chunksize=(464, 3712)>
     Coordinates:
@@ -83,6 +99,8 @@ Output:
         level:                    None
         modifiers:                ()
         ancillary_variables:      []
+
+
 * The ``orbital_parameters`` attribute provides the nominal and actual satellite position, as well as the projection
   centre.
 * You can choose between nominal and GSICS calibration coefficients or even specify your own coefficients, see
@@ -92,22 +110,28 @@ Output:
   see :class:`HRITMSGFileHandler`.
 * The ``acq_time`` coordinate provides the acquisition time for each scanline. Use a ``MultiIndex`` to enable selection
   by acquisition time:
+
   .. code-block:: python
+
       import pandas as pd
       mi = pd.MultiIndex.from_arrays([scn['IR_108']['y'].data, scn['IR_108']['acq_time'].data],
                                      names=('y_coord', 'time'))
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
+
+
 References:
     - `MSG Level 1.5 Image Format Description`_
     - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
+
 .. _MSG Level 1.5 Image Format Description: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=
     PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
     RevisionSelectionMethod=LatestReleased&Rendition=Web
-"""
 
+"""
 
 from __future__ import division
 
@@ -641,6 +665,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         upper_area = get_area_definition(pdict, upper_area_extent)
 
         area = geometry.StackedAreaDefinition(lower_area, upper_area)
+
         self.area = area.squeeze()
         return self.area
 
