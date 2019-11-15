@@ -39,8 +39,8 @@ from satpy import CHUNK_SIZE
 
 logger = logging.getLogger('BufrProductClasses')
 
-umarf_dict = {55: {'ssp': 'E0415', 'name': 'MET08'}, 56:  {'ssp': 'E0000', 'name': 'MET09'},
-              57: {'ssp': 'E0095', 'name': 'MET10'}, 70: {'ssp': 'E0000', 'name': 'MET11'}}
+umarf_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0000', 'name': '09'},
+              57: {'ssp': 'E0095', 'name': '10'}, 70: {'ssp': 'E0000', 'name': '11'}}
 
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
@@ -103,8 +103,6 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
     def get_attribute(self, key):
         ''' Get BUFR attributes '''
         fh = open(self.filename, "rb")
-
-        'satelliteIdentifier'
         while 1:
             # get handle for message
             bufr = ec.codes_bufr_new_from_file(fh)
