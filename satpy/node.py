@@ -20,6 +20,7 @@
 from satpy import DatasetDict, DatasetID, DATASET_KEYS
 from satpy.readers import TooManyResults
 from satpy.utils import get_logger
+from satpy.dataset import create_filtered_dsid
 
 LOG = get_logger(__name__)
 # Empty leaf used for marking composites with no prerequisites
@@ -38,11 +39,11 @@ class Node(object):
 
     @property
     def is_leaf(self):
+        """Check if the node is a leaf."""
         return not self.children
 
     def flatten(self, d=None):
         """Flatten tree structure to a one level dictionary.
-
 
         Args:
             d (dict, optional): output dictionary to update
@@ -50,6 +51,7 @@ class Node(object):
         Returns:
             dict: Node.name -> Node. The returned dictionary includes the
                   current Node and all its children.
+
         """
         if d is None:
             d = {}
@@ -60,8 +62,12 @@ class Node(object):
         return d
 
     def copy(self, node_cache=None):
+        """Make a copy of the node."""
         if node_cache and self.name in node_cache:
             return node_cache[self.name]
+
+        if self.name is EMPTY_LEAF_NAME:
+            return self
 
         s = Node(self.name, self.data)
         for c in self.children:
@@ -79,12 +85,15 @@ class Node(object):
         return self.display()
 
     def __repr__(self):
+        """Generate a representation of the node."""
         return "<Node ({})>".format(repr(self.name))
 
     def __eq__(self, other):
+        """Check equality."""
         return self.name == other.name
 
     def __hash__(self):
+        """Generate the hash of the node."""
         return hash(self.name)
 
     def display(self, previous=0, include_data=False):
@@ -124,7 +133,7 @@ class Node(object):
 
 
 class DependencyTree(Node):
-    """Structure to discover and store `Dataset` dependencies
+    """Structure to discover and store `Dataset` dependencies.
 
     Used primarily by the `Scene` object to organize dependency finding.
     Dependencies are stored used a series of `Node` objects which this
@@ -132,7 +141,11 @@ class DependencyTree(Node):
 
     """
 
-    def __init__(self, readers, compositors, modifiers):
+    # simplify future logic by only having one "sentinel" empty node
+    # making it a class attribute ensures it is the same across instances
+    empty_node = Node(EMPTY_LEAF_NAME)
+
+    def __init__(self, readers, compositors, modifiers, available_only=False):
         """Collect Dataset generating information.
 
         Collect the objects that generate and have information about Datasets
@@ -143,19 +156,25 @@ class DependencyTree(Node):
             readers (dict): Reader name -> Reader Object
             compositors (dict): Sensor name -> Composite ID -> Composite Object
             modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options)
+            available_only (bool): Whether only reader's available/loadable
+                datasets should be used when searching for dependencies (True)
+                or use all known/configured datasets regardless of whether the
+                necessary files were provided to the reader (False).
+                Note that when ``False`` loadable variations of a dataset will
+                have priority over other known variations.
+                Default is ``False``.
 
         """
         self.readers = readers
         self.compositors = compositors
         self.modifiers = modifiers
+        self._available_only = available_only
         # we act as the root node of the tree
         super(DependencyTree, self).__init__(None)
 
         # keep a flat dictionary of nodes contained in the tree for better
         # __contains__
         self._all_nodes = DatasetDict()
-        # simplify future logic by only having one "sentinel" empty node
-        self.empty_node = Node(EMPTY_LEAF_NAME)
 
     def leaves(self, nodes=None, unique=True):
         """Get the leaves of the tree starting at this root.
@@ -201,6 +220,7 @@ class DependencyTree(Node):
         return res
 
     def add_child(self, parent, child):
+        """Add a child to the tree."""
         Node.add_child(parent, child)
         # Sanity check: Node objects should be unique. They can be added
         #               multiple times if more than one Node depends on them
@@ -213,6 +233,7 @@ class DependencyTree(Node):
         self._all_nodes[child.name] = child
 
     def add_leaf(self, ds_id, parent=None):
+        """Add a leaf to the tree."""
         if parent is None:
             parent = self
         try:
@@ -222,7 +243,7 @@ class DependencyTree(Node):
         self.add_child(parent, node)
 
     def copy(self):
-        """Copy the this node tree
+        """Copy this node tree.
 
         Note all references to readers are removed. This is meant to avoid
         tree copies accessing readers that would return incompatible (Area)
@@ -237,9 +258,11 @@ class DependencyTree(Node):
         return new_tree
 
     def __contains__(self, item):
+        """Check if a item is in the tree."""
         return item in self._all_nodes
 
     def __getitem__(self, item):
+        """Get an item of the tree."""
         return self._all_nodes[item]
 
     def contains(self, item):
@@ -251,6 +274,7 @@ class DependencyTree(Node):
         return super(DatasetDict, self._all_nodes).__getitem__(item)
 
     def get_compositor(self, key):
+        """Get a compositor."""
         for sensor_name in self.compositors.keys():
             try:
                 return self.compositors[sensor_name][key]
@@ -264,6 +288,7 @@ class DependencyTree(Node):
         raise KeyError("Could not find compositor '{}'".format(key))
 
     def get_modifier(self, comp_id):
+        """Get a modifer."""
         # create a DatasetID for the compositor we are generating
         modifier = comp_id.modifiers[-1]
         for sensor_name in self.modifiers.keys():
@@ -299,7 +324,7 @@ class DependencyTree(Node):
         too_many = False
         for reader_name, reader_instance in self.readers.items():
             try:
-                ds_id = reader_instance.get_dataset_key(dataset_key, **dfilter)
+                ds_id = reader_instance.get_dataset_key(dataset_key, available_only=self._available_only, **dfilter)
             except TooManyResults:
                 LOG.trace("Too many datasets matching key {} in reader {}".format(dataset_key, reader_name))
                 too_many = True
@@ -394,7 +419,7 @@ class DependencyTree(Node):
             compositor = self.get_compositor(dataset_key)
         except KeyError:
             raise KeyError("Can't find anything called {}".format(str(dataset_key)))
-        dataset_key = compositor.id
+        dataset_key = create_filtered_dsid(compositor.id, **dfilter)
         root = Node(dataset_key, data=(compositor, [], []))
         if src_node is not None:
             self.add_child(root, src_node)
@@ -416,6 +441,11 @@ class DependencyTree(Node):
 
         return root, set()
 
+    def get_filtered_item(self, dataset_key, **dfilter):
+        """Get the item matching *dataset_key* and *dfilter*."""
+        dsid = create_filtered_dsid(dataset_key, **dfilter)
+        return self[dsid]
+
     def _find_dependencies(self, dataset_key, **dfilter):
         """Find the dependencies for *dataset_key*.
 
@@ -433,7 +463,8 @@ class DependencyTree(Node):
 
         # 0 check if the *exact* dataset is already loaded
         try:
-            node = self.getitem(dataset_key)
+            dsid = create_filtered_dsid(dataset_key, **dfilter)
+            node = self.getitem(dsid)
             LOG.trace("Found exact dataset already loaded: {}".format(node.name))
             return node, set()
         except KeyError:
@@ -456,7 +487,7 @@ class DependencyTree(Node):
             # assume that there is no such thing as a "better" composite
             # version so if we find any DatasetIDs already loaded then
             # we want to use them
-            node = self[dataset_key]
+            node = self.get_filtered_item(dataset_key, **dfilter)
             LOG.trace("Composite already loaded:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
             return node, set()
         except KeyError:

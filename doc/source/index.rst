@@ -83,6 +83,9 @@ the base Satpy installation.
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata
         | in the files. EUMETSAT has been notified.
+    * - MSG (Meteosat 8 to 11) L2 products in BUFR format
+      - `seviri_l2_bufr`
+      - AMV Bufr products not available yet.
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
@@ -95,9 +98,12 @@ the base Satpy installation.
     * - MTSAT-2 Imager data in JMA HRIT format
       - `mtsat2-imager_hrit`
       - Beta
-    * - GOES 16 imager data in netcdf format
+    * - GOES-R imager data in netcdf format
       - `abi_l1b`
       - Nominal
+    * - NOAA GOES-R ABI L2+ products in netcdf format
+      - `abi_l2_nc`
+      - Beta
     * - GOES 11 to 15 imager data in HRIT format
       - `goes-imager_hrit`
       - Nominal
@@ -199,6 +205,9 @@ the base Satpy installation.
     * - MERSI-2 L1B data in HDF5 format
       - `mersi2_l1b`
       - Beta
+    * - FY-4A AGRI L1 data in HDF5 format
+      - `agri_l1`
+      - Beta
     * - Vaisala Global Lightning Dataset GLD360 data in ASCII format
       - `vaisala_gld360`
       - Beta
@@ -209,6 +218,9 @@ the base Satpy installation.
       - `hsaf_grib`
       - | Beta
         | Only the h03, h03b, h05 and h05B products are supported at-present
+    * - GEO-KOMPSAT-2 AMI L1B data in NetCDF4 format
+      - `ami_l1b`
+      - Beta
 
 
 Indices and tables

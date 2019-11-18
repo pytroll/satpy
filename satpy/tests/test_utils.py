@@ -136,6 +136,7 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(z__, sqrt(1) / 2)
 
     def test_xyz2lonlat(self):
+        """Test xyz2lonlat."""
         lon, lat = xyz2lonlat(1, 0, 0)
         self.assertAlmostEqual(lon, 0)
         self.assertAlmostEqual(lat, 0)
@@ -143,6 +144,10 @@ class TestUtils(unittest.TestCase):
         lon, lat = xyz2lonlat(0, 1, 0)
         self.assertAlmostEqual(lon, 90)
         self.assertAlmostEqual(lat, 0)
+
+        lon, lat = xyz2lonlat(0, 0, 1, asin=True)
+        self.assertAlmostEqual(lon, 0)
+        self.assertAlmostEqual(lat, 90)
 
         lon, lat = xyz2lonlat(0, 0, 1)
         self.assertAlmostEqual(lon, 0)
@@ -153,6 +158,7 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(lat, 0)
 
     def test_xyz2angle(self):
+        """Test xyz2angle."""
         azi, zen = xyz2angle(1, 0, 0)
         self.assertAlmostEqual(azi, 90)
         self.assertAlmostEqual(zen, 90)
@@ -162,6 +168,10 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(zen, 90)
 
         azi, zen = xyz2angle(0, 0, 1)
+        self.assertAlmostEqual(azi, 0)
+        self.assertAlmostEqual(zen, 0)
+
+        azi, zen = xyz2angle(0, 0, 1, acos=True)
         self.assertAlmostEqual(azi, 0)
         self.assertAlmostEqual(zen, 0)
 
@@ -178,6 +188,7 @@ class TestUtils(unittest.TestCase):
         self.assertAlmostEqual(zen, 90)
 
     def test_proj_units_to_meters(self):
+        """Test proj units to meters conversion."""
         prj = '+asd=123123123123'
         res = proj_units_to_meters(prj)
         self.assertEqual(res, prj)
@@ -196,6 +207,7 @@ class TestUtils(unittest.TestCase):
 
     @mock.patch('satpy.utils.warnings.warn')
     def test_get_satpos(self, warn_mock):
+        """Test getting the satellite position."""
         orb_params = {'nadir_longitude': 1,
                       'satellite_actual_longitude': 1.1,
                       'satellite_nominal_longitude': 1.2,
@@ -205,7 +217,8 @@ class TestUtils(unittest.TestCase):
                       'satellite_nominal_latitude': 2.2,
                       'projection_latitude': 2.3,
                       'satellite_actual_altitude': 3,
-                      'projection_altitude': 3.1}
+                      'satellite_nominal_altitude': 3.1,
+                      'projection_altitude': 3.2}
         dataset = mock.MagicMock(attrs={'orbital_parameters': orb_params,
                                         'satellite_longitude': -1,
                                         'satellite_latitude': -2,
@@ -224,15 +237,16 @@ class TestUtils(unittest.TestCase):
         # Nominal
         orb_params.pop('satellite_actual_longitude')
         orb_params.pop('satellite_actual_latitude')
+        orb_params.pop('satellite_actual_altitude')
         lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.2, 2.2, 3))
+        self.assertTupleEqual((lon, lat, alt), (1.2, 2.2, 3.1))
 
         # Projection
         orb_params.pop('satellite_nominal_longitude')
         orb_params.pop('satellite_nominal_latitude')
-        orb_params.pop('satellite_actual_altitude')
+        orb_params.pop('satellite_nominal_altitude')
         lon, lat, alt = get_satpos(dataset)
-        self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.1))
+        self.assertTupleEqual((lon, lat, alt), (1.3, 2.3, 3.2))
         warn_mock.assert_called()
 
         # Legacy
@@ -242,8 +256,7 @@ class TestUtils(unittest.TestCase):
 
 
 def suite():
-    """The test suite.
-    """
+    """Test suite."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))

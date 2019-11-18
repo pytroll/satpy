@@ -27,9 +27,9 @@ import os
 from datetime import datetime
 
 import dask.array as da
+import numpy as np
 import xarray as xr
 
-import numpy as np
 from pyresample.utils import get_area_def
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -123,7 +123,10 @@ class NcNWCSAF(BaseFileHandler):
         return variable
 
     def scale_dataset(self, dsid, variable, info):
-        """Scale the data set, applying the attributes from the netCDF file."""
+        """Scale the data set, applying the attributes from the netCDF file.
+
+        The scale and offset attributes will then be removed from the resulting variable.
+        """
         variable = remove_empties(variable)
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
@@ -143,14 +146,18 @@ class NcNWCSAF(BaseFileHandler):
             if 'valid_min' in variable.attrs:
                 variable = variable.where(
                     variable >= variable.attrs['valid_min'])
-        attrs = variable.attrs
+        attrs = variable.attrs.copy()
         variable = variable * scale + offset
         variable.attrs = attrs
+        variable.attrs.pop('add_offset', None)
+        variable.attrs.pop('scale_factor', None)
 
         variable.attrs.update({'platform_name': self.platform_name,
                                'sensor': self.sensor})
 
-        variable.attrs.setdefault('units', '1')
+        if not variable.attrs.get('standard_name', '').endswith('status_flag'):
+            # TODO: do we really need to add units to everything ?
+            variable.attrs.setdefault('units', '1')
 
         ancillary_names = variable.attrs.get('ancillary_variables', '')
         try:

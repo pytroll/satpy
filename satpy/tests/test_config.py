@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test objects and functions in the satpy.config module.
-"""
+"""Test objects and functions in the satpy.config module."""
 
 import sys
 
@@ -59,13 +58,25 @@ class TestBuiltinAreas(unittest.TestCase):
         """Test all areas have valid projections with pyproj."""
         import pyproj
         from pyresample import parse_area_file
+        from pyresample.geometry import SwathDefinition
         from satpy.resample import get_area_file
+        import numpy as np
+        import xarray as xr
 
+        lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
+        lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
+        lons = xr.DataArray(lons)
+        lats = xr.DataArray(lats)
+        swath_def = SwathDefinition(lons, lats)
         all_areas = parse_area_file(get_area_file())
         for area_obj in all_areas:
-            if getattr(area_obj, 'optimize_projection', False):
-                # the PROJ.4 is known to not be valid on this DynamicAreaDef
-                continue
+            if hasattr(area_obj, 'freeze'):
+                try:
+                    area_obj = area_obj.freeze(lonslats=swath_def)
+                except RuntimeError:
+                    # we didn't provide enough info to freeze, hard to guess
+                    # in a generic test so just skip this area
+                    continue
             proj_dict = area_obj.proj_dict
             _ = pyproj.Proj(proj_dict)
 
@@ -79,18 +90,37 @@ class TestBuiltinAreas(unittest.TestCase):
             return unittest.skip("RasterIO 1.0+ required")
 
         from pyresample import parse_area_file
+        from pyresample.geometry import SwathDefinition
         from satpy.resample import get_area_file
+        import numpy as np
+        import xarray as xr
+
+        lons = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
+        lats = np.array([[0, 0.1, 0.2], [0.05, 0.15, 0.25]])
+        lons = xr.DataArray(lons)
+        lats = xr.DataArray(lats)
+        swath_def = SwathDefinition(lons, lats)
         all_areas = parse_area_file(get_area_file())
         for area_obj in all_areas:
-            if getattr(area_obj, 'optimize_projection', False):
-                # the PROJ.4 is known to not be valid on this DynamicAreaDef
-                continue
+            if hasattr(area_obj, 'freeze'):
+                try:
+                    area_obj = area_obj.freeze(lonslats=swath_def)
+                except RuntimeError:
+                    # we didn't provide enough info to freeze, hard to guess
+                    # in a generic test so just skip this area
+                    continue
             proj_dict = area_obj.proj_dict
+            if proj_dict.get('proj') in ('ob_tran', 'nsper') and \
+                    'wktext' not in proj_dict:
+                # FIXME: rasterio doesn't understand ob_tran unless +wktext
+                # See: https://github.com/pyproj4/pyproj/issues/357
+                # pyproj 2.0+ seems to drop wktext from PROJ dict
+                continue
             _ = CRS.from_dict(proj_dict)
 
 
 def suite():
-    """The test suite for test_config."""
+    """Test suite for test_config."""
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestCheckSatpy))

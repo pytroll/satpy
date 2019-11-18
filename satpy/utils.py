@@ -16,8 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module defining various utilities.
-"""
+"""Module defining various utilities."""
 
 import logging
 import os
@@ -37,21 +36,21 @@ TRACE_LEVEL = 5
 
 
 class OrderedConfigParser(object):
-
     """Intercepts read and stores ordered section names.
+
     Cannot use inheritance and super as ConfigParser use old style classes.
     """
 
     def __init__(self, *args, **kwargs):
+        """Initialize the instance."""
         self.config_parser = configparser.ConfigParser(*args, **kwargs)
 
     def __getattr__(self, name):
+        """Get the attribute."""
         return getattr(self.config_parser, name)
 
     def read(self, filename):
-        """Reads config file
-        """
-
+        """Read config file."""
         try:
             conf_file = open(filename, 'r')
             config = conf_file.read()
@@ -65,9 +64,7 @@ class OrderedConfigParser(object):
         return self.config_parser.read(filename)
 
     def sections(self):
-        """Get sections from config file
-        """
-
+        """Get sections from config file."""
         try:
             return self.section_keys
         except:  # noqa: E722
@@ -75,7 +72,7 @@ class OrderedConfigParser(object):
 
 
 def ensure_dir(filename):
-    """Checks if the dir of f exists, otherwise create it."""
+    """Check if the dir of f exists, otherwise create it."""
     directory = os.path.dirname(filename)
     if directory and not os.path.isdir(directory):
         os.makedirs(directory)
@@ -92,8 +89,7 @@ def trace_on():
 
 
 def logging_on(level=logging.WARNING):
-    """Turn logging on.
-    """
+    """Turn logging on."""
     global _is_logging_on
 
     if not _is_logging_on:
@@ -112,8 +108,7 @@ def logging_on(level=logging.WARNING):
 
 
 def logging_off():
-    """Turn logging off.
-    """
+    """Turn logging off."""
     logging.getLogger('').handlers = [logging.NullHandler()]
 
 
@@ -136,7 +131,7 @@ def get_logger(name):
 
 
 def in_ipynb():
-    """Are we in a jupyter notebook?"""
+    """Check if we are in a jupyter notebook."""
     try:
         return 'ZMQ' in get_ipython().__class__.__name__
     except NameError:
@@ -156,10 +151,13 @@ def lonlat2xyz(lon, lat):
     return x, y, z
 
 
-def xyz2lonlat(x, y, z):
+def xyz2lonlat(x, y, z, asin=False):
     """Convert cartesian to lon lat."""
     lon = np.rad2deg(np.arctan2(y, x))
-    lat = np.rad2deg(np.arctan2(z, np.sqrt(x ** 2 + y ** 2)))
+    if asin:
+        lat = np.rad2deg(np.arcsin(z))
+    else:
+        lat = np.rad2deg(np.arctan2(z, np.sqrt(x ** 2 + y ** 2)))
     return lon, lat
 
 
@@ -173,10 +171,13 @@ def angle2xyz(azi, zen):
     return x, y, z
 
 
-def xyz2angle(x, y, z):
+def xyz2angle(x, y, z, acos=False):
     """Convert cartesian to azimuth and zenith."""
     azi = np.rad2deg(np.arctan2(x, y))
-    zen = 90 - np.rad2deg(np.arctan2(z, np.sqrt(x ** 2 + y ** 2)))
+    if acos:
+        zen = np.rad2deg(np.arccos(z))
+    else:
+        zen = 90 - np.rad2deg(np.arctan2(z, np.sqrt(x ** 2 + y ** 2)))
     return azi, zen
 
 
@@ -217,7 +218,6 @@ def sunzen_corr_cos(data, cos_zen, limit=88., max_sza=95.):
     0. Both ``data`` and ``cos_zen`` should be 2D arrays of the same shape.
 
     """
-
     # Convert the zenith angle limit to cosine of zenith angle
     limit_rad = np.deg2rad(limit)
     limit_cos = np.cos(limit_rad)
@@ -289,12 +289,13 @@ def get_satpos(dataset):
     Preferences are:
 
     * Longitude & Latitude: Nadir, actual, nominal, projection
-    * Altitude: Actual, projection
+    * Altitude: Actual, nominal, projection
 
     A warning is issued when projection values have to be used because nothing else is available.
 
     Returns:
         Geodetic longitude, latitude, altitude
+
     """
     try:
         orb_params = dataset.attrs['orbital_parameters']
@@ -303,8 +304,11 @@ def get_satpos(dataset):
         try:
             alt = orb_params['satellite_actual_altitude']
         except KeyError:
-            alt = orb_params['projection_altitude']
-            warnings.warn('Satellite altitude not available, using projection altitude instead.')
+            try:
+                alt = orb_params['satellite_nominal_altitude']
+            except KeyError:
+                alt = orb_params['projection_altitude']
+                warnings.warn('Actual satellite altitude not available, using projection altitude instead.')
 
         # Longitude & Latitude
         try:
@@ -321,7 +325,7 @@ def get_satpos(dataset):
                 except KeyError:
                     lon = orb_params['projection_longitude']
                     lat = orb_params['projection_latitude']
-                    warnings.warn('Satellite lon/lat not available, using projection centre instead.')
+                    warnings.warn('Actual satellite lon/lat not available, using projection centre instead.')
     except KeyError:
         # Legacy
         lon = dataset.attrs['satellite_longitude']

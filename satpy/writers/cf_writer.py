@@ -117,6 +117,26 @@ logger = logging.getLogger(__name__)
 
 EPOCH = u"seconds since 1970-01-01 00:00:00"
 
+# Numpy datatypes compatible with all netCDF4 backends. ``np.unicode_`` is
+# excluded because h5py (and thus h5netcdf) has problems with unicode, see
+# https://github.com/h5py/h5py/issues/624."""
+NC4_DTYPES = [np.dtype('int8'), np.dtype('uint8'),
+              np.dtype('int16'), np.dtype('uint16'),
+              np.dtype('int32'), np.dtype('uint32'),
+              np.dtype('int64'), np.dtype('uint64'),
+              np.dtype('float32'), np.dtype('float64'),
+              np.string_]
+
+# Unsigned and int64 isn't CF 1.7 compatible
+CF_DTYPES = [np.dtype('int8'),
+             np.dtype('int16'),
+             np.dtype('int32'),
+             np.dtype('float32'),
+             np.dtype('float64'),
+             np.string_]
+
+CF_VERSION = 'CF-1.7'
+
 
 def omerc2cf(area):
     """Return the cf grid mapping for the omerc projection."""
@@ -127,6 +147,9 @@ def omerc2cf(area):
                 longitude_of_projection_origin=proj_dict.get('lonc'),
                 grid_mapping_name='oblique_mercator',
                 reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
+                prime_meridian_name=proj_dict.get('pm', 'Greenwich'),
+                horizontal_datum_name=proj_dict.get('datum', 'unknown'),
+                geographic_crs_name='unknown',
                 false_easting=0.,
                 false_northing=0.
                 )
@@ -209,6 +232,7 @@ def area2lonlat(dataarray):
 
 
 def area2gridmapping(dataarray):
+    """Convert an area to at CF grid mapping."""
     area = dataarray.attrs['area']
     attrs = create_grid_mapping(area)
     if attrs is not None and 'name' in attrs.keys() and attrs['name'] != "proj4":
@@ -223,6 +247,7 @@ def area2gridmapping(dataarray):
 
 
 def area2cf(dataarray, strict=False):
+    """Convert an area to at CF grid mapping or lon and lats."""
     res = []
     dataarray = dataarray.copy(deep=True)
     if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
@@ -235,6 +260,7 @@ def area2cf(dataarray, strict=False):
 
 
 def make_time_bounds(dataarray, start_times, end_times):
+    """Create time bounds for the current *dataarray*."""
     import numpy as np
     start_time = min(start_time for start_time in start_times
                      if start_time is not None)
@@ -246,12 +272,14 @@ def make_time_bounds(dataarray, start_times, end_times):
         dtnp64 = dataarray['time'].data
     time_bnds = [(np.datetime64(start_time) - dtnp64),
                  (np.datetime64(end_time) - dtnp64)]
-    return xr.DataArray(np.array(time_bnds) / np.timedelta64(1, 's'),
-                        dims=['time_bnds'], coords={'time_bnds': [0, 1]})
+    data = xr.DataArray(np.array(time_bnds)[None, :] / np.timedelta64(1, 's'),
+                        dims=['time', 'bnds_1d'])
+    data.encoding['_FillValue'] = None
+    return data
 
 
 def assert_xy_unique(datas):
-    """Check that all datasets share the same projection coordinates x/y"""
+    """Check that all datasets share the same projection coordinates x/y."""
     unique_x = set()
     unique_y = set()
     for dataset in datas.values():
@@ -267,12 +295,13 @@ def assert_xy_unique(datas):
 
 
 def link_coords(datas):
-    """Link datasets and coordinates
+    """Link datasets and coordinates.
 
     If the `coordinates` attribute of a data array links to other datasets in the scene, for example
     `coordinates='lon lat'`, add them as coordinates to the data array and drop that attribute. In the final call to
     `xr.Dataset.to_netcdf()` all coordinate relations will be resolved and the `coordinates` attributes be set
     automatically.
+
     """
     for ds_name, dataset in datas.items():
         coords = dataset.attrs.get('coordinates', [])
@@ -309,6 +338,7 @@ def make_alt_coords_unique(datas, pretty=False):
 
     Returns:
         Dictionary holding the updated datasets
+
     """
     # Determine which non-dimensional coordinates are unique
     tokens = defaultdict(set)
@@ -334,9 +364,10 @@ def make_alt_coords_unique(datas, pretty=False):
 
 
 class AttributeEncoder(json.JSONEncoder):
-    """JSON encoder for dataset attributes"""
+    """JSON encoder for dataset attributes."""
+
     def default(self, obj):
-        """Returns a json-serializable object for 'obj'
+        """Return a json-serializable object for *obj*.
 
         In order to facilitate decoding, elements in dictionaries, lists/tuples and multi-dimensional arrays are
         encoded recursively.
@@ -351,14 +382,22 @@ class AttributeEncoder(json.JSONEncoder):
         return self._encode(obj)
 
     def _encode(self, obj):
-        """Encode the given object as a json-serializable datatype.
+        """Encode the given object as a json-serializable datatype."""
+        if isinstance(obj, (bool, np.bool_)):
+            # Bool has to be checked first, because it is a subclass of int
+            return str(obj).lower()
+        elif isinstance(obj, (int, float, str)):
+            return obj
+        elif isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.void):
+            return tuple(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
 
-        Use the netcdf encoder as it covers most of the datatypes appearing in dataset attributes. If that fails,
-        return the string representation of the object."""
-        try:
-            return _encode_nc(obj)
-        except ValueError:
-            return str(obj)
+        return str(obj)
 
 
 def _encode_nc(obj):
@@ -366,25 +405,21 @@ def _encode_nc(obj):
 
     Raises:
         ValueError if no such datatype could be found
+
     """
-    if isinstance(obj, (bool, np.bool_)):
-        # Bool has to be checked first, because it is a subclass of int
-        return str(obj)
-    elif isinstance(obj, (int, float, str)):
+    if isinstance(obj, int) and not isinstance(obj, (bool, np.bool_)):
         return obj
-    elif isinstance(obj, np.integer):
-        return int(obj)
-    elif isinstance(obj, np.floating):
-        return float(obj)
-    elif isinstance(obj, np.void):
-        return tuple(obj)
+    elif isinstance(obj, (float, str, np.integer, np.floating)):
+        return obj
     elif isinstance(obj, np.ndarray):
-        if not obj.dtype.fields and obj.dtype == np.bool_:
-            # Convert array of booleans to array of strings
-            obj = obj.astype(str)
-        if not obj.dtype.fields and len(obj.shape) <= 1:
-            # Multi-dimensional nc attributes are not supported, so we have to skip record arrays and multi-dimensional
-            # arrays here
+        # Only plain 1-d arrays are supported. Skip record arrays and multi-dimensional arrays.
+        is_plain_1d = not obj.dtype.fields and len(obj.shape) <= 1
+        if is_plain_1d:
+            if obj.dtype in NC4_DTYPES:
+                return obj
+            elif obj.dtype == np.bool_:
+                # Boolean arrays are not supported, convert to array of strings.
+                return [s.lower() for s in obj.astype(str)]
             return obj.tolist()
 
     raise ValueError('Unable to encode')
@@ -410,7 +445,7 @@ def encode_nc(obj):
 
 
 def encode_attrs_nc(attrs):
-    """Encode dataset attributes in a netcdf compatible datatype
+    """Encode dataset attributes in a netcdf compatible datatype.
 
     Args:
         attrs (dict):
@@ -420,7 +455,8 @@ def encode_attrs_nc(attrs):
     """
     encoded_attrs = []
     for key, val in sorted(attrs.items()):
-        encoded_attrs.append((key, encode_nc(val)))
+        if val is not None:
+            encoded_attrs.append((key, encode_nc(val)))
     return OrderedDict(encoded_attrs)
 
 
@@ -428,7 +464,7 @@ class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
     @staticmethod
-    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None):
+    def da2cf(dataarray, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, compression=None):
         """Convert the dataarray to something cf-compatible.
 
         Args:
@@ -459,7 +495,11 @@ class CFWriter(Writer):
         for key, val in new_data.attrs.copy().items():
             if val is None:
                 new_data.attrs.pop(key)
+            if key == 'ancillary_variables' and val == []:
+                new_data.attrs.pop(key)
         new_data.attrs.pop('_last_resampler', None)
+        if compression is not None:
+            new_data.encoding.update(compression)
 
         if 'time' in new_data.coords:
             new_data['time'].encoding['units'] = epoch
@@ -497,7 +537,7 @@ class CFWriter(Writer):
         return self.save_datasets([dataset], filename, **kwargs)
 
     def _collect_datasets(self, datasets, epoch=EPOCH, flatten_attrs=False, exclude_attrs=None, include_lonlats=True,
-                          pretty=False):
+                          pretty=False, compression=None):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
         for ds in datasets:
@@ -507,6 +547,8 @@ class CFWriter(Writer):
         start_times = []
         end_times = []
         for ds in ds_collection.values():
+            if ds.dtype not in CF_DTYPES:
+                warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
             try:
                 new_datasets = area2cf(ds, strict=include_lonlats)
             except KeyError:
@@ -515,7 +557,7 @@ class CFWriter(Writer):
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
                 datas[new_ds.attrs['name']] = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
-                                                         exclude_attrs=exclude_attrs)
+                                                         exclude_attrs=exclude_attrs, compression=compression)
 
         # Check and prepare coordinates
         assert_xy_unique(datas)
@@ -524,9 +566,25 @@ class CFWriter(Writer):
 
         return datas, start_times, end_times
 
-    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine='h5netcdf', epoch=EPOCH,
-                      flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False, config_files=None,
-                      **to_netcdf_kwargs):
+    def update_encoding(self, datasets, to_netcdf_kwargs):
+        """Update encoding.
+
+        Avoid _FillValue attribute being added to coordinate variables (https://github.com/pydata/xarray/issues/1865).
+        """
+        other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
+        encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
+        coord_vars = []
+        for data_array in datasets:
+            coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
+        for coord_var in coord_vars:
+            encoding.setdefault(coord_var, {})
+            encoding[coord_var].update({'_FillValue': None})
+
+        return encoding, other_to_netcdf_kwargs
+
+    def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
+                      flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
+                      compression=None, **to_netcdf_kwargs):
         """Save the given datasets in one netCDF file.
 
         Note that all datasets (if grouping: in one group) must have the same projection coordinates.
@@ -543,7 +601,9 @@ class CFWriter(Writer):
             header_attrs:
                 Global attributes to be included
             engine (str):
-                Module to be used for writing netCDF files
+                Module to be used for writing netCDF files. Follows xarray's
+                :meth:`~xarray.Dataset.to_netcdf` engine choices with a
+                preference for 'netcdf4'.
             epoch (str):
                 Reference time for encoding of time coordinates
             flatten_attrs (bool):
@@ -554,6 +614,10 @@ class CFWriter(Writer):
                 Always include latitude and longitude coordinates, even for datasets with area definition
             pretty (bool):
                 Don't modify coordinate names, if possible. Makes the file prettier, but possibly less consistent.
+            compression (dict):
+                Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
+                This is in turn passed the xarray's `to_netcdf` method:
+                http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
         """
         logger.info('Saving datasets to NetCDF4/CF.')
 
@@ -569,15 +633,26 @@ class CFWriter(Writer):
                         groups_[group_name].append(dataset)
                         break
 
+        if compression is None:
+            compression = {'zlib': True}
+
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
 
-        root = xr.Dataset({}, attrs={'history': 'Created by pytroll/satpy on {}'.format(datetime.utcnow())})
+        root = xr.Dataset({}, attrs={})
         if header_attrs is not None:
-            root.attrs.update({k: v for k, v in header_attrs.items() if v})
+            if flatten_attrs:
+                header_attrs = flatten_dict(header_attrs)
+            root.attrs = encode_attrs_nc(header_attrs)
+        root.attrs['history'] = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
         if groups is None:
             # Groups are not CF-1.7 compliant
-            root.attrs['Conventions'] = 'CF-1.7'
+            root.attrs['Conventions'] = CF_VERSION
+
+        # Remove satpy-specific kwargs
+        satpy_kwargs = ['overlay', 'decorate', 'config_files']
+        for kwarg in satpy_kwargs:
+            to_netcdf_kwargs.pop(kwarg, None)
 
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
@@ -588,17 +663,20 @@ class CFWriter(Writer):
             # XXX: Should we combine the info of all datasets?
             datas, start_times, end_times = self._collect_datasets(
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
-                include_lonlats=include_lonlats, pretty=pretty)
+                include_lonlats=include_lonlats, pretty=pretty, compression=compression)
             dataset = xr.Dataset(datas)
             try:
                 dataset['time_bnds'] = make_time_bounds(dataset,
                                                         start_times,
                                                         end_times)
                 dataset['time'].attrs['bounds'] = "time_bnds"
+                dataset['time'].attrs['standard_name'] = "time"
             except KeyError:
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
-            res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', **to_netcdf_kwargs)
+            encoding, other_to_netcdf_kwargs = self.update_encoding(datasets, to_netcdf_kwargs)
+            res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
+                                    **other_to_netcdf_kwargs)
             written.append(res)
         return written

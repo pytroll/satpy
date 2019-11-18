@@ -15,8 +15,31 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Sentinel-3 OLCI reader
+"""Sentinel-3 OLCI reader.
+
+This reader supports an optional argument to choose the 'engine' for reading
+OLCI netCDF4 files. By default, this reader uses the default xarray choice of
+engine, as defined in the `xarray open_dataset documentation`_.
+
+As an alternative, the user may wish to use the 'h5netcdf' engine, but that is
+not default as it typically prints many non-fatal but confusing error messages
+to the terminal.
+To choose between engines the user can  do as follows for the default::
+
+scn = satpyScene(filenames=my_files, reader='olci_l1b')
+
+or as follows for the h5netcdf engine::
+
+scn = Scene(filenames=my_files,
+      reader='olci_l1b'), reader_kwargs={'engine': 'h5netcdf'})
+
+
+References:
+    - `xarray open_dataset documentation`_
+.. _xarray open_dataset: http://xarray.pydata.org/en/stable/generated/xarray.open_dataset.html
+
 """
+
 
 import logging
 from datetime import datetime
@@ -37,9 +60,8 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 
 
 class BitFlags(object):
+    """Manipulate flags stored bitwise."""
 
-    """Manipulate flags stored bitwise.
-    """
     flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
                  'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT',
                  'HISOLZEN', 'SATURATED', 'MEGLINT', 'HIGHGLINT',
@@ -54,23 +76,36 @@ class BitFlags(object):
     meaning = {f: i for i, f in enumerate(flag_list)}
 
     def __init__(self, value):
-
+        """Init the flags."""
         self._value = value
 
     def __getitem__(self, item):
+        """Get the item."""
         pos = self.meaning[item]
-        return ((self._value >> pos) % 2).astype(np.bool)
+        data = self._value
+        if isinstance(data, xr.DataArray):
+            data = data.data
+            res = ((data >> pos) % 2).astype(np.bool)
+            res = xr.DataArray(res, coords=self._value.coords,
+                               attrs=self._value.attrs,
+                               dims=self._value.dims)
+        else:
+            res = ((data >> pos) % 2).astype(np.bool)
+        return res
 
 
 class NCOLCIBase(BaseFileHandler):
+    """The OLCI reader base."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 engine=None):
+        """Init the olci reader base."""
         super(NCOLCIBase, self).__init__(filename, filename_info,
                                          filetype_info)
         self.nc = xr.open_dataset(self.filename,
                                   decode_cf=True,
                                   mask_and_scale=True,
-                                  engine='h5netcdf',
+                                  engine=engine,
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
 
@@ -82,11 +117,13 @@ class NCOLCIBase(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Start time property."""
         return datetime.strptime(self.nc.attrs['start_time'],
                                  '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
+        """End time property."""
         return datetime.strptime(self.nc.attrs['stop_time'],
                                  '%Y-%m-%dT%H:%M:%S.%fZ')
 
@@ -97,18 +134,32 @@ class NCOLCIBase(BaseFileHandler):
 
         return variable
 
+    def __del__(self):
+        """Close the NetCDF file that may still be open."""
+        try:
+            self.nc.close()
+        except (IOError, OSError, AttributeError):
+            pass
+
 
 class NCOLCICal(NCOLCIBase):
+    """Dummy class for calibration."""
+
     pass
 
 
 class NCOLCIGeo(NCOLCIBase):
+    """Dummy class for navigation."""
+
     pass
 
 
 class NCOLCIChannelBase(NCOLCIBase):
+    """Base class for channel reading."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 engine=None):
+        """Init the file handler."""
         super(NCOLCIChannelBase, self).__init__(filename, filename_info,
                                                 filetype_info)
 
@@ -116,45 +167,18 @@ class NCOLCIChannelBase(NCOLCIBase):
 
 
 class NCOLCI1B(NCOLCIChannelBase):
+    """File handler for OLCI l1b."""
 
-    def __init__(self, filename, filename_info, filetype_info, cal):
+    def __init__(self, filename, filename_info, filetype_info, cal,
+                 engine=None):
+        """Init the file handler."""
         super(NCOLCI1B, self).__init__(filename, filename_info,
                                        filetype_info)
         self.cal = cal.nc
 
-    def _get_solar_flux_old(self, band):
-        # TODO: this could be replaced with vectorized indexing in the future.
-        from dask.base import tokenize
-        blocksize = CHUNK_SIZE
-
-        solar_flux = self.cal['solar_flux'].isel(bands=band).values
-        d_index = self.cal['detector_index'].fillna(0).astype(int)
-
-        shape = d_index.shape
-        vchunks = range(0, shape[0], blocksize)
-        hchunks = range(0, shape[1], blocksize)
-
-        token = tokenize(band, d_index, solar_flux)
-        name = 'solar_flux_' + token
-
-        def get_items(array, slices):
-            return solar_flux[d_index[slices].values]
-
-        dsk = {(name, i, j): (get_items,
-                              d_index,
-                              (slice(vcs, min(vcs + blocksize, shape[0])),
-                               slice(hcs, min(hcs + blocksize, shape[1]))))
-               for i, vcs in enumerate(vchunks)
-               for j, hcs in enumerate(hchunks)
-               }
-
-        res = da.Array(dsk, name, shape=shape,
-                       chunks=(blocksize, blocksize),
-                       dtype=solar_flux.dtype)
-        return res
-
     @staticmethod
     def _get_items(idx, solar_flux):
+        """Get items."""
         return solar_flux[idx]
 
     def _get_solar_flux(self, band):
@@ -162,7 +186,8 @@ class NCOLCI1B(NCOLCIChannelBase):
         solar_flux = self.cal['solar_flux'].isel(bands=band).values
         d_index = self.cal['detector_index'].fillna(0).astype(int)
 
-        return da.map_blocks(self._get_items, d_index.data, solar_flux=solar_flux, dtype=solar_flux.dtype)
+        return da.map_blocks(self._get_items, d_index.data,
+                             solar_flux=solar_flux, dtype=solar_flux.dtype)
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -185,14 +210,13 @@ class NCOLCI1B(NCOLCIChannelBase):
 
 
 class NCOLCI2(NCOLCIChannelBase):
+    """File handler for OLCI l2."""
 
     def get_dataset(self, key, info):
-        """Load a dataset
-        """
+        """Load a dataset."""
         if self.channel is not None and self.channel != key.name:
             return
         logger.debug('Reading %s.', key.name)
-
         if self.channel is not None and self.channel.startswith('Oa'):
             dataset = self.nc[self.channel + '_reflectance']
         else:
@@ -201,32 +225,34 @@ class NCOLCI2(NCOLCIChannelBase):
         if key.name == 'wqsf':
             dataset.attrs['_FillValue'] = 1
         elif key.name == 'mask':
-            mask = self.getbitmask(dataset.to_masked_array().data)
-            dataset = dataset * np.nan
-            dataset = dataset.where(~ mask, True)
+            dataset = self.getbitmask(dataset)
 
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
         dataset.attrs.update(key.to_dict())
         return dataset
 
-    def getbitmask(self, wqsf, items=[]):
-        """ """
-        items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
-                 "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
-                 "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+    def getbitmask(self, wqsf, items=None):
+        """Get the bitmask."""
+        if items is None:
+            items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                     "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                     "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
         bflags = BitFlags(wqsf)
         return reduce(np.logical_or, [bflags[item] for item in items])
 
 
 class NCOLCIAngles(BaseFileHandler):
+    """File handler for the OLCI angles."""
 
     datasets = {'satellite_azimuth_angle': 'OAA',
                 'satellite_zenith_angle': 'OZA',
                 'solar_azimuth_angle': 'SAA',
                 'solar_zenith_angle': 'SZA'}
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 engine=None):
+        """Init the file handler."""
         super(NCOLCIAngles, self).__init__(filename, filename_info,
                                            filetype_info)
         self.nc = None
@@ -236,6 +262,7 @@ class NCOLCIAngles(BaseFileHandler):
         self.cache = {}
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
+        self.engine = engine
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -246,7 +273,7 @@ class NCOLCIAngles(BaseFileHandler):
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=True,
-                                      engine='h5netcdf',
+                                      engine=self.engine,
                                       chunks={'tie_columns': CHUNK_SIZE,
                                               'tie_rows': CHUNK_SIZE})
 
@@ -327,8 +354,17 @@ class NCOLCIAngles(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Start the file handler."""
         return self._start_time
 
     @property
     def end_time(self):
+        """End the file handler."""
         return self._end_time
+
+    def __del__(self):
+        """Close the NetCDF file that may still be open."""
+        try:
+            self.nc.close()
+        except (IOError, OSError, AttributeError):
+            pass
