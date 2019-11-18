@@ -147,3 +147,93 @@ composites:
         - name: C13
     - name: C08
     standard_name: airmass
+
+  # CIMSS True Color Composites
+  cimss_green_sunz_rayleigh:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    fractions: [0.45, 0.45, 0.1]
+    prerequisites:
+      # should we be using the most corrected or least corrected inputs?
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: C03
+        modifiers: [sunz_corrected]
+    standard_name: toa_bidirection_reflectance
+
+  cimss_green_sunz:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    fractions: [0.45, 0.45, 0.1]
+    prerequisites:
+      # should we be using the most corrected or least corrected inputs?
+      - name: C01
+        modifiers: [sunz_corrected]
+      - name: C02
+        modifiers: [sunz_corrected]
+      - name: C03
+        modifiers: [sunz_corrected]
+    standard_name: toa_bidirection_reflectance
+
+  cimss_green:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    fractions: [0.45, 0.45, 0.1]
+    prerequisites:
+      # should we be using the most corrected or least corrected inputs?
+      - name: C01
+      - name: C02
+      - name: C03
+    standard_name: toa_bidirection_reflectance
+
+  cimss_true_color_sunz_rayleigh:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      CIMSS Natural (True) Color RGB. This version has been adjusted for the
+      cosine of the solar zenith angle and has had rayleigh correction applied.
+      This RGB is ratio sharpened by comparing a high resolution C02 (red)
+      band with a lower/averaged version of itself and applying that ratio to
+      the green and blue channels.
+    references:
+      Research Article: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000379
+    prerequisites:
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: cimss_green_sunz_rayleigh
+      - name: C01
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: cimss_true_color
+
+  cimss_true_color_sunz:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      CIMSS Natural (True) Color RGB. This version has been adjusted for the
+      cosine of the solar zenith angle.
+      This RGB is ratio sharpened by comparing a high resolution C02 (red)
+      band with a lower/averaged version of itself and applying that ratio to
+      the green and blue channels.
+    references:
+      Research Article: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000379
+    prerequisites:
+      - name: C02
+        modifiers: [sunz_corrected]
+      - name: cimss_green_sunz
+      - name: C01
+        modifiers: [sunz_corrected]
+    standard_name: cimss_true_color
+
+  cimss_true_color:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    description: >
+      CIMSS Natural (True) Color RGB. No solar zenith angle or atmospheric
+      corrections are applied to this composite.
+      This RGB is ratio sharpened by comparing a high resolution C02 (red)
+      band with a lower/averaged version of itself and applying that ratio to
+      the green and blue channels.
+    references:
+      Research Article: https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2018EA000379
+    prerequisites:
+      - name: C02
+      - name: cimss_green
+      - name: C01
+    standard_name: cimss_true_color
+

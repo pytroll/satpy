@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Dataset objects.
-"""
+"""Dataset objects."""
 
 import sys
 import logging
@@ -171,6 +170,7 @@ class DatasetID(DatasetID):
     """
 
     def __new__(cls, *args, **kwargs):
+        """Create new DatasetID."""
         ret = super(DatasetID, cls).__new__(cls, *args, **kwargs)
         if ret.modifiers is not None and not isinstance(ret.modifiers, tuple):
             raise TypeError("'DatasetID' modifiers must be a tuple or None, "
@@ -267,6 +267,26 @@ class DatasetID(DatasetID):
     def _to_trimmed_dict(self):
         return {key: getattr(self, key) for key in DATASET_KEYS
                 if getattr(self, key) is not None}
+
+
+def create_filtered_dsid(dataset_key, **dfilter):
+    """Create a DatasetID matching *dataset_key* and *dfilter*.
+
+    If a proprety is specified in both *dataset_key* and *dfilter*, the former
+    has priority.
+
+    """
+    try:
+        ds_dict = dataset_key.to_dict()
+    except AttributeError:
+        if isinstance(dataset_key, str):
+            ds_dict = {'name': dataset_key}
+        elif isinstance(dataset_key, numbers.Number):
+            ds_dict = {'wavelength': dataset_key}
+    for key, value in dfilter.items():
+        if value is not None:
+            ds_dict.setdefault(key, value)
+    return DatasetID.from_dict(ds_dict)
 
 
 def dataset_walker(datasets):

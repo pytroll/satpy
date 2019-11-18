@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Scene objects to hold satellite data.
-"""
+"""Scene object to hold satellite data."""
 
 import logging
 import os
@@ -46,6 +45,8 @@ LOG = logging.getLogger(__name__)
 
 
 class DelayedGeneration(KeyError):
+    """Mark that a dataset can't be generated without further modification."""
+
     pass
 
 
@@ -212,7 +213,7 @@ class Scene(MetadataObject):
 
     @property
     def missing_datasets(self):
-        """DatasetIDs that have not been loaded."""
+        """Set of DatasetIDs that have not been successfully loaded."""
         return set(self.wishlist) - set(self.datasets.keys())
 
     def _compare_areas(self, datasets=None, compare_func=max):
@@ -289,14 +290,19 @@ class Scene(MetadataObject):
         return self._compare_areas(datasets=datasets, compare_func=min)
 
     def available_dataset_ids(self, reader_name=None, composites=False):
-        """Get names of available datasets, globally or just for *reader_name*
-        if specified, that can be loaded.
+        """Get DatasetIDs of loadable datasets.
+
+        This can be for all readers loaded by this Scene or just for
+        ``reader_name`` if specified.
 
         Available dataset names are determined by what each individual reader
         can load. This is normally determined by what files are needed to load
         a dataset and what files have been provided to the scene/reader.
+        Some readers dynamically determine what is available based on the
+        contents of the files provided.
 
-        :return: list of available dataset names
+        Returns: list of available dataset names
+
         """
         try:
             if reader_name:
@@ -310,8 +316,7 @@ class Scene(MetadataObject):
                                      for reader in readers
                                      for dataset_id in reader.available_dataset_ids])
         if composites:
-            available_datasets += sorted(self.available_composite_ids(
-                available_datasets))
+            available_datasets += sorted(self.available_composite_ids())
         return available_datasets
 
     def available_dataset_names(self, reader_name=None, composites=False):
@@ -320,10 +325,10 @@ class Scene(MetadataObject):
             reader_name=reader_name, composites=composites)))
 
     def all_dataset_ids(self, reader_name=None, composites=False):
-        """Get names of all datasets from loaded readers or `reader_name` if
-        specified..
+        """Get names of all datasets from loaded readers or `reader_name` if specified.
 
-        :return: list of all dataset names
+        Returns: list of all dataset names
+
         """
         try:
             if reader_name:
@@ -341,56 +346,55 @@ class Scene(MetadataObject):
         return all_datasets
 
     def all_dataset_names(self, reader_name=None, composites=False):
+        """Get all known dataset names configured for the loaded readers.
+
+        Note that some readers dynamically determine what datasets are known
+        by reading the contents of the files they are provided. This means
+        that the list of datasets returned by this method may change depending
+        on what files are provided even if a product/dataset is a "standard"
+        product for a particular reader.
+
+        """
         return sorted(set(x.name for x in self.all_dataset_ids(
             reader_name=reader_name, composites=composites)))
 
-    def available_composite_ids(self, available_datasets=None):
-        """Get names of compositors that can be generated from the available datasets.
-
-        Returns: generator of available compositor's names
-        """
-        if available_datasets is None:
-            available_datasets = self.available_dataset_ids(composites=False)
-        else:
-            if not all(isinstance(ds_id, DatasetID) for ds_id in available_datasets):
-                raise ValueError(
-                    "'available_datasets' must all be DatasetID objects")
-
-        all_comps = self.all_composite_ids()
+    def _check_known_composites(self, available_only=False):
+        """Create new dependency tree and check what composites we know about."""
+        # Note if we get compositors from the dep tree then it will include
+        # modified composites which we don't want
+        sensor_comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         # recreate the dependency tree so it doesn't interfere with the user's
-        # wishlist
-        comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
-        dep_tree = DependencyTree(self.readers, comps, mods)
-        dep_tree.find_dependencies(set(available_datasets + all_comps))
+        # wishlist from self.dep_tree
+        dep_tree = DependencyTree(self.readers, sensor_comps, mods, available_only=True)
+        # ignore inline compositor dependencies starting with '_'
+        comps = (comp for comp_dict in sensor_comps.values()
+                 for comp in comp_dict.keys() if not comp.name.startswith('_'))
+        # make sure that these composites are even create-able by these readers
+        all_comps = set(comps)
+        # find_dependencies will update the all_comps set with DatasetIDs
+        dep_tree.find_dependencies(all_comps)
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & set(all_comps))
 
-    def available_composite_names(self, available_datasets=None):
+    def available_composite_ids(self):
+        """Get names of composites that can be generated from the available datasets."""
+        return self._check_known_composites(available_only=True)
+
+    def available_composite_names(self):
         """All configured composites known to this Scene."""
-        return sorted(set(x.name for x in self.available_composite_ids(
-            available_datasets=available_datasets)))
+        return sorted(set(x.name for x in self.available_composite_ids()))
 
-    def all_composite_ids(self, sensor_names=None):
-        """Get all composite IDs that are configured.
+    def all_composite_ids(self):
+        """Get all IDs for configured composites."""
+        return self._check_known_composites()
 
-        Returns: generator of configured composite names
-        """
-        if sensor_names is None:
-            sensor_names = self.attrs['sensor']
-        compositors = []
-        # Note if we get compositors from the dep tree then it will include
-        # modified composites which we don't want
-        for sensor_name in sensor_names:
-            sensor_comps = self.cpl.compositors.get(sensor_name, {}).keys()
-            # ignore inline compositor dependencies starting with '_'
-            compositors.extend(c for c in sensor_comps if not c.name.startswith('_'))
-        return sorted(set(compositors))
-
-    def all_composite_names(self, sensor_names=None):
-        return sorted(set(x.name for x in self.all_composite_ids(sensor_names=sensor_names)))
+    def all_composite_names(self):
+        """Get all names for all configured composites."""
+        return sorted(set(x.name for x in self.all_composite_ids()))
 
     def all_modifier_names(self):
+        """Get names of configured modifier objects."""
         return sorted(self.dep_tree.modifiers.keys())
 
     def __str__(self):
@@ -417,9 +421,11 @@ class Scene(MetadataObject):
         return datasets_by_area.items()
 
     def keys(self, **kwargs):
+        """Get DatasetID keys for the underlying data container."""
         return self.datasets.keys(**kwargs)
 
     def values(self):
+        """Get values for the underlying data container."""
         return self.datasets.values()
 
     def copy(self, datasets=None):
@@ -641,6 +647,7 @@ class Scene(MetadataObject):
         Example:
             `scn.aggregate(func='min', x=2, y=2)` will aggregate 2x2 pixels by
             applying the `min` function.
+
         """
         new_scn = self.copy(datasets=dataset_ids)
 
@@ -875,8 +882,7 @@ class Scene(MetadataObject):
         return self._read_datasets(nodes, **kwargs)
 
     def generate_composites(self, nodes=None):
-        """Compute all the composites contained in `requirements`.
-        """
+        """Compute all the composites contained in `requirements`."""
         if nodes is None:
             required_nodes = self.wishlist - set(self.datasets.keys())
             nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - \
@@ -996,7 +1002,8 @@ class Scene(MetadataObject):
         """Resample `datasets` to the `destination` area.
 
         If data reduction is enabled, some local caching is perfomed in order to
-        avoid recomputation of area intersections."""
+        avoid recomputation of area intersections.
+        """
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
         if isinstance(destination_area, (str, six.text_type)):
@@ -1139,6 +1146,7 @@ class Scene(MetadataObject):
                 installation instructions.
 
         .. _pycoast: https://pycoast.readthedocs.io/
+
         """
         from satpy.writers import get_enhanced_image
         from satpy.utils import in_ipynb
@@ -1170,13 +1178,8 @@ class Scene(MetadataObject):
               to be passed to geoviews
 
         """
-        try:
-            import geoviews as gv
-            from cartopy import crs  # noqa
-        except ImportError:
-            import warnings
-            warnings.warn("This method needs the geoviews package installed.")
-
+        import geoviews as gv
+        from cartopy import crs  # noqa
         if gvtype is None:
             gvtype = gv.Image
 
