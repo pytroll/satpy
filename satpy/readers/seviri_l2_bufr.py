@@ -23,10 +23,8 @@ from datetime import timedelta, datetime
 import numpy as np
 import xarray as xr
 import dask.array as da
-from fnmatch import fnmatch
 from satpy.readers.seviri_base import mpef_product_header
 from satpy.readers.eum_base import recarray2dict
-import os
 
 try:
     import eccodes as ec
@@ -39,8 +37,8 @@ from satpy import CHUNK_SIZE
 
 logger = logging.getLogger('BufrProductClasses')
 
-umarf_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0000', 'name': '09'},
-              57: {'ssp': 'E0095', 'name': '10'}, 70: {'ssp': 'E0000', 'name': '11'}}
+data_centre_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0000', 'name': '09'},
+                    57: {'ssp': 'E0095', 'name': '10'}, 70: {'ssp': 'E0000', 'name': '11'}}
 
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
@@ -56,20 +54,18 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
                                                       filename_info,
                                                       filetype_info)
 
-        # Offline filenames are in the following naming convention
-        # GIIBUFRProduct_20190515151500Z_00_OMPEFS04_MET11_FES_E0000
-        if (fnmatch(os.path.basename(filename), '*BUFRProd*MPEFS*')):
+        if ('server' in filename_info):
             # EUMETSAT Offline Bufr product
             self.mpef_header = self._read_mpef_header()
         else:
-            # Product was retrieved from the UMARF
+            # Product was retrieved from the EUMETSAT Data Centre
             timeStr = self.get_attribute('typicalDate')+self.get_attribute('typicalTime')
             buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
             sc_id = self.get_attribute('satelliteIdentifier')
             self.mpef_header = {}
             self.mpef_header['NominalTime'] = buf_start_time
-            self.mpef_header['SpacecraftName'] = umarf_dict[sc_id]['name']
-            self.mpef_header['RectificationLongitude'] = umarf_dict[sc_id]['ssp']
+            self.mpef_header['SpacecraftName'] = data_centre_dict[sc_id]['name']
+            self.mpef_header['RectificationLongitude'] = data_centre_dict[sc_id]['ssp']
 
         self.seg_size = seg_size_dict[filetype_info['file_type']]
 
@@ -103,6 +99,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
     def get_attribute(self, key):
         ''' Get BUFR attributes '''
         fh = open(self.filename, "rb")
+        # TODO - read attribute one time only
         while 1:
             # get handle for message
             bufr = ec.codes_bufr_new_from_file(fh)
@@ -113,7 +110,6 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             ec.codes_release(bufr)
 
         fh.close()
-
         return attr
 
     def get_array(self, key):
@@ -150,9 +146,6 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         arr[arr == dataset_info['fill_value']] = np.nan
 
         xarr = xr.DataArray(arr, dims=["y"])
-
-        xarr['latitude'] = ('y', self.get_array('latitude'))
-        xarr['longitude'] = ('y', self.get_array('longitude'))
         xarr.attrs['sensor'] = 'SEVIRI'
         xarr.attrs['spacecraft_name'] = self.spacecraft_name
         xarr.attrs['ssp_lon'] = self.ssp_lon

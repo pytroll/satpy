@@ -37,7 +37,9 @@ FILETYPE_INFO = {'file_type':  'seviri_l2_bufr_csr'}
 
 FILENAME_INFO = {'start_time': '20191112000000',
                  'spacecraft': 'MSG4'}
-
+FILENAME_INFO2 = {'start_time': '20191112000000',
+                  'spacecraft': 'MSG4',
+                  'server': 'TESTSERVER'}
 MPEF_PRODUCT_HEADER = {
     'NominalTime': datetime(2019, 11, 6, 18, 0),
     'SpacecraftName': '08',
@@ -65,20 +67,13 @@ class TestSeviriL2Bufr(unittest.TestCase):
         from satpy.readers.seviri_l2_bufr import SeviriL2BufrFileHandler
         import eccodes as ec
         buf1 = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
-        ec.codes_set(buf1, 'unpac'
-                           'k', 1)
+        ec.codes_set(buf1, 'unpack', 1)
         samp1 = np.random.uniform(low=250, high=350, size=(128,))
-        samp2 = np.random.uniform(low=-60, high=60, size=(128,))
-        samp3 = np.random.uniform(low=10, high=60, size=(128,))
         # write the bufr test data twice as we want to read in and the concatenate the data in the reader
         # 55 id corresponds to METEOSAT 8
         ec.codes_set(buf1, 'satelliteIdentifier', 55)
         ec.codes_set_array(buf1, '#1#brightnessTemperature', samp1)
         ec.codes_set_array(buf1, '#1#brightnessTemperature', samp1)
-        ec.codes_set_array(buf1, 'latitude', samp2)
-        ec.codes_set_array(buf1, 'latitude', samp2)
-        ec.codes_set_array(buf1, 'longitude', samp3)
-        ec.codes_set_array(buf1, 'longitude', samp3)
 
         m = mock.mock_open()
         # only our offline product contain MPEF product headers so we get the metadata from there
@@ -87,7 +82,7 @@ class TestSeviriL2Bufr(unittest.TestCase):
                 fromfile.return_value = MPEF_PRODUCT_HEADER
                 with mock.patch('satpy.readers.seviri_l2_bufr.recarray2dict') as recarray2dict:
                     recarray2dict.side_effect = (lambda x: x)
-                    fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO, FILETYPE_INFO)
+                    fh = SeviriL2BufrFileHandler(filename, FILENAME_INFO2, FILETYPE_INFO)
                     fh.mpef_header = MPEF_PRODUCT_HEADER
 
         else:
@@ -104,7 +99,7 @@ class TestSeviriL2Bufr(unittest.TestCase):
 
         with mock.patch('satpy.readers.seviri_l2_bufr.open', m, create=True):
             with mock.patch('eccodes.codes_bufr_new_from_file',
-                            side_effect=[buf1, buf1, None, buf1, buf1, None, buf1, buf1, None]) as ec1:
+                            side_effect=[buf1, buf1, None]) as ec1:
                 ec1.return_value = ec1.side_effect
                 with mock.patch('eccodes.codes_set') as ec2:
                     ec2.return_value = 1
@@ -114,11 +109,7 @@ class TestSeviriL2Bufr(unittest.TestCase):
                         # concatenate the original test arrays as
                         # get dataset will have read and concatented the data
                         x1 = np.concatenate((samp1, samp1), axis=0)
-                        x2 = np.concatenate((samp2, samp2), axis=0)
-                        x3 = np.concatenate((samp3, samp3), axis=0)
                         np.testing.assert_array_equal(z.values, x1)
-                        np.testing.assert_array_equal(z.coords['latitude'].values, x2)
-                        np.testing.assert_array_equal(z.coords['longitude'].values, x3)
                         self.assertEqual(z.attrs['spacecraft_name'],
                                          DATASET_ATTRS['spacecraft_name'])
                         self.assertEqual(z.attrs['ssp_lon'],
