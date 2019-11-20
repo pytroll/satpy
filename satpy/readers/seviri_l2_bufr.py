@@ -98,6 +98,9 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
     def get_attribute(self, key):
         ''' Get BUFR attributes '''
+        # This function is inefficient as it is looping through the entire
+        # file to get 1 attribute. It causes a problem though if you break
+        # from the file early - dont knowgit  why but investigating - fix later
         fh = open(self.filename, "rb")
         while 1:
             # get handle for message
