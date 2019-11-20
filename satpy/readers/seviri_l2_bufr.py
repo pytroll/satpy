@@ -99,7 +99,6 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
     def get_attribute(self, key):
         ''' Get BUFR attributes '''
         fh = open(self.filename, "rb")
-        # TODO - read attribute one time only
         while 1:
             # get handle for message
             bufr = ec.codes_bufr_new_from_file(fh)
