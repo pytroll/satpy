@@ -700,6 +700,9 @@ datasets:
     standard_name: cloud_area_fraction
     units: '%'
     file_type:  seviri_l2_bufr_cla
+    coordinates:
+      - longitude
+      - latitude
     fill_value: 0
 
   mca:
