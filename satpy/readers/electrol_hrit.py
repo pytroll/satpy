@@ -51,7 +51,7 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 
-from pyresample import geometry
+from satpy.readers._geos_area import get_area_extent, get_area_definition
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function, time_cds_short)
@@ -351,42 +351,30 @@ class HRITGOMSFileHandler(HRITFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
-        cfac = np.int32(self.mda['cfac'])
-        lfac = np.int32(self.mda['lfac'])
-        coff = np.float32(self.mda['coff'])
-        loff = np.float32(self.mda['loff'])
+        pdict = {}
+        pdict['cfac'] = np.int32(self.mda['cfac'])
+        pdict['lfac'] = np.int32(self.mda['lfac'])
+        pdict['coff'] = np.float32(self.mda['coff'])
+        pdict['loff'] = np.float32(self.mda['loff'])
 
-        a = 6378169.00
-        b = 6356583.80
-        h = 35785831.00
+        pdict['a'] = 6378169.00
+        pdict['b'] = 6356583.80
+        pdict['h'] = 35785831.00
+        pdict['scandir'] = 'N2S'
 
-        lon_0 = self.mda['projection_parameters']['SSP_longitude']
+        pdict['ssp_lon'] = self.mda['projection_parameters']['SSP_longitude']
 
-        nlines = int(self.mda['number_of_lines'])
-        ncols = int(self.mda['number_of_columns'])
+        pdict['nlines'] = int(self.mda['number_of_lines'])
+        pdict['ncols'] = int(self.mda['number_of_columns'])
 
-        loff = nlines - loff
+        pdict['loff'] = pdict['nlines'] - pdict['loff']
 
-        area_extent = self.get_area_extent((nlines, ncols),
-                                           (loff, coff),
-                                           (lfac, cfac),
-                                           h)
+        pdict['a_name'] = 'geosgoms'
+        pdict['a_desc'] = 'Electro-L/GOMS channel area'
+        pdict['p_id'] = 'goms'
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
-
-        area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosmsg',
-            proj_dict,
-            ncols,
-            nlines,
-            area_extent)
+        area_extent = get_area_extent(pdict)
+        area = get_area_definition(pdict, area_extent)
 
         self.area = area
 

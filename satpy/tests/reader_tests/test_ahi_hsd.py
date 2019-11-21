@@ -78,8 +78,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
             self.assertEqual(proj_dict['units'], 'm')
-            self.assertEqual(area_def.area_extent, (592000.0038256244, 4132000.026701824,
-                                                    1592000.0102878278, 5132000.033164027))
+            np.testing.assert_allclose(area_def.area_extent, (592000.0038256242, 4132000.0267018233,
+                                                              1592000.0102878273, 5132000.033164027))
 
     @mock.patch('satpy.readers.ahi_hsd.np2str')
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
@@ -123,8 +123,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
             self.assertEqual(proj_dict['units'], 'm')
-            self.assertEqual(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
-                                                    5500000.035542117, -2200000.0142168473))
+            np.testing.assert_allclose(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
+                                                              5500000.035542117, -2200000.0142168473))
 
 
 class TestAHIHSDFileHandler(unittest.TestCase):
