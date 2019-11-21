@@ -35,9 +35,9 @@ except ImportError:
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
-logger = logging.getLogger('BufrProductClasses')
+logger = logging.getLogger('SeviriL2Bufr')
 
-data_centre_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0000', 'name': '09'},
+data_center_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0000', 'name': '09'},
                     57: {'ssp': 'E0095', 'name': '10'}, 70: {'ssp': 'E0000', 'name': '11'}}
 
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
@@ -58,14 +58,14 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
             # EUMETSAT Offline Bufr product
             self.mpef_header = self._read_mpef_header()
         else:
-            # Product was retrieved from the EUMETSAT Data Centre
+            # Product was retrieved from the EUMETSAT Data Center
             timeStr = self.get_attribute('typicalDate')+self.get_attribute('typicalTime')
             buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
             sc_id = self.get_attribute('satelliteIdentifier')
             self.mpef_header = {}
             self.mpef_header['NominalTime'] = buf_start_time
-            self.mpef_header['SpacecraftName'] = data_centre_dict[sc_id]['name']
-            self.mpef_header['RectificationLongitude'] = data_centre_dict[sc_id]['ssp']
+            self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
+            self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
 
         self.seg_size = seg_size_dict[filetype_info['file_type']]
 
@@ -100,9 +100,9 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         ''' Get BUFR attributes '''
         # This function is inefficient as it is looping through the entire
         # file to get 1 attribute. It causes a problem though if you break
-        # from the file early - dont knowgit  why but investigating - fix later
+        # from the file early - dont know why but investigating - fix later
         fh = open(self.filename, "rb")
-        while 1:
+        while True:
             # get handle for message
             bufr = ec.codes_bufr_new_from_file(fh)
             if bufr is None:
