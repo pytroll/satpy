@@ -20,6 +20,7 @@
 """
 import netCDF4
 import logging
+import packaging.version
 import xarray as xr
 
 from satpy import CHUNK_SIZE
@@ -136,7 +137,9 @@ class NetCDF4FileHandler(BaseFileHandler):
                 # closing it again.  This will leave potentially many open file
                 # objects (which may in turn trigger a Segmentation Fault:
                 # https://github.com/pydata/xarray/issues/2954#issuecomment-491221266
-                if not val.chunks:
+                # With xarray ≥ 0.13, this workaround is no longer needed
+                if packaging.version.parse(xr.__version__).release <= (0, 13,
+                        0) and not val.chunks:
                     val.load()
         return val
 
