@@ -539,7 +539,7 @@ class CFWriter(Writer):
         datas = {}
         start_times = []
         end_times = []
-        for ds in ds_collection.values():
+        for ds_name, ds in sorted(ds_collection.items()):
             if ds.dtype not in CF_DTYPES:
                 warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
             try:
