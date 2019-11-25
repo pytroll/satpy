@@ -111,7 +111,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         super(FCIFDHSIFileHandler, self).__init__(filename, filename_info,
-                                                  filetype_info)
+                                                  filetype_info,
+                                                  xarray_kwargs={"engine":
+                                                      "h5netcdf"})
         logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
@@ -213,8 +215,11 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             # pyresample defines corners as lower left corner of lower left pixel,
             # upper right corner of upper right pixel (Martin Raspaud, personal
             # communication).
-            min_c_radian = c_radian_num[0] - c_radian.scale_factor/2
-            max_c_radian = c_radian_num[-1] + c_radian.scale_factor/2
+
+            # the .item() call is needed with the h5netcdf backend, see
+            # https://github.com/pytroll/satpy/issues/972#issuecomment-558191583
+            min_c_radian = c_radian_num[0] - c_radian.scale_factor.item()/2
+            max_c_radian = c_radian_num[-1] + c_radian.scale_factor.item()/2
             min_c = min_c_radian * h  # arc length in m
             max_c = max_c_radian * h
             ext[c] = (min_c.item(), max_c.item())
