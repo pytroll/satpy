@@ -362,11 +362,11 @@ composites:
     standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
-      - night_background
+      - _night_background
 
   night_ir_with_background_hires:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: night_ir_with_background_hires
     prerequisites:
       - night_ir_alpha
-      - night_background_hires
+      - _night_background_hires
