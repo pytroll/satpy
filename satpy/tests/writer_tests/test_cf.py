@@ -223,6 +223,12 @@ class TestCFWriter(unittest.TestCase):
             with xr.open_dataset(filename, decode_cf=False) as f:
                 self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
 
+        # Unlimited time dimension
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', unlimited_dims=['time'])
+            with xr.open_dataset(filename, decode_cf=False) as f:
+                self.assertSetEqual(f.encoding['unlimited_dims'], {'time'})
+
     def test_bounds(self):
         """Test setting time bounds."""
         from satpy import Scene
