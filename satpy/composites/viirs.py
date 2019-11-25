@@ -29,6 +29,7 @@ import xarray as xr
 from satpy.composites import CompositeBase, GenericCompositor
 from satpy.config import get_environ_ancpath
 from satpy.dataset import combine_metadata
+from satpy.utils import get_satpos
 
 LOG = logging.getLogger(__name__)
 
@@ -156,10 +157,11 @@ class ReflectanceCorrector(CompositeBase):
         suna = get_alt_az(vis.attrs['start_time'], lons, lats)[1]
         suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
+        sat_lon, sat_lat, sat_alt = get_satpos(vis)
         sata, satel = get_observer_look(
-            vis.attrs['satellite_longitude'],
-            vis.attrs['satellite_latitude'],
-            vis.attrs['satellite_altitude'],
+            sat_lon,
+            sat_lat,
+            sat_alt / 1000.0,  # km
             vis.attrs['start_time'],
             lons, lats, 0)
         satz = 90 - satel

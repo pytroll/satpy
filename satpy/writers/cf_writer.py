@@ -408,7 +408,7 @@ class AttributeEncoder(json.JSONEncoder):
         """Encode the given object as a json-serializable datatype."""
         if isinstance(obj, (bool, np.bool_)):
             # Bool has to be checked first, because it is a subclass of int
-            return str(obj)
+            return str(obj).lower()
         elif isinstance(obj, (int, float, str)):
             return obj
         elif isinstance(obj, np.integer):
@@ -430,7 +430,9 @@ def _encode_nc(obj):
         ValueError if no such datatype could be found
 
     """
-    if isinstance(obj, (int, float, str, np.integer, np.floating)):
+    if isinstance(obj, int) and not isinstance(obj, (bool, np.bool_)):
+        return obj
+    elif isinstance(obj, (float, str, np.integer, np.floating)):
         return obj
     elif isinstance(obj, np.ndarray):
         # Only plain 1-d arrays are supported. Skip record arrays and multi-dimensional arrays.
@@ -440,7 +442,7 @@ def _encode_nc(obj):
                 return obj
             elif obj.dtype == np.bool_:
                 # Boolean arrays are not supported, convert to array of strings.
-                obj = obj.astype(str)
+                return [s.lower() for s in obj.astype(str)]
             return obj.tolist()
 
     raise ValueError('Unable to encode')
@@ -476,7 +478,8 @@ def encode_attrs_nc(attrs):
     """
     encoded_attrs = []
     for key, val in sorted(attrs.items()):
-        encoded_attrs.append((key, encode_nc(val)))
+        if val is not None:
+            encoded_attrs.append((key, encode_nc(val)))
     return OrderedDict(encoded_attrs)
 
 
@@ -659,9 +662,12 @@ class CFWriter(Writer):
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
 
-        root = xr.Dataset({}, attrs={'history': 'Created by pytroll/satpy on {}'.format(datetime.utcnow())})
+        root = xr.Dataset({}, attrs={})
         if header_attrs is not None:
-            root.attrs.update({k: v for k, v in header_attrs.items() if v})
+            if flatten_attrs:
+                header_attrs = flatten_dict(header_attrs)
+            root.attrs = encode_attrs_nc(header_attrs)
+        root.attrs['history'] = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
         if groups is None:
             # Groups are not CF-1.7 compliant
             root.attrs['Conventions'] = CF_VERSION

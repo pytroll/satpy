@@ -23,6 +23,10 @@ if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
     import unittest
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 class TestVIIRSComposites(unittest.TestCase):
@@ -282,7 +286,7 @@ class TestVIIRSComposites(unittest.TestCase):
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={'satellite_longitude': -89.5, 'satellite_latitude': 0.0,
-                                  'satellite_altitude': 35786.0234375, 'platform_name': 'GOES-16',
+                                  'satellite_altitude': 35786023.4375, 'platform_name': 'GOES-16',
                                   'calibration': 'reflectance', 'units': '%', 'wavelength': (0.45, 0.47, 0.49),
                                   'name': 'C01', 'resolution': 1000, 'sensor': 'abi',
                                   'start_time': '2017-09-20 17:30:40.800000', 'end_time': '2017-09-20 17:41:17.500000',
@@ -293,7 +297,7 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertIsInstance(res.data, da.Array)
         self.assertEqual(res.attrs['satellite_longitude'], -89.5)
         self.assertEqual(res.attrs['satellite_latitude'], 0.0)
-        self.assertEqual(res.attrs['satellite_altitude'], 35786.0234375)
+        self.assertEqual(res.attrs['satellite_altitude'], 35786023.4375)
         self.assertEqual(res.attrs['modifiers'], ('sunz_corrected', 'rayleigh_corrected_crefl',))
         self.assertEqual(res.attrs['platform_name'], 'GOES-16')
         self.assertEqual(res.attrs['calibration'], 'reflectance')
@@ -474,9 +478,50 @@ class TestVIIRSComposites(unittest.TestCase):
         np.testing.assert_allclose(unique, [24.641586, 50.431692, 69.315375])
 
 
+class ViirsReflectanceCorrectorTest(unittest.TestCase):
+    def setUp(self):
+        """Patch in-class imports."""
+        self.astronomy = mock.MagicMock()
+        self.orbital = mock.MagicMock()
+        modules = {
+            'pyorbital.astronomy': self.astronomy,
+            'pyorbital.orbital': self.orbital,
+        }
+        self.module_patcher = mock.patch.dict('sys.modules', modules)
+        self.module_patcher.start()
+
+    def tearDown(self):
+        """Unpatch in-class imports."""
+        self.module_patcher.stop()
+
+    @mock.patch('satpy.composites.viirs.get_satpos')
+    def test_get_angles(self, get_satpos):
+        """Test sun and satellite angle calculation."""
+        from satpy.composites.viirs import ReflectanceCorrector
+
+        # Patch methods
+        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
+        self.orbital.get_observer_look.return_value = 0, 0
+        self.astronomy.get_alt_az.return_value = 0, 0
+        area = mock.MagicMock()
+        area.get_lonlats_dask.return_value = 'lons', 'lats'
+        vis = mock.MagicMock(attrs={'area': area,
+                                    'start_time': 'start_time'})
+
+        # Compute angles
+        psp = ReflectanceCorrector(name='dummy')
+        psp.get_angles(vis)
+
+        # Check arguments of get_orbserver_look() call, especially the altitude
+        # unit conversion from meters to kilometers
+        self.orbital.get_observer_look.assert_called_with(
+            'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
+
+
 def suite():
     """Create test suite for test_ahi."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSComposites))
+    mysuite.addTest(loader.loadTestsFromTestCase(ViirsReflectanceCorrectorTest))
     return mysuite

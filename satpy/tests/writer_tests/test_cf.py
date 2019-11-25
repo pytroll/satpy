@@ -324,14 +324,36 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             header_attrs = {'sensor': 'SEVIRI',
-                            'orbit': None}
+                            'orbit': 99999,
+                            'none': None,
+                            'list': [1, 2, 3],
+                            'set': {1, 2, 3},
+                            'dict': {'a': 1, 'b': 2},
+                            'nested': {'outer': {'inner1': 1, 'inner2': 2}},
+                            'bool': True,
+                            'bool_': np.bool_(True)}
             scn.save_datasets(filename=filename,
                               header_attrs=header_attrs,
+                              flatten_attrs=True,
                               writer='cf')
             with xr.open_dataset(filename) as f:
-                self.assertTrue(f.attrs['sensor'] == 'SEVIRI')
-                self.assertTrue('sensor' in f.attrs.keys())
-                self.assertTrue('orbit' not in f.attrs.keys())
+                self.assertIn('history', f.attrs)
+                self.assertEqual(f.attrs['sensor'], 'SEVIRI')
+                self.assertEqual(f.attrs['orbit'], 99999)
+                np.testing.assert_array_equal(f.attrs['list'], [1, 2, 3])
+                if sys.version_info.major == 3:
+                    self.assertEqual(f.attrs['set'], '{1, 2, 3}')
+                else:
+                    # json module seems to encode sets differently in
+                    # Python 2 and 3
+                    self.assertEqual(f.attrs['set'], u'set([1, 2, 3])')
+                self.assertEqual(f.attrs['dict_a'], 1)
+                self.assertEqual(f.attrs['dict_b'], 2)
+                self.assertEqual(f.attrs['nested_outer_inner1'], 1)
+                self.assertEqual(f.attrs['nested_outer_inner2'], 2)
+                self.assertEqual(f.attrs['bool'], 'true')
+                self.assertEqual(f.attrs['bool_'], 'true')
+                self.assertTrue('none' not in f.attrs.keys())
 
     def get_test_attrs(self):
         """Create some dataset attributes for testing purpose.
@@ -345,6 +367,7 @@ class TestCFWriter(unittest.TestCase):
                  'end_time': datetime(2018, 1, 1, 0, 15),
                  'int': 1,
                  'float': 1.0,
+                 'none': None,  # should be dropped
                  'numpy_int': np.uint8(1),
                  'numpy_float': np.float32(1),
                  'numpy_bool': np.bool(True),
@@ -372,21 +395,21 @@ class TestCFWriter(unittest.TestCase):
                    'float': 1.0,
                    'numpy_int': np.uint8(1),
                    'numpy_float': np.float32(1),
-                   'numpy_bool': np.bool(True),
+                   'numpy_bool': 'true',
                    'numpy_void': '[]',
                    'numpy_bytes': 'test',
                    'numpy_string': 'test',
                    'list': [1, 2, np.float64(3)],
                    'nested_list': '["1", ["2", [3]]]',
-                   'bool': True,
+                   'bool': 'true',
                    'array': np.array([1, 2, 3], dtype='uint8'),
-                   'array_bool': ['True', 'False', 'True'],
+                   'array_bool': ['true', 'false', 'true'],
                    'array_2d': '[[1, 2], [3, 4]]',
                    'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
                    'dict': '{"a": 1, "b": 2}',
                    'nested_dict': '{"l1": {"l2": {"l3": [1, 2, 3]}}}',
                    'raw_metadata': '{"recarray": [[0, 0], [0, 0], [0, 0]], '
-                                   '"flag": "True", "dict": {"a": 1, "b": [1, 2, 3]}}'}
+                                   '"flag": "true", "dict": {"a": 1, "b": [1, 2, 3]}}'}
         encoded_flat = {'name': 'IR_108',
                         'start_time': '2018-01-01 00:00:00',
                         'end_time': '2018-01-01 00:15:00',
@@ -394,22 +417,22 @@ class TestCFWriter(unittest.TestCase):
                         'float': 1.0,
                         'numpy_int': np.uint8(1),
                         'numpy_float': np.float32(1),
-                        'numpy_bool': np.bool(True),
+                        'numpy_bool': 'true',
                         'numpy_void': '[]',
                         'numpy_bytes': 'test',
                         'numpy_string': 'test',
                         'list': [1, 2, np.float64(3)],
                         'nested_list': '["1", ["2", [3]]]',
-                        'bool': True,
+                        'bool': 'true',
                         'array': np.array([1, 2, 3], dtype='uint8'),
-                        'array_bool': ['True', 'False', 'True'],
+                        'array_bool': ['true', 'false', 'true'],
                         'array_2d': '[[1, 2], [3, 4]]',
                         'array_3d': '[[[1, 2], [3, 4]], [[1, 2], [3, 4]]]',
                         'dict_a': 1,
                         'dict_b': 2,
                         'nested_dict_l1_l2_l3': np.array([1, 2, 3], dtype='uint8'),
                         'raw_metadata_recarray': '[[0, 0], [0, 0], [0, 0]]',
-                        'raw_metadata_flag': 'True',
+                        'raw_metadata_flag': 'true',
                         'raw_metadata_dict_a': 1,
                         'raw_metadata_dict_b': np.array([1, 2, 3], dtype='uint8')}
         return attrs, encoded, encoded_flat
@@ -441,7 +464,7 @@ class TestCFWriter(unittest.TestCase):
 
         # Test decoding of json-encoded attributes
         raw_md_roundtrip = {'recarray': [[0, 0], [0, 0], [0, 0]],
-                            'flag': "True",
+                            'flag': 'true',
                             'dict': {'a': 1, 'b': [1, 2, 3]}}
         self.assertDictEqual(json.loads(encoded['raw_metadata']), raw_md_roundtrip)
         self.assertListEqual(json.loads(encoded['array_3d']), [[[1, 2], [3, 4]], [[1, 2], [3, 4]]])

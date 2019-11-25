@@ -83,6 +83,7 @@ from dask import delayed
 
 import pyninjotiff.ninjotiff as nt
 from satpy.writers import ImageWriter
+from trollimage.xrimage import invert_scale_offset
 
 
 logger = logging.getLogger(__name__)
@@ -135,19 +136,15 @@ class NinjoTIFFWriter(ImageWriter):
             or "ch_max_measurement_unit" not in kwargs
         ):
             try:
-                history = img.data.attrs["enhancement_history"]
-            except KeyError:
-                logger.warning("Cannot find information on previous scaling for ninjo.")
+                scale, offset = img.get_scaling_from_history()
+                scale, offset = invert_scale_offset(scale, offset)
+            except ValueError as err:
+                logger.warning(str(err))
             else:
-                if len(history) > 1:
-                    raise NotImplementedError(
-                        "Don't know how to process large enhancement_history yet"
-                    )
                 try:
-                    scale = history[0]["scale"]
-                    offset = history[0]["offset"]
-                    dmin = -offset / scale
-                    dmax = (1 - offset) / scale
+                    # Here we know that the data if the image is scaled between 0 and 1
+                    dmin = offset
+                    dmax = scale + offset
                     if dmin > dmax:
                         dmin, dmax = dmax, dmin
                     ch_min_measurement_unit, ch_max_measurement_unit = (

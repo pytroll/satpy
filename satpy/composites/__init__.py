@@ -508,7 +508,7 @@ class PSPRayleighReflectance(CompositeBase):
     _rayleigh_cache = WeakValueDictionary()
 
     def get_angles(self, vis):
-        """Get the sun and satellite angles fro the current dataarray."""
+        """Get the sun and satellite angles from the current dataarray."""
         from pyorbital.astronomy import get_alt_az, sun_zenith_angle
         from pyorbital.orbital import get_observer_look
 
@@ -521,7 +521,7 @@ class PSPRayleighReflectance(CompositeBase):
         sata, satel = get_observer_look(
             sat_lon,
             sat_lat,
-            sat_alt,
+            sat_alt / 1000.0,  # km
             vis.attrs['start_time'],
             lons, lats, 0)
         satz = 90 - satel
@@ -685,7 +685,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
             try:
                 dummy, satel = get_observer_look(sat_lon,
                                                  sat_lat,
-                                                 sat_alt,
+                                                 sat_alt / 1000.0,  # km
                                                  band.attrs['start_time'],
                                                  lons, lats, 0)
             except KeyError:
@@ -931,6 +931,9 @@ class ColormapCompositor(GenericCompositor):
             sf = info.get('scale_factor', np.array(1))
             colormap.set_range(
                 *info['valid_range'] * sf + info.get('add_offset', 0))
+        else:
+            raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
+                                 " in order to be displayable with an attached color-palette!")
 
         return colormap, sqpalette
 
@@ -1458,9 +1461,9 @@ class StaticImageCompositor(GenericCompositor):
         """Call the compositor."""
         from satpy import Scene
         # Check if filename exists, if not then try from SATPY_ANCPATH
-        if (not os.path.isfile(self.filename)):
+        if not os.path.isfile(self.filename):
             tmp_filename = os.path.join(get_environ_ancpath(), self.filename)
-            if (os.path.isfile(tmp_filename)):
+            if os.path.isfile(tmp_filename):
                 self.filename = tmp_filename
         scn = Scene(reader='generic_image', filenames=[self.filename])
         scn.load(['image'])
@@ -1469,8 +1472,8 @@ class StaticImageCompositor(GenericCompositor):
         # most important: set 'name' of the image
         img.attrs.update(self.attrs)
         # Check for proper area definition.  Non-georeferenced images
-        # have None as .ndim
-        if img.area.ndim is None:
+        # do not have `area` in the attributes
+        if 'area' not in img.attrs:
             if self.area is None:
                 raise AttributeError("Area definition needs to be configured")
             img.attrs['area'] = self.area

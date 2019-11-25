@@ -709,7 +709,7 @@ class TestSingleBandCompositor(unittest.TestCase):
         self.assertTrue('calibration' in res.attrs)
         self.assertFalse('modifiers' in res.attrs)
         self.assertEqual(res.attrs['wavelength'], 10.8)
-        self.assertEquals(res.attrs['resolution'], 333)
+        self.assertEqual(res.attrs['resolution'], 333)
 
 
 class TestGenericCompositor(unittest.TestCase):
@@ -928,7 +928,7 @@ class TestStaticImageCompositor(unittest.TestCase):
         scn = MockScene()
         scn['image'] = img
         Scene.return_value = scn
-        comp = StaticImageCompositor("name", filename="foo.tif")
+        comp = StaticImageCompositor("name", filename="foo.tif", area="euro4")
         res = comp()
         Scene.assert_called_once_with(reader='generic_image',
                                       filenames=[comp.filename])
@@ -939,7 +939,8 @@ class TestStaticImageCompositor(unittest.TestCase):
         self.assertTrue('calibration' not in res.attrs)
 
         # Non-georeferenced image, no area given
-        img.area.ndim = None
+        img.attrs.pop('area')
+        comp = StaticImageCompositor("name", filename="foo.tif")
         with self.assertRaises(AttributeError):
             res = comp()
 
@@ -1065,6 +1066,88 @@ class TestBackgroundCompositor(unittest.TestCase):
         self.assertEqual(res.attrs['sensor'], {'abi', 'glm'})
 
 
+class TestPSPAtmosphericalCorrection(unittest.TestCase):
+    def setUp(self):
+        """Patch in-class imports."""
+        self.orbital = mock.MagicMock()
+        modules = {
+            'pyspectral.atm_correction_ir': mock.MagicMock(),
+            'pyorbital.orbital': self.orbital,
+        }
+        self.module_patcher = mock.patch.dict('sys.modules', modules)
+        self.module_patcher.start()
+
+    def tearDown(self):
+        """Unpatch in-class imports."""
+        self.module_patcher.stop()
+
+    @mock.patch('satpy.composites.PSPAtmosphericalCorrection.apply_modifier_info')
+    @mock.patch('satpy.composites.get_satpos')
+    def test_call(self, get_satpos, *mocks):
+        """Test atmospherical correction."""
+        from satpy.composites import PSPAtmosphericalCorrection
+
+        # Patch methods
+        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
+        self.orbital.get_observer_look.return_value = 0, 0
+        area = mock.MagicMock()
+        area.get_lonlats.return_value = 'lons', 'lats'
+        band = mock.MagicMock(attrs={'area': area,
+                                     'start_time': 'start_time',
+                                     'name': 'name',
+                                     'platform_name': 'platform',
+                                     'sensor': 'sensor'})
+
+        # Perform atmospherical correction
+        psp = PSPAtmosphericalCorrection(name='dummy')
+        psp(projectables=[band])
+
+        # Check arguments of get_orbserver_look() call, especially the altitude
+        # unit conversion from meters to kilometers
+        self.orbital.get_observer_look.assert_called_with(
+            'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
+
+
+class TestPSPRayleighReflectance(unittest.TestCase):
+    def setUp(self):
+        """Patch in-class imports."""
+        self.astronomy = mock.MagicMock()
+        self.orbital = mock.MagicMock()
+        modules = {
+            'pyorbital.astronomy': self.astronomy,
+            'pyorbital.orbital': self.orbital,
+        }
+        self.module_patcher = mock.patch.dict('sys.modules', modules)
+        self.module_patcher.start()
+
+    def tearDown(self):
+        """Unpatch in-class imports."""
+        self.module_patcher.stop()
+
+    @mock.patch('satpy.composites.get_satpos')
+    def test_get_angles(self, get_satpos):
+        """Test sun and satellite angle calculation."""
+        from satpy.composites import PSPRayleighReflectance
+
+        # Patch methods
+        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
+        self.orbital.get_observer_look.return_value = 0, 0
+        self.astronomy.get_alt_az.return_value = 0, 0
+        area = mock.MagicMock()
+        area.get_lonlats.return_value = 'lons', 'lats'
+        vis = mock.MagicMock(attrs={'area': area,
+                                    'start_time': 'start_time'})
+
+        # Compute angles
+        psp = PSPRayleighReflectance(name='dummy')
+        psp.get_angles(vis)
+
+        # Check arguments of get_orbserver_look() call, especially the altitude
+        # unit conversion from meters to kilometers
+        self.orbital.get_observer_look.assert_called_with(
+            'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
+
+
 def suite():
     """Test suite for all reader tests."""
     loader = unittest.TestLoader()
@@ -1091,6 +1174,8 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestAddBands))
     mysuite.addTest(loader.loadTestsFromTestCase(TestBackgroundCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestStaticImageCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPSPAtmosphericalCorrection))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestPSPRayleighReflectance))
 
     return mysuite
 
