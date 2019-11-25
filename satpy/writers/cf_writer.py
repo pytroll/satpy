@@ -588,7 +588,7 @@ class CFWriter(Writer):
                           'calendar': time_enc['calendar'],
                           '_FillValue': None}
             encoding['time'] = time_enc
-            encoding['time_bnds'] = bounds_enc
+            encoding['time_bnds'] = bounds_enc  # FUTURE: Not required anymore with xarray-0.14+
 
         return encoding, other_to_netcdf_kwargs
 
