@@ -656,6 +656,7 @@ class CFWriter(Writer):
 
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
+        init_nc_kwargs.pop('unlimited_dims', None)
         written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
 
         # Write datasets to groups (appending to the file; group=None means no group)
