@@ -240,14 +240,15 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
+            # Check decoded time coordinates & bounds
             with xr.open_dataset(filename, decode_cf=True) as f:
                 bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
                 np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
+                self.assertEqual(f['time'].attrs['bounds'], 'time_bnds')
 
-            # Check that time coordinates and bounds have the same units
+            # Check raw time coordinates & bounds
             with xr.open_dataset(filename, decode_cf=False) as f:
-                self.assertEqual(f['time_bnds'].attrs['units'], f['time'].attrs['units'])
-                self.assertEqual(f['time_bnds'].attrs['calendar'], f['time'].attrs['calendar'])
+                np.testing.assert_almost_equal(f['time_bnds'], [[-0.0034722, 0.0069444]])
 
         # User-specified time encoding should have preference
         with TempFile() as filename:
@@ -255,8 +256,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, encoding={'time': {'units': time_units}},
                               writer='cf')
             with xr.open_dataset(filename, decode_cf=False) as f:
-                self.assertEqual(f['time'].attrs['units'], time_units)
-                self.assertEqual(f['time_bnds'].attrs['units'], time_units)
+                np.testing.assert_array_equal(f['time_bnds'], [[12909600, 12910500]])
 
     def test_bounds_minimum(self):
         """Test minimum bounds."""
