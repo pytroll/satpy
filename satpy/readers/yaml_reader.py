@@ -848,3 +848,84 @@ class FileYAMLReader(AbstractYAMLReader):
         self._load_ancillary_variables(all_datasets)
 
         return datasets
+
+
+class CollectionYAMLReader(FileYAMLReader):
+    """Reader that knows what to expect."""
+
+    @staticmethod
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
+        """Load only a piece of the dataset."""
+        if len(file_handlers) != ds_info['expected_segments']:
+            print('Oh no! we are missing data !')
+        slice_list = []
+        failure = True
+        counter = 1
+        for fh in sorted(file_handlers, key=lambda x: x.filename_info['segment']):
+            while fh.filename_info['segment'] > counter:
+                slice_list.append(None)
+                counter += 1
+            try:
+                projectable = fh.get_dataset(dsid, ds_info)
+                if projectable is not None:
+                    slice_list.append(projectable)
+                    failure = False
+                    counter += 1
+            except KeyError:
+                logger.warning("Failed to load {} from {}".format(dsid, fh),
+                               exc_info=True)
+
+        # TODO make sure projectable is not None
+        import numpy as np
+        empty_segment = xr.full_like(projectable, np.nan)
+        for i, sli in enumerate(slice_list):
+            if sli is None:
+                slice_list[i] = empty_segment
+
+        while ds_info['expected_segments'] > counter:
+            slice_list.append(empty_segment)
+            counter += 1
+
+        if failure:
+            raise KeyError(
+                "Could not load {} from any provided files".format(dsid))
+
+        if dim not in slice_list[0].dims:
+            return slice_list[0]
+        res = xr.concat(slice_list, dim=dim)
+
+        combined_info = file_handlers[0].combine_info(
+            [p.attrs for p in slice_list])
+
+        res.attrs = combined_info
+        return res
+
+    def _load_area_def(self, dsid, file_handlers):
+        """Load the area definition of *dsid*."""
+        area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
+        area_defs = []
+        last_segment = None
+        seg_size = None
+        # TODO pad start and end also ?
+        for fh in file_handlers:
+            area = fh.get_area_def(dsid)
+            segment = fh.filename_info['segment']
+            if last_segment is not None:
+                missing = segment - last_segment - 1
+                if missing > 0:
+                    from pyresample.geometry import AreaDefinition
+                    fill_extent = (area.area_extent[0], area.area_extent[3],
+                                   area.area_extent[2], area_defs[-1].area_extent[1])
+                    fill_area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
+                                               seg_size[1], seg_size[0] * missing,
+                                               fill_extent)
+                    area_defs.append(fill_area)
+            area_defs.append(area)
+            last_segment = segment
+            seg_size = area.shape
+
+        area_defs = [area_def for area_def in area_defs
+                     if area_def is not None]
+
+        final_area = StackedAreaDefinition(*area_defs)
+        return final_area.squeeze()
