@@ -29,11 +29,11 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 
-from pyresample import geometry
 from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
                                      annotation_header, base_hdr_map,
                                      image_data_function)
-from .utils import get_geostationary_mask
+from satpy.readers._geos_area import get_area_definition, get_area_extent
+from satpy.readers.utils import get_geostationary_mask
 
 logger = logging.getLogger('hrit_jma')
 
@@ -230,41 +230,24 @@ class HRITJMAFileHandler(HRITFileHandler):
 
     def _get_area_def(self):
         """Get the area definition of the band."""
-        cfac = np.int32(self.mda['cfac'])
-        lfac = np.int32(self.mda['lfac'])
-        coff = np.float32(self.mda['coff'])
-        loff = self._get_line_offset()
-
-        a = self.mda['projection_parameters']['a']
-        b = self.mda['projection_parameters']['b']
-        h = self.mda['projection_parameters']['h']
-        lon_0 = self.mda['projection_parameters']['SSP_longitude']
-
-        nlines = int(self.mda['number_of_lines'])
-        ncols = int(self.mda['number_of_columns'])
-
-        area_extent = self.get_area_extent((nlines, ncols),
-                                           (loff, coff),
-                                           (lfac, cfac),
-                                           h)
-
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
-
-        area = geometry.AreaDefinition(
-            AREA_NAMES[self.area_id]['short'],
-            AREA_NAMES[self.area_id]['long'],
-            'geosmsg',
-            proj_dict,
-            ncols,
-            nlines,
-            area_extent)
-
-        return area
+        pdict = {
+            'cfac': np.int32(self.mda['cfac']),
+            'lfac': np.int32(self.mda['lfac']),
+            'coff': np.float32(self.mda['coff']),
+            'loff': self._get_line_offset(),
+            'ncols': int(self.mda['number_of_columns']),
+            'nlines': int(self.mda['number_of_lines']),
+            'scandir': 'N2S',
+            'a': float(self.mda['projection_parameters']['a']),
+            'b': float(self.mda['projection_parameters']['b']),
+            'h': float(self.mda['projection_parameters']['h']),
+            'ssp_lon': float(self.mda['projection_parameters']['SSP_longitude']),
+            'a_name': AREA_NAMES[self.area_id]['short'],
+            'a_desc': AREA_NAMES[self.area_id]['long'],
+            'p_id': 'geosmsg'
+        }
+        area_extent = get_area_extent(pdict)
+        return get_area_definition(pdict, area_extent)
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""

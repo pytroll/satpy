@@ -137,7 +137,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting an AreaDefinition."""
-        from satpy.readers.hrit_jma import FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS
+        from satpy.readers.hrit_jma import (FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS,
+                                            AREA_NAMES)
 
         cases = [
             # Non-segmented, full disk
@@ -182,9 +183,9 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                 segno=case['segno'], numseg=case['numseg'])
             reader = self._get_reader(mda=mda,
                                       filename_info={'area': case['area']})
-
-            self.assertTupleEqual(reader._get_area_def().area_extent,
-                                  case['extent'])
+            area = reader._get_area_def()
+            self.assertTupleEqual(area.area_extent, case['extent'])
+            self.assertEqual(area.description, AREA_NAMES[case['area']]['long'])
 
     def test_calibrate(self):
         """Test calibration."""
