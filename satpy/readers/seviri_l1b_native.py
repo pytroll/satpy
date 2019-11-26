@@ -268,6 +268,9 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
+        data15tr = self.trailer['15TRAILER']
+
+
 
         # check for Earth model as this affects the north-south and
         # west-east offsets
@@ -310,8 +313,29 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             # NOTE: Implement HRV full disk area_extent
             # NotImplementedError does not catch this, it must
             # be used elsewhere already
-            msg = 'HRV full disk area extent not implemented.'
-            raise RuntimeError(msg)
+            msg = 'HRV full disk area extent is being implemented.'
+            #raise RuntimeError(msg)
+            center_point = HRV_NUM_COLUMNS / 2
+            HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV'].copy()
+
+            # upper window
+            upper_north_line = HRV_bounds['UpperNorthLineActual']
+            upper_west_column = HRV_bounds['UpperWestColumnActual']
+            upper_south_line= HRV_bounds['UpperSouthLineActual']
+            upper_east_column = HRV_bounds['UpperEastColumnActual']
+
+            # lower window
+            lower_north_line = HRV_bounds['LowerNorthLineActual']
+            lower_west_column = HRV_bounds['LowerWestColumnActual']
+            lower_south_line = HRV_bounds['LowerSouthLineActual']
+            lower_east_column = HRV_bounds['LowerEastColumnActual']
+            a=0
+
+
+
+
+
+
 
         # Otherwise area extent is in one piece, corner points are
         # the same as for VISIR channels, HRV channel is having
