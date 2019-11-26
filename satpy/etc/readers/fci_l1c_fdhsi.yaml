@@ -1,7 +1,7 @@
 reader:
   description: Generic FCI FDSHI Data Reader
   name: fci_l1c_fdhsi
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  reader: !!python/name:satpy.readers.yaml_reader.CollectionYAMLReader
   sensors: [fci]
   default_datasets:
 
@@ -23,6 +23,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   vis_05:
     name: vis_05
@@ -40,6 +41,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   vis_06:
     name: vis_06
@@ -57,6 +59,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   vis_08:
     name: vis_08
@@ -74,6 +77,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   vis_09:
     name: vis_09
@@ -91,6 +95,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   nir_13:
     name: nir_13
@@ -108,6 +113,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   nir_16:
     name: nir_16
@@ -125,6 +131,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   nir_22:
     name: nir_22
@@ -142,6 +149,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   ir_38:
     name: ir_38
@@ -159,7 +167,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
-
+    expected_segments: 70
 
   wv_63:
     name: wv_63
@@ -177,6 +185,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   wv_73:
     name: wv_73
@@ -194,6 +203,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   ir_87:
     name: ir_87
@@ -211,6 +221,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   ir_97:
     name: ir_97
@@ -228,6 +239,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   ir_105:
     name: ir_105
@@ -245,7 +257,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
-
+    expected_segments: 70
 
   ir_123:
     name: ir_123
@@ -263,6 +275,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
   ir_133:
     name: ir_133
@@ -280,6 +293,7 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
+    expected_segments: 70
 
 
 # Source: FCI L1 Dataset User Guide [FCIL1DUG]

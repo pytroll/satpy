@@ -8,7 +8,7 @@ reader:
   long_name: Himawari AHI Level 1 (HRIT)
   description: Reader for the JMA Himawari AHI Level 1 data in HRIT format
   sensors: [ahi]
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.CollectionYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time', 'area']
 
@@ -132,6 +132,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b01
+    expected_segments: 10
 
   B02:
     name: B02
@@ -146,6 +147,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b02
+    expected_segments: 10
 
   B03:
     name: B03
@@ -160,6 +162,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b03
+    expected_segments: 10
 
   B04:
     name: B04
@@ -174,6 +177,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b04
+    expected_segments: 10
 
   B05:
     name: B05
@@ -188,6 +192,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b05
+    expected_segments: 10
 
   B06:
     name: B06
@@ -202,6 +207,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b06
+    expected_segments: 10
 
   B07_low_res:
     name: B07
@@ -218,6 +224,7 @@ datasets:
         units: 1
     # FUTURE: Split this in to multiple resolutions so each can be loaded
     file_type: [hrit_b07, hrit_b07_ir4]
+    expected_segments: 10
 
 #  B07_high_res:
 #    name: B07
@@ -246,6 +253,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b08
+    expected_segments: 10
 
   B09:
     name: B09
@@ -260,6 +268,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b09
+    expected_segments: 10
 
   B10:
     name: B10
@@ -274,6 +283,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b10
+    expected_segments: 10
 
   B11:
     name: B11
@@ -288,6 +298,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b11
+    expected_segments: 10
 
   B12:
     name: B12
@@ -302,6 +313,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b12
+    expected_segments: 10
 
   B13:
     name: B13
@@ -316,6 +328,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b13
+    expected_segments: 10
 
   B14:
     name: B14
@@ -330,6 +343,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b14
+    expected_segments: 10
 
   B15:
     name: B15
@@ -344,6 +358,7 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b15
+    expected_segments: 10
 
   B16:
     name: B16
@@ -358,3 +373,4 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hrit_b16
+    expected_segments: 10
