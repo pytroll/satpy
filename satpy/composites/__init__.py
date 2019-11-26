@@ -1542,6 +1542,19 @@ class BackgroundCompositor(GenericCompositor):
 class SimpleMaskingCompositor(GenericCompositor):
     """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
 
+    def __init__(self, name, transparency=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            transparency: transparency for the cloud type
+
+        """
+        if transparency is None:
+            raise ValueError("No transparency configured for simple masking compositor")
+        self.transparency = transparency
+
+        super(SimpleMaskingCompositor, self).__init__(name, **kwargs)
+
     def __call__(self, projectables, *args, **kwargs):
         """Call the compositor."""
         if len(projectables) != 2:
