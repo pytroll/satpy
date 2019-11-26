@@ -1537,3 +1537,22 @@ class BackgroundCompositor(GenericCompositor):
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs.update(attrs)
         return res
+
+
+class SimpleMaskingCompositor(GenericCompositor):
+    """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Call the compositor."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.match_data_arrays(projectables)
+        info = combine_metadata(*projectables)
+        # Create mask with specified categories
+        mask = projectables[1].data < 5
+        # Mask out channel data
+        res = xr.where(mask, np.nan, projectables[0])
+        res.attrs = info
+        res = super(SimpleMaskingCompositor, self).__call__([res], **kwargs)
+
+        return res
