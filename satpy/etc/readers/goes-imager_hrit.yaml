@@ -5,7 +5,7 @@ reader:
   description: Reader for GOES Imager Level 1 data in HRIT format
   sensors: [goes_imager]
   default_channels: [00_7, 03_9, 06_6, 10_7]
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.CollectionYAMLReader
 
 # eg.
 # L-000-MSG3__-GOES13______-06_6_075W-000005___-201703261200-__
@@ -83,6 +83,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: [HRIT_00_7, HRIT_00_7_C]
+    expected_segments: 7
 
   '03_9':
     name: '03_9'
@@ -98,6 +99,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: [HRIT_03_9, HRIT_03_9_C]
+    expected_segments: 7
 
   '06_6':
     name: '06_6'
@@ -113,6 +115,7 @@ datasets:
       counts:
         standard_name: counts
     file_type: [HRIT_06_6, HRIT_06_6_C]
+    expected_segments: 7
 
   '10_7':
     name: '10_7'
@@ -128,3 +131,4 @@ datasets:
       counts:
         standard_name: counts
     file_type: [HRIT_10_7, HRIT_10_7_C]
+    expected_segments: 7
