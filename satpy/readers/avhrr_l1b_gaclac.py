@@ -156,14 +156,8 @@ class GACLACFile(BaseFileHandler):
         self._end_time = times[-1].astype(datetime)
 
         # Select user-defined scanlines and/or strip invalid coordinates
-        if hasattr(self.reader, 'meta_data'):
-            # pygac version > 1.2.1
-            self.midnight_scanline = self.reader.meta_data['midnight_scanline']
-            self.missing_scanlines = self.reader.meta_data['missing_scanlines']
-        else:
-            # pygac version == 1.2.0, 1.2.1
-            self.midnight_scanline = self.reader.get_midnight_scanline()
-            self.missing_scanlines = self.reader.get_miss_lines().astype(int)
+        self.midnight_scanline = self.reader.meta_data['midnight_scanline']
+        self.missing_scanlines = self.reader.meta_data['missing_scanlines']
         if (self.start_line is not None or self.end_line is not None
                 or self.strip_invalid_coords):
             data, times = self.slice(data=data, times=times)
@@ -175,20 +169,12 @@ class GACLACFile(BaseFileHandler):
         if xcoords:
             res[xdim] = xcoords
 
-        if hasattr(self.reader, 'meta_data'):
-            # pygac version > 1.2.1
-            for attr in self.reader.meta_data.keys():
-                res.attrs[attr] = self.reader.meta_data[attr]
-        else:
-            # pygac version == 1.2.0, 1.2.1
-            res.attrs['midnight_scanline'] = self.midnight_scanline
-            res.attrs['missing_scanlines'] = self.missing_scanlines
-
+        for attr in self.reader.meta_data.keys():
+            res.attrs[attr] = self.reader.meta_data[attr]
         res.attrs['platform_name'] = self.reader.spacecraft_name
         res.attrs['orbit_number'] = self.filename_info['orbit_number']
         res.attrs['sensor'] = self.sensor
         res.attrs['orbital_parameters'] = {'tle': self.reader.get_tle_lines()}
-
         res['acq_time'] = ('y', times)
         res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
         return res
