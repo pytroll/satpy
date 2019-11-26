@@ -862,7 +862,7 @@ class CollectionYAMLReader(FileYAMLReader):
         failure = True
         counter = 1
         for fh in sorted(file_handlers, key=lambda x: x.filename_info['segment']):
-            while fh.filename_info['segment'] > counter:
+            while int(fh.filename_info['segment']) > counter:
                 slice_list.append(None)
                 counter += 1
             try:
@@ -909,7 +909,7 @@ class CollectionYAMLReader(FileYAMLReader):
         # TODO pad start and end also ?
         for fh in file_handlers:
             area = fh.get_area_def(dsid)
-            segment = fh.filename_info['segment']
+            segment = int(fh.filename_info['segment'])
             if last_segment is not None:
                 missing = segment - last_segment - 1
                 if missing > 0:
