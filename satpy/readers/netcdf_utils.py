@@ -20,6 +20,7 @@
 """
 import netCDF4
 import logging
+import numpy as np
 import xarray as xr
 
 from satpy import CHUNK_SIZE
@@ -88,6 +89,7 @@ class NetCDF4FileHandler(BaseFileHandler):
                     [varname for (varname, var)
                         in self.file_content.items()
                         if isinstance(var, netCDF4.Variable)
+                        and isinstance(var.dtype. np.dtype) #  vlen may be str
                         and var.size*var.dtype.itemsize<cache_vars],
                     file_handle)
         file_handle.close()
