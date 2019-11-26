@@ -51,18 +51,25 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         wrapper["/attr/platform_short_name"]
 
-    Note that loading datasets requires reopening the original file, but to
-    get just the shape of the dataset append "/shape" to the item string:
+    Note that loading uncached datasets requires reopening the original
+    file, but to get just the shape of the dataset append "/shape"
+    to the item string:
 
         wrapper["group/subgroup/var_name/shape"]
 
+    If your file has many small data variables that are frequently accessed,
+    you may choose to cache some of them.  You can do this by passing a number,
+    any variable smaller than this number in bytes will be read into RAM.
+    Warning, this part of the API is provisional and subject to change.
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 auto_maskandscale=False, xarray_kwargs=None):
+                 auto_maskandscale=False, xarray_kwargs=None,
+                 cache_vars=0):
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
+        self.cached_file_content = {}
         try:
             file_handle = netCDF4.Dataset(self.filename, 'r')
         except IOError:
@@ -76,6 +83,13 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         self.collect_metadata("", file_handle)
         self.collect_dimensions("", file_handle)
+        if cache_vars > 0:
+            self.collect_cache_vars(
+                    [varname for (varname, var)
+                        in self.file_content.items()
+                        if isinstance(var, netCDF4.Variable)
+                        and var.size*var.dtype.itemsize<cache_vars],
+                    file_handle)
         file_handle.close()
         self._xarray_kwargs = xarray_kwargs or {}
         self._xarray_kwargs.setdefault('chunks', CHUNK_SIZE)
@@ -114,9 +128,28 @@ class NetCDF4FileHandler(BaseFileHandler):
             dim_name = "{}/dimension/{}".format(name, dim_name)
             self.file_content[dim_name] = len(dim_obj)
 
+    def collect_cache_vars(self, cache_vars, obj):
+        """Collect data variables for caching.
+
+        This method will collect some data variables and store them in RAM.
+        This may be useful if some small variables are frequently accessed,
+        to prevent needlessly frequently opening and closing the file, which
+        in case of xarray is associated with some overhead.
+
+        Should be called later than `collect_metadata`.
+
+        Args:
+            cache_vars (List[str]): Names of data variables to be cached.
+            obj (netCDF4.Dataset): Dataset object from which to read them.
+        """
+        for var_name in cache_vars:
+            self.cached_file_content = self.file_content[var_name][:]
+
     def __getitem__(self, key):
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
+            if key in self.cached_file_content:
+                return self.cached_file_content[var_name]
             # these datasets are closed and inaccessible when the file is
             # closed, need to reopen
             # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
