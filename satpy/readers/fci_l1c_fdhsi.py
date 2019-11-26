@@ -203,7 +203,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # total_segments = 70
 
         # Calculate full globe line extent
-        h = float(self["data/mtg_geos_projection"].perspective_point_height)
+        h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
 
         ext = {}
         for c in "xy":
@@ -232,10 +232,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # Test dataset doen't provide the values in the file container.
         # Only fill values are inserted
 
-        a = float(self["data/mtg_geos_projection"].semi_major_axis)
-        b = float(self["data/mtg_geos_projection"].semi_minor_axis)
-        h = float(self["data/mtg_geos_projection"].perspective_point_height)
-        lon_0 = float(self["data/mtg_geos_projection"].longitude_of_projection_origin)
+        a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
+        b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
+        h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
+        lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         #sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
         sweep = "y" # see email KH to GH 2019-11-07
         # Channel dependent swath resoultion
