@@ -169,7 +169,7 @@ class GACLACFile(BaseFileHandler):
         if xcoords:
             res[xdim] = xcoords
 
-        for attr in self.reader.meta_data.keys():
+        for attr in self.reader.meta_data:
             res.attrs[attr] = self.reader.meta_data[attr]
         res.attrs['platform_name'] = self.reader.spacecraft_name
         res.attrs['orbit_number'] = self.filename_info['orbit_number']
