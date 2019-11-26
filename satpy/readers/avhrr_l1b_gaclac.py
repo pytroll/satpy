@@ -177,8 +177,8 @@ class GACLACFile(BaseFileHandler):
 
         if hasattr(self.reader, 'meta_data'):
             # pygac version > 1.2.1
-            for key in self.reader.meta_data:
-                res.attrs[key] = self.reader.meta_data[key]
+            for attr in self.reader.meta_data.keys():
+                res.attrs[attr] = self.reader.meta_data[attr]
         else:
             # pygac version == 1.2.0, 1.2.1
             res.attrs['midnight_scanline'] = self.midnight_scanline
