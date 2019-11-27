@@ -926,8 +926,9 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
     expected_segments = 1
     handlers = sorted(file_handlers, key=lambda x: x.filename_info['segment'])
     for fh in handlers:
-        if fh.filetype_info['file_type'] == ds_info['file_type']:
+        if fh.filetype_info['file_type'] in ds_info['file_type']:
             expected_segments = fh.filetype_info.get('expected_segments', 1)
+
         while int(fh.filename_info['segment']) > counter:
             slice_list.append(None)
             counter += 1
