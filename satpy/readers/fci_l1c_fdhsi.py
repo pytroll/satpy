@@ -118,6 +118,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
+        self.nlines = {}
+        self.ncols = {}
         self.cache = {}
 
     @property
@@ -171,7 +173,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         info.pop("units")
         attrs.pop("units")
 
-        self.nlines, self.ncols = res.shape
+        self.nlines[key], self.ncols[key] = res.shape
         res.attrs.update(key.to_dict())
         res.attrs.update(info)
         res.attrs.update(attrs)
@@ -201,10 +203,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
         # Get start/end line and column of loaded swath.
-        self.nlines, self.ncols = self[measured + "/effective_radiance/shape"]
+        self.nlines[key], self.ncols[key] = self[measured + "/effective_radiance/shape"]
 
         logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
-        logger.debug('Row/Cols: {} / {}'.format(self.nlines, self.ncols))
+        logger.debug('Row/Cols: {} / {}'.format(self.nlines[key], self.ncols[key]))
         # total_segments = 70
 
         # Calculate full globe line extent
@@ -266,8 +268,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             "On-the-fly area",
             'geosfci',
             proj_dict,
-            self.ncols,
-            self.nlines,
+            self.ncols[key],
+            self.nlines[key],
             area_extent)
 
         self.area = area
