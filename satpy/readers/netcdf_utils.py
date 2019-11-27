@@ -151,7 +151,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
             if key in self.cached_file_content:
-                return self.cached_file_content[var_name]
+                return self.cached_file_content[key]
             # these datasets are closed and inaccessible when the file is
             # closed, need to reopen
             # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
