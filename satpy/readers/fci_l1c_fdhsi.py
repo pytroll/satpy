@@ -81,7 +81,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                                                   filetype_info,
                                                   xarray_kwargs={
                                                       "backend": "h5netcdf"},
-                                                  cache_vars=10000)
+                                                  cache_vars=10000,
+                                                  cache_handle=True)
         logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
