@@ -22,6 +22,7 @@ import netCDF4
 import logging
 import numpy as np
 import xarray as xr
+import dask.array as da
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
