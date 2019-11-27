@@ -1560,12 +1560,17 @@ class SimpleMaskingCompositor(GenericCompositor):
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.match_data_arrays(projectables)
-        info = combine_metadata(*projectables)
-        # Create mask with specified categories
-        mask = projectables[1].data < 5
-        # Mask out channel data
-        res = xr.where(mask, np.nan, projectables[0])
-        res.attrs = info
-        res = super(SimpleMaskingCompositor, self).__call__([res], **kwargs)
+        cloud_mask_data = projectables[1].data
+        data = projectables[0]
+
+        # Create alpha band based on a copy of the channel data
+        alpha = data.copy()
+        alpha.data = da.ones((data.sizes['y'],
+                              data.sizes['x']), chunks=data.data.chunks)
+
+        # Modify alpha based on transparency per class from yaml
+        for key, val in self.transparency.items():
+            alpha.data = da.where(cloud_mask_data == key, (1.-val/100.), alpha.data)
+        res = super(SimpleMaskingCompositor, self).__call__([data, alpha], **kwargs)
 
         return res
