@@ -201,7 +201,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             # https://github.com/pydata/xarray/issues/2954#issuecomment-491221266
             if not val.chunks:
                 val.load()
-    return val
+        return val
 
     def _get_var_from_filehandle(self, group, key):
         g = self.file_handle[group]
