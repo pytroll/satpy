@@ -183,11 +183,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return group, root_group
 
-    _cached_area_extent = {}
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset.
 
-        C"""
+        Cache results between channels"""
         # Calculate the area extent of the swath based on start line and column
         # information, total number of segments and channel resolution
         # numbers from PUG, Table 3
@@ -196,8 +195,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         # assumption: channels with same resolution should have same area extent
         # cache results to improve performance
-        if key.resolution in self._cached_area_extent:
-            return self._cached_area_extent[key.resolution]
+        if key.resolution in self.cache:
+            return self.cache[key.resolution]
 
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
@@ -231,7 +230,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             ext[c] = (min_c.item(), max_c.item())
 
         area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
-        self._cached_area_extent[key.resolution] = area_extent
+        self.cache[key.resolution] = area_extent
         return area_extent
 
     def get_area_def(self, key, info=None):
