@@ -118,8 +118,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
-        self.nlines = {}
-        self.ncols = {}
         self.cache = {}
 
     @property
@@ -194,18 +192,18 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         xyres = {500: 22272, 1000: 11136, 2000: 5568}
         chkres = xyres[key.resolution]
 
-        # Get metadata for given dataset
-        measured, root = self.get_channel_dataset(key.name)
-        # Get start/end line and column of loaded swath.
-        self.nlines[key.name], self.ncols[key.name] = self[measured + "/effective_radiance/shape"]
-
         # assumption: channels with same resolution should have same area extent
         # cache results to improve performance
         if key.resolution in self.cache:
             return self.cache[key.resolution]
 
+        # Get metadata for given dataset
+        measured, root = self.get_channel_dataset(key.name)
+        # Get start/end line and column of loaded swath.
+        nlines, ncols = self[measured + "/effective_radiance/shape"]
+
         logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
-        logger.debug('Row/Cols: {} / {}'.format(self.nlines[key.name], self.ncols[key.name]))
+        logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
         # total_segments = 70
 
         # Calculate full globe line extent
@@ -237,8 +235,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             ext[c] = (min_c.item(), max_c.item())
 
         area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
-        self.cache[key.resolution] = area_extent
-        return area_extent
+        self.cache[key.resolution] = (area_extent, nlines, ncols)
+        return (area_extent, nlines, ncols)
 
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
@@ -250,7 +248,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
         sweep = "y"  # see email KH to GH 2019-11-07, remove when no longer needed
         # Channel dependent swath resoultion
-        area_extent = self.calc_area_extent(key)
+        (area_extent, nlines, ncols) = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
 
@@ -267,8 +265,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             "On-the-fly area",
             'geosfci',
             proj_dict,
-            self.ncols[key.name],
-            self.nlines[key.name],
+            ncols,
+            nlines,
             area_extent)
 
         self.area = area
