@@ -109,15 +109,43 @@ class _SceneGenerator(object):
             yield scn.get(ds_id)
 
 
+def add_aliases(scenes, aliases):
+    """Add dataset aliases to the given scenes."""
+    for scene in scenes:
+        scene = scene.copy()
+        for alias, target_names in aliases.items():
+            target_ids = [DatasetID.from_dict(scene[name].attrs)
+                          for name in target_names if name in scene]
+            if len(target_ids) == 1:
+                target_id = target_ids[0]
+                new_ds = scene[target_id].copy()
+                new_ds.attrs.update(alias.to_dict())
+                scene[alias] = new_ds
+            elif len(target_ids) > 1:
+                raise ValueError('Cannot add one alias for multiple datasets in the same scene')
+        yield scene
+
+
 class MultiScene(object):
     """Container for multiple `Scene` objects."""
 
-    def __init__(self, scenes=None):
+    def __init__(self, scenes=None, groups=None):
         """Initialize MultiScene and validate sub-scenes.
 
         Args:
             scenes (iterable):
                 `Scene` objects to operate on (optional)
+            groups (dict):
+                By default, `MultiScene` only operates on dataset IDs shared by all scenes. Using
+                this argument you can specify groups of datasets that shall be treated equally
+                by MultiScene. Even if their dataset IDs differ (for example because the names or
+                wavelengths are slightly different).
+                Groups can be specified as a dictionary `{group_id: dataset_names}` where the keys
+                must be of type `DatasetID`::
+
+                {
+                    DatasetID('my_group', wavelength=(10.7, 10.8, 10.9): ['IR_108', 'B13', 'C13'],
+                }
 
         .. note::
 
@@ -138,6 +166,8 @@ class MultiScene(object):
         # a list
         if not isinstance(scenes, (list, tuple)):
             self._scenes = iter(self._scene_gen)
+        if groups:
+            self._scenes = add_aliases(self._scenes, groups)
 
     @property
     def first_scene(self):
