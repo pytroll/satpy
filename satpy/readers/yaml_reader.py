@@ -856,12 +856,13 @@ class CollectionYAMLReader(FileYAMLReader):
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
         """Load only a piece of the dataset."""
-        if len(file_handlers) != ds_info['expected_segments']:
-            print('Oh no! we are missing data !')
         slice_list = []
         failure = True
         counter = 1
+        expected_segments = 1
         for fh in sorted(file_handlers, key=lambda x: x.filename_info['segment']):
+            if fh.filetype_info['file_type'] == ds_info['file_type']:
+                expected_segments = fh.filetype_info['expected_segments']
             while int(fh.filename_info['segment']) > counter:
                 slice_list.append(None)
                 counter += 1
@@ -875,6 +876,9 @@ class CollectionYAMLReader(FileYAMLReader):
                 logger.warning("Failed to load {} from {}".format(dsid, fh),
                                exc_info=True)
 
+        if len(file_handlers) < expected_segments:
+            print('Oh no! We are missing data!')
+
         # TODO make sure projectable is not None
         import numpy as np
         empty_segment = xr.full_like(projectable, np.nan)
@@ -882,7 +886,7 @@ class CollectionYAMLReader(FileYAMLReader):
             if sli is None:
                 slice_list[i] = empty_segment
 
-        while ds_info['expected_segments'] > counter:
+        while expected_segments > counter:
             slice_list.append(empty_segment)
             counter += 1
 
