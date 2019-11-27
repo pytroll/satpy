@@ -18,121 +18,145 @@ file_types:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-HRV______-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 24
 
     HRIT_IR_016:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_016___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_039:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_039___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_087:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_087___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_097:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_097___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_108:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_108___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_120:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_120___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_134:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_134___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_VIS006:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-VIS006___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_VIS008:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-VIS008___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_WV_062:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-WV_062___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_WV_073:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-WV_073___-{segment:06d}___-{start_time:%Y%m%d%H%M}-__']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_HRV_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-HRV______-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 24
 
     HRIT_IR_016_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_016___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_039_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_039___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_087_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_087___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_097_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_097___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_108_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_108___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_120_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_120___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_IR_134_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-IR_134___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_VIS006_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-VIS006___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_VIS008_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-VIS008___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_WV_062_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-WV_062___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_WV_073_C:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler
         file_patterns: ['{rate:1s}-000-{hrit_format:_<6s}-{platform_shortname:4s}_{service:_<7s}-WV_073___-{segment:06d}___-{start_time:%Y%m%d%H%M}-C_']
         requires: [HRIT_PRO, HRIT_EPI]
+        expected_segments: 8
 
     HRIT_PRO:
         file_reader: !!python/name:satpy.readers.seviri_l1b_hrit.HRITMSGPrologueFileHandler
@@ -158,7 +182,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_HRV, HRIT_HRV_C]
-    expected_segments: 24
 
   IR_016:
     name: IR_016
@@ -175,7 +198,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_IR_016, HRIT_IR_016_C]
-    expected_segments: 8
 
   IR_039:
     name: IR_039
@@ -192,7 +214,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_IR_039, HRIT_IR_039_C]
-    expected_segments: 8
 
   IR_087:
     name: IR_087
@@ -209,7 +230,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_IR_087, HRIT_IR_087_C]
-    expected_segments: 8
 
   IR_097:
     name: IR_097
@@ -226,7 +246,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_IR_097, HRIT_IR_097_C]
-    expected_segments: 8
 
   IR_108:
     name: IR_108
@@ -243,7 +262,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_IR_108, HRIT_IR_108_C]
-    expected_segments: 8
 
   IR_120:
     name: IR_120
@@ -260,7 +278,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_IR_120, HRIT_IR_120_C]
-    expected_segments: 8
 
   IR_134:
     name: IR_134
@@ -277,7 +294,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_IR_134, HRIT_IR_134_C]
-    expected_segments: 8
 
   VIS006:
     name: VIS006
@@ -294,7 +310,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_VIS006, HRIT_VIS006_C]
-    expected_segments: 8
 
   VIS008:
     name: VIS008
@@ -311,7 +326,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_VIS008, HRIT_VIS008_C]
-    expected_segments: 8
 
   WV_062:
     name: WV_062
@@ -328,7 +342,6 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_WV_062, HRIT_WV_062_C]
-    expected_segments: 8
 
   WV_073:
     name: WV_073
@@ -345,4 +358,3 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_WV_073, HRIT_WV_073_C]
-    expected_segments: 8
