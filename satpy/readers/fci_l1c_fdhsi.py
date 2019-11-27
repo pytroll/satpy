@@ -183,6 +183,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return group, root_group
 
+    _cached_area_extent = {}
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset.
 
@@ -192,6 +193,11 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # numbers from PUG, Table 3
         xyres = {500: 22272, 1000: 11136, 2000: 5568}
         chkres = xyres[key.resolution]
+
+        # assumption: channels with same resolution should have same area extent
+        # cache results to improve performance
+        if key.resolution in self._cached_area_extent:
+            return self._cached_area_extent[key.resolution]
 
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
@@ -224,20 +230,19 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             max_c = max_c_radian * h
             ext[c] = (min_c.item(), max_c.item())
 
-        return (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
+        area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
+        self._cached_area_extent[key.resolution] = area_extent
+        return area_extent
 
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
-        # TODO Projection information are hard coded for 0 degree geos projection
-        # Test dataset doen't provide the values in the file container.
-        # Only fill values are inserted
 
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
         b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
-        #sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
-        sweep = "y" # see email KH to GH 2019-11-07
+        sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
+        sweep = "y"  # see email KH to GH 2019-11-07, remove when no longer needed
         # Channel dependent swath resoultion
         area_extent = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
