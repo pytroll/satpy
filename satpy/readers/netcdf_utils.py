@@ -145,7 +145,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             obj (netCDF4.Dataset): Dataset object from which to read them.
         """
         for var_name in cache_vars:
-            self.cached_file_content = self.file_content[var_name][:]
+            self.cached_file_content[var_name] = self.file_content[var_name][:]
 
     def __getitem__(self, key):
         val = self.file_content[key]
