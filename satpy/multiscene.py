@@ -138,14 +138,14 @@ class MultiScene(object):
             groups (dict):
                 By default, `MultiScene` only operates on dataset IDs shared by all scenes. Using
                 this argument you can specify groups of datasets that shall be treated equally
-                by MultiScene. Even if their dataset IDs differ (for example because the names or
+                by `MultiScene`. Even if their dataset IDs differ (for example because the names or
                 wavelengths are slightly different).
                 Groups can be specified as a dictionary `{group_id: dataset_names}` where the keys
-                must be of type `DatasetID`::
+                must be of type `DatasetID`, for example::
 
-                {
-                    DatasetID('my_group', wavelength=(10.7, 10.8, 10.9): ['IR_108', 'B13', 'C13'],
-                }
+                    groups={
+                        DatasetID('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
+                    }
 
         .. note::
 
