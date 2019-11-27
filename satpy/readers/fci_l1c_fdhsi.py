@@ -173,7 +173,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         info.pop("units")
         attrs.pop("units")
 
-        self.nlines[key], self.ncols[key] = res.shape
         res.attrs.update(key.to_dict())
         res.attrs.update(info)
         res.attrs.update(attrs)
@@ -195,18 +194,18 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         xyres = {500: 22272, 1000: 11136, 2000: 5568}
         chkres = xyres[key.resolution]
 
+        # Get metadata for given dataset
+        measured, root = self.get_channel_dataset(key.name)
+        # Get start/end line and column of loaded swath.
+        self.nlines[key.name], self.ncols[key.name] = self[measured + "/effective_radiance/shape"]
+
         # assumption: channels with same resolution should have same area extent
         # cache results to improve performance
         if key.resolution in self.cache:
             return self.cache[key.resolution]
 
-        # Get metadata for given dataset
-        measured, root = self.get_channel_dataset(key.name)
-        # Get start/end line and column of loaded swath.
-        self.nlines[key], self.ncols[key] = self[measured + "/effective_radiance/shape"]
-
         logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
-        logger.debug('Row/Cols: {} / {}'.format(self.nlines[key], self.ncols[key]))
+        logger.debug('Row/Cols: {} / {}'.format(self.nlines[key.name], self.ncols[key.name]))
         # total_segments = 70
 
         # Calculate full globe line extent
@@ -268,8 +267,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             "On-the-fly area",
             'geosfci',
             proj_dict,
-            self.ncols[key],
-            self.nlines[key],
+            self.ncols[key.name],
+            self.nlines[key.name],
             area_extent)
 
         self.area = area
