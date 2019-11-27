@@ -101,6 +101,10 @@ class TestMultiScene(unittest.TestCase):
         scenes = _create_test_scenes()
         MultiScene(scenes)
 
+        with mock.patch('satpy.multiscene.add_aliases') as add_aliases:
+            MultiScene([], groups='groups')
+            add_aliases.assert_called_with(mock.ANY, 'groups')
+
     def test_properties(self):
         """Test basic properties/attributes of the MultiScene."""
         from satpy import MultiScene, DatasetID
@@ -146,6 +150,59 @@ class TestMultiScene(unittest.TestCase):
             self.assertTrue(len(mscn.scenes), 6)
             calls = [mock.call(filenames={'abi_l1b': [in_file]}) for in_file in input_files]
             scn_mock.assert_has_calls(calls)
+
+    def test_add_aliases(self):
+        """Test adding dataset aliases."""
+        import xarray as xr
+        import numpy as np
+        import types
+
+        from satpy.multiscene import add_aliases
+        from satpy import DatasetID
+        from satpy import Scene
+
+        # Define test scenes
+        ds_id1 = DatasetID('ds1', wavelength=(10.7, 10.8, 10.9))
+        ds_id2 = DatasetID('ds2', wavelength=(1.9, 2.0, 2.1))
+        ds_id3 = DatasetID('ds3', wavelength=(10.8, 10.9, 11.0))
+        ds_id31 = DatasetID('ds31', polarization='H')
+
+        scene1 = Scene()
+        scene1[ds_id1] = xr.DataArray([1])
+        scene2 = Scene()
+        scene2[ds_id2] = xr.DataArray([2])
+        scene3 = Scene()
+        scene3[ds_id3] = xr.DataArray([3])
+        scene3[ds_id31] = xr.DataArray([4])
+        scenes = [scene1, scene2, scene3]
+
+        # Define groups
+        g1 = DatasetID(name='g1', wavelength=(10, 11, 12))
+        g2 = DatasetID(name='g2', wavelength=(1, 2, 3), polarization='V')
+        groups = {g1: ['ds1', 'ds3'], g2: ['ds2']}
+
+        # Test adding aliases
+        with_aliases = add_aliases(iter(scenes), groups)
+        self.assertIsInstance(with_aliases, types.GeneratorType)
+        with_aliases = list(with_aliases)
+        self.assertSetEqual(set(with_aliases[0].keys()), {g1, ds_id1})
+        self.assertSetEqual(set(with_aliases[1].keys()), {g2, ds_id2})
+        self.assertSetEqual(set(with_aliases[2].keys()), {g1, ds_id3, ds_id31})
+
+        np.testing.assert_array_equal(with_aliases[0]['g1'].values, [1])
+        np.testing.assert_array_equal(with_aliases[0]['ds1'].values, [1])
+        np.testing.assert_array_equal(with_aliases[1]['g2'].values, [2])
+        np.testing.assert_array_equal(with_aliases[1]['ds2'].values, [2])
+        np.testing.assert_array_equal(with_aliases[2]['g1'].values, [3])
+        np.testing.assert_array_equal(with_aliases[2]['ds3'].values, [3])
+        np.testing.assert_array_equal(with_aliases[2]['ds31'].values, [4])
+
+        # Make sure that modifying the result doesn't modify the original
+        self.assertNotIn(g1, scene1)
+
+        # Adding an alias for multiple datasets in one scene should fail
+        gen = add_aliases([scene3], {g1: ['ds3', 'ds31']})
+        self.assertRaises(ValueError, list, gen)
 
 
 class TestMultiSceneSave(unittest.TestCase):
