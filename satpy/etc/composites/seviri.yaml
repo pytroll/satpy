@@ -20,12 +20,12 @@ composites:
     - ct
     standard_name: ct_masked_ir
     transparency:
-      - 0 : 100
-      - 1 : 100
-      - 2 : 100
-      - 3 : 100
-      - 4 : 100
-      - 10 : 50
+      0 : 100
+      1 : 100
+      2 : 100
+      3 : 100
+      4 : 100
+      10 : 35
 
   cloudtop:
     compositor: !!python/name:satpy.composites.GenericCompositor
