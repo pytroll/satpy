@@ -62,11 +62,19 @@ class NetCDF4FileHandler(BaseFileHandler):
     you may choose to cache some of them.  You can do this by passing a number,
     any variable smaller than this number in bytes will be read into RAM.
     Warning, this part of the API is provisional and subject to change.
+
+    You may get an additional speedup by passing ``cache_handle=True``.  This
+    will keep the netCDF4 dataset handles open throughout the lifetime of the
+    object, and instead of using `xarray.open_dataset` to open every data
+    variable, a dask array will be created "manually".  This may be useful if
+    you have a dataset distributed over many files, such as for FCI.  Note
+    that the coordinates will be missing in this case.
     """
 
+    file_handle = None
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
-                 cache_vars=0):
+                 cache_vars=0, cache_handle=False):
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
@@ -92,10 +100,20 @@ class NetCDF4FileHandler(BaseFileHandler):
                         and isinstance(var.dtype, np.dtype) #  vlen may be str
                         and var.size*var.dtype.itemsize<cache_vars],
                     file_handle)
-        file_handle.close()
+        if cache_handle:
+            self.file_handle = file_handle
+        else:
+            file_handle.close()
         self._xarray_kwargs = xarray_kwargs or {}
         self._xarray_kwargs.setdefault('chunks', CHUNK_SIZE)
         self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
+
+    def __del__(self):
+        if self.file_handle is not None:
+            try:
+                self.file_handle.close()
+            except RuntimeError: # presumably closed already
+                pass
 
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object.
@@ -162,20 +180,34 @@ class NetCDF4FileHandler(BaseFileHandler):
                 group, key = parts
             else:
                 group = None
-            with xr.open_dataset(self.filename, group=group,
-                                 **self._xarray_kwargs) as nc:
-                val = nc[key]
-                # Even though `chunks` is specified in the kwargs, xarray
-                # uses dask.arrays only for data variables that have at least
-                # one dimension; for zero-dimensional data variables (scalar),
-                # it uses its own lazy loading for scalars.  When those are
-                # accessed after file closure, xarray reopens the file without
-                # closing it again.  This will leave potentially many open file
-                # objects (which may in turn trigger a Segmentation Fault:
-                # https://github.com/pydata/xarray/issues/2954#issuecomment-491221266
-                if not val.chunks:
-                    val.load()
-        return val
+            if self.file_handle is not None:
+                return self._get_var_from_filehandle(group, key)
+            else:
+                return self._get_var_from_xr(group, key)
+
+    def _get_var_from_xr(self, group, key):
+        with xr.open_dataset(self.filename, group=group,
+                             **self._xarray_kwargs) as nc:
+            val = nc[key]
+            # Even though `chunks` is specified in the kwargs, xarray
+            # uses dask.arrays only for data variables that have at least
+            # one dimension; for zero-dimensional data variables (scalar),
+            # it uses its own lazy loading for scalars.  When those are
+            # accessed after file closure, xarray reopens the file without
+            # closing it again.  This will leave potentially many open file
+            # objects (which may in turn trigger a Segmentation Fault:
+            # https://github.com/pydata/xarray/issues/2954#issuecomment-491221266
+            if not val.chunks:
+                val.load()
+    return val
+
+    def _get_var_from_filehandle(self, group, key):
+        g = self.file_handle[group]
+        v = g[key]
+        x = xr.DataArray(
+                da.from_array(v), dims=v.dimensions, attrs=v.__dict__,
+                name=v.name)
+        return x
 
     def __contains__(self, item):
         return item in self.file_content
