@@ -223,10 +223,16 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
             # the .item() call is needed with the h5netcdf backend, see
             # https://github.com/pytroll/satpy/issues/972#issuecomment-558191583
+            # but we need to compute it first if this is dask
             min_c_radian = c_radian_num[0] - c_radian.scale_factor.item()/2
             max_c_radian = c_radian_num[-1] + c_radian.scale_factor.item()/2
             min_c = min_c_radian * h  # arc length in m
             max_c = max_c_radian * h
+            try:
+                min_c = min_c.compute()
+                max_c = max_c.compute()
+            except AttributeError:  # not a dask.array
+                pass
             ext[c] = (min_c.item(), max_c.item())
 
         area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
