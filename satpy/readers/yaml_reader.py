@@ -856,25 +856,8 @@ class CollectionYAMLReader(FileYAMLReader):
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
         """Load only a piece of the dataset."""
-        slice_list = []
-        failure = True
-        counter = 1
-        expected_segments = 1
-        for fh in sorted(file_handlers, key=lambda x: x.filename_info['segment']):
-            if fh.filetype_info['file_type'] == ds_info['file_type']:
-                expected_segments = fh.filetype_info['expected_segments']
-            while int(fh.filename_info['segment']) > counter:
-                slice_list.append(None)
-                counter += 1
-            try:
-                projectable = fh.get_dataset(dsid, ds_info)
-                if projectable is not None:
-                    slice_list.append(projectable)
-                    failure = False
-                    counter += 1
-            except KeyError:
-                logger.warning("Failed to load {} from {}".format(dsid, fh),
-                               exc_info=True)
+        counter, expected_segments, slice_list, failure, projectable = \
+            _find_missing_segments(file_handlers, ds_info, dsid)
 
         if len(file_handlers) < expected_segments:
             print('Oh no! We are missing data!')
@@ -933,3 +916,29 @@ class CollectionYAMLReader(FileYAMLReader):
 
         final_area = StackedAreaDefinition(*area_defs)
         return final_area.squeeze()
+
+
+def _find_missing_segments(file_handlers, ds_info, dsid):
+    """Find missing segments."""
+    slice_list = []
+    failure = True
+    counter = 1
+    expected_segments = 1
+    handlers = sorted(file_handlers, key=lambda x: x.filename_info['segment'])
+    for fh in handlers:
+        if fh.filetype_info['file_type'] == ds_info['file_type']:
+            expected_segments = fh.filetype_info.get('expected_segments', 1)
+        while int(fh.filename_info['segment']) > counter:
+            slice_list.append(None)
+            counter += 1
+        try:
+            projectable = fh.get_dataset(dsid, ds_info)
+            if projectable is not None:
+                slice_list.append(projectable)
+                failure = False
+                counter += 1
+        except KeyError:
+            logger.warning("Failed to load %s from %s", str(dsid), str(fh),
+                           exc_info=True)
+
+    return counter, expected_segments, slice_list, failure, projectable
