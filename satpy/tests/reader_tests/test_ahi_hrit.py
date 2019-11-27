@@ -183,7 +183,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                 segno=case['segno'], numseg=case['numseg'])
             reader = self._get_reader(mda=mda,
                                       filename_info={'area': case['area']})
-            area = reader._get_area_def()
+            area = reader.get_area_def('some_id')
             self.assertTupleEqual(area.area_extent, case['extent'])
             self.assertEqual(area.description, AREA_NAMES[case['area']]['long'])
 
