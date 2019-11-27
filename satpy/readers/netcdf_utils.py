@@ -181,9 +181,10 @@ class NetCDF4FileHandler(BaseFileHandler):
             else:
                 group = None
             if self.file_handle is not None:
-                return self._get_var_from_filehandle(group, key)
+                val = self._get_var_from_filehandle(group, key)
             else:
-                return self._get_var_from_xr(group, key)
+                val = self._get_var_from_xr(group, key)
+        return val
 
     def _get_var_from_xr(self, group, key):
         with xr.open_dataset(self.filename, group=group,
