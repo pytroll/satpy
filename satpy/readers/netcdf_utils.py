@@ -146,7 +146,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         """
         for var_name in cache_vars:
             v = self.file_content[var_name]
-            self.cached_file_content[var_name] = xarray.DataArray(
+            self.cached_file_content[var_name] = xr.DataArray(
                     v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
 
     def __getitem__(self, key):
