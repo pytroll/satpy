@@ -859,9 +859,6 @@ class CollectionYAMLReader(FileYAMLReader):
         counter, expected_segments, slice_list, failure, projectable = \
             _find_missing_segments(file_handlers, ds_info, dsid)
 
-        if len(file_handlers) < expected_segments:
-            print('Oh no! We are missing data!')
-
         # TODO make sure projectable is not None
         import numpy as np
         empty_segment = xr.full_like(projectable, np.nan)
@@ -889,27 +886,49 @@ class CollectionYAMLReader(FileYAMLReader):
 
     def _load_area_def(self, dsid, file_handlers):
         """Load the area definition of *dsid*."""
-        area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
+        from pyresample.geometry import AreaDefinition
         area_defs = []
         last_segment = None
         seg_size = None
-        # TODO pad start and end also ?
-        for fh in file_handlers:
-            area = fh.get_area_def(dsid)
-            segment = int(fh.filename_info['segment'])
-            if last_segment is not None:
-                missing = segment - last_segment - 1
-                if missing > 0:
-                    from pyresample.geometry import AreaDefinition
-                    fill_extent = (area.area_extent[0], area.area_extent[3],
-                                   area.area_extent[2], area_defs[-1].area_extent[1])
-                    fill_area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
-                                               seg_size[1], seg_size[0] * missing,
-                                               fill_extent)
-                    area_defs.append(fill_area)
+        expected_segments = file_handlers[0].filetype_info['expected_segments']
+        available_segments = [int(fh.filename_info['segment']) for
+                              fh in file_handlers]
+
+        # Pad missing segments between the first available and expected
+        for segment in range(available_segments[0], expected_segments + 1):
+            try:
+                idx = available_segments.index(segment)
+                fh = file_handlers[idx]
+                area = fh.get_area_def(dsid)
+            except ValueError:
+                logger.debug("Padding to full disk with segment nr. %d",
+                             segment)
+                new_ll_y = area.area_extent[1] + (
+                    area.area_extent[1] - area.area_extent[3])
+                fill_extent = (area.area_extent[0], new_ll_y,
+                               area.area_extent[2], area.area_extent[1])
+                area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
+                                      seg_size[1], seg_size[0],
+                                      fill_extent)
             area_defs.append(area)
             last_segment = segment
             seg_size = area.shape
+
+        # Add missing start segments
+        for segment in range(available_segments[0] - 1, 0, -1):
+            logger.debug("Padding segment %d to full disk.",
+                         segment)
+            new_ll_y = area.area_extent[1] - (
+                area.area_extent[3] - area.area_extent[1])
+            fill_extent = (area.area_extent[0], new_ll_y,
+                           area.area_extent[2], area_defs[0].area_extent[1])
+            area = AreaDefinition('fill', 'fill', 'fill',
+                                  area_defs[0].proj_dict,
+                                  seg_size[1], seg_size[0],
+                                  fill_extent)
+            area_defs.insert(segment - 1, area)
+            seg_size = area.shape
+
 
         area_defs = [area_def for area_def in area_defs
                      if area_def is not None]
@@ -941,5 +960,9 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
         except KeyError:
             logger.warning("Failed to load %s from %s", str(dsid), str(fh),
                            exc_info=True)
+
+    # The last segment is missing?
+    if len(slice_list) < expected_segments:
+        slice_list.append(None)
 
     return counter, expected_segments, slice_list, failure, projectable
