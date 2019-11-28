@@ -128,8 +128,17 @@ class TestAHIHSDNavigation(unittest.TestCase):
 
 
 class TestAHIHSDFileHandler(unittest.TestCase):
+
+    def new_unzip(fname):
+        if(fname[-3:]=='bz2'):
+            return fname[:-4]
+        else:
+            return fname
+
     @mock.patch('satpy.readers.ahi_hsd.np2str')
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
+    @mock.patch('satpy.readers.ahi_hsd.unzip_file',
+                mock.MagicMock(side_effect=new_unzip))
     def setUp(self, fromfile, np2str):
         """Create a test file handler."""
         np2str.side_effect = lambda x: x
@@ -139,7 +148,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             with self.assertRaises(ValueError):
                 fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
 
-            fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
+            fh = AHIHSDFileHandler('test_file.bz2', {'segment_number': 8, 'total_segments': 10}, None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
