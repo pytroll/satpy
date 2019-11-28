@@ -29,6 +29,7 @@ from weakref import WeakValueDictionary
 import six
 import xarray as xr
 import yaml
+import numpy as np
 
 try:
     from yaml import UnsafeLoader
@@ -43,6 +44,8 @@ from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
+from pyresample.geometry import AreaDefinition
+
 
 logger = logging.getLogger(__name__)
 
@@ -860,7 +863,6 @@ class CollectionYAMLReader(FileYAMLReader):
             _find_missing_segments(file_handlers, ds_info, dsid)
 
         # TODO make sure projectable is not None
-        import numpy as np
         empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
             if sli is None:
@@ -886,7 +888,6 @@ class CollectionYAMLReader(FileYAMLReader):
 
     def _load_area_def(self, dsid, file_handlers):
         """Load the area definition of *dsid*."""
-        from pyresample.geometry import AreaDefinition
         area_defs = []
         last_segment = None
         seg_size = None
