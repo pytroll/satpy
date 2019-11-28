@@ -42,7 +42,8 @@ import warnings
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import get_geostationary_mask, np2str, get_earth_radius
+from satpy.readers.utils import unzip_file, get_geostationary_mask, \
+                                np2str, get_earth_radius
 from satpy.readers._geos_area import get_area_extent, get_area_definition
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
@@ -262,6 +263,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
+        self._unzipped = unzip_file(self.filename)
+        if self._unzipped:
+            self.filename = self._unzipped
 
         self.channels = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self.units = dict([(i, 'counts') for i in AHI_CHANNEL_NAMES])
