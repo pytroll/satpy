@@ -22,6 +22,7 @@ References:
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
     MSG Level 1.5 Image Data Format Description
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+
 """
 
 import logging
@@ -52,6 +53,7 @@ logger = logging.getLogger('native_msg')
 
 class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     """SEVIRI native format reader.
+
     The Level1.5 Image data calibration method can be changed by adding the
     required mode to the Scene object instantiation  kwargs eg
     kwargs = {"calib_mode": "gsics",}
@@ -80,11 +82,13 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     @property
     def start_time(self):
+        """Read the repeat cycle start time from metadata."""
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
 
     @property
     def end_time(self):
+        """Read the repeat cycle end time from metadata."""
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
 
@@ -100,8 +104,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return (ll_c, ll_l, ur_c, ur_l)
 
     def _get_data_dtype(self):
-        """Get the dtype of the file based on the actual available channels"""
-
+        """Get the dtype of the file based on the actual available channels."""
         pkhrec = [
             ('GP_PK_HEADER', GSDTRecords.gp_pk_header),
             ('GP_PK_SH1', GSDTRecords.gp_pk_sh1)
@@ -139,8 +142,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return np.dtype(drec)
 
     def _get_memmap(self):
-        """Get the memory map for the SEVIRI data"""
-
+        """Get the memory map for the SEVIRI data."""
         with open(self.filename) as fp:
 
             data_dtype = self._get_data_dtype()
@@ -151,8 +153,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                              offset=hdr_size, mode="r")
 
     def _read_header(self):
-        """Read the header info"""
-
+        """Read the header info."""
         data = np.fromfile(self.filename,
                            dtype=native_header, count=1)
 
@@ -243,7 +244,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.trailer.update(recarray2dict(data))
 
     def get_area_def(self, dsid):
-
+        """Get the area definition of the band."""
         pdict = {}
         pdict['a'] = self.mda['projection_parameters']['a']
         pdict['b'] = self.mda['projection_parameters']['b']
@@ -292,7 +293,16 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return area
 
     def get_area_extent(self, dsid):
+        """Get the area extent of the file.
 
+        Until December 2017, the data is shifted by 1.5km SSP North and West against the nominal GEOS projection. Since
+        December 2017 this offset has been corrected. A flag in the data indicates if the correction has been applied.
+        If no correction was applied, adjust the area extent to match the shifted data.
+
+        For more information see Section 3.1.4.2 in the MSG Level 1.5 Image Data Format Description. The correction
+        of the area extent is documented in a `developer's memo <https://github.com/pytroll/satpy/wiki/
+        SEVIRI-georeferencing-offset-correction>`_.
+        """
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
         data15tr = self.trailer['15TRAILER']
@@ -406,9 +416,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         return area_extent
 
-    def get_dataset(self, dsid, info,
-                    xslice=slice(None), yslice=slice(None)):
-
+    def get_dataset(self, dsid, info):
+        """Get the dataset."""
         if dsid.name not in self.mda['channel_list']:
             raise KeyError('Channel % s not available in the file' % dsid.name)
         elif dsid.name not in ['HRV']:
@@ -517,8 +526,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
 
 def get_available_channels(header):
-    """Get the available channels from the header information"""
-
+    """Get the available channels from the header information."""
     chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
         'SelectedBandIDs']['Value']
     retv = {}
