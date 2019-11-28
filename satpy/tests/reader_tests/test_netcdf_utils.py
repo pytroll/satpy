@@ -93,6 +93,9 @@ class TestNetCDF4FileHandler(unittest.TestCase):
             ds2_i = nc.createVariable('ds2_i', np.int32,
                                       dimensions=('rows', 'cols'))
             ds2_i[:] = np.arange(10 * 100).reshape((10, 100))
+            ds2_s = nc.createVariable("ds2_s", np.int8,
+                                      dimensions=("rows",))
+            ds2_s[:] = np.arange(10)
 
             # Add attributes
             nc.test_attr_str = 'test_string'
@@ -138,7 +141,20 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
         self.assertTrue('ds2_f' in file_handler)
         self.assertFalse('fake_ds' in file_handler)
+        self.assertIsNone(file_handler.file_handle)
 
+    def test_caching(self):
+        """Test that caching works as intended.
+        """
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        h = NetCDF4FileHandler("test.nc", {}, {}, cache_vars=1000,
+                cache_handle=True)
+        self.assertIsNotNone(h.file_handle)
+        self.assertTrue(h.file_handle.isopen())
+
+        self.assertEqual(sorted(h.cached_file_content.keys()), ["ds2_s"])
+        h.__del__()
+        self.assertFalse(h.file_handle.isopen())
 
 def suite():
     """The test suite for test_netcdf_utils."""
