@@ -892,10 +892,10 @@ class CollectionYAMLReader(FileYAMLReader):
     def _load_area_def(self, dsid, file_handlers):
         """Load the area definition of *dsid* with padding."""
         # Pad missing segments between the first available and expected
-        area_defs = _pad_later_segments(file_handlers, dsid)
+        area_defs = _pad_later_segments_area(file_handlers, dsid)
 
         # Add missing start segments
-        area_defs = _pad_earlier_segments(file_handlers, dsid, area_defs)
+        area_defs = _pad_earlier_segments_area(file_handlers, dsid, area_defs)
 
         area_defs = [area_def for area_def in area_defs
                      if area_def is not None]
@@ -904,7 +904,7 @@ class CollectionYAMLReader(FileYAMLReader):
         return final_area.squeeze()
 
 
-def _pad_later_segments(file_handlers, dsid):
+def _pad_later_segments_area(file_handlers, dsid):
     """Pad missing segments that are later in sequence than the first available."""
     last_segment = None
     seg_size = None
@@ -933,7 +933,7 @@ def _pad_later_segments(file_handlers, dsid):
     return area_defs
 
 
-def _pad_earlier_segments(file_handlers, dsid, area_defs):
+def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
     """Pad missing segments that are earlier in sequence than the first available."""
     last_segment = None
     expected_segments = file_handlers[0].filetype_info['expected_segments']
