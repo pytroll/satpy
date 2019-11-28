@@ -170,7 +170,8 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
         with self.assertRaises(IOError):
-            h = NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
+            NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
+
 
 def suite():
     """The test suite for test_netcdf_utils."""
