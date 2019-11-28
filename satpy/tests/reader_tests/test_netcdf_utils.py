@@ -150,7 +150,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         """Test that caching works as intended.
         """
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
-        h = NetCDF4FileHandler("test.nc", {}, {}, cache_vars=1000,
+        h = NetCDF4FileHandler("test.nc", {}, {}, cache_var_size=1000,
                                cache_handle=True)
         self.assertIsNotNone(h.file_handle)
         self.assertTrue(h.file_handle.isopen())
