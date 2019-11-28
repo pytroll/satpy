@@ -301,7 +301,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                               'satellite_actual_latitude': 0.03,
                               'nadir_longitude': 140.67,
                               'nadir_latitude': 0.04}
-            self.assertDictContainsSubset(orb_params_exp, im.attrs['orbital_parameters'])
+            self.assertTrue(set(orb_params_exp.items()).issubset( set(im.attrs['orbital_parameters'].items())))
             self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
 
             # Test if masking space pixels disables with appropriate flag
