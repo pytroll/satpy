@@ -923,7 +923,6 @@ def _pad_later_segments_area(file_handlers, dsid):
             ext_diff = area.area_extent[1] - area.area_extent[3]
             new_ll_y = area.area_extent[1] + ext_diff
             new_ur_y = area.area_extent[1]
-            # import ipdb; ipdb.set_trace()
             fill_extent = (area.area_extent[0], new_ll_y,
                            area.area_extent[2], new_ur_y)
             area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
