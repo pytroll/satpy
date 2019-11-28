@@ -33,6 +33,8 @@ import dask.array as da
 
 from satpy import CHUNK_SIZE
 
+from pyresample import geometry
+
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.eum_base import recarray2dict
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
@@ -254,6 +256,30 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             pdict['a_name'] = 'geosmsg_hrv'
             pdict['a_desc'] = 'MSG/SEVIRI high resolution channel area'
             pdict['p_id'] = 'msg_hires'
+
+            if self.mda['is_full_disk']:
+
+                [upper_area_extent, lower_area_extent,
+                 upper_nlines, upper_ncols, lower_nlines, lower_ncols] = self.get_area_extent(dsid)
+
+                # upper area
+                pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, upper window'
+                pdict['nlines'] = upper_nlines
+                pdict['ncols'] = upper_ncols
+                upper_area = get_area_definition(pdict, upper_area_extent)
+
+                # lower area
+                pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, lower window'
+                pdict['nlines'] = lower_nlines
+                pdict['ncols'] = lower_ncols
+                lower_area = get_area_definition(pdict, lower_area_extent)
+
+                # order of areas is flipped w.r.t. the hrit reader due to the flipping of the data in get_dataset
+                area = geometry.StackedAreaDefinition(upper_area, lower_area)
+                area = area.squeeze()
+            else:
+                area = get_area_definition(pdict, self.get_area_extent(dsid))
+
         else:
             pdict['nlines'] = self.mda['number_of_lines']
             pdict['ncols'] = self.mda['number_of_columns']
@@ -261,7 +287,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
             pdict['p_id'] = 'msg_lowres'
 
-        area = get_area_definition(pdict, self.get_area_extent(dsid))
+            area = get_area_definition(pdict, self.get_area_extent(dsid))
+
         return area
 
     def get_area_extent(self, dsid):
@@ -269,8 +296,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
         data15tr = self.trailer['15TRAILER']
-
-
 
         # check for Earth model as this affects the north-south and
         # west-east offsets
@@ -310,18 +335,20 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # When dealing with HRV channel and full disk, area extent is
         # in two pieces
         if (dsid.name == 'HRV') and self.mda['is_full_disk']:
-            # NOTE: Implement HRV full disk area_extent
-            # NotImplementedError does not catch this, it must
-            # be used elsewhere already
-            msg = 'HRV full disk area extent is being implemented.'
-            #raise RuntimeError(msg)
+
             center_point = HRV_NUM_COLUMNS / 2
-            HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV'].copy()
+            column_step = data15hd['ImageDescription'][
+                              'ReferenceGridHRV']['ColumnDirGridStep'] * 1000.0
+            line_step = data15hd['ImageDescription'][
+                            'ReferenceGridHRV']['LineDirGridStep'] * 1000.0
+
+            # get actual navigation parameters from trailer data
+            HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV']
 
             # upper window
             upper_north_line = HRV_bounds['UpperNorthLineActual']
             upper_west_column = HRV_bounds['UpperWestColumnActual']
-            upper_south_line= HRV_bounds['UpperSouthLineActual']
+            upper_south_line = HRV_bounds['UpperSouthLineActual']
             upper_east_column = HRV_bounds['UpperEastColumnActual']
 
             # lower window
@@ -329,13 +356,25 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             lower_west_column = HRV_bounds['LowerWestColumnActual']
             lower_south_line = HRV_bounds['LowerSouthLineActual']
             lower_east_column = HRV_bounds['LowerEastColumnActual']
-            a=0
 
+            upper_area_extent = self._calculate_area_extent(
+                center_point, upper_north_line, upper_east_column,
+                upper_south_line, upper_west_column, we_offset,
+                ns_offset, column_step, line_step
+            )
 
+            lower_area_extent = self._calculate_area_extent(
+                center_point, lower_north_line, lower_east_column,
+                lower_south_line, lower_west_column, we_offset,
+                ns_offset, column_step, line_step
+            )
 
+            upper_nlines = upper_north_line - upper_south_line + 1
+            upper_ncols = upper_west_column - upper_east_column + 1
+            lower_nlines = lower_north_line - lower_south_line + 1
+            lower_ncols = lower_west_column - lower_east_column + 1
 
-
-
+            return [upper_area_extent, lower_area_extent, upper_nlines, upper_ncols, lower_nlines, lower_ncols]
 
         # Otherwise area extent is in one piece, corner points are
         # the same as for VISIR channels, HRV channel is having
