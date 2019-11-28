@@ -148,13 +148,14 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         """
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
         h = NetCDF4FileHandler("test.nc", {}, {}, cache_vars=1000,
-                cache_handle=True)
+                               cache_handle=True)
         self.assertIsNotNone(h.file_handle)
         self.assertTrue(h.file_handle.isopen())
 
         self.assertEqual(sorted(h.cached_file_content.keys()), ["ds2_s"])
         h.__del__()
         self.assertFalse(h.file_handle.isopen())
+
 
 def suite():
     """The test suite for test_netcdf_utils."""
