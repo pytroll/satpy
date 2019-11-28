@@ -69,14 +69,24 @@ class NetCDF4FileHandler(BaseFileHandler):
     object, and instead of using `xarray.open_dataset` to open every data
     variable, a dask array will be created "manually".  This may be useful if
     you have a dataset distributed over many files, such as for FCI.  Note
-    that the coordinates will be missing in this case.
+    that the coordinates will be missing in this case.  If you use this option,
+    ``xarray_kwargs`` will have no effect.
+
+    Args:
+        filename (str): File to read
+        filename_info (dict): Dictionary with filename information
+        filetype_info (dict): Dictionary with filetype information
+        auto_maskandscale (bool): Apply mask and scale factors
+        xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`
+        cache_var_size (int): Cache variables smaller than this size.
+        cache_handle (bool): Keep files open for lifetime of filehandler.
     """
 
     file_handle = None
 
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
-                 cache_vars=0, cache_handle=False):
+                 cache_var_size=0, cache_handle=False):
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
@@ -94,13 +104,13 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         self.collect_metadata("", file_handle)
         self.collect_dimensions("", file_handle)
-        if cache_vars > 0:
+        if cache_var_size > 0:
             self.collect_cache_vars(
                     [varname for (varname, var)
                         in self.file_content.items()
                         if isinstance(var, netCDF4.Variable)
                         and isinstance(var.dtype, np.dtype)  # vlen may be str
-                        and var.size * var.dtype.itemsize < cache_vars],
+                        and var.size * var.dtype.itemsize < cache_var_size],
                     file_handle)
         if cache_handle:
             self.file_handle = file_handle
@@ -205,6 +215,8 @@ class NetCDF4FileHandler(BaseFileHandler):
         return val
 
     def _get_var_from_filehandle(self, group, key):
+        # Not getting coordinates as this is more work, therefore more
+        # overhead, and those are not used downstream.
         g = self.file_handle[group]
         v = g[key]
         x = xr.DataArray(
