@@ -269,7 +269,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             nlines,
             area_extent)
 
-        self.area = area
         return area
 
     def calibrate(self, data, key, measured, root):
