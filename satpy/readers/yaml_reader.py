@@ -854,7 +854,10 @@ class FileYAMLReader(AbstractYAMLReader):
 
 
 class CollectionYAMLReader(FileYAMLReader):
-    """Reader that knows what to expect."""
+    """Reader for segmented geostationary data.
+
+    This reader pads the data to full geostationary disk.
+    """
 
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
@@ -887,7 +890,7 @@ class CollectionYAMLReader(FileYAMLReader):
         return res
 
     def _load_area_def(self, dsid, file_handlers):
-        """Load the area definition of *dsid*."""
+        """Load the area definition of *dsid* with padding."""
         area_defs = []
         last_segment = None
         seg_size = None
