@@ -130,7 +130,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
 class TestAHIHSDFileHandler(unittest.TestCase):
 
     def new_unzip(fname):
-        if(fname[-3:]=='bz2'):
+        if(fname[-3:] == 'bz2'):
             return fname[:-4]
         else:
             return fname
