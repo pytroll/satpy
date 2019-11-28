@@ -118,7 +118,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
-        self.cache = {}
+        self._cache = {}
 
     @property
     def start_time(self):
@@ -192,11 +192,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         xyres = {500: 22272, 1000: 11136, 2000: 5568}
         chkres = xyres[key.resolution]
 
-        # assumption: channels with same resolution should have same area extent
-        # cache results to improve performance
-        if key.resolution in self.cache:
-            return self.cache[key.resolution]
-
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
         # Get start/end line and column of loaded swath.
@@ -235,11 +230,15 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             ext[c] = (min_c.item(), max_c.item())
 
         area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
-        self.cache[key.resolution] = (area_extent, nlines, ncols)
         return (area_extent, nlines, ncols)
 
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
+
+        # assumption: channels with same resolution should have same area 
+        # cache results to improve performance
+        if key.resolution in self._cache.keys():
+            return self._cache[key.resolution]
 
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
         b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
@@ -269,6 +268,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             nlines,
             area_extent)
 
+        self._cache[key.resolution] = area
         return area
 
     def calibrate(self, data, key, measured, root):
