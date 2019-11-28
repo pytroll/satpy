@@ -1569,11 +1569,16 @@ class SimpleMaskingCompositor(GenericCompositor):
                               data.sizes['x']), chunks=data.data.chunks)
 
         # Modify alpha based on transparency per class from yaml
+        flag_meanings = projectables[1].attrs['flag_meanings']
+        flag_values = projectables[1].attrs['flag_values']
+
+        if isinstance(flag_meanings, str):
+            flag_meanings = flag_meanings.split()
+
         for key, val in self.transparency.items():
             if isinstance(key, str):
-                key_index = projectables[1].attrs['flag_meanings'].split().index(key)
-                key = projectables[1].attrs['flag_values'][key_index]
+                key_index = flag_meanings.index(key)
+                key = flag_values[key_index]
             alpha.data = da.where(cloud_mask_data == key, (1.-val/100.), alpha.data)
         res = super(SimpleMaskingCompositor, self).__call__([data, alpha], **kwargs)
-
         return res
