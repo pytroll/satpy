@@ -73,6 +73,7 @@ class NetCDF4FileHandler(BaseFileHandler):
     """
 
     file_handle = None
+
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
                  cache_vars=0, cache_handle=False):
@@ -98,8 +99,8 @@ class NetCDF4FileHandler(BaseFileHandler):
                     [varname for (varname, var)
                         in self.file_content.items()
                         if isinstance(var, netCDF4.Variable)
-                        and isinstance(var.dtype, np.dtype) #  vlen may be str
-                        and var.size*var.dtype.itemsize<cache_vars],
+                        and isinstance(var.dtype, np.dtype)  # vlen may be str
+                        and var.size * var.dtype.itemsize < cache_vars],
                     file_handle)
         if cache_handle:
             self.file_handle = file_handle
@@ -113,7 +114,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         if self.file_handle is not None:
             try:
                 self.file_handle.close()
-            except RuntimeError: # presumably closed already
+            except RuntimeError:  # presumably closed already
                 pass
 
     def _collect_attrs(self, name, obj):
