@@ -32,7 +32,7 @@ composites:
     prerequisites:
     - IR_108
     - ct
-    standard_name: ct_masked_ir
+    standard_name: nwc_geo_ct_masked_ir
     # Default is opaque (transparency = 0)
     transparency:
       Cloud-free_land : 100
