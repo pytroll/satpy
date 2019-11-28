@@ -891,54 +891,71 @@ class CollectionYAMLReader(FileYAMLReader):
 
     def _load_area_def(self, dsid, file_handlers):
         """Load the area definition of *dsid* with padding."""
-        area_defs = []
-        last_segment = None
-        seg_size = None
-        expected_segments = file_handlers[0].filetype_info['expected_segments']
-        available_segments = [int(fh.filename_info['segment']) for
-                              fh in file_handlers]
-
         # Pad missing segments between the first available and expected
-        for segment in range(available_segments[0], expected_segments + 1):
-            try:
-                idx = available_segments.index(segment)
-                fh = file_handlers[idx]
-                area = fh.get_area_def(dsid)
-            except ValueError:
-                logger.debug("Padding to full disk with segment nr. %d",
-                             segment)
-                new_ll_y = area.area_extent[1] + (
-                    area.area_extent[1] - area.area_extent[3])
-                fill_extent = (area.area_extent[0], new_ll_y,
-                               area.area_extent[2], area.area_extent[1])
-                area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
-                                      seg_size[1], seg_size[0],
-                                      fill_extent)
-            area_defs.append(area)
-            last_segment = segment
-            seg_size = area.shape
+        area_defs = _pad_later_segments(file_handlers, dsid)
 
         # Add missing start segments
-        for segment in range(available_segments[0] - 1, 0, -1):
-            logger.debug("Padding segment %d to full disk.",
-                         segment)
-            new_ll_y = area.area_extent[1] - (
-                area.area_extent[3] - area.area_extent[1])
-            fill_extent = (area.area_extent[0], new_ll_y,
-                           area.area_extent[2], area_defs[0].area_extent[1])
-            area = AreaDefinition('fill', 'fill', 'fill',
-                                  area_defs[0].proj_dict,
-                                  seg_size[1], seg_size[0],
-                                  fill_extent)
-            area_defs.insert(segment - 1, area)
-            seg_size = area.shape
-
+        area_defs = _pad_earlier_segments(file_handlers, dsid, area_defs)
 
         area_defs = [area_def for area_def in area_defs
                      if area_def is not None]
 
         final_area = StackedAreaDefinition(*area_defs)
         return final_area.squeeze()
+
+
+def _pad_later_segments(file_handlers, dsid):
+    """Pad missing segments that are later in sequence than the first available."""
+    last_segment = None
+    seg_size = None
+    expected_segments = file_handlers[0].filetype_info['expected_segments']
+    available_segments = [int(fh.filename_info['segment']) for
+                          fh in file_handlers]
+    area_defs = []
+    for segment in range(available_segments[0], expected_segments + 1):
+        try:
+            idx = available_segments.index(segment)
+            fh = file_handlers[idx]
+            area = fh.get_area_def(dsid)
+        except ValueError:
+            logger.debug("Padding to full disk with segment nr. %d", segment)
+            new_ll_y = area.area_extent[1] + (
+                area.area_extent[1] - area.area_extent[3])
+            fill_extent = (area.area_extent[0], new_ll_y,
+                           area.area_extent[2], area.area_extent[1])
+            area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
+                                  seg_size[1], seg_size[0],
+                                  fill_extent)
+        area_defs.append(area)
+        last_segment = segment
+        seg_size = area.shape
+
+    return area_defs
+
+
+def _pad_earlier_segments(file_handlers, dsid, area_defs):
+    """Pad missing segments that are earlier in sequence than the first available."""
+    last_segment = None
+    expected_segments = file_handlers[0].filetype_info['expected_segments']
+    available_segments = [int(fh.filename_info['segment']) for
+                          fh in file_handlers]
+    area = file_handlers[0].get_area_def(dsid)
+    seg_size = area.shape
+    for segment in range(available_segments[0] - 1, 0, -1):
+        logger.debug("Padding segment %d to full disk.",
+                     segment)
+        new_ll_y = area.area_extent[1] - (
+            area.area_extent[3] - area.area_extent[1])
+        fill_extent = (area.area_extent[0], new_ll_y,
+                       area.area_extent[2], area_defs[0].area_extent[1])
+        area = AreaDefinition('fill', 'fill', 'fill',
+                              area_defs[0].proj_dict,
+                              seg_size[1], seg_size[0],
+                              fill_extent)
+        area_defs.insert(segment - 1, area)
+        seg_size = area.shape
+
+    return area_defs
 
 
 def _find_missing_segments(file_handlers, ds_info, dsid):
