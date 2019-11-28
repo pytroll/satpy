@@ -152,7 +152,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
 
             # Check that the filename is altered for bz2 format files
             self.assertNotEqual(in_fname,fh.filename)
-            
+
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
