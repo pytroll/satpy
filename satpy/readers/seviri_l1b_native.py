@@ -257,7 +257,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             pdict['nlines'] = self.mda['hrv_number_of_lines']
             pdict['ncols'] = self.mda['hrv_number_of_columns']
             pdict['a_name'] = 'geos_seviri_hrv'
-            pdict['a_desc'] = 'MSG/SEVIRI high resolution channel area'
+            pdict['a_desc'] = 'SEVIRI high resolution channel area'
             pdict['p_id'] = 'seviri_hrv'
 
             if self.mda['is_full_disk']:
@@ -288,7 +288,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             pdict['nlines'] = self.mda['number_of_lines']
             pdict['ncols'] = self.mda['number_of_columns']
             pdict['a_name'] = 'geos_seviri_visir'
-            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
+            pdict['a_desc'] = 'SEVIRI low resolution channel area'
             pdict['p_id'] = 'seviri_visir'
 
             area = get_area_definition(pdict, self.get_area_extent(dataset_id))

@@ -65,7 +65,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
     'is_full_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Description': 'SEVIRI low resolution channel area',
         'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
@@ -82,7 +82,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
     'is_full_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Description': 'SEVIRI low resolution channel area',
         'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
@@ -99,7 +99,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
     'is_full_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Description': 'SEVIRI low resolution channel area',
         'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
@@ -117,7 +117,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
     'is_full_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'MSG/SEVIRI high resolution channel area',
+        'Description': 'SEVIRI high resolution channel area',
         'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
@@ -134,7 +134,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
     'is_full_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Description': 'SEVIRI low resolution channel area',
         'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
@@ -151,7 +151,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
     'is_full_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Description': 'SEVIRI low resolution channel area',
         'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
@@ -169,7 +169,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
     'is_full_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
-        'Description': 'MSG/SEVIRI low resolution channel area',
+        'Description': 'SEVIRI low resolution channel area',
         'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
@@ -186,7 +186,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
     'is_full_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
-        'Description': 'MSG/SEVIRI high resolution channel area',
+        'Description': 'SEVIRI high resolution channel area',
         'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
