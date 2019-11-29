@@ -95,6 +95,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     @staticmethod
     def _calculate_area_extent(center_point, north, east, south, west,
                                we_offset, ns_offset, column_step, line_step):
+        # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be 1856.5 .
+        # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
 
         ll_c = (center_point - west - 0.5 + we_offset) * column_step
         ll_l = (south - center_point - 0.5 + ns_offset) * line_step
@@ -305,7 +307,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         """
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
-        data15tr = self.trailer['15TRAILER']
 
         # check for Earth model as this affects the north-south and
         # west-east offsets
@@ -353,6 +354,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                             'ReferenceGridHRV']['LineDirGridStep'] * 1000.0
 
             # get actual navigation parameters from trailer data
+            data15tr = self.trailer['15TRAILER']
             HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV']
 
             # upper window
