@@ -590,6 +590,112 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                     self.assertEqual(expected, ds_id.resolution)
 
 
+class TestCollectionYAMLReader(unittest.TestCase):
+    """Test CollectionYAMLReader."""
+
+    def setUp(self):
+        """Setup a CollectionYAMLReader."""
+        from satpy.readers.yaml_reader import CollectionYAMLReader
+        CollectionYAMLReader.__bases__ = (MagicMock, )
+        self.reader = CollectionYAMLReader()
+
+    @patch('satpy.readers.yaml_reader.xr')
+    @patch('satpy.readers.yaml_reader._find_missing_segments')
+    def test_load_dataset(self, mss, xr):
+        """Test _load_dataset()."""
+        counter = 9
+        expected_segments = 8
+        seg = MagicMock(dims=['y', 'x'])
+        slice_list = expected_segments * [seg, ]
+        failure = False
+        projectable = MagicMock()
+        mss.return_value = (counter, expected_segments, slice_list,
+                            failure, projectable)
+        empty_segment = MagicMock()
+        xr.full_like.return_value = empty_segment
+        concat_slices = MagicMock()
+        xr.concat.return_value = concat_slices
+        dsid = MagicMock()
+        ds_info = MagicMock()
+        file_handlers = MagicMock()
+
+        # No missing segments
+        res = self.reader._load_dataset(dsid, ds_info, file_handlers)
+        self.assertTrue(res.attrs is file_handlers[0].combine_info.return_value)
+        self.assertTrue(empty_segment not in slice_list)
+
+        # One missing segment in the middle
+        slice_list[4] = None
+        counter = 8
+        mss.return_value = (counter, expected_segments, slice_list,
+                            failure, projectable)
+        res = self.reader._load_dataset(dsid, ds_info, file_handlers)
+        self.assertTrue(slice_list[4] is empty_segment)
+
+        # The last segment is missing
+        slice_list = expected_segments * [seg, ]
+        slice_list[-1] = None
+        counter = 8
+        mss.return_value = (counter, expected_segments, slice_list,
+                            failure, projectable)
+        res = self.reader._load_dataset(dsid, ds_info, file_handlers)
+        self.assertTrue(slice_list[-1] is empty_segment)
+
+        # The last two segments are missing
+        slice_list = expected_segments * [seg, ]
+        slice_list[-1] = None
+        counter = 7
+        mss.return_value = (counter, expected_segments, slice_list,
+                            failure, projectable)
+        res = self.reader._load_dataset(dsid, ds_info, file_handlers)
+        self.assertTrue(slice_list[-1] is empty_segment)
+        self.assertTrue(slice_list[-2] is empty_segment)
+
+        # The first segment is missing
+        slice_list = expected_segments * [seg, ]
+        slice_list[0] = None
+        counter = 9
+        mss.return_value = (counter, expected_segments, slice_list,
+                            failure, projectable)
+        res = self.reader._load_dataset(dsid, ds_info, file_handlers)
+        self.assertTrue(slice_list[0] is empty_segment)
+
+        # The first two segments are missing
+        slice_list = expected_segments * [seg, ]
+        slice_list[0] = None
+        slice_list[1] = None
+        counter = 9
+        mss.return_value = (counter, expected_segments, slice_list,
+                            failure, projectable)
+        res = self.reader._load_dataset(dsid, ds_info, file_handlers)
+        self.assertTrue(slice_list[0] is empty_segment)
+        self.assertTrue(slice_list[1] is empty_segment)
+
+    @patch('satpy.readers.yaml_reader._stack_area_defs')
+    @patch('satpy.readers.yaml_reader._pad_earlier_segments_area')
+    @patch('satpy.readers.yaml_reader._pad_later_segments_area')
+    def test_load_area_def(self, pesa, plsa, sad):
+        """Test _load_area_def()."""
+        dsid = MagicMock()
+        file_handlers = MagicMock()
+        res = self.reader._load_area_def(dsid, file_handlers)
+        pesa.assert_called_once()
+        plsa.assert_called_once()
+        sad.assert_called_once()
+
+    def test_pad_later_segments_area(self):
+        """Test _pad_later_segments_area()."""
+        pass
+
+    def test_pad_earlier_segments_area(self):
+        """Test _pad_earlier_segments_area()."""
+        pass
+
+    def test_find_missing_segments(self):
+        """Test _find_missing_segments()."""
+        pass
+
+
 def suite():
     """The test suite for test_scene."""
     loader = unittest.TestLoader()
@@ -600,6 +706,7 @@ def suite():
         TestFileFileYAMLReaderMultiplePatterns))
     mysuite.addTest(loader.loadTestsFromTestCase(
         TestFileFileYAMLReaderMultipleFileTypes))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestCollectionYAMLReader))
 
     return mysuite
 
