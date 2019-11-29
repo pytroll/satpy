@@ -1147,6 +1147,70 @@ class TestPSPRayleighReflectance(unittest.TestCase):
         self.orbital.get_observer_look.assert_called_with(
             'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
 
+class TestSimpleMaskingCompositor(GenericCompositor):
+    """Test case for the simple masking compositor."""
+
+    def test_init(self):
+        """Test the initializiation of compositor."""
+        from satpy.composites import SimpleMaskingCompositor
+
+        # No transparency given raises ValueError
+        with self.assertRaises(ValueError):
+            comp = SimpleMaskingCompositor("name")
+
+        # transparency defined
+        comp = SimpleMaskingCompositor("name", transparency=0)
+        self.assertEqual(comp.transparency, 0)
+
+    def test_call(self):
+        """Test call the compositor."""
+
+        flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
+        flag_values = np.array([  1,   2])
+        transparency_data_v1 = {'Cloud-free_land': 100,
+                                'Cloud-free_sea': 50}
+        transparency_data_v2 = {0 : 100,
+                                1 : 50}
+
+       # 2D data array
+        data = xr.DataArray(da.ones((3, 3)), dims=['y', 'x'])
+        data = data * 1000
+
+        # 2D CT data array
+        ct_data = [[0, 1, 1],
+                   [1, 0, 1],
+                   [1, 1, 0]]
+        ct_data = xr.DataArray(ct_data, dims=['y', 'x'])
+        ct_data.attrs['flag_meanings'] = flag_meanings
+        ct_data.attrs['flag_values'] = flag_values
+
+        reference_alpha = [[0, 0.5, 0.5],
+                           [0.5, 0, 0.5],
+                           [0.5, 0.5, 0]]
+        reference_alpha = xr.DataArray(reference_alpha, dims=['y', 'x'])
+
+        projectables_data[0]=data
+        projectables_data[1]=ct_data
+
+        # Test with transparency_data_v1
+        comp = SimpleMaskingCompositor("name",
+                                       transparency=transparency_data_v1)
+
+        self.assertEqual(comp.projectables, projectables_data)
+        # Check output alpha layer vs reference
+
+        # Test with transparency_data_v2
+        comp = SimpleMaskingCompositor("name",
+                                       transparency=transparency_data_v2)
+        self.assertEqual(comp.projectables, projectables_data)
+
+        # Check output alpha layer vs reference
+
+
+
+        # Test match_data_arrays
+
+        #
 
 def suite():
     """Test suite for all reader tests."""
