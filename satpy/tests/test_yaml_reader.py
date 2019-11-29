@@ -34,8 +34,10 @@ except ImportError:
 
 
 class FakeFH(BaseFileHandler):
+    """Fake file handler class."""
 
     def __init__(self, start_time, end_time):
+        """Initialize fake file handler."""
         super(FakeFH, self).__init__("", {}, {})
         self._start_time = start_time
         self._end_time = end_time
@@ -47,10 +49,12 @@ class FakeFH(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Return start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Return end time."""
         return self._end_time
 
 
@@ -102,7 +106,10 @@ class TestUtils(unittest.TestCase):
 
 
 class DummyReader(BaseFileHandler):
+    """Dummy reader instance."""
+
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the dummy reader."""
         super(DummyReader, self).__init__(
             filename, filename_info, filetype_info)
         self._start_time = datetime(2000, 1, 1, 12, 1)
@@ -111,10 +118,12 @@ class DummyReader(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Return start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Return end time."""
         return self._end_time
 
 
@@ -124,7 +133,7 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.recursive_dict_update')
     @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
     def setUp(self, _, rec_up):  # pylint: disable=arguments-differ
-        """Setup a reader instance with a fake config."""
+        """Prepare a reader instance with a fake config."""
         patterns = ['a{something:3s}.bla',
                     'a0{something:2s}.bla']
         res_dict = {'reader': {'name': 'fake',
@@ -187,7 +196,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.recursive_dict_update')
     @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
     def setUp(self, _, rec_up):  # pylint: disable=arguments-differ
-        """Setup a reader instance with a fake config."""
+        """Prepare a reader instance with a fake config."""
         patterns = ['a{something:3s}.bla']
         res_dict = {'reader': {'name': 'fake',
                                'sensors': ['canon']},
@@ -395,7 +404,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         dsid = MagicMock()
         file_handlers = []
         items = random.randrange(2, 10)
-        for i in range(items):
+        for _i in range(items):
             file_handlers.append(MagicMock())
         final_area = self.reader._load_area_def(dsid, file_handlers)
         self.assertEqual(final_area, sad.return_value.squeeze.return_value)
@@ -405,7 +414,6 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_preferred_filetype(self):
         """Test finding the preferred filetype."""
-
         self.reader.file_handlers = {'a': 'a', 'b': 'b', 'c': 'c'}
         self.assertEqual(self.reader._preferred_filetype(['c', 'a']), 'c')
         self.assertEqual(self.reader._preferred_filetype(['a', 'c']), 'a')
@@ -494,7 +502,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
     @patch('satpy.readers.yaml_reader.recursive_dict_update')
     @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
     def setUp(self, _, rec_up):  # pylint: disable=arguments-differ
-        """Setup a reader instance with a fake config."""
+        """Prepare a reader instance with a fake config."""
         # Example: GOES netCDF data
         #   a) From NOAA CLASS: ftype1, including coordinates
         #   b) From EUMETSAT: ftype2, coordinates in extra file (ftype3)
@@ -537,7 +545,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
         self.reader = yr.FileYAMLReader([__file__])
 
     def test_update_ds_ids_from_file_handlers(self):
-        """Test updating existing dataset IDs with information from the file"""
+        """Test updating existing dataset IDs with information from the file."""
         from functools import partial
         orig_ids = self.reader.all_ids
 
@@ -594,7 +602,7 @@ class TestCollectionYAMLReader(unittest.TestCase):
     """Test CollectionYAMLReader."""
 
     def setUp(self):
-        """Setup a CollectionYAMLReader."""
+        """Add setup for CollectionYAMLReader."""
         from satpy.readers.yaml_reader import CollectionYAMLReader
         CollectionYAMLReader.__bases__ = (MagicMock, )
         self.reader = CollectionYAMLReader()
@@ -678,7 +686,7 @@ class TestCollectionYAMLReader(unittest.TestCase):
         """Test _load_area_def()."""
         dsid = MagicMock()
         file_handlers = MagicMock()
-        res = self.reader._load_area_def(dsid, file_handlers)
+        _ = self.reader._load_area_def(dsid, file_handlers)
         pesa.assert_called_once()
         plsa.assert_called_once()
         sad.assert_called_once()
@@ -697,7 +705,7 @@ class TestCollectionYAMLReader(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_scene."""
+    """Create test suite for the yaml reader module."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
