@@ -31,6 +31,7 @@ The following people have made contributions to this project:
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Thomas Leppelt (m4sth0)](https://github.com/m4sth0)
+- [Andrea Meraner (ameraner)](https://github.com/ameraner)
 - [Lucas Meyer (LTMeyer)](https://github.com/LTMeyer)
 - [Oana Nicola](https://github.com/)
 - [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
