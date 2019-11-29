@@ -61,12 +61,12 @@ TEST3_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XXXXXXXXXXXX'
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
     'earth_model': 1,
-    'dsid': DatasetID(name='VIS006'),
+    'dataset_id': DatasetID(name='VIS006'),
     'is_full_disk': True,
     'expected_area_def': {
-        'Area ID': 'geosmsg',
+        'Area ID': 'geos_seviri_visir',
         'Description': 'MSG/SEVIRI low resolution channel area',
-        'Projection ID': 'msg_lowres',
+        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -78,12 +78,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
     'earth_model': 1,
-    'dsid': DatasetID(name='VIS006'),
+    'dataset_id': DatasetID(name='VIS006'),
     'is_full_disk': False,
     'expected_area_def': {
-        'Area ID': 'geosmsg',
+        'Area ID': 'geos_seviri_visir',
         'Description': 'MSG/SEVIRI low resolution channel area',
-        'Projection ID': 'msg_lowres',
+        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -95,12 +95,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
     'earth_model': 1,
-    'dsid': DatasetID(name='HRV'),
+    'dataset_id': DatasetID(name='HRV'),
     'is_full_disk': True,
     'expected_area_def': {
-        'Area ID': 'geosmsg',
+        'Area ID': 'geos_seviri_hrv',
         'Description': 'MSG/SEVIRI low resolution channel area',
-        'Projection ID': 'msg_hires',
+        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -113,12 +113,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
     'earth_model': 1,
-    'dsid': DatasetID(name='HRV'),
+    'dataset_id': DatasetID(name='HRV'),
     'is_full_disk': False,
     'expected_area_def': {
-        'Area ID': 'geosmsg_hrv',
+        'Area ID': 'geos_seviri_hrv',
         'Description': 'MSG/SEVIRI high resolution channel area',
-        'Projection ID': 'msg_hires',
+        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -130,12 +130,12 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
     'earth_model': 2,
-    'dsid': DatasetID(name='VIS006'),
+    'dataset_id': DatasetID(name='VIS006'),
     'is_full_disk': True,
     'expected_area_def': {
-        'Area ID': 'geosmsg',
+        'Area ID': 'geos_seviri_visir',
         'Description': 'MSG/SEVIRI low resolution channel area',
-        'Projection ID': 'msg_lowres',
+        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -147,12 +147,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
     'earth_model': 2,
-    'dsid': DatasetID(name='HRV'),
+    'dataset_id': DatasetID(name='HRV'),
     'is_full_disk': True,
     'expected_area_def': {
-        'Area ID': 'geosmsg',
+        'Area ID': 'geos_seviri_hrv',
         'Description': 'MSG/SEVIRI low resolution channel area',
-        'Projection ID': 'msg_hires',
+        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -165,12 +165,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
     'earth_model': 2,
-    'dsid': DatasetID(name='VIS006'),
+    'dataset_id': DatasetID(name='VIS006'),
     'is_full_disk': False,
     'expected_area_def': {
-        'Area ID': 'geosmsg',
+        'Area ID': 'geos_seviri_visir',
         'Description': 'MSG/SEVIRI low resolution channel area',
-        'Projection ID': 'msg_lowres',
+        'Projection ID': 'seviri_visir',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -182,12 +182,12 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
     'earth_model': 2,
-    'dsid': DatasetID(name='HRV'),
+    'dataset_id': DatasetID(name='HRV'),
     'is_full_disk': False,
     'expected_area_def': {
-        'Area ID': 'geosmsg_hrv',
+        'Area ID': 'geos_seviri_hrv',
         'Description': 'MSG/SEVIRI high resolution channel area',
-        'Projection ID': 'msg_hires',
+        'Projection ID': 'seviri_hrv',
         'Projection': {'a': '6378169000', 'b': '6356583800', 'h': '35785831',
                        'lon_0': '0', 'no_defs': 'None', 'proj': 'geos',
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
@@ -199,7 +199,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
 
 TEST_CALIBRATION_MODE = {
     'earth_model': 1,
-    'dsid': DatasetID(name='IR_108', calibration='radiance'),
+    'dataset_id': DatasetID(name='IR_108', calibration='radiance'),
     'is_full_disk': True,
     'calibration': 'radiance',
     'CalSlope': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.96, 0.97],
@@ -254,12 +254,12 @@ class TestNativeMSGArea(unittest.TestCase):
     """
 
     @staticmethod
-    def create_test_header(earth_model, dsid, is_full_disk):
+    def create_test_header(earth_model, dataset_id, is_full_disk):
         """Create mocked NativeMSGFileHandler.
 
-        Containes sufficient attributes for NativeMSGFileHandler.get_area_extent to be able to execute.
+        Contains sufficient attributes for NativeMSGFileHandler.get_area_extent to be able to execute.
         """
-        if dsid.name == 'HRV':
+        if dataset_id.name == 'HRV':
             reference_grid = 'ReferenceGridHRV'
             column_dir_grid_step = 1.0001343488693237
             line_dir_grid_step = 1.0001343488693237
@@ -354,9 +354,9 @@ class TestNativeMSGArea(unittest.TestCase):
     def prepare_area_defs(self, test_dict):
         """Prepare calculated and expected area definitions for equal checking."""
         earth_model = test_dict['earth_model']
-        dsid = test_dict['dsid']
+        dataset_id = test_dict['dataset_id']
         is_full_disk = test_dict['is_full_disk']
-        header = self.create_test_header(earth_model, dsid, is_full_disk)
+        header = self.create_test_header(earth_model, dataset_id, is_full_disk)
         trailer = self.create_test_trailer()
         expected_area_def = test_dict['expected_area_def']
 
@@ -371,7 +371,7 @@ class TestNativeMSGArea(unittest.TestCase):
                         fh = NativeMSGFileHandler(None, {}, None)
                         fh.header = header
                         fh.trailer = trailer
-                        calc_area_def = fh.get_area_def(dsid)
+                        calc_area_def = fh.get_area_def(dataset_id)
 
         return (calc_area_def, expected_area_def)
 
@@ -480,13 +480,13 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
     """
 
     @staticmethod
-    def create_test_header(earth_model, dsid, is_full_disk):
+    def create_test_header(earth_model, dataset_id, is_full_disk):
         """Create Test Header.
 
         Mocked NativeMSGFileHandler with sufficient attributes for
         NativeMSGFileHandler.get_area_extent to be able to execute.
         """
-        if dsid.name == 'HRV':
+        if dataset_id.name == 'HRV':
             # reference_grid = 'ReferenceGridHRV'
             column_dir_grid_step = 1.0001343488693237
             line_dir_grid_step = 1.0001343488693237
@@ -571,8 +571,8 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
         data = xr.DataArray([255., 200., 300.])
 
         earth_model = test_dict['earth_model']
-        dsid = test_dict['dsid']
-        index = CHANNEL_INDEX_LIST.index(dsid.name)
+        dataset_id = test_dict['dataset_id']
+        index = CHANNEL_INDEX_LIST.index(dataset_id.name)
 
         # determine the cal coeffs needed for the expected data calculation
         if cal_mode == 'nominal':
@@ -585,7 +585,7 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
             cal_slope = cal_slope_arr[index]
 
         is_full_disk = test_dict['is_full_disk']
-        header = self.create_test_header(earth_model, dsid, is_full_disk)
+        header = self.create_test_header(earth_model, dataset_id, is_full_disk)
 
         with mock.patch('satpy.readers.seviri_l1b_native.np.fromfile') as fromfile:
             fromfile.return_value = header
@@ -605,7 +605,7 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
                         # Calculate the calibrated vaues using the cal coeffs from the
                         # test header and using the correct calibration mode values
                         fh.header = header
-                        calculated = fh.calibrate(data, dsid)
+                        calculated = fh.calibrate(data, dataset_id)
 
         return (expected.data, calculated.data)
 
