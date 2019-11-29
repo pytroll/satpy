@@ -864,7 +864,6 @@ class CollectionYAMLReader(FileYAMLReader):
         """Load only a piece of the dataset."""
         counter, expected_segments, slice_list, failure, projectable = \
             _find_missing_segments(file_handlers, ds_info, dsid)
-
         # TODO make sure projectable is not None
         empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
@@ -898,11 +897,21 @@ class CollectionYAMLReader(FileYAMLReader):
         area_defs = _pad_earlier_segments_area(file_handlers, dsid, area_defs)
 
         # Stack the area definitions
-        area_defs = [area_defs[area_def] for area_def in sorted(area_defs.keys())
-                     if area_def is not None]
+        area_def = _stack_area_defs(area_defs)
 
-        final_area = StackedAreaDefinition(*area_defs)
-        return final_area.squeeze()
+        return area_def
+
+
+def _stack_area_defs(area_def_dict):
+    """Stack given dict of area definitions and return a StackedAreaDefinition."""
+    area_defs = [area_def_dict[area_def] for
+                 area_def in sorted(area_def_dict.keys())
+                 if area_def is not None]
+
+    area_def = StackedAreaDefinition(*area_defs)
+    area_def = area_def.squeeze()
+
+    return area_def
 
 
 def _pad_later_segments_area(file_handlers, dsid):
