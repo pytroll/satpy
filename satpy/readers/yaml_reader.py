@@ -906,8 +906,7 @@ class CollectionYAMLReader(FileYAMLReader):
 
 
 def _pad_later_segments_area(file_handlers, dsid):
-    """Pad missing segments that are later in sequence than the first available."""
-    last_segment = None
+    """Pad area definitions for missing segments that are later in sequence than the first available."""
     seg_size = None
     expected_segments = file_handlers[0].filetype_info['expected_segments']
     available_segments = [int(fh.filename_info['segment']) for
@@ -930,16 +929,13 @@ def _pad_later_segments_area(file_handlers, dsid):
                                   fill_extent)
 
         area_defs[segment] = area
-        last_segment = segment
         seg_size = area.shape
 
     return area_defs
 
 
 def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
-    """Pad missing segments that are earlier in sequence than the first available."""
-    last_segment = None
-    expected_segments = file_handlers[0].filetype_info['expected_segments']
+    """Pad area definitions for missing segments that are earlier in sequence than the first available."""
     available_segments = [int(fh.filename_info['segment']) for
                           fh in file_handlers]
     area = file_handlers[0].get_area_def(dsid)
