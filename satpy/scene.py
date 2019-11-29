@@ -660,7 +660,10 @@ class Scene(MetadataObject):
             if boundary != 'exact':
                 raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
             target_area = src_area.aggregate(**dim_kwargs)
-            resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            try:
+                resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            except AttributeError:
+                resolution = max(target_area.lats.resolution, target_area.lons.resolution)
             for ds_id in ds_ids:
                 res = self[ds_id].coarsen(boundary=boundary, side=side, func=func, **dim_kwargs)
 
