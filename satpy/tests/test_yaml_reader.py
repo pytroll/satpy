@@ -691,9 +691,31 @@ class TestCollectionYAMLReader(unittest.TestCase):
         plsa.assert_called_once()
         sad.assert_called_once()
 
-    def test_pad_later_segments_area(self):
+    @patch('satpy.readers.yaml_reader.AreaDefinition')
+    def test_pad_later_segments_area(self, AreaDefinition):
         """Test _pad_later_segments_area()."""
-        pass
+        from satpy.readers.yaml_reader import _pad_later_segments_area as plsa
+
+        seg1_area = MagicMock()
+        seg1_area.proj_dict = 'proj_dict'
+        seg1_area.area_extent = [0, 1000, 200, 500]
+        seg1_area.shape = [200, 500]
+        get_area_def = MagicMock()
+        get_area_def.return_value = seg1_area
+        fh_1 = MagicMock()
+        filetype_info = {'expected_segments': 2}
+        filename_info = {'segment': 1}
+        fh_1.filetype_info = filetype_info
+        fh_1.filename_info = filename_info
+        fh_1.get_area_def = get_area_def
+        file_handlers = [fh_1]
+        dsid = 'dsid'
+        res = plsa(file_handlers, dsid)
+        self.assertEqual(len(res), 2)
+        seg2_extent = (0, 1500, 200, 1000)
+        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 500, 200,
+                         seg2_extent)
+        AreaDefinition.assert_called_once_with(*expected_call)
 
     def test_pad_earlier_segments_area(self):
         """Test _pad_earlier_segments_area()."""
