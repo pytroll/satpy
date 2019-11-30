@@ -14,18 +14,9 @@ env:
         - CONDA_CHANNEL_PRIORITY='strict'
 matrix:
   include:
-  - env:
-    - PYTHON_VERSION=2.7
-    - NUMPY_VERSION=1.16
+  - env: PYTHON_VERSION=3.8
     os: linux
-  - env:
-    - PYTHON_VERSION=2.7
-    - NUMPY_VERSION=1.16
-    os: osx
-    language: generic
-  - env: PYTHON_VERSION=3.7
-    os: linux
-  - env: PYTHON_VERSION=3.7
+  - env: PYTHON_VERSION=3.8
     os: osx
     language: generic
 install:
@@ -35,7 +26,7 @@ script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 after_success:
-- if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; codecov; fi
+- if [[ $PYTHON_VERSION == 3.8 ]]; then coveralls; codecov; fi
 deploy:
   - provider: pypi
     user: dhoese
