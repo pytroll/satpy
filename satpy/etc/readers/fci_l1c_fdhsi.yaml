@@ -1,7 +1,7 @@
 reader:
   description: Generic FCI FDSHI Data Reader
   name: fci_l1c_fdhsi
-  reader: !!python/name:satpy.readers.yaml_reader.CollectionYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [fci]
   default_datasets:
 
