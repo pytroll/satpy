@@ -611,6 +611,16 @@ class TestCollectionYAMLReader(unittest.TestCase):
     @patch('satpy.readers.yaml_reader._find_missing_segments')
     def test_load_dataset(self, mss, xr):
         """Test _load_dataset()."""
+        # Projectable is None
+        mss.return_value = [0, 0, 0, False, None]
+        with self.assertRaises(KeyError):
+            res = self.reader._load_dataset(None, None, None)
+        # Failure is True
+        mss.return_value = [0, 0, 0, True, 0]
+        with self.assertRaises(KeyError):
+            res = self.reader._load_dataset(None, None, None)
+
+        # Setup input, and output of mocked functions
         counter = 9
         expected_segments = 8
         seg = MagicMock(dims=['y', 'x'])

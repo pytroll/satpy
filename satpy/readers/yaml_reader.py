@@ -864,7 +864,11 @@ class CollectionYAMLReader(FileYAMLReader):
         """Load only a piece of the dataset."""
         counter, expected_segments, slice_list, failure, projectable = \
             _find_missing_segments(file_handlers, ds_info, dsid)
-        # TODO make sure projectable is not None
+
+        if projectable is None or failure:
+            raise KeyError(
+                "Could not load {} from any provided files".format(dsid))
+
         empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
             if sli is None:
@@ -873,10 +877,6 @@ class CollectionYAMLReader(FileYAMLReader):
         while expected_segments > counter:
             slice_list.append(empty_segment)
             counter += 1
-
-        if failure:
-            raise KeyError(
-                "Could not load {} from any provided files".format(dsid))
 
         if dim not in slice_list[0].dims:
             return slice_list[0]
@@ -975,6 +975,7 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
     counter = 1
     expected_segments = 1
     handlers = sorted(file_handlers, key=lambda x: x.filename_info['segment'])
+    projectable = None
     for fh in handlers:
         if fh.filetype_info['file_type'] in ds_info['file_type']:
             expected_segments = fh.filetype_info.get('expected_segments', 1)
