@@ -220,7 +220,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b01
+    file_type: [hrit_b01_seg, hrit_b01_fd]
 
   B02:
     name: B02
@@ -234,7 +234,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b02
+    file_type: [hrit_b02_seg, hrit_b02_fd]
 
   B03:
     name: B03
@@ -248,7 +248,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b03
+    file_type: [hrit_b03_seg, hrit_b03_fd]
 
   B04:
     name: B04
@@ -262,7 +262,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b04
+    file_type: [hrit_b04_seg, hrit_b04_fd]
 
   B05:
     name: B05
@@ -276,7 +276,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b05
+    file_type: [hrit_b05_seg, hrit_b05_fd]
 
   B06:
     name: B06
@@ -290,7 +290,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b06
+    file_type: [hrit_b06_seg, hrit_b06_fd]
 
   B07_low_res:
     name: B07
@@ -306,7 +306,7 @@ datasets:
         standard_name: counts
         units: 1
     # FUTURE: Split this in to multiple resolutions so each can be loaded
-    file_type: [hrit_b07, hrit_b07_ir4]
+    file_type: [hrit_b07_seg, hrit_b07_ir4_seg, hrit_b07_fd, hrit_b07_ir4_fd]
 
 #  B07_high_res:
 #    name: B07
@@ -334,7 +334,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b08
+    file_type: [hrit_b08_seg, hrit_b08_fd]
 
   B09:
     name: B09
@@ -348,7 +348,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b09
+    file_type: [hrit_b09_seg, hrit_b09_fd]
 
   B10:
     name: B10
@@ -362,7 +362,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b10
+    file_type: [hrit_b10_seg, hrit_b10_fd]
 
   B11:
     name: B11
@@ -376,7 +376,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b11
+    file_type: [hrit_b11_seg, hrit_b11_fd]
 
   B12:
     name: B12
@@ -390,7 +390,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b12
+    file_type: [hrit_b12_seg, hrit_b12_fd]
 
   B13:
     name: B13
@@ -404,7 +404,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b13
+    file_type: [hrit_b13_seg, hrit_b13_fd]
 
   B14:
     name: B14
@@ -418,7 +418,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b14
+    file_type: [hrit_b14_seg, hrit_b14_fd]
 
   B15:
     name: B15
@@ -432,7 +432,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b15
+    file_type: [hrit_b15_seg, hrit_b15_fd]
 
   B16:
     name: B16
@@ -446,4 +446,4 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b16
+    file_type: [hrit_b16_seg, hrit_b16_fd]
