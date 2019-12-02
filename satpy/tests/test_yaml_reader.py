@@ -686,7 +686,7 @@ class TestCollectionYAMLReader(unittest.TestCase):
         """Test _load_area_def()."""
         dsid = MagicMock()
         file_handlers = MagicMock()
-        _ = self.reader._load_area_def(dsid, file_handlers)
+        self.reader._load_area_def(dsid, file_handlers)
         pesa.assert_called_once()
         plsa.assert_called_once()
         sad.assert_called_once()
