@@ -717,9 +717,32 @@ class TestCollectionYAMLReader(unittest.TestCase):
                          seg2_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
-    def test_pad_earlier_segments_area(self):
+    @patch('satpy.readers.yaml_reader.AreaDefinition')
+    def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area()."""
-        pass
+        from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
+
+        seg2_area = MagicMock()
+        seg2_area.proj_dict = 'proj_dict'
+        seg2_area.area_extent = [0, 1000, 200, 500]
+        seg2_area.shape = [200, 500]
+        get_area_def = MagicMock()
+        get_area_def.return_value = seg2_area
+        fh_2 = MagicMock()
+        filetype_info = {'expected_segments': 2}
+        filename_info = {'segment': 2}
+        fh_2.filetype_info = filetype_info
+        fh_2.filename_info = filename_info
+        fh_2.get_area_def = get_area_def
+        file_handlers = [fh_2]
+        dsid = 'dsid'
+        area_defs = {2: seg2_area}
+        res = pesa(file_handlers, dsid, area_defs)
+        self.assertEqual(len(res), 2)
+        seg1_extent = (0, 500, 200, 0)
+        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 500, 200,
+                         seg1_extent)
+        AreaDefinition.assert_called_once_with(*expected_call)
 
     def test_find_missing_segments(self):
         """Test _find_missing_segments()."""
