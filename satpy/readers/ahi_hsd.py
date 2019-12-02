@@ -39,6 +39,7 @@ import numpy as np
 import dask.array as da
 import xarray as xr
 import warnings
+import os
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -263,8 +264,13 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
+
+        self.is_zipped = False
         self._unzipped = unzip_file(self.filename)
+        # Assume file is not zipped
         if self._unzipped:
+            # But if it is, set the filename to point to unzipped temp file
+            self.is_zipped = True
             self.filename = self._unzipped
 
         self.channels = dict([(i, None) for i in AHI_CHANNEL_NAMES])
@@ -300,6 +306,10 @@ class AHIHSDFileHandler(BaseFileHandler):
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
                 calib_mode, calib_mode_choices))
         self.calib_mode = calib_mode.upper()
+
+    def __del__(self):
+        if (self.is_zipped):
+            os.remove(self.filename)
 
     @property
     def start_time(self):
