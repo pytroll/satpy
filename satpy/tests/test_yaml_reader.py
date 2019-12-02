@@ -746,7 +746,45 @@ class TestCollectionYAMLReader(unittest.TestCase):
 
     def test_find_missing_segments(self):
         """Test _find_missing_segments()."""
-        pass
+        from satpy.readers.yaml_reader import _find_missing_segments as fms
+        # Dataset with only one segment
+        filename_info = {'segment': 1}
+        fh_seg1 = MagicMock(filename_info=filename_info)
+        projectable = 'projectable'
+        get_dataset = MagicMock()
+        get_dataset.return_value = projectable
+        fh_seg1.get_dataset = get_dataset
+        file_handlers = [fh_seg1]
+        ds_info = {'file_type': []}
+        dsid = 'dsid'
+        res = fms(file_handlers, ds_info, dsid)
+        counter, expected_segments, slice_list, failure, proj = res
+        self.assertEqual(counter, 2)
+        self.assertEqual(expected_segments, 1)
+        self.assertTrue(projectable in slice_list)
+        self.assertFalse(failure)
+        self.assertTrue(proj is projectable)
+
+        # Three expected segments, first and last missing
+        filename_info = {'segment': 2}
+        filetype_info = {'expected_segments': 3,
+                         'file_type': 'foo'}
+        fh_seg2 = MagicMock(filename_info=filename_info,
+                            filetype_info=filetype_info)
+        projectable = 'projectable'
+        get_dataset = MagicMock()
+        get_dataset.return_value = projectable
+        fh_seg2.get_dataset = get_dataset
+        file_handlers = [fh_seg2]
+        ds_info = {'file_type': ['foo']}
+        dsid = 'dsid'
+        res = fms(file_handlers, ds_info, dsid)
+        counter, expected_segments, slice_list, failure, proj = res
+        self.assertEqual(counter, 3)
+        self.assertEqual(expected_segments, 3)
+        self.assertEqual(slice_list, [None, projectable, None])
+        self.assertFalse(failure)
+        self.assertTrue(proj is projectable)
 
 
 def suite():
