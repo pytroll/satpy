@@ -17,12 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for VIIRS compositors."""
 
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 try:
     from unittest import mock
 except ImportError:
@@ -500,6 +495,8 @@ class ViirsReflectanceCorrectorTest(unittest.TestCase):
     @mock.patch('satpy.composites.viirs.get_satpos')
     def test_get_angles(self, get_satpos):
         """Test sun and satellite angle calculation."""
+        import numpy as np
+        import dask.array as da
         from satpy.composites.viirs import ReflectanceCorrector
 
         # Patch methods
@@ -507,7 +504,13 @@ class ViirsReflectanceCorrectorTest(unittest.TestCase):
         self.orbital.get_observer_look.return_value = 0, 0
         self.astronomy.get_alt_az.return_value = 0, 0
         area = mock.MagicMock()
-        area.get_lonlats_dask.return_value = 'lons', 'lats'
+        lons = np.zeros((5, 5))
+        lons[1, 1] = np.inf
+        lons = da.from_array(lons, chunks=5)
+        lats = np.zeros((5, 5))
+        lats[1, 1] = np.inf
+        lats = da.from_array(lats, chunks=5)
+        area.get_lonlats.return_value = (lons, lats)
         vis = mock.MagicMock(attrs={'area': area,
                                     'start_time': 'start_time'})
 
@@ -517,8 +520,12 @@ class ViirsReflectanceCorrectorTest(unittest.TestCase):
 
         # Check arguments of get_orbserver_look() call, especially the altitude
         # unit conversion from meters to kilometers
-        self.orbital.get_observer_look.assert_called_with(
-            'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
+        self.orbital.get_observer_look.assert_called_once()
+        args = self.orbital.get_observer_look.call_args[0]
+        self.assertEqual(args[:4], ('sat_lon', 'sat_lat', 12345.678, 'start_time'))
+        self.assertIsInstance(args[4], da.Array)
+        self.assertIsInstance(args[5], da.Array)
+        self.assertEqual(args[6], 0)
 
 
 def suite():
