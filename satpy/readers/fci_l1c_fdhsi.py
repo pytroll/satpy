@@ -182,8 +182,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset.
-
-        Cache results between channels"""
+        """
         # Calculate the area extent of the swath based on start line and column
         # information, total number of segments and channel resolution
         # numbers from PUG, Table 3
