@@ -323,6 +323,27 @@ sensor_name: visir/test_sensor2
                              os.path.abspath(self.ENH_ENH_FN)})
         np.testing.assert_almost_equal(img.data.isel(bands=0).max().values, 0.5)
 
+    def test_builtin_enhancements_default_rgb(self):
+        """Test what happens to RGBs with builtin enhancements."""
+        from satpy.writers import Enhancer, get_enhanced_image
+        from xarray import DataArray
+        ds = DataArray(
+            np.linspace(-0.1, 1.2, 75).reshape((3, 5, 5)),
+            attrs=dict(name='arbitrary', units='kelvin', sensor='test_sensor'),
+            dims=('bands', 'y', 'x'), coords={'bands': ['R', 'G', 'B']})
+        e = Enhancer()
+        self.assertIsNotNone(e.enhancement_tree)
+        img = get_enhanced_image(ds, enhance=e)
+        # make sure data on the output is same as input
+        np.testing.assert_almost_equal(img.data.min().values, -0.1)
+        np.testing.assert_almost_equal(img.data.max().values, 1.2)
+
+        # make sure a configured dataset doesn't use mode enhancement
+        # and actually gets stretched
+        ds.attrs['name'] = 'test1'
+        img = get_enhanced_image(ds, enhance=e)
+        np.testing.assert_almost_equal(img.data.values[0, 0, 0], -0.005)
+
 
 class TestYAMLFiles(unittest.TestCase):
     """Test and analyze the writer configuration files."""

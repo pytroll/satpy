@@ -25,6 +25,20 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
+def noop(img, **kwargs):
+    """Do nothing and return the original image."""
+    return img
+
+
+def unconfigured_noop(img, **kwargs):
+    """Do nothing and warn that no enhancement was configured."""
+    import warnings
+    name = img.data.attrs.get('name', '<unknown>')
+    warnings.warn("No enhancement configured for '{}'. Will not stretch and "
+                  "assuming already 0-1 normalized.".format(name))
+    return noop(img, **kwargs)
+
+
 def stretch(img, **kwargs):
     """Perform stretch."""
     return img.stretch(**kwargs)

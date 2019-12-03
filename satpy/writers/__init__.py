@@ -379,6 +379,24 @@ def add_decorate(orig, fill_value=None, **decorate):
     return img
 
 
+def _bands_to_mode(data_arr):
+    """Convert a 'bands' coordinate variable to a string."""
+    # turn DataArray of characters in to string
+    bands = data_arr.coords.get('bands')
+    if bands is not None:
+        if bands.ndim == 0:
+            bands = [bands.item()]
+        else:
+            bands = list(bands.values)
+        if not isinstance(bands[0], str):
+            # we don't understand what these bands are
+            # probably integers or not set
+            bands = []
+    else:
+        bands = []
+    return "".join(bands) or None
+
+
 def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_config_file=None,
                        overlay=None, decorate=None, fill_value=None):
     """Get an enhanced version of `dataset` as an :class:`~trollimage.xrimage.XRImage` instance.
@@ -440,7 +458,9 @@ def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_c
         if dataset.attrs.get("sensor", None):
             enhancer.add_sensor_enhancements(dataset.attrs["sensor"])
 
-        enhancer.apply(img, **dataset.attrs)
+        attrs = dataset.attrs.copy()
+        attrs.setdefault('mode', _bands_to_mode(dataset))
+        enhancer.apply(img, **attrs)
 
     if overlay is not None:
         img = add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
@@ -922,7 +942,8 @@ class EnhancementDecisionTree(DecisionTree):
                                      "platform_name",
                                      "sensor",
                                      "standard_name",
-                                     "units",))
+                                     "units",
+                                     "mode",))
         self.prefix = kwargs.pop("config_section", "enhancements")
         super(EnhancementDecisionTree, self).__init__(
             decision_dicts, attrs, **kwargs)

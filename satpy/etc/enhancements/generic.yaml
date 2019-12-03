@@ -6,6 +6,11 @@ enhancements:
     - name: stretch
       method: &stretchfun !!python/name:satpy.enhancements.stretch
       kwargs: {stretch: linear}
+  rgb_default:
+    mode: RGB
+    operations:
+      - name: passive
+        method: !!python/name:satpy.enhancements.unconfigured_noop
   reflectance_default:
     standard_name: toa_bidirectional_reflectance
     operations:
