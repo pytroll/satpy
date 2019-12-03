@@ -283,6 +283,7 @@ class TestVIIRSComposites(unittest.TestCase):
             DatasetID(name='solar_zenith_angle')])
 
         area, dnb = self.data_area_ref_corrector()
+        print(dnb.compute())
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={'satellite_longitude': -89.5, 'satellite_latitude': 0.0,
@@ -311,9 +312,9 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(res.attrs['area'], area)
         self.assertEqual(res.attrs['ancillary_variables'], [])
         data = res.values
-        self.assertLess(abs(np.mean(data) - 29.907390988422513), 1e-10)
+        self.assertLess(abs(np.nanmean(data) - 26.00760944144745), 1e-10)
         self.assertEqual(data.shape, (5, 10))
-        unique = np.unique(data)
+        unique = np.unique(data[~np.isnan(data)])
         np.testing.assert_allclose(unique, [-1.0, 4.210745457958135, 6.7833906076177595, 8.730371329824473,
                                             10.286627569545209, 11.744159436709374, 12.20226097829902,
                                             13.501444598985305, 15.344399223932212, 17.173329483996515,
@@ -321,11 +322,11 @@ class TestVIIRSComposites(unittest.TestCase):
                                             19.288331720959864, 19.77043407084455, 19.887082168377006,
                                             20.091028778326375, 20.230341149334617, 20.457671064690196,
                                             20.82686905639114, 21.021094816441195, 21.129963777952124,
-                                            21.94957397026227, 41.601857910095575, 43.963919057675504,
+                                            41.601857910095575, 43.963919057675504,
                                             46.21672174361075, 46.972099490462085, 47.497072794632835,
                                             47.80393007974336, 47.956765988770385, 48.043025685032106,
                                             51.909142813383916, 58.8234273736508, 68.84706145641482, 69.91085190887961,
-                                            71.10179768327806, 71.33161009169649, 78.81291424983952])
+                                            71.10179768327806, 71.33161009169649])
 
     def test_reflectance_corrector_viirs(self):
         """Test ReflectanceCorrector modifier with VIIRS data."""
@@ -479,6 +480,8 @@ class TestVIIRSComposites(unittest.TestCase):
 
 
 class ViirsReflectanceCorrectorTest(unittest.TestCase):
+    """Tests for the VIIRS/MODIS Corrected Reflectance modifier."""
+
     def setUp(self):
         """Patch in-class imports."""
         self.astronomy = mock.MagicMock()
