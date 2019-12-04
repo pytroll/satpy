@@ -344,7 +344,7 @@ class MITIFFWriter(ImageWriter):
 
         for i, ds in enumerate(ds_list):
             if ('prerequisites' in ds.attrs and
-                type(ds.attrs['prerequisites']) is list and
+                isinstance(ds.attrs['prerequisites'], list) and
                 len(ds.attrs['prerequisites']) >= i + 1 and
                     isinstance(ds.attrs['prerequisites'][i], DatasetID)):
                 if ds.attrs['prerequisites'][i][0] == ch:
