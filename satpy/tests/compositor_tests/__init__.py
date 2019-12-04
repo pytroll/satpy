@@ -1067,6 +1067,8 @@ class TestBackgroundCompositor(unittest.TestCase):
 
 
 class TestPSPAtmosphericalCorrection(unittest.TestCase):
+    """Test the pyspectral-based atmospheric correction modifier."""
+
     def setUp(self):
         """Patch in-class imports."""
         self.orbital = mock.MagicMock()
@@ -1109,6 +1111,8 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
 
 
 class TestPSPRayleighReflectance(unittest.TestCase):
+    """Test the pyspectral-based rayleigh correction modifier."""
+
     def setUp(self):
         """Patch in-class imports."""
         self.astronomy = mock.MagicMock()
@@ -1134,7 +1138,13 @@ class TestPSPRayleighReflectance(unittest.TestCase):
         self.orbital.get_observer_look.return_value = 0, 0
         self.astronomy.get_alt_az.return_value = 0, 0
         area = mock.MagicMock()
-        area.get_lonlats.return_value = 'lons', 'lats'
+        lons = np.zeros((5, 5))
+        lons[1, 1] = np.inf
+        lons = da.from_array(lons, chunks=5)
+        lats = np.zeros((5, 5))
+        lats[1, 1] = np.inf
+        lats = da.from_array(lats, chunks=5)
+        area.get_lonlats.return_value = (lons, lats)
         vis = mock.MagicMock(attrs={'area': area,
                                     'start_time': 'start_time'})
 
@@ -1144,8 +1154,12 @@ class TestPSPRayleighReflectance(unittest.TestCase):
 
         # Check arguments of get_orbserver_look() call, especially the altitude
         # unit conversion from meters to kilometers
-        self.orbital.get_observer_look.assert_called_with(
-            'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
+        self.orbital.get_observer_look.assert_called_once()
+        args = self.orbital.get_observer_look.call_args[0]
+        self.assertEqual(args[:4], ('sat_lon', 'sat_lat', 12345.678, 'start_time'))
+        self.assertIsInstance(args[4], da.Array)
+        self.assertIsInstance(args[5], da.Array)
+        self.assertEqual(args[6], 0)
 
 class TestSimpleMaskingCompositor(GenericCompositor):
     """Test case for the simple masking compositor."""
