@@ -513,6 +513,8 @@ class PSPRayleighReflectance(CompositeBase):
         from pyorbital.orbital import get_observer_look
 
         lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
+        lons = da.where(lons >= 1e30, np.nan, lons)
+        lats = da.where(lats >= 1e30, np.nan, lats)
         sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
         suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
