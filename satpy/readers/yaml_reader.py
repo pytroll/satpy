@@ -655,12 +655,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def _load_area_def(self, dsid, file_handlers, **kwargs):
         """Load the area definition of *dsid*."""
-        area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
-        area_defs = [area_def for area_def in area_defs
-                     if area_def is not None]
-
-        final_area = StackedAreaDefinition(*area_defs)
-        return final_area.squeeze()
+        return _load_area_def(dsid, file_handlers)
 
     def _get_coordinates_for_dataset_key(self, dsid):
         """Get the coordinate dataset keys for *dsid*."""
@@ -852,6 +847,16 @@ class FileYAMLReader(AbstractYAMLReader):
         return datasets
 
 
+def _load_area_def(dsid, file_handlers):
+    """Load the area definition of *dsid*."""
+    area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
+    area_defs = [area_def for area_def in area_defs
+                 if area_def is not None]
+
+    final_area = StackedAreaDefinition(*area_defs)
+    return final_area.squeeze()
+
+
 class GEOSegmentYAMLReader(FileYAMLReader):
     """Reader for segmented geostationary data.
 
@@ -894,18 +899,22 @@ class GEOSegmentYAMLReader(FileYAMLReader):
     def _load_area_def(self, dsid, file_handlers, pad_data=True):
         """Load the area definition of *dsid* with padding."""
         if not pad_data:
-            return super(GEOSegmentYAMLReader, self)._load_area_def(dsid,
-                                                                    file_handlers)
-        # Pad missing segments between the first available and expected
-        area_defs = _pad_later_segments_area(file_handlers, dsid)
+            return _load_area_def(dsid, file_handlers)
+        return _load_area_def_with_padding(dsid, file_handlers)
 
-        # Add missing start segments
-        area_defs = _pad_earlier_segments_area(file_handlers, dsid, area_defs)
 
-        # Stack the area definitions
-        area_def = _stack_area_defs(area_defs)
+def _load_area_def_with_padding(dsid, file_handlers):
+    """Load the area definition of *dsid* with padding."""
+    # Pad missing segments between the first available and expected
+    area_defs = _pad_later_segments_area(file_handlers, dsid)
 
-        return area_def
+    # Add missing start segments
+    area_defs = _pad_earlier_segments_area(file_handlers, dsid, area_defs)
+
+    # Stack the area definitions
+    area_def = _stack_area_defs(area_defs)
+
+    return area_def
 
 
 def _stack_area_defs(area_def_dict):
