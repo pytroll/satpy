@@ -25,7 +25,7 @@ try:
 except ImportError:  # python 2
     import mock
 
-GAC_PATTERN = 'NSS.GHRR.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'  # noqa
+GAC_PATTERN = '{creation_site:3s}.{transfer_mode:4s}.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'  # noqa
 
 GAC_POD_FILENAMES = ['NSS.GHRR.NA.D79184.S1150.E1337.B0008384.WI',
                      'NSS.GHRR.NA.D79184.S2350.E0137.B0008384.WI',
