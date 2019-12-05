@@ -51,7 +51,7 @@ if sys.version < '3.0':
 
 extras_require = {
     # Readers:
-    'avhrr_l1b_gaclac': ['pygac >= 1.2.1'],
+    'avhrr_l1b_gaclac': ['pygac >= 1.3.0'],
     'modis_l1b': ['pyhdf', 'python-geotiepoints >= 1.1.7'],
     'geocat': ['pyhdf'],
     'acspo': ['netCDF4 >= 1.1.8'],
