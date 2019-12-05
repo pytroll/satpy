@@ -852,7 +852,7 @@ class FileYAMLReader(AbstractYAMLReader):
         return datasets
 
 
-class CollectionYAMLReader(FileYAMLReader):
+class GEOSegmentYAMLReader(FileYAMLReader):
     """Reader for segmented geostationary data.
 
     This reader pads the data to full geostationary disk.
@@ -894,7 +894,7 @@ class CollectionYAMLReader(FileYAMLReader):
     def _load_area_def(self, dsid, file_handlers, pad_data=True):
         """Load the area definition of *dsid* with padding."""
         if not pad_data:
-            return super(CollectionYAMLReader, self)._load_area_def(dsid,
+            return super(GEOSegmentYAMLReader, self)._load_area_def(dsid,
                                                                     file_handlers)
         # Pad missing segments between the first available and expected
         area_defs = _pad_later_segments_area(file_handlers, dsid)

@@ -598,14 +598,14 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                     self.assertEqual(expected, ds_id.resolution)
 
 
-class TestCollectionYAMLReader(unittest.TestCase):
-    """Test CollectionYAMLReader."""
+class TestGEOSegmentYAMLReader(unittest.TestCase):
+    """Test GEOSegmentYAMLReader."""
 
     def setUp(self):
-        """Add setup for CollectionYAMLReader."""
-        from satpy.readers.yaml_reader import CollectionYAMLReader
-        CollectionYAMLReader.__bases__ = (MagicMock, )
-        self.reader = CollectionYAMLReader()
+        """Add setup for GEOSegmentYAMLReader."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        GEOSegmentYAMLReader.__bases__ = (MagicMock, )
+        self.reader = GEOSegmentYAMLReader()
 
     @patch('satpy.readers.yaml_reader.xr')
     @patch('satpy.readers.yaml_reader._find_missing_segments')
@@ -807,7 +807,7 @@ def suite():
         TestFileFileYAMLReaderMultiplePatterns))
     mysuite.addTest(loader.loadTestsFromTestCase(
         TestFileFileYAMLReaderMultipleFileTypes))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCollectionYAMLReader))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestGEOSegmentYAMLReader))
 
     return mysuite
 

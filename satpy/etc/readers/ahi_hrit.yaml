@@ -8,7 +8,7 @@ reader:
   long_name: Himawari AHI Level 1 (HRIT)
   description: Reader for the JMA Himawari AHI Level 1 data in HRIT format
   sensors: [ahi]
-  reader: !!python/name:satpy.readers.yaml_reader.CollectionYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time', 'area']
 
