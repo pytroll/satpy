@@ -602,7 +602,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.all_ids = new_ids
 
     @staticmethod
-    def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y', **kwargs):
         """Load only a piece of the dataset."""
         slice_list = []
         failure = True
@@ -630,9 +630,9 @@ class FileYAMLReader(AbstractYAMLReader):
         res.attrs = combined_info
         return res
 
-    def _load_dataset_data(self, file_handlers, dsid):
+    def _load_dataset_data(self, file_handlers, dsid, **kwargs):
         ds_info = self.all_ids[dsid]
-        proj = self._load_dataset(dsid, ds_info, file_handlers)
+        proj = self._load_dataset(dsid, ds_info, file_handlers, **kwargs)
         # FIXME: areas could be concatenated here
         # Update the metadata
         proj.attrs['start_time'] = file_handlers[0].start_time
@@ -653,7 +653,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 return filetype
         return None
 
-    def _load_area_def(self, dsid, file_handlers):
+    def _load_area_def(self, dsid, file_handlers, **kwargs):
         """Load the area definition of *dsid*."""
         area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
         area_defs = [area_def for area_def in area_defs
@@ -728,10 +728,10 @@ class FileYAMLReader(AbstractYAMLReader):
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
 
-    def _load_dataset_area(self, dsid, file_handlers, coords):
+    def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
         """Get the area for *dsid*."""
         try:
-            return self._load_area_def(dsid, file_handlers)
+            return self._load_area_def(dsid, file_handlers, **kwargs)
         except NotImplementedError:
             if any(x is None for x in coords):
                 logger.warning(
@@ -743,16 +743,16 @@ class FileYAMLReader(AbstractYAMLReader):
                 logger.debug("No coordinates found for %s", str(dsid))
             return area
 
-    def _load_dataset_with_area(self, dsid, coords):
+    def _load_dataset_with_area(self, dsid, coords, **kwargs):
         """Load *dsid* and its area if available."""
         file_handlers = self._get_file_handlers(dsid)
         if not file_handlers:
             return
 
-        area = self._load_dataset_area(dsid, file_handlers, coords)
+        area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
 
         try:
-            ds = self._load_dataset_data(file_handlers, dsid)
+            ds = self._load_dataset_data(file_handlers, dsid, **kwargs)
         except (KeyError, ValueError) as err:
             logger.exception("Could not load dataset '%s': %s", dsid, str(err))
             return None
@@ -825,7 +825,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 raise
             return get_key(key, self.all_ids.keys(), **kwargs)
 
-    def load(self, dataset_keys, previous_datasets=None):
+    def load(self, dataset_keys, previous_datasets=None, **kwargs):
         """Load `dataset_keys`.
 
         If `previous_datasets` is provided, do not reload those.
@@ -837,13 +837,12 @@ class FileYAMLReader(AbstractYAMLReader):
         dsids = [self.get_dataset_key(ds_key) for ds_key in dataset_keys]
         coordinates = self._get_coordinates_for_dataset_keys(dsids)
         all_dsids = list(set().union(*coordinates.values())) + dsids
-
         for dsid in all_dsids:
             if dsid in all_datasets:
                 continue
             coords = [all_datasets.get(cid, None)
                       for cid in coordinates.get(dsid, [])]
-            ds = self._load_dataset_with_area(dsid, coords)
+            ds = self._load_dataset_with_area(dsid, coords, **kwargs)
             if ds is not None:
                 all_datasets[dsid] = ds
                 if dsid in dsids:
@@ -860,8 +859,12 @@ class CollectionYAMLReader(FileYAMLReader):
     """
 
     @staticmethod
-    def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y', pad_data=True):
         """Load only a piece of the dataset."""
+        if not pad_data:
+            return FileYAMLReader._load_dataset(dsid, ds_info,
+                                                file_handlers)
+
         counter, expected_segments, slice_list, failure, projectable = \
             _find_missing_segments(file_handlers, ds_info, dsid)
 
@@ -888,8 +891,11 @@ class CollectionYAMLReader(FileYAMLReader):
         res.attrs = combined_info
         return res
 
-    def _load_area_def(self, dsid, file_handlers):
+    def _load_area_def(self, dsid, file_handlers, pad_data=True):
         """Load the area definition of *dsid* with padding."""
+        if not pad_data:
+            return super(CollectionYAMLReader, self)._load_area_def(dsid,
+                                                                    file_handlers)
         # Pad missing segments between the first available and expected
         area_defs = _pad_later_segments_area(file_handlers, dsid)
 
