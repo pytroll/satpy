@@ -607,9 +607,10 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         GEOSegmentYAMLReader.__bases__ = (MagicMock, )
         self.reader = GEOSegmentYAMLReader()
 
+    @patch('satpy.readers.yaml_reader.FileYAMLReader._load_dataset')
     @patch('satpy.readers.yaml_reader.xr')
     @patch('satpy.readers.yaml_reader._find_missing_segments')
-    def test_load_dataset(self, mss, xr):
+    def test_load_dataset(self, mss, xr, parent_load_dataset):
         """Test _load_dataset()."""
         # Projectable is None
         mss.return_value = [0, 0, 0, False, None]
@@ -689,10 +690,17 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         self.assertTrue(slice_list[0] is empty_segment)
         self.assertTrue(slice_list[1] is empty_segment)
 
+        # Disable padding
+        res = self.reader._load_dataset(dsid, ds_info, file_handlers,
+                                        pad_data=False)
+        parent_load_dataset.assert_called_once_with(dsid, ds_info,
+                                                    file_handlers)
+
+    @patch('satpy.readers.yaml_reader._load_area_def')
     @patch('satpy.readers.yaml_reader._stack_area_defs')
     @patch('satpy.readers.yaml_reader._pad_earlier_segments_area')
     @patch('satpy.readers.yaml_reader._pad_later_segments_area')
-    def test_load_area_def(self, pesa, plsa, sad):
+    def test_load_area_def(self, pesa, plsa, sad, parent_load_area_def):
         """Test _load_area_def()."""
         dsid = MagicMock()
         file_handlers = MagicMock()
@@ -700,6 +708,10 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         pesa.assert_called_once()
         plsa.assert_called_once()
         sad.assert_called_once()
+        parent_load_area_def.assert_not_called()
+        # Disable padding
+        self.reader._load_area_def(dsid, file_handlers, pad_data=False)
+        parent_load_area_def.assert_called_once_with(dsid, file_handlers)
 
     @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_later_segments_area(self, AreaDefinition):
