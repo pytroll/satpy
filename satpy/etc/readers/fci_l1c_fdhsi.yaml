@@ -3,7 +3,7 @@ reader:
   short_name: FCI L1C FDHSI
   long_name: MTG FCI Level 1C FDHSI
   description: >
-    Generic FCI FDSHI data reader in the NetCDF4 format.
+    Reader for FCI FDSHI data in NetCDF4 format.
     Used to read Meteosat Third Generation (MTG) Flexible
     Combined Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
