@@ -202,6 +202,8 @@ def unzip_file(filename):
         fdn, tmpfilepath = tempfile.mkstemp()
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
         # If in python 3, try pbzip2
+        LOGGER.debug("Python version info is: {} | {}".format(repr(sys.version_info), sys.version_info.major >= 3))
+        print("Python version info is: {} | {}".format(repr(sys.version_info), sys.version_info.major >= 3))
         if sys.version_info.major >= 3:
             pbzip = shutil.which('pbzip2')
             # Run external pbzip2
