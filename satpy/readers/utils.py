@@ -203,7 +203,7 @@ def unzip_file(filename):
         LOGGER.info("Using temp file for BZ2 decompression:", tmpfilepath)
         # If in python 3, try pbzip2
         if sys.version_info > (3, 0):
-            pbzip = shutil.which('pbzifp2')
+            pbzip = shutil.which('pbzip2')
             # Run external pbzip2
             if pbzip is not None:
                 n_thr = os.environ.get('OMP_NUM_THREADS')
