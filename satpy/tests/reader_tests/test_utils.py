@@ -249,10 +249,9 @@ class TestHelpers(unittest.TestCase):
         self.assertIn('c', mda['d'])
         self.assertIn('c', mda['d']['d'])
 
-    @mock.patch('satpy.readers.utils.bz2.BZ2File.read')
     @mock.patch('satpy.readers.utils.bz2.BZ2File')
     @mock.patch('satpy.readers.utils.Popen')
-    def test_unzip_file_pbzip2(self, mock_popen, mock_bz2, mock_read):
+    def test_unzip_file_pbzip2(self, mock_popen, mock_bz2):
         """Test the bz2 file unzipping techniques."""
         process_mock = mock.Mock()
         attrs = {'communicate.return_value': (b'output', b'error'),
@@ -260,15 +259,15 @@ class TestHelpers(unittest.TestCase):
         process_mock.configure_mock(**attrs)
         mock_popen.return_value = process_mock
 
-        mock_bz2().mock_read.return_value = b'TEST'
-        mock_bz2().read.return_value = b'TEST'
-        mock_read().return_value = b'TEST'
+        bz2_mock = mock.MagicMock()
+        bz2_mock.read.return_value = b'TEST'
+        mock_bz2.return_value = bz2_mock
 
         filename = 'tester.DAT.bz2'
         whichstr = 'satpy.readers.utils.shutil.which'
         with mock.patch(whichstr, return_value=None):
             new_fname = hf.unzip_file(filename)
-            self.assertTrue(mock_read.called)
+            self.assertTrue(bz2_mock.read.called)
             self.assertTrue(os.path.exists(new_fname))
             if os.path.exists(new_fname):
                 os.remove(new_fname)
