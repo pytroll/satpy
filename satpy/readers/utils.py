@@ -200,7 +200,7 @@ def unzip_file(filename):
     """Unzip the file if file is bzipped = ending with 'bz2'."""
     if filename.endswith('bz2'):
         fdn, tmpfilepath = tempfile.mkstemp()
-        LOGGER.info("Using temporary file for BZ2 decompression:",tmpfilepath)
+        LOGGER.info("Using temp file for BZ2 decompression:", tmpfilepath)
         # If in python 3, try pbzip2
         if sys.version_info > (3, 0):
             pbzip = shutil.which('pbzifp2')
