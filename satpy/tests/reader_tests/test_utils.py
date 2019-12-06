@@ -26,6 +26,7 @@ except ImportError:
     import mock
 
 import os
+import sys
 import numpy as np
 import numpy.testing
 import pyresample.geometry
@@ -264,7 +265,8 @@ class TestHelpers(unittest.TestCase):
         mock_bz2.return_value = bz2_mock
 
         filename = 'tester.DAT.bz2'
-        whichstr = 'satpy.readers.utils.shutil.which'
+        whichstr = 'satpy.readers.utils.which'
+        # no bz2 installed
         with mock.patch(whichstr) as whichmock:
             whichmock.return_value = None
             new_fname = hf.unzip_file(filename)
@@ -272,17 +274,19 @@ class TestHelpers(unittest.TestCase):
             self.assertTrue(os.path.exists(new_fname))
             if os.path.exists(new_fname):
                 os.remove(new_fname)
-        with mock.patch(whichstr) as whichmock:
-            whichmock.return_value = '/usr/bin/pbzip2'
-            new_fname = hf.unzip_file(filename)
-            self.assertTrue(mock_popen.called)
-            self.assertTrue(os.path.exists(new_fname))
-            if os.path.exists(new_fname):
-                os.remove(new_fname)
+        # bz2 installed, but python 3 only
+        if sys.version_info.major >= 3:
+            with mock.patch(whichstr) as whichmock:
+                whichmock.return_value = '/usr/bin/pbzip2'
+                new_fname = hf.unzip_file(filename)
+                self.assertTrue(mock_popen.called)
+                self.assertTrue(os.path.exists(new_fname))
+                if os.path.exists(new_fname):
+                    os.remove(new_fname)
 
         filename = 'tester.DAT'
         new_fname = hf.unzip_file(filename)
-        self.assertEqual(None, new_fname)
+        self.assertIsNone(new_fname)
 
 
 def suite():

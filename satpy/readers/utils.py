@@ -34,6 +34,12 @@ from pyresample.boundary import AreaDefBoundary, Boundary
 
 from satpy import CHUNK_SIZE
 
+try:
+    from shutil import which
+except ImportError:
+    # python 2 - won't be used, but needed for mocking in tests
+    which = None
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -202,10 +208,8 @@ def unzip_file(filename):
         fdn, tmpfilepath = tempfile.mkstemp()
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
         # If in python 3, try pbzip2
-        LOGGER.debug("Python version info is: {} | {}".format(repr(sys.version_info), sys.version_info.major >= 3))
-        print("Python version info is: {} | {}".format(repr(sys.version_info), sys.version_info.major >= 3))
         if sys.version_info.major >= 3:
-            pbzip = shutil.which('pbzip2')
+            pbzip = which('pbzip2')
             # Run external pbzip2
             if pbzip is not None:
                 n_thr = os.environ.get('OMP_NUM_THREADS')
