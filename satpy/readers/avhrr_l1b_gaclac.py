@@ -25,12 +25,16 @@
 
 import logging
 from datetime import datetime, timedelta
-import xarray as xr
+
 import dask.array as da
 import numpy as np
+
+import pygac.utils
+import xarray as xr
 from pygac.gac_klm import GACKLMReader
 from pygac.gac_pod import GACPODReader
-import pygac.utils
+from pygac.lac_klm import LACKLMReader
+from pygac.lac_pod import LACPODReader
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 
@@ -53,7 +57,8 @@ class GACLACFile(BaseFileHandler):
                  start_line=None, end_line=None, strip_invalid_coords=True,
                  interpolate_coords=True, adjust_clock_drift=True,
                  tle_dir=None, tle_name=None, tle_thresh=7):
-        """
+        """Init the file handler.
+
         Args:
             start_line: User defined start scanline
             end_line: User defined end scanline
@@ -67,6 +72,7 @@ class GACLACFile(BaseFileHandler):
             tle_name: Filename pattern of TLE files.
             tle_thresh: Maximum number of days between observation and nearest
                 TLE
+
         """
         super(GACLACFile, self).__init__(
             filename, filename_info, filetype_info)
@@ -79,6 +85,7 @@ class GACLACFile(BaseFileHandler):
         self.tle_dir = tle_dir
         self.tle_name = tle_name
         self.tle_thresh = tle_thresh
+        self.creation_site = filename_info.get('creation_site')
         self.reader = None
         self.channels = None
         self.angles = None
@@ -95,27 +102,38 @@ class GACLACFile(BaseFileHandler):
         self.platform_id = filename_info['platform_id']
         if self.platform_id in ['NK', 'NL', 'NM', 'NN', 'NP', 'M1', 'M2',
                                 'M3']:
-            self.reader_class = GACKLMReader
+            if filename_info.get('transfer_mode') == 'GHRR':
+                self.reader_class = GACKLMReader
+            else:
+                self.reader_class = LACKLMReader
             self.chn_dict = AVHRR3_CHANNEL_NAMES
             self.sensor = 'avhrr-3'
         elif self.platform_id in ['NC', 'ND', 'NF', 'NH', 'NJ']:
-            self.reader_class = GACPODReader
+            if filename_info.get('transfer_mode') == 'GHRR':
+                self.reader_class = GACPODReader
+            else:
+                self.reader_class = LACPODReader
             self.chn_dict = AVHRR2_CHANNEL_NAMES
             self.sensor = 'avhrr-2'
         else:
-            self.reader_class = GACPODReader
+            if filename_info.get('transfer_mode') == 'GHRR':
+                self.reader_class = GACPODReader
+            else:
+                self.reader_class = LACPODReader
             self.chn_dict = AVHRR_CHANNEL_NAMES
             self.sensor = 'avhrr'
         self.filename_info = filename_info
 
     def get_dataset(self, key, info):
+        """Get the dataset."""
         if self.reader is None:
             self.reader = self.reader_class(
                 interpolate_coords=self.interpolate_coords,
                 adjust_clock_drift=self.adjust_clock_drift,
                 tle_dir=self.tle_dir,
                 tle_name=self.tle_name,
-                tle_thresh=self.tle_thresh)
+                tle_thresh=self.tle_thresh,
+                creation_site=self.creation_site)
             self.reader.read(self.filename)
         if np.all(self.reader.mask):
             raise ValueError('All data is masked out')
@@ -174,7 +192,10 @@ class GACLACFile(BaseFileHandler):
         res.attrs['platform_name'] = self.reader.spacecraft_name
         res.attrs['orbit_number'] = self.filename_info['orbit_number']
         res.attrs['sensor'] = self.sensor
-        res.attrs['orbital_parameters'] = {'tle': self.reader.get_tle_lines()}
+        try:
+            res.attrs['orbital_parameters'] = {'tle': self.reader.get_tle_lines()}
+        except IndexError:
+            pass
         res['acq_time'] = ('y', times)
         res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
         return res
@@ -189,6 +210,7 @@ class GACLACFile(BaseFileHandler):
             times: Scanline timestamps
         Returns:
             Sliced data and timestamps
+
         """
         # Slice data, update midnight scanline & list of missing scanlines
         sliced, self.midnight_scanline, miss_lines = self._slice(data)
@@ -206,6 +228,7 @@ class GACLACFile(BaseFileHandler):
 
         Returns:
             Sliced data, updated midnight scanline & list of missing scanlines
+
         """
         start_line = self.start_line if self.start_line is not None else 0
         end_line = self.end_line if self.end_line is not None else 0
@@ -268,6 +291,7 @@ class GACLACFile(BaseFileHandler):
 
         Returns:
             First and last scanline with valid latitudes.
+
         """
         if self.first_valid_lat is None:
             _, lats = self.reader.get_lonlat()
@@ -277,8 +301,10 @@ class GACLACFile(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self._end_time
