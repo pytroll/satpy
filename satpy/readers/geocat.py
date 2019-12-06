@@ -1,25 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
-#
-# This file is part of satpy.
-#
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-#
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -71,6 +52,8 @@ GEO_PROJS = {
 
 
 class GEOCATFileHandler(NetCDF4FileHandler):
+    """GEOCAT netCDF4 file handler."""
+
     sensors = {
         'goes': 'goes_imager',
         'himawari8': 'ahi',
@@ -92,6 +75,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     }
 
     def get_sensor(self, sensor):
+        """Get sensor."""
         last_resort = None
         for k, v in self.sensors.items():
             if k == sensor:
@@ -103,6 +87,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         raise ValueError("Unknown sensor '{}'".format(sensor))
 
     def get_platform(self, platform):
+        """Get platform."""
         for k, v in self.platforms.items():
             if k in platform:
                 return v
@@ -117,23 +102,28 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     @property
     def sensor_names(self):
+        """Get sensor names."""
         return [self.get_sensor(self['/attr/Sensor_Name'])]
 
     @property
     def start_time(self):
+        """Get start time."""
         return self.filename_info['start_time']
 
     @property
     def end_time(self):
+        """Get end time."""
         return self.filename_info.get('end_time', self.start_time)
 
     @property
     def is_geo(self):
+        """Check platform."""
         platform = self.get_platform(self['/attr/Platform_Name'])
         return platform in GEO_PROJS
 
     @property
     def resolution(self):
+        """Get resolution."""
         elem_res = self['/attr/Element_Resolution']
         return int(elem_res * 1000)
 
@@ -199,6 +189,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
                 yield True, ds_info
 
     def get_shape(self, dataset_id, ds_info):
+        """Get shape."""
         var_name = ds_info.get('file_key', dataset_id.name)
         return self[var_name + '/shape']
 
@@ -238,6 +229,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return nav[:]
 
     def get_area_def(self, dsid):
+        """Get area definition."""
         if not self.is_geo:
             raise NotImplementedError("Don't know how to get the Area Definition for this file")
 
@@ -263,6 +255,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return area_def
 
     def get_metadata(self, dataset_id, ds_info):
+        """Get metadata."""
         var_name = ds_info.get('file_key', dataset_id.name)
         shape = self.get_shape(dataset_id, ds_info)
         info = getattr(self[var_name], 'attrs', {})
@@ -283,7 +276,12 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
         return info
 
-    def get_dataset(self, dataset_id, ds_info, xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, dataset_id, ds_info, xslice=None, yslice=None):
+        """Get dataset."""
+        if xslice is None:
+            xslice = slice(None)
+        if yslice is None:
+            yslice = slice(None)
         var_name = ds_info.get('file_key', dataset_id.name)
         # FUTURE: Metadata retrieval may be separate
         info = self.get_metadata(dataset_id, ds_info)

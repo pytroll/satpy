@@ -15,13 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""GOES HRIT format reader
-****************************
+"""GOES HRIT format reader.
 
 References:
       LRIT/HRIT Mission Specific Implementation, February 2012
       GVARRDL98.pdf
       05057_SPE_MSG_LRIT_HRI
+
 """
 
 import logging
@@ -40,6 +40,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
 
 
 class CalibrationError(Exception):
+    """Dummy error-class."""
+
     pass
 
 
@@ -113,6 +115,7 @@ sgs_time = np.dtype([('century', 'u1'),
 
 
 def make_sgs_time(sgs_time_array):
+    """Make sgs time."""
     year = ((sgs_time_array['century'] >> 4) * 1000 +
             (sgs_time_array['century'] & 15) * 100 +
             (sgs_time_array['year'] >> 4) * 10 +
@@ -156,6 +159,7 @@ gvar_float = '>i4'
 
 
 def make_gvar_float(float_val):
+    """Make gvar float."""
     sign = 1
     if float_val < 0:
         float_val = -float_val
@@ -230,8 +234,7 @@ prologue = np.dtype([
 
 
 class HRITGOESPrologueFileHandler(HRITFileHandler):
-
-    """GOES HRIT format reader"""
+    """GOES HRIT format reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
@@ -254,7 +257,6 @@ class HRITGOESPrologueFileHandler(HRITFileHandler):
 
     def process_prologue(self):
         """Reprocess prologue to correct types."""
-
         for key in ['TCurr', 'TCHED', 'TCTRL', 'TLHED', 'TLTRL', 'TIPFS',
                     'TINFS', 'TISPC', 'TIECL', 'TIBBC', 'TISTR', 'TLRAN',
                     'TIIRT', 'TIVIT', 'TCLMT', 'TIONA']:
