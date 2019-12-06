@@ -147,6 +147,9 @@ class TestGACLACFile(TestCase):
         GACPODReader.return_value.get_midnight_scanline.return_value = 'midn_line'
         GACPODReader.return_value.mask = [0]
 
+        GACPODReader.return_value.meta_data = {'missing_scanlines': miss_lines,
+                                               'midnight_scanline': 'midn_line'}
+
         res = fh.get_dataset(key, info)
         np.testing.assert_allclose(res.data, ch_ones)
         np.testing.assert_array_equal(res.coords['acq_time'].data, acq_ones)
