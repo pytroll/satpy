@@ -276,16 +276,12 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
         return info
 
-    def get_dataset(self, dataset_id, ds_info, xslice=None, yslice=None):
+    def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        if xslice is None:
-            xslice = slice(None)
-        if yslice is None:
-            yslice = slice(None)
         var_name = ds_info.get('file_key', dataset_id.name)
         # FUTURE: Metadata retrieval may be separate
         info = self.get_metadata(dataset_id, ds_info)
-        data = self[var_name][yslice, xslice]
+        data = self[var_name]
         fill = self[var_name + '/attr/_FillValue']
         factor = self.get(var_name + '/attr/scale_factor')
         offset = self.get(var_name + '/attr/add_offset')
