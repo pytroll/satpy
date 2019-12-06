@@ -90,7 +90,7 @@ datasets:
     wavelength: [3.8, 3.9, 4.0]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -105,7 +105,7 @@ datasets:
     wavelength: [6.5, 6.6, 7.0]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -120,7 +120,7 @@ datasets:
     wavelength: [10.2, 10.7, 11.2]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
