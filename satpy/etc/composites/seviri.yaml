@@ -358,7 +358,7 @@ composites:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: natural_with_night_fog
     prerequisites:
-      - natural_color
+      - natural_color_sun
       - night_fog
 
   natural_color_with_night_ir:
