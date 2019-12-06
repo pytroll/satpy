@@ -308,7 +308,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.calib_mode = calib_mode.upper()
 
     def __del__(self):
-        if (self.is_zipped):
+        if (self.is_zipped and os.path.exists(self.filename)):
             os.remove(self.filename)
 
     @property
