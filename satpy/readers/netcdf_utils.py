@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Helpers for reading netcdf-based files.
+"""Helpers for reading netcdf-based files."""
 
-"""
 import netCDF4
 import logging
 import xarray as xr
@@ -30,7 +29,6 @@ LOG = logging.getLogger(__name__)
 
 
 class NetCDF4FileHandler(BaseFileHandler):
-
     """Small class for inspecting a NetCDF4 file and retrieving its metadata/header data.
 
     File information can be accessed using bracket notation. Variables are
@@ -60,6 +58,7 @@ class NetCDF4FileHandler(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None):
+        """Initilize file handler."""
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
@@ -82,8 +81,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
 
     def _collect_attrs(self, name, obj):
-        """Collect all the attributes for the provided file object.
-        """
+        """Collect all the attributes for the provided file object."""
         for key in obj.ncattrs():
             value = getattr(obj, key)
             fc_key = "{}/attr/{}".format(name, key)
@@ -110,11 +108,13 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._collect_attrs(name, obj)
 
     def collect_dimensions(self, name, obj):
+        """Collect dimensions."""
         for dim_name, dim_obj in obj.dimensions.items():
             dim_name = "{}/dimension/{}".format(name, dim_name)
             self.file_content[dim_name] = len(dim_obj)
 
     def __getitem__(self, key):
+        """Get item for given key."""
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
             # these datasets are closed and inaccessible when the file is
@@ -141,9 +141,11 @@ class NetCDF4FileHandler(BaseFileHandler):
         return val
 
     def __contains__(self, item):
+        """Get item from file content."""
         return item in self.file_content
 
     def get(self, item, default=None):
+        """Get item."""
         if item in self:
             return self[item]
         else:
