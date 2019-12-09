@@ -1,9 +1,13 @@
 reader:
-  description: Generic FCI FDSHI Data Reader
   name: fci_l1c_fdhsi
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  short_name: FCI L1C FDHSI
+  long_name: MTG FCI Level 1C FDHSI
+  description: >
+    Reader for FCI FDSHI data in NetCDF4 format.
+    Used to read Meteosat Third Generation (MTG) Flexible
+    Combined Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [fci]
-  default_datasets:
 
 datasets:
 
