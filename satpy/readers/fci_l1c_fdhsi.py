@@ -56,7 +56,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
         super(FCIFDHSIFileHandler, self).__init__(filename, filename_info,
-                                                  filetype_info)
+                                                  filetype_info,
+                                                  cache_var_size=10000,
+                                                  cache_handle=True)
         logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
