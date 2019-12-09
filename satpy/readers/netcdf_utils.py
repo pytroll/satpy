@@ -51,9 +51,9 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         wrapper["/attr/platform_short_name"]
 
-    Note that loading uncached datasets requires reopening the original
-    file, but to get just the shape of the dataset append "/shape"
-    to the item string:
+    Note that loading datasets requires reopening the original file
+    (unless those datasets are cached, see below), but to get just the
+    shape of the dataset append "/shape" to the item string:
 
         wrapper["group/subgroup/var_name/shape"]
 
