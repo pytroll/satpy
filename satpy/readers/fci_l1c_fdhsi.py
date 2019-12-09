@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,30 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-# Copyright (c) 2016--2019.
-
-# Author(s):
-
-#
-#   Thomas Leppelt <thomas.leppelt@gmail.com>
-#   Sauli Joro <sauli.joro@icloud.com>
-#   Gerrit Holl <gerrit.holl@dwd.de>
-
-# This file is part of satpy.
-
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-"""Interface to MTG-FCI-FDHSI L1C NetCDF files
+"""Interface to MTG-FCI-FDHSI L1C NetCDF files.
 
 This module defines the :class:`FCIFDHSIFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
@@ -66,7 +43,7 @@ logger = logging.getLogger(__name__)
 
 
 class FCIFDHSIFileHandler(NetCDF4FileHandler):
-    """Class implementing the MTG FCI FDHSI File Reader
+    """Class implementing the MTG FCI FDHSI File .
 
     This class implements the Meteosat Third Generation (MTG) Flexible
     Combined Imager (FCI) Full Disk High Spectral Imagery (FDHSI) reader.
@@ -77,6 +54,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize file handler."""
         super(FCIFDHSIFileHandler, self).__init__(filename, filename_info,
                                                   filetype_info,
                                                   cache_var_size=10000,
@@ -89,15 +67,16 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     @property
     def start_time(self):
+        """Get start time."""
         return self.filename_info['start_time']
 
     @property
     def end_time(self):
+        """Get end time."""
         return self.filename_info['end_time']
 
     def get_dataset(self, key, info=None):
         """Load a dataset."""
-
         logger.debug('Reading {} from {}'.format(key.name, self.filename))
         # Get the dataset
         # Get metadata for given dataset
@@ -145,6 +124,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         return res
 
     def get_channel_dataset(self, channel):
+        """Get channel dataset."""
         root_group = 'data/{}'.format(channel)
         group = 'data/{}/measured'.format(channel)
 
@@ -234,8 +214,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         return area
 
     def calibrate(self, data, key, measured, root):
-        """Data calibration."""
-
+        """Calibrate data."""
         if key.calibration == 'brightness_temperature':
             data = self._ir_calibrate(data, measured, root)
         elif key.calibration == 'reflectance':
@@ -250,7 +229,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def _ir_calibrate(self, radiance, measured, root):
         """IR channel calibration."""
-
         coef = self[measured + "/radiance_unit_conversion_coefficient"]
         wl_c = self[root + "/central_wavelength_actual"]
 
