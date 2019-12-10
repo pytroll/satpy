@@ -932,7 +932,8 @@ def _stack_area_defs(area_def_dict):
 def _pad_later_segments_area(file_handlers, dsid):
     """Pad area definitions for missing segments that are later in sequence than the first available."""
     seg_size = None
-    expected_segments = file_handlers[0].filetype_info['expected_segments']
+    expected_segments = file_handlers[0].filetype_info.get(
+        'expected_segments', 1)
     available_segments = [int(fh.filename_info['segment']) for
                           fh in file_handlers]
     area_defs = {}
