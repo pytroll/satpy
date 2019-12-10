@@ -1567,7 +1567,7 @@ class SimpleMaskingCompositor(GenericCompositor):
         data = projectables[0]
         alpha_attrs = data.attrs.copy()
         if 'bands' in data.dims:
-            data = [data.sel(bands=b) for b in data['bands']]
+            data = [data.sel(bands=b) for b in data['bands'] if b != 'A']
         else:
             data = [data]
 
@@ -1575,9 +1575,6 @@ class SimpleMaskingCompositor(GenericCompositor):
         alpha = da.ones((data[0].sizes['y'],
                          data[0].sizes['x']),
                         chunks=data[0].chunks)
-        alpha_attrs['standard_name'] = 'alpha'
-        alpha_attrs.pop('prerequisites', None)
-        alpha_attrs['mode'] = 'A'
 
         # Modify alpha based on transparency per class from yaml
         flag_meanings = cloud_mask.attrs['flag_meanings']
