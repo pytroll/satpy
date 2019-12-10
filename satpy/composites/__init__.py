@@ -1541,7 +1541,7 @@ class BackgroundCompositor(GenericCompositor):
         return res
 
 
-class SimpleMaskingCompositor(GenericCompositor):
+class MaskingCompositor(GenericCompositor):
     """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
 
     def __init__(self, name, transparency=None, **kwargs):
@@ -1555,7 +1555,7 @@ class SimpleMaskingCompositor(GenericCompositor):
             raise ValueError("No transparency configured for simple masking compositor")
         self.transparency = transparency
 
-        super(SimpleMaskingCompositor, self).__init__(name, **kwargs)
+        super(MaskingCompositor, self).__init__(name, **kwargs)
 
     def __call__(self, projectables, *args, **kwargs):
         """Call the compositor."""
@@ -1592,5 +1592,5 @@ class SimpleMaskingCompositor(GenericCompositor):
         alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
                              dims=data[0].dims, coords=data[0].coords)
         data.append(alpha)
-        res = super(SimpleMaskingCompositor, self).__call__(data, **kwargs)
+        res = super(MaskingCompositor, self).__call__(data, **kwargs)
         return res

@@ -14,7 +14,7 @@ modifiers:
 composites:
 
   ct_masked_ir:
-    compositor: !!python/name:satpy.composites.SimpleMaskingCompositor
+    compositor: !!python/name:satpy.composites.MaskingCompositor
     prerequisites:
     - IR_108
     - ct
@@ -28,7 +28,7 @@ composites:
       10: 35
 
   nwc_geo_ct_masked_ir:
-    compositor: !!python/name:satpy.composites.SimpleMaskingCompositor
+    compositor: !!python/name:satpy.composites.MaskingCompositor
     prerequisites:
     - IR_108
     - ct
