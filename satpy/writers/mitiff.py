@@ -343,7 +343,10 @@ class MITIFFWriter(ImageWriter):
             ds_list = [datasets]
 
         for i, ds in enumerate(ds_list):
-            if 'prerequisites' in ds.attrs and isinstance(ds.attrs['prerequisites'][i], DatasetID):
+            if ('prerequisites' in ds.attrs and
+                isinstance(ds.attrs['prerequisites'], list) and
+                len(ds.attrs['prerequisites']) >= i + 1 and
+                    isinstance(ds.attrs['prerequisites'][i], DatasetID)):
                 if ds.attrs['prerequisites'][i][0] == ch:
                     if ds.attrs['prerequisites'][i][4] == 'RADIANCE':
                         raise NotImplementedError(
