@@ -528,8 +528,9 @@ class TestNIRReflectance(unittest.TestCase):
         """Test NIR reflectance compositor."""
         import numpy as np
         import xarray as xr
+        import dask.array as da
         refl_arr = np.random.random((2, 2))
-        refl = xr.DataArray(refl_arr, dims=['y', 'x'])
+        refl = da.from_array(refl_arr)
         refl_from_tbs = mock.MagicMock()
         refl_from_tbs.return_value = refl
         calculator.return_value = mock.MagicMock(
@@ -538,7 +539,7 @@ class TestNIRReflectance(unittest.TestCase):
         from satpy.composites import NIRReflectance
 
         nir_arr = np.random.random((2, 2))
-        nir = xr.DataArray(nir_arr, dims=['y', 'x'])
+        nir = xr.DataArray(da.from_array(nir_arr), dims=['y', 'x'])
         platform = 'Meteosat-11'
         sensor = 'seviri'
         chan_name = 'IR_039'
@@ -552,12 +553,11 @@ class TestNIRReflectance(unittest.TestCase):
         start_time = 1
         nir.attrs['start_time'] = start_time
         ir_arr = 100 * np.random.random((2, 2))
-        ir_ = xr.DataArray(ir_arr, dims=['y', 'x'])
+        ir_ = xr.DataArray(da.from_array(ir_arr), dims=['y', 'x'])
         sunz_arr = 100 * np.random.random((2, 2))
-        sunz = xr.DataArray(sunz_arr, dims=['y', 'x'])
+        sunz = xr.DataArray(da.from_array(sunz_arr), dims=['y', 'x'])
         sunz.attrs['standard_name'] = 'solar_zenith_angle'
-        sunz2 = xr.DataArray(sunz_arr, dims=['y', 'x'])
-        sunz2.attrs['standard_name'] = 'solar_zenith_angle'
+        sunz2 = da.from_array(sunz_arr)
         sza.return_value = sunz2
 
         comp = NIRReflectance(name='test')
@@ -576,15 +576,15 @@ class TestNIRReflectance(unittest.TestCase):
         res = comp([nir, ir_], optional_datasets=[], **info)
         get_lonlats.assert_called()
         sza.assert_called_with(start_time, lons, lats)
-        refl_from_tbs.assert_called_with(sunz2, nir, ir_, tb_ir_co2=None)
+        refl_from_tbs.assert_called_with(sunz2, nir.data, ir_.data, tb_ir_co2=None)
         refl_from_tbs.reset_mock()
 
         co2_arr = np.random.random((2, 2))
-        co2 = xr.DataArray(co2_arr, dims=['y', 'x'])
+        co2 = xr.DataArray(da.from_array(co2_arr), dims=['y', 'x'])
         co2.attrs['wavelength'] = [12.0, 13.0, 14.0]
         co2.attrs['units'] = 'K'
         res = comp([nir, ir_], optional_datasets=[co2], **info)
-        refl_from_tbs.assert_called_with(sunz2, nir, ir_, tb_ir_co2=co2)
+        refl_from_tbs.assert_called_with(sunz2, nir.data, ir_.data, tb_ir_co2=co2.data)
 
 
 class TestColormapCompositor(unittest.TestCase):
