@@ -128,8 +128,16 @@ class TestAHIHSDNavigation(unittest.TestCase):
 
 
 class TestAHIHSDFileHandler(unittest.TestCase):
+
+    def new_unzip(fname):
+        if(fname[-3:] == 'bz2'):
+            return fname[:-4]
+        return fname
+
     @mock.patch('satpy.readers.ahi_hsd.np2str')
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
+    @mock.patch('satpy.readers.ahi_hsd.unzip_file',
+                mock.MagicMock(side_effect=new_unzip))
     def setUp(self, fromfile, np2str):
         """Create a test file handler."""
         np2str.side_effect = lambda x: x
@@ -139,7 +147,12 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             with self.assertRaises(ValueError):
                 fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
 
-            fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
+            in_fname = 'test_file.bz2'
+            fh = AHIHSDFileHandler(in_fname, {'segment_number': 8, 'total_segments': 10}, None)
+
+            # Check that the filename is altered for bz2 format files
+            self.assertNotEqual(in_fname, fh.filename)
+
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
@@ -292,7 +305,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                               'satellite_actual_latitude': 0.03,
                               'nadir_longitude': 140.67,
                               'nadir_latitude': 0.04}
-            self.assertDictContainsSubset(orb_params_exp, im.attrs['orbital_parameters'])
+            self.assertTrue(set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items())))
             self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
 
             # Test if masking space pixels disables with appropriate flag
