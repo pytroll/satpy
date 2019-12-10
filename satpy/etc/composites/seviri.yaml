@@ -364,6 +364,33 @@ composites:
         modifiers: [sunz_corrected]
       - name: colorized_ir_clouds
 
+  hrv_clouds:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: hrv_clouds
+    prerequisites:
+      - name: HRV
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+      - IR_108
+  hrv_fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: hrv_fog
+    prerequisites:
+      - name: IR_016
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural_color_sun
+      - night_fog
+
   natural_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: natural_color_with_night_ir
