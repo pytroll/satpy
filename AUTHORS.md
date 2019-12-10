@@ -28,6 +28,7 @@ The following people have made contributions to this project:
 - [JohannesSMHI (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
+- [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Thomas Leppelt (m4sth0)](https://github.com/m4sth0)
