@@ -1162,24 +1162,24 @@ class TestPSPRayleighReflectance(unittest.TestCase):
         self.assertEqual(args[6], 0)
 
 
-class TestSimpleMaskingCompositor(unittest.TestCase):
+class TestMaskingCompositor(unittest.TestCase):
     """Test case for the simple masking compositor."""
 
     def test_init(self):
         """Test the initializiation of compositor."""
-        from satpy.composites import SimpleMaskingCompositor
+        from satpy.composites import MaskingCompositor
 
         # No transparency given raises ValueError
         with self.assertRaises(ValueError):
-            comp = SimpleMaskingCompositor("name")
+            comp = MaskingCompositor("name")
 
         # transparency defined
-        comp = SimpleMaskingCompositor("name", transparency=0)
+        comp = MaskingCompositor("name", transparency=0)
         self.assertEqual(comp.transparency, 0)
 
     def test_call(self):
         """Test call the compositor."""
-        from satpy.composites import SimpleMaskingCompositor
+        from satpy.composites import MaskingCompositor
 
         flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
         flag_values = np.array([1, 2])
@@ -1205,16 +1205,14 @@ class TestSimpleMaskingCompositor(unittest.TestCase):
         reference_alpha = xr.DataArray(reference_alpha, dims=['y', 'x'])
 
         # Test with numerical transparency data
-        comp = SimpleMaskingCompositor("name",
-                                       transparency=transparency_data_v1)
+        comp = MaskingCompositor("name", transparency=transparency_data_v1)
         res = comp([data, ct_data])
         self.assertTrue(res.mode == 'LA')
         np.testing.assert_allclose(res.sel(bands='L'), data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
         # Test with named fields
-        comp = SimpleMaskingCompositor("name",
-                                       transparency=transparency_data_v2)
+        comp = MaskingCompositor("name", transparency=transparency_data_v2)
         res = comp([data, ct_data])
         self.assertTrue(res.mode == 'LA')
         np.testing.assert_allclose(res.sel(bands='L'), data)
@@ -1228,8 +1226,7 @@ class TestSimpleMaskingCompositor(unittest.TestCase):
                                     'y': np.arange(3),
                                     'x': np.arange(3)})
 
-        comp = SimpleMaskingCompositor("name",
-                                       transparency=transparency_data_v1)
+        comp = MaskingCompositor("name", transparency=transparency_data_v1)
         res = comp([data, ct_data])
         self.assertTrue(res.mode == 'RGBA')
         np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
@@ -1244,8 +1241,7 @@ class TestSimpleMaskingCompositor(unittest.TestCase):
                                     'y': np.arange(3),
                                     'x': np.arange(3)})
 
-        comp = SimpleMaskingCompositor("name",
-                                       transparency=transparency_data_v2)
+        comp = MaskingCompositor("name", transparency=transparency_data_v2)
         res = comp([data, ct_data])
         self.assertTrue(res.mode == 'RGBA')
         np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
@@ -1283,7 +1279,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestStaticImageCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPSPAtmosphericalCorrection))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPSPRayleighReflectance))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSimpleMaskingCompositor))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestMaskingCompositor))
 
     return mysuite
 
