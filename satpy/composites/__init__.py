@@ -1562,17 +1562,26 @@ class SimpleMaskingCompositor(GenericCompositor):
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.match_data_arrays(projectables)
-        cloud_mask_data = projectables[1].data
+        cloud_mask = projectables[1]
+        cloud_mask_data = cloud_mask.data
         data = projectables[0]
+        alpha_attrs = data.attrs.copy()
+        if 'bands' in data.dims:
+            data = [data.sel(bands=b) for b in data['bands']]
+        else:
+            data = [data]
 
-        # Create alpha band based on a copy of the channel data
-        alpha = data.copy()
-        alpha.data = da.ones((data.sizes['y'],
-                              data.sizes['x']), chunks=data.data.chunks)
+        # Create alpha band
+        alpha = da.ones((data[0].sizes['y'],
+                         data[0].sizes['x']),
+                        chunks=data[0].chunks)
+        alpha_attrs['standard_name'] = 'alpha'
+        alpha_attrs.pop('prerequisites', None)
+        alpha_attrs['mode'] = 'A'
 
         # Modify alpha based on transparency per class from yaml
-        flag_meanings = projectables[1].attrs['flag_meanings']
-        flag_values = projectables[1].attrs['flag_values']
+        flag_meanings = cloud_mask.attrs['flag_meanings']
+        flag_values = cloud_mask.attrs['flag_values']
 
         if isinstance(flag_meanings, str):
             flag_meanings = flag_meanings.split()
@@ -1581,6 +1590,10 @@ class SimpleMaskingCompositor(GenericCompositor):
             if isinstance(key, str):
                 key_index = flag_meanings.index(key)
                 key = flag_values[key_index]
-            alpha.data = da.where(cloud_mask_data == key, (1.-val/100.), alpha.data)
-        res = super(SimpleMaskingCompositor, self).__call__([data, alpha], **kwargs)
+            alpha = da.where(cloud_mask_data == key, (1.-val/100.),
+                             alpha)
+        alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
+                             dims=data[0].dims, coords=data[0].coords)
+        data.append(alpha)
+        res = super(SimpleMaskingCompositor, self).__call__(data, **kwargs)
         return res
