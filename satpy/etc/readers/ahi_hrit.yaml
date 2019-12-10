@@ -8,114 +8,203 @@ reader:
   long_name: Himawari AHI Level 1 (HRIT)
   description: Reader for the JMA Himawari AHI Level 1 data in HRIT format
   sensors: [ahi]
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
   # file pattern keys to sort files by with 'satpy.utils.group_files'
   group_keys: ['start_time', 'area']
 
 file_types:
-    hrit_b01:
+    hrit_b01_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B01_{start_time:%Y%m%d%H%M}'
+        expected_segments: 10
+
+    hrit_b01_fd:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B01_{start_time:%Y%m%d%H%M}_{segment:3s}'
         - 'IMG_DK{area:02d}B01_{start_time:%Y%m%d%H%M}'
 
-    hrit_b02:
+    hrit_b02_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B02_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b02_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B02_{start_time:%Y%m%d%H%M}'
 
-    hrit_b03:
+    hrit_b03_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b03_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}'
 
-    hrit_b04:
+    hrit_b04_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B04_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b04_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B04_{start_time:%Y%m%d%H%M}'
 
-    hrit_b05:
+    hrit_b05_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B05_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b05_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B05_{start_time:%Y%m%d%H%M}'
 
-    hrit_b06:
+    hrit_b06_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B06_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b06_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B06_{start_time:%Y%m%d%H%M}'
 
-    hrit_b07:
-      file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+    hrit_b07_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         # B07 are high resolution versions of IR4 at night
         # See section 1.3 of
-      # https://www.data.jma.go.jp/mscweb/en/himawari89/himawari_cast/note/HimawariCast_dataset_20150624_en.pdf
-      file_patterns:
+        # https://www.data.jma.go.jp/mscweb/en/himawari89/himawari_cast/note/HimawariCast_dataset_20150624_en.pdf
+        file_patterns:
         - 'IMG_DK{area:02d}B07_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b07_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        # B07 are high resolution versions of IR4 at night
+        # See section 1.3 of
+        # https://www.data.jma.go.jp/mscweb/en/himawari89/himawari_cast/note/HimawariCast_dataset_20150624_en.pdf
+        file_patterns:
         - 'IMG_DK{area:02d}B07_{start_time:%Y%m%d%H%M}'
 
-    hrit_b07_ir4:
+    hrit_b07_ir4_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b07_ir4_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}'
 
-    hrit_b08:
+    hrit_b08_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b08_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}'
 
-    hrit_b09:
+    hrit_b09_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B09_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b09_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B09_{start_time:%Y%m%d%H%M}'
 
-    hrit_b10:
+    hrit_b10_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B10_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b10_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B10_{start_time:%Y%m%d%H%M}'
 
-    hrit_b11:
+    hrit_b11_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B11_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b11_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B11_{start_time:%Y%m%d%H%M}'
 
-    hrit_b12:
+    hrit_b12_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B12_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b12_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B12_{start_time:%Y%m%d%H%M}'
 
-    hrit_b13:
+    hrit_b13_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b13_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}'
 
-    hrit_b14:
+    hrit_b14_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B14_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b14_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B14_{start_time:%Y%m%d%H%M}'
 
-    hrit_b15:
+    hrit_b15_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b15_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}'
 
-    hrit_b16:
+    hrit_b16_seg:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
         - 'IMG_DK{area:02d}B16_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b16_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
         - 'IMG_DK{area:02d}B16_{start_time:%Y%m%d%H%M}'
 
 datasets:
@@ -131,7 +220,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b01
+    file_type: [hrit_b01_seg, hrit_b01_fd]
 
   B02:
     name: B02
@@ -145,7 +234,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b02
+    file_type: [hrit_b02_seg, hrit_b02_fd]
 
   B03:
     name: B03
@@ -159,7 +248,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b03
+    file_type: [hrit_b03_seg, hrit_b03_fd]
 
   B04:
     name: B04
@@ -173,7 +262,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b04
+    file_type: [hrit_b04_seg, hrit_b04_fd]
 
   B05:
     name: B05
@@ -187,7 +276,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b05
+    file_type: [hrit_b05_seg, hrit_b05_fd]
 
   B06:
     name: B06
@@ -201,7 +290,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b06
+    file_type: [hrit_b06_seg, hrit_b06_fd]
 
   B07_low_res:
     name: B07
@@ -217,7 +306,7 @@ datasets:
         standard_name: counts
         units: 1
     # FUTURE: Split this in to multiple resolutions so each can be loaded
-    file_type: [hrit_b07, hrit_b07_ir4]
+    file_type: [hrit_b07_seg, hrit_b07_ir4_seg, hrit_b07_fd, hrit_b07_ir4_fd]
 
 #  B07_high_res:
 #    name: B07
@@ -245,7 +334,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b08
+    file_type: [hrit_b08_seg, hrit_b08_fd]
 
   B09:
     name: B09
@@ -259,7 +348,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b09
+    file_type: [hrit_b09_seg, hrit_b09_fd]
 
   B10:
     name: B10
@@ -273,7 +362,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b10
+    file_type: [hrit_b10_seg, hrit_b10_fd]
 
   B11:
     name: B11
@@ -287,7 +376,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b11
+    file_type: [hrit_b11_seg, hrit_b11_fd]
 
   B12:
     name: B12
@@ -301,7 +390,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b12
+    file_type: [hrit_b12_seg, hrit_b12_fd]
 
   B13:
     name: B13
@@ -315,7 +404,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b13
+    file_type: [hrit_b13_seg, hrit_b13_fd]
 
   B14:
     name: B14
@@ -329,7 +418,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b14
+    file_type: [hrit_b14_seg, hrit_b14_fd]
 
   B15:
     name: B15
@@ -343,7 +432,7 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b15
+    file_type: [hrit_b15_seg, hrit_b15_fd]
 
   B16:
     name: B16
@@ -357,4 +446,4 @@ datasets:
       counts:
         standard_name: counts
         units: 1
-    file_type: hrit_b16
+    file_type: [hrit_b16_seg, hrit_b16_fd]
