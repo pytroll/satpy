@@ -618,7 +618,8 @@ class NIRReflectance(CompositeBase):
         """Calculate 3.x reflectance with pyspectral."""
         _nir, _tb11 = projectables
         LOG.info('Getting reflective part of %s', _nir.attrs['name'])
-
+        da_nir = _nir.data
+        da_tb11 = _tb11.data
         sun_zenith = None
         tb13_4 = None
 
@@ -626,10 +627,10 @@ class NIRReflectance(CompositeBase):
             wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
             if (dataset.attrs.get('units') == 'K' and
                     wavelengths[0] <= 13.4 <= wavelengths[2]):
-                tb13_4 = dataset
+                tb13_4 = dataset.data
             elif ("standard_name" in dataset.attrs and
                   dataset.attrs["standard_name"] == "solar_zenith_angle"):
-                sun_zenith = dataset
+                sun_zenith = dataset.data
 
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
@@ -638,7 +639,7 @@ class NIRReflectance(CompositeBase):
             lons, lats = _nir.attrs["area"].get_lonlats(chunks=CHUNK_SIZE)
             sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
 
-        return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
+        return self._refl3x.reflectance_from_tbs(sun_zenith, da_nir, da_tb11, tb_ir_co2=tb13_4)
 
 
 class NIREmissivePartFromReflectance(NIRReflectance):
