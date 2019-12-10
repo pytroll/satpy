@@ -1161,7 +1161,8 @@ class TestPSPRayleighReflectance(unittest.TestCase):
         self.assertIsInstance(args[5], da.Array)
         self.assertEqual(args[6], 0)
 
-class TestSimpleMaskingCompositor(GenericCompositor):
+
+class TestSimpleMaskingCompositor(unittest.TestCase):
     """Test case for the simple masking compositor."""
 
     def test_init(self):
@@ -1178,22 +1179,22 @@ class TestSimpleMaskingCompositor(GenericCompositor):
 
     def test_call(self):
         """Test call the compositor."""
+        from satpy.composites import SimpleMaskingCompositor
 
         flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
-        flag_values = np.array([  1,   2])
+        flag_values = np.array([1, 2])
         transparency_data_v1 = {'Cloud-free_land': 100,
                                 'Cloud-free_sea': 50}
-        transparency_data_v2 = {0 : 100,
-                                1 : 50}
+        transparency_data_v2 = {1: 100,
+                                2: 50}
 
-       # 2D data array
-        data = xr.DataArray(da.ones((3, 3)), dims=['y', 'x'])
-        data = data * 1000
+        # 2D data array
+        data = xr.DataArray(da.random.random((3, 3)), dims=['y', 'x'])
 
         # 2D CT data array
-        ct_data = [[0, 1, 1],
-                   [1, 0, 1],
-                   [1, 1, 0]]
+        ct_data = [[1, 2, 2],
+                   [2, 1, 2],
+                   [2, 2, 1]]
         ct_data = xr.DataArray(ct_data, dims=['y', 'x'])
         ct_data.attrs['flag_meanings'] = flag_meanings
         ct_data.attrs['flag_values'] = flag_values
@@ -1203,28 +1204,56 @@ class TestSimpleMaskingCompositor(GenericCompositor):
                            [0.5, 0.5, 0]]
         reference_alpha = xr.DataArray(reference_alpha, dims=['y', 'x'])
 
-        projectables_data[0]=data
-        projectables_data[1]=ct_data
-
-        # Test with transparency_data_v1
+        # Test with numerical transparency data
         comp = SimpleMaskingCompositor("name",
                                        transparency=transparency_data_v1)
+        res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'LA')
+        np.testing.assert_allclose(res.sel(bands='L'), data)
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
-        self.assertEqual(comp.projectables, projectables_data)
-        # Check output alpha layer vs reference
-
-        # Test with transparency_data_v2
+        # Test with named fields
         comp = SimpleMaskingCompositor("name",
                                        transparency=transparency_data_v2)
-        self.assertEqual(comp.projectables, projectables_data)
+        res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'LA')
+        np.testing.assert_allclose(res.sel(bands='L'), data)
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
-        # Check output alpha layer vs reference
+        # Test RGB dataset
+        # 3D data array
+        data = xr.DataArray(da.random.random((3, 3, 3)),
+                            dims=['bands', 'y', 'x'],
+                            coords={'bands': ['R', 'G', 'B'],
+                                    'y': np.arange(3),
+                                    'x': np.arange(3)})
 
+        comp = SimpleMaskingCompositor("name",
+                                       transparency=transparency_data_v1)
+        res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'RGBA')
+        np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
+        np.testing.assert_allclose(res.sel(bands='G'), data.sel(bands='G'))
+        np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
+        # Test RGBA dataset
+        data = xr.DataArray(da.random.random((4, 3, 3)),
+                            dims=['bands', 'y', 'x'],
+                            coords={'bands': ['R', 'G', 'B', 'A'],
+                                    'y': np.arange(3),
+                                    'x': np.arange(3)})
 
-        # Test match_data_arrays
+        comp = SimpleMaskingCompositor("name",
+                                       transparency=transparency_data_v2)
+        res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'RGBA')
+        np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
+        np.testing.assert_allclose(res.sel(bands='G'), data.sel(bands='G'))
+        np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
+        # The compositor should drop the original alpha band
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
-        #
 
 def suite():
     """Test suite for all reader tests."""
@@ -1254,6 +1283,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestStaticImageCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPSPAtmosphericalCorrection))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPSPRayleighReflectance))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestSimpleMaskingCompositor))
 
     return mysuite
 
