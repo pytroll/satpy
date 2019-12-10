@@ -1548,7 +1548,16 @@ class MaskingCompositor(GenericCompositor):
         """Collect custom configuration values.
 
         Args:
-            transparency: transparency for the cloud type
+            transparency: transparency for each cloud type as key-value pairs
+                          in a dictionary
+
+        The transparencies can be either the numerical values in the
+        data used as a mask with the corresponding transparency
+        (0...100 %) as the value, or, for NWC SAF products, the flag
+        names in the dataset `flag_meanings` attribute.
+
+        For the values not listed in `transparencies`, the data will
+        be completely opaque (transparency = 0).
 
         """
         if transparency is None:
