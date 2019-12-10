@@ -1184,7 +1184,7 @@ class TestMaskingCompositor(unittest.TestCase):
         from satpy.tests.utils import CustomScheduler
 
         flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
-        flag_values = np.array([1, 2])
+        flag_values = da.array([1, 2])
         transparency_data_v1 = {'Cloud-free_land': 100,
                                 'Cloud-free_sea': 50}
         transparency_data_v2 = {1: 100,
@@ -1194,16 +1194,16 @@ class TestMaskingCompositor(unittest.TestCase):
         data = xr.DataArray(da.random.random((3, 3)), dims=['y', 'x'])
 
         # 2D CT data array
-        ct_data = [[1, 2, 2],
-                   [2, 1, 2],
-                   [2, 2, 1]]
+        ct_data = da.array([[1, 2, 2],
+                            [2, 1, 2],
+                            [2, 2, 1]])
         ct_data = xr.DataArray(ct_data, dims=['y', 'x'])
         ct_data.attrs['flag_meanings'] = flag_meanings
         ct_data.attrs['flag_values'] = flag_values
 
-        reference_alpha = [[0, 0.5, 0.5],
-                           [0.5, 0, 0.5],
-                           [0.5, 0.5, 0]]
+        reference_alpha = da.array([[0, 0.5, 0.5],
+                                    [0.5, 0, 0.5],
+                                    [0.5, 0.5, 0]])
         reference_alpha = xr.DataArray(reference_alpha, dims=['y', 'x'])
 
         # Test with numerical transparency data
