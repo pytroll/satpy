@@ -352,10 +352,13 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         if self._expansion_coefs is not None:
             return self._expansion_coefs
         v_track = (np.arange(self.scans * self.scan_size) % self.scan_size + self.track_offset) / self.scan_size
+        self.tpz_sizes = self.tpz_sizes.persist()
+        self.nb_tpzs = self.nb_tpzs.persist()
+        col_chunks = (self.tpz_sizes * self.nb_tpzs).compute()
         self._expansion_coefs = da.map_blocks(self.get_coefs, self.c_align, self.c_exp, self.tpz_sizes, self.nb_tpzs,
                                               dtype=np.float64, v_track=v_track,  new_axis=[0, 2],
                                               chunks=(self.scans * self.scan_size,
-                                                      tuple(self.tpz_sizes * self.nb_tpzs), 4))
+                                                      tuple(col_chunks), 4))
 
         return self._expansion_coefs
 
