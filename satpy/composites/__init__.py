@@ -1590,8 +1590,8 @@ class SimpleMaskingCompositor(GenericCompositor):
             if isinstance(key, str):
                 key_index = flag_meanings.index(key)
                 key = flag_values[key_index]
-            alpha = da.where(cloud_mask_data == key, (1.-val/100.),
-                             alpha)
+            alpha_val = 1. - val / 100.
+            alpha = da.where(cloud_mask_data == key, alpha_val, alpha)
         alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
                              dims=data[0].dims, coords=data[0].coords)
         data.append(alpha)
