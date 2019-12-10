@@ -766,20 +766,20 @@ class TestCFWriter(unittest.TestCase):
             self.assertEqual(proj_dict['ellps'], 'WGS84')
             self.assertEqual(grid_mapping, cosmo_expected)
 
-	# c) Projection Transverse Mercator
-	lat_0= 36.5
-	lon_0= 15.0
-	lat_ts= 36.5
+        # c) Projection Transverse Mercator
+        lat_0= 36.5
+        lon_0= 15.0
+        lat_ts= 36.5
 
-	tmerc = pyresample.geometry.AreaDefinition(
-	    area_id='tmerc',
-	    description='tmerc',
-	    proj_id='tmerc',
-	    projection={'proj': 'tmerc', 'ellps': 'WGS84', 'lat_0': 36.5, 'lon_0': 15.0,'lat_ts': 36.5},
-	    width=2, height=2,
-	    area_extent=[-1, -1, 1, 1])
+    tmerc = pyresample.geometry.AreaDefinition(
+        area_id='tmerc',
+        description='tmerc',
+        proj_id='tmerc',
+        projection={'proj': 'tmerc', 'ellps': 'WGS84', 'lat_0': 36.5, 'lon_0': 15.0,'lat_ts': 36.5},
+        width=2, height=2,
+        area_extent=[-1, -1, 1, 1])
 
-	tmerc_expected = xr.DataArray(data=0,
+    tmerc_expected = xr.DataArray(data=0,
 	                             attrs={'azimuth_of_central_line':'alpha',
 	                                    'latitude_of_projection_origin':lat_0,
 	                                    'longitude_of_projection_origin':lon_0,
@@ -794,10 +794,10 @@ class TestCFWriter(unittest.TestCase):
 	                                    'name': 'tmerc'})
 
 
-	ds = ds_base.copy()
-	ds.attrs['area'] = tmerc
-	res, grid_mapping = area2gridmapping(ds)
-	self.assertEqual(res.attrs['grid_mapping'], 'tmerc')
+    ds = ds_base.copy()
+    ds.attrs['area'] = tmerc
+    res, grid_mapping = area2gridmapping(ds)
+    self.assertEqual(res.attrs['grid_mapping'], 'tmerc')
     self.assertEqual(grid_mapping, tmerc_expected)
 
     def test_area2lonlat(self):
