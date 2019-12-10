@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading hdf4-based files."""
+
 import logging
 
 from pyhdf.SD import SD, SDC, SDS
