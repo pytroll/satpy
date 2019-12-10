@@ -22,7 +22,6 @@ file_types:
     hrit_b01_fd:
         file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
         file_patterns:
-        - 'IMG_DK{area:02d}B01_{start_time:%Y%m%d%H%M}_{segment:3s}'
         - 'IMG_DK{area:02d}B01_{start_time:%Y%m%d%H%M}'
 
     hrit_b02_seg:
