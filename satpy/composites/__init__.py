@@ -1551,13 +1551,37 @@ class MaskingCompositor(GenericCompositor):
             transparency: transparency for each cloud type as key-value pairs
                           in a dictionary
 
-        The transparencies can be either the numerical values in the
+        The `transparencies` can be either the numerical values in the
         data used as a mask with the corresponding transparency
         (0...100 %) as the value, or, for NWC SAF products, the flag
         names in the dataset `flag_meanings` attribute.
 
-        For the values not listed in `transparencies`, the data will
+        Transparency value of `0` means that the composite being
+        masked will be fully visible, and `100` means it will be
+        completely transparent and not visible in the resulting image.
+
+        For the mask values not listed in `transparencies`, the data will
         be completely opaque (transparency = 0).
+
+        Example::
+
+          >>> transparency = {0: 100,
+                              1: 80,
+                              2: 0}
+          >>> compositor = MaskingCompositor("masking compositor",
+                                             transparency=transparency)
+          >>> result = compositor([data, mask])
+
+        This will set transparency of `data` based on the values in
+        the `mask` dataset.  Locations where `mask` has values of `0`
+        will be fully transparent, locations with `1` will be
+        semi-transparent and locations with `2` will be fully visible
+        in the resulting image.  All the unlisted locations will be
+        visible.
+
+        The transparency is implemented by adding an alpha layer to
+        the composite.  If the input `data` contains an alpha channel,
+        it will be discarded.
 
         """
         if transparency is None:
