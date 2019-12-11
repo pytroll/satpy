@@ -22,7 +22,7 @@ Introduction
 
 The ``seviri_l1b_icare`` reader reads MSG-SEVIRI L1.5 image data in HDF format
 that has been produced by the ICARE Data and Services Center
-Data can be accessed via: http://http://www.icare.univ-lille1.fr
+Data can be accessed via: http://www.icare.univ-lille1.fr
 
 Each SEVIRI timeslot comes as 12 HDF files, one per band. Only those bands
 that are of interest need to be passed to the reader. Others can be ignored.
@@ -195,13 +195,13 @@ class SEVIRI_ICARE(HDF4FileHandler):
                     'platform_name': self.sensor_name[0],
                     'sensor': self.sensor_name[1],
                     'zone': self.zone,
-                    'satellite_altitude': self.alt,
+                    'projection_altitude': self.alt,
                     'cfac': geoloc[0],
                     'lfac': geoloc[1],
                     'coff': geoloc[2],
                     'loff': geoloc[3],
                     'resolution': self.res,
-                    'satellite_longitude': self.satlon,
+                    'satellite_actual_longitude': self.satlon,
                     'projection_longitude': self.projlon,
         })
 
