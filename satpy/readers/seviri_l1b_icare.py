@@ -58,7 +58,7 @@ Output:
       * x        (x) float64 -5.566e+06 -5.563e+06 -5.56e+06 ... 5.566e+06 5.569e+06
     Attributes:
         start_time:           2004-12-29 12:15:00
-        end_time:             2004-12-29 12:15:00
+        end_time:             2004-12-29 12:27:44
         area:                 Area ID: geosmsg\nDescription: MSG/SEVIRI low resol...
         name:                 IR_108
         resolution:           3000.403165817
@@ -95,6 +95,8 @@ class SEVIRI_ICARE(HDF4FileHandler):
         attr = self['/attr/Sensors']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str)).lower()
+        else:
+            attr = attr.lower()
         plat = attr[0:4]
         sens = attr[5:]
         # icare uses non-standard platform names
@@ -107,7 +109,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
         elif plat == 'msg4':
             plat = 'Meteosat-11'
         else:
-            raise(NameError, "Unsupported satellite platform:"+plat)
+            raise NameError("Unsupported satellite platform:"+plat)
         return [plat, sens]
 
     @property
@@ -130,7 +132,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str)).lower()
         if attr != 'geos':
-            raise(NotImplementedError, "Only the GEOS projection is supported")
+            raise NotImplementedError("Only the GEOS projection is supported")
         return attr
 
     @property
@@ -148,7 +150,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
         return float(attr)
 
     @property
-    def endacq(self):
+    def end_time(self):
         attr = self['/attr/End_Acquisition_Date']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str))
@@ -156,7 +158,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
         return endacq
 
     @property
-    def stacq(self):
+    def start_time(self):
         attr = self['/attr/Beginning_Acquisition_Date']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str))
@@ -190,8 +192,8 @@ class SEVIRI_ICARE(HDF4FileHandler):
         mda.update(ds_info)
         geoloc = self.geoloc
         mda.update({
-                    'start_time': self.stacq,
-                    'end_time': self.endacq,
+                    'start_time': self.start_time,
+                    'end_time': self.end_time,
                     'platform_name': self.sensor_name[0],
                     'sensor': self.sensor_name[1],
                     'zone': self.zone,
@@ -207,40 +209,35 @@ class SEVIRI_ICARE(HDF4FileHandler):
 
         return mda
 
-    def get_dataset(self, ds_id, ds_info):
+    def _get_dsname(self, ds_id):
+        """Returns the correct dataset name based on requested band."""
         if ds_id.name in self.ref_bands:
             ds_get_name = 'Normalized_Radiance'
         elif ds_id.name in self.bt_bands:
             ds_get_name = 'Brightness_Temperature'
         else:
-            raise(NameError, "Datset type "+ds_id.name+" is not supported.")
+            raise NameError("Datset type "+ds_id.name+" is not supported.")
+        return ds_get_name
+
+    def get_dataset(self, ds_id, ds_info):
+        ds_get_name = self._get_dsname(ds_id)
         data = self[ds_get_name]
-
         data.attrs = self.get_metadata(data, ds_info)
-
         fill = data.attrs.pop('_FillValue')
         offset = data.attrs.get('add_offset')
         scale_factor = data.attrs.get('scale_factor')
-
         data = data.where(data != fill)
-        data = data.astype(np.float32)
+        data.values = data.values.astype(np.float32)
         if scale_factor is not None and offset is not None:
-            data *= scale_factor
-            data += offset
+            data.values *= scale_factor
+            data.values += offset
             # Now we correct range from 0-1 to 0-100 for VIS:
             if ds_id.name in self.ref_bands:
-                data *= 100.
-
+                data.values *= 100.
         return data
 
     def get_area_def(self, ds_id):
-        if ds_id.name in self.ref_bands:
-            ds_get_name = 'Normalized_Radiance'
-        elif ds_id.name in self.bt_bands:
-            ds_get_name = 'Brightness_Temperature'
-        else:
-            raise(NameError, "Datset type "+ds_id.name+" is not supported.")
-
+        ds_get_name = self._get_dsname(ds_id)
         ds_shape = self[ds_get_name + '/shape']
         geoloc = self.geoloc
 
