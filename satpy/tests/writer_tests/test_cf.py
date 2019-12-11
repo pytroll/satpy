@@ -792,7 +792,7 @@ class TestCFWriter(unittest.TestCase):
                                              'false_easting': 0.,
                                              'false_northing': 0.,
                                              'name': 'tmerc'})
-    
+
         ds = ds_base.copy()
         ds.attrs['area'] = tmerc
         res, grid_mapping = area2gridmapping(ds)
