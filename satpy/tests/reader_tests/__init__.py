@@ -102,6 +102,6 @@ def suite():
     mysuite.addTests(test_geos_area.suite())
     mysuite.addTests(test_seviri_l2_bufr.suite())
     mysuite.addTests(test_nwcsaf_msg.suite())
-    mysuite.addTests(test_seviri_l1b_icare.suite())    
+    mysuite.addTests(test_seviri_l1b_icare.suite())   
 
     return mysuite
