@@ -778,21 +778,20 @@ class TestCFWriter(unittest.TestCase):
             projection={'proj': 'tmerc', 'ellps': 'WGS84', 'lat_0': 36.5, 'lon_0': 15.0, 'lat_ts': 36.5},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
-    
+
         tmerc_expected = xr.DataArray(data=0,
-                                      attrs={'azimuth_of_central_line':'alpha',
-                                             'latitude_of_projection_origin':lat_0,
-                                             'longitude_of_projection_origin':lon_0,
-                                             'latitude_of_meridian_ts':lat_ts,
-                                             'grid_mapping_name':'transverse_mercator',
-                                             'reference_ellipsoid_name':('ellps', 'WGS84'),
-                                             'prime_meridian_name':('pm', 'Greenwich'),
-                                             'horizontal_datum_name':('datum', 'unknown'),
-                                             'geographic_crs_name':'unknown',
-                                             'false_easting':0.,
-                                             'false_northing':0.,
+                                      attrs={'azimuth_of_central_line': 'alpha',
+                                             'latitude_of_projection_origin': lat_0,
+                                             'longitude_of_projection_origin': lon_0,
+                                             'latitude_of_meridian_ts': lat_ts,
+                                             'grid_mapping_name': 'transverse_mercator',
+                                             'reference_ellipsoid_name': ('ellps', 'WGS84'),
+                                             'prime_meridian_name': ('pm', 'Greenwich'),
+                                             'horizontal_datum_name': ('datum', 'unknown'),
+                                             'geographic_crs_name': 'unknown',
+                                             'false_easting': 0.,
+                                             'false_northing': 0.,
                                              'name': 'tmerc'})
-    
     
         ds = ds_base.copy()
         ds.attrs['area'] = tmerc
