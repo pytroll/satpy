@@ -22,13 +22,23 @@ import logging
 from contextlib import closing
 import tempfile
 import bz2
+import sys
 import os
+import shutil
 import numpy as np
 import pyproj
+from six import BytesIO
+from subprocess import Popen, PIPE
 from pyresample.geometry import AreaDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 
 from satpy import CHUNK_SIZE
+
+try:
+    from shutil import which
+except ImportError:
+    # python 2 - won't be used, but needed for mocking in tests
+    which = None
 
 LOGGER = logging.getLogger(__name__)
 
@@ -45,7 +55,8 @@ def np2str(value):
 
     """
     if hasattr(value, 'dtype') and \
-            issubclass(value.dtype.type, (np.string_, np.object_)) and value.size == 1:
+            issubclass(value.dtype.type, (np.string_, np.object_)) \
+            and value.size == 1:
         value = value.item()
         if not isinstance(value, str):
             # python 3 - was scalar numpy array of bytes
@@ -194,8 +205,43 @@ def get_sub_area(area, xslice, yslice):
 def unzip_file(filename):
     """Unzip the file if file is bzipped = ending with 'bz2'."""
     if filename.endswith('bz2'):
-        bz2file = bz2.BZ2File(filename)
         fdn, tmpfilepath = tempfile.mkstemp()
+        LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
+        # If in python 3, try pbzip2
+        if sys.version_info.major >= 3:
+            pbzip = which('pbzip2')
+            # Run external pbzip2
+            if pbzip is not None:
+                n_thr = os.environ.get('OMP_NUM_THREADS')
+                if n_thr:
+                    runner = [pbzip,
+                              '-dc',
+                              '-p'+str(n_thr),
+                              filename]
+                else:
+                    runner = [pbzip,
+                              '-dc',
+                              filename]
+                p = Popen(runner, stdout=PIPE, stderr=PIPE)
+                stdout = BytesIO(p.communicate()[0])
+                status = p.returncode
+                if status != 0:
+                    raise IOError("pbzip2 error '%s', failed, status=%d"
+                                  % (filename, status))
+                with closing(os.fdopen(fdn, 'wb')) as ofpt:
+                    try:
+                        stdout.seek(0)
+                        shutil.copyfileobj(stdout, ofpt)
+                    except IOError:
+                        import traceback
+                        traceback.print_exc()
+                        LOGGER.info("Failed to read bzipped file %s",
+                                    str(filename))
+                        os.remove(tmpfilepath)
+                        raise
+                return tmpfilepath
+        # Otherwise, fall back to the original method
+        bz2file = bz2.BZ2File(filename)
         with closing(os.fdopen(fdn, 'wb')) as ofpt:
             try:
                 ofpt.write(bz2file.read())
@@ -205,7 +251,6 @@ def unzip_file(filename):
                 LOGGER.info("Failed to read bzipped file %s", str(filename))
                 os.remove(tmpfilepath)
                 return None
-
         return tmpfilepath
 
     return None

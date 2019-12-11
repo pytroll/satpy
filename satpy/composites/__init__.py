@@ -513,6 +513,8 @@ class PSPRayleighReflectance(CompositeBase):
         from pyorbital.orbital import get_observer_look
 
         lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
+        lons = da.where(lons >= 1e30, np.nan, lons)
+        lats = da.where(lats >= 1e30, np.nan, lats)
         sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
         suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
@@ -1536,4 +1538,92 @@ class BackgroundCompositor(GenericCompositor):
 
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs.update(attrs)
+        return res
+
+
+class MaskingCompositor(GenericCompositor):
+    """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
+
+    def __init__(self, name, transparency=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            transparency: transparency for each cloud type as key-value pairs
+                          in a dictionary
+
+        The `transparencies` can be either the numerical values in the
+        data used as a mask with the corresponding transparency
+        (0...100 %) as the value, or, for NWC SAF products, the flag
+        names in the dataset `flag_meanings` attribute.
+
+        Transparency value of `0` means that the composite being
+        masked will be fully visible, and `100` means it will be
+        completely transparent and not visible in the resulting image.
+
+        For the mask values not listed in `transparencies`, the data will
+        be completely opaque (transparency = 0).
+
+        Example::
+
+          >>> transparency = {0: 100,
+                              1: 80,
+                              2: 0}
+          >>> compositor = MaskingCompositor("masking compositor",
+                                             transparency=transparency)
+          >>> result = compositor([data, mask])
+
+        This will set transparency of `data` based on the values in
+        the `mask` dataset.  Locations where `mask` has values of `0`
+        will be fully transparent, locations with `1` will be
+        semi-transparent and locations with `2` will be fully visible
+        in the resulting image.  All the unlisted locations will be
+        visible.
+
+        The transparency is implemented by adding an alpha layer to
+        the composite.  If the input `data` contains an alpha channel,
+        it will be discarded.
+
+        """
+        if transparency is None:
+            raise ValueError("No transparency configured for simple masking compositor")
+        self.transparency = transparency
+
+        super(MaskingCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Call the compositor."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.match_data_arrays(projectables)
+        cloud_mask = projectables[1]
+        cloud_mask_data = cloud_mask.data
+        data = projectables[0]
+        alpha_attrs = data.attrs.copy()
+        if 'bands' in data.dims:
+            data = [data.sel(bands=b) for b in data['bands'] if b != 'A']
+        else:
+            data = [data]
+
+        # Create alpha band
+        alpha = da.ones((data[0].sizes['y'],
+                         data[0].sizes['x']),
+                        chunks=data[0].chunks)
+
+        # Modify alpha based on transparency per class from yaml
+        flag_meanings = cloud_mask.attrs['flag_meanings']
+        flag_values = cloud_mask.attrs['flag_values']
+
+        if isinstance(flag_meanings, str):
+            flag_meanings = flag_meanings.split()
+
+        for key, val in self.transparency.items():
+            if isinstance(key, str):
+                key_index = flag_meanings.index(key)
+                key = flag_values[key_index]
+            alpha_val = 1. - val / 100.
+            alpha = da.where(cloud_mask_data == key, alpha_val, alpha)
+        alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
+                             dims=data[0].dims, coords=data[0].coords)
+        data.append(alpha)
+        res = super(MaskingCompositor, self).__call__(data, **kwargs)
         return res

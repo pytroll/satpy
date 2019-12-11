@@ -12,9 +12,9 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -25,9 +25,9 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -38,9 +38,9 @@ datasets:
         resolution: 1050
         calibration:
           reflectance:
-            standard_name: reflectance
+            standard_name: toa_bidirectional_reflectance
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -51,9 +51,9 @@ datasets:
         resolution: 1050
         calibration:
           brightness_temperature:
-            standard_name: brightness_temperature
+            standard_name: toa_brightness_temperature
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -64,9 +64,9 @@ datasets:
         resolution: 1050
         calibration:
           brightness_temperature:
-            standard_name: brightness_temperature
+            standard_name: toa_brightness_temperature
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude
@@ -77,9 +77,9 @@ datasets:
         resolution: 1050
         calibration:
           brightness_temperature:
-            standard_name: brightness_temperature
+            standard_name: toa_brightness_temperature
           radiance:
-            standard_name: radiance
+            standard_name: toa_outgoing_radiance_per_unit_wavelength
         coordinates:
             - longitude
             - latitude

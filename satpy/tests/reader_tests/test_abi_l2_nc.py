@@ -32,13 +32,14 @@ except ImportError:
     import mock
 
 
-class Test_NC_ABI_L2_area_fixedgrid(unittest.TestCase):
+class Test_NC_ABI_L2_base(unittest.TestCase):
     """Test the NC_ABI_L2 reader."""
 
     @mock.patch('satpy.readers.abi_base.xr')
     def setUp(self, xr_):
         """Create fake data for the tests."""
         from satpy.readers.abi_l2_nc import NC_ABI_L2
+
         proj = xr.DataArray(
             [],
             attrs={
@@ -57,21 +58,72 @@ class Test_NC_ABI_L2_area_fixedgrid(unittest.TestCase):
             [0, 1],
             attrs={'scale_factor': -2., 'add_offset': 1.},
         )
+
+        ht_da = xr.DataArray(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2, 2)),
+                             dims=('y', 'x'),
+                             attrs={'scale_factor': 0.3052037,
+                                    'add_offset': 0.,
+                                    '_FillValue': np.array(-1).astype(np.int16),
+                                    '_Unsigned': 'True',
+                                    'units': 'm'},)
+
         xr_.open_dataset.return_value = FakeDataset({
             'goes_imager_projection': proj,
             'x': x__,
             'y': y__,
-            'HT': np.ones((2, 2))},
-            {"time_coverage_start": "2017-09-20T17:30:40.8Z",
-             "time_coverage_end": "2017-09-20T17:41:17.5Z",
-             },
+            'HT': ht_da,
+            "nominal_satellite_subpoint_lat": np.array(0.0),
+            "nominal_satellite_subpoint_lon": np.array(-89.5),
+            "nominal_satellite_height": np.array(35786020.),
+            "spatial_resolution": "10km at nadir",
+            },
+            {
+                "time_coverage_start": "2017-09-20T17:30:40.8Z",
+                "time_coverage_end": "2017-09-20T17:41:17.5Z",
+            },
             dims=('y', 'x'),
         )
 
         self.reader = NC_ABI_L2('filename',
                                 {'platform_shortname': 'G16', 'observation_type': 'HT',
-                                 'scene_abbr': 'C', 'scan_mode': 'M3'},
+                                 'scan_mode': 'M3'},
                                 {'filetype': 'info'})
+
+
+class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
+    """Test get dataset function of the NC_ABI_L2 reader."""
+
+    def test_get_dataset(self):
+        """Test basic L2 load."""
+        from satpy import DatasetID
+        key = DatasetID(name='HT')
+        res = self.reader.get_dataset(key, {'file_key': 'HT'})
+
+        exp_data = np.array([[2 * 0.3052037, np.nan],
+                             [32768 * 0.3052037, 32767 * 0.3052037]])
+
+        exp_attrs = {'instrument_ID': None,
+                     'modifiers': (),
+                     'name': 'HT',
+                     'orbital_slot': None,
+                     'platform_name': 'GOES-16',
+                     'platform_shortname': 'G16',
+                     'production_site': None,
+                     'satellite_altitude': 35786020.,
+                     'satellite_latitude': 0.0,
+                     'satellite_longitude': -89.5,
+                     'scan_mode': 'M3',
+                     'scene_id': None,
+                     'sensor': 'abi',
+                     'timeline_ID': None,
+                     'units': 'm'}
+
+        self.assertTrue(np.allclose(res.data, exp_data, equal_nan=True))
+        self.assertDictEqual(dict(res.attrs), exp_attrs)
+
+
+class Test_NC_ABI_L2_area_fixedgrid(Test_NC_ABI_L2_base):
+    """Test the NC_ABI_L2 reader."""
 
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_fixedgrid(self, adef):
@@ -154,6 +206,7 @@ def suite():
 
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L2_area_latlon))
     mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L2_area_fixedgrid))
+    mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L2_get_dataset))
 
     return mysuite
 

@@ -109,9 +109,12 @@ class TestHDF4FileHandler(unittest.TestCase):
             self.assertEqual(attrs.get('test_attr_int'), 0)
             self.assertEqual(attrs.get('test_attr_float'), 1.2)
 
+        self.assertIsInstance(file_handler['/attr/test_attr_str'], str)
         self.assertEqual(file_handler['/attr/test_attr_str'], 'test_string')
         # self.assertEqual(file_handler['/attr/test_attr_str_arr'], 'test_string2')
+        self.assertIsInstance(file_handler['/attr/test_attr_int'], int)
         self.assertEqual(file_handler['/attr/test_attr_int'], 0)
+        self.assertIsInstance(file_handler['/attr/test_attr_float'], float)
         self.assertEqual(file_handler['/attr/test_attr_float'], 1.2)
 
         self.assertIsInstance(file_handler.get('ds1_f'), xr.DataArray)

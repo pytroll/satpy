@@ -19,6 +19,7 @@
 
 import xarray as xr
 import dask.array as da
+import dask
 import numpy as np
 from datetime import datetime
 from satpy.tests.compositor_tests import test_abi, test_ahi, test_viirs
@@ -1067,6 +1068,8 @@ class TestBackgroundCompositor(unittest.TestCase):
 
 
 class TestPSPAtmosphericalCorrection(unittest.TestCase):
+    """Test the pyspectral-based atmospheric correction modifier."""
+
     def setUp(self):
         """Patch in-class imports."""
         self.orbital = mock.MagicMock()
@@ -1109,6 +1112,8 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
 
 
 class TestPSPRayleighReflectance(unittest.TestCase):
+    """Test the pyspectral-based rayleigh correction modifier."""
+
     def setUp(self):
         """Patch in-class imports."""
         self.astronomy = mock.MagicMock()
@@ -1134,7 +1139,13 @@ class TestPSPRayleighReflectance(unittest.TestCase):
         self.orbital.get_observer_look.return_value = 0, 0
         self.astronomy.get_alt_az.return_value = 0, 0
         area = mock.MagicMock()
-        area.get_lonlats.return_value = 'lons', 'lats'
+        lons = np.zeros((5, 5))
+        lons[1, 1] = np.inf
+        lons = da.from_array(lons, chunks=5)
+        lats = np.zeros((5, 5))
+        lats[1, 1] = np.inf
+        lats = da.from_array(lats, chunks=5)
+        area.get_lonlats.return_value = (lons, lats)
         vis = mock.MagicMock(attrs={'area': area,
                                     'start_time': 'start_time'})
 
@@ -1144,8 +1155,106 @@ class TestPSPRayleighReflectance(unittest.TestCase):
 
         # Check arguments of get_orbserver_look() call, especially the altitude
         # unit conversion from meters to kilometers
-        self.orbital.get_observer_look.assert_called_with(
-            'sat_lon', 'sat_lat', 12345.678, 'start_time', 'lons', 'lats', 0)
+        self.orbital.get_observer_look.assert_called_once()
+        args = self.orbital.get_observer_look.call_args[0]
+        self.assertEqual(args[:4], ('sat_lon', 'sat_lat', 12345.678, 'start_time'))
+        self.assertIsInstance(args[4], da.Array)
+        self.assertIsInstance(args[5], da.Array)
+        self.assertEqual(args[6], 0)
+
+
+class TestMaskingCompositor(unittest.TestCase):
+    """Test case for the simple masking compositor."""
+
+    def test_init(self):
+        """Test the initializiation of compositor."""
+        from satpy.composites import MaskingCompositor
+
+        # No transparency given raises ValueError
+        with self.assertRaises(ValueError):
+            comp = MaskingCompositor("name")
+
+        # transparency defined
+        comp = MaskingCompositor("name", transparency=0)
+        self.assertEqual(comp.transparency, 0)
+
+    def test_call(self):
+        """Test call the compositor."""
+        from satpy.composites import MaskingCompositor
+        from satpy.tests.utils import CustomScheduler
+
+        flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
+        flag_values = da.array([1, 2])
+        transparency_data_v1 = {'Cloud-free_land': 100,
+                                'Cloud-free_sea': 50}
+        transparency_data_v2 = {1: 100,
+                                2: 50}
+
+        # 2D data array
+        data = xr.DataArray(da.random.random((3, 3)), dims=['y', 'x'])
+
+        # 2D CT data array
+        ct_data = da.array([[1, 2, 2],
+                            [2, 1, 2],
+                            [2, 2, 1]])
+        ct_data = xr.DataArray(ct_data, dims=['y', 'x'])
+        ct_data.attrs['flag_meanings'] = flag_meanings
+        ct_data.attrs['flag_values'] = flag_values
+
+        reference_alpha = da.array([[0, 0.5, 0.5],
+                                    [0.5, 0, 0.5],
+                                    [0.5, 0.5, 0]])
+        reference_alpha = xr.DataArray(reference_alpha, dims=['y', 'x'])
+
+        # Test with numerical transparency data
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", transparency=transparency_data_v1)
+            res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'LA')
+        np.testing.assert_allclose(res.sel(bands='L'), data)
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # Test with named fields
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", transparency=transparency_data_v2)
+            res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'LA')
+        np.testing.assert_allclose(res.sel(bands='L'), data)
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # Test RGB dataset
+        # 3D data array
+        data = xr.DataArray(da.random.random((3, 3, 3)),
+                            dims=['bands', 'y', 'x'],
+                            coords={'bands': ['R', 'G', 'B'],
+                                    'y': np.arange(3),
+                                    'x': np.arange(3)})
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", transparency=transparency_data_v1)
+            res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'RGBA')
+        np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
+        np.testing.assert_allclose(res.sel(bands='G'), data.sel(bands='G'))
+        np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # Test RGBA dataset
+        data = xr.DataArray(da.random.random((4, 3, 3)),
+                            dims=['bands', 'y', 'x'],
+                            coords={'bands': ['R', 'G', 'B', 'A'],
+                                    'y': np.arange(3),
+                                    'x': np.arange(3)})
+
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", transparency=transparency_data_v2)
+            res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'RGBA')
+        np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
+        np.testing.assert_allclose(res.sel(bands='G'), data.sel(bands='G'))
+        np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
+        # The compositor should drop the original alpha band
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
 
 def suite():
@@ -1176,6 +1285,7 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(TestStaticImageCompositor))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPSPAtmosphericalCorrection))
     mysuite.addTest(loader.loadTestsFromTestCase(TestPSPRayleighReflectance))
+    mysuite.addTest(loader.loadTestsFromTestCase(TestMaskingCompositor))
 
     return mysuite
 
