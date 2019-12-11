@@ -169,7 +169,7 @@ datasets:
     wavelength: [3.5, 3.8, 4.0]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -185,7 +185,7 @@ datasets:
     wavelength: [5.7, 6.4, 7.0]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -201,7 +201,7 @@ datasets:
     wavelength: [7.5, 8.0, 8.5]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -217,7 +217,7 @@ datasets:
     wavelength: [8.2, 8.7, 9.2]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -233,7 +233,7 @@ datasets:
     wavelength: [9.2, 9.7, 10.2]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -249,7 +249,7 @@ datasets:
     wavelength: [10.2, 10.8, 11.2]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
@@ -265,7 +265,7 @@ datasets:
     wavelength: [11.2, 11.9, 12.5]
     calibration:
       brightness_temperature:
-        standard_name: brightness_temperature
+        standard_name: toa_brightness_temperature
         units: K
     #   radiance:
     #     standard_name: toa_outgoing_radiance_per_unit_wavelength
