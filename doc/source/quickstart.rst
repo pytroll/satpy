@@ -127,6 +127,9 @@ To access the loaded data use the wavelength or name:
 
     >>> print(global_scene[0.6])
 
+For more information on loading datasets by resolution, calibration, or other
+advanced loading methods see the :doc:`readers` documentation.
+
 Visualizing data                                                                                    
 ================                                                                                    
 
@@ -157,8 +160,14 @@ Calculations based on loaded datasets/channels can easily be assigned to a new d
     >>> global_scene["ndvi"] = (global_scene[0.8] - global_scene[0.6]) / (global_scene[0.8] + global_scene[0.6])
     >>> global_scene.show("ndvi")
 
-For more information on loading datasets by resolution, calibration, or other
-advanced loading methods see the :doc:`readers` documentation.
+When doing calculations Xarray, by default, will drop all attributes so attributes need to be
+copied over by hand. The :func:`~satpy.dataset.combine_metadata` function can assist with this task.
+Assigning additional custom metadata is also possible.
+
+    >>> from satpy.dataset import combine_metadata
+    >>> scene['new_band'] = scene[0.8] / scene[0.6]
+    >>> scene['new_band'].attrs = combine_metadata(scene[0.8], scene[0.6])
+    >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want' 
 
 Generating composites
 =====================
