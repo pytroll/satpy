@@ -11,6 +11,7 @@ The following people have made contributions to this project:
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
+- [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
 - [Lorenzo Clementi (loreclem)](https://github.com/loreclem)
 - [Colin Duff (ColinDuff)](https://github.com/ColinDuff)
 - [Radar, Satellite and Nowcasting Division (meteoswiss-mdr)](https://github.com/meteoswiss-mdr)
@@ -28,6 +29,7 @@ The following people have made contributions to this project:
 - [JohannesSMHI (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
+- [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
 - [Panu Lahtinen (pnuu)](https://github.com/pnuu)
 - [Thomas Leppelt (m4sth0)](https://github.com/m4sth0)

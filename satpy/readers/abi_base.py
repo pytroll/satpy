@@ -53,10 +53,10 @@ class NC_ABI_BASE(BaseFileHandler):
                                       mask_and_scale=False,
                                       chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
 
-        self.nc = self.nc.rename({'t': 'time'})
+        if 't' in self.nc.dims:
+            self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
-        self.sensor = 'abi'
 
         if 'goes_imager_projection' in self.nc:
             self.nlines = self.nc['y'].size
@@ -67,6 +67,11 @@ class NC_ABI_BASE(BaseFileHandler):
             self.nc = self.nc.rename({'lon': 'x', 'lat': 'y'})
 
         self.coords = {}
+
+    @property
+    def sensor(self):
+        """Get sensor name for current file handler."""
+        return 'abi'
 
     def __getitem__(self, item):
         """Wrap `self.nc[item]` for better floating point precision.
@@ -244,6 +249,17 @@ class NC_ABI_BASE(BaseFileHandler):
     def end_time(self):
         """End time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+    def spatial_resolution_to_number(self):
+        """Convert the 'spatial_resolution' global attribute to meters."""
+        res = self.nc.attrs['spatial_resolution'].split(' ')[0]
+        if res.endswith('km'):
+            res = int(float(res[:-2]) * 1000)
+        elif res.endswith('m'):
+            res = int(res[:-1])
+        else:
+            raise ValueError("Unexpected 'spatial_resolution' attribute '{}'".format(res))
+        return res
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""

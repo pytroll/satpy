@@ -13,6 +13,36 @@ modifiers:
 
 composites:
 
+  ct_masked_ir:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - IR_108
+    - ct
+    standard_name: ct_masked_ir
+    transparency:
+      0: 100
+      1: 100
+      2: 100
+      3: 100
+      4: 100
+      10: 35
+
+  nwc_geo_ct_masked_ir:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - IR_108
+    - ct
+    standard_name: nwc_geo_ct_masked_ir
+    # Default is opaque (transparency = 0)
+    transparency:
+      Cloud-free_land: 100
+      Cloud-free_sea: 100
+      Snow_over_land: 100
+      Sea_ice: 100
+      Fractional_clouds: 45
+      High_semitransparent_thin_clouds: 50
+      High_semitransparent_above_snow_ice: 60
+
   cloudtop:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
