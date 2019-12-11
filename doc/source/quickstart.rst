@@ -169,11 +169,6 @@ Assigning additional custom metadata is also possible.
     >>> scene['new_band'].attrs = combine_metadata(scene[0.8], scene[0.6])
     >>> scene['new_band'].attrs['some_other_key'] = 'whatever_value_you_want' 
 
-.. note::
-
-    To avoid the Scene adding its own attributes (thinking it knows best) use a temporary variable
-    for the calculation and attribute assignment before adding the result to the Scene object.
-
 Generating composites
 =====================
 
