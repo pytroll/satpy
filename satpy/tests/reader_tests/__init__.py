@@ -40,7 +40,7 @@ from satpy.tests.reader_tests import (test_abi_l1b, test_agri_l1, test_hrit_base
                                       test_fci_l1c_fdhsi, test_tropomi_l2,
                                       test_hsaf_grib, test_abi_l2_nc, test_eum_base,
                                       test_ami_l1b, test_viirs_compact, test_seviri_l2_bufr,
-                                      test_geos_area, test_nwcsaf_msg)
+                                      test_geos_area, test_nwcsaf_msg, test_glm_l2)
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -102,5 +102,6 @@ def suite():
     mysuite.addTests(test_geos_area.suite())
     mysuite.addTests(test_seviri_l2_bufr.suite())
     mysuite.addTests(test_nwcsaf_msg.suite())
+    mysuite.addTests(test_glm_l2.suite())
 
     return mysuite
