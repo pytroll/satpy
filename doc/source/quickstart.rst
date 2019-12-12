@@ -130,6 +130,22 @@ To access the loaded data use the wavelength or name:
 For more information on loading datasets by resolution, calibration, or other
 advanced loading methods see the :doc:`readers` documentation.
 
+
+Calculating measurment values and navigation coordinates
+========================================================
+
+Measurement values can be accessible by compute()-ing a slice (or the entirety) of a DataArray:
+
+    >>> vis006 = global_scene["VIS006"]
+    >>> vis006_excerpt = vis006[2000:2004, 1000:1004].compute()
+
+The 'area' attribute, if present, can be converted to a latitude-longitude array. 
+
+    >>> vis006_lon, vis006_lat = vis006.attrs['area'].get_lonlats()
+    >>> vis006_lon_excerpt = vis006_lon[2000:2004, 1000:1004]
+    >>> vis006_lat_excerpt = vis006_lat[2000:2004, 1000:1004]
+
+
 Visualizing data                                                                                    
 ================                                                                                    
 
