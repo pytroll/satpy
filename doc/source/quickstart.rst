@@ -134,12 +134,12 @@ advanced loading methods see the :doc:`readers` documentation.
 Calculating measurment values and navigation coordinates
 ========================================================
 
-Measurement values can be accessible by compute()-ing a slice (or the entirety) of a DataArray:
+Measurement values can be accessed by compute()-ing a slice, or the entirety, of a DataArray:
 
     >>> vis006 = global_scene["VIS006"]
     >>> vis006_excerpt = vis006[2000:2004, 1000:1004].compute()
 
-The 'area' attribute, if present, can be converted to a latitude-longitude array. 
+The 'area' attribute, if present, can be converted to latitude and longitude arrays. 
 
     >>> vis006_lon, vis006_lat = vis006.attrs['area'].get_lonlats()
     >>> vis006_lon_excerpt = vis006_lon[2000:2004, 1000:1004]
