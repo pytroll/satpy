@@ -131,8 +131,8 @@ For more information on loading datasets by resolution, calibration, or other
 advanced loading methods see the :doc:`readers` documentation.
 
 
-Calculating measurment values and navigation coordinates
-========================================================
+Calculating measurement values and navigation coordinates
+=========================================================
 
 Measurement values can be accessed by compute()-ing a slice, or the entirety, of a DataArray:
 
