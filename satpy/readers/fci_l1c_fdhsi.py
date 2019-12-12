@@ -44,6 +44,8 @@ Guide (`PUG`_) and from the data files.  It uses:
       projection (see PUG §5.2)
     * From the attribute ``longitude_of_projection_origin`` on the same
       data variable, the longitude of the projection origin
+    * From the attribute ``inverse_flattening`` on the same data variable, the
+      (inverse) flattening of the ellipsoid
     * From the attribute ``sweep_angle_axis`` on the same, the sweep angle
       axis, see https://proj.org/operations/projections/geos.html
 
@@ -214,7 +216,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
 
-        # assumption: channels with same resolution should have same area 
+        # assumption: channels with same resolution should have same area
         # cache results to improve performance
         if key.resolution in self._cache.keys():
             return self._cache[key.resolution]
@@ -222,6 +224,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
         b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
+        if_ = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
         sweep = "y"  # see email KH to GH 2019-11-07, remove when no longer needed
@@ -234,6 +237,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                      'b': b,
                      'lon_0': lon_0,
                      'h': h,
+                     "fi": float(if_),
                      'proj': 'geos',
                      'units': 'm',
                      "sweep": sweep}
