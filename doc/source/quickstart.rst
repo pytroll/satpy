@@ -134,16 +134,14 @@ advanced loading methods see the :doc:`readers` documentation.
 Calculating measurement values and navigation coordinates
 =========================================================
 
-Measurement values can be accessed by compute()-ing a slice, or the entirety, of a DataArray:
+Once loaded, measurement values can be calculated from a DataArray within a scene, using .values to get a fully calculated numpy array:
 
     >>> vis006 = global_scene["VIS006"]
-    >>> vis006_excerpt = vis006[2000:2004, 1000:1004].compute()
+    >>> vis006_meas = vis006.values
 
-The 'area' attribute, if present, can be converted to latitude and longitude arrays. 
+The 'area' attribute of the DataArray, if present, can be converted to latitude and longitude arrays. For some instruments (typically polar-orbiters), the get_lonlats() may result in arrays needing an additional .compute() or .values extraction.
 
     >>> vis006_lon, vis006_lat = vis006.attrs['area'].get_lonlats()
-    >>> vis006_lon_excerpt = vis006_lon[2000:2004, 1000:1004]
-    >>> vis006_lat_excerpt = vis006_lat[2000:2004, 1000:1004]
 
 
 Visualizing data                                                                                    
@@ -261,6 +259,26 @@ Datasets are automatically scaled or "enhanced" to be compatible with the
 output format and to provide the best looking image. For more information
 on saving datasets and customizing enhancements see the documentation on
 :doc:`writers`.
+
+
+Slicing and subsetting scenes
+=============================
+
+Array slicing can be done at the scene level in order to get excerpts with consistent navigation throughout. Note that this does not take into account scenes that may include multi-resolution channels.
+
+  >>> scene_slice = global_scene[2000:2004, 2000:2004]
+  >>> vis006_slice = scene_slice['VIS006']
+  >>> vis006_slice_meas = vis006_slice.values
+  >>> vis006_slice_lon, vis006_slice_lat = vis006_slice.attrs['area'].get_lonlats()
+
+To subset multi-resolution data, use the `.crop` function. 
+
+  >>> scene_llbox = global_scene.crop(ll_bbox=(-4.0, -3.9, 3.9, 4.0))
+  >>> vis006_llbox = scene_llbox['VIS006']
+  >>> vis006_llbox_meas = vis006_llbox.values
+  >>> vis006_llbox_lon, vis006_llbox_lat = vis006_llbox.attrs['area'].get_lonlats()
+
+
 
 Troubleshooting
 ===============
