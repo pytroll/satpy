@@ -26,12 +26,12 @@ not default as it typically prints many non-fatal but confusing error messages
 to the terminal.
 To choose between engines the user can  do as follows for the default::
 
-    scn = satpyScene(filenames=my_files, reader='olci_l1b')
+    scn = Scene(filenames=my_files, reader='olci_l1b')
 
 or as follows for the h5netcdf engine::
 
     scn = Scene(filenames=my_files,
-          reader='olci_l1b'), reader_kwargs={'engine': 'h5netcdf'})
+                reader='olci_l1b'), reader_kwargs={'engine': 'h5netcdf'})
 
 References:
     - :func:`xarray.open_dataset`
