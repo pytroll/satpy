@@ -141,31 +141,47 @@ The ``datasets`` section
 
 The datasets section describes each dataset available in the files. The
 parameters provided are made available to the methods of the
-implementing class.
+implemented python class.
 
 If your input files contain all the necessary metadata or you have a lot
-of datasets to configure, look at the :ref:`custom_reader_available_datasets`
-section below. Implementing this will save you time from having to write
+of datasets to configure look at the :ref:`custom_reader_available_datasets`
+section below. Implementing this will save you from having to write
 a lot of configuration in the YAML files.
 
 Parameters you can define for example are:
+
  - name
  - sensor
  - resolution
  - wavelength
  - polarization
- - standard\_name: the name used for the
-   dataset, that will be used for knowing what kind of data it is and
-   handle it appropriately
- - units: the units of the data, important to get
-   consistent processing across multiple platforms/instruments
- - modifiers: what modification have already been applied to the data, eg
-   ``sunz_corrected``
- - file\_type
- - coordinates: this tells which datasets
-   to load to navigate the current dataset
- - and any other field that is
-   relevant for the reader
+ - standard\_name: The
+   `CF standard name <http://cfconventions.org/Data/cf-standard-names/70/build/cf-standard-name-table.html>`_
+   for the dataset that will be used to determine the type of data. See
+   existing readers for common standard names in Satpy or the CF standard name
+   documentation for other available names or how to define your own. Satpy
+   does not currently have a hard requirement on these names being completely
+   CF compliant, but consistency across readers is important.
+ - units: The units of the data when returned by the file handler. Although
+   not technically a requirement, it is common for Satpy datasets to use "%"
+   for reflectance fields and "K" for brightness temperature fields.
+ - modifiers: The modification(s) that have already been applied to the data
+   when it is returned by the file handler. Only a few of these have been
+   standardized across Satpy, but are based on the names of the modifiers
+   configured in the "composites" YAML files. Examples include
+   ``sunz_corrected`` or ``rayleigh_corrected``. See the
+   `metadata wiki <https://github.com/pytroll/satpy/wiki/Metadata-names>`_
+   for more information.
+ - file\_type: Name of file type (see above).
+ - coordinates: An optional two-element list with the names of the longitude
+   and latitude datasets describing the location of this dataset. This
+   is optional if the data being read is gridded already. Swath data,
+   from example data from some polar-orbiting satellites, should have these
+   defined or no geolocation information will be available when the data
+   is loaded. For gridded datasets a `get_area_def` function will be
+   implemented in python (see below) to define geolocation information.
+ - Any other field that is relevant for the reader or could be useful metadata
+   provided to the user.
 
 This section can be copied and adapted simply from existing seviri
 readers, like for example the ``msg_native`` reader.
