@@ -3,11 +3,19 @@
 =================================
 
 In order to add a reader to satpy, you will need to create two files:
+
  - a YAML file for describing the files to read and the datasets that are available
  - a python file implementing the actual reading of the datasets and metadata
 
-For this tutorial, we will implement a reader for the Eumetsat NetCDF
-format for SEVIRI data
+Satpy implements readers by defining a single "reader" object that pulls
+information from one or more file handler objects. The base reader class
+provided by Satpy is enough for most cases and does not need to be modified.
+The individual file handler classes do need to be created due to the small
+differences between file formats.
+
+The below documentation will walk through each part of making a reader in
+detail. To do this we will implement a reader for the EUMETSAT NetCDF
+format for SEVIRI data.
 
 .. _reader_naming:
 
@@ -63,16 +71,23 @@ The YAML file
 -------------
 
 The yaml file is composed of three sections:
- - the ``reader`` section, that provides basic parameters for the reader
- - the ``file_types`` section, which gives the patterns of the files this reader can handle
- - the ``datasets`` section, describing the datasets available from this reader
+
+ - the :ref:`reader <custom_reader_reader_section>` section,
+   that provides basic parameters for the reader
+ - the :ref:`file_types <custom_reader_file_types_section>` section,
+   that gives the patterns of the files this reader can handle
+ - the :ref:`datasets <custom_reader_datasets_section>` section,
+   that describes the datasets available from this reader
+
+.. _custom_reader_reader_section:
 
 The ``reader`` section
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The ``reader`` section, that provides basic parameters for the reader.
+The ``reader`` section provides basic parameters for the overall reader.
 
 The parameters to provide in this section are:
+
  - name: This is the name of the reader, it should be the same as the
    filename (without the .yaml extension). The naming convention for
    this is described above in the :ref:`reader_naming` section above.
@@ -107,13 +122,17 @@ The parameters to provide in this section are:
       sensors: [seviri]
       reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
+.. _custom_reader_file_types_section:
+
 The ``file_types`` section
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Each file type needs to provide:
+
  - ``file_reader``, the class that will
    handle the files for this reader, that you will implement in the
-   corresponding python file (see next section)
+   corresponding python file. See the :ref:`custom_reader_python`
+   section below.
  - ``file_patterns``, the
    patterns to match to find files this reader can handle. The syntax to
    use is basically the same as ``format`` with the addition of time. See
@@ -135,6 +154,8 @@ Each file type needs to provide:
         nc_seviri_l1b_hrv:
             file_reader: !!python/name:satpy.readers.nc_seviri_l1b.NCSEVIRIHRVFileHandler
             file_patterns: ['W_XX-EUMETSAT-Darmstadt,HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
+
+.. _custom_reader_datasets_section:
 
 The ``datasets`` section
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -187,7 +208,6 @@ This section can be copied and adapted simply from existing seviri
 readers, like for example the ``msg_native`` reader.
 
 .. code:: yaml
-
 
     datasets:
       HRV:
@@ -418,6 +438,8 @@ Note that this is considered an advanced interface and involves more advanced
 Python concepts like generators. If you need help with anything feel free
 to ask questions in your pull request or on the :ref:`Pytroll Slack <dev_help>`.
 
+.. _custom_reader_python:
+
 The python file
 ---------------
 
@@ -457,10 +479,23 @@ needs to implement a few methods:
 On top of that, two attributes need to be defined: ``start_time`` and
 ``end_time``, that define the start and end times of the sensing.
 
+If you are writing a file handler for more common formats like HDF4, HDF5, or
+NetCDF4 you may want to consider using the utility base classes for each:
+:class:`satpy.readers.hdf4_utils.HDF4FileHandler`,
+:class:`satpy.readers.hdf5_utils.HDF5FileHandler`, and
+:class:`satpy.readers.netcdf_utils.NetCDF4FileHandler`. These were added as
+a convenience and are not required to read these formats. In many cases using
+the :func:`xarray.open_dataset` function in a custom file handler is a much
+better idea.
+
+One way of implementing a file handler is shown below:
+
 .. code:: python
 
-    # this is nc_seviri_l1b.py
-    class NCSEVIRIFileHandler():
+    # this is seviri_l1b_nc.py
+    from satpy.readers.file_handlers import BaseFileHandler
+
+    class NCSEVIRIFileHandler(BaseFileHandler):
         def __init__(self, filename, filename_info, filetype_info):
             super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
             self.nc = None
@@ -486,3 +521,6 @@ On top of that, two attributes need to be defined: ``start_time`` and
 
     class NCSEVIRIHRVFileHandler():
       # left as an exercise to the reader :)
+
+If you have any questions, please contact the
+:ref:`Satpy developers <dev_help>`.
