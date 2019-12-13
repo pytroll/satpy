@@ -385,7 +385,8 @@ can easily become a problem. To help in these cases the
 :meth:`~satpy.readers.file_handlers.BaseFileHandler.available_datasets`
 file handler interface can be used.
 
-The best information for what this information does and how to use it
+This method, if needed, should be implemented in your reader's file handler
+classes. The best information for what this method does and how to use it
 is available in the
 :meth:`API documentation <satpy.readers.file_handlers.BaseFileHandler.available_datasets>`.
 This method is good when you want to:
@@ -398,7 +399,7 @@ This method is good when you want to:
    "file_type" is loaded.
 
 Note that this is considered an advanced interface and involves more advanced
-Python experience like generators. If you need help with anything feel free
+Python concepts like generators. If you need help with anything feel free
 to ask questions in your pull request or on the :ref:`Pytroll Slack <dev_help>`.
 
 The python file
