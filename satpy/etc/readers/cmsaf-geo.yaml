@@ -1,6 +1,14 @@
 reader:
-  description: NetCDF4 reader for the CMSAF MSG Seviri products
+  description: >
+    Reader for official data products from the Climate Monitoring
+    Satellite Application Facility (CMSAF).  At present, this is developed
+    as a reader for the instantaneous non-statistical Meteosat Third
+    Generation MSG SEVIRI cloud products in NetCDF4 format, but it may
+    work for other products with little or perhaps no modification.
+    Information on CMSAF and its products can be found at
+    https://www.cmsat.eu/.
   name: cmsaf-geo
+  long_name: EUMETSAT SEVIRI Level 2 CMSAF NetCDF4 cloud products
   sensors: [seviri]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
@@ -9,13 +17,9 @@ reader:
 #   https://www.cmsaf.eu/EN/Products/NamingConvention/Naming_Convention_node.html
 
 file_types:
-    nc_nwcsaf_ctx:
+    nc_cmsaf_sev:
         file_reader: !!python/name:satpy.readers.cmsaf_nc.NcCMSAF
-        file_patterns: ['CTXin{start_time:%Y%m%d%H%M%S}305SVMSG01MD.nc']
-
-    nc_nwcsaf_cpp:
-        file_reader: !!python/name:satpy.readers.cmsaf_nc.NcCMSAF
-        file_patterns: ['CPPin{start_time:%Y%m%d%H%M%S}305SVMSG01MD.nc']
+        file_patterns: ['{product:3s}in{start_time:%Y%m%d%H%M%S}{version:>03d}05SVMSG01MD.nc']
 
 datasets:
 
@@ -23,34 +27,34 @@ datasets:
     name: ctt
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf_ctx
+    file_type: nc_cmsaf_sev
 
   ctp:
     name: ctp
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf_ctx
+    file_type: nc_cmsaf_sev
 
   cth:
     name: cth
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf_ctx
+    file_type: nc_cmsaf_sev
 
   cot:
     name: cot
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf_cpp
+    file_type: nc_cmsaf_sev
 
   reff:
     name: reff
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf_cpp
+    file_type: nc_cmsaf_sev
 
   lwp:
     name: lwp
     sensor: seviri
     resolution: 3000
-    file_type: nc_nwcsaf_cpp
+    file_type: nc_cmsaf_sev
