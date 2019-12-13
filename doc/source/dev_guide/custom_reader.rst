@@ -143,6 +143,11 @@ The datasets section describes each dataset available in the files. The
 parameters provided are made available to the methods of the
 implementing class.
 
+If your input files contain all the necessary metadata or you have a lot
+of datasets to configure, look at the :ref:`custom_reader_available_datasets`
+section below. Implementing this will save you time from having to write
+a lot of configuration in the YAML files.
+
 Parameters you can define for example are:
  - name
  - sensor
@@ -363,10 +368,38 @@ readers, like for example the ``msg_native`` reader.
             units: count
         file_type: nc_seviri_l1b
 
+The YAML file is now ready and you can move on to writing your python code.
 
+.. _custom_reader_available_datasets:
 
-The YAML file is now ready, let's go on with the corresponding python
-file.
+Dynamic Dataset Configuration
+-----------------------------
+
+The above "datasets" section for reader configuration is the most explicit
+method for specifying metadata about possible data that can be loaded from
+input files. It is also the easiest way for people with little python
+experience to customize or add new datasets to a reader. However, some file
+formats may have 10s or even 100s of datasets or variations of datasets.
+Writing the metadata and access information for every one of these datasets
+can easily become a problem. To help in these cases the
+:meth:`~satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+file handler interface can be used.
+
+The best information for what this information does and how to use it
+is available in the
+:meth:`API documentation <satpy.readers.file_handlers.BaseFileHandler.available_datasets>`.
+This method is good when you want to:
+
+1. Define datasets dynamically without needing to define them in the YAML.
+2. Supplement metadata from the YAML file with information from the file
+   content (ex. `resolution`).
+3. Determine if a dataset is available by the file contents. This differs from
+   the default behavior of a dataset being considered loadable if its
+   "file_type" is loaded.
+
+Note that this is considered an advanced interface and involves more advanced
+Python experience like generators. If you need help with anything feel free
+to ask questions in your pull request or on the :ref:`Pytroll Slack <dev_help>`.
 
 The python file
 ---------------
