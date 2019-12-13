@@ -31,7 +31,7 @@ To choose between engines the user can  do as follows for the default::
 or as follows for the h5netcdf engine::
 
     scn = Scene(filenames=my_files,
-                reader='olci_l1b'), reader_kwargs={'engine': 'h5netcdf'})
+                reader='olci_l1b', reader_kwargs={'engine': 'h5netcdf'})
 
 References:
     - :func:`xarray.open_dataset`
