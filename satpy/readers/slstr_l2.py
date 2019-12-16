@@ -18,7 +18,6 @@
 """
 
 from datetime import datetime
-from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 import h5py
 from xarray.core.dataarray import DataArray
