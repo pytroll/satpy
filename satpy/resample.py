@@ -143,6 +143,8 @@ import six
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
+import pyresample.resampler
+from pyresample.gradient import GradientSearchResampler
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
 
@@ -1035,42 +1037,6 @@ class NativeResampler(BaseResampler):
         return update_resampled_coords(data, new_data, target_geo_def)
 
 
-class GradientSearchResampler(BaseResampler):
-    """Resample using gradient search based bilinear interpolation."""
-
-    def __init__(self, source_geo_def, target_geo_def):
-        """Init BilinearResampler."""
-        super(GradientSearchResampler, self).__init__(source_geo_def, target_geo_def)
-        self.source_lons = None
-        self.source_lats = None
-        self.target_coords = None
-
-    def precompute(self, **kwargs):
-        """Set source coordinages."""
-        lons, lats = self.source_geo_def.get_lonlats(chunks=CHUNK_SIZE)
-        self.source_lons, self.source_lats = lons, lats
-        target_x, target_y = self.target_geo_def.get_proj_coords(chunks=CHUNK_SIZE)
-        self.target_coords = {'x': target_x[0, :],
-                              'y': target_y[:, 0]}
-
-    def compute(self, data, fill_value=None, **kwargs):
-        """Resample the given data using bilinear interpolation."""
-        from pyresample.gradient import parallel_gradient_search
-        del kwargs
-        if fill_value is None:
-            fill_value = data.attrs.get('_FillValue')
-
-        res = parallel_gradient_search(data,
-                                       self.source_lons,
-                                       self.source_lats,
-                                       self.target_geo_def,
-                                       chunk_size=CHUNK_SIZE)
-        # res = da.where(np.isnull(res), fill_value, res)
-        res = xr.DataArray(res, dims=data.dims, coords=self.target_coords)
-
-        return res
-
-
 class BucketResamplerBase(BaseResampler):
     """Base class for bucket resampling which implements averaging."""
 
@@ -1250,6 +1216,7 @@ class BucketFraction(BucketResamplerBase):
         return result
 
 
+# TODO: move this to pyresample.resampler
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
@@ -1263,13 +1230,14 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               }
 
 
+# TODO: move this to pyresample
 def prepare_resampler(source_area, destination_area, resampler=None, **resample_kwargs):
     """Instantiate and return a resampler."""
     if resampler is None:
         LOG.info("Using default KDTree resampler")
         resampler = 'kd_tree'
 
-    if isinstance(resampler, BaseResampler):
+    if isinstance(resampler, (BaseResampler, pyresample.resampler.BaseResampler)):
         raise ValueError("Trying to create a resampler when one already "
                          "exists.")
     elif isinstance(resampler, str):
@@ -1288,10 +1256,11 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     return key, resampler_instance
 
 
+# TODO: move this to pyresample
 def resample(source_area, data, destination_area,
              resampler=None, **kwargs):
     """Do the resampling."""
-    if not isinstance(resampler, BaseResampler):
+    if not isinstance(resampler, (BaseResampler, pyresample.resampler.BaseResampler)):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,
                                                   destination_area,
