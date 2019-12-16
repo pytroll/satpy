@@ -20,6 +20,7 @@ import sys
 import os
 import numpy as np
 from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
+from satpy.readers import load_reader
 if sys.version_info < (2, 7):
     import unittest2 as unittest
 else:
@@ -108,7 +109,6 @@ class TestSEVIRIICAREReader(unittest.TestCase):
 
     def test_init(self):
         """Test basic init with no extra parameters."""
-        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf',
@@ -120,7 +120,6 @@ class TestSEVIRIICAREReader(unittest.TestCase):
 
     def test_load_dataset_vis(self):
         """Test loading all datasets from a full swath file."""
-        from satpy.readers import load_reader
         from datetime import datetime
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -136,7 +135,6 @@ class TestSEVIRIICAREReader(unittest.TestCase):
 
     def test_load_dataset_ir(self):
         """Test loading all datasets from a full swath file."""
-        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'GEO_L1B-MSG1_2004-12-29T12-15-00_G_IR108_V1-04.hdf'
@@ -149,7 +147,6 @@ class TestSEVIRIICAREReader(unittest.TestCase):
 
     def test_area_def(self):
         """Test loading all datasets from an area of interest file."""
-        from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf',

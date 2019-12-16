@@ -205,6 +205,7 @@ class SEVIRI_ICARE(HDF4FileHandler):
                     'resolution': self.res,
                     'satellite_actual_longitude': self.satlon,
                     'projection_longitude': self.projlon,
+                    'projection_type': self.projection
         })
 
         return mda
