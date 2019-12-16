@@ -19,7 +19,7 @@ reader:
 file_types:
     nc_cmsaf_sev:
         file_reader: !!python/name:satpy.readers.cmsaf_nc.NcCMSAF
-        file_patterns: ['{product:3s}in{start_time:%Y%m%d%H%M%S}{version:>03d}05SVMSG01MD.nc']
+        file_patterns: ['{product:3s}in{start_time:%Y%m%d%H%M}{version:>03d}05SVMSG01MD.nc']
 
 datasets:
 
