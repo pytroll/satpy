@@ -1,0 +1,28 @@
+name: readthedocs
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7
+  - pip
+  - dask
+  - graphviz
+  - h5py
+  - imageio
+  - imageio-ffmpeg
+  - matplotlib
+  - netcdf4
+  - numpy
+  - pillow
+  - pyorbital
+  - pyresample
+  - pyspectral
+  - rasterio
+  - setuptools
+  - setuptools_scm
+  - setuptools_scm_git_archive
+  - trollsift
+  - trollimage
+  - xarray
+  - zarr
+  - pip:
+    - graphviz
