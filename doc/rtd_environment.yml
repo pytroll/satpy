@@ -6,23 +6,17 @@ dependencies:
   - pip
   - dask
   - graphviz
-  - h5py
-  - imageio
-  - imageio-ffmpeg
-  - matplotlib
-  - netcdf4
   - numpy
   - pillow
-  - pyorbital
   - pyresample
-  - pyspectral
-  - rasterio
   - setuptools
   - setuptools_scm
   - setuptools_scm_git_archive
+  - sphinx
+  - sphinx_rtd_theme
   - trollsift
-  - trollimage
   - xarray
   - zarr
   - pip:
     - graphviz
+    - ..  # relative path to the satpy project
