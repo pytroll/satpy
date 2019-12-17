@@ -400,6 +400,7 @@ needs to implement a few methods:
    ``get_dataset`` for the resulting scene to be navigated. That is, if the
    data cannot be geolocated with an area definition then the dataset
    section should specify ``coordinates: [longitude_dataset, latitude_dataset]``
+   It should return a :class:`~pyresample.geometry.AreaDefinition` object.
  - Optionally, the
    ``get_bounding_box`` method can be implemented if filtering files by
    area is desirable for this data type
@@ -431,8 +432,15 @@ On top of that, two attributes need to be defined: ``start_time`` and
             return dataset
 
         def get_area_def(self, dataset_id):
-            # TODO
-            pass
+            return pyresample.geometry.AreaDefinition(
+                "some_area_name",
+                "on-the-fly area",
+                "geos",
+                "+a=6378169.0 +h=35785831.0 +b=6356583.8 +lon_0=0 +proj=geos",
+                3636,
+                3636,
+                np.array([-5456233.41938636, -5453233.01608472, 5453233.01608472, 5456233.41938636]))
+
 
     class NCSEVIRIHRVFileHandler():
       # left as an exercise to the reader :)
