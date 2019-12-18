@@ -164,6 +164,29 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return group, root_group
 
+
+    # scale factors and add_offset on data/<channel>/x were wrong in test data
+    # release from September 2019, add correction.  Remove correction when no
+    # longer needed.
+    _corrected_scale_factors = {
+            "x": {
+                500: -np.deg2rad(8.005244940725e-04),
+                1000: -np.deg2rad(1.601048987833e-03),
+                2000: -np.deg2rad(3.202097973165e-03)},
+            "y": {
+                500: np.deg2rad(8.005244940725e-04),
+                1000: np.deg2rad(1.601048987833e-03),
+                2000: np.deg2rad(3.202097973165e-03)}}
+    _corrected_add_offset = {
+            "x": {
+                500: np.deg2rad(8.9142405037),
+                1000: np.deg2rad(8.9138402398),
+                2000: np.deg2rad(8.9130397083)},
+            "y": {
+                500: -np.deg2rad(8.9142405037),
+                1000: -np.deg2rad(8.9138402398),
+                2000: -np.deg2rad(8.9130397083)}}
+
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset.
         """
@@ -188,7 +211,12 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         ext = {}
         for c in "xy":
             c_radian = self["data/{:s}/measured/{:s}".format(key.name, c)]
-            c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
+            # TEMPORARY CORRECTION for erroneous 2019-09 test data —
+            # REMOVE WHEN NO LONGER NEEDED
+            scalefac = self._corrected_scale_factors[c][key.resolution]
+            addoffset = self._corrected_add_offset[c][key.resolution]
+            #c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
+            c_radian_num = ((c_radian[:]-1) * scalefac + addoffset)
             # FCI defines pixels by centroids (Example Products for Pytroll
             # Workshop, §B.4.2)
             #
@@ -199,8 +227,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             # the .item() call is needed with the h5netcdf backend, see
             # https://github.com/pytroll/satpy/issues/972#issuecomment-558191583
             # but we need to compute it first if this is dask
-            min_c_radian = c_radian_num[0] - c_radian.scale_factor.item()/2
-            max_c_radian = c_radian_num[-1] + c_radian.scale_factor.item()/2
+            #min_c_radian = c_radian_num[0] - c_radian.scale_factor.item()/2
+            #max_c_radian = c_radian_num[-1] + c_radian.scale_factor.item()/2
+            min_c_radian = c_radian_num[0] - scalefac/2
+            max_c_radian = c_radian_num[-1] + scalefac/2
             min_c = min_c_radian * h  # arc length in m
             max_c = max_c_radian * h
             try:
@@ -213,6 +243,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
         return (area_extent, nlines, ncols)
 
+
+    # hardcoded semi-minor-axis correction, to be removed later
+    _semi_minor_axis = 6356752.314
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
 
@@ -222,7 +255,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             return self._cache[key.resolution]
 
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
-        b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
+        # b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
+        b = self._semi_minor_axis
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
         if_ = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
