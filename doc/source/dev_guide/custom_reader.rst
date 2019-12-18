@@ -453,25 +453,34 @@ needs to implement a few methods:
    - the filename info (dict) that we get by parsing the filename using the pattern defined in the yaml file
    - the filetype info that we get from the filetype definition in the yaml file
 
-  This method can also receive other file handler instances as parameter
-  if the filetype at hand has requirements. (See the explanation in the
-  YAML file filetype section above)
+   This method can also receive other file handler instances as parameter
+   if the filetype at hand has requirements. (See the explanation in the
+   YAML file filetype section above)
 
  - the ``get_dataset`` method, which takes as arguments
 
    - the dataset ID of the dataset to load
    - the dataset info that is the description of the channel in the YAML file
 
-  This method has to return an xarray.DataArray instance if the loading is
-  successful, containing the data and :ref:`metadata <dataset_metadata>` of the
-  loaded dataset, or return None if the loading was unsuccessful.
+   This method has to return an xarray.DataArray instance if the loading is
+   successful, containing the data and :ref:`metadata <dataset_metadata>` of the
+   loaded dataset, or return None if the loading was unsuccessful.
 
- - the ``get_area_def`` method, that takes as single argument the dataset ID for which we want
-   the area. For the data that cannot be geolocated with an area
-   definition, the pixel coordinates need to be loadable from
-   ``get_dataset`` for the resulting scene to be navigated. That is, if the
-   data cannot be geolocated with an area definition then the dataset
-   section should specify ``coordinates: [longitude_dataset, latitude_dataset]``
+ - the ``get_area_def`` method, that takes as single argument the
+   :class:`~satpy.dataset.DatasetID` for which we want
+   the area. It should return a :class:`~pyresample.geometry.AreaDefinition`
+   object. For data that cannot be geolocated with an area
+   definition, the pixel coordinates will be loaded using the
+   ``get_dataset`` method for the resulting scene to be navigated.
+   The names of the datasets to be loaded should be specified as a special
+   ``coordinates`` attribute in the YAML file. For example, by specifying
+   ``coordinates: [longitude_dataset, latitude_dataset]`` in the YAML, Satpy
+   will call ``get_dataset`` twice, once to load the dataset named
+   ``longitude_dataset`` and once to load ``latitude_dataset``. Satpy will
+   then create a :class:`~pyresample.geometry.SwathDefinition` with this
+   coordinate information and assign it to the dataset's
+   ``.attrs['area']`` attribute.
+
  - Optionally, the
    ``get_bounding_box`` method can be implemented if filtering files by
    area is desirable for this data type
@@ -494,6 +503,7 @@ One way of implementing a file handler is shown below:
 
     # this is seviri_l1b_nc.py
     from satpy.readers.file_handlers import BaseFileHandler
+    from pyresample.geometry import AreaDefinition
 
     class NCSEVIRIFileHandler(BaseFileHandler):
         def __init__(self, filename, filename_info, filetype_info):
@@ -516,8 +526,14 @@ One way of implementing a file handler is shown below:
             return dataset
 
         def get_area_def(self, dataset_id):
-            # TODO
-            pass
+            return pyresample.geometry.AreaDefinition(
+                "some_area_name",
+                "on-the-fly area",
+                "geos",
+                "+a=6378169.0 +h=35785831.0 +b=6356583.8 +lon_0=0 +proj=geos",
+                3636,
+                3636,
+                [-5456233.41938636, -5453233.01608472, 5453233.01608472, 5456233.41938636])
 
     class NCSEVIRIHRVFileHandler():
       # left as an exercise to the reader :)
