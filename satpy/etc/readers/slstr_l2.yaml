@@ -17,7 +17,6 @@ datasets:
     resolution: 1000
     view: nadir
     file_type: SLSTRB
-    #standard_name: longitude
     standard_name: lon
     units: degree
 
@@ -26,7 +25,6 @@ datasets:
     resolution: 1000
     view: nadir
     file_type: SLSTRB
-    #standard_name: latitude
     standard_name: lat
     units: degree
 
