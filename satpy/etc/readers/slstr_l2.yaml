@@ -17,7 +17,8 @@ datasets:
     resolution: 1000
     view: nadir
     file_type: SLSTRB
-    standard_name: longitude
+    #standard_name: longitude
+    standard_name: lon
     units: degree
 
   latitude:
@@ -25,7 +26,8 @@ datasets:
     resolution: 1000
     view: nadir
     file_type: SLSTRB
-    standard_name: latitude
+    #standard_name: latitude
+    standard_name: lat
     units: degree
 
   sea_surface_temperature:
@@ -37,7 +39,7 @@ datasets:
     view: nadir
     units: kelvin
     standard_name: sea_surface_temperature
-
+   
   sea_ice_fraction:
     name: sea_ice_fraction
     sensor: slstr_l2
@@ -46,4 +48,14 @@ datasets:
     resolution: 1000
     view: nadir
     units: "%"
+    standard_name: sea_ice_fraction
+
+  # Quality estimation 0-5: no data, cloud, worst, low, acceptable, best
+  quality_level:
+    name: quality_level
+    sensor: slstr_l2
+    coordinates: [longitude, latitude]
+    file_type: SLSTRB
+    resolution: 1000
+    view: nadir
     standard_name: sea_ice_fraction
