@@ -244,8 +244,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         return (area_extent, nlines, ncols)
 
 
-    # hardcoded semi-minor-axis correction, to be removed later
-    _semi_minor_axis = 6356752.314
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
 
@@ -255,8 +253,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             return self._cache[key.resolution]
 
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
-        # b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
-        b = self._semi_minor_axis
+        b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
         if_ = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
