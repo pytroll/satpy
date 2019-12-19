@@ -39,7 +39,7 @@ datasets:
     view: nadir
     units: kelvin
     standard_name: sea_surface_temperature
-   
+
   sea_ice_fraction:
     name: sea_ice_fraction
     sensor: slstr_l2
