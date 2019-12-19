@@ -140,6 +140,7 @@ import dask
 import dask.array as da
 import zarr
 import six
+import warnings
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
@@ -470,6 +471,20 @@ class KDTreeResampler(BaseResampler):
                         "resampler. Cached parameters are affected by "
                         "masked pixels. Will not cache results.")
             cache_dir = None
+
+        if radius_of_influence is None and not hasattr(self.source_geo_def, 'geocentric_resolution'):
+            warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
+            try:
+                radius_of_influence = self.source_geo_def.lons.resolution * 3
+            except AttributeError:
+                try:
+                    radius_of_influence = max(abs(self.source_geo_def.pixel_size_x),
+                                              abs(self.source_geo_def.pixel_size_y)) * 3
+                except AttributeError:
+                    radius_of_influence = 1000
+
+            except TypeError:
+                radius_of_influence = 10000
 
         kwargs = dict(source_geo_def=self.source_geo_def,
                       target_geo_def=self.target_geo_def,
