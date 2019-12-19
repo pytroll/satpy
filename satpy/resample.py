@@ -41,6 +41,7 @@ Resampling algorithms
     "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.BucketSum`
     "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.BucketCount`
     "bucket_fraction", "Fraction Bucket Resampling", :class:`~satpy.resample.BucketFraction`
+    "gradient_search", "Gradient Search Resampling", :class:`~pyresample.gradient.GradientSearchResampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
@@ -133,7 +134,7 @@ import json
 import os
 from logging import getLogger
 from weakref import WeakValueDictionary
-
+import warnings
 import numpy as np
 import xarray as xr
 import dask
@@ -143,8 +144,14 @@ import six
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
-import pyresample.resampler
-from pyresample.gradient import GradientSearchResampler
+try:
+    from pyresample.resampler import BaseResampler as PRBaseResampler
+    from pyresample.gradient import GradientSearchResampler
+except ImportError:
+    warnings.warn('Gradient search resampler not available, upgrade Pyresample.')
+    PRBaseResampler = None
+    GradientSearchResampler = None
+
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
 
@@ -1230,6 +1237,10 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               }
 
 
+if PRBaseResampler is None:
+    PRBaseResampler = BaseResampler
+
+
 # TODO: move this to pyresample
 def prepare_resampler(source_area, destination_area, resampler=None, **resample_kwargs):
     """Instantiate and return a resampler."""
@@ -1237,11 +1248,13 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
         LOG.info("Using default KDTree resampler")
         resampler = 'kd_tree'
 
-    if isinstance(resampler, (BaseResampler, pyresample.resampler.BaseResampler)):
+    if isinstance(resampler, (BaseResampler, PRBaseResampler)):
         raise ValueError("Trying to create a resampler when one already "
                          "exists.")
     elif isinstance(resampler, str):
-        resampler_class = RESAMPLERS[resampler]
+        resampler_class = RESAMPLERS.get(resampler, None)
+        if resampler_class is None:
+            raise KeyError("Resampler '%s' not available" % resampler)
     else:
         resampler_class = resampler
 
@@ -1260,7 +1273,7 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
 def resample(source_area, data, destination_area,
              resampler=None, **kwargs):
     """Do the resampling."""
-    if not isinstance(resampler, (BaseResampler, pyresample.resampler.BaseResampler)):
+    if not isinstance(resampler, (BaseResampler, PRBaseResampler)):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,
                                                   destination_area,
