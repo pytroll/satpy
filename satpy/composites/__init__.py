@@ -40,7 +40,6 @@ from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metad
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
-from satpy import CHUNK_SIZE
 
 try:
     from pyspectral.near_infrared_reflectance import Calculator
@@ -391,7 +390,7 @@ class SunZenithCorrectorBase(CompositeBase):
             # we were not given SZA, generate SZA then calculate cos(SZA)
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
-            lons, lats = vis.attrs["area"].get_lonlats(chunks=CHUNK_SIZE)
+            lons, lats = vis.attrs["area"].get_lonlats(chunks=vis.data.chunks)
 
             coords = {}
             if 'y' in vis.coords and 'x' in vis.coords:
@@ -633,7 +632,7 @@ class NIRReflectance(CompositeBase):
         if sun_zenith is None:
             if sun_zenith_angle is None:
                 raise ImportError("No module named pyorbital.astronomy")
-            lons, lats = _nir.attrs["area"].get_lonlats(chunks=CHUNK_SIZE)
+            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
             sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
 
         return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
@@ -680,7 +679,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
             satz = optional_datasets[0]
         else:
             from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats(chunks=CHUNK_SIZE)
+            lons, lats = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
             sat_lon, sat_lat, sat_alt = get_satpos(band)
             try:
                 dummy, satel = get_observer_look(sat_lon,
