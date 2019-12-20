@@ -1046,8 +1046,12 @@ class Scene(MetadataObject):
                             factor = resample_kwargs.get('shape_divisible_by', 2)
                         else:
                             factor = None
-                        slice_x, slice_y = source_area.get_area_slices(
-                            destination_area, shape_divisible_by=factor)
+                        try:
+                            slice_x, slice_y = source_area.get_area_slices(
+                                destination_area, shape_divisible_by=factor)
+                        except TypeError:
+                            slice_x, slice_y = source_area.get_area_slices(
+                                destination_area)
                         source_area = source_area[slice_y, slice_x]
                         reductions[key] = (slice_x, slice_y), source_area
                     dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
