@@ -43,7 +43,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler(None, {'segment_number': 1, 'total_segments': 1}, None)
+            fh = AHIHSDFileHandler(None, {'segment': 1, 'total_segments': 1}, None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': -591.5,
                             'LFAC': 40932549,
@@ -88,7 +88,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
+            fh = AHIHSDFileHandler(None, {'segment': 8, 'total_segments': 10}, None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
@@ -145,10 +145,10 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
             # Check if file handler raises exception for invalid calibration mode
             with self.assertRaises(ValueError):
-                fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
+                fh = AHIHSDFileHandler(None, {'segment': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
 
             in_fname = 'test_file.bz2'
-            fh = AHIHSDFileHandler(in_fname, {'segment_number': 8, 'total_segments': 10}, None)
+            fh = AHIHSDFileHandler(in_fname, {'segment': 8, 'total_segments': 10}, None)
 
             # Check that the filename is altered for bz2 format files
             self.assertNotEqual(in_fname, fh.filename)
@@ -205,6 +205,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         bad_cali = [0.0, 0.0]
         fh = AHIHSDFileHandler()
         fh.calib_mode = 'NOMINAL'
+        fh.is_zipped = False
         fh._header = {
             'block5': {'band_number': [5],
                        'gain_count2rad_conversion': [def_cali[0]],
