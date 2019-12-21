@@ -280,7 +280,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         self._header = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self.lons = None
         self.lats = None
-        self.segment_number = filename_info['segment_number']
+        self.segment_number = filename_info['segment']
         self.total_segments = filename_info['total_segments']
 
         with open(self.filename) as fd:

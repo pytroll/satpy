@@ -28,7 +28,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b01
-    expected_segments: 10
 
   B02:
     name: B02
@@ -46,7 +45,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b02
-    expected_segments: 10
 
   B03:
     name: B03
@@ -64,7 +62,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b03
-    expected_segments: 10
 
   B04:
     name: B04
@@ -82,7 +79,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b04
-    expected_segments: 10
 
   B05:
     name: B05
@@ -100,7 +96,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b05
-    expected_segments: 10
 
   B06:
     name: B06
@@ -118,7 +113,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b06
-    expected_segments: 10
 
   B07:
     name: B07
@@ -136,7 +130,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b07
-    expected_segments: 10
 
   B08:
     name: B08
@@ -154,7 +147,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b08
-    expected_segments: 10
 
   B09:
     name: B09
@@ -172,7 +164,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b09
-    expected_segments: 10
 
   B10:
     name: B10
@@ -190,7 +181,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b10
-    expected_segments: 10
 
   B11:
     name: B11
@@ -208,7 +198,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b11
-    expected_segments: 10
 
   B12:
     name: B12
@@ -226,7 +215,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b12
-    expected_segments: 10
 
   B13:
     name: B13
@@ -244,7 +232,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b13
-    expected_segments: 10
 
   B14:
     name: B14
@@ -262,7 +249,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b14
-    expected_segments: 10
 
   B15:
     name: B15
@@ -280,7 +266,6 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b15
-    expected_segments: 10
 
   B16:
     name: B16
@@ -298,71 +283,86 @@ datasets:
         standard_name: counts
         units: 1
     file_type: hsd_b16
-    expected_segments: 10
 
 
 file_types:
   hsd_b01:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R10_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R10_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R10_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R10_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b02:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R10_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R10_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R10_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R10_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b03:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R05_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R05_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R05_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R05_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b04:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R10_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R10_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R10_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R10_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b05:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b06:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b07:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b08:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b09:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b10:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b11:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b12:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b13:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b14:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b15:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
   hsd_b16:
     file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
-    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT',
-                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R20_S{segment_number:2d}{total_segments:2d}.DAT.bz2']
+    file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
+                    'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
+    expected_segments: 10
