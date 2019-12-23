@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Test classes and functions in the readers/__init__.py module."""
 
 import os
 import sys
@@ -194,8 +195,9 @@ class TestReaderLoader(unittest.TestCase):
 
     Assumes that the VIIRS SDR reader exists and works.
     """
+
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
+        """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         from satpy.tests.reader_tests.test_viirs_sdr import FakeHDF5FileHandler2
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -204,7 +206,7 @@ class TestReaderLoader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF5 file handler"""
+        """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
     def test_no_args(self):
@@ -217,20 +219,20 @@ class TestReaderLoader(unittest.TestCase):
         self.assertDictEqual(ri, {})
 
     def test_filenames_only(self):
-        """Test with filenames specified"""
+        """Test with filenames specified."""
         from satpy.readers import load_readers
         ri = load_readers(filenames=['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'])
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_filenames_and_reader(self):
-        """Test with filenames and reader specified"""
+        """Test with filenames and reader specified."""
         from satpy.readers import load_readers
         ri = load_readers(reader='viirs_sdr',
                           filenames=['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'])
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_bad_reader_name_with_filenames(self):
-        """Test bad reader name with filenames provided"""
+        """Test bad reader name with filenames provided."""
         from satpy.readers import load_readers
         self.assertRaises(ValueError, load_readers, reader='i_dont_exist', filenames=[
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
@@ -238,7 +240,7 @@ class TestReaderLoader(unittest.TestCase):
 
     @unittest.skipIf(sys.version_info < (3, 4), "pathlib added in Python 3.4")
     def test_filenames_as_path(self):
-        """Test with filenames specified as pathlib.Path"""
+        """Test with filenames specified as pathlib.Path."""
         from pathlib import Path
         from satpy.readers import load_readers
         ri = load_readers(filenames=[
@@ -247,7 +249,7 @@ class TestReaderLoader(unittest.TestCase):
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_filenames_as_dict(self):
-        """Test loading readers where filenames are organized by reader"""
+        """Test loading readers where filenames are organized by reader."""
         from satpy.readers import load_readers
         filenames = {
             'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
@@ -267,6 +269,23 @@ class TestReaderLoader(unittest.TestCase):
             'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
         }
         ri = load_readers(reader='viirs_sdr', filenames=filenames)
+        self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
+    def test_empty_filenames_as_dict(self):
+        """Test passing filenames as a dictionary with an empty list of filenames."""
+        # only one reader
+        from satpy.readers import load_readers
+        filenames = {
+            'viirs_sdr': [],
+        }
+        self.assertRaises(ValueError, load_readers, filenames=filenames)
+
+        # two readers, one is empty
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+            'viirs_l1b': [],
+        }
+        ri = load_readers(filenames)
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     @mock.patch('satpy.readers.hrit_base.HRITFileHandler._get_hd')
@@ -486,7 +505,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
             os.remove(fn)
 
     def test_bad_sensor(self):
-        """Test bad sensor doesn't find any files"""
+        """Test bad sensor doesn't find any files."""
         from satpy.readers import find_files_and_readers
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
@@ -498,7 +517,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
             os.remove(fn)
 
     def test_sensor(self):
-        """Test that readers for the current sensor are loaded"""
+        """Test that readers for the current sensor are loaded."""
         from satpy.readers import find_files_and_readers
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
@@ -514,7 +533,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
             os.remove(fn)
 
     def test_sensor_no_files(self):
-        """Test that readers for the current sensor are loaded"""
+        """Test that readers for the current sensor are loaded."""
         from satpy.readers import find_files_and_readers
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
@@ -731,7 +750,7 @@ class TestGroupFiles(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_readers."""
+    """Create test suite for test_readers."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))

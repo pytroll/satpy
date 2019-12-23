@@ -392,12 +392,12 @@ composites:
     transition_max: 298.15
     transition_gamma: 3.0
 
-  night_background:
+  _night_background:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background
     filename: BlackMarble_2016_01deg_geo.tif
 
-  night_background_hires:
+  _night_background_hires:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background_hires
     filename: BlackMarble_2016_3km_geo.tif
