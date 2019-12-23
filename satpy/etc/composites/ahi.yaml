@@ -28,6 +28,51 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
+  fire_temperature:
+    # CIRA: Original VIIRS
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 3.85
+      calibration: radiance
+    - wavelength: 2.26
+      calibration: radiance
+    - wavelength: 1.61
+      calibration: radiance
+    standard_name: fire_temperature
+    name: fire_temperature
+  fire_temperature_awips:
+    # CIRA: EUMETSAT
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 3.85
+    - wavelength: 2.26
+    - wavelength: 1.61
+    standard_name: fire_temperature
+    name: fire_temperature_awips
+
+  fire_temperature_eumetsat:
+    # CIRA: AWIPS
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 3.85
+    - wavelength: 2.26
+    - wavelength: 1.61
+    standard_name: fire_temperature
+    name: fire_temperature_eumetsat
+  fire_temperature_39refl:
+    # CIRA: All bands in Reflectance units (%)
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 3.85
+      modifiers: [nir_reflectance]
+    - wavelength: 2.26
+      modifiers: [sunz_corrected]
+    - wavelength: 1.61
+      modifiers: [sunz_corrected]
+    standard_name: fire_temperature
+    name: fire_temperature_39refl
+
+
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:

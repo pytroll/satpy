@@ -220,8 +220,10 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            with xr.open_dataset(filename, decode_cf=False) as f:
-                self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
+            with xr.open_dataset(filename, decode_cf=True) as f:
+                np.testing.assert_array_equal(f['time'], scn['test-array']['time'])
+                bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
+                np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
     def test_bounds(self):
         """Test setting time bounds."""
@@ -238,8 +240,23 @@ class TestCFWriter(unittest.TestCase):
                                                     end_time=end_time))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
+            # Check decoded time coordinates & bounds
+            with xr.open_dataset(filename, decode_cf=True) as f:
+                bounds_exp = np.array([[start_time, end_time]], dtype='datetime64[m]')
+                np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
+                self.assertEqual(f['time'].attrs['bounds'], 'time_bnds')
+
+            # Check raw time coordinates & bounds
             with xr.open_dataset(filename, decode_cf=False) as f:
-                self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
+                np.testing.assert_almost_equal(f['time_bnds'], [[-0.0034722, 0.0069444]])
+
+        # User-specified time encoding should have preference
+        with TempFile() as filename:
+            time_units = 'seconds since 2018-01-01'
+            scn.save_datasets(filename=filename, encoding={'time': {'units': time_units}},
+                              writer='cf')
+            with xr.open_dataset(filename, decode_cf=False) as f:
+                np.testing.assert_array_equal(f['time_bnds'], [[12909600, 12910500]])
 
     def test_bounds_minimum(self):
         """Test minimum bounds."""
@@ -264,8 +281,9 @@ class TestCFWriter(unittest.TestCase):
                                                      end_time=end_timeB))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            with xr.open_dataset(filename, decode_cf=False) as f:
-                self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
+            with xr.open_dataset(filename, decode_cf=True) as f:
+                bounds_exp = np.array([[start_timeA, end_timeB]], dtype='datetime64[m]')
+                np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
     def test_bounds_missing_time_info(self):
         """Test time bounds generation in case of missing time."""
@@ -286,11 +304,12 @@ class TestCFWriter(unittest.TestCase):
                                           coords={'time': [np.datetime64('2018-05-30T10:05:00')]})
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
-            with xr.open_dataset(filename, decode_cf=False) as f:
-                self.assertTrue(np.all(f['time_bnds'][:] == np.array([-300.,  600.])))
+            with xr.open_dataset(filename, decode_cf=True) as f:
+                bounds_exp = np.array([[start_timeA, end_timeA]], dtype='datetime64[m]')
+                np.testing.assert_array_equal(f['time_bnds'], bounds_exp)
 
     def test_encoding_kwarg(self):
-        """Test encoding of keyword arguments."""
+        """Test 'encoding' keyword argument."""
         from satpy import Scene
         import xarray as xr
         scn = Scene()
@@ -311,6 +330,24 @@ class TestCFWriter(unittest.TestCase):
                 self.assertTrue(f['test-array'].attrs['_FillValue'] == 3)
                 # check that dtype behave as int8
                 self.assertTrue(np.iinfo(f['test-array'][:].dtype).max == 127)
+
+    def test_unlimited_dims_kwarg(self):
+        """Test specification of unlimited dimensions."""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        test_array = np.array([[1, 2], [3, 4]])
+        scn['test-array'] = xr.DataArray(test_array,
+                                         dims=['x', 'y'],
+                                         coords={'time': np.datetime64('2018-05-30T10:05:00')},
+                                         attrs=dict(start_time=start_time,
+                                                    end_time=end_time))
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', unlimited_dims=['time'])
+            with xr.open_dataset(filename) as f:
+                self.assertSetEqual(f.encoding['unlimited_dims'], {'time'})
 
     def test_header_attrs(self):
         """Check master attributes are set."""
@@ -337,6 +374,7 @@ class TestCFWriter(unittest.TestCase):
                               flatten_attrs=True,
                               writer='cf')
             with xr.open_dataset(filename) as f:
+                self.assertIn('history', f.attrs)
                 self.assertEqual(f.attrs['sensor'], 'SEVIRI')
                 self.assertEqual(f.attrs['orbit'], 99999)
                 np.testing.assert_array_equal(f.attrs['list'], [1, 2, 3])
@@ -764,6 +802,39 @@ class TestCFWriter(unittest.TestCase):
             self.assertEqual(proj_dict['o_proj'], 'stere')
             self.assertEqual(proj_dict['ellps'], 'WGS84')
             self.assertEqual(grid_mapping, cosmo_expected)
+
+        # c) Projection Transverse Mercator
+        lat_0 = 36.5
+        lon_0 = 15.0
+        lat_ts = 36.5
+
+        tmerc = pyresample.geometry.AreaDefinition(
+            area_id='tmerc',
+            description='tmerc',
+            proj_id='tmerc',
+            projection={'proj': 'tmerc', 'ellps': 'WGS84', 'lat_0': 36.5, 'lon_0': 15.0, 'lat_ts': 36.5},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
+
+        tmerc_expected = xr.DataArray(data=0,
+                                      attrs={'azimuth_of_central_line': 'alpha',
+                                             'latitude_of_projection_origin': lat_0,
+                                             'longitude_of_projection_origin': lon_0,
+                                             'latitude_of_meridian_ts': lat_ts,
+                                             'grid_mapping_name': 'transverse_mercator',
+                                             'reference_ellipsoid_name': ('ellps', 'WGS84'),
+                                             'prime_meridian_name': ('pm', 'Greenwich'),
+                                             'horizontal_datum_name': ('datum', 'unknown'),
+                                             'geographic_crs_name': 'unknown',
+                                             'false_easting': 0.,
+                                             'false_northing': 0.,
+                                             'name': 'tmerc'})
+
+        ds = ds_base.copy()
+        ds.attrs['area'] = tmerc
+        res, grid_mapping = area2gridmapping(ds)
+        self.assertEqual(res.attrs['grid_mapping'], 'tmerc')
+        self.assertEqual(grid_mapping, tmerc_expected)
 
     def test_area2lonlat(self):
         """Test the conversion from areas to lon/lat."""

@@ -29,6 +29,7 @@ from weakref import WeakValueDictionary
 import six
 import xarray as xr
 import yaml
+import numpy as np
 
 try:
     from yaml import UnsafeLoader
@@ -43,6 +44,8 @@ from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
+from pyresample.geometry import AreaDefinition
+
 
 logger = logging.getLogger(__name__)
 
@@ -599,7 +602,7 @@ class FileYAMLReader(AbstractYAMLReader):
         self.all_ids = new_ids
 
     @staticmethod
-    def _load_dataset(dsid, ds_info, file_handlers, dim='y'):
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y', **kwargs):
         """Load only a piece of the dataset."""
         slice_list = []
         failure = True
@@ -627,9 +630,9 @@ class FileYAMLReader(AbstractYAMLReader):
         res.attrs = combined_info
         return res
 
-    def _load_dataset_data(self, file_handlers, dsid):
+    def _load_dataset_data(self, file_handlers, dsid, **kwargs):
         ds_info = self.all_ids[dsid]
-        proj = self._load_dataset(dsid, ds_info, file_handlers)
+        proj = self._load_dataset(dsid, ds_info, file_handlers, **kwargs)
         # FIXME: areas could be concatenated here
         # Update the metadata
         proj.attrs['start_time'] = file_handlers[0].start_time
@@ -650,14 +653,9 @@ class FileYAMLReader(AbstractYAMLReader):
                 return filetype
         return None
 
-    def _load_area_def(self, dsid, file_handlers):
+    def _load_area_def(self, dsid, file_handlers, **kwargs):
         """Load the area definition of *dsid*."""
-        area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
-        area_defs = [area_def for area_def in area_defs
-                     if area_def is not None]
-
-        final_area = StackedAreaDefinition(*area_defs)
-        return final_area.squeeze()
+        return _load_area_def(dsid, file_handlers)
 
     def _get_coordinates_for_dataset_key(self, dsid):
         """Get the coordinate dataset keys for *dsid*."""
@@ -725,10 +723,10 @@ class FileYAMLReader(AbstractYAMLReader):
             raise NameError("Don't know what to do with coordinates " + str(
                 coords))
 
-    def _load_dataset_area(self, dsid, file_handlers, coords):
+    def _load_dataset_area(self, dsid, file_handlers, coords, **kwargs):
         """Get the area for *dsid*."""
         try:
-            return self._load_area_def(dsid, file_handlers)
+            return self._load_area_def(dsid, file_handlers, **kwargs)
         except NotImplementedError:
             if any(x is None for x in coords):
                 logger.warning(
@@ -740,16 +738,16 @@ class FileYAMLReader(AbstractYAMLReader):
                 logger.debug("No coordinates found for %s", str(dsid))
             return area
 
-    def _load_dataset_with_area(self, dsid, coords):
+    def _load_dataset_with_area(self, dsid, coords, **kwargs):
         """Load *dsid* and its area if available."""
         file_handlers = self._get_file_handlers(dsid)
         if not file_handlers:
             return
 
-        area = self._load_dataset_area(dsid, file_handlers, coords)
+        area = self._load_dataset_area(dsid, file_handlers, coords, **kwargs)
 
         try:
-            ds = self._load_dataset_data(file_handlers, dsid)
+            ds = self._load_dataset_data(file_handlers, dsid, **kwargs)
         except (KeyError, ValueError) as err:
             logger.exception("Could not load dataset '%s': %s", dsid, str(err))
             return None
@@ -822,7 +820,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 raise
             return get_key(key, self.all_ids.keys(), **kwargs)
 
-    def load(self, dataset_keys, previous_datasets=None):
+    def load(self, dataset_keys, previous_datasets=None, **kwargs):
         """Load `dataset_keys`.
 
         If `previous_datasets` is provided, do not reload those.
@@ -834,13 +832,12 @@ class FileYAMLReader(AbstractYAMLReader):
         dsids = [self.get_dataset_key(ds_key) for ds_key in dataset_keys]
         coordinates = self._get_coordinates_for_dataset_keys(dsids)
         all_dsids = list(set().union(*coordinates.values())) + dsids
-
         for dsid in all_dsids:
             if dsid in all_datasets:
                 continue
             coords = [all_datasets.get(cid, None)
                       for cid in coordinates.get(dsid, [])]
-            ds = self._load_dataset_with_area(dsid, coords)
+            ds = self._load_dataset_with_area(dsid, coords, **kwargs)
             if ds is not None:
                 all_datasets[dsid] = ds
                 if dsid in dsids:
@@ -848,3 +845,172 @@ class FileYAMLReader(AbstractYAMLReader):
         self._load_ancillary_variables(all_datasets)
 
         return datasets
+
+
+def _load_area_def(dsid, file_handlers):
+    """Load the area definition of *dsid*."""
+    area_defs = [fh.get_area_def(dsid) for fh in file_handlers]
+    area_defs = [area_def for area_def in area_defs
+                 if area_def is not None]
+
+    final_area = StackedAreaDefinition(*area_defs)
+    return final_area.squeeze()
+
+
+class GEOSegmentYAMLReader(FileYAMLReader):
+    """Reader for segmented geostationary data.
+
+    This reader pads the data to full geostationary disk.
+    """
+
+    @staticmethod
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y', pad_data=True):
+        """Load only a piece of the dataset."""
+        if not pad_data:
+            return FileYAMLReader._load_dataset(dsid, ds_info,
+                                                file_handlers)
+
+        counter, expected_segments, slice_list, failure, projectable = \
+            _find_missing_segments(file_handlers, ds_info, dsid)
+
+        if projectable is None or failure:
+            raise KeyError(
+                "Could not load {} from any provided files".format(dsid))
+
+        empty_segment = xr.full_like(projectable, np.nan)
+        for i, sli in enumerate(slice_list):
+            if sli is None:
+                slice_list[i] = empty_segment
+
+        while expected_segments > counter:
+            slice_list.append(empty_segment)
+            counter += 1
+
+        if dim not in slice_list[0].dims:
+            return slice_list[0]
+        res = xr.concat(slice_list, dim=dim)
+
+        combined_info = file_handlers[0].combine_info(
+            [p.attrs for p in slice_list])
+
+        res.attrs = combined_info
+        return res
+
+    def _load_area_def(self, dsid, file_handlers, pad_data=True):
+        """Load the area definition of *dsid* with padding."""
+        if not pad_data:
+            return _load_area_def(dsid, file_handlers)
+        return _load_area_def_with_padding(dsid, file_handlers)
+
+
+def _load_area_def_with_padding(dsid, file_handlers):
+    """Load the area definition of *dsid* with padding."""
+    # Pad missing segments between the first available and expected
+    area_defs = _pad_later_segments_area(file_handlers, dsid)
+
+    # Add missing start segments
+    area_defs = _pad_earlier_segments_area(file_handlers, dsid, area_defs)
+
+    # Stack the area definitions
+    area_def = _stack_area_defs(area_defs)
+
+    return area_def
+
+
+def _stack_area_defs(area_def_dict):
+    """Stack given dict of area definitions and return a StackedAreaDefinition."""
+    area_defs = [area_def_dict[area_def] for
+                 area_def in sorted(area_def_dict.keys())
+                 if area_def is not None]
+
+    area_def = StackedAreaDefinition(*area_defs)
+    area_def = area_def.squeeze()
+
+    return area_def
+
+
+def _pad_later_segments_area(file_handlers, dsid):
+    """Pad area definitions for missing segments that are later in sequence than the first available."""
+    seg_size = None
+    expected_segments = file_handlers[0].filetype_info.get(
+        'expected_segments', 1)
+    available_segments = [int(fh.filename_info.get('segment', 1)) for
+                          fh in file_handlers]
+    area_defs = {}
+    for segment in range(available_segments[0], expected_segments + 1):
+        try:
+            idx = available_segments.index(segment)
+            fh = file_handlers[idx]
+            area = fh.get_area_def(dsid)
+        except ValueError:
+            logger.debug("Padding to full disk with segment nr. %d", segment)
+            ext_diff = area.area_extent[1] - area.area_extent[3]
+            new_ll_y = area.area_extent[1] + ext_diff
+            new_ur_y = area.area_extent[1]
+            fill_extent = (area.area_extent[0], new_ll_y,
+                           area.area_extent[2], new_ur_y)
+            area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
+                                  seg_size[1], seg_size[0],
+                                  fill_extent)
+
+        area_defs[segment] = area
+        seg_size = area.shape
+
+    return area_defs
+
+
+def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
+    """Pad area definitions for missing segments that are earlier in sequence than the first available."""
+    available_segments = [int(fh.filename_info.get('segment', 1)) for
+                          fh in file_handlers]
+    area = file_handlers[0].get_area_def(dsid)
+    seg_size = area.shape
+    proj_dict = area.proj_dict
+    for segment in range(available_segments[0] - 1, 0, -1):
+        logger.debug("Padding segment %d to full disk.",
+                     segment)
+        ext_diff = area.area_extent[1] - area.area_extent[3]
+        new_ll_y = area.area_extent[3]
+        new_ur_y = area.area_extent[3] - ext_diff
+        fill_extent = (area.area_extent[0], new_ll_y,
+                       area.area_extent[2], new_ur_y)
+        area = AreaDefinition('fill', 'fill', 'fill',
+                              proj_dict,
+                              seg_size[1], seg_size[0],
+                              fill_extent)
+        area_defs[segment] = area
+        seg_size = area.shape
+
+    return area_defs
+
+
+def _find_missing_segments(file_handlers, ds_info, dsid):
+    """Find missing segments."""
+    slice_list = []
+    failure = True
+    counter = 1
+    expected_segments = 1
+    handlers = sorted(file_handlers, key=lambda x: x.filename_info.get('segment', 1))
+    projectable = None
+    for fh in handlers:
+        if fh.filetype_info['file_type'] in ds_info['file_type']:
+            expected_segments = fh.filetype_info.get('expected_segments', 1)
+
+        while int(fh.filename_info.get('segment', 1)) > counter:
+            slice_list.append(None)
+            counter += 1
+        try:
+            projectable = fh.get_dataset(dsid, ds_info)
+            if projectable is not None:
+                slice_list.append(projectable)
+                failure = False
+                counter += 1
+        except KeyError:
+            logger.warning("Failed to load %s from %s", str(dsid), str(fh),
+                           exc_info=True)
+
+    # The last segment is missing?
+    if len(slice_list) < expected_segments:
+        slice_list.append(None)
+
+    return counter, expected_segments, slice_list, failure, projectable
