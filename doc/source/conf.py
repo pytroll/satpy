@@ -69,7 +69,10 @@ MOCK_MODULES = ['h5py']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
-autodoc_mock_imports = ['h5netcdf', 'pyninjotiff', 'pygac', 'cf', 'glymur', 'pyhdf', 'osgeo', 'mipp']
+autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4',
+                        'pygac', 'pygrib', 'pyhdf', 'pyninjotiff',
+                        'pyorbital', 'pyspectral', 'rasterio', 'trollimage',
+                        'zarr']
 autoclass_content = 'both'  # append class __init__ docstring to the class docstring
 
 # -- General configuration -----------------------------------------------------

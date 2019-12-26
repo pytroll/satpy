@@ -15,8 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to NUCAPS Retrieval NetCDF files
-"""
+"""Interface to NUCAPS Retrieval NetCDF files."""
+
 from datetime import datetime
 import xarray as xr
 import numpy as np
@@ -48,46 +48,45 @@ ALL_PRESSURE_LEVELS = [
 
 
 class NUCAPSFileHandler(NetCDF4FileHandler):
-    """NUCAPS File Reader
-    """
+    """File handler for NUCAPS netCDF4 format."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize file handler."""
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
             'decode_times', False)
         super(NUCAPSFileHandler, self).__init__(*args, **kwargs)
 
     def __contains__(self, item):
+        """Return item from file content."""
         return item in self.file_content
 
     def _parse_datetime(self, datestr):
-        """Parse NUCAPS datetime string.
-        """
+        """Parse NUCAPS datetime string."""
         return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.%fZ")
 
     @property
     def start_time(self):
+        """Get start time."""
         return self._parse_datetime(self['/attr/time_coverage_start'])
 
     @property
     def end_time(self):
+        """Get end time."""
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
     @property
     def start_orbit_number(self):
-        """Return orbit number for the beginning of the swath.
-        """
+        """Return orbit number for the beginning of the swath."""
         return int(self['/attr/start_orbit_number'])
 
     @property
     def end_orbit_number(self):
-        """Return orbit number for the end of the swath.
-        """
+        """Return orbit number for the end of the swath."""
         return int(self['/attr/end_orbit_number'])
 
     @property
     def platform_name(self):
-        """Return standard platform name for the file's data.
-        """
+        """Return standard platform name for the file's data."""
         res = self['/attr/platform_name']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
@@ -96,8 +95,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     @property
     def sensor_names(self):
-        """Return standard sensor or instrument name for the file's data.
-        """
+        """Return standard sensor or instrument name for the file's data."""
         res = self['/attr/instrument_name']
         if isinstance(res, np.ndarray):
             res = str(res.astype(str))
@@ -107,8 +105,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         return res
 
     def get_shape(self, ds_id, ds_info):
-        """Return data array shape for item specified.
-        """
+        """Return data array shape for item specified."""
         var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
         if var_path + '/shape' not in self:
             # loading a scalar value
@@ -122,6 +119,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         return shape
 
     def get_metadata(self, dataset_id, ds_info):
+        """Get metadata."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         shape = self.get_shape(dataset_id, ds_info)
         file_units = ds_info.get('file_units',
@@ -152,7 +150,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         return info
 
     def get_dataset(self, dataset_id, ds_info):
-        """Load data array and metadata for specified dataset"""
+        """Load data array and metadata for specified dataset."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         metadata = self.get_metadata(dataset_id, ds_info)
         valid_min, valid_max = self[var_path + '/attr/valid_range']
@@ -189,8 +187,8 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
 
 class NUCAPSReader(FileYAMLReader):
-    """Reader for NUCAPS NetCDF4 files.
-    """
+    """Reader for NUCAPS NetCDF4 files."""
+
     def __init__(self, config_files, mask_surface=True, mask_quality=True, **kwargs):
         """Configure reader behavior.
 
@@ -206,7 +204,7 @@ class NUCAPSReader(FileYAMLReader):
         self.mask_quality = self.info.get('mask_quality', mask_quality)
 
     def load_ds_ids_from_config(self):
-        """Convert config dataset entries to DatasetIDs
+        """Convert config dataset entries to DatasetIDs.
 
         Special handling is done to provide level specific datasets
         for any pressured based datasets. For example, a dataset is
