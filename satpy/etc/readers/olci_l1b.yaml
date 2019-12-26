@@ -403,7 +403,7 @@ datasets:
     resolution: 300
     coordinates: [longitude, latitude]
     file_type: esa_meteo
-    
+
   total_columnar_water_vapour:
     name: total_columnar_water_vapour
     sensor: olci
@@ -417,4 +417,3 @@ datasets:
     resolution: 300
     coordinates: [longitude, latitude]
     file_type: esa_meteo
-  
