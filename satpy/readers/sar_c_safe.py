@@ -292,6 +292,8 @@ class SAFEGRD(BaseFileHandler):
 
         self._polarization = filename_info['polarization']
 
+        self._mission_id = filename_info['mission_id']
+
         self.lats = None
         self.lons = None
         self.alts = None
@@ -349,6 +351,8 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
             del noise, cal
+
+            data.attrs.update({'platform_name': self._mission_id})
 
             data.attrs['units'] = calibration
 

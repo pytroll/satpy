@@ -43,7 +43,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler(None, {'segment_number': 1, 'total_segments': 1}, None)
+            fh = AHIHSDFileHandler(None, {'segment': 1, 'total_segments': 1}, None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': -591.5,
                             'LFAC': 40932549,
@@ -78,8 +78,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
             self.assertEqual(proj_dict['units'], 'm')
-            self.assertEqual(area_def.area_extent, (592000.0038256244, 4132000.026701824,
-                                                    1592000.0102878278, 5132000.033164027))
+            np.testing.assert_allclose(area_def.area_extent, (592000.0038256242, 4132000.0267018233,
+                                                              1592000.0102878273, 5132000.033164027))
 
     @mock.patch('satpy.readers.ahi_hsd.np2str')
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
@@ -88,7 +88,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
+            fh = AHIHSDFileHandler(None, {'segment': 8, 'total_segments': 10}, None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
@@ -123,13 +123,21 @@ class TestAHIHSDNavigation(unittest.TestCase):
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
             self.assertEqual(proj_dict['units'], 'm')
-            self.assertEqual(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
-                                                    5500000.035542117, -2200000.0142168473))
+            np.testing.assert_allclose(area_def.area_extent, (-5500000.035542117, -3300000.021325271,
+                                                              5500000.035542117, -2200000.0142168473))
 
 
 class TestAHIHSDFileHandler(unittest.TestCase):
+
+    def new_unzip(fname):
+        if(fname[-3:] == 'bz2'):
+            return fname[:-4]
+        return fname
+
     @mock.patch('satpy.readers.ahi_hsd.np2str')
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
+    @mock.patch('satpy.readers.ahi_hsd.unzip_file',
+                mock.MagicMock(side_effect=new_unzip))
     def setUp(self, fromfile, np2str):
         """Create a test file handler."""
         np2str.side_effect = lambda x: x
@@ -137,9 +145,14 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
             # Check if file handler raises exception for invalid calibration mode
             with self.assertRaises(ValueError):
-                fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
+                fh = AHIHSDFileHandler(None, {'segment': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
 
-            fh = AHIHSDFileHandler(None, {'segment_number': 8, 'total_segments': 10}, None)
+            in_fname = 'test_file.bz2'
+            fh = AHIHSDFileHandler(in_fname, {'segment': 8, 'total_segments': 10}, None)
+
+            # Check that the filename is altered for bz2 format files
+            self.assertNotEqual(in_fname, fh.filename)
+
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
@@ -192,6 +205,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         bad_cali = [0.0, 0.0]
         fh = AHIHSDFileHandler()
         fh.calib_mode = 'NOMINAL'
+        fh.is_zipped = False
         fh._header = {
             'block5': {'band_number': [5],
                        'gain_count2rad_conversion': [def_cali[0]],
@@ -292,7 +306,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                               'satellite_actual_latitude': 0.03,
                               'nadir_longitude': 140.67,
                               'nadir_latitude': 0.04}
-            self.assertDictContainsSubset(orb_params_exp, im.attrs['orbital_parameters'])
+            self.assertTrue(set(orb_params_exp.items()).issubset(set(im.attrs['orbital_parameters'].items())))
             self.assertTrue(np.isclose(im.attrs['orbital_parameters']['satellite_actual_altitude'], 35786903.00581372))
 
             # Test if masking space pixels disables with appropriate flag

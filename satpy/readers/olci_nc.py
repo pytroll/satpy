@@ -19,24 +19,22 @@
 
 This reader supports an optional argument to choose the 'engine' for reading
 OLCI netCDF4 files. By default, this reader uses the default xarray choice of
-engine, as defined in the `xarray open_dataset documentation`_.
+engine, as defined in the :func:`xarray.open_dataset` documentation`.
 
 As an alternative, the user may wish to use the 'h5netcdf' engine, but that is
 not default as it typically prints many non-fatal but confusing error messages
 to the terminal.
 To choose between engines the user can  do as follows for the default::
 
-scn = satpyScene(filenames=my_files, reader='olci_l1b')
+    scn = Scene(filenames=my_files, reader='olci_l1b')
 
 or as follows for the h5netcdf engine::
 
-scn = Scene(filenames=my_files,
-      reader='olci_l1b'), reader_kwargs={'engine': 'h5netcdf'})
-
+    scn = Scene(filenames=my_files,
+                reader='olci_l1b', reader_kwargs={'engine': 'h5netcdf'})
 
 References:
-    - `xarray open_dataset documentation`_
-.. _xarray open_dataset: http://xarray.pydata.org/en/stable/generated/xarray.open_dataset.html
+    - :func:`xarray.open_dataset`
 
 """
 
