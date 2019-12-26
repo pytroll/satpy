@@ -241,6 +241,7 @@ class NCOLCI2(NCOLCIChannelBase):
 
 
 class NCOLCILowResData(BaseFileHandler):
+    """Handler for low resolution data."""
 
     def __init__(self, filename, filename_info, filetype_info,
                  engine=None):
@@ -251,8 +252,8 @@ class NCOLCILowResData(BaseFileHandler):
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
         self.cache = {}
-        self._start_time = filename_info['start_time']
-        self._end_time = filename_info['end_time']
+        self.start_time = filename_info['start_time']
+        self.end_time = filename_info['end_time']
         self.engine = engine
 
     def _open_dataset(self):
@@ -294,18 +295,7 @@ class NCOLCILowResData(BaseFileHandler):
                              dims=['y', 'x']) for x in int_data]
 
     def _need_interpolation(self):
-
         return (self.c_step != 1 or self.l_step != 1)
-
-    @property
-    def start_time(self):
-        """Start the file handler."""
-        return self._start_time
-
-    @property
-    def end_time(self):
-        """End the file handler."""
-        return self._end_time
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""
@@ -399,7 +389,7 @@ class NCOLCIAngles(NCOLCILowResData):
 
 
 class NCOLCIMeteo(NCOLCILowResData):
-    """File handler for the OLCI meteo data: """
+    """File handler for the OLCI meteo data."""
 
     datasets = ['humidity', 'sea_level_pressure', 'total_columnar_water_vapour', 'total_ozone']
 
