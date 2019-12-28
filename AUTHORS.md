@@ -40,6 +40,7 @@ The following people have made contributions to this project:
 - [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
 - [Tom Parker (tparker-usgs)](https://github.com/tparker-usgs)
 - [Christian Peters (peters77)](https://github.com/peters77)
+- [Ghislain Picard (ghislainp)](https://github.com/ghislainp)
 - [Simon R. Proud (simonrp84)](https://github.com/simonrp84)
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
