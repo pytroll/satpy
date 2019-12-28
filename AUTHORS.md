@@ -20,6 +20,7 @@ The following people have made contributions to this project:
 - [Ulrik Egede (egede)](https://github.com/egede)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens)
+- [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
 - [Nina Håkansson (ninahakansson)](https://github.com/ninahakansson)
 - [Ulrich Hamann](https://github.com/)
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
@@ -58,4 +59,3 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
-
