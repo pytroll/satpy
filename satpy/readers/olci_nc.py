@@ -370,16 +370,6 @@ class NCOLCIAngles(NCOLCILowResData):
         values.attrs.update(key.to_dict())
         return values
 
-    @property
-    def start_time(self):
-        """Start the file handler."""
-        return self._start_time
-
-    @property
-    def end_time(self):
-        """End the file handler."""
-        return self._end_time
-
     def __del__(self):
         """Close the NetCDF file that may still be open."""
         try:
