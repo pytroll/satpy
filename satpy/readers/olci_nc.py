@@ -252,8 +252,6 @@ class NCOLCILowResData(BaseFileHandler):
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'olci'
         self.cache = {}
-        self.start_time = filename_info['start_time']
-        self.end_time = filename_info['end_time']
         self.engine = engine
 
     def _open_dataset(self):
