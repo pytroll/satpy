@@ -1109,6 +1109,7 @@ class SCMIWriter(Writer):
                       source_name=None, filename=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
+                      use_end_time=False,
                       compute=True, **kwargs):
         """Write a series of DataArray objects to multiple NetCDF4 SCMI files."""
         if sector_id is None:
@@ -1124,11 +1125,16 @@ class SCMIWriter(Writer):
                 for tile_info, tmp_tile in tile_gen(dataset):
                     # make sure this entire tile is loaded as one single array
                     tmp_tile.data = tmp_tile.data.rechunk(tmp_tile.shape)
+                    ds_info = dataset.attrs.copy()
+                    if use_end_time:
+                        # replace start_time with end_time for multi-day composites
+                        ds_info['start_time'] = ds_info['end_time']
+
                     output_filename = filename or self.get_filename(area_def, tile_info, sector_id,
                                                                     source_name=awips_info['source_name'],
-                                                                    **dataset.attrs)
+                                                                    **ds_info)
                     self.check_tile_exists(output_filename)
-                    nc_wrapper = NetCDFWrapper(output_filename, sector_id, dataset.attrs, awips_info,
+                    nc_wrapper = NetCDFWrapper(output_filename, sector_id, ds_info, awips_info,
                                                tile_gen.xy_factors, tile_info,
                                                compress=self.compress, fix_awips=self.fix_awips)
                     sources_targets.append((tmp_tile.data, nc_wrapper))
