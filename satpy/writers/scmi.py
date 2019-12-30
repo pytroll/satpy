@@ -551,6 +551,7 @@ class NetCDFWriter(object):
         self.helper = AttributeHelper(ds_info)
         self.image_data = None
         self.is_geographic = is_geographic
+        self.exists = os.path.isfile(self.filename)
         if self.is_geographic:
             self.row_dim_name = 'lat'
             self.col_dim_name = 'lon'
@@ -566,12 +567,15 @@ class NetCDFWriter(object):
     def nc(self):
         """Access the NetCDF file object if not already created."""
         if self._nc is None:
-            self._nc = Dataset(self.filename, 'w')
+            self._nc = Dataset(self.filename, 'r+' if self.exists else 'w')
         return self._nc
 
     def create_dimensions(self, lines, columns):
         """Create NetCDF dimensions."""
         # Create Dimensions
+        if self.exists:
+            LOG.debug("Skipping creating dimensions because file already exists.")
+            return
         _nc = self.nc
         _nc.createDimension(self.row_dim_name, lines)
         _nc.createDimension(self.col_dim_name, columns)
@@ -579,6 +583,13 @@ class NetCDFWriter(object):
     def create_variables(self, bitdepth, fill_value, scale_factor=None, add_offset=None,
                          valid_min=None, valid_max=None):
         """Create data and geolcoation NetCDF variables."""
+        if self.exists:
+            LOG.debug("Skipping creating variables because file already exists.")
+            self.image_data = self.nc[self.image_var_name]
+            self.fgf_y = self.nc[self.y_var_name]
+            self.fgf_x = self.nc[self.x_var_name]
+            return
+
         fgf_coords = "%s %s" % (self.y_var_name, self.x_var_name)
 
         self.image_data = self.nc.createVariable(self.image_var_name,
@@ -638,6 +649,10 @@ class NetCDFWriter(object):
 
     def set_fgf(self, x, mx, bx, y, my, by, units=None, downsample_factor=1):
         """Assign geolocation x/y variables metadata."""
+        if self.exists:
+            LOG.debug("Skipping setting FGF variable attributes because file already exists.")
+            return
+
         # assign values before scale factors to avoid implicit scale reversal
         LOG.debug('y variable shape is {}'.format(self.fgf_y.shape))
         self.fgf_y.scale_factor = np.float64(my * float(downsample_factor))
@@ -670,6 +685,9 @@ class NetCDFWriter(object):
 
     def set_projection_attrs(self, area_id, proj4_info):
         """Assign projection attributes per GRB standard."""
+        if self.exists:
+            LOG.debug("Skipping setting projection attributes because file already exists.")
+            return
         proj4_info['a'], proj4_info['b'] = proj4_radius_parameters(proj4_info)
         if proj4_info["proj"] == "geos":
             p = self.projection = self.nc.createVariable("fixedgrid_projection", 'i4')
@@ -721,6 +739,10 @@ class NetCDFWriter(object):
                          creating_entity, total_tiles, total_pixels,
                          tile_row, tile_column, tile_height, tile_width, creator=None):
         """Assign NetCDF global attributes."""
+        if self.exists:
+            LOG.debug("Skipping setting global attributes because file already exists.")
+            return
+
         self.nc.Conventions = "CF-1.7"
         if creator is None:
             from satpy import __version__
@@ -760,7 +782,8 @@ class NetCDFWrapper(object):
     """
 
     def __init__(self, filename, sector_id, ds_info, awips_info,
-                 xy_factors, tile_info, compress=False, fix_awips=False):
+                 xy_factors, tile_info, compress=False, fix_awips=False,
+                 update_existing=True):
         """Assign instance attributes for later use."""
         self.filename = filename
         self.sector_id = sector_id
@@ -770,6 +793,8 @@ class NetCDFWrapper(object):
         self.xy_factors = xy_factors
         self.compress = compress
         self.fix_awips = fix_awips
+        self.update_existing = update_existing
+        self.exists = os.path.isfile(self.filename)
 
     def __setitem__(self, key, data):
         """Write an entire tile to a file."""
@@ -781,13 +806,28 @@ class NetCDFWrapper(object):
         awips_info = self.awips_info
         tile_info = self.tile_info
         area_def = ds_info['area']
+        if hasattr(area_def, 'crs'):
+            is_geographic = area_def.crs.is_geographic
+        else:
+            is_geographic = Proj(area_def.proj_dict).is_latlong()
+        nc = NetCDFWriter(self.filename, ds_info=self.ds_info,
+                          compress=self.compress,
+                          is_geographic=is_geographic)
+
         LOG.debug("Scaling %s data to fit in netcdf file...", ds_info["name"])
         bit_depth = ds_info.get("bit_depth", 16)
         valid_min = ds_info.get('valid_min')
-        if valid_min is None:
+        if valid_min is None and self.update_existing and self.exists:
+            # reuse the valid_min that was previously computed
+            valid_min = nc.nc['data'].valid_min
+        elif valid_min is None:
             valid_min = np.nanmin(data)
+
         valid_max = ds_info.get('valid_max')
-        if valid_max is None:
+        if valid_max is None and self.update_existing and self.exists:
+            # reuse the valid_max that was previously computed
+            valid_max = nc.nc['data'].valid_max
+        elif valid_max is None:
             valid_max = np.nanmax(data)
 
         LOG.debug("Using product valid min {} and valid max {}".format(valid_min, valid_max))
@@ -799,16 +839,8 @@ class NetCDFWrapper(object):
 
         tmp_tile = np.empty(tile_info.tile_shape, dtype=data.dtype)
         tmp_tile[:] = np.nan
-        tmp_tile[tile_info.tile_slices] = data
 
         LOG.info("Writing tile '%s' to '%s'", self.tile_info[2], self.filename)
-        if hasattr(area_def, 'crs'):
-            is_geographic = area_def.crs.is_geographic
-        else:
-            is_geographic = Proj(area_def.proj_dict).is_latlong()
-        nc = NetCDFWriter(self.filename, ds_info=self.ds_info,
-                          compress=self.compress,
-                          is_geographic=is_geographic)
         LOG.debug("Creating dimensions...")
         nc.create_dimensions(tmp_tile.shape[0], tmp_tile.shape[1])
         LOG.debug("Creating variables...")
@@ -822,15 +854,24 @@ class NetCDFWrapper(object):
                             tmp_tile.shape[0], tmp_tile.shape[1])
         LOG.debug("Creating projection attributes...")
         nc.set_projection_attrs(area_def.area_id, area_def.proj_dict)
-        LOG.debug("Writing image data...")
-        np.clip(tmp_tile, valid_min, valid_max, out=tmp_tile)
-        nc.set_image_data(tmp_tile)
         LOG.debug("Writing X/Y navigation data...")
         mx, bx, my, by = self.xy_factors
         nc.set_fgf(tile_info.x, mx, bx, tile_info.y, my, by)
+
+        tmp_tile[tile_info.tile_slices] = data
+        if self.exists and self.update_existing:
+            # use existing data where possible
+            existing_data = nc.nc['data'][:]
+            # where we don't have new data but we also have good existing data
+            old_mask = np.isnan(tmp_tile) & ~existing_data.mask
+            tmp_tile[old_mask] = existing_data[old_mask]
+
+        LOG.debug("Writing image data...")
+        np.clip(tmp_tile, valid_min, valid_max, out=tmp_tile)
+        nc.set_image_data(tmp_tile)
         nc.close()
 
-        if self.fix_awips:
+        if self.fix_awips and not self.exists:
             fix_awips_file(self.filename)
 
     def _calc_factor_offset(self, data=None, dtype=np.int16, bitdepth=None,
@@ -1062,7 +1103,7 @@ class SCMIWriter(Writer):
                 LOG.error("AWIPS file already exists: %s", output_filename)
                 raise RuntimeError("AWIPS file already exists: %s" % (output_filename,))
             else:
-                LOG.warning("AWIPS file already exists, will overwrite: %s", output_filename)
+                LOG.info("AWIPS file already exists, will update with new data: %s", output_filename)
 
     def save_datasets(self, datasets, sector_id=None,
                       source_name=None, filename=None,
