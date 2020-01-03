@@ -353,7 +353,7 @@ class LetteredTileGenerator(NumberedTileGenerator):
         num_pixels_y = int(np.floor(fcs_y / ch))
         # NOTE: this does not change the *total* number of columns/rows that
         # will be produced. This is important because otherwise the number
-        # of alpha tiles could depend on the input data which is not what we
+        # of lettered tiles could depend on the input data which is not what we
         # want
         fcs_x = num_pixels_x * cw
         fcs_y = num_pixels_y * ch
@@ -381,9 +381,9 @@ class LetteredTileGenerator(NumberedTileGenerator):
         self.max_row = max_row
         self.ul_xy = ul_xy
         self.mx = cw
-        self.bx = ul_xy[0]
+        self.bx = ul_xy[0] + cw / 2.0  # X represents the center of the pixel
         self.my = -ch
-        self.by = ul_xy[1]
+        self.by = ul_xy[1] - ch / 2.0  # Y represents the center of the pixel
         self.x = x
         self.y = y
 
