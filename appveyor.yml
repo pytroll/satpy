@@ -11,7 +11,7 @@ environment:
     - PYTHON: "C:\\Python37_64"
       PYTHON_VERSION: "3.7"
       PYTHON_ARCH: "64"
-      NUMPY_VERSION: "1.17"
+      NUMPY_VERSION: "stable"
 
 install:
     - "git clone --depth 1 git://github.com/astropy/ci-helpers.git"
