@@ -59,6 +59,40 @@ bandwidth, and space.
 Any tiles (numbered or lettered) not containing any valid data are not
 created.
 
+Updating tiles
+--------------
+
+There are some input data cases where we want to put new data in a tile
+file written by a previous execution. An example is a pre-tiled input dataset
+that is processed one tile at a time. One input tile may map to one or more
+output SCMI tiles, but may not perfectly align with the SCMI tile, leaving
+empty/unused space in the SCMI tile. The next input tile may be able to fill
+in that empty space and should be allowed to write the "new" data to the file.
+This is the default behavior of the SCMI writer. In cases where data overlaps
+the existing data in the tile, the newer data has priority.
+
+Shifting Lettered Grids
+-----------------------
+
+Due to the static nature of the lettered grids, there is sometimes a
+need to shift the locations of where these tiles are by up to 0.5 pixels in
+each dimension to align with the data being processed. This means that the
+tiles for a 1000m resolution grid may be shifted up to 500m in each direction
+from the original definition of the lettered "sector". This can cause
+differences in the location of the tiles between executions depending on the
+locations of the input data. In the worst case tile A01 from one execution
+could be shifted up to 1 grid cell from tile A01 in another execution (one
+is shifted 0.5 pixels to the left, the other is shifted 0.5 to the right).
+
+This shifting makes the calculations for generating tiles easier and
+more accurate. By default, the lettered tile locations are changed to match
+the location of the data. This works well when output tiles will not be
+updated (see above) in future processing. In cases where output tiles will be
+filled in or updated with more data the ``use_sector_reference`` keyword
+argument can be set to ``True`` to tell the SCMI writer to shift the data's
+geolocation by up to 0.5 pixels in each dimension instead of shifting the
+lettered tile locations.
+
 """
 import os
 import logging
@@ -294,7 +328,7 @@ class LetteredTileGenerator(NumberedTileGenerator):
 
     def __init__(self, area_definition, extents,
                  cell_size=(2000000, 2000000),
-                 num_subtiles=None):
+                 num_subtiles=None, use_sector_reference=False):
         """Initialize tile information for later generation."""
         # (row subtiles, col subtiles)
         self.num_subtiles = num_subtiles or (2, 2)
@@ -302,6 +336,7 @@ class LetteredTileGenerator(NumberedTileGenerator):
         # x/y
         self.ll_extents = extents[:2]  # (x min, y min)
         self.ur_extents = extents[2:]  # (x max, y max)
+        self.use_sector_reference = use_sector_reference
         super(LetteredTileGenerator, self).__init__(area_definition)
 
     def _get_tile_properties(self, tile_shape, tile_count):
@@ -334,11 +369,16 @@ class LetteredTileGenerator(NumberedTileGenerator):
             shift_x = 0
         if abs(shift_y) < 1e-10 or abs(shift_y - ch) < 1e-10:
             shift_y = 0
-        LOG.debug("Adjusting lettered grid by ({}, {}) so it better matches data X/Y".format(shift_x, shift_y))
-        ul_xy = (ul_xy[0] - shift_x, ul_xy[1] - shift_y)  # outer edge of grid
-        # always keep the same distance between the extents
-        ll_xy = (ul_xy[0], ll_xy[1] - shift_y)
-        ur_xy = (ur_xy[0] - shift_x, ul_xy[1])
+        if self.use_sector_reference:
+            LOG.debug("Adjusting X/Y by ({}, {}) so it better matches lettered grid".format(shift_x, shift_y))
+            x = x + shift_x
+            y = y + shift_y
+        else:
+            LOG.debug("Adjusting lettered grid by ({}, {}) so it better matches data X/Y".format(shift_x, shift_y))
+            ul_xy = (ul_xy[0] - shift_x, ul_xy[1] - shift_y)  # outer edge of grid
+            # always keep the same distance between the extents
+            ll_xy = (ul_xy[0], ll_xy[1] - shift_y)
+            ur_xy = (ur_xy[0] - shift_x, ul_xy[1])
 
         fcs_y, fcs_x = (np.ceil(float(cs[0]) / st[0]), np.ceil(float(cs[1]) / st[1]))
         # need X/Y for *whole* tiles
@@ -995,7 +1035,9 @@ class SCMIWriter(Writer):
                 sector_info = None
         return sector_info
 
-    def _get_tile_generator(self, area_def, lettered_grid, sector_id, num_subtiles, tile_size, tile_count):
+    def _get_tile_generator(self, area_def, lettered_grid, sector_id,
+                            num_subtiles, tile_size, tile_count,
+                            use_sector_reference=False):
         """Get the appropriate tile generator class for lettered or numbered tiles."""
         sector_info = self._get_sector_info(sector_id, lettered_grid)
         # Create a tile generator for this grid definition
@@ -1004,6 +1046,8 @@ class SCMIWriter(Writer):
                 area_def,
                 sector_info['lower_left_xy'] + sector_info['upper_right_xy'],
                 cell_size=sector_info['resolution'],
+                num_subtiles=num_subtiles,
+                use_sector_reference=use_sector_reference,
                 )
         else:
             tile_gen = NumberedTileGenerator(
@@ -1109,16 +1153,70 @@ class SCMIWriter(Writer):
                       source_name=None, filename=None,
                       tile_count=(1, 1), tile_size=None,
                       lettered_grid=False, num_subtiles=None,
-                      use_end_time=False,
+                      use_end_time=False, use_sector_reference=False,
                       compute=True, **kwargs):
-        """Write a series of DataArray objects to multiple NetCDF4 SCMI files."""
+        """Write a series of DataArray objects to multiple NetCDF4 SCMI files.
+
+        Args:
+            datasets (iterable): Series of gridded :class:`~xarray.DataArray`
+                objects with the necessary metadata to be converted to a valid
+                SCMI product file.
+            sector_id (str): Name of the region or sector that the provided
+                data is on. This name will be written to the NetCDF file and
+                will be used as the sector in the AWIPS client. For lettered
+                grids this name should match the name configured in the writer
+                YAML. This is required but is defined as a keyword argument
+                for better error handling in Satpy.
+            source_name (str): Name of producer of these files (ex. "SSEC").
+                This name is used to create the output filename.
+            filename (str): Filename format pattern to be filled in with
+                dataset metadata for each tile. See YAML configuration file
+                for default.
+            tile_count (tuple): For numbered tiles only, how many tile rows
+                and tile columns to produce. Default to ``(1, 1)``, a single
+                giant tile. Either ``tile_count``, ``tile_size``, or
+                ``lettered_grid`` should be specified.
+            tile_size (tuple): For numbered tiles only, how many pixels each
+                tile should be. This takes precedence over ``tile_count`` if
+                specified. Either ``tile_count``, ``tile_size``, or
+                ``lettered_grid`` should be specified.
+            lettered_grid (bool): Whether to use a preconfigured grid and
+                label tiles with letters and numbers instead of only numbers.
+                For example, tiles will be named "A01", "A02", "B01", and so
+                on in the first row of data and continue on to "A03", "A04",
+                and "B03" in the default case where ``num_subtiles`` is (2, 2).
+                Letters start in the upper-left corner and will go from A up to
+                Z, if necessary.
+            num_subtiles (tuple): For lettered tiles only, how many rows and
+                columns to split each lettered tile in to. By default 2 rows
+                and 2 columns will be created. For example, the tile for
+                letter "A" will have "A01" and "A02" in the top row and "A03"
+                and "A04" in the second row.
+            use_end_time (bool): Instead of using the ``start_time`` for the
+                product filename and time written to the file, use the
+                ``end_time``. This is useful for multi-day composites where
+                the ``end_time`` is a better representation of what data is
+                in the file.
+            use_sector_reference (bool): For lettered tiles only, whether to
+                shift the data locations to align with the preconfigured
+                grid's pixels. By default this is False meaning that the
+                grid's tiles will be shifted to align with the data locations.
+                If True, the data is shifted. At most the data will be shifted
+                by 0.5 pixels. See :mod:`satpy.writers.scmi` for more
+                information.
+            compute (bool): Compute and write the output immediately using
+                dask. Default to ``False``.
+
+        """
         if sector_id is None:
             raise TypeError("Keyword 'sector_id' is required")
 
         area_datasets = self._group_by_area(datasets)
         sources_targets = []
         for area_def, ds_list in area_datasets.values():
-            tile_gen = self._get_tile_generator(area_def, lettered_grid, sector_id, num_subtiles, tile_size, tile_count)
+            tile_gen = self._get_tile_generator(
+                area_def, lettered_grid, sector_id, num_subtiles, tile_size,
+                tile_count, use_sector_reference=use_sector_reference)
             for dataset in self._enhance_and_split_rgbs(ds_list):
                 LOG.info("Preparing product %s to be written to AWIPS SCMI NetCDF file", dataset.attrs["name"])
                 awips_info = self._get_awips_info(dataset.attrs, source_name=source_name)
