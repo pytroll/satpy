@@ -56,14 +56,17 @@ PLATFORM_NAMES = {4: 'NOAA-15',
 
 
 def create_xarray(arr):
+    """Create xarray DataArray from numpy array."""
     res = da.from_array(arr, chunks=(CHUNK_SIZE, CHUNK_SIZE))
     res = xr.DataArray(res, dims=['y', 'x'])
     return res
 
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
+    """Reader for AVHRR L1B files created from the AAPP software."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize object information by reading the input file."""
         super(AVHRRAAPPL1BFile, self).__init__(filename, filename_info,
                                                filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
@@ -89,23 +92,20 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the time of the first observation."""
         return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][0]) - 1,
             milliseconds=int(self._data['scnlintime'][0]))
 
     @property
     def end_time(self):
+        """Get the time of the final observation."""
         return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][-1]) - 1,
             milliseconds=int(self._data['scnlintime'][-1]))
 
-    def shape(self):
-        # return self._data.shape
-        return self._shape
-
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
-
         if key.name in CHANNEL_NAMES:
             dataset = self.calibrate(key)
         elif key.name in ['longitude', 'latitude']:
@@ -128,6 +128,9 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         dataset.attrs.update({'platform_name': self.platform_name,
                               'sensor': self.sensor})
         dataset.attrs.update(key.to_dict())
+        for key in ('standard_name', 'units'):
+            if key in info:
+                dataset.attrs.setdefault(key, info[key])
 
         if not self._shape:
             self._shape = dataset.shape
@@ -135,8 +138,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         return dataset
 
     def read(self):
-        """Read the data.
-        """
+        """Read the data."""
         tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             header = np.memmap(fp_, dtype=_HEADERTYPE, mode="r", shape=(1, ))
@@ -148,10 +150,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self._data = data
 
     def get_angles(self, angle_id):
-        """Get sun-satellite viewing angles"""
-
-        tic = datetime.now()
-
+        """Get sun-satellite viewing angles."""
         sunz40km = self._data["ang"][:, :, 0] * 1e-2
         satz40km = self._data["ang"][:, :, 1] * 1e-2
         azidiff40km = self._data["ang"][:, :, 2] * 1e-2
@@ -177,15 +176,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                 (rows1km, cols1km), along_track_order, cross_track_order)
             self.sunz, self.satz, self.azidiff = satint.interpolate()
 
-            logger.debug("Interpolate sun-sat angles: time %s",
-                         str(datetime.now() - tic))
-
         return create_xarray(getattr(self, ANGLES[angle_id]))
 
     def navigate(self):
-        """Return the longitudes and latitudes of the scene.
-        """
-        tic = datetime.now()
+        """Get the longitudes and latitudes of the scene."""
         lons40km = self._data["pos"][:, :, 1] * 1e-4
         lats40km = self._data["pos"][:, :, 0] * 1e-4
 
@@ -209,16 +203,12 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                 (lons40km, lats40km), (rows40km, cols40km), (rows1km, cols1km),
                 along_track_order, cross_track_order)
             self.lons, self.lats = satint.interpolate()
-            logger.debug("Navigation time %s", str(datetime.now() - tic))
 
     def calibrate(self,
                   dataset_id,
                   pre_launch_coeffs=False,
                   calib_coeffs=None):
-        """Calibrate the data
-        """
-        tic = datetime.now()
-
+        """Calibrate the data."""
         if calib_coeffs is None:
             calib_coeffs = {}
 
@@ -268,9 +258,6 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         ds.attrs['units'] = units[dataset_id.calibration]
         ds.attrs.update(dataset_id._asdict())
-
-        logger.debug("Calibration time %s", str(datetime.now() - tic))
-
         return ds
 
 
@@ -458,13 +445,13 @@ def _vis_calibrate(data,
                    pre_launch_coeffs=False,
                    calib_coeffs=None,
                    mask=False):
-    """Visible channel calibration only.
+    """Calibrate visible channel data.
 
-    *calib_type* in count, reflectance, radiance
+    ``calib_type`` in count, reflectance, radiance.
+
     """
     # Calibration count to albedo, the calibration is performed separately for
     # two value ranges.
-
     if calib_type not in ['counts', 'radiance', 'reflectance']:
         raise ValueError('Calibration ' + calib_type + ' unknown!')
 
@@ -525,10 +512,11 @@ def _vis_calibrate(data,
 
 
 def _ir_calibrate(header, data, irchn, calib_type, mask=False):
-    """IR calibration
-    *calib_type* in brightness_temperature, radiance, count
-    """
+    """Calibrate for IR bands.
 
+    ``calib_type`` in brightness_temperature, radiance, count
+
+    """
     count = data["hrpt"][:, :, irchn + 2].astype(np.float)
 
     if calib_type == 0:
