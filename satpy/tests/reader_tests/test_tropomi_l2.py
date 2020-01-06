@@ -77,7 +77,7 @@ class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
             for key, val in file_content.items():
                 if isinstance(val, np.ndarray):
                     if val.ndim > 1:
-                        file_content[key] = DataArray(val, dims=('y', 'x'))
+                        file_content[key] = DataArray(val, dims=('scanline', 'ground_pixel'))
                     else:
                         file_content[key] = DataArray(val)
             file_content['PRODUCT/latitude'].attrs['_FillValue'] = -999.0
@@ -139,6 +139,8 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             self.assertEqual(d.attrs['sensor'], 'TROPOMI')
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
+            self.assertIn('y', d.dims)
+            self.assertIn('x', d.dims)
 
     def test_load_so2(self):
         """Load SO2 dataset"""
@@ -155,6 +157,8 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             self.assertEqual(d.attrs['platform_shortname'], 'S5P')
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
+            self.assertIn('y', d.dims)
+            self.assertIn('x', d.dims)
 
 
 def suite():
