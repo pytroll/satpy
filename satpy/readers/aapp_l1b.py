@@ -128,9 +128,9 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         dataset.attrs.update({'platform_name': self.platform_name,
                               'sensor': self.sensor})
         dataset.attrs.update(key.to_dict())
-        for key in ('standard_name', 'units'):
-            if key in info:
-                dataset.attrs.setdefault(key, info[key])
+        for meta_key in ('standard_name', 'units'):
+            if meta_key in info:
+                dataset.attrs.setdefault(meta_key, info[meta_key])
 
         if not self._shape:
             self._shape = dataset.shape
