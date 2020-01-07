@@ -92,8 +92,8 @@ class AMIL1bNetCDF(BaseFileHandler):
 
         # AMI grid appears offset, we can not use the standard get_area_extent
         bit_shift = 2**16
-        ll_x = (0 - pdict['coff'] - 0.5) * bit_shift / pdict['cfac']
-        ll_y = -(0 - pdict['loff'] - 0.5) * bit_shift / pdict['lfac']
+        ll_x = (0 - pdict['coff'] + 0.5) * bit_shift / pdict['cfac']
+        ll_y = -(0 - pdict['loff'] + 0.5) * bit_shift / pdict['lfac']
         ur_x = (pdict['ncols'] - pdict['coff'] + 0.5) * bit_shift / pdict['cfac']
         ur_y = -(pdict['nlines'] - pdict['loff'] + 0.5) * bit_shift / pdict['lfac']
 
