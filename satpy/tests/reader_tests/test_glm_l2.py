@@ -79,10 +79,12 @@ def setup_fake_dataset():
     x__ = xr.DataArray(
         range(5),
         attrs={'scale_factor': 2., 'add_offset': -1.},
+        dims=('x',),
     )
     y__ = xr.DataArray(
         range(2),
         attrs={'scale_factor': -2., 'add_offset': 1.},
+        dims=('y',),
     )
     proj = xr.DataArray(
         [],
@@ -95,20 +97,22 @@ def setup_fake_dataset():
             'sweep_angle_axis': u'x'
         }
     )
-    fake_dataset = FakeDataset({
-        'flash_extent_density': fed,
-        'x': x__,
-        'y': y__,
-        'goes_imager_projection': proj,
-        "nominal_satellite_subpoint_lat": np.array(0.0),
-        "nominal_satellite_subpoint_lon": np.array(-89.5),
-        "nominal_satellite_height": np.array(35786.02)
-    },
-        {
+    fake_dataset = xr.Dataset(
+        data_vars={
+            'flash_extent_density': fed,
+            'x': x__,
+            'y': y__,
+            'goes_imager_projection': proj,
+            "nominal_satellite_subpoint_lat": np.array(0.0),
+            "nominal_satellite_subpoint_lon": np.array(-89.5),
+            "nominal_satellite_height": np.array(35786.02)
+        },
+        attrs={
             "time_coverage_start": "2017-09-20T17:30:40Z",
             "time_coverage_end": "2017-09-20T17:41:17Z",
             "spatial_resolution": "2km at nadir",
-        }, dims=('y', 'x'))
+        }
+    )
     return fake_dataset
 
 
