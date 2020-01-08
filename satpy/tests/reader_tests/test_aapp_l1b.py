@@ -82,6 +82,8 @@ class TestAAPPL1B(unittest.TestCase):
             self._header.tofile(tmpfile)
             tmpfile.seek(22016, 0)
             self._data.tofile(tmpfile)
+            tmpfile.flush()
+        tmpfile.close()
 
         self.filename_info = {'platform_shortname': 'metop03', 'start_time': datetime.datetime(2020, 1, 8, 8, 19),
                               'orbit_number': 6071}
