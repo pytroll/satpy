@@ -934,6 +934,8 @@ def _pad_later_segments_area(file_handlers, dsid):
     seg_size = None
     expected_segments = file_handlers[0].filetype_info.get(
         'expected_segments', 1)
+    if isinstance(expected_segments, str):
+        expected_segments = file_handlers[0].filename_info[expected_segments]
     available_segments = [int(fh.filename_info.get('segment', 1)) for
                           fh in file_handlers]
     area_defs = {}
@@ -990,11 +992,16 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
     failure = True
     counter = 1
     expected_segments = 1
+    # get list of file handlers in segment order
+    # (ex. first segment, second segment, etc)
     handlers = sorted(file_handlers, key=lambda x: x.filename_info.get('segment', 1))
     projectable = None
     for fh in handlers:
         if fh.filetype_info['file_type'] in ds_info['file_type']:
             expected_segments = fh.filetype_info.get('expected_segments', 1)
+            if isinstance(expected_segments, str):
+                # get the information from the filename
+                expected_segments = fh.filename_info[expected_segments]
 
         while int(fh.filename_info.get('segment', 1)) > counter:
             slice_list.append(None)
