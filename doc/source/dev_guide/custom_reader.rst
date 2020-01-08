@@ -466,8 +466,9 @@ needs to implement a few methods:
    successful, containing the data and :ref:`metadata <dataset_metadata>` of the
    loaded dataset, or return None if the loading was unsuccessful.
 
-   The DataArray should at least have a ``y`` dimension. If it is 2 or more
-   dimensions then it should also have an ``x`` dimension. This applies to
+   The DataArray should at least have a ``y`` dimension. For data covering
+   a 2D region on the Earth, their should be at least a ``y`` and ``x``
+   dimension. This applies to
    non-gridded data like that of a polar-orbiting satellite instrument. The
    latitude dimension is typically named ``y`` and longitude named ``x``.
    This may require renaming dimensions from the file, see for the
