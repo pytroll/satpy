@@ -115,6 +115,25 @@ class TestAAPPL1B(unittest.TestCase):
         np.testing.assert_allclose(maxs, [108.40391775, 107.68545158, 106.80061233,
                                           337.71416096, 355.15898219, 350.87182166])
 
+    def test_angles(self):
+        """Test reading the angles."""
+        fh = AVHRRAAPPL1BFile(self.filename, self.filename_info, self.filetype_info)
+        info = {}
+        key = DatasetID(name='solar_zenith_angle')
+        res = fh.get_dataset(key, info)
+        assert(np.all(res == 0))
+
+    def test_navigation(self):
+        """Test reading the lon and lats."""
+        fh = AVHRRAAPPL1BFile(self.filename, self.filename_info, self.filetype_info)
+        info = {}
+        key = DatasetID(name='longitude')
+        res = fh.get_dataset(key, info)
+        assert(np.all(res == 0))
+        key = DatasetID(name='latitude')
+        res = fh.get_dataset(key, info)
+        assert(np.all(res == 0))
+
     def tearDown(self):
         """Delete the remaining file."""
         os.remove(self.filename)
