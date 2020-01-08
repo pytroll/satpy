@@ -75,15 +75,16 @@ class TestAAPPL1B(unittest.TestCase):
                                 [[13871, -249531, 234652640],
                                  [0, 0, 0]]]]
         self._data['hrpt'] = np.ones_like(self._data['hrpt']) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
-        fd, self.filename = tempfile.mkstemp()
-        os.close(fd)
+        self.fd, self.filename = tempfile.mkstemp()
 
-        with open(self.filename, mode='wb') as tmpfile:
+        tmpfile = os.fdopen(self.fd, mode='wb')
+        try:
             self._header.tofile(tmpfile)
             tmpfile.seek(22016, 0)
             self._data.tofile(tmpfile)
             tmpfile.flush()
-        tmpfile.close()
+        finally:
+            tmpfile.close()
 
         self.filename_info = {'platform_shortname': 'metop03', 'start_time': datetime.datetime(2020, 1, 8, 8, 19),
                               'orbit_number': 6071}
