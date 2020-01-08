@@ -37,6 +37,7 @@ class FakeDataset(object):
                 info[var_name] = xr.DataArray(var_data)
         self.info = info
         self.attrs = attrs
+        self.coords = {}
         self.dims = dims or tuple()
 
     def __getitem__(self, key):
@@ -81,16 +82,18 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
                     'units': 'W m-2 um-1 sr-1'
                 }
             )
-        rad['time'] = time
-        rad['x_image'] = x_image
-        rad['y_image'] = y_image
+        rad.coords['t'] = time
+        rad.coords['x_image'] = x_image
+        rad.coords['y_image'] = y_image
         x__ = xr.DataArray(
             range(5),
             attrs={'scale_factor': 2., 'add_offset': -1.},
+            dims=('x',)
         )
         y__ = xr.DataArray(
             range(2),
             attrs={'scale_factor': -2., 'add_offset': 1.},
+            dims=('y',)
         )
         proj = xr.DataArray(
             [],
@@ -103,30 +106,38 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
                 'sweep_angle_axis': u'x'
             }
         )
-        yaw_flip = xr.DataArray([1])
-        xr_.open_dataset.return_value = FakeDataset({
-            'Rad': rad,
-            'band_id': np.array(8),
-            'x': x__,
-            'y': y__,
-            'x_image': x_image,
-            'y_image': y_image,
-            'goes_imager_projection': proj,
-            'yaw_flip_flag': yaw_flip,
-            "planck_fk1": np.array(13432.1),
-            "planck_fk2": np.array(1497.61),
-            "planck_bc1": np.array(0.09102),
-            "planck_bc2": np.array(0.99971),
-            "esun": np.array(2017),
-            "nominal_satellite_subpoint_lat": np.array(0.0),
-            "nominal_satellite_subpoint_lon": np.array(-89.5),
-            "nominal_satellite_height": np.array(35786.02),
-            "earth_sun_distance_anomaly_in_AU": np.array(0.99)},
-            {
+        fake_dataset = xr.Dataset(
+            data_vars={
+                'Rad': rad,
+                'band_id': np.array(8),
+                # 'x': x__,
+                # 'y': y__,
+                'x_image': x_image,
+                'y_image': y_image,
+                'goes_imager_projection': proj,
+                'yaw_flip_flag': np.array([1]),
+                "planck_fk1": np.array(13432.1),
+                "planck_fk2": np.array(1497.61),
+                "planck_bc1": np.array(0.09102),
+                "planck_bc2": np.array(0.99971),
+                "esun": np.array(2017),
+                "nominal_satellite_subpoint_lat": np.array(0.0),
+                "nominal_satellite_subpoint_lon": np.array(-89.5),
+                "nominal_satellite_height": np.array(35786.02),
+                "earth_sun_distance_anomaly_in_AU": np.array(0.99)
+            },
+            coords={
+                't': rad.coords['t'],
+                'x': x__,
+                'y': y__,
+
+            },
+            attrs={
                 "time_coverage_start": "2017-09-20T17:30:40.8Z",
                 "time_coverage_end": "2017-09-20T17:41:17.5Z",
-            }, dims=('y', 'x'))
-
+            },
+        )
+        xr_.open_dataset.return_value = fake_dataset
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16', 'observation_type': 'Rad',
                                   'scene_abbr': 'C', 'scan_mode': 'M3'},
@@ -173,6 +184,11 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                'units': 'W m-2 um-1 sr-1'}
 
         self.assertDictEqual(res.attrs, exp)
+        # we remove any time dimension information
+        self.assertNotIn('t', res.coords)
+        self.assertNotIn('t', res.dims)
+        self.assertNotIn('time', res.coords)
+        self.assertNotIn('time', res.dims)
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
