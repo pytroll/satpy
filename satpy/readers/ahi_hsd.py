@@ -1,21 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2014-2019 Satpy developers
 #
-# Copyright (c) 2014-2019 PyTroll developers
+# This file is part of satpy.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Advanced Himawari Imager (AHI) standard format data reader.
 
 References:
@@ -40,11 +39,13 @@ import numpy as np
 import dask.array as da
 import xarray as xr
 import warnings
+import os
 
-from pyresample import geometry
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import get_geostationary_mask, np2str
+from satpy.readers.utils import unzip_file, get_geostationary_mask, \
+                                np2str, get_earth_radius
+from satpy.readers._geos_area import get_area_extent, get_area_definition
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -116,8 +117,8 @@ _NAV_INFO_TYPE = np.dtype([("hblock_number", "u1"),
                            ("SSP_longitude", "f8"),
                            ("SSP_latitude", "f8"),
                            ("distance_earth_center_to_satellite", "f8"),
-                           ("nadir_latitude", "f8"),
                            ("nadir_longitude", "f8"),
+                           ("nadir_latitude", "f8"),
                            ("sun_position", "f8", (3,)),
                            ("moon_position", "f8", (3,)),
                            ("spare", "S40"),
@@ -264,6 +265,14 @@ class AHIHSDFileHandler(BaseFileHandler):
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
 
+        self.is_zipped = False
+        self._unzipped = unzip_file(self.filename)
+        # Assume file is not zipped
+        if self._unzipped:
+            # But if it is, set the filename to point to unzipped temp file
+            self.is_zipped = True
+            self.filename = self._unzipped
+
         self.channels = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self.units = dict([(i, 'counts') for i in AHI_CHANNEL_NAMES])
 
@@ -271,7 +280,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         self._header = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self.lons = None
         self.lats = None
-        self.segment_number = filename_info['segment_number']
+        self.segment_number = filename_info['segment']
         self.total_segments = filename_info['total_segments']
 
         with open(self.filename) as fd:
@@ -298,6 +307,10 @@ class AHIHSDFileHandler(BaseFileHandler):
                 calib_mode, calib_mode_choices))
         self.calib_mode = calib_mode.upper()
 
+    def __del__(self):
+        if (self.is_zipped and os.path.exists(self.filename)):
+            os.remove(self.filename)
+
     @property
     def start_time(self):
         return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
@@ -317,45 +330,29 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def get_area_def(self, dsid):
         del dsid
-        cfac = np.uint32(self.proj_info['CFAC'])
-        lfac = np.uint32(self.proj_info['LFAC'])
-        coff = np.float32(self.proj_info['COFF'])
-        loff = np.float32(self.proj_info['LOFF'])
-        a = float(self.proj_info['earth_equatorial_radius'] * 1000)
-        h = float(self.proj_info['distance_from_earth_center'] * 1000 - a)
-        b = float(self.proj_info['earth_polar_radius'] * 1000)
-        lon_0 = float(self.proj_info['sub_lon'])
-        nlines = int(self.data_info['number_of_lines'])
-        ncols = int(self.data_info['number_of_columns'])
 
-        # count starts at 1
-        cols = 1 - 0.5
-        left_x = (cols - coff) * (2.**16 / cfac)
-        cols += ncols
-        right_x = (cols - coff) * (2.**16 / cfac)
+        pdict = {}
+        pdict['cfac'] = np.uint32(self.proj_info['CFAC'])
+        pdict['lfac'] = np.uint32(self.proj_info['LFAC'])
+        pdict['coff'] = np.float32(self.proj_info['COFF'])
+        pdict['loff'] = -np.float32(self.proj_info['LOFF']) + 1
+        pdict['a'] = float(self.proj_info['earth_equatorial_radius'] * 1000)
+        pdict['h'] = float(self.proj_info['distance_from_earth_center'] * 1000 - pdict['a'])
+        pdict['b'] = float(self.proj_info['earth_polar_radius'] * 1000)
+        pdict['ssp_lon'] = float(self.proj_info['sub_lon'])
+        pdict['nlines'] = int(self.data_info['number_of_lines'])
+        pdict['ncols'] = int(self.data_info['number_of_columns'])
+        pdict['scandir'] = 'N2S'
 
-        lines = (self.segment_number - 1) * nlines + 1 - 0.5
-        upper_y = -(lines - loff) * (2.**16 / lfac)
-        lines += nlines
-        lower_y = -(lines - loff) * (2.**16 / lfac)
-        area_extent = (np.deg2rad(left_x) * h, np.deg2rad(lower_y) * h,
-                       np.deg2rad(right_x) * h, np.deg2rad(upper_y) * h)
+        pdict['loff'] = pdict['loff'] + (self.segment_number * pdict['nlines'])
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
+        aex = get_area_extent(pdict)
 
-        area = geometry.AreaDefinition(
-            self.observation_area,
-            "AHI {} area".format(self.observation_area),
-            'geosh8',
-            proj_dict,
-            ncols,
-            nlines,
-            area_extent)
+        pdict['a_name'] = self.observation_area
+        pdict['a_desc'] = "AHI {} area".format(self.observation_area)
+        pdict['p_id'] = 'geosh8'
+
+        area = get_area_definition(pdict, aex)
 
         self.area = area
         return area
@@ -505,22 +502,40 @@ class AHIHSDFileHandler(BaseFileHandler):
         # Calibrate
         res = self.calibrate(res, key.calibration)
 
+        # Get actual satellite position. For altitude use the ellipsoid radius at the SSP.
+        actual_lon = float(self.nav_info['SSP_longitude'])
+        actual_lat = float(self.nav_info['SSP_latitude'])
+        re = get_earth_radius(lon=actual_lon, lat=actual_lat,
+                              a=float(self.proj_info['earth_equatorial_radius'] * 1000),
+                              b=float(self.proj_info['earth_polar_radius'] * 1000))
+        actual_alt = float(self.nav_info['distance_earth_center_to_satellite']) * 1000 - re
+
         # Update metadata
-        new_info = dict(units=info['units'],
-                        standard_name=info['standard_name'],
-                        wavelength=info['wavelength'],
-                        resolution='resolution',
-                        id=key,
-                        name=key.name,
-                        scheduled_time=self.scheduled_time,
-                        platform_name=self.platform_name,
-                        sensor=self.sensor,
-                        satellite_longitude=float(
-                            self.nav_info['SSP_longitude']),
-                        satellite_latitude=float(
-                            self.nav_info['SSP_latitude']),
-                        satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
-                                                 self.proj_info['earth_equatorial_radius']) * 1000)
+        new_info = dict(
+            units=info['units'],
+            standard_name=info['standard_name'],
+            wavelength=info['wavelength'],
+            resolution='resolution',
+            id=key,
+            name=key.name,
+            scheduled_time=self.scheduled_time,
+            platform_name=self.platform_name,
+            sensor=self.sensor,
+            satellite_longitude=float(self.nav_info['SSP_longitude']),
+            satellite_latitude=float(self.nav_info['SSP_latitude']),
+            satellite_altitude=float(self.nav_info['distance_earth_center_to_satellite'] -
+                                     self.proj_info['earth_equatorial_radius']) * 1000,
+            orbital_parameters={
+                'projection_longitude': float(self.proj_info['sub_lon']),
+                'projection_latitude': 0.,
+                'projection_altitude': float(self.proj_info['distance_from_earth_center'] -
+                                             self.proj_info['earth_equatorial_radius']) * 1000,
+                'satellite_actual_longitude': actual_lon,
+                'satellite_actual_latitude': actual_lat,
+                'satellite_actual_altitude': actual_alt,
+                'nadir_longitude': float(self.nav_info['nadir_longitude']),
+                'nadir_latitude': float(self.nav_info['nadir_latitude'])}
+        )
         res = xr.DataArray(res, attrs=new_info, dims=['y', 'x'])
 
         # Mask space pixels

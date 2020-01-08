@@ -1,26 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017 Satpy developers
 #
-# Copyright (c) 2017 David Hoese
+# This file is part of satpy.
 #
-# Author(s):
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the geotiff writer.
-"""
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Tests for the geotiff writer."""
+
 import sys
 import numpy as np
 
@@ -52,7 +48,7 @@ class TestGeoTIFFWriter(unittest.TestCase):
             pass
 
     def _get_test_datasets(self):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -134,9 +130,33 @@ class TestGeoTIFFWriter(unittest.TestCase):
             w.save_datasets(datasets, compute=False)
             self.assertEqual(save_method.call_args[1]['fill_value'], 128)
 
+    def test_tags(self):
+        """Test tags being added."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=self.base_dir)
+        w.info['fill_value'] = 128
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, tags={'test2': 2}, compute=False)
+            called_tags = save_method.call_args[1]['tags']
+            self.assertDictEqual(called_tags, {'test1': 1, 'test2': 2})
+
+    def test_scale_offset(self):
+        """Test tags being added."""
+        from satpy.writers.geotiff import GeoTIFFWriter
+        datasets = self._get_test_datasets()
+        w = GeoTIFFWriter(tags={'test1': 1}, base_dir=self.base_dir)
+        w.info['fill_value'] = 128
+        with mock.patch('satpy.writers.XRImage.save') as save_method:
+            save_method.return_value = None
+            w.save_datasets(datasets, tags={'test2': 2}, compute=False, include_scale_offset=True)
+            called_include = save_method.call_args[1]['include_scale_offset_tags']
+            self.assertTrue(called_include)
+
 
 def suite():
-    """The test suite for this writer's tests."""
+    """Test suite for this writer's tests."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestGeoTIFFWriter))

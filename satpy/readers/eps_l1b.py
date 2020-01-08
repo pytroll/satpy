@@ -1,27 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-# Copyright (c) 2012, 2013, 2014 Martin Raspaud
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""Reader for eps level 1b data. Uses xml files as a format description.
-"""
+"""Reader for eps level 1b data. Uses xml files as a format description."""
 
 import logging
 import os
@@ -44,14 +39,12 @@ C2 = 1.4387863  # K/cm-1
 
 
 def radiance_to_bt(arr, wc_, a__, b__):
-    """Convert to BT.
-    """
+    """Convert to BT."""
     return a__ + b__ * (C2 * wc_ / (da.log(1 + (C1 * (wc_ ** 3) / arr))))
 
 
 def radiance_to_refl(arr, solar_flux):
-    """Convert to reflectances.
-    """
+    """Convert to reflectances."""
     return arr * np.pi * 100.0 / solar_flux
 
 
@@ -61,9 +54,7 @@ record_class = ["Reserved", "mphr", "sphr",
 
 
 def read_raw(filename):
-    """Read *filename* without scaling it afterwards.
-    """
-
+    """Read *filename* without scaling it afterwards."""
     form = XMLFormat(os.path.join(CONFIG_PATH, "eps_avhrrl1b_6.5.xml"))
 
     grh_dtype = np.dtype([("record_class", "|i1"),
@@ -107,14 +98,15 @@ def read_raw(filename):
 
 
 def create_xarray(arr):
+    """Create xarray with correct dimensions."""
     res = arr
     res = xr.DataArray(res, dims=['y', 'x'])
     return res
 
 
 class EPSAVHRRFile(BaseFileHandler):
-    """Eps level 1b reader for AVHRR data.
-    """
+    """Eps level 1b reader for AVHRR data."""
+
     spacecrafts = {"M01": "Metop-B",
                    "M02": "Metop-A",
                    "M03": "Metop-C", }
@@ -122,6 +114,7 @@ class EPSAVHRRFile(BaseFileHandler):
     sensors = {"AVHR": "avhrr-3"}
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize FileHandler."""
         super(EPSAVHRRFile, self).__init__(
             filename, filename_info, filetype_info)
 
@@ -162,6 +155,7 @@ class EPSAVHRRFile(BaseFileHandler):
         self.pixels = self["EARTH_VIEWS_PER_SCANLINE"]
 
     def __getitem__(self, key):
+        """Get value for given key."""
         for altkey in self.form.scales.keys():
             try:
                 try:
@@ -178,8 +172,7 @@ class EPSAVHRRFile(BaseFileHandler):
         raise KeyError("No matching value for " + str(key))
 
     def keys(self):
-        """List of reader's keys.
-        """
+        """List of reader's keys."""
         keys = []
         for val in self.form.scales.values():
             keys += val.dtype.fields.keys()
@@ -207,8 +200,7 @@ class EPSAVHRRFile(BaseFileHandler):
                                       str(earth_views_per_scanline))
 
     def get_full_lonlats(self):
-        """Get the interpolated lons/lats.
-        """
+        """Get the interpolated lons/lats."""
         if self.lons is not None and self.lats is not None:
             return self.lons, self.lats
 
@@ -258,8 +250,7 @@ class EPSAVHRRFile(BaseFileHandler):
                                       str(earth_views_per_scanline))
 
     def get_full_angles(self):
-        """Get the interpolated lons/lats.
-        """
+        """Get the interpolated lons/lats."""
         if (self.sun_azi is not None and self.sun_zen is not None and
                 self.sat_azi is not None and self.sat_zen is not None):
             return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
@@ -276,6 +267,7 @@ class EPSAVHRRFile(BaseFileHandler):
         return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
 
     def get_bounding_box(self):
+        """Get bounding box."""
         if self.mdrs is None:
             self._read_all(self.filename)
         lats = np.hstack([self["EARTH_LOCATION_FIRST"][0, [0]],
@@ -394,6 +386,7 @@ class EPSAVHRRFile(BaseFileHandler):
         return dataset
 
     def get_lonlats(self):
+        """Get lonlats."""
         if self.area is None:
             if self.lons is None or self.lats is None:
                 self.lons, self.lats = self.get_full_lonlats()
@@ -404,34 +397,36 @@ class EPSAVHRRFile(BaseFileHandler):
 
     @property
     def platform_name(self):
+        """Get platform name."""
         return self.spacecrafts[self["SPACECRAFT_ID"]]
 
     @property
     def sensor_name(self):
+        """Get sensor name."""
         return self.sensors[self["INSTRUMENT_ID"]]
 
     @property
     def start_time(self):
+        """Get start time."""
         # return datetime.strptime(self["SENSING_START"], "%Y%m%d%H%M%SZ")
         return self._start_time
 
     @property
     def end_time(self):
+        """Get end time."""
         # return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
         return self._end_time
 
 
 if __name__ == '__main__':
     def norm255(a__):
-        """normalize array to uint8.
-        """
+        """Normalize array to uint8."""
         arr = a__ * 1.0
         arr = (arr - arr.min()) * 255.0 / (arr.max() - arr.min())
         return arr.astype(np.uint8)
 
     def show(a__):
-        """show array.
-        """
+        """Show array."""
         from PIL import Image
         Image.fromarray(norm255(a__), "L").show()
 

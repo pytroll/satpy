@@ -1,41 +1,63 @@
-# Copyright (c) 2012, 2015, 2019
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2012-2019 Satpy developers
 #
-
-# Author(s):
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Convert human coordinates (lon and lat) to an area definition.
 
-"""
-Convert human coordinates (lon and lat) to an area definition.
+Here is a usage example.
 
-Here is a usage example:
 python coord2area_def.py france stere 42.0 51.5 -5.5 8.0 1.5
-(the arguments are "name proj min_lat max_lat min_lon max_lon resolution(km)")
+The arguments are "name proj min_lat max_lat min_lon max_lon resolution(km)".
+The command above yelds the following result.
+
+### +proj=stere +lat_0=46.75 +lon_0=1.25 +ellps=WGS84
+
+france:
+  description: france
+  projection:
+    proj: stere
+    ellps: WGS84
+    lat_0: 46.75
+    lon_0: 1.25
+  shape:
+    height: 703
+    width: 746
+  area_extent:
+    lower_left_xy: [-559750.381098, -505020.675776]
+    upper_right_xy: [559750.381098, 549517.351948]
 
 
-and the result is:
-REGION: france {
-	NAME:	france
-	PCS_ID:	stere_1.25_46.75
-	PCS_DEF:	proj=stere,lat_0=46.75,lon_0=1.25,ellps=WGS84
-	XSIZE:  746
-	YSIZE:  703
-	AREA_EXTENT:	(-559750.38109755167, -505020.6757764442,
-559750.38109755167, 549517.35194826045)
-};
+The first commented line is just a sum-up. The value of "description" can be changed to any descriptive text.
+
+Such a custom yaml configuration can be profitably saved in a local areas.yaml configuration file that won't be
+overridden by future updates of SatPy package. For that purpose the local processing script may have suitable
+lines as reported below.
+
+# set PPP_CONFIG_DIR for custom composites
+import os
+os.environ['PPP_CONFIG_DIR'] = '/my_local_path/for_satpy_configuration'
+
+As a further functionality this script may give a quick display of the defined area,
+provided the path for the GSHHG library is supplied via the "-s" option
+and the modules PyCoast, Pillow and AggDraw have been installed.
+
+python coord2area_def.py france stere 42.0 51.5 -5.5 8.0 1.5 -s /path/for/gshhs/library
+
+The command above would first print the seen area definition and then launch a casual representation
+of the area relying on the information about borders involved.
 
 """
 
@@ -104,7 +126,7 @@ if __name__ == '__main__':
         " +".join(("proj=" + proj + ",lat_0=" + str(lat_0) +
                    ",lon_0=" + str(lon_0) + ",ellps=WGS84").split(","))
 
-    print(proj4_string)
+    print('### ' + proj4_string)
     print()
     print(name + ":")
     print("  description: " + name)
@@ -125,14 +147,13 @@ if __name__ == '__main__':
     from PIL import Image
     from pycoast import ContourWriterAGG
     img = Image.new('RGB', (xsize, ysize))
-    #proj4_string = '+proj=geos +lon_0=0.0 +a=6378169.00 +b=6356583.80 +h=35785831.0'
-    #area_extent = (-5570248.4773392612, -5567248.074173444, 5567248.074173444, 5570248.4773392612)
+
     area_def = (proj4_string, area_extent)
     cw = ContourWriterAGG(args.shapes)
-    #cw = ContourWriterAGG('/usr/share/gshhg-gmt-shp/')
+
     cw.add_coastlines(img, (proj4_string, area_extent),
                       resolution='l', width=0.5)
 
-    cw.add_grid(img, area_def, (10.0, 10.0), (2.0, 2.0), write_text=False, outline='white', outline_opacity=175, width=1.0,
-                minor_outline='white', minor_outline_opacity=175, minor_width=0.2, minor_is_tick=False)
+    cw.add_grid(img, area_def, (10.0, 10.0), (2.0, 2.0), write_text=False, outline='white', outline_opacity=175,
+                width=1.0, minor_outline='white', minor_outline_opacity=175, minor_width=0.2, minor_is_tick=False)
     img.show()

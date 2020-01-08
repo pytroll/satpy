@@ -1,27 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2014, 2015, 2016, 2017, 2018 Adam.Dybbroe
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""HRIT/LRIT format reader
-***************************
+# Copyright (c) 2014-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""HRIT/LRIT format reader.
 
 This module is the base module for all HRIT-based formats. Here, you will find
 the common building blocks for hrit reading.
@@ -157,7 +151,6 @@ def decompress(infile, outdir='.'):
 
 
 class HRITFileHandler(BaseFileHandler):
-
     """HRIT standard format reader."""
 
     def __init__(self, filename, filename_info, filetype_info, hdr_info):
@@ -180,10 +173,7 @@ class HRITFileHandler(BaseFileHandler):
         self._end_time = self._start_time + timedelta(minutes=15)
 
     def _get_hd(self, hdr_info):
-        """Open the file, read and get the basic file header info and set the mda
-           dictionary
-        """
-
+        """Open the file, read and get the basic file header info and set the mda dictionary."""
         hdr_map, variable_length_headers, text_headers = hdr_info
 
         with open(self.filename) as fp:
@@ -229,17 +219,20 @@ class HRITFileHandler(BaseFileHandler):
                                              'h': 35785831.00,
                                              # FIXME: find a reasonable SSP
                                              'SSP_longitude': 0.0}
-        self.mda['navigation_parameters'] = {}
+        self.mda['orbital_parameters'] = {}
 
     def get_shape(self, dsid, ds_info):
+        """Get shape."""
         return int(self.mda['number_of_lines']), int(self.mda['number_of_columns'])
 
     @property
     def start_time(self):
+        """Get start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get end time."""
         return self._end_time
 
     def get_dataset(self, key, info):

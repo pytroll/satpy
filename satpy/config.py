@@ -1,35 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
-# This file is part of the satpy.
-
-# satpy is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# satpy is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-"""Satpy Configuration directory and file handling
-"""
+# Copyright (c) 2016-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Satpy Configuration directory and file handling."""
 from __future__ import print_function
 import glob
 import logging
 import os
-from collections import Mapping, OrderedDict
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
+from collections import OrderedDict
 
 import yaml
 from six.moves import configparser
@@ -48,12 +43,14 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 
 def get_environ_config_dir(default=None):
+    """Get the config dir."""
     if default is None:
         default = PACKAGE_CONFIG_PATH
     return os.environ.get('PPP_CONFIG_DIR', default)
 
 
 def get_environ_ancpath(default='.'):
+    """Get the ancpath."""
     return os.environ.get('SATPY_ANCPATH', default)
 
 
@@ -69,9 +66,9 @@ def runtime_import(object_path):
 
 
 def config_search_paths(filename, *search_dirs, **kwargs):
-    # Get the environment variable value every time (could be set dynamically)
+    """Get the environment variable value every time (could be set dynamically)."""
     # FIXME: Consider removing the 'magic' environment variable all together
-    CONFIG_PATH = get_environ_config_dir()
+    CONFIG_PATH = get_environ_config_dir()  # noqa
 
     paths = [filename, os.path.basename(filename)]
     paths += [os.path.join(search_dir, filename) for search_dir in search_dirs]

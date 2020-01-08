@@ -1,23 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2018.
-
-# Author(s):
-
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
+# Copyright (c) 2015-2018 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared objects of the various reader classes."""
@@ -50,33 +45,12 @@ LOG = logging.getLogger(__name__)
 
 # Old Name -> New Name
 OLD_READER_NAMES = {
-    'avhrr_aapp_l1b': 'avhrr_l1b_aapp',
-    'avhrr_eps_l1b': 'avhrr_l1b_eps',
-    'avhrr_hrpt_l1b': 'avhrr_l1b_hrpt',
-    'gac_lac_l1': 'avhrr_l1b_gaclac',
-    'hdf4_caliopv3': 'caliop_l2_cloud',
-    'hdfeos_l1b': 'modis_l1b',
-    'hrit_electrol': 'electrol_hrit',
-    'hrit_jma': 'ahi_hrit',
-    'fci_fdhsi': 'fci_l1c_fdhsi',
-    'ghrsst_osisaf': 'ghrsst_l3c_sst',
-    'hrit_goes': 'goes-imager_hrit',
-    'hrit_msg': 'seviri_l1b_hrit',
-    'native_msg': 'seviri_l1b_native',
-    'nc_goes': 'goes-imager_nc',
-    'nc_nwcsaf_msg': 'nwcsaf-geo',
-    'nc_nwcsaf_pps': 'nwcsaf-pps_nc',
-    'nc_olci_l1b': 'olci_l1b',
-    'nc_olci_l2': 'olci_l2',
-    'nc_seviri_l1b': 'seviri_l1b_nc',
-    'nc_slstr': 'slstr_l1b',
-    'safe_msi': 'msi_safe',
-    'safe_sar_c': 'sar-c_safe',
-    'scmi_abi_l1b': 'abi_l1b_scmi',
 }
 
 
 class TooManyResults(KeyError):
+    """Special exception when one key maps to multiple items in the container."""
+
     pass
 
 
@@ -286,17 +260,14 @@ def get_key(key, key_container, num_results=1, best=True,
 
 
 class DatasetDict(dict):
-
-    """Special dictionary object that can handle dict operations based on
-    dataset name, wavelength, or DatasetID.
+    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DatasetID.
 
     Note: Internal dictionary keys are `DatasetID` objects.
+
     """
 
-    def __init__(self, *args, **kwargs):
-        super(DatasetDict, self).__init__(*args, **kwargs)
-
     def keys(self, names=False, wavelengths=False):
+        """Give currently contained keys."""
         # sort keys so things are a little more deterministic (.keys() is not)
         keys = sorted(super(DatasetDict, self).keys())
         if names:
@@ -330,6 +301,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__getitem__(item)
 
     def __getitem__(self, item):
+        """Get item from container."""
         try:
             # short circuit - try to get the object without more work
             return super(DatasetDict, self).__getitem__(item)
@@ -346,8 +318,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).get(key, default)
 
     def __setitem__(self, key, value):
-        """Support assigning 'Dataset' objects or dictionaries of metadata.
-        """
+        """Support assigning 'Dataset' objects or dictionaries of metadata."""
         d = value
         if hasattr(value, 'attrs'):
             # xarray.DataArray objects
@@ -397,6 +368,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__contains__(item)
 
     def __contains__(self, item):
+        """Check if item exists in container."""
         try:
             key = self.get_key(item)
         except KeyError:
@@ -404,6 +376,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__contains__(key)
 
     def __delitem__(self, key):
+        """Delete item from container."""
         try:
             # short circuit - try to get the object without more work
             return super(DatasetDict, self).__delitem__(key)
@@ -475,7 +448,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     if group_keys is None:
         group_keys = reader_instance.info.get('group_keys', ('start_time',))
     file_keys = []
-    for filetype, filetype_info in reader_instance.sorted_filetype_items():
+    for _, filetype_info in reader_instance.sorted_filetype_items():
         for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
             group_key = tuple(file_info.get(k) for k in group_keys)
             file_keys.append((group_key, f))
@@ -512,7 +485,6 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
 def read_reader_config(config_files, loader=UnsafeLoader):
     """Read the reader `config_files` and return the info extracted."""
-
     conf = {}
     LOG.debug('Reading %s', str(config_files))
     for config_file in config_files:
@@ -537,7 +509,7 @@ def load_reader(reader_configs, **reader_kwargs):
 
 
 def configs_for_reader(reader=None, ppp_config_dir=None):
-    """Generator of reader configuration files for one or more readers
+    """Generate reader configuration files for one or more readers.
 
     Args:
         reader (Optional[str]): Yield configs only for this reader
@@ -747,8 +719,10 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             LOG.debug(str(err))
             continue
 
-        if readers_files:
-            loadables = reader_instance.select_files_from_pathnames(readers_files)
+        if not readers_files:
+            # we weren't given any files for this reader
+            continue
+        loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
             reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
             reader_instances[reader_instance.name] = reader_instance

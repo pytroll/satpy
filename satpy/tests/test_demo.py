@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
 # Copyright (c) 2019 Satpy developers
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the satpy.demo module."""
 
 import os
@@ -48,7 +48,7 @@ class _GlobHelper(object):
         self.num_results = num_results
 
     def __call__(self, pattern):
-        """The side effect function to be called as glob."""
+        """Mimic glob by being used as the side effect function."""
         try:
             num_results = self.num_results[self.current_call]
         except IndexError:
@@ -59,6 +59,22 @@ class _GlobHelper(object):
 
 class TestDemo(unittest.TestCase):
     """Test demo data download functions."""
+
+    def setUp(self):
+        """Create temporary directory to save files to."""
+        import tempfile
+        self.base_dir = tempfile.mkdtemp()
+        self.prev_dir = os.getcwd()
+        os.chdir(self.base_dir)
+
+    def tearDown(self):
+        """Remove the temporary directory created for a test."""
+        os.chdir(self.prev_dir)
+        try:
+            import shutil
+            shutil.rmtree(self.base_dir, ignore_errors=True)
+        except OSError:
+            pass
 
     @mock.patch('satpy.demo._google_cloud_platform.gcsfs')
     def test_get_us_midlatitude_cyclone_abi(self, gcsfs_mod):
@@ -166,7 +182,7 @@ class TestGCPUtils(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_demo."""
+    """Create the test suite for test_demo."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestDemo))

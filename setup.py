@@ -27,16 +27,23 @@
 import os.path
 import sys
 from glob import glob
-import versioneer
 
 from setuptools import find_packages, setup
 
+try:
+    # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286
+    # Stop setuptools_scm from including all repository files
+    import setuptools_scm.integration
+    setuptools_scm.integration.find_files = lambda _: []
+except ImportError:
+    pass
+
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
-            'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
-            'dask[array] >=0.17.1', 'pyproj']
+            'trollimage >1.10.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
+            'dask[array] >=0.17.1', 'pyproj', 'zarr']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews']
+                 'rasterio', 'geoviews', 'trollimage']
 
 if sys.version < '3.0':
     test_requires.append('mock')
@@ -44,6 +51,7 @@ if sys.version < '3.0':
 
 extras_require = {
     # Readers:
+    'avhrr_l1b_gaclac': ['pygac >= 1.3.0'],
     'modis_l1b': ['pyhdf', 'python-geotiepoints >= 1.1.7'],
     'geocat': ['pyhdf'],
     'acspo': ['netCDF4 >= 1.1.8'],
@@ -61,11 +69,14 @@ extras_require = {
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
+    'seviri_l2_bufr': ['eccodes-python'],
+    'hsaf_grib': ['pygrib'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
     'scmi': ['netCDF4 >= 1.1.8'],
-    'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
+    'ninjo': ['pyninjotiff', 'pint'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
@@ -106,8 +117,6 @@ NAME = 'satpy'
 README = open('README.rst', 'r').read()
 
 setup(name=NAME,
-      version=versioneer.get_version(),
-      cmdclass=versioneer.get_cmdclass(),
       description='Python package for earth-observing satellite data processing',
       long_description=README,
       author='The Pytroll Team',
@@ -134,6 +143,7 @@ setup(name=NAME,
                               os.path.join('etc', 'enhancements', '*.yaml'),
                               ]},
       zip_safe=False,
+      use_scm_version=True,
       install_requires=requires,
       tests_require=test_requires,
       python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
