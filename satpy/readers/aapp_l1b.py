@@ -1,29 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2012 - 2019, Pytroll
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   Nina Håkansson <nina.hakansson@smhi.se>
-#   Oana Nicola <oananicola@yahoo.com>
-#   Lars Ørum Rasmussen <ras@dmi.dk>
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2012-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for aapp level 1b data.
 
 Options for loading:
@@ -74,10 +65,10 @@ def create_xarray(arr):
 
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
-    """The AVHRR AAPP L1B file handler."""
+    """Reader for AVHRR L1B files created from the AAPP software."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        """Initialize the file handler."""
+        """Initialize object information by reading the input file."""
         super(AVHRRAAPPL1BFile, self).__init__(filename, filename_info,
                                                filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
@@ -103,14 +94,14 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
     @property
     def start_time(self):
-        """Get the start time."""
+        """Get the time of the first observation."""
         return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][0]) - 1,
             milliseconds=int(self._data['scnlintime'][0]))
 
     @property
     def end_time(self):
-        """Get the end time."""
+        """Get the time of the final observation."""
         return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][-1]) - 1,
             milliseconds=int(self._data['scnlintime'][-1]))
@@ -139,6 +130,9 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         dataset.attrs.update({'platform_name': self.platform_name,
                               'sensor': self.sensor})
         dataset.attrs.update(key.to_dict())
+        for meta_key in ('standard_name', 'units'):
+            if meta_key in info:
+                dataset.attrs.setdefault(meta_key, info[meta_key])
 
         if not self._shape:
             self._shape = dataset.shape
@@ -159,8 +153,6 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
     def get_angles(self, angle_id):
         """Get sun-satellite viewing angles."""
-        tic = datetime.now()
-
         sunz40km = self._data["ang"][:, :, 0] * 1e-2
         satz40km = self._data["ang"][:, :, 1] * 1e-2
         azidiff40km = self._data["ang"][:, :, 2] * 1e-2
@@ -189,14 +181,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             self.satz = da.from_delayed(self.satz, (lines, 2048), satz40km.dtype)
             self.azidiff = da.from_delayed(self.azidiff, (lines, 2048), azidiff40km.dtype)
 
-            logger.debug("Interpolate sun-sat angles: time %s",
-                         str(datetime.now() - tic))
-
         return create_xarray(getattr(self, ANGLES[angle_id]))
 
     def navigate(self):
-        """Return the longitudes and latitudes of the scene."""
-        tic = datetime.now()
+        """Get the longitudes and latitudes of the scene."""
         lons40km = self._data["pos"][:, :, 1] * 1e-4
         lats40km = self._data["pos"][:, :, 0] * 1e-4
 
@@ -223,15 +211,11 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             self.lons = da.from_delayed(self.lons, (lines, 2048), lons40km.dtype)
             self.lats = da.from_delayed(self.lats, (lines, 2048), lats40km.dtype)
 
-            logger.debug("Navigation time %s", str(datetime.now() - tic))
-
     def calibrate(self,
                   dataset_id,
                   pre_launch_coeffs=False,
                   calib_coeffs=None):
         """Calibrate the data."""
-        tic = datetime.now()
-
         if calib_coeffs is None:
             calib_coeffs = {}
 
@@ -283,8 +267,6 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         ds.attrs['units'] = units[dataset_id.calibration]
         ds.attrs.update(dataset_id._asdict())
-
-        logger.debug("Calibration time %s", str(datetime.now() - tic))
         return ds
 
 
@@ -472,13 +454,13 @@ def _vis_calibrate(data,
                    pre_launch_coeffs=False,
                    calib_coeffs=None,
                    mask=True):
-    """Visible channel calibration only.
+    """Calibrate visible channel data.
 
-    *calib_type* in count, reflectance, radiance
+    *calib_type* in count, reflectance, radiance.
+
     """
     # Calibration count to albedo, the calibration is performed separately for
     # two value ranges.
-
     if calib_type not in ['counts', 'radiance', 'reflectance']:
         raise ValueError('Calibration ' + calib_type + ' unknown!')
 
@@ -537,9 +519,10 @@ def _vis_calibrate(data,
 
 
 def _ir_calibrate(header, data, irchn, calib_type, mask=True):
-    """Calibrate IR.
+    """Calibrate for IR bands.
 
     *calib_type* in brightness_temperature, radiance, count
+
     """
     count = da.from_array(data["hrpt"][:, :, irchn + 2], chunks=(LINE_CHUNK, 2048))
 

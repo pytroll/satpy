@@ -2,21 +2,19 @@
 # -*- coding: utf-8 -*-
 # Copyright (c) 2019 Satpy developers
 #
+# This file is part of satpy.
 #
-# This file is part of Satpy.
-#
-# Satpy is free software: you can redistribute it and/or modify it under the
+# satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
 #
-# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
-# Satpy.  If not, see <http://www.gnu.org/licenses/>.
-
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Vaisala Global Lightning Dataset 360 reader
 
 Vaisala Global Lightning Dataset GLD360 is data as a service

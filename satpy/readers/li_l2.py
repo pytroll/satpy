@@ -1,27 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
-
-# Author(s):
-
+# Copyright (c) 2016 Satpy developers
 #
-#   Thomas Leppelt <thomas.leppelt@gmail.com>
-#   Sauli Joro <sauli.joro@icloud.com>
-
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Interface to MTG-LI L2 product NetCDF files
 
 The reader is based on preliminary test data provided by EUMETSAT.
@@ -68,7 +61,7 @@ class LIFileHandler(BaseFileHandler):
     def end_time(self):
         return datetime.strptime(self.nc.attrs['end_time'], '%Y%m%d%H%M%S')
 
-    def get_dataset(self, key, info=None, out=None, xslice=None, yslice=None):
+    def get_dataset(self, key, info=None, out=None):
         """Load a dataset
         """
         if key in self.cache:
@@ -85,12 +78,6 @@ class LIFileHandler(BaseFileHandler):
         logger.debug("Key: {}".format(key.name))
         # Create reference grid
         grid = np.full((self.nlines, self.ncols), np.NaN)
-        # Set slices to full disc extent
-        if xslice is None:
-            xslice = slice(0, self.ncols, None)
-        if yslice is None:
-            yslice = slice(0, self.nlines, None)
-        logger.debug("Slices - x: {}, y: {}".format(xslice, yslice))
         # Get product values
         values = self.nc[typedict[key.name]]
         rows = self.nc['row']
@@ -105,21 +92,17 @@ class LIFileHandler(BaseFileHandler):
 
         # Correct for bottom left origin in LI row/column indices.
         rotgrid = np.flipud(grid)
-        logger.debug('Data shape: {}, {}'.format(yslice, xslice))
         # Rotate the grid by 90 degree clockwise
         rotgrid = np.rot90(rotgrid, 3)
         logger.warning("LI data has been rotated to fit to reference grid. \
                         Works only for test dataset")
-        # Slice the gridded lighting data
-        slicegrid = rotgrid[yslice, xslice]
         # Mask invalid values
-        ds = np.ma.masked_where(np.isnan(slicegrid), slicegrid)
+        ds = np.ma.masked_where(np.isnan(rotgrid), rotgrid)
         # Create dataset object
         out.data[:] = np.ma.getdata(ds)
         out.mask[:] = np.ma.getmask(ds)
         out.info.update(key.to_dict())
-
-        return(out)
+        return out
 
     def get_area_def(self, key, info=None):
         """Create AreaDefinition for specified product.

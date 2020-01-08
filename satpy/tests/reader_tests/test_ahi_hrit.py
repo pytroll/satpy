@@ -1,21 +1,21 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2018 Satpy developers
 #
-# Copyright (c) 2018 PyTroll developers
+# This file is part of satpy.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""The hrit msg reader tests package.
-"""
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""The hrit ahi reader tests package."""
 
 import sys
 import numpy as np
@@ -47,7 +47,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     def _get_mda(self, loff=5500.0, coff=5500.0, nlines=11000, ncols=11000,
                  segno=0, numseg=1, vis=True):
-        """Create metadata dict like HRITFileHandler would do it"""
+        """Create metadata dict like HRITFileHandler would do it."""
         if vis:
             idf = b'$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r' \
                   b'0:=-0.10\r1023:=100.00\r65535:=100.00\r'
@@ -119,7 +119,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.hrit_jma.HRITJMAFileHandler.__init__')
     def test_get_platform(self, mocked_init):
-        """Test platform identification"""
+        """Test platform identification."""
         from satpy.readers.hrit_jma import HRITJMAFileHandler
         from satpy.readers.hrit_jma import PLATFORMS, UNKNOWN_PLATFORM
 
@@ -137,7 +137,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting an AreaDefinition."""
-        from satpy.readers.hrit_jma import FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS
+        from satpy.readers.hrit_jma import (FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS,
+                                            AREA_NAMES)
 
         cases = [
             # Non-segmented, full disk
@@ -182,27 +183,29 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                 segno=case['segno'], numseg=case['numseg'])
             reader = self._get_reader(mda=mda,
                                       filename_info={'area': case['area']})
-
-            self.assertTupleEqual(reader._get_area_def().area_extent,
-                                  case['extent'])
+            area = reader.get_area_def('some_id')
+            self.assertTupleEqual(area.area_extent, case['extent'])
+            self.assertEqual(area.description, AREA_NAMES[case['area']]['long'])
 
     def test_calibrate(self):
-        """Test calibration"""
+        """Test calibration."""
         # Generate test data
-        counts = DataArray(da.linspace(0, 1200, 25, chunks=5).reshape(5, 5))
+        counts = np.linspace(0, 1200, 25).reshape(5, 5)
+        counts[-1, -1] = 65535
+        counts = DataArray(da.from_array(counts, chunks=5))
         refl = np.array(
-            [[np.nan,        4.79247312,   9.68494624,  14.57741935,  19.46989247],
+            [[-0.1,            4.79247312,   9.68494624,  14.57741935,  19.46989247],
              [24.36236559,  29.25483871,  34.14731183,  39.03978495,  43.93225806],
              [48.82473118,  53.7172043,   58.60967742,  63.50215054,  68.39462366],
              [73.28709677,  78.17956989,  83.07204301,  87.96451613,  92.85698925],
-             [97.74946237,  100.,         100.,         100.,         100.]]
+             [97.74946237,  100.,         100.,         100.,         np.nan]]
         )
         bt = np.array(
-            [[np.nan,       320.20678397, 310.43356794, 300.66035191, 290.88713587],
+            [[329.98,            320.20678397, 310.43356794, 300.66035191, 290.88713587],
              [281.11391984, 271.34070381, 261.56748778, 251.79427175, 242.02105572],
              [232.24783969, 222.47462366, 212.70140762, 202.92819159, 193.15497556],
              [183.38175953, 173.6085435,  163.83532747, 154.06211144, 144.28889541],
-             [134.51567937, 130.02,       130.02,       130.02,       130.02]]
+             [134.51567937, 130.02,       130.02,       130.02,       np.nan]]
         )
 
         # Choose an area near the subsatellite point to avoid masking
@@ -228,7 +231,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         np.testing.assert_allclose(bt, res.values)  # also compares NaN
 
     def test_mask_space(self):
-        """Test masking of space pixels"""
+        """Test masking of space pixels."""
         mda = self._get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
                             segno=1, numseg=10)
         reader = self._get_reader(mda=mda)
@@ -242,7 +245,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.hrit_jma.HRITFileHandler.get_dataset')
     def test_get_dataset(self, base_get_dataset):
-        """Test getting a dataset"""
+        """Test getting a dataset."""
         from satpy.readers.hrit_jma import HIMAWARI8
 
         mda = self._get_mda(loff=1375.0, coff=1375.0, nlines=275, ncols=1375,
@@ -261,8 +264,11 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         self.assertEqual(res.attrs['sensor'], 'ahi')
         self.assertEqual(res.attrs['platform_name'], HIMAWARI8)
         self.assertEqual(res.attrs['satellite_longitude'], 140.7)
-        self.assertEqual(res.attrs['satellite_longitude'], 140.7)
+        self.assertEqual(res.attrs['satellite_latitude'], 0.)
         self.assertEqual(res.attrs['satellite_altitude'], 35785831.0)
+        self.assertDictEqual(res.attrs['orbital_parameters'], {'projection_longitude': 140.7,
+                                                               'projection_latitude': 0.,
+                                                               'projection_altitude': 35785831.0})
 
         # Check called methods
         with mock.patch.object(reader, '_mask_space') as mask_space:
@@ -277,8 +283,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_scene.
-    """
+    """Test suite for test_scene."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHRITJMAFileHandler))

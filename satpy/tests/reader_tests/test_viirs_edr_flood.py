@@ -1,3 +1,21 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (c) 2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Tests for the VIIRS EDR Flood reader."""
 import sys
 import os
 import numpy as np
@@ -20,9 +38,10 @@ DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
 
 
 class FakeHDF4FileHandler2(FakeHDF4FileHandler):
-    """Swap in HDF4 file handler"""
+    """Swap in HDF4 file handler."""
+
     def get_test_content(self, filename, filename_info, filename_type):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {}
         file_content['/attr/Satellitename'] = filename_info['platform_shortname']
         file_content['/attr/SensorIdentifyCode'] = 'VIIRS'
@@ -59,11 +78,12 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
 
 
 class TestVIIRSEDRFloodReader(unittest.TestCase):
-    """Test VIIRS EDR Flood Reader"""
+    """Test VIIRS EDR Flood Reader."""
+
     yaml_file = 'viirs_edr_flood.yaml'
 
     def setUp(self):
-        """Wrap HDF4 file handler with own fake file handler"""
+        """Wrap HDF4 file handler with own fake file handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_edr_flood import VIIRSEDRFlood
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -72,11 +92,11 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF4 file handler"""
+        """Stop wrapping the HDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
-        """Test basic init with no extra parameters"""
+        """Test basic init with no extra parameters."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -87,7 +107,7 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_dataset(self):
-        """Test loading all datasets"""
+        """Test loading all datasets from a full swath file."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -99,10 +119,22 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'none')
 
+    def test_load_dataset_aoi(self):
+        """Test loading all datasets from an area of interest file."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_001_10_300_01.hdf'
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['WaterDetection'])
+        self.assertEqual(len(datasets), 1)
+        for v in datasets.values():
+            self.assertEqual(v.attrs['units'], 'none')
+
 
 def suite():
-    """The test suite for test_viirs_flood
-    """
+    """Create the test suite for test_viirs_edr_flood."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSEDRFloodReader))

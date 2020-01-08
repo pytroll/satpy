@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017-2018 PyTroll Community
-
-# Author(s):
-
-#   Sauli Joro <sauli.joro@eumetsat.int>
-#   Colin Duff <colin.duff@external.eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2017-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI netcdf format reader.
 
 References:
@@ -32,7 +27,7 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM)
 import xarray as xr
 
-from pyresample import geometry
+from satpy.readers._geos_area import get_area_definition
 
 import datetime
 
@@ -137,36 +132,34 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         dataset.attrs.update(dataset_info)
         dataset.attrs['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
         dataset.attrs['sensor'] = 'seviri'
+        dataset.attrs['orbital_parameters'] = {
+            'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
+            'projection_latitude': 0.,
+            'projection_altitude': self.mda['projection_parameters']['h']}
         return dataset
 
     def get_area_def(self, dataset_id):
-        a = self.mda['projection_parameters']['a']
-        b = self.mda['projection_parameters']['b']
-        h = self.mda['projection_parameters']['h']
-        lon_0 = self.mda['projection_parameters']['ssp_longitude']
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
+        pdict = {}
+        pdict['a'] = self.mda['projection_parameters']['a']
+        pdict['b'] = self.mda['projection_parameters']['b']
+        pdict['h'] = self.mda['projection_parameters']['h']
+        pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
         if dataset_id.name == 'HRV':
-            nlines = self.mda['hrv_number_of_lines']
-            ncols = self.mda['hrv_number_of_columns']
+            pdict['nlines'] = self.mda['hrv_number_of_lines']
+            pdict['ncols'] = self.mda['hrv_number_of_columns']
+            pdict['a_name'] = 'geosmsg_hrv'
+            pdict['a_desc'] = 'MSG/SEVIRI high resolution channel area'
+            pdict['p_id'] = 'msg_hires'
         else:
-            nlines = self.mda['number_of_lines']
-            ncols = self.mda['number_of_columns']
+            pdict['nlines'] = self.mda['number_of_lines']
+            pdict['ncols'] = self.mda['number_of_columns']
+            pdict['a_name'] = 'geosmsg'
+            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
+            pdict['p_id'] = 'msg_lowres'
 
-        area = geometry.AreaDefinition(
-             'some_area_name',
-             "On-the-fly area",
-             'geosmsg',
-             proj_dict,
-             ncols,
-             nlines,
-             self.get_area_extent(dataset_id))
+        area = get_area_definition(pdict, self.get_area_extent(dataset_id))
 
         return area
 

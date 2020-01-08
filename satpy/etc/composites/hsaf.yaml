@@ -1,0 +1,23 @@
+sensor_name: hsaf
+
+composites:
+  instantaneous_rainrate_3:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h03
+    standard_name: instantaneous_rainrate_3
+  instantaneous_rainrate_3b:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h03B
+    standard_name: instantaneous_rainrate_3b
+  accum_rainrate_5:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h05
+    standard_name: accum_rainrate_5
+  accum_rainrate_5b:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: h05B
+    standard_name: accum_rainrate_5b

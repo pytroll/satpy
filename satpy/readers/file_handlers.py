@@ -1,24 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
-
-# Author(s):
-
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
+# Copyright (c) 2017-2019 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Interface for BaseFileHandlers."""
 
 from abc import ABCMeta
 
@@ -30,8 +27,10 @@ from satpy.dataset import combine_metadata
 
 
 class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
+    """Base file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize file handler."""
         self.filename = str(filename)
         self.navigation_reader = None
         self.filename_info = filename_info
@@ -39,15 +38,19 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         self.metadata = filename_info.copy()
 
     def __str__(self):
+        """Customize __str__."""
         return "<{}: '{}'>".format(self.__class__.__name__, self.filename)
 
     def __repr__(self):
+        """Customize __repr__."""
         return str(self)
 
     def get_dataset(self, dataset_id, ds_info):
+        """Get dataset."""
         raise NotImplementedError
 
     def get_area_def(self, dsid):
+        """Get area definition."""
         raise NotImplementedError
 
     def get_bounding_box(self):
@@ -85,6 +88,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
          - satellite_altitude
          - satellite_latitude
          - satellite_longitude
+         - orbital_parameters
 
          Also, concatenate the areas.
 
@@ -97,6 +101,22 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
                                       'satellite_longitude',
                                       'satellite_latitude',
                                       'satellite_altitude'))
+
+        # Average orbital parameters
+        orb_params = [info.get('orbital_parameters', {}) for info in all_infos]
+        if all(orb_params):
+            # Collect all available keys
+            orb_params_comb = {}
+            for d in orb_params:
+                orb_params_comb.update(d)
+
+            # Average known keys
+            keys = ['projection_longitude', 'projection_latitude', 'projection_altitude',
+                    'satellite_nominal_longitude', 'satellite_nominal_latitude',
+                    'satellite_actual_longitude', 'satellite_actual_latitude', 'satellite_actual_altitude',
+                    'nadir_longitude', 'nadir_latitude']
+            orb_params_comb.update(self._combine(orb_params, np.mean, *keys))
+            new_dict['orbital_parameters'] = orb_params_comb
 
         try:
             area = SwathDefinition(lons=np.ma.vstack([info['area'].lons for info in all_infos]),
@@ -111,10 +131,12 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
 
     @property
     def start_time(self):
+        """Get start time."""
         return self.filename_info['start_time']
 
     @property
     def end_time(self):
+        """Get end time."""
         return self.filename_info.get('end_time', self.start_time)
 
     @property
@@ -123,7 +145,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         raise NotImplementedError
 
     def file_type_matches(self, ds_ftype):
-        """This file handler's type can handle this dataset's file type.
+        """Match file handler's type to this dataset's file type.
 
         Args:
             ds_ftype (str or list): File type or list of file types that a

@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Author(s):
-#
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
-#   Martin Raspaud <martin.raspaud@smhi.se>
+# Copyright (c) 2014-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -29,201 +25,13 @@ try:
 except ImportError:
     import mock
 
+import os
+import sys
 import numpy as np
 import numpy.testing
 import pyresample.geometry
 
 from satpy.readers import utils as hf
-
-
-class TestSatinHelpers(unittest.TestCase):
-    """Class for testing satpy.satin."""
-
-    def test_boundaries_to_extent(self):
-        """Test conversion of area boundaries to area extent."""
-        from satpy.satin.helper_functions import boundaries_to_extent
-
-        # MSG3 proj4 string from
-        #  xrit.sat.load(..., only_metadata=True).proj4_params
-        proj4_str = 'proj=geos lon_0=0.00 lat_0=0.00 ' \
-            'a=6378169.00 b=6356583.80 h=35785831.00'
-
-        # MSG3 maximum extent
-        msg_extent = [-5567248.07, -5570248.48, 5570248.48, 5567248.07]
-
-        euro4_lons = [np.array([-47.45398384, -43.46278935,
-                                -38.35946515, -31.73014962,
-                                -23.05306111, 11.8361092,
-                                1.9545262, 17.28655348,
-                                32.17162432, 44.92350518,
-                                55.01855232, 56.988557157486078]),
-                      np.array([56.98855716, 50.26011569,
-                                45.1592762, 41.21696892,
-                                38.10602167, 35.60224391,
-                                33.55098034, 31.8438098,
-                                30.40324844, 29.17282762,
-                                28.11061579, 27.886603224354555]),
-                      np.array([27.88660322, 23.94855341,
-                                19.91336672, 15.81854029,
-                                11.70507781, 7.61511006,
-                                3.58934937, -0.33524747,
-                                -4.1272886, -7.76204144,
-                                -11.2217833, -11.991484302295099]),
-                      np.array([-11.9914843, -13.71190987,
-                                -15.65433484, -17.8592324,
-                                -20.37559742, -23.26235124,
-                                -26.5893562, -30.43725577,
-                                -34.8946782, -40.05040055,
-                                -45.97725877, -47.453983842896925])
-                      ]
-
-        euro4_lats = [np.array([60.95152407, 64.07948755,
-                                67.08804237, 69.89447062,
-                                72.37400834, 74.34558786,
-                                75.57997723, 75.8713547,
-                                75.16167548, 73.58553666,
-                                71.37260506, 70.797059167821104]),
-                      np.array([70.79705917, 67.92687675,
-                                64.85946318, 61.67911498,
-                                58.44076323, 55.18141964,
-                                51.92695755, 48.69607712,
-                                45.50265971, 42.35720453,
-                                39.26773508, 38.565754283815295]),
-                      np.array([38.56575428, 39.21556029,
-                                39.65166546, 39.86532337,
-                                39.85213881, 39.61238514,
-                                39.15098428, 38.47715262,
-                                37.60377021, 36.54656798,
-                                35.32324138, 35.020342638475668]),
-                      np.array([35.02034264, 37.76813725,
-                                40.533077, 43.300949,
-                                46.05396441, 48.76986157,
-                                51.42078481, 53.97194327,
-                                56.38014919, 58.59254174,
-                                60.54617556, 60.95152407157881])
-                      ]
-
-        # Correct extent values for these boundaries
-        correct_values_euro4 = [-2041009.079233268, 3502723.3881863873,
-                                2211266.5660426724, 5387911.4915445326]
-
-        maximum_extent_euro4 = boundaries_to_extent(proj4_str,
-                                                    None,
-                                                    msg_extent,
-                                                    euro4_lons, euro4_lats)
-
-        for i in range(4):
-            self.assertAlmostEqual(maximum_extent_euro4[i],
-                                   correct_values_euro4[i], 2)
-
-        # Two of the area corner points is outside the satellite view
-
-        afgh_lons = [np.array([49.94506701, 52.14080597,
-                               54.33654493, 56.53228389,
-                               58.72802285, 60.92376181,
-                               63.11950077, 65.31523973,
-                               67.51097869, 69.70671766,
-                               71.90245662, 74.09819558,
-                               76.29393454, 78.4896735,
-                               80.68541246, 82.88115142]),
-                     np.array([85.05493299, 85.05493299,
-                               85.05493299, 85.05493299,
-                               85.05493299, 85.05493299,
-                               85.05493299, 85.05493299,
-                               85.05493299, 85.05493299,
-                               85.05493299, 85.05493299,
-                               85.05493299, 85.05493299,
-                               85.05493299, 85.05493299]),
-                     np.array([85.05493299, 82.85919403,
-                               80.66345507, 78.46771611,
-                               76.27197715, 74.07623819,
-                               71.88049923, 69.68476027,
-                               67.48902131, 65.29328234,
-                               63.09754338, 60.90180442,
-                               58.70606546, 56.5103265,
-                               54.31458754, 52.11884858]),
-                     np.array([49.94506701, 49.94506701,
-                               49.94506701, 49.94506701,
-                               49.94506701, 49.94506701,
-                               49.94506701, 49.94506701,
-                               49.94506701, 49.94506701,
-                               49.94506701, 49.94506701,
-                               49.94506701, 49.94506701,
-                               49.94506701, 49.94506701])]
-
-        afgh_lats = [np.array([46.52610743, 46.52610743,
-                               46.52610743, 46.52610743,
-                               46.52610743, 46.52610743,
-                               46.52610743, 46.52610743,
-                               46.52610743, 46.52610743,
-                               46.52610743, 46.52610743,
-                               46.52610743, 46.52610743,
-                               46.52610743, 46.52610743]),
-                     np.array([46.52610743, 44.99436458,
-                               43.42055852, 41.804754,
-                               40.14714935, 38.4480861,
-                               36.70805834, 34.92772129,
-                               33.10789917, 31.24959192,
-                               29.35398073, 27.42243208,
-                               25.45649997, 23.4579264,
-                               21.4286396, 19.37075017]),
-                     np.array([17.30750918, 17.30750918,
-                               17.30750918, 17.30750918,
-                               17.30750918, 17.30750918,
-                               17.30750918, 17.30750918,
-                               17.30750918, 17.30750918,
-                               17.30750918, 17.30750918,
-                               17.30750918, 17.30750918,
-                               17.30750918, 17.30750918]),
-                     np.array([17.30750918, 19.39146328,
-                               21.44907771, 23.47806753,
-                               25.47632393, 27.44192051,
-                               29.37311717, 31.26836176,
-                               33.12628971, 34.94572163,
-                               36.72565938, 38.46528046,
-                               40.16393131, 41.82111941,
-                               43.43650469, 45.00989022])
-                     ]
-
-        # Correct values for these borders
-        correct_values_afgh = [3053894.9120028536, 1620176.1036167517,
-                               5187086.4642274799, 4155907.3124084808]
-
-        maximum_extent_afgh = boundaries_to_extent(proj4_str,
-                                                   None,
-                                                   msg_extent,
-                                                   afgh_lons, afgh_lats)
-
-        for i in range(len(maximum_extent_afgh)):
-            self.assertAlmostEqual(maximum_extent_afgh[i],
-                                   correct_values_afgh[i], 2)
-
-        # Correct values for combined boundaries
-        correct_values_comb = [-2041009.079233268, 1620176.1036167517,
-                               5187086.4642274799, 5387911.4915445326]
-
-        maximum_extent_comb = boundaries_to_extent(proj4_str,
-                                                   maximum_extent_euro4,
-                                                   msg_extent,
-                                                   afgh_lons, afgh_lats)
-        for i in range(4):
-            self.assertAlmostEqual(maximum_extent_comb[i],
-                                   correct_values_comb[i], 2)
-
-        # Borders where none of the corners are within the satellite view
-        lons = [np.array([-170., 170., -170., 170])]
-        lats = [np.array([89., 89., -89., -89])]
-
-        # Correct values are the same as the full disc extent
-        correct_values = [-5567248.07, -5570248.48, 5570248.48, 5567248.07]
-
-        maximum_extent_full = boundaries_to_extent(proj4_str,
-                                                   None,
-                                                   msg_extent,
-                                                   lons, lats)
-        for i in range(4):
-            self.assertAlmostEqual(maximum_extent_full[i],
-                                   correct_values[i], 2)
 
 
 class TestHelpers(unittest.TestCase):
@@ -270,7 +78,6 @@ class TestHelpers(unittest.TestCase):
 
     def test_get_geostationary_bbox(self):
         """Get the geostationary bbox."""
-
         geos_area = mock.MagicMock()
         lon_0 = 0
         geos_area.proj_dict = {'a': 6378169.00,
@@ -319,7 +126,7 @@ class TestHelpers(unittest.TestCase):
                                    hf.get_geostationary_angle_extent(geos_area))
 
     def test_geostationary_mask(self):
-        """Test geostationary mask"""
+        """Test geostationary mask."""
         # Compute mask of a very elliptical earth
         area = pyresample.geometry.AreaDefinition(
             'FLDK',
@@ -381,15 +188,15 @@ class TestHelpers(unittest.TestCase):
         """Test the np2str function."""
         # byte object
         npstring = np.string_('hej')
-        self.assertEquals(hf.np2str(npstring), 'hej')
+        self.assertEqual(hf.np2str(npstring), 'hej')
 
         # single element numpy array
         np_arr = np.array([npstring])
-        self.assertEquals(hf.np2str(np_arr), 'hej')
+        self.assertEqual(hf.np2str(np_arr), 'hej')
 
         # scalar numpy array
         np_arr = np.array(npstring)
-        self.assertEquals(hf.np2str(np_arr), 'hej')
+        self.assertEqual(hf.np2str(np_arr), 'hej')
 
         # multi-element array
         npstring = np.array([npstring, npstring])
@@ -398,8 +205,29 @@ class TestHelpers(unittest.TestCase):
         # non-array
         self.assertRaises(ValueError, hf.np2str, 5)
 
+    def test_get_earth_radius(self):
+        """Test earth radius computation."""
+        a = 2.
+        b = 1.
+
+        def re(lat):
+            """Compute ellipsoid radius at the given geodetic latitude.
+
+            Reference: Capderou, M.: Handbook of Satellite Orbits, Equation (2.20).
+            """
+            lat = np.deg2rad(lat)
+            e2 = 1 - b ** 2 / a ** 2
+            n = a / np.sqrt(1 - e2*np.sin(lat)**2)
+            return n * np.sqrt((1 - e2)**2 * np.sin(lat)**2 + np.cos(lat)**2)
+
+        for lon in (0, 180, 270):
+            self.assertEqual(hf.get_earth_radius(lon=lon, lat=0., a=a, b=b), a)
+        for lat in (90, -90):
+            self.assertEqual(hf.get_earth_radius(lon=0., lat=lat, a=a, b=b), b)
+        self.assertTrue(np.isclose(hf.get_earth_radius(lon=123, lat=45., a=a, b=b), re(45.)))
+
     def test_reduce_mda(self):
-        """Test metadata size reduction"""
+        """Test metadata size reduction."""
         mda = {'a': 1,
                'b': np.array([1, 2, 3]),
                'c': np.array([1, 2, 3, 4]),
@@ -422,12 +250,53 @@ class TestHelpers(unittest.TestCase):
         self.assertIn('c', mda['d'])
         self.assertIn('c', mda['d']['d'])
 
+    @mock.patch('satpy.readers.utils.bz2.BZ2File')
+    @mock.patch('satpy.readers.utils.Popen')
+    def test_unzip_file_pbzip2(self, mock_popen, mock_bz2):
+        """Test the bz2 file unzipping techniques."""
+        process_mock = mock.Mock()
+        attrs = {'communicate.return_value': (b'output', b'error'),
+                 'returncode': 0}
+        process_mock.configure_mock(**attrs)
+        mock_popen.return_value = process_mock
+
+        bz2_mock = mock.MagicMock()
+        bz2_mock.read.return_value = b'TEST'
+        mock_bz2.return_value = bz2_mock
+
+        filename = 'tester.DAT.bz2'
+        whichstr = 'satpy.readers.utils.which'
+        # no bz2 installed
+        with mock.patch(whichstr) as whichmock:
+            whichmock.return_value = None
+            new_fname = hf.unzip_file(filename)
+            self.assertTrue(bz2_mock.read.called)
+            self.assertTrue(os.path.exists(new_fname))
+            if os.path.exists(new_fname):
+                os.remove(new_fname)
+        # bz2 installed, but python 3 only
+        if sys.version_info.major >= 3:
+            with mock.patch(whichstr) as whichmock:
+                whichmock.return_value = '/usr/bin/pbzip2'
+                new_fname = hf.unzip_file(filename)
+                self.assertTrue(mock_popen.called)
+                self.assertTrue(os.path.exists(new_fname))
+                if os.path.exists(new_fname):
+                    os.remove(new_fname)
+
+        filename = 'tester.DAT'
+        new_fname = hf.unzip_file(filename)
+        self.assertIsNone(new_fname)
+
 
 def suite():
-    """The test suite for test_satin_helpers.
-    """
+    """Test suite for utils library."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestHelpers))
 
     return mysuite
+
+
+if __name__ == '__main__':
+    unittest.main()

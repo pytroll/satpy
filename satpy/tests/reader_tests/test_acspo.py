@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.acspo module.
 """
 
@@ -8,6 +23,7 @@ import sys
 from datetime import datetime, timedelta
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
+from satpy.tests.utils import convert_file_content_to_data_array
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -85,15 +101,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             (1, DEFAULT_FILE_SHAPE[0], DEFAULT_FILE_SHAPE[1]),
             dtype=np.uint16)
 
-        # convert to xarrays
-        from xarray import DataArray
-        for key, val in file_content.items():
-            if isinstance(val, np.ndarray):
-                if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=tuple(x for x in 'zyx'[3-val.ndim:]))
-                else:
-                    file_content[key] = DataArray(val)
-
+        convert_file_content_to_data_array(file_content)
         return file_content
 
 

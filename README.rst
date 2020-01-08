@@ -1,7 +1,7 @@
 Satpy
 =====
 
-.. image:: https://travis-ci.org/pytroll/satpy.svg?branch=develop
+.. image:: https://travis-ci.org/pytroll/satpy.svg?branch=master
     :target: https://travis-ci.org/pytroll/satpy
 
 .. image:: https://ci.appveyor.com/api/projects/status/a82tm59hldt4ycor/branch/master?svg=true
@@ -12,6 +12,9 @@ Satpy
 
 .. image:: https://badge.fury.io/py/satpy.svg
     :target: https://badge.fury.io/py/satpy
+
+.. image:: https://zenodo.org/badge/51397392.svg
+   :target: https://zenodo.org/badge/latestdoi/51397392
 
 
 The Satpy package is a python library for reading and manipulating

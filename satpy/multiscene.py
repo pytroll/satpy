@@ -1,27 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2016
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""MultiScene object to blend satellite data.
-"""
+# Copyright (c) 2016-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""MultiScene object to work with multiple timesteps of satellite data."""
 
 import logging
 import numpy as np
@@ -54,7 +48,7 @@ log = logging.getLogger(__name__)
 
 
 def stack(datasets):
-    """First dataset at the bottom."""
+    """Overlay series of datasets on top of each other."""
     base = datasets[0].copy()
     for dataset in datasets[1:]:
         base = base.where(dataset.isnull(), dataset)
@@ -62,7 +56,7 @@ def stack(datasets):
 
 
 def timeseries(datasets):
-    """Expands dataset with and concats by time dimension"""
+    """Expand dataset with and concatenate by time dimension."""
     expanded_ds = []
     for ds in datasets:
         tmp = ds.expand_dims("time")
@@ -219,6 +213,7 @@ class MultiScene(object):
 
     @property
     def all_same_area(self):
+        """Determine if all contained Scenes have the same 'area'."""
         return self._all_same_area(self.loaded_dataset_ids)
 
     @staticmethod
@@ -309,7 +304,7 @@ class MultiScene(object):
         log.debug("Child thread died successfully")
 
     def _simple_save_datasets(self, scenes_iter, **kwargs):
-        """Helper to simple run save_datasets on each Scene."""
+        """Run save_datasets on each Scene."""
         for scn in scenes_iter:
             scn.save_datasets(**kwargs)
 
@@ -419,11 +414,11 @@ class MultiScene(object):
 
         input_q = Queue(batch_size if batch_size is not None else 1)
         load_thread = Thread(target=load_data, args=(frames_to_write, input_q,))
-        remote_q = client.gather(input_q)
         load_thread.start()
 
         while True:
-            future_dict = remote_q.get()
+            input_future = input_q.get()
+            future_dict = client.gather(input_future)
             if future_dict is None:
                 break
 
@@ -453,7 +448,7 @@ class MultiScene(object):
 
     def save_animation(self, filename, datasets=None, fps=10, fill_value=None,
                        batch_size=1, ignore_missing=False, client=True, **kwargs):
-        """Helper method for saving to movie (MP4) or GIF formats.
+        """Save series of Scenes to movie (MP4) or GIF formats.
 
         Supported formats are dependent on the `imageio` library and are
         determined by filename extension by default.
