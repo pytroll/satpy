@@ -28,35 +28,6 @@ except ImportError:
     import mock
 
 
-class FakeDataset(object):
-    """Act like an xarray Dataset object for testing."""
-
-    def __init__(self, info, attrs, dims=None):
-        """Set properties to mimic a Dataset object."""
-        for var_name, var_data in list(info.items()):
-            if isinstance(var_data, np.ndarray):
-                info[var_name] = xr.DataArray(var_data)
-        self.info = info
-        self.attrs = attrs
-        self.dims = dims or tuple()
-
-    def __getitem__(self, key):
-        """Get the info for the fake data."""
-        return self.info[key]
-
-    def __contains__(self, key):
-        """Check if key is in the fake data."""
-        return key in self.info
-
-    def rename(self, *args, **kwargs):
-        """Allow for dimension renaming."""
-        return self
-
-    def close(self):
-        """Pretend to close."""
-        return
-
-
 def setup_fake_dataset():
     """Create a fake dataset to avoid opening a file."""
     # flash_extent_density
