@@ -27,7 +27,7 @@ The following people have made contributions to this project:
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
-- [JohannesSMHI (JohannesSMHI)](https://github.com/JohannesSMHI)
+- [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
