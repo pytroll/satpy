@@ -19,7 +19,6 @@
 import sys
 import numpy as np
 import xarray as xr
-from .test_abi_l1b import FakeDataset
 
 if sys.version_info < (2, 7):
     import unittest2 as unittest
@@ -53,10 +52,12 @@ class Test_NC_ABI_L2_base(unittest.TestCase):
         x__ = xr.DataArray(
             [0, 1],
             attrs={'scale_factor': 2., 'add_offset': -1.},
+            dims=('x',),
         )
         y__ = xr.DataArray(
             [0, 1],
             attrs={'scale_factor': -2., 'add_offset': 1.},
+            dims=('y',),
         )
 
         ht_da = xr.DataArray(np.array([2, -1, -32768, 32767]).astype(np.int16).reshape((2, 2)),
@@ -67,23 +68,24 @@ class Test_NC_ABI_L2_base(unittest.TestCase):
                                     '_Unsigned': 'True',
                                     'units': 'm'},)
 
-        xr_.open_dataset.return_value = FakeDataset({
-            'goes_imager_projection': proj,
-            'x': x__,
-            'y': y__,
-            'HT': ht_da,
-            "nominal_satellite_subpoint_lat": np.array(0.0),
-            "nominal_satellite_subpoint_lon": np.array(-89.5),
-            "nominal_satellite_height": np.array(35786020.),
-            "spatial_resolution": "10km at nadir",
+        fake_dataset = xr.Dataset(
+            data_vars={
+                'goes_imager_projection': proj,
+                'x': x__,
+                'y': y__,
+                'HT': ht_da,
+                "nominal_satellite_subpoint_lat": np.array(0.0),
+                "nominal_satellite_subpoint_lon": np.array(-89.5),
+                "nominal_satellite_height": np.array(35786020.),
+                "spatial_resolution": "10km at nadir",
+
             },
-            {
+            attrs={
                 "time_coverage_start": "2017-09-20T17:30:40.8Z",
                 "time_coverage_end": "2017-09-20T17:41:17.5Z",
-            },
-            dims=('y', 'x'),
+            }
         )
-
+        xr_.open_dataset.return_value = fake_dataset
         self.reader = NC_ABI_L2('filename',
                                 {'platform_shortname': 'G16', 'observation_type': 'HT',
                                  'scan_mode': 'M3'},
@@ -168,17 +170,23 @@ class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
         x__ = xr.DataArray(
             [0, 1],
             attrs={'scale_factor': 2., 'add_offset': -1.},
+            dims=('lon',),
         )
         y__ = xr.DataArray(
             [0, 1],
             attrs={'scale_factor': -2., 'add_offset': 1.},
+            dims=('lat',),
         )
-        xr_.open_dataset.return_value = FakeDataset({
-            'goes_lat_lon_projection': proj,
-            'geospatial_lat_lon_extent': proj_ext,
-            'lon': x__,
-            'lat': y__,
-            'RSR': np.ones((2, 2))}, {}, dims=('lon', 'lat'))
+        fake_dataset = xr.Dataset(
+            data_vars={
+                'goes_lat_lon_projection': proj,
+                'geospatial_lat_lon_extent': proj_ext,
+                'lon': x__,
+                'lat': y__,
+                'RSR': xr.DataArray(np.ones((2, 2)), dims=('lat', 'lon')),
+            },
+        )
+        xr_.open_dataset.return_value = fake_dataset
 
         self.reader = NC_ABI_L2('filename',
                                 {'platform_shortname': 'G16', 'observation_type': 'RSR',

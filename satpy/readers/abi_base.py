@@ -53,7 +53,7 @@ class NC_ABI_BASE(BaseFileHandler):
                                       mask_and_scale=False,
                                       chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
 
-        if 't' in self.nc.dims:
+        if 't' in self.nc.dims or 't' in self.nc.coords:
             self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)

@@ -28,35 +28,6 @@ except ImportError:
     import mock
 
 
-class FakeDataset(object):
-    """Act like an xarray Dataset object for testing."""
-
-    def __init__(self, info, attrs, dims=None):
-        """Set properties to mimic a Dataset object."""
-        for var_name, var_data in list(info.items()):
-            if isinstance(var_data, np.ndarray):
-                info[var_name] = xr.DataArray(var_data)
-        self.info = info
-        self.attrs = attrs
-        self.dims = dims or tuple()
-
-    def __getitem__(self, key):
-        """Get the info for the fake data."""
-        return self.info[key]
-
-    def __contains__(self, key):
-        """Check if key is in the fake data."""
-        return key in self.info
-
-    def rename(self, *args, **kwargs):
-        """Allow for dimension renaming."""
-        return self
-
-    def close(self):
-        """Pretend to close."""
-        return
-
-
 def setup_fake_dataset():
     """Create a fake dataset to avoid opening a file."""
     # flash_extent_density
@@ -79,10 +50,12 @@ def setup_fake_dataset():
     x__ = xr.DataArray(
         range(5),
         attrs={'scale_factor': 2., 'add_offset': -1.},
+        dims=('x',),
     )
     y__ = xr.DataArray(
         range(2),
         attrs={'scale_factor': -2., 'add_offset': 1.},
+        dims=('y',),
     )
     proj = xr.DataArray(
         [],
@@ -95,20 +68,22 @@ def setup_fake_dataset():
             'sweep_angle_axis': u'x'
         }
     )
-    fake_dataset = FakeDataset({
-        'flash_extent_density': fed,
-        'x': x__,
-        'y': y__,
-        'goes_imager_projection': proj,
-        "nominal_satellite_subpoint_lat": np.array(0.0),
-        "nominal_satellite_subpoint_lon": np.array(-89.5),
-        "nominal_satellite_height": np.array(35786.02)
-    },
-        {
+    fake_dataset = xr.Dataset(
+        data_vars={
+            'flash_extent_density': fed,
+            'x': x__,
+            'y': y__,
+            'goes_imager_projection': proj,
+            "nominal_satellite_subpoint_lat": np.array(0.0),
+            "nominal_satellite_subpoint_lon": np.array(-89.5),
+            "nominal_satellite_height": np.array(35786.02)
+        },
+        attrs={
             "time_coverage_start": "2017-09-20T17:30:40Z",
             "time_coverage_end": "2017-09-20T17:41:17Z",
             "spatial_resolution": "2km at nadir",
-        }, dims=('y', 'x'))
+        }
+    )
     return fake_dataset
 
 
