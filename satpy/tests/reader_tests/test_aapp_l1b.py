@@ -22,7 +22,6 @@ import numpy as np
 from satpy.readers.aapp_l1b import _HEADERTYPE, _SCANTYPE, AVHRRAAPPL1BFile
 import tempfile
 import datetime
-import os
 from satpy import DatasetID
 
 
@@ -75,16 +74,6 @@ class TestAAPPL1B(unittest.TestCase):
                                 [[13871, -249531, 234652640],
                                  [0, 0, 0]]]]
         self._data['hrpt'] = np.ones_like(self._data['hrpt']) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
-        self.fd, self.filename = tempfile.mkstemp()
-
-        tmpfile = os.fdopen(self.fd, mode='wb')
-        try:
-            self._header.tofile(tmpfile)
-            tmpfile.seek(22016, 0)
-            self._data.tofile(tmpfile)
-            tmpfile.flush()
-        finally:
-            tmpfile.close()
 
         self.filename_info = {'platform_shortname': 'metop03', 'start_time': datetime.datetime(2020, 1, 8, 8, 19),
                               'orbit_number': 6071}
@@ -94,54 +83,65 @@ class TestAAPPL1B(unittest.TestCase):
 
     def test_read(self):
         """Test the reading."""
-        fh = AVHRRAAPPL1BFile(self.filename, self.filename_info, self.filetype_info)
-        info = {}
-        mins = []
-        maxs = []
-        for name in ['1', '2', '3a']:
-            key = DatasetID(name=name, calibration='reflectance')
-            res = fh.get_dataset(key, info)
-            assert(res.min() == 0)
-            assert(res.max() >= 100)
-            mins.append(res.min().values)
-            maxs.append(res.max().values)
-            if name == '3a':
-                assert(np.all(np.isnan(res[:2, :])))
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
 
-        for name in ['3b', '4', '5']:
-            key = DatasetID(name=name, calibration='reflectance')
-            res = fh.get_dataset(key, info)
-            mins.append(res.min().values)
-            maxs.append(res.max().values)
-            if name == '3b':
-                assert(np.all(np.isnan(res[2:, :])))
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            info = {}
+            mins = []
+            maxs = []
+            for name in ['1', '2', '3a']:
+                key = DatasetID(name=name, calibration='reflectance')
+                res = fh.get_dataset(key, info)
+                assert(res.min() == 0)
+                assert(res.max() >= 100)
+                mins.append(res.min().values)
+                maxs.append(res.max().values)
+                if name == '3a':
+                    assert(np.all(np.isnan(res[:2, :])))
 
-        np.testing.assert_allclose(mins, [0., 0., 0., 204.10106939, 103.23477235, 106.42609758])
-        np.testing.assert_allclose(maxs, [108.40391775, 107.68545158, 106.80061233,
-                                          337.71416096, 355.15898219, 350.87182166])
+            for name in ['3b', '4', '5']:
+                key = DatasetID(name=name, calibration='reflectance')
+                res = fh.get_dataset(key, info)
+                mins.append(res.min().values)
+                maxs.append(res.max().values)
+                if name == '3b':
+                    assert(np.all(np.isnan(res[2:, :])))
+
+            np.testing.assert_allclose(mins, [0., 0., 0., 204.10106939, 103.23477235, 106.42609758])
+            np.testing.assert_allclose(maxs, [108.40391775, 107.68545158, 106.80061233,
+                                              337.71416096, 355.15898219, 350.87182166])
 
     def test_angles(self):
         """Test reading the angles."""
-        fh = AVHRRAAPPL1BFile(self.filename, self.filename_info, self.filetype_info)
-        info = {}
-        key = DatasetID(name='solar_zenith_angle')
-        res = fh.get_dataset(key, info)
-        assert(np.all(res == 0))
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
+
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            info = {}
+            key = DatasetID(name='solar_zenith_angle')
+            res = fh.get_dataset(key, info)
+            assert(np.all(res == 0))
 
     def test_navigation(self):
         """Test reading the lon and lats."""
-        fh = AVHRRAAPPL1BFile(self.filename, self.filename_info, self.filetype_info)
-        info = {}
-        key = DatasetID(name='longitude')
-        res = fh.get_dataset(key, info)
-        assert(np.all(res == 0))
-        key = DatasetID(name='latitude')
-        res = fh.get_dataset(key, info)
-        assert(np.all(res == 0))
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
 
-    def tearDown(self):
-        """Delete the remaining file."""
-        os.remove(self.filename)
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            info = {}
+            key = DatasetID(name='longitude')
+            res = fh.get_dataset(key, info)
+            assert(np.all(res == 0))
+            key = DatasetID(name='latitude')
+            res = fh.get_dataset(key, info)
+            assert(np.all(res == 0))
 
 
 def suite():
