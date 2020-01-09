@@ -142,9 +142,8 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
     def read(self):
         """Read the data."""
         tic = datetime.now()
-        with open(self.filename, "rb") as fp_:
-            header = np.memmap(fp_, dtype=_HEADERTYPE, mode="r", shape=(1, ))
-            data = np.memmap(fp_, dtype=_SCANTYPE, offset=22016, mode="r")
+        header = np.memmap(self.filename, dtype=_HEADERTYPE, mode="r", shape=(1, ))
+        data = np.memmap(self.filename, dtype=_SCANTYPE, offset=22016, mode="r")
 
         logger.debug("Reading time %s", str(datetime.now() - tic))
 
