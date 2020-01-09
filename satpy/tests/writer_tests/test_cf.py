@@ -897,6 +897,31 @@ class TestCFWriter(unittest.TestCase):
         self.assertEqual(res.attrs['grid_mapping'], 'omerc')
         _gm_matches(grid_mapping, omerc_expected)
 
+        # d) Projection that has a representation but no explicit a/b
+        h = 35785831.
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': h, 'datum': 'WGS84', 'ellps': 'GRS80'},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
+        geos_expected = xr.DataArray(data=0,
+                                     attrs={'perspective_point_height': h,
+                                            'latitude_of_projection_origin': None,
+                                            'longitude_of_projection_origin': None,
+                                            'grid_mapping_name': 'geostationary',
+                                            'reference_ellipsoid_name': 'GS80',
+                                            'sweep_axis': None,
+                                            'name': 'geos'})
+
+        ds = ds_base.copy()
+        ds.attrs['area'] = geos
+        res, grid_mapping = area2gridmapping(ds)
+
+        self.assertEqual(res.attrs['grid_mapping'], 'geostationary')
+        self.assertEqual(grid_mapping, geos_expected)
+
     def test_area2lonlat(self):
         """Test the conversion from areas to lon/lat."""
         import pyresample.geometry
