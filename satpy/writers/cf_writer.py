@@ -215,8 +215,15 @@ mappings = {'omerc': omerc2cf,
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
     try:
-        grid_mapping = mappings[area.proj_dict['proj']](area)
-        grid_mapping['name'] = area.proj_dict['proj']
+        try:
+            # let pyproj do the heavily lifting
+            # pyproj 2.0+ required
+            grid_mapping = area.crs.to_cf()
+            # not sure there is a better "standard" way of doing this
+            grid_mapping['name'] = grid_mapping['grid_mapping_name']
+        except AttributeError:
+            grid_mapping = mappings[area.proj_dict['proj']](area)
+            grid_mapping['name'] = area.proj_dict['proj']
     except KeyError:
         warnings.warn('The projection "{}" is either not CF compliant or not implemented yet. '
                       'Using the proj4 string instead.'.format(area.proj_str))
@@ -258,7 +265,8 @@ def area2gridmapping(dataarray):
     """Convert an area to at CF grid mapping."""
     area = dataarray.attrs['area']
     attrs = create_grid_mapping(area)
-    if attrs is not None and 'name' in attrs.keys() and attrs['name'] != "proj4":
+    if (attrs is not None and 'name' in attrs and
+            attrs['name'] not in ("proj4", "unknown")):
         dataarray.attrs['grid_mapping'] = attrs['name']
         name = attrs['name']
     else:

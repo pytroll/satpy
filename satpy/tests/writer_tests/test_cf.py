@@ -780,7 +780,7 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = geos
         res, grid_mapping = area2gridmapping(ds)
 
-        self.assertEqual(res.attrs['grid_mapping'], 'geos')
+        self.assertEqual(res.attrs['grid_mapping'], 'geostationary')
         _gm_matches(grid_mapping, geos_expected)
 
         # b) Projection does not have a corresponding CF representation (COSMO)
@@ -834,7 +834,7 @@ class TestCFWriter(unittest.TestCase):
         ds = ds_base.copy()
         ds.attrs['area'] = tmerc
         res, grid_mapping = area2gridmapping(ds)
-        self.assertEqual(res.attrs['grid_mapping'], 'tmerc')
+        self.assertEqual(res.attrs['grid_mapping'], 'transverse_mercator')
         _gm_matches(grid_mapping, tmerc_expected)
 
         # d) Projection that has a representation but no explicit a/b
