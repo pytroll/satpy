@@ -862,9 +862,9 @@ class GEOSegmentYAMLReader(FileYAMLReader):
 
     This reader pads the data to full geostationary disk if necessary.
 
-    This read uses an optional ``pad_data`` keyword argument that can be passed
-    to :meth:`Scene.load` to control if padding is done (True by default).
-    Passing `pad_data=False` will return data unpadded.
+    This reader uses an optional ``pad_data`` keyword argument that can be
+    passed to :meth:`Scene.load` to control if padding is done (True by
+    default). Passing `pad_data=False` will return data unpadded.
 
     When using this class in a reader's YAML configuration, segmented file
     types (files that may have multiple segments) should specify an extra
@@ -882,7 +882,7 @@ class GEOSegmentYAMLReader(FileYAMLReader):
             filenames, fh_kwargs=fh_kwargs)
 
         # add "expected_segments" information
-        for file_type, fhs in created_fhs.items():
+        for fhs in created_fhs.values():
             for fh in fhs:
                 # check the filename for total_segments parameter as a fallback
                 ts = fh.filename_info.get('total_segments', 1)
