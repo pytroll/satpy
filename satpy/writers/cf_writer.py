@@ -142,15 +142,10 @@ CF_VERSION = 'CF-1.7'
 def tmerc2cf(area):
     """Return the cf grid mapping for the tmerc projection."""
     proj_dict = area.proj_dict
-    args = dict(azimuth_of_central_line=proj_dict.get('alpha'),
-                latitude_of_projection_origin=proj_dict.get('lat_0'),
-                longitude_of_projection_origin=proj_dict.get('lon_0'),
-                latitude_of_meridian_ts=proj_dict.get('lat_ts'),
+    args = dict(latitude_of_projection_origin=proj_dict.get('lat_0'),
+                longitude_of_central_meridian=proj_dict.get('lon_0'),
                 grid_mapping_name='transverse_mercator',
                 reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
-                prime_meridian_name=proj_dict.get('pm', 'Greenwich'),
-                horizontal_datum_name=proj_dict.get('datum', 'unknown'),
-                geographic_crs_name='unknown',
                 false_easting=0.,
                 false_northing=0.
                 )
@@ -185,13 +180,17 @@ def omerc2cf(area):
 
 def geos2cf(area):
     """Return the cf grid mapping for the geos projection."""
+    from pyresample.utils import proj4_radius_parameters
     proj_dict = area.proj_dict
+    a, b = proj4_radius_parameters(proj_dict)
     args = dict(perspective_point_height=proj_dict.get('h'),
-                latitude_of_projection_origin=proj_dict.get('lat_0'),
-                longitude_of_projection_origin=proj_dict.get('lon_0'),
+                latitude_of_projection_origin=proj_dict.get('lat_0', 0),
+                longitude_of_projection_origin=proj_dict.get('lon_0', 0),
                 grid_mapping_name='geostationary',
-                semi_major_axis=proj_dict.get('a'),
-                semi_minor_axis=proj_dict.get('b'),
+                semi_major_axis=a,
+                semi_minor_axis=b,
+                # semi_major_axis=proj_dict.get('a'),
+                # semi_minor_axis=proj_dict.get('b'),
                 sweep_axis=proj_dict.get('sweep'),
                 )
     return args
