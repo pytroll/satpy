@@ -466,6 +466,15 @@ needs to implement a few methods:
    successful, containing the data and :ref:`metadata <dataset_metadata>` of the
    loaded dataset, or return None if the loading was unsuccessful.
 
+   The DataArray should at least have a ``y`` dimension. For data covering
+   a 2D region on the Earth, their should be at least a ``y`` and ``x``
+   dimension. This applies to
+   non-gridded data like that of a polar-orbiting satellite instrument. The
+   latitude dimension is typically named ``y`` and longitude named ``x``.
+   This may require renaming dimensions from the file, see for the
+   :meth:`xarray.DataArray.rename` method for more information and its use
+   in the example below.
+
  - the ``get_area_def`` method, that takes as single argument the
    :class:`~satpy.dataset.DatasetID` for which we want
    the area. It should return a :class:`~pyresample.geometry.AreaDefinition`
