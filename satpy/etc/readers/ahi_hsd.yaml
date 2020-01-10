@@ -287,82 +287,66 @@ datasets:
 
 file_types:
   hsd_b01:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R10_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B01_{area}_R10_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b02:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R10_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B02_{area}_R10_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b03:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R05_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B03_{area}_R05_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b04:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R10_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B04_{area}_R10_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b05:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B05_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b06:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B06_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b07:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B07_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b08:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B08_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b09:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B09_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b10:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B10_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b11:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B11_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b12:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B12_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b13:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B13_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b14:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B14_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b15:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B15_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments
   hsd_b16:
-    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler ''
+    file_reader: !!python/name:satpy.readers.ahi_hsd.AHIHSDFileHandler
     file_patterns: ['HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R20_S{segment:2d}{total_segments:2d}.DAT',
                     'HS_{platform_shortname}_{start_time:%Y%m%d_%H%M}_B16_{area}_R20_S{segment:2d}{total_segments:2d}.DAT.bz2']
-    expected_segments: total_segments

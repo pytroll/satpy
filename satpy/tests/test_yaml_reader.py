@@ -607,6 +607,48 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         GEOSegmentYAMLReader.__bases__ = (MagicMock, )
         self.reader = GEOSegmentYAMLReader()
 
+    def test_get_expected_segments(self):
+        """Test that expected segments can come from the filename."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        cfh = MagicMock()
+        # Hacky: This is setting an attribute on the MagicMock *class*
+        #        not on a MagicMock instance
+        GEOSegmentYAMLReader.__bases__[0].create_filehandlers = cfh
+
+        fake_fh = MagicMock()
+        fake_fh.filename_info = {}
+        fake_fh.filetype_info = {}
+        cfh.return_value = {'ft1': [fake_fh]}
+        reader = GEOSegmentYAMLReader()
+        # default (1)
+        created_fhs = reader.create_filehandlers(['fake.nc'])
+        es = created_fhs['ft1'][0].filetype_info['expected_segments']
+        self.assertEqual(es, 1)
+
+        # YAML defined for each file type
+        fake_fh.filetype_info['expected_segments'] = 2
+        created_fhs = reader.create_filehandlers(['fake.nc'])
+        es = created_fhs['ft1'][0].filetype_info['expected_segments']
+        self.assertEqual(es, 2)
+
+        # defined both in the filename and the YAML metadata
+        # YAML has priority
+        fake_fh.filename_info = {'total_segments': 3}
+        fake_fh.filetype_info = {'expected_segments': 2}
+        created_fhs = reader.create_filehandlers(['fake.nc'])
+        es = created_fhs['ft1'][0].filetype_info['expected_segments']
+        self.assertEqual(es, 2)
+
+        # defined in the filename
+        fake_fh.filename_info = {'total_segments': 3}
+        fake_fh.filetype_info = {}
+        created_fhs = reader.create_filehandlers(['fake.nc'])
+        es = created_fhs['ft1'][0].filetype_info['expected_segments']
+        self.assertEqual(es, 3)
+
+        # undo the hacky-ness
+        del GEOSegmentYAMLReader.__bases__[0].create_filehandlers
+
     @patch('satpy.readers.yaml_reader.FileYAMLReader._load_dataset')
     @patch('satpy.readers.yaml_reader.xr')
     @patch('satpy.readers.yaml_reader._find_missing_segments')
