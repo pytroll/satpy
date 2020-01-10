@@ -860,8 +860,35 @@ def _load_area_def(dsid, file_handlers):
 class GEOSegmentYAMLReader(FileYAMLReader):
     """Reader for segmented geostationary data.
 
-    This reader pads the data to full geostationary disk.
+    This reader pads the data to full geostationary disk if necessary.
+
+    This read uses an optional ``pad_data`` keyword argument that can be passed
+    to :meth:`Scene.load` to control if padding is done (True by default).
+    Passing `pad_data=False` will return data unpadded.
+
+    When using this class in a reader's YAML configuration, segmented file
+    types (files that may have multiple segments) should specify an extra
+    ``expected_segments`` piece of file_type metadata. This tells this reader
+    how many total segments it should expect when padding data. Alternatively,
+    the file patterns for a file type can include a ``total_segments``
+    field which will be used if ``expected_segments`` is not defined. This
+    will default to 1 segment.
+
     """
+
+    def create_filehandlers(self, filenames, fh_kwargs=None):
+        """Create file handler objects and determine expected segments for each."""
+        created_fhs = super(GEOSegmentYAMLReader, self).create_filehandlers(
+            filenames, fh_kwargs=fh_kwargs)
+
+        # add "expected_segments" information
+        for file_type, fhs in created_fhs.items():
+            for fh in fhs:
+                # check the filename for total_segments parameter as a fallback
+                ts = fh.filename_info.get('total_segments', 1)
+                # if the YAML has segments explicitly specified then use that
+                fh.filetype_info.setdefault('expected_segments', ts)
+        return created_fhs
 
     @staticmethod
     def _load_dataset(dsid, ds_info, file_handlers, dim='y', pad_data=True):
@@ -932,10 +959,7 @@ def _stack_area_defs(area_def_dict):
 def _pad_later_segments_area(file_handlers, dsid):
     """Pad area definitions for missing segments that are later in sequence than the first available."""
     seg_size = None
-    expected_segments = file_handlers[0].filetype_info.get(
-        'expected_segments', 1)
-    if isinstance(expected_segments, str):
-        expected_segments = file_handlers[0].filename_info[expected_segments]
+    expected_segments = file_handlers[0].filetype_info['expected_segments']
     available_segments = [int(fh.filename_info.get('segment', 1)) for
                           fh in file_handlers]
     area_defs = {}
@@ -998,10 +1022,7 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
     projectable = None
     for fh in handlers:
         if fh.filetype_info['file_type'] in ds_info['file_type']:
-            expected_segments = fh.filetype_info.get('expected_segments', 1)
-            if isinstance(expected_segments, str):
-                # get the information from the filename
-                expected_segments = fh.filename_info[expected_segments]
+            expected_segments = fh.filetype_info['expected_segments']
 
         while int(fh.filename_info.get('segment', 1)) > counter:
             slice_list.append(None)
