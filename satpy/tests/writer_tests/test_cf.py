@@ -743,6 +743,15 @@ class TestCFWriter(unittest.TestCase):
         import pyresample.geometry
         from satpy.writers.cf_writer import area2gridmapping
 
+        def _gm_matches(gmapping, expected):
+            """Assert that all keys in ``expected`` match the values in ``gmapping``."""
+            for attr_key, attr_val in expected.attrs.items():
+                test_val = gmapping.attrs[attr_key]
+                if attr_val is None or isinstance(attr_val, str):
+                    self.assertEqual(test_val, attr_val)
+                else:
+                    np.testing.assert_almost_equal(test_val, attr_val, decimal=3)
+
         ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]},
                                attrs={'name': 'var1'})
 
@@ -759,8 +768,8 @@ class TestCFWriter(unittest.TestCase):
             area_extent=[-1, -1, 1, 1])
         geos_expected = xr.DataArray(data=0,
                                      attrs={'perspective_point_height': h,
-                                            'latitude_of_projection_origin': None,
-                                            'longitude_of_projection_origin': None,
+                                            'latitude_of_projection_origin': 0,
+                                            'longitude_of_projection_origin': 0,
                                             'grid_mapping_name': 'geostationary',
                                             'semi_major_axis': a,
                                             'semi_minor_axis': b,
@@ -772,7 +781,7 @@ class TestCFWriter(unittest.TestCase):
         res, grid_mapping = area2gridmapping(ds)
 
         self.assertEqual(res.attrs['grid_mapping'], 'geos')
-        self.assertEqual(grid_mapping, geos_expected)
+        _gm_matches(grid_mapping, geos_expected)
 
         # b) Projection does not have a corresponding CF representation (COSMO)
         cosmo7 = pyresample.geometry.AreaDefinition(
@@ -784,8 +793,6 @@ class TestCFWriter(unittest.TestCase):
             width=597, height=510,
             area_extent=[-1812933, -1003565, 814056, 1243448]
         )
-        proj_str = '+proj=ob_tran +ellps=WGS84 +lat_0=46.0 +lon_0=4.535 +o_proj=stere +o_lat_p=90.0 +o_lon_p=-5.465'
-        cosmo_expected = xr.DataArray(data=0, attrs={'name': 'proj4', 'proj4': proj_str})
 
         ds = ds_base.copy()
         ds.attrs['area'] = cosmo7
@@ -801,31 +808,25 @@ class TestCFWriter(unittest.TestCase):
             self.assertEqual(proj_dict['proj'], 'ob_tran')
             self.assertEqual(proj_dict['o_proj'], 'stere')
             self.assertEqual(proj_dict['ellps'], 'WGS84')
-            self.assertEqual(grid_mapping, cosmo_expected)
+            self.assertEqual(grid_mapping.attrs['name'], 'proj4')
 
         # c) Projection Transverse Mercator
         lat_0 = 36.5
         lon_0 = 15.0
-        lat_ts = 36.5
 
         tmerc = pyresample.geometry.AreaDefinition(
             area_id='tmerc',
             description='tmerc',
             proj_id='tmerc',
-            projection={'proj': 'tmerc', 'ellps': 'WGS84', 'lat_0': 36.5, 'lon_0': 15.0, 'lat_ts': 36.5},
+            projection={'proj': 'tmerc', 'ellps': 'WGS84', 'lat_0': 36.5, 'lon_0': 15.0},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
 
         tmerc_expected = xr.DataArray(data=0,
-                                      attrs={'azimuth_of_central_line': 'alpha',
-                                             'latitude_of_projection_origin': lat_0,
-                                             'longitude_of_projection_origin': lon_0,
-                                             'latitude_of_meridian_ts': lat_ts,
+                                      attrs={'latitude_of_projection_origin': lat_0,
+                                             'longitude_of_central_meridian': lon_0,
                                              'grid_mapping_name': 'transverse_mercator',
-                                             'reference_ellipsoid_name': ('ellps', 'WGS84'),
-                                             'prime_meridian_name': ('pm', 'Greenwich'),
-                                             'horizontal_datum_name': ('datum', 'unknown'),
-                                             'geographic_crs_name': 'unknown',
+                                             'reference_ellipsoid_name': 'WGS84',
                                              'false_easting': 0.,
                                              'false_northing': 0.,
                                              'name': 'tmerc'})
@@ -834,7 +835,67 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = tmerc
         res, grid_mapping = area2gridmapping(ds)
         self.assertEqual(res.attrs['grid_mapping'], 'tmerc')
-        self.assertEqual(grid_mapping, tmerc_expected)
+        _gm_matches(grid_mapping, tmerc_expected)
+
+        # d) Projection that has a representation but no explicit a/b
+        h = 35785831.
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': h, 'datum': 'WGS84', 'ellps': 'GRS80'},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
+        geos_expected = xr.DataArray(data=0,
+                                     attrs={'perspective_point_height': h,
+                                            'latitude_of_projection_origin': 0,
+                                            'longitude_of_projection_origin': 0,
+                                            'grid_mapping_name': 'geostationary',
+                                            'semi_major_axis': 6378137.0,
+                                            'semi_minor_axis': 6356752.314,
+                                            'sweep_axis': None,
+                                            'name': 'geos'})
+
+        ds = ds_base.copy()
+        ds.attrs['area'] = geos
+        res, grid_mapping = area2gridmapping(ds)
+
+        self.assertEqual(res.attrs['grid_mapping'], 'geos')
+        _gm_matches(grid_mapping, geos_expected)
+
+        # e) oblique Mercator
+        area = pyresample.geometry.AreaDefinition(
+            area_id='omerc_otf',
+            description='On-the-fly omerc area',
+            proj_id='omerc',
+            projection={'alpha': '9.02638777018478', 'ellps': 'WGS84', 'gamma': '0', 'k': '1',
+                        'lat_0': '-0.256794486098476', 'lonc': '13.7888658224205',
+                        'proj': 'omerc', 'units': 'm'},
+            width=2837,
+            height=5940,
+            area_extent=[-1460463.0893, 3455291.3877, 1538407.1158, 9615788.8787]
+        )
+
+        omerc_dict = {'name': 'omerc',
+                      'azimuth_of_central_line': 9.02638777018478,
+                      'false_easting': 0.,
+                      'false_northing': 0.,
+                      'gamma': 0,
+                      'geographic_crs_name': "unknown",
+                      'grid_mapping_name': "oblique_mercator",
+                      'horizontal_datum_name': "unknown",
+                      'latitude_of_projection_origin': -0.256794486098476,
+                      'longitude_of_projection_origin': 13.7888658224205,
+                      'prime_meridian_name': "Greenwich",
+                      'reference_ellipsoid_name': "WGS84"}
+        omerc_expected = xr.DataArray(data=0, attrs=omerc_dict)
+
+        ds = ds_base.copy()
+        ds.attrs['area'] = area
+        res, grid_mapping = area2gridmapping(ds)
+
+        self.assertEqual(res.attrs['grid_mapping'], 'omerc')
+        _gm_matches(grid_mapping, omerc_expected)
 
     def test_area2lonlat(self):
         """Test the conversion from areas to lon/lat."""
