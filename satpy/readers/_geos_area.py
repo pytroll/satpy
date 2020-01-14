@@ -79,7 +79,7 @@ def get_area_extent(pdict):
     # count starts at 1
     cols = 1 - 0.5
 
-    if (pdict['scandir'] == 'S2N'):
+    if pdict['scandir'] == 'S2N':
         lines = 0.5 - 1
         scanmult = -1
     else:

@@ -25,7 +25,7 @@ import xarray as xr
 import dask.array as da
 import pyproj
 
-from satpy.readers._geos_area import make_ext, get_area_definition
+from satpy.readers._geos_area import get_area_definition, get_area_extent
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
@@ -85,26 +85,19 @@ class AMIL1bNetCDF(BaseFileHandler):
         obs_mode = self.nc.attrs['observation_mode']
         resolution = self.nc.attrs['channel_spatial_resolution']
 
+        # Example offset: 11000.5
+        # the 'get_area_extent' will handle this half pixel for us
         pdict['cfac'] = self.nc.attrs['cfac']
         pdict['coff'] = self.nc.attrs['coff']
-        pdict['lfac'] = self.nc.attrs['lfac']
+        pdict['lfac'] = -self.nc.attrs['lfac']
         pdict['loff'] = self.nc.attrs['loff']
-
-        # AMI grid appears offset, we can not use the standard get_area_extent
-        bit_shift = 2**16
-        ll_x = (0 - pdict['coff'] - 0.5) * bit_shift / pdict['cfac']
-        ll_y = -(0 - pdict['loff'] - 0.5) * bit_shift / pdict['lfac']
-        ur_x = (pdict['ncols'] - pdict['coff'] + 0.5) * bit_shift / pdict['cfac']
-        ur_y = -(pdict['nlines'] - pdict['loff'] + 0.5) * bit_shift / pdict['lfac']
-
-        area_extent = make_ext(ll_x, ur_x, ll_y, ur_y, pdict['h'])
-
+        pdict['scandir'] = 'N2S'
         pdict['a_name'] = 'ami_geos_{}'.format(obs_mode.lower())
         pdict['a_desc'] = 'AMI {} Area at {} resolution'.format(obs_mode, resolution)
         pdict['p_id'] = 'ami_fixed_grid'
 
+        area_extent = get_area_extent(pdict)
         fg_area_def = get_area_definition(pdict, area_extent)
-
         return fg_area_def
 
     def get_orbital_parameters(self):
