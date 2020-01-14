@@ -15,20 +15,15 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the SCMI writer
-"""
+"""Tests for the SCMI writer."""
 import os
-import sys
 from glob import glob
 from datetime import datetime, timedelta
 
 import numpy as np
 import dask.array as da
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 
 class TestSCMIWriter(unittest.TestCase):
@@ -121,6 +116,7 @@ class TestSCMIWriter(unittest.TestCase):
 
     def test_basic_lettered_tiles(self):
         """Test creating a lettered grid."""
+        import xarray as xr
         from satpy.writers.scmi import SCMIWriter
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -151,6 +147,54 @@ class TestSCMIWriter(unittest.TestCase):
         w.save_datasets([ds], sector_id='LCC', source_name="TESTS", tile_count=(3, 3), lettered_grid=True)
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
         self.assertEqual(len(all_files), 16)
+        for fn in all_files:
+            nc = xr.open_dataset(fn, mask_and_scale=False)
+            # geolocation coordinates should be monotonically increasing by 1
+            np.testing.assert_equal(np.diff(nc['x']), 1)
+            np.testing.assert_equal(np.diff(nc['y']), 1)
+            assert nc.attrs['start_date_time'] == now.strftime('%Y-%m-%dT%H:%M:%S')
+
+    def test_lettered_tiles_sector_ref(self):
+        """Test creating a lettered grid using the sector as reference."""
+        import xarray as xr
+        from satpy.writers.scmi import SCMIWriter
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        w = SCMIWriter(base_dir=self.base_dir, compress=True)
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=lcc +datum=WGS84 +ellps=WGS84 +lon_0=-95. '
+                              '+lat_0=25 +lat_1=25 +units=m +no_defs'),
+            1000,
+            2000,
+            (-1000000., -1500000., 1000000., 1500000.),
+        )
+        now = datetime(2018, 1, 1, 12, 0, 0)
+        ds = DataArray(
+            da.from_array(np.linspace(0., 1., 2000000, dtype=np.float32).reshape((2000, 1000)), chunks=500),
+            attrs=dict(
+                name='test_ds',
+                platform_name='PLAT',
+                sensor='SENSOR',
+                units='1',
+                area=area_def,
+                start_time=now,
+                end_time=now + timedelta(minutes=20))
+        )
+        w.save_datasets([ds], sector_id='LCC', source_name="TESTS",
+                        lettered_grid=True, use_sector_reference=True,
+                        use_end_time=True)
+        all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*.nc'))
+        self.assertEqual(len(all_files), 16)
+        for fn in all_files:
+            nc = xr.open_dataset(fn, mask_and_scale=False)
+            # geolocation coordinates should be monotonically increasing by 1
+            np.testing.assert_equal(np.diff(nc['x']), 1)
+            np.testing.assert_equal(np.diff(nc['y']), 1)
+            assert nc.attrs['start_date_time'] == (now + timedelta(minutes=20)).strftime('%Y-%m-%dT%H:%M:%S')
 
     def test_lettered_tiles_no_fit(self):
         """Test creating a lettered grid with no data."""
@@ -263,7 +307,7 @@ class TestSCMIWriter(unittest.TestCase):
 
 
 def suite():
-    """The test suite for this writer's tests."""
+    """Create test suite for this writer's tests."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestSCMIWriter))

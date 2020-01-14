@@ -145,6 +145,15 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
         return metadata
 
+    def _rename_dims(self, data_arr):
+        """Normalize dimension names with the rest of Satpy."""
+        dims_dict = {}
+        if 'ground_pixel' in data_arr.dims:
+            dims_dict['ground_pixel'] = 'x'
+        if 'scanline' in data_arr.dims:
+            dims_dict['scanline'] = 'y'
+        return data_arr.rename(dims_dict)
+
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
         logger.debug("Getting data for: %s", ds_id.name)
@@ -154,4 +163,5 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         fill = data.attrs.pop('_FillValue')
         data = data.squeeze()
         data = data.where(data != fill)
+        data = self._rename_dims(data)
         return data

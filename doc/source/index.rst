@@ -221,6 +221,9 @@ the base Satpy installation.
     * - GEO-KOMPSAT-2 AMI L1B data in NetCDF4 format
       - `ami_l1b`
       - Beta
+    * - GOES-R GLM Grided Level 2 in NetCDF4 format
+      - `glm_l2`
+      - Beta
 
 
 Indices and tables
