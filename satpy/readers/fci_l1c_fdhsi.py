@@ -164,7 +164,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return group, root_group
 
-
     # scale factors and add_offset on data/<channel>/x were wrong in test data
     # release from September 2019, add correction.  Remove correction when no
     # longer needed.
@@ -211,12 +210,13 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         ext = {}
         for c in "xy":
             c_radian = self["data/{:s}/measured/{:s}".format(key.name, c)]
-            # TEMPORARY CORRECTION for erroneous 2019-09 test data —
-            # REMOVE WHEN NO LONGER NEEDED
+            # Begin temporary correction for erroneous 2019-09 test data
             scalefac = self._corrected_scale_factors[c][key.resolution]
             addoffset = self._corrected_add_offset[c][key.resolution]
-            #c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
             c_radian_num = ((c_radian[:]-1) * scalefac + addoffset)
+            # End of correction
+            # Original line: c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
+
             # FCI defines pixels by centroids (Example Products for Pytroll
             # Workshop, §B.4.2)
             #
@@ -227,8 +227,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             # the .item() call is needed with the h5netcdf backend, see
             # https://github.com/pytroll/satpy/issues/972#issuecomment-558191583
             # but we need to compute it first if this is dask
-            #min_c_radian = c_radian_num[0] - c_radian.scale_factor.item()/2
-            #max_c_radian = c_radian_num[-1] + c_radian.scale_factor.item()/2
             min_c_radian = c_radian_num[0] - scalefac/2
             max_c_radian = c_radian_num[-1] + scalefac/2
             min_c = min_c_radian * h  # arc length in m
@@ -242,7 +240,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
         return (area_extent, nlines, ncols)
-
 
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
