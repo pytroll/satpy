@@ -138,17 +138,23 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             data[proc + "/" + lb] = xr.DataArray(no)
         proj = "data/mtg_geos_projection"
 
+        attrs = {
+                "sweep_angle_axis": "x",
+                "perspective_point_height": "35786400",
+                "semi_major_axis": "6378137",
+                "semi_minor_axis": "6356752",
+                "longitude_of_projection_origin": "0",
+                "inverse_flattening": "298.257223563",
+                "units": "m"}
         data[proj] = xr.DataArray(
                 0,
                 dims=(),
-                attrs={
-                    "sweep_angle_axis": "x",
-                    "perspective_point_height": "35786400",
-                    "semi_major_axis": "6378137",
-                    "semi_minor_axis": "6356752",
-                    "longitude_of_projection_origin": "0",
-                    "units": "m"},
-                )
+                attrs=attrs)
+
+        # also set attributes cached, as this may be how they are accessed with
+        # the NetCDF4FileHandler
+        for (k, v) in attrs.items():
+            data[proj + "/attr/" + k] = v
 
         return data
 
