@@ -130,9 +130,11 @@ class SEVIRI_ICARE(HDF4FileHandler):
     def projection(self):
         attr = self['/attr/Geographic_Projection']
         if isinstance(attr, np.ndarray):
-            attr = str(attr.astype(str)).lower()
+            attr = str(attr.astype(str))
+        attr = attr.lower()
         if attr != 'geos':
-            raise NotImplementedError("Only the GEOS projection is supported")
+            raise NotImplementedError("Only the GEOS projection is supported.\
+                                        This is:", attr)
         return attr
 
     @property
@@ -154,7 +156,11 @@ class SEVIRI_ICARE(HDF4FileHandler):
         attr = self['/attr/End_Acquisition_Date']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str))
-        endacq = datetime.strptime(attr, "%Y-%m-%dT%H:%M:%SZ")
+        # In some versions milliseconds are present, sometimes not.
+        try:
+            endacq = datetime.strptime(attr, "%Y-%m-%dT%H:%M:%SZ")
+        except ValueError:
+            endacq = datetime.strptime(attr, "%Y-%m-%dT%H:%M:%S.%fZ")
         return endacq
 
     @property
@@ -162,7 +168,11 @@ class SEVIRI_ICARE(HDF4FileHandler):
         attr = self['/attr/Beginning_Acquisition_Date']
         if isinstance(attr, np.ndarray):
             attr = str(attr.astype(str))
-        stacq = datetime.strptime(attr, "%Y-%m-%dT%H:%M:%SZ")
+        # In some versions milliseconds are present, sometimes not.
+        try:
+            stacq = datetime.strptime(attr, "%Y-%m-%dT%H:%M:%SZ")
+        except ValueError:
+            stacq = datetime.strptime(attr, "%Y-%m-%dT%H:%M:%S.%fZ")
         return stacq
 
     @property
