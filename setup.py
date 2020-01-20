@@ -1,31 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
+# Copyright (c) 2009-2019 Satpy developers
+#
 # This file is part of satpy.
-
-# satpy is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# satpy is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Setup file for satpy."""
 
 import os.path
-import sys
 from glob import glob
 
 from setuptools import find_packages, setup
@@ -44,10 +36,6 @@ requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
                  'rasterio', 'geoviews', 'trollimage']
-
-if sys.version < '3.0':
-    test_requires.append('mock')
-
 
 extras_require = {
     # Readers:
@@ -146,6 +134,6 @@ setup(name=NAME,
       use_scm_version=True,
       install_requires=requires,
       tests_require=test_requires,
-      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
+      python_requires='>=3.6',
       extras_require=extras_require,
       )
