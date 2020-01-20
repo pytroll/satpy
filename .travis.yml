@@ -3,7 +3,7 @@ env:
     global:
         # Set defaults to avoid repeating in most cases
         - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
-        - NUMPY_VERSION=1.17
+        - NUMPY_VERSION=stable
         - MAIN_CMD='python setup.py'
         - CONDA_DEPENDENCIES='xarray!=0.13.0 dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj=2.4.1 pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff geoviews zarr six python-eccodes'
         - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
