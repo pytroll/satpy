@@ -19,6 +19,11 @@ matrix:
   - env: PYTHON_VERSION=3.8
     os: osx
     language: generic
+  - env: PYTHON_VERSION=3.7
+    os: linux
+  - env: PYTHON_VERSION=3.7
+    os: osx
+    language: generic
 install:
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh

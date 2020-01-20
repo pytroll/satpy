@@ -12,6 +12,10 @@ environment:
       PYTHON_VERSION: "3.8"
       PYTHON_ARCH: "64"
       NUMPY_VERSION: "stable"
+    - PYTHON: "C:\\Python38_64"
+      PYTHON_VERSION: "3.7"
+      PYTHON_ARCH: "64"
+      NUMPY_VERSION: "stable"
 
 install:
     - "git clone --depth 1 git://github.com/astropy/ci-helpers.git"
