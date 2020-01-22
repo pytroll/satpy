@@ -1,0 +1,28 @@
+reader:
+    description:  NetCDF4 reader for the MIMIC TPW Version 2.0 product
+    name: mimicTPW2_comp
+    sensors: [mimic]
+    reader:  !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    mimicTPW2_comp:
+        file_reader:  !!python/name:satpy.readers.mimic_TPW2_nc.MimicTPW2FileHandler
+        file_patterns: ['comp{start_time:%Y%m%d.%H%M%S}.nc']
+        sensor: ['mimic']
+        platform_name: ['microwave']
+
+datasets:
+    latArr:
+        name:  'latitude'
+        units:  degrees_north
+        file_key:  latArr
+        standard_name:  latitude
+        coordinates: [ latitude ]
+        file_type: mimicTPW2_comp
+    lonArr:
+        name: 'longitude'
+        units: degrees_east
+        file_key:  lonArr
+        standard_name:  longitude
+        coordinates: [ longitude ]
+        file_type: mimicTPW2_comp

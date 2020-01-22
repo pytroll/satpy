@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
 # Copyright (c) 2019 Satpy developers
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Advanced Meteorological Imager reader for the Level 1b NetCDF4 format."""
 
 import logging
@@ -25,7 +25,7 @@ import xarray as xr
 import dask.array as da
 import pyproj
 
-from pyresample import geometry
+from satpy.readers._geos_area import get_area_definition, get_area_extent
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
@@ -75,45 +75,29 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Get area definition for this file."""
-        a = self.nc.attrs['earth_equatorial_radius']
-        b = self.nc.attrs['earth_polar_radius']
-        h = self.nc.attrs['nominal_satellite_height'] - a
-        lon_0 = self.nc.attrs['sub_longitude'] * 180 / np.pi  # it's in radians?
-        cols = self.nc.attrs['number_of_columns']
-        rows = self.nc.attrs['number_of_lines']
+        pdict = {}
+        pdict['a'] = self.nc.attrs['earth_equatorial_radius']
+        pdict['b'] = self.nc.attrs['earth_polar_radius']
+        pdict['h'] = self.nc.attrs['nominal_satellite_height'] - pdict['a']
+        pdict['ssp_lon'] = self.nc.attrs['sub_longitude'] * 180 / np.pi  # it's in radians?
+        pdict['ncols'] = self.nc.attrs['number_of_columns']
+        pdict['nlines'] = self.nc.attrs['number_of_lines']
         obs_mode = self.nc.attrs['observation_mode']
         resolution = self.nc.attrs['channel_spatial_resolution']
 
-        cfac = self.nc.attrs['cfac']
-        coff = self.nc.attrs['coff']
-        lfac = self.nc.attrs['lfac']
-        loff = self.nc.attrs['loff']
-        bit_shift = 2**16
-        area_extent = (
-            h * np.deg2rad((0 - coff - 0.5) * bit_shift / cfac),
-            -h * np.deg2rad((0 - loff - 0.5) * bit_shift / lfac),
-            h * np.deg2rad((cols - coff + 0.5) * bit_shift / cfac),
-            -h * np.deg2rad((rows - loff + 0.5) * bit_shift / lfac),
-        )
+        # Example offset: 11000.5
+        # the 'get_area_extent' will handle this half pixel for us
+        pdict['cfac'] = self.nc.attrs['cfac']
+        pdict['coff'] = self.nc.attrs['coff']
+        pdict['lfac'] = -self.nc.attrs['lfac']
+        pdict['loff'] = self.nc.attrs['loff']
+        pdict['scandir'] = 'N2S'
+        pdict['a_name'] = 'ami_geos_{}'.format(obs_mode.lower())
+        pdict['a_desc'] = 'AMI {} Area at {} resolution'.format(obs_mode, resolution)
+        pdict['p_id'] = 'ami_fixed_grid'
 
-        proj_dict = {
-            'proj': 'geos',
-            'lon_0': float(lon_0),
-            'a': float(a),
-            'b': float(b),
-            'h': h,
-            'units': 'm'
-        }
-
-        fg_area_def = geometry.AreaDefinition(
-            'ami_geos_{}'.format(obs_mode.lower()),
-            'AMI {} Area at {} resolution'.format(obs_mode, resolution),
-            'ami_fixed_grid',
-            proj_dict,
-            cols,
-            rows,
-            np.asarray(area_extent))
-
+        area_extent = get_area_extent(pdict)
+        fg_area_def = get_area_definition(pdict, area_extent)
         return fg_area_def
 
     def get_orbital_parameters(self):

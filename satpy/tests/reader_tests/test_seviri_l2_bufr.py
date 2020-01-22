@@ -47,7 +47,7 @@ DATASET_INFO = {
 }
 
 DATASET_ATTRS = {
-    'spacecraft_name': 'MET08',
+    'platform_name': 'MET08',
     'ssp_lon': 41.5,
     'seg_size': 16
 }
@@ -99,8 +99,8 @@ class TestSeviriL2Bufr(unittest.TestCase):
                                 np.testing.assert_array_equal(z.values, x1)
                                 np.testing.assert_array_equal(z.coords['latitude'].values, x2)
                                 np.testing.assert_array_equal(z.coords['longitude'].values, x3)
-                                self.assertEqual(z.attrs['spacecraft_name'],
-                                                 DATASET_ATTRS['spacecraft_name'])
+                                self.assertEqual(z.attrs['platform_name'],
+                                                 DATASET_ATTRS['platform_name'])
                                 self.assertEqual(z.attrs['ssp_lon'],
                                                  DATASET_ATTRS['ssp_lon'])
                                 self.assertEqual(z.attrs['seg_size'],
