@@ -101,5 +101,5 @@ def suite():
     mysuite.addTests(test_ami_l1b.suite())
     mysuite.addTests(test_seviri_l2_bufr.suite())
     mysuite.addTests(test_nwcsaf_msg.suite())
-
+    mysuite.addTests(test_slstr_l2.suite())
     return mysuite
