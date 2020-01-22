@@ -40,7 +40,6 @@ from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metad
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
-from satpy import CHUNK_SIZE
 
 try:
     from pyspectral.near_infrared_reflectance import Calculator
@@ -391,7 +390,7 @@ class SunZenithCorrectorBase(CompositeBase):
             # we were not given SZA, generate SZA then calculate cos(SZA)
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
-            lons, lats = vis.attrs["area"].get_lonlats(chunks=CHUNK_SIZE)
+            lons, lats = vis.attrs["area"].get_lonlats(chunks=vis.data.chunks)
 
             coords = {}
             if 'y' in vis.coords and 'x' in vis.coords:
@@ -513,6 +512,8 @@ class PSPRayleighReflectance(CompositeBase):
         from pyorbital.orbital import get_observer_look
 
         lons, lats = vis.attrs['area'].get_lonlats(chunks=vis.data.chunks)
+        lons = da.where(lons >= 1e30, np.nan, lons)
+        lats = da.where(lats >= 1e30, np.nan, lats)
         sunalt, suna = get_alt_az(vis.attrs['start_time'], lons, lats)
         suna = np.rad2deg(suna)
         sunz = sun_zenith_angle(vis.attrs['start_time'], lons, lats)
@@ -616,7 +617,8 @@ class NIRReflectance(CompositeBase):
         """Calculate 3.x reflectance with pyspectral."""
         _nir, _tb11 = projectables
         LOG.info('Getting reflective part of %s', _nir.attrs['name'])
-
+        da_nir = _nir.data
+        da_tb11 = _tb11.data
         sun_zenith = None
         tb13_4 = None
 
@@ -624,19 +626,19 @@ class NIRReflectance(CompositeBase):
             wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
             if (dataset.attrs.get('units') == 'K' and
                     wavelengths[0] <= 13.4 <= wavelengths[2]):
-                tb13_4 = dataset
+                tb13_4 = dataset.data
             elif ("standard_name" in dataset.attrs and
                   dataset.attrs["standard_name"] == "solar_zenith_angle"):
-                sun_zenith = dataset
+                sun_zenith = dataset.data
 
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             if sun_zenith_angle is None:
                 raise ImportError("No module named pyorbital.astronomy")
-            lons, lats = _nir.attrs["area"].get_lonlats(chunks=CHUNK_SIZE)
+            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
             sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
 
-        return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
+        return self._refl3x.reflectance_from_tbs(sun_zenith, da_nir, da_tb11, tb_ir_co2=tb13_4)
 
 
 class NIREmissivePartFromReflectance(NIRReflectance):
@@ -680,7 +682,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
             satz = optional_datasets[0]
         else:
             from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats(chunks=CHUNK_SIZE)
+            lons, lats = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
             sat_lon, sat_lat, sat_alt = get_satpos(band)
             try:
                 dummy, satel = get_observer_look(sat_lon,
@@ -1536,4 +1538,92 @@ class BackgroundCompositor(GenericCompositor):
 
         res = super(BackgroundCompositor, self).__call__(data, **kwargs)
         res.attrs.update(attrs)
+        return res
+
+
+class MaskingCompositor(GenericCompositor):
+    """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
+
+    def __init__(self, name, transparency=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            transparency: transparency for each cloud type as key-value pairs
+                          in a dictionary
+
+        The `transparencies` can be either the numerical values in the
+        data used as a mask with the corresponding transparency
+        (0...100 %) as the value, or, for NWC SAF products, the flag
+        names in the dataset `flag_meanings` attribute.
+
+        Transparency value of `0` means that the composite being
+        masked will be fully visible, and `100` means it will be
+        completely transparent and not visible in the resulting image.
+
+        For the mask values not listed in `transparencies`, the data will
+        be completely opaque (transparency = 0).
+
+        Example::
+
+          >>> transparency = {0: 100,
+                              1: 80,
+                              2: 0}
+          >>> compositor = MaskingCompositor("masking compositor",
+                                             transparency=transparency)
+          >>> result = compositor([data, mask])
+
+        This will set transparency of `data` based on the values in
+        the `mask` dataset.  Locations where `mask` has values of `0`
+        will be fully transparent, locations with `1` will be
+        semi-transparent and locations with `2` will be fully visible
+        in the resulting image.  All the unlisted locations will be
+        visible.
+
+        The transparency is implemented by adding an alpha layer to
+        the composite.  If the input `data` contains an alpha channel,
+        it will be discarded.
+
+        """
+        if transparency is None:
+            raise ValueError("No transparency configured for simple masking compositor")
+        self.transparency = transparency
+
+        super(MaskingCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Call the compositor."""
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
+        projectables = self.match_data_arrays(projectables)
+        cloud_mask = projectables[1]
+        cloud_mask_data = cloud_mask.data
+        data = projectables[0]
+        alpha_attrs = data.attrs.copy()
+        if 'bands' in data.dims:
+            data = [data.sel(bands=b) for b in data['bands'] if b != 'A']
+        else:
+            data = [data]
+
+        # Create alpha band
+        alpha = da.ones((data[0].sizes['y'],
+                         data[0].sizes['x']),
+                        chunks=data[0].chunks)
+
+        # Modify alpha based on transparency per class from yaml
+        flag_meanings = cloud_mask.attrs['flag_meanings']
+        flag_values = cloud_mask.attrs['flag_values']
+
+        if isinstance(flag_meanings, str):
+            flag_meanings = flag_meanings.split()
+
+        for key, val in self.transparency.items():
+            if isinstance(key, str):
+                key_index = flag_meanings.index(key)
+                key = flag_values[key_index]
+            alpha_val = 1. - val / 100.
+            alpha = da.where(cloud_mask_data == key, alpha_val, alpha)
+        alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
+                             dims=data[0].dims, coords=data[0].coords)
+        data.append(alpha)
+        res = super(MaskingCompositor, self).__call__(data, **kwargs)
         return res
