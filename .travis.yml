@@ -3,9 +3,9 @@ env:
     global:
         # Set defaults to avoid repeating in most cases
         - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
-        - NUMPY_VERSION=stable
+        - NUMPY_VERSION=1.17
         - MAIN_CMD='python setup.py'
-        - CONDA_DEPENDENCIES='xarray!=0.13.0 dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff geoviews zarr six python-eccodes'
+        - CONDA_DEPENDENCIES='xarray!=0.13.0 dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj=2.4.1 pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff geoviews zarr six python-eccodes'
         - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
@@ -14,13 +14,9 @@ env:
         - CONDA_CHANNEL_PRIORITY='strict'
 matrix:
   include:
-  - env:
-    - PYTHON_VERSION=2.7
-    - NUMPY_VERSION=1.16
+  - env: PYTHON_VERSION=3.8
     os: linux
-  - env:
-    - PYTHON_VERSION=2.7
-    - NUMPY_VERSION=1.16
+  - env: PYTHON_VERSION=3.8
     os: osx
     language: generic
   - env: PYTHON_VERSION=3.7
@@ -35,7 +31,7 @@ script:
 - coverage run --source=satpy setup.py test
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 after_success:
-- if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; codecov; fi
+- if [[ $PYTHON_VERSION == 3.8 ]]; then coveralls; codecov; fi
 deploy:
   - provider: pypi
     user: dhoese
