@@ -221,6 +221,9 @@ the base Satpy installation.
     * - GEO-KOMPSAT-2 AMI L1B data in NetCDF4 format
       - `ami_l1b`
       - Beta
+    * - Sentinel-3 SLSTR SST data in NetCDF4 format
+      - `slstr_l2`
+      - Beta
 
 
 Indices and tables
