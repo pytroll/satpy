@@ -73,7 +73,8 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
                                                                                 'NorthPolarRadius': 10,
                                                                                 'SouthPolarRadius': 10,
                                                                                 'EquatorialRadius': 10}},
-                                         'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0}}}
+                                         'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0},
+                                                              'Level15ImageProduction': {'ImageProcDirection': 1}}}
                     prologue.get_satpos.return_value = None, None, None
                     prologue.get_earth_radii.return_value = None, None
                     epilogue = mock.MagicMock()
@@ -287,7 +288,8 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                                                                                 'NorthPolarRadius': 10,
                                                                                 'SouthPolarRadius': 10,
                                                                                 'EquatorialRadius': 10}},
-                                         'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0}}}
+                                         'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0},
+                                                              'Level15ImageProduction': {'ImageProcDirection': 1}}}
                     prologue.get_satpos.return_value = None, None, None
                     prologue.get_earth_radii.return_value = None, None
 
@@ -327,25 +329,6 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                     tline['days'][1:-1] = 21246 * np.ones(nlines-2)  # 2016-03-03
                     tline['milliseconds'][1:-1] = np.arange(nlines-2)
                     self.reader.mda['image_segment_line_quality'] = {'line_mean_acquisition': tline}
-
-    def test_get_xy_from_linecol(self):
-        """Test get_xy_from_linecol."""
-        x__, y__ = self.reader.get_xy_from_linecol(0, 0, (10, 10), (5, 5))
-        self.assertEqual(-131072, x__)
-        self.assertEqual(131072, y__)
-        x__, y__ = self.reader.get_xy_from_linecol(10, 10, (10, 10), (5, 5))
-        self.assertEqual(0, x__)
-        self.assertEqual(0, y__)
-        x__, y__ = self.reader.get_xy_from_linecol(20, 20, (10, 10), (5, 5))
-        self.assertEqual(131072, x__)
-        self.assertEqual(-131072, y__)
-
-    def test_get_area_extent(self):
-        """Test getting the area_extent."""
-        res = self.reader.get_area_extent((20, 20), (10, 10), (5, 5), 33)
-        exp = (-71717.44995740513, -79266.655216079365,
-               79266.655216079365, 71717.44995740513)
-        self.assertTupleEqual(res, exp)
 
     def test_get_area_def(self):
         """Test getting the area def."""

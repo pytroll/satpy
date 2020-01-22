@@ -16,6 +16,15 @@ file_types:
     esa_l2_chl_oc4me:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
         file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/chl_oc4me.nc']
+    esa_l2_iop_nn:
+        file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
+        file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/iop_nn.nc']
+    esa_l2_trsp:
+        file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
+        file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/trsp.nc']
+    esa_l2_tsm_nn:
+        file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
+        file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/tsm_nn.nc']
     esa_l2_wqsf:
         file_reader: !!python/name:satpy.readers.olci_nc.NCOLCI2
         file_patterns: ['{mission_id:3s}_OL_2_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/wqsf.nc']
@@ -338,6 +347,42 @@ datasets:
     coordinates: [longitude, latitude]
     file_type: esa_l2_chl_nn
     nc_key: CHL_NN
+
+  iop_nn:
+    name: iop_nn
+    sensor: olci
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: cdm_absorption_coefficient
+        units: "lg(re m-l)"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_iop_nn
+    nc_key: ADG443_NN
+
+  trsp:
+    name: trsp
+    sensor: olci
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: diffuse_attenuation_coefficient
+        units: "lg(re m-l)"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_trsp
+    nc_key: KD490_M07
+
+  tsm_nn:
+    name: tsm_nn
+    sensor: olci
+    resolution: 300
+    calibration:
+      reflectance:
+        standard_name: total_suspended_matter_concentration
+        units: "lg(re g.m-3)"
+    coordinates: [longitude, latitude]
+    file_type: esa_l2_tsm_nn
+    nc_key: TSM_NN
 
   wqsf:
     name: wqsf
