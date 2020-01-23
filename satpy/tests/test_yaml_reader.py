@@ -97,6 +97,28 @@ class TestUtils(unittest.TestCase):
         expected = os.path.join(base_dir, 'geo_coordinates.nc')
         self.assertEqual(yr.match_filenames(filenames, pattern), [expected])
 
+    def test_match_filenames_windows_forward_slash(self):
+        """Check that matching filenames works on Windows with forward slashes.
+
+        This is common from Qt5 which internally uses forward slashes everywhere.
+
+        """
+        # just a fake path for testing that doesn't have to exist
+        base_dir = os.path.join(os.path.expanduser('~'), 'data',
+                                'satellite', 'Sentinel-3')
+        base_data = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_'
+                     '20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3')
+        base_dir = os.path.join(base_dir, base_data)
+        pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
+                   '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
+                   'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
+                   've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
+                   '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
+        filenames = [os.path.join(base_dir, 'Oa05_radiance.nc').replace(os.sep, '/'),
+                     os.path.join(base_dir, 'geo_coordinates.nc').replace(os.sep, '/')]
+        expected = os.path.join(base_dir, 'geo_coordinates.nc')
+        self.assertEqual(yr.match_filenames(filenames, pattern), [expected])
+
     def test_listify_string(self):
         """Check listify_string."""
         self.assertEqual(yr.listify_string(None), [])
