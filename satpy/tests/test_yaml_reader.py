@@ -22,15 +22,11 @@ import random
 import unittest
 from datetime import datetime
 from tempfile import mkdtemp
+from unittest.mock import MagicMock, patch
 
 import satpy.readers.yaml_reader as yr
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.dataset import DatasetID
-
-try:
-    from unittest.mock import MagicMock, patch
-except ImportError:
-    from mock import MagicMock, patch
 
 
 class FakeFH(BaseFileHandler):
@@ -116,7 +112,7 @@ class TestUtils(unittest.TestCase):
                    '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
         filenames = [os.path.join(base_dir, 'Oa05_radiance.nc').replace(os.sep, '/'),
                      os.path.join(base_dir, 'geo_coordinates.nc').replace(os.sep, '/')]
-        expected = os.path.join(base_dir, 'geo_coordinates.nc')
+        expected = os.path.join(base_dir, 'geo_coordinates.nc').replace(os.sep, '/')
         self.assertEqual(yr.match_filenames(filenames, pattern), [expected])
 
     def test_listify_string(self):
