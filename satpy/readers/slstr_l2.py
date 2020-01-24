@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-""" Reader for Sentinel-3 SLSTR SST data
-"""
+"""Reader for Sentinel-3 SLSTR SST data."""
 
 from datetime import datetime
 from satpy.readers.file_handlers import BaseFileHandler
@@ -24,8 +23,10 @@ import xarray as xr
 
 
 class SLSTRL2FileHandler(BaseFileHandler):
+    """File handler for Sentinel-3 SSL L2 netCDF files."""
 
     def __init__(self, filename, filename_info, filetype_info, engine=None):
+        """Initialize the file handler for Sentinel-3 SSL L2 netCDF data."""
         super(SLSTRL2FileHandler, self).__init__(filename, filename_info, filetype_info)
 
         if filename.endswith('tar'):
@@ -59,13 +60,16 @@ class SLSTRL2FileHandler(BaseFileHandler):
             self.nc.stop_time, '%Y%m%dT%H%M%SZ')
 
     def get_dataset(self, key, info):
+        """Get any available dataset."""
         stdname = info.get('standard_name')
         return self.nc[stdname].squeeze()
 
     @property
     def start_time(self):
+        """Get start time."""
         return self.filename_info['start_time']
 
     @property
     def end_time(self):
+        """Get end time."""
         return self.filename_info['end_time']
