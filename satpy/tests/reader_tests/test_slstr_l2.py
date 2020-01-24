@@ -20,6 +20,7 @@
 import unittest
 from unittest import mock
 from unittest.mock import MagicMock
+from unittest.mock import patch
 import xarray as xr
 from satpy.readers.slstr_l2 import SLSTRL2FileHandler
 
@@ -35,6 +36,12 @@ class TestSLSTRL2Reader(unittest.TestCase):
         tmp.rename.return_value = tmp
         xr.open_dataset.return_value = tmp
         SLSTRL2FileHandler('somedir/somefile.nc', filename_info, None)
+        mocked_dataset.assert_called()
+        mocked_dataset.reset_mock()
+
+        with patch('tarfile.open') as tf:
+            tf.return_value.__enter__.return_value = MagicMock(getnames=lambda *a: ["GHRSST-SSTskin.nc"])
+            SLSTRL2FileHandler('somedir/somefile.tar', filename_info, None)
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
