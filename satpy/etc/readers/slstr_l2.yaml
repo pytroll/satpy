@@ -1,5 +1,5 @@
 reader:
-  description: NC Reader for Sentinel-3 SLSTR data
+  description: NC Reader for Sentinel-3 SLSTR Level 2 data
   name: slstr_l2
   sensors: [slstr_l2]
   default_channels: []
