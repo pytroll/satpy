@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.slstr_l2 module.
-"""
+"""Module for testing the satpy.readers.slstr_l2 module."""
 
 import unittest
 from unittest import mock
@@ -26,9 +25,11 @@ from satpy.readers.slstr_l2 import SLSTRL2FileHandler
 
 
 class TestSLSTRL2Reader(unittest.TestCase):
+    """Test Sentinel-3 SST L2 reader."""
 
     @mock.patch('xarray.open_dataset')
     def test_instantiate(self, mocked_dataset):
+        """Test initialization of file handlers."""
         filename_info = {}
         tmp = MagicMock(start_time='20191120T125002Z', stop_time='20191120T125002Z')
         tmp.rename.return_value = tmp
@@ -39,6 +40,7 @@ class TestSLSTRL2Reader(unittest.TestCase):
 
     @mock.patch('xarray.open_dataset')
     def test_get_dataset(self, mocked_dataset):
+        """Test retrieval of datasets."""
         filename_info = {}
         tmp = MagicMock(start_time='20191120T125002Z', stop_time='20191120T125002Z')
         tmp.rename.return_value = tmp
@@ -60,7 +62,7 @@ class TestSLSTRL2Reader(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_slstr_l2."""
+    """Test suite for test_slstr_l2."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestSLSTRL2Reader))
