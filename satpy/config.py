@@ -20,10 +20,7 @@ from __future__ import print_function
 import glob
 import logging
 import os
-try:
-    from collections.abc import Mapping
-except ImportError:
-    from collections import Mapping
+from collections.abc import Mapping
 from collections import OrderedDict
 
 import yaml
