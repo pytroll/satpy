@@ -17,52 +17,52 @@ file_types:
   # Below list is alphabetical
   ir087:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir087_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir087_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   ir096:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir096_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir096_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   ir105:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir105_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir105_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   ir112:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir112_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir112_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   ir123:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir123_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir123_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   ir133:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir133_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_ir133_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   nr013:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_nr013_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_nr013_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   nr016:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_nr016_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_nr016_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   sw038:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_sw038_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_sw038_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   vi004:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi004_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi004_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   vi005:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi005_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi005_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   vi006:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi006_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi006_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   vi008:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi008_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_vi008_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   wv063:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv063_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv063_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   wv069:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv069_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv069_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
   wv073:
     file_reader: !!python/name:satpy.readers.ami_l1b.AMIL1bNetCDF
-    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv073_{sector_info:s}_{start_time:%Y%m%d%H%M}.nc']
+    file_patterns: ['{platform_shortname:4s}_{sensor:3s}_le1b_wv073_{sector_info:2s}{res_info:s}_{start_time:%Y%m%d%H%M}.nc']
 
 datasets:
   # Below list is ordered the same as the table:

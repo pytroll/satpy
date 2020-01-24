@@ -22,11 +22,7 @@ import xarray as xr
 import dask.array as da
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 
 class FakeDataset(object):
@@ -147,6 +143,30 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
         }
         for key, val in exp_params.items():
             self.assertAlmostEqual(val, orb_params[key], places=3)
+
+    def test_filename_grouping(self):
+        """Test that filenames are grouped properly."""
+        from satpy.readers import group_files
+        filenames = [
+            'gk2a_ami_le1b_ir087_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_ir096_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_ir105_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_ir112_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_ir123_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_ir133_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_nr013_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_nr016_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_sw038_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_vi004_fd010ge_201909300300.nc',
+            'gk2a_ami_le1b_vi005_fd010ge_201909300300.nc',
+            'gk2a_ami_le1b_vi006_fd005ge_201909300300.nc',
+            'gk2a_ami_le1b_vi008_fd010ge_201909300300.nc',
+            'gk2a_ami_le1b_wv063_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_wv069_fd020ge_201909300300.nc',
+            'gk2a_ami_le1b_wv073_fd020ge_201909300300.nc']
+        groups = group_files(filenames, reader='ami_l1b')
+        self.assertEqual(len(groups), 1)
+        self.assertEqual(len(groups[0]['ami_l1b']), 16)
 
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
