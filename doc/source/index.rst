@@ -228,6 +228,9 @@ the base Satpy installation.
     * - GOES-R GLM Grided Level 2 in NetCDF4 format
       - `glm_l2`
       - Beta
+    * - Sentinel-3 SLSTR SST data in NetCDF4 format
+      - `slstr_l2`
+      - Beta
 
 
 Indices and tables
