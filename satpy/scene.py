@@ -677,10 +677,20 @@ class Scene(MetadataObject):
         """Return value from DatasetDict with optional default."""
         return self.datasets.get(key, default)
 
+    def add_mask(self, da, mask):
+        """"""
+        da.masked.mask = mask
+
     def __getitem__(self, key):
         """Get a dataset or create a new 'slice' of the Scene."""
         if isinstance(key, tuple) and not isinstance(key, DatasetID):
             return self.slice(key)
+        try:
+            # Set the mask so that it can be used in the self.datasets[key].masked()
+            # method, if it the "mask" dataset has been loaded.
+            self.datasets[key].masked.mask = self.datasets['mask']
+        except KeyError:
+            pass
         return self.datasets[key]
 
     def __setitem__(self, key, value):
@@ -1115,7 +1125,6 @@ class Scene(MetadataObject):
         new_scn.wishlist = self.wishlist.copy()
         self._resampled_scene(new_scn, destination, resampler=resampler,
                               reduce_data=reduce_data, **resample_kwargs)
-
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
         if generate:
@@ -1387,3 +1396,7 @@ class Scene(MetadataObject):
         mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf",
                    ".mitiff": "mitiff"}
         return mapping.get(extension.lower(), 'simple_image')
+
+    # def add_mask(self):
+    #     try:
+    #         self.datasets

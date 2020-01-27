@@ -1290,9 +1290,12 @@ def resample(source_area, data, destination_area,
 
 def get_fill_value(dataset):
     """Get the fill value of the *dataset*, defaulting to np.nan."""
-    if np.issubdtype(dataset.dtype, np.integer):
-        return dataset.attrs.get('_FillValue', np.nan)
-    return np.nan
+    fill_vals = [(np.uint, np.iinfo(np.uint64).max), (np.integer, np.nan)]
+    for t, fill in fill_vals:
+        if np.issubdtype(dataset.dtype, t):
+            return dataset.attrs.get('_FillValue', fill)
+    else:
+        return np.nan
 
 
 def resample_dataset(dataset, destination_area, **kwargs):
