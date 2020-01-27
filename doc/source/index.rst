@@ -40,6 +40,10 @@ the base Satpy installation.
     Satpy's interfaces are not guaranteed stable and may change until version
     1.0 when backwards compatibility will be a main focus.
 
+.. versionchanged:: 0.20.0
+
+    Dropped Python 2 support.
+
 .. _project: http://github.com/pytroll/satpy
 
 .. toctree::
@@ -223,6 +227,9 @@ the base Satpy installation.
       - Beta
     * - GOES-R GLM Grided Level 2 in NetCDF4 format
       - `glm_l2`
+      - Beta
+    * - Sentinel-3 SLSTR SST data in NetCDF4 format
+      - `slstr_l2`
       - Beta
 
 
