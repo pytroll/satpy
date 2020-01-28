@@ -21,7 +21,7 @@ import itertools
 import logging
 import os
 import warnings
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from collections import deque, OrderedDict
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
@@ -67,6 +67,8 @@ def listify_string(something):
 
 def get_filebase(path, pattern):
     """Get the end of *path* of same length as *pattern*."""
+    # convert any `/` on Windows to `\\`
+    path = os.path.normpath(path)
     # A pattern can include directories
     tail_len = len(pattern.split(os.path.sep))
     return os.path.join(*str(path).split(os.path.sep)[-tail_len:])
@@ -145,11 +147,13 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         """Get names of datasets that are loadable by this reader."""
         return (ds_id.name for ds_id in self.available_dataset_ids)
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def start_time(self):
         """Start time of the reader."""
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def end_time(self):
         """End time of the reader."""
 
