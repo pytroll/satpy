@@ -20,6 +20,7 @@
 .. todo::
 
     Fine grained calibration
+    Radiance output
 
 """
 
@@ -166,11 +167,11 @@ class GACLACFile(BaseFileHandler):
         elif key.calibration == 'counts':
             # if we ask for uncalibrated data we will get all channels back
             data = self.reader.get_counts()
-            data = data[:,:,self.chn_dict[key.name.upper()]]
+            data = data[:, :, self.chn_dict[key.name.upper()]]
             xdim = 'x'
             xcoords = None
         elif key.calibration in ['reflectance', 'radiance']:
-        # TODO: add radiance, only reflectance is defined
+            # get calibrated data of all channels back
             data = self._get_calibrated_data(key.name)
             xdim = 'x'
             xcoords = None
