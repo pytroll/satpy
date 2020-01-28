@@ -689,7 +689,7 @@ class Scene(MetadataObject):
             # Set the mask so that it can be used in the self.datasets[key].masked()
             # method, if it the "mask" dataset has been loaded.
             self.datasets[key].masked.mask = self.datasets['mask']
-        except KeyError:
+        except (KeyError, AttributeError):
             pass
         return self.datasets[key]
 

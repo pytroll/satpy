@@ -106,8 +106,7 @@ class Mask(object):
         self._obj = xarray_obj
         self.flags = None
 
-    @property
-    def mask(self):
+    def get_decoded_mask(self):
         """Get the (decoded and reduced) boolean mask."""
         bflags = BitFlags(self._mask)
         self._obj.attrs['flags'] = bflags.flag_list
@@ -117,6 +116,10 @@ class Mask(object):
             flags = self.flags
         return xr.concat([bflags[item] for item in flags], 'flag')
 
+    @property
+    def mask(self):
+        return self._mask
+
     @mask.setter
     def mask(self, values):
         """Set the bitmask with the undecoded values"""
@@ -124,10 +127,10 @@ class Mask(object):
         self.flags = None
 
     def __call__(self, flags=None):
-        """Returns a *masked* data array. It is masked (i.e. set to a nan value)
+        """Returns a *masked* data array. It is masked (i.e. set to a nan values)
         where any of the the specified flags values are true"""
         self.flags = flags
-        bool_mask = self.mask.reduce(func=np.any, dim='flag')
+        bool_mask = self.get_decoded_mask().reduce(func=np.any, dim='flag')
         return self._obj.where(~bool_mask)
 
 
