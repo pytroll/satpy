@@ -163,8 +163,19 @@ class GACLACFile(BaseFileHandler):
                        'Solar contamination of blackbody in channels 3',
                        'Solar contamination of blackbody in channels 4',
                        'Solar contamination of blackbody in channels 5']
+        elif key.calibration == 'counts':
+            # if we ask for uncalibrated data we will get all channels back
+            data = self.reader.get_counts()
+            data = data[:,:,self.chn_dict[key.name.upper()]]
+            xdim = 'x'
+            xcoords = None
+        elif key.calibration in ['reflectance', 'radiance']:
+        # TODO: add radiance, only reflectance is defined
+            data = self._get_calibrated_data(key.name)
+            xdim = 'x'
+            xcoords = None
         else:
-            data = self._get_channel(key.name)
+            data = self._get_calibrated_data(key.name)
             xdim = 'x'
             xcoords = None
 
@@ -263,7 +274,7 @@ class GACLACFile(BaseFileHandler):
 
         return sliced, midnight_scanline, miss_lines
 
-    def _get_channel(self, name):
+    def _get_calibrated_data(self, name):
         """Get channel by name and buffer results."""
         if self.channels is None:
             self.channels = self.reader.get_calibrated_channels()
