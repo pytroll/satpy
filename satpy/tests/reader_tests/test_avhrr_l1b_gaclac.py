@@ -208,8 +208,8 @@ class TestGACLACFile(TestCase):
 
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.slice')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle')
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
-    def test_get_dataset_extras(self, get_channel, get_angle, slc):
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_calibrated_data')
+    def test_get_dataset_extras(self, get_calibrated_data, get_angle, slc):
         """Test getting the dataset with extra options."""
         from satpy.dataset import DatasetID
 
@@ -231,7 +231,7 @@ class TestGACLACFile(TestCase):
         reader.mask = [0]
         reader.get_lonlat.return_value = lons, lats
         reader.get_times.return_value = acq
-        get_channel.return_value = ch
+        get_calibrated_data.return_value = ch
         get_angle.return_value = angles
 
         # Test slicing/stripping
