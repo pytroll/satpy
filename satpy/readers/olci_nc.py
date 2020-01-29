@@ -92,46 +92,58 @@ class BitFlags(object):
         return res
 
 
-@xr.register_dataarray_accessor("masked")
+@xr.register_dataarray_accessor("apply_mask")
 class Mask(object):
-    """Add a method to xr.DataArray for masking a "satpy dataset"
-    Usage:
-        da = scn[dataset_name]  # Read a satpy dataset
-        da_masked = da.masked(flags)  # Returns a xr.DataArray with masked values set to nans, for the flags
-        da_masked.flags  # Returns a list of the available flags names
-        da.masked.mask  # Returns a boolean xr.DataArray for all the flags
+    """Add a method to xr.DataArray for masking a satpy-dataset.
+    Example usage:
+        scn.load(['dataset_name', 'wqsf']) # The bitmask must be loaded
+        da = scn['dataset_name']
+        da.apply_mask(flags) # Returns a xr.DataArray with the masked values
+                             # set to nans, for the specified flags iterable,
+                             # containing the flag names.
+        apply_mask.flags # Returns a list of the available flags names.
+        da.apply_mask.get_boolean_mask() # Returns a 3D boolean xr.DataArray
+                                         # for the corresponding flags.
     """
 
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
-        self.flags = None
+        self._mask = None
 
-    def get_decoded_mask(self):
-        """Get the (decoded and reduced) boolean mask."""
+    def get_boolean_mask(self, flags):
+        """Returns a boolean mask for the specified flags."""
         bflags = BitFlags(self._mask)
         self._obj.attrs['flags'] = bflags.flag_list
-        if not self.flags:  # Use all the flags 
-            flags = bflags.flag_list
-        else:
-            flags = self.flags
+        if flags is None:
+            flags = bflags.flag_list  # Use all the flags
         return xr.concat([bflags[item] for item in flags], 'flag')
 
     @property
-    def mask(self):
+    def bitmask(self):
         return self._mask
 
-    @mask.setter
-    def mask(self, values):
-        """Set the bitmask with the undecoded values"""
+    @bitmask.setter
+    def bitmask(self, values):
+        """Set with the undecoded bitmask"""
+        if not np.issubdtype(values, np.integer):
+            raise ValueError('The bitmask should integers')
         self._mask = values
-        self.flags = None
 
     def __call__(self, flags=None):
-        """Returns a *masked* data array. It is masked (i.e. set to a nan values)
-        where any of the the specified flags values are true"""
-        self.flags = flags
-        bool_mask = self.get_decoded_mask().reduce(func=np.any, dim='flag')
-        return self._obj.where(~bool_mask)
+        """Returns a filtered data array. It is filtered (i.e. set to a
+        nan values) where any of the the specified flags values are true.
+
+        Args:
+            flags: iterator containing the flag names
+        Returns:
+            class:`xarray.Dataset`
+        """
+        if self._mask is None:
+            raise ValueError("""The 'wqsf' dataset needs to be loaded for this 
+            method to work. The 'wqsf' data is in the Level-1 S3 files.""")
+        bool_mask_2d = self.get_boolean_mask(flags).reduce(func=np.any,
+                                                           dim='flag')
+        return self._obj.where(~bool_mask_2d)
 
 
 class NCOLCIBase(BaseFileHandler):
@@ -265,11 +277,24 @@ class NCOLCI2(NCOLCIChannelBase):
         if key.name == 'wqsf':
             dataset.attrs['_FillValue'] = 1
         elif key.name == 'mask':
-            pass
+            dataset = self.getbitmask(dataset)
+
         dataset.attrs['platform_name'] = self.platform_name
         dataset.attrs['sensor'] = self.sensor
         dataset.attrs.update(key.to_dict())
         return dataset
+
+    def getbitmask(self, wqsf, items=None):
+        """Get the bitmask."""
+        # TODO: this method could be removed, as the functionality
+        #  is now given by dataset.apply_mask.get_boolean_mask(items)
+        #  (see the Mask class).
+        if items is None:
+            items = ["INVALID", "SNOW_ICE", "INLAND_WATER", "SUSPECT",
+                     "AC_FAIL", "CLOUD", "HISOLZEN", "OCNN_FAIL",
+                     "CLOUD_MARGIN", "CLOUD_AMBIGUOUS", "LOWRW", "LAND"]
+        bflags = BitFlags(wqsf)
+        return reduce(np.logical_or, [bflags[item] for item in items])
 
 
 class NCOLCILowResData(BaseFileHandler):
