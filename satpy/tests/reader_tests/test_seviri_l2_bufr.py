@@ -52,7 +52,7 @@ DATASET_INFO = {
 }
 
 DATASET_ATTRS = {
-    'spacecraft_name': 'MET08',
+    'platform_name': 'MET08',
     'ssp_lon': 41.5,
     'seg_size': 16
 }

@@ -68,6 +68,15 @@ the specified parameters. So the above ``load`` call would load the ``0.6``
 (a visible/reflectance band) radiance data and ``10.8`` (an IR band)
 brightness temperature data.
 
+For geostatinary satellites that have the individual channel data
+separated to several files (segments) the missing segments are padded
+by default to full disk area.  This is made to simplify caching of
+resampling look-up tables (see :doc:`resample` for more information).
+To disable this, the user can pass ``pad_data`` keyword argument when
+loading datasets::
+
+    >>> scn.load([0.6, 10.8], pad_data=False)
+
 .. note::
 
     If a dataset could not be loaded there is no exception raised. You must

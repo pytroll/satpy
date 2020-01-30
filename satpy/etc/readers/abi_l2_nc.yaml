@@ -324,63 +324,63 @@ datasets:
 file_types:
   abi_l2_cmip_c01:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C01_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c02:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C02_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C02_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c03:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C03_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C03_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c04:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C04_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C04_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c05:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C05_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C05_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c06:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C06_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C06_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c07:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C07_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C07_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c08:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C08_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C08_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c09:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C09_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C09_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c10:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C10_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C10_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c11:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C11_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C11_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c12:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C12_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C12_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c13:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C13_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C13_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c14:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C14_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C14_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c15:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:s}-{scan_mode:2s}C15_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{scene_abbr:s}-{scan_mode:2s}C15_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cmip_c16:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
@@ -388,27 +388,27 @@ file_types:
 
   abi_l2_acha:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACHA{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACHA{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_acht:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACHT{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACHT{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_acm:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACM{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACM{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_actp:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACTP{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ACTP{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_adp:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ADP{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-ADP{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_aod:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-AOD{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-AOD{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_cod:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
@@ -422,12 +422,12 @@ file_types:
   abi_l2_codd:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
     file_patterns:
-      - '{system_environment:2s}_{mission_id:3s}-L2-CODD{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+      - '{system_environment:2s}_{mission_id:3s}-L2-CODD{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
 
   abi_l2_codn:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
     file_patterns:
-      - '{system_environment:2s}_{mission_id:3s}-L2-CODN{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+      - '{system_environment:2s}_{mission_id:3s}-L2-CODN{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
 
   abi_l2_cps:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
@@ -441,62 +441,62 @@ file_types:
   abi_l2_cpsd:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
     file_patterns:
-      - '{system_environment:2s}_{mission_id:3s}-L2-CPSD{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+      - '{system_environment:2s}_{mission_id:3s}-L2-CPSD{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
 
   abi_l2_cpsn:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
     file_patterns:
-      - '{system_environment:2s}_{mission_id:3s}-L2-CPSN{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
+      - '{system_environment:2s}_{mission_id:3s}-L2-CPSN{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc'
 
   abi_l2_ctp:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CTP{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CTP{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_dsi:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DSI{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DSI{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_drs:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DRS{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DRS{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_fdc:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-FDC{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-FDC{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_fsc:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-FSC{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-FSC{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_lst:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-LST{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-LST{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_rrqpe:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-RRQPE{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-RRQPE{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_rsr:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-RSR{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-RSR{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_dsr:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DSR{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-DSR{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_sst:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-SST{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-SST{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_tpw:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-TPW{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-TPW{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_vaa:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-VAA{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc', '{system_environment:2s}_{mission_id:3s}-L2-VAA{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-128600_0.nc']
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-VAA{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc', '{system_environment:2s}_{mission_id:3s}-L2-VAA{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}-128600_0.nc']
 
   # CSPP - Geo Unofficial product
   abi_l2_nav:
     file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
-    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-NAV{area_code:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+    file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-NAV{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
