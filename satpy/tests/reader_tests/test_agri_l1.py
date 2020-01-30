@@ -536,3 +536,8 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(Test_HDF_AGRI_L1_cal))
 
     return mysuite
+
+
+if __name__ == "__main__":
+    # So you can run tests from this module individually.
+    unittest.main()

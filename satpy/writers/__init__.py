@@ -265,11 +265,12 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
             level_borders = 1
         overlays.setdefault('borders', {}).setdefault('level', level_borders)
 
-        if grid is not None and 'major_lonlat' in grid and grid['major_lonlat']:
-            major_lonlat = grid.pop('major_lonlat')
-            minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
-            grid_params = {'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat}
-            for key, val in grid_params.items():
+        if grid is not None:
+            if 'major_lonlat' in grid and grid['major_lonlat']:
+                major_lonlat = grid.pop('major_lonlat')
+                minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
+                grid.update({'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat})
+            for key, val in grid.items():
                 overlays.setdefault('grid', {}).setdefault(key, val)
 
     cw_ = ContourWriterAGG(coast_dir)
