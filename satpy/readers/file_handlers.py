@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,54 +15,46 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-# Copyright (c) 2016.
-
-# Author(s):
-
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
-# This file is part of satpy.
-
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Interface for BaseFileHandlers."""
 
 from abc import ABCMeta
 
 import numpy as np
 import six
+from pathlib import PurePath
 
 from pyresample.geometry import SwathDefinition
 from satpy.dataset import combine_metadata
 
 
 class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
+    """Base file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        self.filename = str(filename)
+        """Initialize file handler."""
+        if isinstance(filename, PurePath):
+            self.filename = str(filename)
+        else:
+            self.filename = filename
         self.navigation_reader = None
         self.filename_info = filename_info
         self.filetype_info = filetype_info
         self.metadata = filename_info.copy()
 
     def __str__(self):
+        """Customize __str__."""
         return "<{}: '{}'>".format(self.__class__.__name__, self.filename)
 
     def __repr__(self):
+        """Customize __repr__."""
         return str(self)
 
     def get_dataset(self, dataset_id, ds_info):
+        """Get dataset."""
         raise NotImplementedError
 
     def get_area_def(self, dsid):
+        """Get area definition."""
         raise NotImplementedError
 
     def get_bounding_box(self):
@@ -143,10 +135,12 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
 
     @property
     def start_time(self):
+        """Get start time."""
         return self.filename_info['start_time']
 
     @property
     def end_time(self):
+        """Get end time."""
         return self.filename_info.get('end_time', self.start_time)
 
     @property
@@ -155,7 +149,7 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
         raise NotImplementedError
 
     def file_type_matches(self, ds_ftype):
-        """This file handler's type can handle this dataset's file type.
+        """Match file handler's type to this dataset's file type.
 
         Args:
             ds_ftype (str or list): File type or list of file types that a

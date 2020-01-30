@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
+# Copyright (c) 2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -80,7 +80,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         return self.start_time + timedelta(minutes=15)
 
     @property
-    def spacecraft_name(self):
+    def platform_name(self):
         """Return spacecraft name."""
         return 'MET{}'.format(self.mpef_header['SpacecraftName'])
 
@@ -149,7 +149,7 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
 
         xarr = xr.DataArray(arr, dims=["y"])
         xarr.attrs['sensor'] = 'SEVIRI'
-        xarr.attrs['spacecraft_name'] = self.spacecraft_name
+        xarr.attrs['platform_name'] = self.platform_name
         xarr.attrs['ssp_lon'] = self.ssp_lon
         xarr.attrs['seg_size'] = self.seg_size
         xarr.attrs.update(dataset_info)
