@@ -19,11 +19,10 @@
 
 
 import logging
-from datetime import timedelta
+from datetime import timedelta, datetime
 import numpy as np
 import xarray as xr
 import dask.array as da
-
 from satpy.readers.seviri_base import mpef_product_header
 from satpy.readers.eum_base import recarray2dict
 
@@ -36,10 +35,11 @@ except ImportError:
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
-logger = logging.getLogger('BufrProductClasses')
+logger = logging.getLogger('SeviriL2Bufr')
 
+data_center_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0000', 'name': '09'},
+                    57: {'ssp': 'E0095', 'name': '10'}, 70: {'ssp': 'E0000', 'name': '11'}}
 
-sub_sat_dict = {"E0000": 0.0, "E0415": 41.5, "E0095": 9.5}
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
                  'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
@@ -54,8 +54,19 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
                                                       filename_info,
                                                       filetype_info)
 
-        self.filename = filename
-        self.mpef_header = self._read_mpef_header()
+        if ('server' in filename_info):
+            # EUMETSAT Offline Bufr product
+            self.mpef_header = self._read_mpef_header()
+        else:
+            # Product was retrieved from the EUMETSAT Data Center
+            timeStr = self.get_attribute('typicalDate')+self.get_attribute('typicalTime')
+            buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
+            sc_id = self.get_attribute('satelliteIdentifier')
+            self.mpef_header = {}
+            self.mpef_header['NominalTime'] = buf_start_time
+            self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
+            self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
+
         self.seg_size = seg_size_dict[filetype_info['file_type']]
 
     @property
@@ -84,6 +95,24 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         """Read MPEF header."""
         hdr = np.fromfile(self.filename, mpef_product_header, 1)
         return recarray2dict(hdr)
+
+    def get_attribute(self, key):
+        ''' Get BUFR attributes '''
+        # This function is inefficient as it is looping through the entire
+        # file to get 1 attribute. It causes a problem though if you break
+        # from the file early - dont know why but investigating - fix later
+        fh = open(self.filename, "rb")
+        while True:
+            # get handle for message
+            bufr = ec.codes_bufr_new_from_file(fh)
+            if bufr is None:
+                break
+            ec.codes_set(bufr, 'unpack', 1)
+            attr = ec.codes_get(bufr, key)
+            ec.codes_release(bufr)
+
+        fh.close()
+        return attr
 
     def get_array(self, key):
         """Get all data from file for the given BUFR key."""
@@ -119,9 +148,6 @@ class SeviriL2BufrFileHandler(BaseFileHandler):
         arr[arr == dataset_info['fill_value']] = np.nan
 
         xarr = xr.DataArray(arr, dims=["y"])
-
-        xarr['latitude'] = ('y', self.get_array('latitude'))
-        xarr['longitude'] = ('y', self.get_array('longitude'))
         xarr.attrs['sensor'] = 'SEVIRI'
         xarr.attrs['platform_name'] = self.platform_name
         xarr.attrs['ssp_lon'] = self.ssp_lon
