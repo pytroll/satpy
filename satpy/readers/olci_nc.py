@@ -94,23 +94,13 @@ class BitFlags(object):
 
 @xr.register_dataarray_accessor("apply_mask")
 class Mask(object):
-    """Add a method to xr.DataArray for masking a satpy-dataset.
-    Example usage:
-        scn.load(['dataset_name', 'wqsf']) # The bitmask must be loaded
-        da = scn['dataset_name']
-        da.apply_mask(flags) # Returns a xr.DataArray with the masked values
-                             # set to nans, for the specified flags iterable,
-                             # containing the flag names.
-        apply_mask.flags # Returns a list of the available flags names.
-        da.apply_mask.get_boolean_mask() # Returns a 3D boolean xr.DataArray
-                                         # for the corresponding flags.
-    """
+    """Add a method to xr.DataArray for masking a satpy-dataset."""
 
     def __init__(self, xarray_obj):
         self._obj = xarray_obj
         self._mask = None
 
-    def get_boolean_mask(self, flags):
+    def get_boolean_mask(self, flags=None):
         """Returns a boolean mask for the specified flags."""
         bflags = BitFlags(self._mask)
         self._obj.attrs['flags'] = bflags.flag_list
@@ -130,13 +120,37 @@ class Mask(object):
         self._mask = values
 
     def __call__(self, flags=None):
-        """Returns a filtered data array. It is filtered (i.e. set to a
-        nan values) where any of the the specified flags values are true.
+        """Returns a filtered dataset. It is filtered (i.e. set to a
+        nan values) where any of the the specified flag's values are true, for a
+        given pixel.
+
+        Example usage:
+            # Create the scene object and load the dataset.
+            scn = Scene(filenames=files) # The S3-l1 files must be included.
+            scn.load(['dataset_name', 'wqsf']) # The bitmask must be loaded
+            da = scn['dataset_name']
+
+            da.flags # Returns a list of all the available flags names.
+
+            # List of flags to filter with. Here, we want to filter cloud pixels.
+            flags = ['CLOUD', 'CLOUD_AMBIGUOUS', 'CLOUD_MARGIN']
+
+            # Return a xr.DataArray with the masked values set to nans,
+            # for the specified list of flags names.
+            da.apply_mask(flags)
+            # With flags=None, *all* the flags would be used to filter.
+
+            # Return a boolean mask (xr.DataArray) for the corresponding flags.
+            da.apply_mask.get_boolean_mask(flags)
+            # The dimensions of the boolean mask area are (flag, y, x), where
+            # flag is the length of flags.
+            # With flags=None, the boolean mask for *all* flags is returned
 
         Args:
-            flags: iterator containing the flag names
+            flags: iterator containing the flag names. With flags=None, all
+                   flags are used to filter.
         Returns:
-            class:`xarray.Dataset`
+            class: `xarray.DataArray`
         """
         if self._mask is None:
             raise ValueError("""The 'wqsf' dataset needs to be loaded for this 
