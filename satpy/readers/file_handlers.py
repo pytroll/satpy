@@ -21,6 +21,7 @@ from abc import ABCMeta
 
 import numpy as np
 import six
+from pathlib import PurePath
 
 from pyresample.geometry import SwathDefinition
 from satpy.dataset import combine_metadata
@@ -31,7 +32,10 @@ class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
-        self.filename = str(filename)
+        if isinstance(filename, PurePath):
+            self.filename = str(filename)
+        else:
+            self.filename = filename
         self.navigation_reader = None
         self.filename_info = filename_info
         self.filetype_info = filetype_info
