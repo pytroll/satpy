@@ -660,7 +660,10 @@ class Scene(MetadataObject):
             if boundary != 'exact':
                 raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
             target_area = src_area.aggregate(**dim_kwargs)
-            resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            try:
+                resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            except AttributeError:
+                resolution = max(target_area.lats.resolution, target_area.lons.resolution)
             for ds_id in ds_ids:
                 res = self[ds_id].coarsen(boundary=boundary, side=side, func=func, **dim_kwargs)
 
@@ -1042,7 +1045,16 @@ class Scene(MetadataObject):
                     try:
                         (slice_x, slice_y), source_area = reductions[key]
                     except KeyError:
-                        slice_x, slice_y = source_area.get_area_slices(destination_area)
+                        if resample_kwargs.get('resampler') == 'gradient_search':
+                            factor = resample_kwargs.get('shape_divisible_by', 2)
+                        else:
+                            factor = None
+                        try:
+                            slice_x, slice_y = source_area.get_area_slices(
+                                destination_area, shape_divisible_by=factor)
+                        except TypeError:
+                            slice_x, slice_y = source_area.get_area_slices(
+                                destination_area)
                         source_area = source_area[slice_y, slice_x]
                         reductions[key] = (slice_x, slice_y), source_area
                     dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)

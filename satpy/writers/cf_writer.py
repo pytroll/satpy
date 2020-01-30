@@ -106,6 +106,7 @@ import warnings
 
 from dask.base import tokenize
 import xarray as xr
+from xarray.coding.times import CFDatetimeCoder
 import numpy as np
 
 from pyresample.geometry import AreaDefinition, SwathDefinition
@@ -138,6 +139,23 @@ CF_DTYPES = [np.dtype('int8'),
 CF_VERSION = 'CF-1.7'
 
 
+def tmerc2cf(area):
+    """Return the cf grid mapping for the tmerc projection."""
+    proj_dict = area.proj_dict
+    args = dict(latitude_of_projection_origin=proj_dict.get('lat_0'),
+                longitude_of_central_meridian=proj_dict.get('lon_0'),
+                grid_mapping_name='transverse_mercator',
+                reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
+                false_easting=0.,
+                false_northing=0.
+                )
+    if "no_rot" in proj_dict:
+        args['no_rotation'] = 1
+    if "gamma" in proj_dict:
+        args['gamma'] = proj_dict['gamma']
+    return args
+
+
 def omerc2cf(area):
     """Return the cf grid mapping for the omerc projection."""
     proj_dict = area.proj_dict
@@ -162,13 +180,17 @@ def omerc2cf(area):
 
 def geos2cf(area):
     """Return the cf grid mapping for the geos projection."""
+    from pyresample.utils import proj4_radius_parameters
     proj_dict = area.proj_dict
+    a, b = proj4_radius_parameters(proj_dict)
     args = dict(perspective_point_height=proj_dict.get('h'),
-                latitude_of_projection_origin=proj_dict.get('lat_0'),
-                longitude_of_projection_origin=proj_dict.get('lon_0'),
+                latitude_of_projection_origin=proj_dict.get('lat_0', 0),
+                longitude_of_projection_origin=proj_dict.get('lon_0', 0),
                 grid_mapping_name='geostationary',
-                semi_major_axis=proj_dict.get('a'),
-                semi_minor_axis=proj_dict.get('b'),
+                semi_major_axis=a,
+                semi_minor_axis=b,
+                # semi_major_axis=proj_dict.get('a'),
+                # semi_minor_axis=proj_dict.get('b'),
                 sweep_axis=proj_dict.get('sweep'),
                 )
     return args
@@ -186,7 +208,8 @@ def laea2cf(area):
 
 mappings = {'omerc': omerc2cf,
             'laea': laea2cf,
-            'geos': geos2cf}
+            'geos': geos2cf,
+            'tmerc': tmerc2cf}
 
 
 def create_grid_mapping(area):
@@ -259,22 +282,14 @@ def area2cf(dataarray, strict=False):
     return res
 
 
-def make_time_bounds(dataarray, start_times, end_times):
+def make_time_bounds(start_times, end_times):
     """Create time bounds for the current *dataarray*."""
-    import numpy as np
     start_time = min(start_time for start_time in start_times
                      if start_time is not None)
     end_time = min(end_time for end_time in end_times
                    if end_time is not None)
-    try:
-        dtnp64 = dataarray['time'].data[0]
-    except IndexError:
-        dtnp64 = dataarray['time'].data
-    time_bnds = [(np.datetime64(start_time) - dtnp64),
-                 (np.datetime64(end_time) - dtnp64)]
-    data = xr.DataArray(np.array(time_bnds)[None, :] / np.timedelta64(1, 's'),
+    data = xr.DataArray([[np.datetime64(start_time), np.datetime64(end_time)]],
                         dims=['time', 'bnds_1d'])
-    data.encoding['_FillValue'] = None
     return data
 
 
@@ -546,7 +561,7 @@ class CFWriter(Writer):
         datas = {}
         start_times = []
         end_times = []
-        for ds in ds_collection.values():
+        for ds_name, ds in sorted(ds_collection.items()):
             if ds.dtype not in CF_DTYPES:
                 warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
             try:
@@ -566,7 +581,7 @@ class CFWriter(Writer):
 
         return datas, start_times, end_times
 
-    def update_encoding(self, datasets, to_netcdf_kwargs):
+    def update_encoding(self, dataset, to_netcdf_kwargs):
         """Update encoding.
 
         Avoid _FillValue attribute being added to coordinate variables (https://github.com/pydata/xarray/issues/1865).
@@ -574,11 +589,28 @@ class CFWriter(Writer):
         other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
         encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
         coord_vars = []
-        for data_array in datasets:
+        for name, data_array in dataset.items():
             coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
         for coord_var in coord_vars:
             encoding.setdefault(coord_var, {})
             encoding[coord_var].update({'_FillValue': None})
+
+        # Make sure time coordinates and bounds have the same units. Default is xarray's CF datetime
+        # encoding, which can be overridden by user-defined encoding.
+        if 'time' in dataset:
+            try:
+                dtnp64 = dataset['time'].data[0]
+            except IndexError:
+                dtnp64 = dataset['time'].data
+
+            default = CFDatetimeCoder().encode(xr.DataArray(dtnp64))
+            time_enc = {'units': default.attrs['units'], 'calendar': default.attrs['calendar']}
+            time_enc.update(encoding.get('time', {}))
+            bounds_enc = {'units': time_enc['units'],
+                          'calendar': time_enc['calendar'],
+                          '_FillValue': None}
+            encoding['time'] = time_enc
+            encoding['time_bnds'] = bounds_enc  # FUTURE: Not required anymore with xarray-0.14+
 
         return encoding, other_to_netcdf_kwargs
 
@@ -591,7 +623,7 @@ class CFWriter(Writer):
 
         Args:
             datasets (list):
-                Names of datasets to be saved
+                Datasets to be saved
             filename (str):
                 Output file
             groups (dict):
@@ -639,11 +671,12 @@ class CFWriter(Writer):
         # Write global attributes to file root (creates the file)
         filename = filename or self.get_filename(**datasets[0].attrs)
 
-        root = xr.Dataset({}, attrs={'history': 'Created by pytroll/satpy on {}'.format(datetime.utcnow())})
+        root = xr.Dataset({}, attrs={})
         if header_attrs is not None:
             if flatten_attrs:
                 header_attrs = flatten_dict(header_attrs)
             root.attrs = encode_attrs_nc(header_attrs)
+        root.attrs['history'] = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
         if groups is None:
             # Groups are not CF-1.7 compliant
             root.attrs['Conventions'] = CF_VERSION
@@ -655,6 +688,7 @@ class CFWriter(Writer):
 
         init_nc_kwargs = to_netcdf_kwargs.copy()
         init_nc_kwargs.pop('encoding', None)  # No variables to be encoded at this point
+        init_nc_kwargs.pop('unlimited_dims', None)
         written = [root.to_netcdf(filename, engine=engine, mode='w', **init_nc_kwargs)]
 
         # Write datasets to groups (appending to the file; group=None means no group)
@@ -664,17 +698,16 @@ class CFWriter(Writer):
                 group_datasets, epoch=epoch, flatten_attrs=flatten_attrs, exclude_attrs=exclude_attrs,
                 include_lonlats=include_lonlats, pretty=pretty, compression=compression)
             dataset = xr.Dataset(datas)
-            try:
-                dataset['time_bnds'] = make_time_bounds(dataset,
-                                                        start_times,
+            if 'time' in dataset:
+                dataset['time_bnds'] = make_time_bounds(start_times,
                                                         end_times)
                 dataset['time'].attrs['bounds'] = "time_bnds"
                 dataset['time'].attrs['standard_name'] = "time"
-            except KeyError:
+            else:
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
-            encoding, other_to_netcdf_kwargs = self.update_encoding(datasets, to_netcdf_kwargs)
+            encoding, other_to_netcdf_kwargs = self.update_encoding(dataset, to_netcdf_kwargs)
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
                                     **other_to_netcdf_kwargs)
             written.append(res)
