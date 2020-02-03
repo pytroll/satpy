@@ -844,3 +844,14 @@ enhancements:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [1, 1, 1]
+
+
+  mfires:
+    standard_name: mfires
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [100, 100, 100]
