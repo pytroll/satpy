@@ -197,13 +197,13 @@ To get a list of all available composites for the current scene:
     >>> global_scene.available_composite_names()
     ['overview_sun',
      'airmass',
-     'natural',
+     'natural_color',
      'night_fog',
      'overview',
      'green_snow',
      'dust',
      'fog',
-     'natural_sun',
+     'natural_color_sun',
      'cloudtop',
      'convection',
      'ash']
