@@ -56,4 +56,4 @@ datasets:
     file_type: SLSTRB
     resolution: 1000
     view: nadir
-    standard_name: sea_ice_fraction
+    standard_name: quality_level
