@@ -665,7 +665,7 @@ class Scene(MetadataObject):
             except AttributeError:
                 resolution = max(target_area.lats.resolution, target_area.lons.resolution)
             for ds_id in ds_ids:
-                res = self[ds_id].coarsen(boundary=boundary, side=side, func=func, **dim_kwargs)
+                res = self[ds_id].coarsen(boundary=boundary, side=side, **dim_kwargs)
 
                 new_scn.datasets[ds_id] = getattr(res, func)()
                 new_scn.datasets[ds_id].attrs['area'] = target_area

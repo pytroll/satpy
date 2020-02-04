@@ -263,9 +263,7 @@ class TestSunZenithCorrector(unittest.TestCase):
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
         self.assertIn('y', res.coords)
         self.assertIn('x', res.coords)
-        ds1 = self.ds1.copy()
-        del ds1.coords['y']
-        del ds1.coords['x']
+        ds1 = self.ds1.copy().drop_vars(('y', 'x'))
         res = comp((ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
         self.assertNotIn('y', res.coords)
