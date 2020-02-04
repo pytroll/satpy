@@ -280,7 +280,7 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
     return new_image
 
 
-def add_text(orig, dc, img, text=None):
+def add_text(orig, dc, img, text):
     """Add text to an image using the pydecorate package.
 
     All the features of pydecorate's ``add_text`` are available.
@@ -301,7 +301,7 @@ def add_text(orig, dc, img, text=None):
     return XRImage(new_data)
 
 
-def add_logo(orig, dc, img, logo=None):
+def add_logo(orig, dc, img, logo):
     """Add logos or other images to an image using the pydecorate package.
 
     All the features of pydecorate's ``add_logo`` are available.
@@ -322,7 +322,7 @@ def add_logo(orig, dc, img, logo=None):
     return XRImage(new_data)
 
 
-def add_scale(orig, dc, img, scale=None):
+def add_scale(orig, dc, img, scale):
     """Add scale to an image using the pydecorate package.
 
     All the features of pydecorate's ``add_scale`` are available.
