@@ -103,7 +103,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         satname = PLATFORM_NAMES.get(self['/attr/Satellite Name'], self['/attr/Satellite Name'])
         data.attrs.update({'platform_name': satname,
-                           'sensor': self['/attr/Sensor Identification Code'],
+                           'sensor': self['/attr/Sensor Identification Code'].lower(),
                            'orbital_parameters': {
                                'satellite_nominal_latitude': self['/attr/NOMCenterLat'],
                                'satellite_nominal_longitude': self['/attr/NOMCenterLon'],
