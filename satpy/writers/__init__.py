@@ -280,7 +280,7 @@ def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=No
     return new_image
 
 
-def add_text(orig, dc, img, text=None):
+def add_text(orig, dc, img, text):
     """Add text to an image using the pydecorate package.
 
     All the features of pydecorate's ``add_text`` are available.
@@ -301,7 +301,7 @@ def add_text(orig, dc, img, text=None):
     return XRImage(new_data)
 
 
-def add_logo(orig, dc, img, logo=None):
+def add_logo(orig, dc, img, logo):
     """Add logos or other images to an image using the pydecorate package.
 
     All the features of pydecorate's ``add_logo`` are available.
@@ -311,6 +311,27 @@ def add_logo(orig, dc, img, logo=None):
     LOG.info("Add logo to image.")
 
     dc.add_logo(**logo)
+
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
+
+    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                            coords={'y': orig.data.coords['y'],
+                                    'x': orig.data.coords['x'],
+                                    'bands': list(img.mode)},
+                            attrs=orig.data.attrs)
+    return XRImage(new_data)
+
+
+def add_scale(orig, dc, img, scale):
+    """Add scale to an image using the pydecorate package.
+
+    All the features of pydecorate's ``add_scale`` are available.
+    See documentation of :doc:`pydecorate:index` for more info.
+
+    """
+    LOG.info("Add scale to image.")
+
+    dc.add_scale(**scale)
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
@@ -376,6 +397,8 @@ def add_decorate(orig, fill_value=None, **decorate):
                 img = add_logo(img, dc, img_orig, logo=dec['logo'])
             elif 'text' in dec:
                 img = add_text(img, dc, img_orig, text=dec['text'])
+            elif 'scale' in dec:
+                img = add_scale(img, dc, img_orig, scale=dec['scale'])
     return img
 
 

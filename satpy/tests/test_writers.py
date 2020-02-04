@@ -24,6 +24,7 @@ import warnings
 
 import numpy as np
 import xarray as xr
+from trollimage.colormap import greys
 
 try:
     from unittest import mock
@@ -584,7 +585,16 @@ class TestOverlays(unittest.TestCase):
                     'height': 30,
                     'bg': 'black',
                     'bg_opacity': 255,
-                    'line': 'white'}}
+                    'line': 'white'}},
+                {'scale': {
+                    'colormap': greys,
+                    'extend': False,
+                    'width': 1670, 'height': 110,
+                    'tick_marks': 5, 'minor_tick_marks': 1,
+                    'cursor': [0, 0], 'bg':'white',
+                    'title':'TEST TITLE OF SCALE',
+                    'fontsize': 110, 'align': 'cc'
+                }}
             ]
         }
 
