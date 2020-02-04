@@ -1,1 +1,17 @@
 sensor_name: visir/avhrr-3
+
+composites:
+
+  nwc_pps_ct_masked_ir:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - 10.8
+    - ct
+    standard_name: nwc_pps_ct_masked_ir
+    # Default is opaque (transparency = 0)
+    transparency:
+      Cloud-free_land: 100
+      Cloud-free_sea: 100
+      Snow_over_land: 100
+      Sea_ice: 100
+      Fractional_clouds: 45
