@@ -481,6 +481,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
                     }
 
         for index, band_name in enumerate(band_names):
+            self.assertEqual(1, res[band_name].attrs['sensor'].islower())
             self.assertEqual((2, 5), res[band_name].shape)
             self.assertEqual('reflectance', res[band_name].attrs['calibration'])
             self.assertEqual('%', res[band_name].attrs['units'])
