@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2010-2018 Satpy developers
+# Copyright (c) 2010-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -156,6 +156,8 @@ from satpy.readers.seviri_base import (CALIB, CHANNEL_NAMES, SATNUM,
                                        chebyshev, get_cds_time)
 from satpy.readers.seviri_l1b_native_hdr import (hrit_epilogue, hrit_prologue,
                                                  impf_configuration)
+from satpy.readers._geos_area import get_area_extent, get_area_definition
+
 
 logger = logging.getLogger('hrit_msg')
 
@@ -561,19 +563,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         return self.epilogue['ImageProductionStats'][
             'ActualScanningSummary']['ForwardScanEnd']
 
-    def get_xy_from_linecol(self, line, col, offsets, factors):
-        """Get the intermediate coordinates from line & col.
-
-        Intermediate coordinates are actually the instruments scanning angles.
-        """
-        loff, coff = offsets
-        lfac, cfac = factors
-        x__ = (col - coff) / (cfac / 2**16)
-        y__ = - (line - loff) / (lfac / 2**16)
-
-        return x__, y__
-
-    def get_area_extent(self, size, offsets, factors, platform_height):
+    def _get_area_extent(self, pdict):
         """Get the area extent of the file.
 
         Until December 2017, the data is shifted by 1.5km SSP North and West against the nominal GEOS projection. Since
@@ -584,23 +574,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         of the area extent is documented in a `developer's memo <https://github.com/pytroll/satpy/wiki/
         SEVIRI-georeferencing-offset-correction>`_.
         """
-        nlines, ncols = size
-        h = platform_height
-
-        loff, coff = offsets
-        loff -= nlines
-        offsets = loff, coff
-        # count starts at 1
-        cols = 1 - 0.5
-        lines = 0.5 - 1
-        ll_x, ll_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
-
-        cols += ncols
-        lines += nlines
-        ur_x, ur_y = self.get_xy_from_linecol(-lines, cols, offsets, factors)
-
-        aex = (np.deg2rad(ll_x) * h, np.deg2rad(ll_y) * h,
-               np.deg2rad(ur_x) * h, np.deg2rad(ur_y) * h)
+        aex = get_area_extent(pdict)
 
         if not self.mda['offset_corrected']:
             # Geo-referencing offset present. Adjust area extent to match the shifted data. Note that we have to adjust
@@ -618,76 +592,78 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
-        if dsid.name != 'HRV':
-            return super(HRITMSGFileHandler, self).get_area_def(dsid)
 
-        cfac = np.int32(self.mda['cfac'])
-        lfac = np.int32(self.mda['lfac'])
-        loff = np.float32(self.mda['loff'])
-
-        a = self.mda['projection_parameters']['a']
-        b = self.mda['projection_parameters']['b']
-        h = self.mda['projection_parameters']['h']
-        lon_0 = self.mda['projection_parameters']['SSP_longitude']
-
+        # Common parameters for both HRV and other channels
         nlines = int(self.mda['number_of_lines'])
-        ncols = int(self.mda['number_of_columns'])
+        loff = np.float32(self.mda['loff'])
+        pdict = {}
+        pdict['cfac'] = np.int32(self.mda['cfac'])
+        pdict['lfac'] = np.int32(self.mda['lfac'])
+        pdict['coff'] = np.float32(self.mda['coff'])
+
+        pdict['a'] = self.mda['projection_parameters']['a']
+        pdict['b'] = self.mda['projection_parameters']['b']
+        pdict['h'] = self.mda['projection_parameters']['h']
+        pdict['ssp_lon'] = self.mda['projection_parameters']['SSP_longitude']
+
+        pdict['nlines'] = nlines
+        pdict['ncols'] = int(self.mda['number_of_columns'])
+        if (self.prologue['ImageDescription']['Level15ImageProduction']
+                         ['ImageProcDirection'] == 0):
+            pdict['scandir'] = 'N2S'
+        else:
+            pdict['scandir'] = 'S2N'
+
+        # Compute area definition for non-HRV channels:
+        if dsid.name != 'HRV':
+            pdict['loff'] = loff - nlines
+            aex = self._get_area_extent(pdict)
+            pdict['a_name'] = 'geosmsg'
+            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
+            pdict['p_id'] = 'msg_lowres'
+            area = get_area_definition(pdict, aex)
+            self.area = area
+            return self.area
 
         segment_number = self.mda['segment_sequence_number']
 
-        current_first_line = (segment_number
-                              - self.mda['planned_start_segment_number']) * nlines
+        current_first_line = ((segment_number -
+                               self.mda['planned_start_segment_number'])
+                              * pdict['nlines'])
+
+        # Or, if we are processing HRV:
+        pdict['a_name'] = 'geosmsg_hrv'
+        pdict['p_id'] = 'msg_hires'
         bounds = self.epilogue['ImageProductionStats']['ActualL15CoverageHRV'].copy()
         if self.fill_hrv:
             bounds['UpperEastColumnActual'] = 1
             bounds['UpperWestColumnActual'] = 11136
             bounds['LowerEastColumnActual'] = 1
             bounds['LowerWestColumnActual'] = 11136
-            ncols = 11136
+            pdict['ncols'] = 11136
 
         upper_south_line = bounds[
             'LowerNorthLineActual'] - current_first_line - 1
-        upper_south_line = min(max(upper_south_line, 0), nlines)
-
+        upper_south_line = min(max(upper_south_line, 0), pdict['nlines'])
         lower_coff = (5566 - bounds['LowerEastColumnActual'] + 1)
         upper_coff = (5566 - bounds['UpperEastColumnActual'] + 1)
 
-        lower_area_extent = self.get_area_extent((upper_south_line, ncols),
-                                                 (loff, lower_coff),
-                                                 (lfac, cfac),
-                                                 h)
+        # First we look at the lower window
+        pdict['nlines'] = upper_south_line
+        pdict['loff'] = loff - upper_south_line
+        pdict['coff'] = lower_coff
+        pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, lower window'
+        lower_area_extent = self._get_area_extent(pdict)
+        lower_area = get_area_definition(pdict, lower_area_extent)
 
-        upper_area_extent = self.get_area_extent((nlines - upper_south_line,
-                                                  ncols),
-                                                 (loff - upper_south_line,
-                                                  upper_coff),
-                                                 (lfac, cfac),
-                                                 h)
+        # Now the upper window
+        pdict['nlines'] = nlines - upper_south_line
+        pdict['loff'] = loff - pdict['nlines'] - upper_south_line
+        pdict['coff'] = upper_coff
+        pdict['a_desc'] = 'MSG/SEVIRI high resolution channel, upper window'
+        upper_area_extent = self._get_area_extent(pdict)
+        upper_area = get_area_definition(pdict, upper_area_extent)
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
-
-        lower_area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosmsg',
-            proj_dict,
-            ncols,
-            upper_south_line,
-            lower_area_extent)
-
-        upper_area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosmsg',
-            proj_dict,
-            ncols,
-            nlines - upper_south_line,
-            upper_area_extent)
         area = geometry.StackedAreaDefinition(lower_area, upper_area)
 
         self.area = area.squeeze()

@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to VIIRS L1B format
+"""Interface to VIIRS L1B format."""
 
-"""
 import logging
 from datetime import datetime
 import numpy as np
@@ -27,14 +26,15 @@ LOG = logging.getLogger(__name__)
 
 
 class VIIRSL1BFileHandler(NetCDF4FileHandler):
-    """VIIRS L1B File Reader
-    """
+    """VIIRS L1B File Reader."""
 
     def _parse_datetime(self, datestr):
+        """Parse datetime."""
         return datetime.strptime(datestr, "%Y-%m-%dT%H:%M:%S.000Z")
 
     @property
     def start_orbit_number(self):
+        """Get start orbit number."""
         try:
             return int(self['/attr/orbit_number'])
         except KeyError:
@@ -42,6 +42,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     @property
     def end_orbit_number(self):
+        """Get end orbit number."""
         try:
             return int(self['/attr/orbit_number'])
         except KeyError:
@@ -49,6 +50,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     @property
     def platform_name(self):
+        """Get platform name."""
         try:
             res = self.get('/attr/platform',
                            self.filename_info['platform_shortname'])
@@ -65,6 +67,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     @property
     def sensor_name(self):
+        """Get sensor name."""
         res = self['/attr/instrument']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
@@ -72,6 +75,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             return res
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
+        """Adjust scaling factors."""
         if factors is None or factors[0] is None:
             factors = [1, 0]
         if file_units == output_units:
@@ -93,15 +97,18 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             return factors
 
     def get_shape(self, ds_id, ds_info):
+        """Get shape."""
         var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id.name))
         return self.get(var_path + '/shape', 1)
 
     @property
     def start_time(self):
+        """Get start time."""
         return self._parse_datetime(self['/attr/time_coverage_start'])
 
     @property
     def end_time(self):
+        """Get end time."""
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
     def _get_dataset_file_units(self, dataset_id, ds_info, var_path):
@@ -164,6 +171,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         return valid_min, valid_max, scale_factor, scale_offset
 
     def get_metadata(self, dataset_id, ds_info):
+        """Get metadata."""
         var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
         shape = self.get_shape(dataset_id, ds_info)
         file_units = self._get_dataset_file_units(dataset_id, ds_info, var_path)
@@ -189,6 +197,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         return i
 
     def get_dataset(self, dataset_id, ds_info):
+        """Get dataset."""
         var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
         metadata = self.get_metadata(dataset_id, ds_info)
         shape = metadata['shape']
