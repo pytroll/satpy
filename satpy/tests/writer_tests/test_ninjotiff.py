@@ -75,6 +75,8 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         ret = ntw.save_image(img, filename='bla.tif', compute=False)
         nt.save.assert_called()
         assert(nt.save.mock_calls[0][2]['compute'] is False)
+        assert(nt.save.mock_calls[0][2]['ch_min_measurement_unit']
+               < nt.save.mock_calls[0][2]['ch_max_measurement_unit'])
         assert(ret == nt.save.return_value)
 
 
