@@ -79,7 +79,7 @@ composites:
     - name: 'B04'
       modifiers: [effective_solar_pathlength_corrected]
     standard_name: natural_color
-    
+
   true_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -145,3 +145,31 @@ composites:
     - name: 'B02'
       #modifiers: [effective_solar_pathlength_corrected]
     standard_name: true_color
+
+  nir_swir:
+  #[2.4 * B12, 1.7 * B8A, 2.2 * B05]
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'B12'
+      #modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B8A'
+      #modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B05'
+      #modifiers: [effective_solar_pathlength_corrected]
+    standard_name: nir_swir
+
+  mfires:
+    compositor: !!python/name:satpy.composites.MarcuseCompositor
+    prerequisites:
+    - name: 'B02'
+    - name: 'B03'
+    - name: 'B04'
+    - name: 'B05'
+      #modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B08'
+    - name: 'B8A'
+      #modifiers: [effective_solar_pathlength_corrected]
+    - name: 'B11'
+    - name: 'B12'
+      #modifiers: [effective_solar_pathlength_corrected]
+    standard_name: mfires
