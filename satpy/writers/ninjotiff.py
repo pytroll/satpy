@@ -145,7 +145,7 @@ class NinjoTIFFWriter(ImageWriter):
                     # Here we know that the data if the image is scaled between 0 and 1
                     dmin = offset
                     dmax = scale + offset
-                    ch_min_measurement_unit, ch_max_measurement_unit = np.maximum(dmin, dmax), np.minimum(dmin, dmax)
+                    ch_min_measurement_unit, ch_max_measurement_unit = np.minimum(dmin, dmax), np.maximum(dmin, dmax)
                     kwargs["ch_min_measurement_unit"] = ch_min_measurement_unit
                     kwargs["ch_max_measurement_unit"] = ch_max_measurement_unit
                 except KeyError:
