@@ -86,43 +86,43 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
     def start_orbit_number(self):
         """Return orbit number for the beginning of the swath."""
         try:
-           return int(self['/attr/start_orbit_number'])
+            return int(self['/attr/start_orbit_number'])
         except KeyError:
-           return 0
+            return 0
 
     @property
     def end_orbit_number(self):
         """Return orbit number for the end of the swath."""
         try:
-           return int(self['/attr/end_orbit_number'])
+            return int(self['/attr/end_orbit_number'])
         except KeyError:
-           return 0
+            return 0
 
     @property
     def platform_name(self):
         """Return standard platform name for the file's data."""
         try:
-           res = self['/attr/platform_name']
-           if isinstance(res, np.ndarray):
-               return str(res.astype(str))
-           else:
-               return res
+            res = self['/attr/platform_name']
+            if isinstance(res, np.ndarray):
+                return str(res.astype(str))
+            else:
+                return res
         except KeyError:
-           return self.filename_info['platform_shortname']
+            return self.filename_info['platform_shortname']
 
     @property
     def sensor_names(self):
         """Return standard sensor or instrument name for the file's data."""
         try:
-           res = self['/attr/instrument_name']
-           if isinstance(res, np.ndarray):
-               res = str(res.astype(str))
-           res = [x.strip() for x in res.split(',')]
-           if len(res) == 1:
-               return res[0]
-           return res
+            res = self['/attr/instrument_name']
+            if isinstance(res, np.ndarray):
+                res = str(res.astype(str))
+            res = [x.strip() for x in res.split(',')]
+            if len(res) == 1:
+                return res[0]
+            return res
         except KeyError:
-            return ['CrIS', 'ATMS', 'VIIRS' ]
+            return ['CrIS', 'ATMS', 'VIIRS']
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified."""
