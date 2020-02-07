@@ -141,7 +141,6 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         attrs = ('_FillValue', 'flag_meanings', 'flag_values', 'units')
         cris_fors_dim_name = 'Number_of_CrIS_FORs'
         pressure_levels_dim_name = 'Number_of_P_Levels'
-        """Version 1 EDRs have different dimension names"""
         if ('_v1' in filename):
             cris_fors_dim_name = 'number_of_FORs'
             pressure_levels_dim_name = 'number_of_p_levels'
