@@ -25,11 +25,7 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 
 DEFAULT_FILE_DTYPE = np.float32
@@ -149,7 +145,6 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         return file_content
 
 
-# For testing the standard EDRs
 class TestNUCAPSReader(unittest.TestCase):
     """Test NUCAPS Reader"""
     yaml_file = "nucaps.yaml"
@@ -335,7 +330,6 @@ class TestNUCAPSReader(unittest.TestCase):
         self.assertTupleEqual(pl_ds.shape, (1,))
 
 
-# For testing Science EDRs
 class TestNUCAPSScienceEDRReader(unittest.TestCase):
     """Test NUCAPS Science EDR Reader"""
     yaml_file = "nucaps.yaml"
