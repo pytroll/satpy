@@ -88,12 +88,8 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             ('H2O_MR', 'g/g', ''),
             ('O3', '1', ''),
             ('O3_MR', '1', ''),
-            # These two are standard EDR only
             ('Liquid_H2O', '1', ''),
             ('Liquid_H2O_MR', 'g/g', 'cloud_liquid_water_mixing_ratio'),
-            # These two are Science EDR only
-            ('Cloud_Top_Fraction', '1', ''),
-            ('Cloud_Top_Pressure', '1', ''),
             ('CO', '1', ''),
             ('CO_MR', '1', ''),
             ('CH4', '1', ''),
@@ -401,8 +397,6 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
                            'H2O_MR',
                            'O3',
                            'O3_MR',
-                           'Cloud_Top_Fraction',
-                           'Cloud_Top_Pressure',
                            'CO',
                            'CO_MR',
                            'CH4',
@@ -415,7 +409,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
                            'SO2',
                            'SO2_MR',
                            ])
-        self.assertEqual(len(datasets), 18)
+        self.assertEqual(len(datasets), 16)
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
             self.assertEqual(v.ndim, 2)
