@@ -139,9 +139,15 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         file_content[k + '/attr/_FillValue'] = -9999.
 
         attrs = ('_FillValue', 'flag_meanings', 'flag_values', 'units')
+        cris_fors_dim_name = 'Number_of_CrIS_FORs'
+        pressure_levels_dim_name = 'Number_of_P_Levels'
+        """Version 1 EDRs have different dimension names"""
+        if ('_v1' in filename):
+            cris_fors_dim_name = 'number_of_FORs'
+            pressure_levels_dim_name = 'number_of_p_levels'
         convert_file_content_to_data_array(
             file_content, attrs=attrs,
-            dims=('z', 'number_of_FORs', 'number_of_p_levels'))
+            dims=('z', cris_fors_dim_name, pressure_levels_dim_name))
         return file_content
 
 
