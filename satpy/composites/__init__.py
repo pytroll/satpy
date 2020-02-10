@@ -1007,7 +1007,7 @@ class PaletteCompositor(ColormapCompositor):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, name, lim_low=85., lim_high=95., **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., **kwargs):
         """Collect custom configuration values.
 
         Args:
