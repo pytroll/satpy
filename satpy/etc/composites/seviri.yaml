@@ -44,7 +44,7 @@ composites:
       High_semitransparent_above_snow_ice: 60
 
   cloudtop:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.NotRecommendedCompositor
     prerequisites:
     - name: IR_039
       modifiers: [co2_corrected]
@@ -53,7 +53,7 @@ composites:
     standard_name: cloudtop
 
   cloudtop_daytime:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.NotRecommendedCompositor
     prerequisites:
     - name: IR_039
       modifiers: [nir_emissive]
@@ -79,7 +79,7 @@ composites:
         - VIS006
     standard_name: convection
 
-  night_fog:
+  night_microphysics: &night_microphysics
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -92,7 +92,10 @@ composites:
       - name: IR_039
         modifiers: [co2_corrected]
     - IR_108
-    standard_name: night_fog
+    standard_name: night_microphysics
+
+  night_fog:
+    *night_microphysics
 
   snow:
     compositor: !!python/name:satpy.composites.GenericCompositor

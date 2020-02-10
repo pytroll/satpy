@@ -121,9 +121,9 @@ composites:
     standard_name: ash
 
   cloudtop:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.NotRecommendedCompositor
     prerequisites:
-    - 3.9
+    - 3.75
     - 10.8
     - 12.0
     standard_name: cloudtop
@@ -137,7 +137,7 @@ composites:
         - 7.3
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
-        - 3.9
+        - 3.75
         - 10.8
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
@@ -152,7 +152,7 @@ composites:
       modifiers: [sunz_corrected]
     - wavelength: 1.63
       modifiers: [sunz_corrected]
-    - wavelength: 3.9
+    - wavelength: 3.75
       modifiers: [nir_reflectance]
     standard_name: snow
 
@@ -161,7 +161,7 @@ composites:
     prerequisites:
     - wavelength: 0.85
       modifiers: [sunz_corrected]
-    - wavelength: 3.9
+    - wavelength: 3.75
       modifiers: [nir_reflectance]
     - 10.8
     standard_name: day_microphysics
@@ -220,20 +220,6 @@ composites:
     - wavelength: 0.635
       modifiers: [sunz_corrected]
     standard_name: natural_color
-
-  night_fog:
-    compositor: !!python/name:satpy.composites.GenericCompositor
-    prerequisites:
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
-      prerequisites:
-      - 12.0
-      - 10.8
-    - compositor: !!python/name:satpy.composites.DifferenceCompositor
-      prerequisites:
-      - 10.8
-      - 3.9
-    - 10.8
-    standard_name: night_fog
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -363,7 +349,7 @@ composites:
     - cpp_lwp_pal
     standard_name: liquid_water_path
 
-  night_microphysics:
+  night_microphysics: &night_microphysics
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -373,9 +359,12 @@ composites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
       - 10.8
-      - 3.9
+      - 3.75
     - 10.8
     standard_name: night_microphysics
+
+  night_fog:
+    *night_microphysics
 
   ir108_3d:
     compositor: !!python/name:satpy.composites.GenericCompositor

@@ -139,7 +139,7 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: ocean_color
 
-  night_fog:
+  night_microphysics: &night_microphysics
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -151,4 +151,7 @@ composites:
       - 10.8
       - 3.75
     - 10.8
-    standard_name: night_fog
+    standard_name: night_microphysics
+
+  night_fog:
+    *night_microphysics
