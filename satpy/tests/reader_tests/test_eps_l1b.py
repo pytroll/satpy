@@ -19,7 +19,7 @@
 """Test the eps l1b format."""
 
 import os
-from unittest import TestCase
+from unittest import TestCase, TestLoader, TestSuite
 from tempfile import NamedTemporaryFile
 from satpy import DatasetID
 
@@ -126,3 +126,12 @@ class TestEPSL1B(TestCase):
     def tearDown(self):
         """Tear down the tests."""
         os.remove(self.filename)
+
+
+def suite():
+    """Test suite for test_scene."""
+    loader = TestLoader()
+    mysuite = TestSuite()
+    mysuite.addTest(loader.loadTestsFromTestCase(TestEPSL1B))
+
+    return mysuite
