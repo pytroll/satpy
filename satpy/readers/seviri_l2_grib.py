@@ -102,7 +102,6 @@ class SeviriL2GribFileHandler(BaseFileHandler):
     @property
     def start_time(self):
         """Return the sensing start time."""
-        # TODO to be confirmed that the date and time format in the test GRIB file are correct (integer values)
         try:
             data_date_str = str(self._data_date)
             data_time_str = str(self._data_time)
@@ -136,7 +135,6 @@ class SeviriL2GribFileHandler(BaseFileHandler):
     @property
     def sensor(self):
         """Return the sensor name."""
-        # TODO Sensor name hardcoded, to be confirmed if correct
         return 'seviri'
 
     @property
@@ -240,8 +238,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
             'ssp_lon': self.ssp_lon,
             'nlines': self._nx,
             'ncols': self._ny,
-            'a_name': 'SEVIRI Area',                   # TODO to be confirmed
-            'a_desc': 'Area for SEVIRI instrument',    # TODO to be confirmed
+            'a_name': 'geos_seviri',
+            'a_desc': 'Area for SEVIRI GRIB product',
             'p_id': 'geos',
         }
 
