@@ -155,9 +155,9 @@ class EPSAVHRRFile(BaseFileHandler):
         self.pixels = None
         self.sections = None
 
-    def _read_all(self, filename):
-        logger.debug("Reading %s", filename)
-        self.sections, self.form = read_records(filename)
+    def _read_all(self):
+        logger.debug("Reading %s", self.filename)
+        self.sections, self.form = read_records(self.filename)
         self.scanlines = self['TOTAL_MDR']
         if self.scanlines != len(self.sections[('mdr', 2)]):
             logger.warning("Number of declared records doesn't match number of scanlines in the file.")
@@ -278,7 +278,7 @@ class EPSAVHRRFile(BaseFileHandler):
     def get_bounding_box(self):
         """Get bounding box."""
         if self.sections is None:
-            self._read_all(self.filename)
+            self._read_all()
         lats = np.hstack([self["EARTH_LOCATION_FIRST"][0, [0]],
                           self["EARTH_LOCATION_LAST"][0, [0]],
                           self["EARTH_LOCATION_LAST"][-1, [0]],
@@ -292,7 +292,7 @@ class EPSAVHRRFile(BaseFileHandler):
     def get_dataset(self, key, info):
         """Get calibrated channel data."""
         if self.sections is None:
-            self._read_all(self.filename)
+            self._read_all()
 
         if key.name in ['longitude', 'latitude']:
             lons, lats = self.get_full_lonlats()
