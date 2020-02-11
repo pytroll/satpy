@@ -368,3 +368,38 @@ def chebyshev(coefs, time, domain):
 
     """
     return Chebyshev(coefs, domain=domain)(time) - 0.5 * coefs[0]
+
+
+def calculate_area_extent(area_dict):
+    """Calculate the area extent seen by a geostationary satellite.
+
+    Args:
+        area_dict: A dictionary containing the required parameters
+            center_point: Center point for the projection
+            resolution: Pixel resulution in meters
+            north: Northmost row number
+            east: Eastmost column number
+            west: Westmost column number
+            south: Southmost row number
+            [column_offset: Column offset, defaults to 0 if not given]
+            [row_offset: Row offset, defaults to 0 if not given]
+    Returns:
+        tuple: An area extent for the scene defined by the lower left and
+               upper right corners
+
+    """
+    # For Earth model 2 and full disk resolution center point
+    # column and row is (1856.5, 1856.5)
+    # See: MSG Level 1.5 Image Data Format Description, Figure 7
+    cp_c = area_dict['center_point'] + area_dict.get('column_offset', 0)
+    cp_r = area_dict['center_point'] + area_dict.get('row_offset', 0)
+
+    # Calculate column and row for lower left and upper right corners.
+    ll_c = (area_dict['west'] - cp_c)
+    ll_r = (area_dict['north'] - cp_r + 1)
+    ur_c = (area_dict['east'] - cp_c - 1)
+    ur_r = (area_dict['south'] - cp_r)
+
+    aex = np.array([ll_c, ll_r, ur_c, ur_r]) * area_dict['resolution']
+
+    return tuple(aex)

@@ -1,0 +1,230 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Copyright (c) 2019 Satpy developers
+#
+# satpy is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# satpy is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+
+"""The seviri_l2_grib reader tests package."""
+
+import numpy as np
+import datetime
+
+from satpy import CHUNK_SIZE
+from satpy.readers.seviri_l2_grib import SeviriL2GribFileHandler, PRODUCT_DATA_DURATION_MINUTES
+
+import unittest
+
+try:
+    from unittest import mock
+except ImportError:
+    import mock
+
+# Dictionary to be used as fake GRIB message
+FAKE_MESSAGE = {
+    'latitudeOfSubSatellitePointInDegrees': 10.0,
+    'dataDate': 20191020,
+    'dataTime': 1745,
+    'Nx': 1000,
+    'Ny': 1200,
+    'earthMajorAxis': 6400.,
+    'earthMinorAxis': 6300.,
+    'NrInRadiusOfEarth': 6.,
+    'XpInGridLengths': 500,
+    'shortName': 'test_short_name',
+    'name': 'test_name',
+    'shortNameECMF': 'test_short_name_ecmf',
+    'nameECMF': 'test_name_ecmf',
+    'cfNameECMF': 'test_cf_name_ecmf',
+    'cfName': 'test_cf_name',
+    'parameterNumber': 30,
+    'missingValue': 9999,
+    }
+
+# List to be used as fake GID source
+FAKE_GID = [0, 1, 2, 3, None]
+
+
+class Test_SeviriL2GribFileHandler(unittest.TestCase):
+    """Test the SeviriL2GribFileHandler reader."""
+
+    @mock.patch('satpy.readers.seviri_l2_grib.ec')
+    def setUp(self, ec_):
+        """Set up the test by creating a mocked eccodes library."""
+        fake_gid_generator = (i for i in FAKE_GID)
+        ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
+        ec_.codes_get.side_effect = lambda gid, key: FAKE_MESSAGE[key]
+        ec_.codes_get_values.return_value = np.ones(1000*1200)
+        self.ec_ = ec_
+
+    def tearDown(self):
+        """Tear down the test."""
+        # Nothing to do
+        pass
+
+    @mock.patch('satpy.readers.seviri_l2_grib.xr')
+    @mock.patch('satpy.readers.seviri_l2_grib.da')
+    def test_data_reading(self, da_, xr_):
+        """Test the reading of data from the product."""
+        with mock.patch("builtins.open", mock.mock_open()) as mock_file:
+            with mock.patch('satpy.readers.seviri_l2_grib.ec', self.ec_):
+                self.reader = SeviriL2GribFileHandler(
+                    filename='test.grib',
+                    filename_info={
+                        'spacecraft_name': 'MET11',
+                        'sensing_start_time': datetime.datetime(year=2020, month=10, day=20,
+                                                                hour=19, minute=45, second=0)
+                    },
+                    filetype_info={}
+                )
+
+                # Checks the correct file open call
+                mock_file.assert_called_with('test.grib', 'rb')
+
+                # Checks that the codes_grib_multi_support_on function has been called
+                self.ec_.codes_grib_multi_support_on.assert_called()
+
+                # Checks that codes_release has been called after each codes_grib_new_from_file call
+                # (except after the last one which has returned a None)
+                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count, self.ec_.codes_release.call_count + 1)
+
+                # Checks the basic data reading
+                self.assertEqual(PRODUCT_DATA_DURATION_MINUTES, 15)
+                self.assertEqual(self.reader.start_time, datetime.datetime(year=2019, month=10, day=20,
+                                                                           hour=17, minute=45, second=0))
+                self.assertEqual(self.reader.end_time, datetime.datetime(year=2019, month=10, day=20,
+                                                                         hour=18, minute=0, second=0))
+                self.assertEqual(self.reader.ssp_lon, 10.)
+                self.assertEqual(self.reader.spacecraft_name, 'Meteosat-11')
+                self.assertEqual(self.reader.sensor, 'seviri')
+                self.assertEqual(self.reader.nmsgs, 4)
+
+                # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
+                global_attributes = self.reader._get_global_attributes()
+                expected_global_attributes = {
+                    'filename': 'test.grib',
+                    'start_time': datetime.datetime(year=2019, month=10, day=20,
+                                                    hour=17, minute=45, second=0),
+                    'end_time': datetime.datetime(year=2019, month=10, day=20,
+                                                  hour=18, minute=0, second=0),
+                    'spacecraft_name': 'Meteosat-11',
+                    'ssp_lon': 10.,
+                    'sensor': 'seviri',
+                    'platform_name': 'Meteosat-11'
+                    }
+                self.assertEqual(global_attributes, expected_global_attributes)
+
+                metadata = self.reader._get_metadata_from_msg(0)
+                expected_metadata = {
+                    'shortName': 'test_short_name',
+                    'long_name': 'test_name',
+                    'shortNameECMF': 'test_short_name_ecmf',
+                    'nameECMF': 'test_name_ecmf',
+                    'cfNameECMF': 'test_cf_name_ecmf',
+                    'cfName': 'test_cf_name',
+                    }
+                self.assertEqual(metadata, expected_metadata)
+
+                # Checks the reading of an array from the message
+                self.reader._get_xarray_from_msg(0)
+
+                # Checks that dask.array has been called with the correct arguments
+                name, args, kwargs = da_.mock_calls[0]
+                self.assertTrue(np.all(args[0] == np.ones((1200, 1000))))
+                self.assertEqual(args[1], CHUNK_SIZE)
+
+                # Checks that xarray.DataArray has been called with the correct arguments
+                name, args, kwargs = xr_.mock_calls[0]
+                self.assertEqual(kwargs['dims'], ('y', 'x'))
+                # The 'data' argument must be the return result of the dask.array call
+                self.assertEqual(kwargs['data']._extract_mock_name(), 'da.from_array()')
+
+                # Checks the correct execution of the _get_proj_area function
+                pdict, area_dict = self.reader._get_proj_area(0)
+
+                expected_pdict = {
+                    'a': 6400000.,
+                    'b': 6300000.,
+                    'h': 32000000.,
+                    'ssp_lon': 10.,
+                    'nlines': 1000,
+                    'ncols': 1200,
+                    'a_name': 'SEVIRI Area',
+                    'a_desc': 'Area for SEVIRI instrument',
+                    'p_id': 'geos',
+                }
+                self.assertEqual(pdict, expected_pdict)
+                expected_area_dict = {
+                    'center_point': 500.5,
+                    'north': 1200,
+                    'east': 1,
+                    'west': 1000,
+                    'south': 1,
+                }
+                self.assertEqual(area_dict, expected_area_dict)
+
+                # Checks the correct execution of the get_area_def function
+                with mock.patch('satpy.readers.seviri_l2_grib.calculate_area_extent',
+                                mock.Mock(name='calculate_area_extent')) as cae:
+                    with mock.patch('satpy.readers.seviri_l2_grib.get_area_definition', mock.Mock()) as gad:
+                        self.reader.get_area_def(mock.Mock(resolution=400.))
+                        # Asserts that calculate_area_extent has been called with the correct arguments
+                        name, args, kwargs = cae.mock_calls[0]
+                        self.assertEqual(args[0]['resolution'], 400.)
+                        # Asserts that get_area_definition has been called with the correct arguments
+                        name, args, kwargs = gad.mock_calls[0]
+                        self.assertEqual(args[0], expected_pdict)
+                        # The second argument must be the return result of calculate_area_extent
+                        self.assertEqual(args[1]._extract_mock_name(), 'calculate_area_extent()')
+
+                # Restarts the id generator and clears the call history
+                fake_gid_generator = (i for i in FAKE_GID)
+                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
+                self.ec_.codes_grib_new_from_file.reset_mock()
+                self.ec_.codes_release.reset_mock()
+
+                # Checks the correct execution of the get_dataset function with a valid parameter_number
+                valid_dataset = self.reader.get_dataset(None, {'parameter_number': 30})
+                # Checks that the dataset has been created as a DataArray object
+                self.assertEqual(valid_dataset._extract_mock_name(), 'xr.DataArray()')
+                # Checks that codes_release has been called after each codes_grib_new_from_file call
+                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count, self.ec_.codes_release.call_count)
+
+                # Restarts the id generator and clears the call history
+                fake_gid_generator = (i for i in FAKE_GID)
+                self.ec_.codes_grib_new_from_file.side_effect = lambda fh: next(fake_gid_generator)
+                self.ec_.codes_grib_new_from_file.reset_mock()
+                self.ec_.codes_release.reset_mock()
+
+                # Checks the correct execution of the get_dataset function with an invalid parameter_number
+                invalid_dataset = self.reader.get_dataset(None, {'parameter_number': 50})
+                # Checks that the function returns None
+                self.assertEqual(invalid_dataset, None)
+                # Checks that codes_release has been called after each codes_grib_new_from_file call
+                # (except after the last one which has returned a None)
+                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count, self.ec_.codes_release.call_count + 1)
+
+
+def suite():
+    """Build the test suite for test_scene."""
+    loader = unittest.TestLoader()
+    mysuite = unittest.TestSuite()
+
+    mysuite.addTest(loader.loadTestsFromTestCase(Test_SeviriL2GribFileHandler))
+
+    return mysuite
+
+
+if __name__ == '__main__':
+    unittest.main()
