@@ -75,7 +75,7 @@ def read_records(filename):
     with open(filename, "rb") as fdes:
         while True:
             grh = np.fromfile(fdes, grh_dtype, 1)
-            if not grh:
+            if grh.size == 0:
                 break
             rec_class = record_class[int(grh["record_class"])]
             sub_class = grh["RECORD_SUBCLASS"][0]

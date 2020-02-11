@@ -66,7 +66,7 @@ def process_field(elt, ascii=False):
 def process_array(elt, ascii=False):
     """Process an 'array' tag."""
     del ascii
-    chld = elt.getchildren()
+    chld = list(elt)
     if len(chld) > 1:
         raise ValueError()
     chld = chld[0]
@@ -141,8 +141,7 @@ def parse_format(xml_file):
     """Parse the xml file to create types, scaling factor types, and scales."""
     tree = ElementTree()
     tree.parse(xml_file)
-
-    for param in tree.find("parameters").getchildren():
+    for param in tree.find("parameters"):
         VARIABLES[param.get("name")] = param.get("value")
 
     types_scales = {}
