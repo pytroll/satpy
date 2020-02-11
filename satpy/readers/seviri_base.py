@@ -24,6 +24,15 @@ import dask.array as da
 from satpy.readers.eum_base import (time_cds_short,
                                     issue_revision)
 
+PLATFORM_DICT = {
+    'MET08': 'Meteosat-8',
+    'MET09': 'Meteosat-9',
+    'MET10': 'Meteosat-10',
+    'MET11': 'Meteosat-11'
+}
+
+REPEAT_CYCLE_DURATION = 15
+
 C1 = 1.19104273e-5
 C2 = 1.43877523
 

@@ -10,12 +10,14 @@ file_types:
   # EUMETSAT MSG SEVIRI L2 Cloud Mask files in GRIB format
   grib_seviri_clm:
     file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
-    file_patterns: ['CLMEncProd_{sensing_start_time:%Y%m%d%H%M%S}Z_00_OMPEFS04_{spacecraft_name:5s}_FES_E0000']
+    file_patterns:
+        - 'CLMEncProd_{sensing_start_time:%Y%m%d%H%M%S}Z_00_OMPEFS04_{spacecraft:5s}_FES_E0000'
 
   # EUMETSAT MSG SEVIRI L2 Optimal Cloud Analysis files in GRIB format
   grib_seviri_oca:
     file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
-    file_patterns: ['OCAEncProd_{sensing_start_time:%Y%m%d%H%M%S}Z_00_OMPEFS04_{spacecraft_name:5s}_FES_E0000']
+    file_patterns:
+        - 'OCAEncProd_{sensing_start_time:%Y%m%d%H%M%S}Z_00_OMPEFS04_{spacecraft:5s}_FES_E0000'
 
 datasets:
 
