@@ -16,12 +16,9 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Helpers for reading netcdf-based files."""
-
 import netCDF4
 import logging
-import numpy as np
 import xarray as xr
-import dask.array as da
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -51,44 +48,19 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         wrapper["/attr/platform_short_name"]
 
-    Note that loading datasets requires reopening the original file
-    (unless those datasets are cached, see below), but to get just the
-    shape of the dataset append "/shape" to the item string:
+    Note that loading datasets requires reopening the original file, but to
+    get just the shape of the dataset append "/shape" to the item string:
 
         wrapper["group/subgroup/var_name/shape"]
 
-    If your file has many small data variables that are frequently accessed,
-    you may choose to cache some of them.  You can do this by passing a number,
-    any variable smaller than this number in bytes will be read into RAM.
-    Warning, this part of the API is provisional and subject to change.
-
-    You may get an additional speedup by passing ``cache_handle=True``.  This
-    will keep the netCDF4 dataset handles open throughout the lifetime of the
-    object, and instead of using `xarray.open_dataset` to open every data
-    variable, a dask array will be created "manually".  This may be useful if
-    you have a dataset distributed over many files, such as for FCI.  Note
-    that the coordinates will be missing in this case.  If you use this option,
-    ``xarray_kwargs`` will have no effect.
-
-    Args:
-        filename (str): File to read
-        filename_info (dict): Dictionary with filename information
-        filetype_info (dict): Dictionary with filetype information
-        auto_maskandscale (bool): Apply mask and scale factors
-        xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`
-        cache_var_size (int): Cache variables smaller than this size.
-        cache_handle (bool): Keep files open for lifetime of filehandler.
     """
 
-    file_handle = None
-
     def __init__(self, filename, filename_info, filetype_info,
-                 auto_maskandscale=False, xarray_kwargs=None,
-                 cache_var_size=0, cache_handle=False):
+                 auto_maskandscale=False, xarray_kwargs=None):
+        """Initialize object."""
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
-        self.cached_file_content = {}
         try:
             file_handle = netCDF4.Dataset(self.filename, 'r')
         except IOError:
@@ -102,28 +74,10 @@ class NetCDF4FileHandler(BaseFileHandler):
 
         self.collect_metadata("", file_handle)
         self.collect_dimensions("", file_handle)
-        if cache_var_size > 0:
-            self.collect_cache_vars(
-                    [varname for (varname, var)
-                        in self.file_content.items()
-                        if isinstance(var, netCDF4.Variable)
-                        and isinstance(var.dtype, np.dtype)  # vlen may be str
-                        and var.size * var.dtype.itemsize < cache_var_size],
-                    file_handle)
-        if cache_handle:
-            self.file_handle = file_handle
-        else:
-            file_handle.close()
+        file_handle.close()
         self._xarray_kwargs = xarray_kwargs or {}
         self._xarray_kwargs.setdefault('chunks', CHUNK_SIZE)
         self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
-
-    def __del__(self):
-        if self.file_handle is not None:
-            try:
-                self.file_handle.close()
-            except RuntimeError:  # presumably closed already
-                pass
 
     def _collect_attrs(self, name, obj):
         """Collect all the attributes for the provided file object."""
@@ -143,7 +97,10 @@ class NetCDF4FileHandler(BaseFileHandler):
         # Look through each subgroup
         base_name = name + "/" if name else ""
         for group_name, group_obj in obj.groups.items():
-            self.collect_metadata(base_name + group_name, group_obj)
+            group_name = base_name + group_name
+            self.file_content[group_name] = group_obj
+            self._collect_attrs(group_name, group_obj)
+            self.collect_metadata(group_name, group_obj)
         for var_name, var_obj in obj.variables.items():
             var_name = base_name + var_name
             self.file_content[var_name] = var_obj
@@ -158,31 +115,10 @@ class NetCDF4FileHandler(BaseFileHandler):
             dim_name = "{}/dimension/{}".format(name, dim_name)
             self.file_content[dim_name] = len(dim_obj)
 
-    def collect_cache_vars(self, cache_vars, obj):
-        """Collect data variables for caching.
-
-        This method will collect some data variables and store them in RAM.
-        This may be useful if some small variables are frequently accessed,
-        to prevent needlessly frequently opening and closing the file, which
-        in case of xarray is associated with some overhead.
-
-        Should be called later than `collect_metadata`.
-
-        Args:
-            cache_vars (List[str]): Names of data variables to be cached.
-            obj (netCDF4.Dataset): Dataset object from which to read them.
-        """
-        for var_name in cache_vars:
-            v = self.file_content[var_name]
-            self.cached_file_content[var_name] = xr.DataArray(
-                    v[:], dims=v.dimensions, attrs=v.__dict__, name=v.name)
-
     def __getitem__(self, key):
-        """Get item for given key."""
+        """Get item."""
         val = self.file_content[key]
         if isinstance(val, netCDF4.Variable):
-            if key in self.cached_file_content:
-                return self.cached_file_content[key]
             # these datasets are closed and inaccessible when the file is
             # closed, need to reopen
             # TODO: Handle HDF4 versus NetCDF3 versus NetCDF4
@@ -191,40 +127,29 @@ class NetCDF4FileHandler(BaseFileHandler):
                 group, key = parts
             else:
                 group = None
-            if self.file_handle is not None:
-                val = self._get_var_from_filehandle(group, key)
-            else:
-                val = self._get_var_from_xr(group, key)
+            with xr.open_dataset(self.filename, group=group,
+                                 **self._xarray_kwargs) as nc:
+                val = nc[key]
+                # Even though `chunks` is specified in the kwargs, xarray
+                # uses dask.arrays only for data variables that have at least
+                # one dimension; for zero-dimensional data variables (scalar),
+                # it uses its own lazy loading for scalars.  When those are
+                # accessed after file closure, xarray reopens the file without
+                # closing it again.  This will leave potentially many open file
+                # objects (which may in turn trigger a Segmentation Fault:
+                # https://github.com/pydata/xarray/issues/2954#issuecomment-491221266
+                if not val.chunks:
+                    val.load()
+        elif isinstance(val, netCDF4.Group):
+            # these datasets are closed and inaccessible when the file is
+            # closed, need to reopen
+            with xr.open_dataset(self.filename, group=key,
+                                 **self._xarray_kwargs) as nc:
+                val = nc
         return val
-
-    def _get_var_from_xr(self, group, key):
-        with xr.open_dataset(self.filename, group=group,
-                             **self._xarray_kwargs) as nc:
-            val = nc[key]
-            # Even though `chunks` is specified in the kwargs, xarray
-            # uses dask.arrays only for data variables that have at least
-            # one dimension; for zero-dimensional data variables (scalar),
-            # it uses its own lazy loading for scalars.  When those are
-            # accessed after file closure, xarray reopens the file without
-            # closing it again.  This will leave potentially many open file
-            # objects (which may in turn trigger a Segmentation Fault:
-            # https://github.com/pydata/xarray/issues/2954#issuecomment-491221266
-            if not val.chunks:
-                val.load()
-        return val
-
-    def _get_var_from_filehandle(self, group, key):
-        # Not getting coordinates as this is more work, therefore more
-        # overhead, and those are not used downstream.
-        g = self.file_handle[group]
-        v = g[key]
-        x = xr.DataArray(
-                da.from_array(v), dims=v.dimensions, attrs=v.__dict__,
-                name=v.name)
-        return x
 
     def __contains__(self, item):
-        """Get item from file content."""
+        """Contains."""
         return item in self.file_content
 
     def get(self, item, default=None):
