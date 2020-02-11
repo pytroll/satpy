@@ -22,7 +22,8 @@ import numpy as np
 import datetime
 
 from satpy import CHUNK_SIZE
-from satpy.readers.seviri_l2_grib import SeviriL2GribFileHandler, PRODUCT_DATA_DURATION_MINUTES
+from satpy.readers.seviri_l2_grib import (SeviriL2GribFileHandler,
+                                          REPEAT_CYCLE_DURATION)
 
 import unittest
 
@@ -50,7 +51,7 @@ FAKE_MESSAGE = {
     'cfName': 'test_cf_name',
     'parameterNumber': 30,
     'missingValue': 9999,
-    }
+}
 
 # List to be used as fake GID source
 FAKE_GID = [0, 1, 2, 3, None]
@@ -68,11 +69,6 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
         ec_.codes_get_values.return_value = np.ones(1000*1200)
         self.ec_ = ec_
 
-    def tearDown(self):
-        """Tear down the test."""
-        # Nothing to do
-        pass
-
     @mock.patch('satpy.readers.seviri_l2_grib.xr')
     @mock.patch('satpy.readers.seviri_l2_grib.da')
     def test_data_reading(self, da_, xr_):
@@ -82,7 +78,7 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 self.reader = SeviriL2GribFileHandler(
                     filename='test.grib',
                     filename_info={
-                        'spacecraft_name': 'MET11',
+                        'spacecraft': 'MET11',
                         'sensing_start_time': datetime.datetime(year=2020, month=10, day=20,
                                                                 hour=19, minute=45, second=0)
                     },
@@ -97,44 +93,21 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
 
                 # Checks that codes_release has been called after each codes_grib_new_from_file call
                 # (except after the last one which has returned a None)
-                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count, self.ec_.codes_release.call_count + 1)
+                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
+                                 self.ec_.codes_release.call_count + 1)
 
                 # Checks the basic data reading
-                self.assertEqual(PRODUCT_DATA_DURATION_MINUTES, 15)
-                self.assertEqual(self.reader.start_time, datetime.datetime(year=2019, month=10, day=20,
-                                                                           hour=17, minute=45, second=0))
-                self.assertEqual(self.reader.end_time, datetime.datetime(year=2019, month=10, day=20,
-                                                                         hour=18, minute=0, second=0))
-                self.assertEqual(self.reader.ssp_lon, 10.)
-                self.assertEqual(self.reader.spacecraft_name, 'Meteosat-11')
-                self.assertEqual(self.reader.sensor, 'seviri')
+                self.assertEqual(REPEAT_CYCLE_DURATION, 15)
                 self.assertEqual(self.reader.nmsgs, 4)
 
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
                 global_attributes = self.reader._get_global_attributes()
                 expected_global_attributes = {
-                    'filename': 'test.grib',
-                    'start_time': datetime.datetime(year=2019, month=10, day=20,
-                                                    hour=17, minute=45, second=0),
-                    'end_time': datetime.datetime(year=2019, month=10, day=20,
-                                                  hour=18, minute=0, second=0),
-                    'spacecraft_name': 'Meteosat-11',
                     'ssp_lon': 10.,
                     'sensor': 'seviri',
                     'platform_name': 'Meteosat-11'
-                    }
+                }
                 self.assertEqual(global_attributes, expected_global_attributes)
-
-                metadata = self.reader._get_metadata_from_msg(0)
-                expected_metadata = {
-                    'shortName': 'test_short_name',
-                    'long_name': 'test_name',
-                    'shortNameECMF': 'test_short_name_ecmf',
-                    'nameECMF': 'test_name_ecmf',
-                    'cfNameECMF': 'test_cf_name_ecmf',
-                    'cfName': 'test_cf_name',
-                    }
-                self.assertEqual(metadata, expected_metadata)
 
                 # Checks the reading of an array from the message
                 self.reader._get_xarray_from_msg(0)
@@ -160,8 +133,8 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                     'ssp_lon': 10.,
                     'nlines': 1000,
                     'ncols': 1200,
-                    'a_name': 'SEVIRI Area',
-                    'a_desc': 'Area for SEVIRI instrument',
+                    'a_name': 'geos_seviri',
+                    'a_desc': 'Calculated area for SEVIRI L2 GRIB product',
                     'p_id': 'geos',
                 }
                 self.assertEqual(pdict, expected_pdict)
@@ -199,7 +172,8 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 # Checks that the dataset has been created as a DataArray object
                 self.assertEqual(valid_dataset._extract_mock_name(), 'xr.DataArray()')
                 # Checks that codes_release has been called after each codes_grib_new_from_file call
-                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count, self.ec_.codes_release.call_count)
+                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
+                                 self.ec_.codes_release.call_count)
 
                 # Restarts the id generator and clears the call history
                 fake_gid_generator = (i for i in FAKE_GID)
@@ -213,7 +187,8 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 self.assertEqual(invalid_dataset, None)
                 # Checks that codes_release has been called after each codes_grib_new_from_file call
                 # (except after the last one which has returned a None)
-                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count, self.ec_.codes_release.call_count + 1)
+                self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
+                                 self.ec_.codes_release.call_count + 1)
 
 
 def suite():

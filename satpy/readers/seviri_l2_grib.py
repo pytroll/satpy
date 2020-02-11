@@ -28,17 +28,12 @@ from datetime import datetime, timedelta
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers._geos_area import get_area_definition
-from satpy.readers.seviri_base import calculate_area_extent
+from satpy.readers.seviri_base import (calculate_area_extent,
+                                       PLATFORM_DICT,
+                                       REPEAT_CYCLE_DURATION)
 from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
-
-PRODUCT_DATA_DURATION_MINUTES = 15
-
-PLATFORM_DICT = {
-    'MET11': 'Meteosat-11',
-    # Other platforms to be added here
-    }
 
 
 class SeviriL2GribFileHandler(BaseFileHandler):
@@ -109,33 +104,15 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                 data_time_str = '0' + data_time_str
             _start_time = datetime.strptime(data_date_str + data_time_str, '%Y%m%d%H%M')
         except ValueError:
-            logger.warning("Start time cannot be obtained from GRIB file content, using value from filename instead")
+            logger.warning(
+                "Start time cannot be obtained from GRIB file content, using value from filename instead")
             _start_time = self.filename_info['sensing_start_time']
         return _start_time
 
     @property
     def end_time(self):
         """Return the sensing end time."""
-        return self.start_time + timedelta(minutes=PRODUCT_DATA_DURATION_MINUTES)
-
-    @property
-    def ssp_lon(self):
-        """Return the subsatellite point longitude."""
-        return self._ssp_lon
-
-    @property
-    def spacecraft_name(self):
-        """Return the spacecraft name."""
-        try:
-            return PLATFORM_DICT[self.filename_info['spacecraft_name']]
-        except KeyError:
-            logger.warning("Spacecraft name key not found in dictionary, returning the raw string instead")
-            return self.filename_info['spacecraft_name']
-
-    @property
-    def sensor(self):
-        """Return the sensor name."""
-        return 'seviri'
+        return self.start_time + timedelta(minutes=REPEAT_CYCLE_DURATION)
 
     @property
     def nmsgs(self):
@@ -156,7 +133,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the parameter_number key in dataset_info."""
-        logger.debug('Reading in file to get dataset with parameter number %d.', dataset_info['parameter_number'])
+        logger.debug('Reading in file to get dataset with parameter number %d.',
+                     dataset_info['parameter_number'])
 
         xarr = None
 
@@ -185,14 +163,12 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                 xarr = self._get_xarray_from_msg(gid)
                 xarr.values[xarr.values == missing_value] = np.NaN
 
-                msg_metadata = self._get_metadata_from_msg(gid)
                 ec.codes_release(gid)
 
                 # Combine all metadata into the dataset attributes and break out of the loop
                 xarr.attrs.update(dataset_info)
                 global_attributes = self._get_global_attributes()
                 xarr.attrs.update(global_attributes)
-                xarr.attrs.update(msg_metadata)
                 break
 
         return xarr
@@ -235,11 +211,11 @@ class SeviriL2GribFileHandler(BaseFileHandler):
             'a': earth_major_axis_in_meters,
             'b': earth_minor_axis_in_meters,
             'h': h_in_meters,
-            'ssp_lon': self.ssp_lon,
+            'ssp_lon': self._ssp_lon,
             'nlines': self._nx,
             'ncols': self._ny,
             'a_name': 'geos_seviri',
-            'a_desc': 'Area for SEVIRI GRIB product',
+            'a_desc': 'Calculated area for SEVIRI L2 GRIB product',
             'p_id': 'geos',
         }
 
@@ -265,7 +241,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
         """
         # Data from GRIB message are read into a dask array...
-        values_array_dask = da.from_array(ec.codes_get_values(gid).reshape(self._ny, self._nx), CHUNK_SIZE)
+        values_array_dask = da.from_array(ec.codes_get_values(
+            gid).reshape(self._ny, self._nx), CHUNK_SIZE)
 
         # ... and finally in an xarray DataArray
         xarr = xr.DataArray(data=values_array_dask, dims=('y', 'x'))
@@ -277,46 +254,17 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
         Returns:
             dict: A dictionary of global attributes.
-                filename: name of the product file
-                start_time: sensing start time from best available source
-                end_time: sensing end time from best available source
-                spacecraft_name: name of the spacecraft
                 ssp_lon: longitude of subsatellite point
                 sensor: name of sensor
                 platform_name: name of the platform
 
         """
         attributes = {
-            'filename': self.filename,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
-            'spacecraft_name': self.spacecraft_name,
-            'ssp_lon': self.ssp_lon,
-            'sensor': self.sensor,
-            'platform_name': self.spacecraft_name,
+            'ssp_lon': self._ssp_lon,
+            'sensor': 'seviri',
+            'platform_name': PLATFORM_DICT[self.filename_info['spacecraft']]
         }
         return attributes
-
-    def _get_metadata_from_msg(self, gid):
-        """Read metadata from the GRIB message.
-
-        Args:
-            gid: The ID of the GRIB message.
-
-        Returns:
-            dict: A dictionary of metadata.
-
-        """
-        msg_info = {
-            'shortName': self._get_from_msg(gid, 'shortName'),
-            'long_name': self._get_from_msg(gid, 'name'),
-            'shortNameECMF': self._get_from_msg(gid, 'shortNameECMF'),
-            'nameECMF': self._get_from_msg(gid, 'nameECMF'),
-            'cfNameECMF': self._get_from_msg(gid, 'cfNameECMF'),
-            'cfName': self._get_from_msg(gid, 'cfName'),
-        }
-
-        return msg_info
 
     def _get_from_msg(self, gid, key):
         """Get a value from the GRIB message based on the key, return None if missing.
