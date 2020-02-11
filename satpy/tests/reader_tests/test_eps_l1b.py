@@ -19,13 +19,15 @@
 """Test the eps l1b format."""
 
 import os
+from contextlib import suppress
+from tempfile import mkstemp
 from unittest import TestCase, TestLoader, TestSuite
-from tempfile import NamedTemporaryFile
-from satpy import DatasetID
 
-from satpy.readers import eps_l1b as eps
 import numpy as np
 import xarray as xr
+
+from satpy import DatasetID
+from satpy.readers import eps_l1b as eps
 
 grh_dtype = np.dtype([("record_class", "|i1"),
                       ("INSTRUMENT_GROUP", "|i1"),
@@ -74,10 +76,13 @@ class TestEPSL1B(TestCase):
         sections[('mphr', 0)]['INSTRUMENT_ID'] = b'INSTRUMENT_ID                 = AVHR\n'
         sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = b'EARTH_VIEWS_PER_SCANLINE      =  2048\n'
 
-        with NamedTemporaryFile(delete=False) as fd:
-            self.filename = fd.name
-            for _, arr in sections.items():
-                arr.tofile(fd)
+        _fd, fname = mkstemp()
+        fd = open(_fd)
+
+        self.filename = fname
+        for _, arr in sections.items():
+            arr.tofile(fd)
+        fd.close()
         self.fh = eps.EPSAVHRRFile(self.filename, {'start_time': 'now',
                                                    'end_time': 'later'}, {})
 
@@ -125,7 +130,8 @@ class TestEPSL1B(TestCase):
 
     def tearDown(self):
         """Tear down the tests."""
-        os.remove(self.filename)
+        with suppress(OSError):
+            os.remove(self.filename)
 
 
 def suite():
