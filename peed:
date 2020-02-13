@@ -1,0 +1,807 @@
+[1mdiff --git a/satpy/etc/readers/seviri_l2_bufr.yaml b/satpy/etc/readers/seviri_l2_bufr.yaml[m
+[1mindex 48cbc523..8c476596 100644[m
+[1m--- a/satpy/etc/readers/seviri_l2_bufr.yaml[m
+[1m+++ b/satpy/etc/readers/seviri_l2_bufr.yaml[m
+[36m@@ -32,26 +32,26 @@[m [mfile_types:[m
+ [m
+ datasets:[m
+ [m
+[31m- latitude:[m
+[31m-   name: latitude[m
+[31m-   key: 'latitude'[m
+[31m-   resolution: [48000,9000][m
+[31m-   file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz][m
+[31m-   standard_name: latitude[m
+[31m-   units: degree_north[m
+[31m-   fill_value: -1.e+100[m
+[32m+[m[32m  latitude:[m
+[32m+[m[32m    name: latitude[m
+[32m+[m[32m    key: 'latitude'[m
+[32m+[m[32m    resolution: [48000,9000][m
+[32m+[m[32m    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz][m
+[32m+[m[32m    standard_name: latitude[m
+[32m+[m[32m    units: degree_north[m
+[32m+[m[32m    fill_value: -1.e+100[m
+ [m
+[31m- longitude:[m
+[31m-   name: longitude[m
+[31m-   key: 'longitude'[m
+[31m-   resolution: [48000,9000][m
+[31m-   file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz][m
+[31m-   standard_name: longitude[m
+[31m-   units: degree_east[m
+[31m-   fill_value: -1.e+100[m
+[32m+[m[32m  longitude:[m
+[32m+[m[32m    name: longitude[m
+[32m+[m[32m    key: 'longitude'[m
+[32m+[m[32m    resolution: [48000,9000][m
+[32m+[m[32m    file_type: [seviri_l2_bufr_asr,seviri_l2_bufr_cla,seviri_l2_bufr_csr,seviri_l2_bufr_gii,seviri_l2_bufr_thu,seviri_l2_bufr_toz][m
+[32m+[m[32m    standard_name: longitude[m
+[32m+[m[32m    units: degree_east[m
+[32m+[m[32m    fill_value: -1.e+100[m
+ [m
+[31m- # ---- ASR products ------------[m
+[31m- nir39all:[m
+[32m+[m[32m  # ---- ASR products ------------[m
+[32m+[m[32m  nir39all:[m
+     name: nir39all[m
+     key: '#19#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -62,7 +62,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- nir39clr:[m
+[32m+[m[32m  nir39clr:[m
+     name: nir39clr[m
+     key: '#20#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -73,7 +73,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- nir39cld:[m
+[32m+[m[32m  nir39cld:[m
+     name: nir39cld[m
+     key: '#21#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -84,7 +84,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- nir39low:[m
+[32m+[m[32m  nir39low:[m
+     name: nir39low[m
+     key: '#22#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -95,7 +95,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- nir39med:[m
+[32m+[m[32m  nir39med:[m
+     name: nir39med[m
+     key: '#23#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -106,7 +106,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- nir39high:[m
+[32m+[m[32m  nir39high:[m
+     name: nir39high[m
+     key: '#24#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -117,7 +117,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv62all:[m
+[32m+[m[32m  wv62all:[m
+     name: wv62all[m
+     key: '#25#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -128,7 +128,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv62clr:[m
+[32m+[m[32m  wv62clr:[m
+     name: wv62clr[m
+     key: '#26#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -139,7 +139,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv62cld:[m
+[32m+[m[32m  wv62cld:[m
+     name: wv62cld[m
+     key: '#27#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -150,7 +150,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv62low:[m
+[32m+[m[32m  wv62low:[m
+     name: wv62low[m
+     key: '#28#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -161,7 +161,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv62med:[m
+[32m+[m[32m  wv62med:[m
+     name: wv62med[m
+     key: '#29#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -172,7 +172,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv62high:[m
+[32m+[m[32m  wv62high:[m
+     name: wv62high[m
+     key: '#30#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -183,7 +183,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv73all:[m
+[32m+[m[32m  wv73all:[m
+     name: wv73all[m
+     key: '#31#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -194,7 +194,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv73clr:[m
+[32m+[m[32m  wv73clr:[m
+     name: wv73clr[m
+     key: '#32#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -205,7 +205,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv73cld:[m
+[32m+[m[32m  wv73cld:[m
+     name: wv73cld[m
+     key: '#33#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -216,7 +216,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv73low:[m
+[32m+[m[32m  wv73low:[m
+     name: wv73low[m
+     key: '#34#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -227,7 +227,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv73med:[m
+[32m+[m[32m  wv73med:[m
+     name: wv73med[m
+     key: '#35#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -238,7 +238,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv73high:[m
+[32m+[m[32m  wv73high:[m
+     name: wv73high[m
+     key: '#36#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -249,7 +249,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir87all:[m
+[32m+[m[32m  ir87all:[m
+     name: ir87all[m
+     key: '#37#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -260,7 +260,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir87clr:[m
+[32m+[m[32m  ir87clr:[m
+     name: ir87clr[m
+     key: '#38#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -271,7 +271,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir87cld:[m
+[32m+[m[32m  ir87cld:[m
+     name: ir87cld[m
+     key: '#39#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -282,7 +282,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir87low:[m
+[32m+[m[32m  ir87low:[m
+     name: ir87low[m
+     key: '#40#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -293,7 +293,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir87med:[m
+[32m+[m[32m  ir87med:[m
+     name: ir87med[m
+     key: '#41#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -304,7 +304,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir87high:[m
+[32m+[m[32m  ir87high:[m
+     name: ir87high[m
+     key: '#42#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -315,7 +315,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir97all:[m
+[32m+[m[32m  ir97all:[m
+     name: ir97all[m
+     key: '#43#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -326,7 +326,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir97clr:[m
+[32m+[m[32m  ir97clr:[m
+     name: ir97clr[m
+     key: '#44#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -337,7 +337,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir97cld:[m
+[32m+[m[32m  ir97cld:[m
+     name: ir97cld[m
+     key: '#45#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -348,7 +348,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir97low:[m
+[32m+[m[32m  ir97low:[m
+     name: ir97low[m
+     key: '#46#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -359,7 +359,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir97med:[m
+[32m+[m[32m  ir97med:[m
+     name: ir97med[m
+     key: '#47#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -370,7 +370,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir97high:[m
+[32m+[m[32m  ir97high:[m
+     name: ir97high[m
+     key: '#48#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -381,7 +381,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir108all:[m
+[32m+[m[32m  ir108all:[m
+     name: ir108all[m
+     key: '#49#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -392,7 +392,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir108clr:[m
+[32m+[m[32m  ir108clr:[m
+     name: ir108clr[m
+     key: '#50#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -403,7 +403,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir108cld:[m
+[32m+[m[32m  ir108cld:[m
+     name: ir108cld[m
+     key: '#51#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -414,7 +414,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir108low:[m
+[32m+[m[32m  ir108low:[m
+     name: ir108low[m
+     key: '#52#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -425,7 +425,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir108med:[m
+[32m+[m[32m  ir108med:[m
+     name: ir108med[m
+     key: '#53#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -436,7 +436,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir108high:[m
+[32m+[m[32m  ir108high:[m
+     name: ir108high[m
+     key: '#54#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -447,7 +447,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir120all:[m
+[32m+[m[32m  ir120all:[m
+     name: ir120all[m
+     key: '#55#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -458,7 +458,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir120clr:[m
+[32m+[m[32m  ir120clr:[m
+     name: ir120clr[m
+     key: '#56#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -469,7 +469,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir120cld:[m
+[32m+[m[32m  ir120cld:[m
+     name: ir120cld[m
+     key: '#57#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -480,7 +480,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir120low:[m
+[32m+[m[32m  ir120low:[m
+     name: ir120low[m
+     key: '#58#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -491,7 +491,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir120med:[m
+[32m+[m[32m  ir120med:[m
+     name: ir120med[m
+     key: '#59#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -502,7 +502,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir120high:[m
+[32m+[m[32m  ir120high:[m
+     name: ir120high[m
+     key: '#60#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -513,7 +513,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir134all:[m
+[32m+[m[32m  ir134all:[m
+     name: ir134all[m
+     key: '#61#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -524,7 +524,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir134clr:[m
+[32m+[m[32m  ir134clr:[m
+     name: ir134clr[m
+     key: '#62#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -535,7 +535,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir134cld:[m
+[32m+[m[32m  ir134cld:[m
+     name: ir134cld[m
+     key: '#63#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -546,7 +546,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir134low:[m
+[32m+[m[32m  ir134low:[m
+     name: ir134low[m
+     key: '#64#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -557,7 +557,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir134med:[m
+[32m+[m[32m  ir134med:[m
+     name: ir134med[m
+     key: '#65#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -568,7 +568,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir134high:[m
+[32m+[m[32m  ir134high:[m
+     name: ir134high[m
+     key: '#66#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -579,7 +579,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- pcld:[m
+[32m+[m[32m  pcld:[m
+     name: pcld[m
+     key: '#1#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -590,7 +590,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: 0[m
+[31m- pclr:[m
+[32m+[m[32m  pclr:[m
+     name: pclr[m
+     key: '#1#amountSegmentCloudFree'[m
+     resolution: 48000[m
+[36m@@ -601,7 +601,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: 0[m
+[31m- pclrs:[m
+[32m+[m[32m  pclrs:[m
+     name: pclrs[m
+     key: '#2#amountSegmentCloudFree'[m
+     resolution: 48000[m
+[36m@@ -613,8 +613,8 @@[m [mdatasets:[m
+        - latitude[m
+     fill_value: 0[m
+ [m
+[31m- # ---- CLA products ------------[m
+[31m- hca:[m
+[32m+[m[32m  # ---- CLA products ------------[m
+[32m+[m[32m  hca:[m
+     name: hca[m
+     key: '#1#amountOfHighClouds'[m
+     resolution: 48000[m
+[36m@@ -625,7 +625,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: 0[m
+[31m- lca:[m
+[32m+[m[32m  lca:[m
+     name: lca[m
+     key: '#1#amountOfLowClouds'[m
+     resolution: 48000[m
+[36m@@ -633,7 +633,7 @@[m [mdatasets:[m
+     units: '%'[m
+     file_type:  seviri_l2_bufr_cla[m
+     fill_value: 0[m
+[31m- mca:[m
+[32m+[m[32m  mca:[m
+     name: mca[m
+     key: '#1#amountOfMiddleClouds'[m
+     resolution: 48000[m
+[36m@@ -644,7 +644,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: 0[m
+[31m- tca:[m
+[32m+[m[32m  tca:[m
+     name: tca[m
+     key: '#1#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -656,8 +656,8 @@[m [mdatasets:[m
+        - latitude[m
+     fill_value: 0[m
+ [m
+[31m- # ---- CSR products ------------[m
+[31m- nir39:[m
+[32m+[m[32m  # ---- CSR products ------------[m
+[32m+[m[32m  nir39:[m
+     name: nir39[m
+     key: '#4#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -668,7 +668,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- cld39:[m
+[32m+[m[32m  cld39:[m
+     name: cld39[m
+     key: '#4#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -679,7 +679,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv62:[m
+[32m+[m[32m  wv62:[m
+     name: wv62[m
+     key: '#5#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -690,7 +690,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- cld62:[m
+[32m+[m[32m  cld62:[m
+     name: cld62[m
+     key: '#5#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -701,7 +701,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- wv73:[m
+[32m+[m[32m  wv73:[m
+     name: wv73[m
+     key: '#6#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -712,7 +712,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- cld73:[m
+[32m+[m[32m  cld73:[m
+     name: cld73[m
+     key: '#6#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -723,7 +723,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir87:[m
+[32m+[m[32m  ir87:[m
+     name: ir87[m
+     key: '#7#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -734,7 +734,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- cld87:[m
+[32m+[m[32m  cld87:[m
+     name: cld87[m
+     key: '#7#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -745,7 +745,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir97:[m
+[32m+[m[32m  ir97:[m
+     name: ir97[m
+     key: '#8#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -756,7 +756,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- cld97:[m
+[32m+[m[32m  cld97:[m
+     name: cld97[m
+     key: '#8#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -767,7 +767,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir108:[m
+[32m+[m[32m  ir108:[m
+     name: ir108[m
+     key: '#9#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -778,7 +778,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- cld108:[m
+[32m+[m[32m  cld108:[m
+     name: cld108[m
+     key: '#9#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -789,7 +789,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir120:[m
+[32m+[m[32m  ir120:[m
+     name: ir120[m
+     key: '#10#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -800,7 +800,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- cld120:[m
+[32m+[m[32m  cld120:[m
+     name: cld120[m
+     key: '#10#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -811,7 +811,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- ir134:[m
+[32m+[m[32m  ir134:[m
+     name: ir134[m
+     key: '#11#brightnessTemperature'[m
+     resolution: 48000[m
+[36m@@ -822,7 +822,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- cld134:[m
+[32m+[m[32m  cld134:[m
+     name: cld134[m
+     key: '#11#cloudAmountInSegment'[m
+     resolution: 48000[m
+[36m@@ -834,9 +834,9 @@[m [mdatasets:[m
+        - latitude[m
+     fill_value: -1.e+100[m
+ [m
+[31m- # ---- GII products ------------[m
+[32m+[m[32m  # ---- GII products ------------[m
+ [m
+[31m- ki:[m
+[32m+[m[32m  ki:[m
+     name: ki[m
+     key: '#1#kIndex'[m
+     resolution: 9000[m
+[36m@@ -847,7 +847,7 @@[m [mdatasets:[m
+     units: ""[m
+     file_type: seviri_l2_bufr_gii[m
+     fill_value: -1.e+100[m
+[31m- ko:[m
+[32m+[m[32m  ko:[m
+     name: ko[m
+     key: '#1#koIndex'[m
+     resolution: 9000[m
+[36m@@ -858,7 +858,7 @@[m [mdatasets:[m
+     units: ""[m
+     file_type: seviri_l2_bufr_gii[m
+     fill_value: -1.e+100[m
+[31m- li:[m
+[32m+[m[32m  li:[m
+     name: li[m
+     key: '#1#parcelLiftedIndexTo500Hpa'[m
+     resolution: 9000[m
+[36m@@ -869,7 +869,7 @@[m [mdatasets:[m
+     units: ""[m
+     file_type: seviri_l2_bufr_gii[m
+     fill_value: -1.e+100[m
+[31m- lpw1:[m
+[32m+[m[32m  lpw1:[m
+     name: lpw1[m
+     key: '#2#precipitableWater'[m
+     resolution: 9000[m
+[36m@@ -880,7 +880,7 @@[m [mdatasets:[m
+     units: mm[m
+     file_type: seviri_l2_bufr_gii[m
+     fill_value: -1.e+100[m
+[31m- lpw2:[m
+[32m+[m[32m  lpw2:[m
+     name: lpw2[m
+     key: '#3#precipitableWater'[m
+     resolution: 9000[m
+[36m@@ -891,7 +891,7 @@[m [mdatasets:[m
+     units: mm[m
+     file_type: seviri_l2_bufr_gii[m
+     fill_value: -1.e+100[m
+[31m- lpw3:[m
+[32m+[m[32m  lpw3:[m
+     name: lpw3[m
+     key: '#4#precipitableWater'[m
+     resolution: 9000[m
+[36m@@ -902,7 +902,7 @@[m [mdatasets:[m
+     units: mm[m
+     file_type: seviri_l2_bufr_gii[m
+     fill_value: -1.e+100[m
+[31m- mb:[m
+[32m+[m[32m  mb:[m
+     name: mb[m
+     key: '#1#maximumBuoyancy'[m
+     resolution: 9000[m
+[36m@@ -913,7 +913,7 @@[m [mdatasets:[m
+     units: ""[m
+     file_type: seviri_l2_bufr_gii[m
+     fill_value: -1.e+100[m
+[31m- stza:[m
+[32m+[m[32m  stza:[m
+     name: stza[m
+     key: '#1#satelliteZenithAngle'[m
+     resolution: 9000[m
+[36m@@ -924,7 +924,7 @@[m [mdatasets:[m
+     units: degrees[m
+     file_type: seviri_l2_bufr_gii[m
+     fill_value: 0[m
+[31m- tpw:[m
+[32m+[m[32m  tpw:[m
+     name: tpw[m
+     key: '#1#precipitableWater'[m
+     resolution: 9000[m
+[36m@@ -936,8 +936,8 @@[m [mdatasets:[m
+     file_type: seviri_l2_bufr_gii[m
+     fill_value: -1.e+100[m
+ [m
+[31m- # ---- THU products ------------[m
+[31m- thu62:[m
+[32m+[m[32m  # ---- THU products ------------[m
+[32m+[m[32m  thu62:[m
+     name: thu62[m
+     key: '#1#relativeHumidity'[m
+     resolution: 48000[m
+[36m@@ -948,7 +948,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: -1.e+100[m
+[31m- thu73:[m
+[32m+[m[32m  thu73:[m
+     name: thu73[m
+     key: '#2#relativeHumidity'[m
+     resolution: 48000[m
+[36m@@ -960,8 +960,8 @@[m [mdatasets:[m
+        - latitude[m
+     fill_value: -1.e+100[m
+ [m
+[31m- # ---- TOZ products ------------[m
+[31m- toz:[m
+[32m+[m[32m  # ---- TOZ products ------------[m
+[32m+[m[32m  toz:[m
+     name: toz[m
+     key: '#1#totalOzone'[m
+     resolution: 9000[m
+[36m@@ -972,7 +972,7 @@[m [mdatasets:[m
+        - longitude[m
+        - latitude[m
+     fill_value: 0[m
+[31m- qual:[m
+[32m+[m[32m  qual:[m
+     name: qual[m
+     key: '#1#totalOzone->totalOzoneQuality'[m
+     resolution: 9000[m
