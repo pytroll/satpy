@@ -1,0 +1,227 @@
+reader:
+  name: iasi_l2_so2_bufr
+  short_name: IASI L2 SO2 BUFR
+  long_name: METOP IASI Level 2 SO2 BUFR
+  description: >
+    Reader for IASI L2 files
+  sensors: [iasi]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  default_datasets:
+
+file_types:
+  iasi_l2_so2_bufr:
+    file_reader: !!python/name:satpy.readers.iasi_l2_so2_bufr.IASIL2SO2BUFR
+    file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_EUMC_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_{level}.bin"]
+                    
+                    
+
+datasets:
+
+
+  longitude:
+    name: longitude
+    file_type: iasi_l2_so2_bufr
+    standard_name: longitude
+    units: "degrees"
+    resolution: 12000
+
+  latitude:
+    name: latitude
+    file_type: iasi_l2_so2_bufr
+    standard_name: latitude
+    units: "degrees"
+    resolution: 12000
+
+  field_of_view_number:
+    name: field_of_view_number
+    file_type:  iasi_l2_so2_bufr
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  orbit_number:
+    name: orbit_number
+    file_type:  iasi_l2_so2_bufr
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  scanline_number:
+    name: scanline_number
+    file_type:  iasi_l2_so2_bufr
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    file_type: iasi_l2_so2_bufr
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    file_type: iasi_l2_so2_bufr
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  sensing_time:
+    name: sensing_time
+    file_type: iasi_l2_so2_bufr
+    units: "ut_time"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    file_type: iasi_l2_so2_bufr
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    file_type: iasi_l2_so2_bufr
+    units: "degrees"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  so2_quality_flag:
+    name: so2_quality_flag
+    file_type: iasi_l2_so2_bufr
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  so2_rpl1:
+    name: so2_rpl1
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  so2_rpl2:
+    name: so2_rpl2
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  so2_rpl3:
+    name: so2_rpl3
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  so2_rpl4:
+    name: so2_rpl4
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  so2_rpl5:
+    name: so2_rpl5
+    file_type: iasi_l2_so2_bufr
+    units: "dobson"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  so2_quality:
+    name: so2_quality
+    file_type: iasi_l2_so2_bufr
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+  
+
+
+
+
+
+
+
+
+
+  pressure:
+    name: pressure
+    file_type: iasi_l2_hdf5
+    units: "hPa"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  pressure_quality:
+    name: pressure_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  temperature:
+    name: temperature
+    file_type: iasi_l2_hdf5
+    units: "K"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  temperature_quality:
+    name: temperature_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  water_mixing_ratio:
+    name: water_mixing_ratio
+    file_type: iasi_l2_hdf5
+    units: "kg/kg"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  water_total_column:
+    name: water_total_column
+    file_type: iasi_l2_hdf5
+    units: "mm"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_skin_temperature:
+    name: surface_skin_temperature
+    file_type: iasi_l2_hdf5
+    units: "K"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  surface_skin_temperature_quality:
+    name: surface_skin_temperature_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  emissivity:
+    name: emissivity
+    file_type: iasi_l2_hdf5
+    units: "1"
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  emissivity_quality:
+    name: emissivity_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+  water_mixing_ratio_quality:
+    name: water_mixing_ratio_quality
+    file_type: iasi_l2_hdf5
+    units: ""
+    resolution: 12000
+    coordinates: [longitude, latitude]
+
+
+
