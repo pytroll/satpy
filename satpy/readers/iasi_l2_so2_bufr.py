@@ -37,8 +37,8 @@ from satpy import CHUNK_SIZE
 
 logger = logging.getLogger('IASIL2SO2BUFR')
 
-data_center_dict = {55: {'ssp': 'E0415', 'name': '08'}, 56:  {'ssp': 'E0000', 'name': '09'},
-                    57: {'ssp': 'E0095', 'name': '10'}, 70: {'ssp': 'E0000', 'name': '11'}}
+data_center_dict = {3: {'name': 'METOP-1'}, 4:  { 'name': 'METOP-2'},
+                    5: { 'name': 'METOP-3'}}
 
 seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
                  'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
@@ -62,16 +62,21 @@ class IASIL2SO2BUFR(BaseFileHandler):
             timeStr = self.get_attribute('typicalDate')+self.get_attribute('typicalTime')
             buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
             sc_id = self.get_attribute('satelliteIdentifier')
+            #print("satelliteIdentifier", sc_id)
             self.mpef_header = {}
             self.mpef_header['NominalTime'] = buf_start_time
+            #print("buf_start_time:",buf_start_time)
             self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
-            self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
 
-        self.seg_size = seg_size_dict[filetype_info['file_type']]
+            # ignore sub satellite point
+            #self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
+
+        #self.seg_size = seg_size_dict[filetype_info['file_type']]
 
     @property
     def start_time(self):
         """Return the repeat cycle start time."""
+        print(self.mpef_header)
         return self.mpef_header['NominalTime']
 
     @property
@@ -82,14 +87,15 @@ class IASIL2SO2BUFR(BaseFileHandler):
     @property
     def platform_name(self):
         """Return spacecraft name."""
-        return 'MET{}'.format(self.mpef_header['SpacecraftName'])
+        #return 'MET{}'.format(self.mpef_header['SpacecraftName'])
+        return '{}'.format(self.mpef_header['SpacecraftName'])
 
-    @property
-    def ssp_lon(self):
-        """Return subsatellite point longitude."""
+    #@property
+    #def ssp_lon(self):
+    #    """Return subsatellite point longitude."""
         # e.g. E0415
-        ssp_lon = self.mpef_header['RectificationLongitude']
-        return float(ssp_lon[1:])/10.
+    #    ssp_lon = self.mpef_header['RectificationLongitude']
+    #    return float(ssp_lon[1:])/10.
 
     def _read_mpef_header(self):
         """Read MPEF header."""
@@ -119,20 +125,31 @@ class IASIL2SO2BUFR(BaseFileHandler):
         with open(self.filename, "rb") as fh:
             msgCount = 0
             while True:
+
                 bufr = ec.codes_bufr_new_from_file(fh)
                 if bufr is None:
                     break
 
                 ec.codes_set(bufr, 'unpack', 1)
 
+                values = ec.codes_get_array(
+                        bufr, key, float)
+
+                
+                if len(values)==1:
+                    values = np.repeat(values,120)
+
+
                 # if is the first message initialise our final array
                 if (msgCount == 0):
-                    arr = da.from_array(ec.codes_get_array(
-                        bufr, key, float), chunks=CHUNK_SIZE)
+
+                    arr = da.from_array([values], chunks=CHUNK_SIZE)
                 else:
-                    tmpArr = da.from_array(ec.codes_get_array(
-                        bufr, key, float), chunks=CHUNK_SIZE)
-                    arr = da.concatenate((arr, tmpArr))
+                    tmpArr = da.from_array([values], chunks=CHUNK_SIZE)
+
+                    arr = da.concatenate((arr, tmpArr),axis=0)
+
+
 
                 msgCount = msgCount+1
                 ec.codes_release(bufr)
@@ -144,14 +161,15 @@ class IASIL2SO2BUFR(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the BUFR key in dataset_info."""
+        
         arr = self.get_array(dataset_info['key'])
         arr[arr == dataset_info['fill_value']] = np.nan
 
-        xarr = xr.DataArray(arr, dims=["y"])
-        xarr.attrs['sensor'] = 'SEVIRI'
+        xarr = xr.DataArray(arr, dims=["y","x"],name=dataset_info['name'])
+        xarr.attrs['sensor'] = 'IASI'
         xarr.attrs['platform_name'] = self.platform_name
-        xarr.attrs['ssp_lon'] = self.ssp_lon
-        xarr.attrs['seg_size'] = self.seg_size
+        #xarr.attrs['ssp_lon'] = self.ssp_lon
+        #xarr.attrs['seg_size'] = self.seg_size
         xarr.attrs.update(dataset_info)
 
         return xarr
