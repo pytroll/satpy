@@ -61,7 +61,6 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                 logger.warning("Could not obtain a valid message id in GRIB file")
 
                 self._ssp_lon = None
-                self._data_time = None
                 self._nrows = None
                 self._ncols = None
                 self._pdict, self._area_dict = None, None
@@ -72,8 +71,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
             self._ssp_lon = self._get_from_msg(gid, 'latitudeOfSubSatellitePointInDegrees')
 
             # Read number of points on the x and y axes
-            self._nrows = self._get_from_msg(gid, 'Nx')
-            self._ncols = self._get_from_msg(gid, 'Ny')
+            self._nrows = self._get_from_msg(gid, 'Ny')
+            self._ncols = self._get_from_msg(gid, 'Nx')
 
             # Creates the projection and area dictionaries
             self._pdict, self._area_dict = self._get_proj_area(gid)
@@ -190,8 +189,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
             'b': earth_minor_axis_in_meters,
             'h': h_in_meters,
             'ssp_lon': self._ssp_lon,
-            'nlines': self._nrows,
-            'ncols': self._ncols,
+            'nlines': self._ncols,
+            'ncols': self._nrows,
             'a_name': 'geos_seviri',
             'a_desc': 'Calculated area for SEVIRI L2 GRIB product',
             'p_id': 'geos',
@@ -200,9 +199,9 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         # Compute the dictionary with the area extension
         area_dict = {
             'center_point': xp_in_grid_lengths + 0.5,
-            'north': self._ncols,
+            'north': self._nrows,
             'east': 1,
-            'west': self._nrows,
+            'west': self._ncols,
             'south': 1,
         }
 
@@ -220,7 +219,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         """
         # Data from GRIB message are read into an Xarray...
         xarr = xr.DataArray(da.from_array(ec.codes_get_values(
-            gid).reshape(self._ncols, self._nrows), CHUNK_SIZE), dims=('y', 'x'))
+            gid).reshape(self._nrows, self._ncols), CHUNK_SIZE), dims=('y', 'x'))
 
         return xarr
 
