@@ -79,8 +79,8 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                     filename='test.grib',
                     filename_info={
                         'spacecraft': 'MET11',
-                        'sensing_start_time': datetime.datetime(year=2020, month=10, day=20,
-                                                                hour=19, minute=45, second=0)
+                        'start_time': datetime.datetime(year=2020, month=10, day=20,
+                                                        hour=19, minute=45, second=0)
                     },
                     filetype_info={}
                 )
@@ -98,7 +98,6 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
 
                 # Checks the basic data reading
                 self.assertEqual(REPEAT_CYCLE_DURATION, 15)
-                self.assertEqual(self.reader.nmsgs, 4)
 
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
                 global_attributes = self.reader._get_global_attributes()
@@ -120,8 +119,6 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 # Checks that xarray.DataArray has been called with the correct arguments
                 name, args, kwargs = xr_.mock_calls[0]
                 self.assertEqual(kwargs['dims'], ('y', 'x'))
-                # The 'data' argument must be the return result of the dask.array call
-                self.assertEqual(kwargs['data']._extract_mock_name(), 'da.from_array()')
 
                 # Checks the correct execution of the _get_proj_area function
                 pdict, area_dict = self.reader._get_proj_area(0)
