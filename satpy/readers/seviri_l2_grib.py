@@ -24,7 +24,7 @@ import xarray as xr
 import dask.array as da
 import eccodes as ec
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers._geos_area import get_area_definition
@@ -61,23 +61,19 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                 logger.warning("Could not obtain a valid message id in GRIB file")
 
                 self._ssp_lon = None
-                self._data_date = None
                 self._data_time = None
-                self._nx = None
-                self._ny = None
+                self._nrows = None
+                self._ncols = None
                 self._pdict, self._area_dict = None, None
-                self._nmsgs = 0
 
                 return
 
             # Read SSP and date/time
             self._ssp_lon = self._get_from_msg(gid, 'latitudeOfSubSatellitePointInDegrees')
-            self._data_date = self._get_from_msg(gid, 'dataDate')
-            self._data_time = self._get_from_msg(gid, 'dataTime')
 
             # Read number of points on the x and y axes
-            self._nx = self._get_from_msg(gid, 'Nx')
-            self._ny = self._get_from_msg(gid, 'Ny')
+            self._nrows = self._get_from_msg(gid, 'Nx')
+            self._ncols = self._get_from_msg(gid, 'Ny')
 
             # Creates the projection and area dictionaries
             self._pdict, self._area_dict = self._get_proj_area(gid)
@@ -92,32 +88,15 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                 ec.codes_release(gid)
                 i = i+1
 
-            self._nmsgs = i
-
     @property
     def start_time(self):
         """Return the sensing start time."""
-        try:
-            data_date_str = str(self._data_date)
-            data_time_str = str(self._data_time)
-            if len(data_time_str) < 4:
-                data_time_str = '0' + data_time_str
-            _start_time = datetime.strptime(data_date_str + data_time_str, '%Y%m%d%H%M')
-        except ValueError:
-            logger.warning(
-                "Start time cannot be obtained from GRIB file content, using value from filename instead")
-            _start_time = self.filename_info['sensing_start_time']
-        return _start_time
+        return self.filename_info['start_time']
 
     @property
     def end_time(self):
         """Return the sensing end time."""
         return self.start_time + timedelta(minutes=REPEAT_CYCLE_DURATION)
-
-    @property
-    def nmsgs(self):
-        """Return the number of messages in the product."""
-        return self._nmsgs
 
     def get_area_def(self, dataset_id):
         """Return the area definition for a dataset."""
@@ -211,8 +190,8 @@ class SeviriL2GribFileHandler(BaseFileHandler):
             'b': earth_minor_axis_in_meters,
             'h': h_in_meters,
             'ssp_lon': self._ssp_lon,
-            'nlines': self._nx,
-            'ncols': self._ny,
+            'nlines': self._nrows,
+            'ncols': self._ncols,
             'a_name': 'geos_seviri',
             'a_desc': 'Calculated area for SEVIRI L2 GRIB product',
             'p_id': 'geos',
@@ -221,9 +200,9 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         # Compute the dictionary with the area extension
         area_dict = {
             'center_point': xp_in_grid_lengths + 0.5,
-            'north': self._ny,
+            'north': self._ncols,
             'east': 1,
-            'west': self._nx,
+            'west': self._nrows,
             'south': 1,
         }
 
@@ -241,7 +220,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
         """
         # Data from GRIB message are read into an Xarray...
         xarr = xr.DataArray(da.from_array(ec.codes_get_values(
-            gid).reshape(self._ny, self._nx), CHUNK_SIZE), dims=('y', 'x'))
+            gid).reshape(self._ncols, self._nrows), CHUNK_SIZE), dims=('y', 'x'))
 
         return xarr
 
