@@ -28,7 +28,11 @@ PLATFORM_DICT = {
     'MET08': 'Meteosat-8',
     'MET09': 'Meteosat-9',
     'MET10': 'Meteosat-10',
-    'MET11': 'Meteosat-11'
+    'MET11': 'Meteosat-11',
+    'MSG1': 'Meteosat-8',
+    'MSG2': 'Meteosat-9',
+    'MSG3': 'Meteosat-10',
+    'MSG4': 'Meteosat-11',
 }
 
 REPEAT_CYCLE_DURATION = 15
