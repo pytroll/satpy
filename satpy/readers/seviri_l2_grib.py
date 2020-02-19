@@ -161,14 +161,13 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
                 # Retrieve values and metadata from the GRIB message, masking the values equal to missing_value
                 xarr = self._get_xarray_from_msg(gid)
-                xarr.values[xarr.values == missing_value] = np.NaN
+                xarr.where(xarr.data == missing_value, np.NaN)
 
                 ec.codes_release(gid)
 
                 # Combine all metadata into the dataset attributes and break out of the loop
                 xarr.attrs.update(dataset_info)
-                global_attributes = self._get_global_attributes()
-                xarr.attrs.update(global_attributes)
+                xarr.attrs.update(self._get_global_attributes())
                 break
 
         return xarr
@@ -240,12 +239,9 @@ class SeviriL2GribFileHandler(BaseFileHandler):
             DataArray: The array containing the retrieved values.
 
         """
-        # Data from GRIB message are read into a dask array...
-        values_array_dask = da.from_array(ec.codes_get_values(
-            gid).reshape(self._ny, self._nx), CHUNK_SIZE)
-
-        # ... and finally in an xarray DataArray
-        xarr = xr.DataArray(data=values_array_dask, dims=('y', 'x'))
+        # Data from GRIB message are read into an Xarray...
+        xarr = xr.DataArray(da.from_array(ec.codes_get_values(
+            gid).reshape(self._ny, self._nx), CHUNK_SIZE), dims=('y', 'x'))
 
         return xarr
 
