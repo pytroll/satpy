@@ -17,96 +17,99 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI L2 BUFR format reader."""
 
+# TDB: this reader is based on iasi_l2.py and seviri_l2_bufr.py
 
 import logging
-from datetime import timedelta, datetime
+from datetime import datetime
 import numpy as np
 import xarray as xr
 import dask.array as da
-from satpy.readers.seviri_base import mpef_product_header
-from satpy.readers.eum_base import recarray2dict
 
 try:
     import eccodes as ec
 except ImportError:
     raise ImportError(
-        "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
+        """Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes""")
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
 logger = logging.getLogger('IASIL2SO2BUFR')
 
-data_center_dict = {3: {'name': 'METOP-1'}, 4:  { 'name': 'METOP-2'},
-                    5: { 'name': 'METOP-3'}}
-
-#seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
-#                 'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
-#                 'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
+data_center_dict = {3: {'name': 'METOP-1'}, 4:  {'name': 'METOP-2'},
+                    5: {'name': 'METOP-3'}}
 
 
 class IASIL2SO2BUFR(BaseFileHandler):
-    """File handler for SEVIRI L2 BUFR products."""
+    """File handler for the IASI L2 SO2 BUFR product."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
-        """Initialise the file handler for SEVIRI L2 BUFR data."""
-        super(IASIL2SO2BUFR, self).__init__(filename,
-                                                      filename_info,
-                                                      filetype_info)
+        """Initialise the file handler for the IASI L2 SO2 BUFR data."""
 
-        #if ('server' in filename_info):
-            # EUMETSAT Offline Bufr product
-         #   self.mpef_header = self._read_mpef_header()
-        #else:
-        # Product was retrieved from the EUMETSAT Data Center
-        timeStr = self.get_attribute('typicalDate')+self.get_attribute('typicalTime')
-        buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
+        super(IASIL2SO2BUFR, self).__init__(filename, filename_info, filetype_info)
+
+        start_time, end_time = self.get_start_end_date()
+
         sc_id = self.get_attribute('satelliteIdentifier')
-        #print("satelliteIdentifier", sc_id)
-        self.mpef_header = {}
-        self.mpef_header['NominalTime'] = buf_start_time
-        #print("buf_start_time:",buf_start_time)
-        self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
 
-            # ignore sub satellite point
-            #self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']
-
-        #self.seg_size = seg_size_dict[filetype_info['file_type']]
+        self.properties = {}
+        self.properties['start_time'] = start_time
+        self.properties['end_time'] = end_time
+        self.properties['SpacecraftName'] = data_center_dict[sc_id]['name']
 
     @property
     def start_time(self):
-        """Return the repeat cycle start time."""
-        print(self.mpef_header)
-        return self.mpef_header['NominalTime']
+        """Return the start time of data acqusition."""
+        return self.properties['start_time']
 
     @property
     def end_time(self):
-        """Return the repeat cycle end time."""
-        return self.start_time + timedelta(minutes=15)
+        """Return the end time of data acquisition."""
+        return self.properties['end_time']
 
     @property
     def platform_name(self):
         """Return spacecraft name."""
-        #return 'MET{}'.format(self.mpef_header['SpacecraftName'])
-        return '{}'.format(self.mpef_header['SpacecraftName'])
+        return '{}'.format(self.properties['SpacecraftName'])
 
-    #@property
-    #def ssp_lon(self):
-    #    """Return subsatellite point longitude."""
-        # e.g. E0415
-    #    ssp_lon = self.mpef_header['RectificationLongitude']
-    #    return float(ssp_lon[1:])/10.
+    def get_start_end_date(self):
+        """Gets the first and last date from the bufr file"""
+        fh = open(self.filename, "rb")
+        i = 0
+        while True:
+            # get handle for message
+            bufr = ec.codes_bufr_new_from_file(fh)
+            if bufr is None:
+                break
+            ec.codes_set(bufr, 'unpack', 1)
+            year = ec.codes_get(bufr, 'year')
+            month = ec.codes_get(bufr, 'month')
+            day = ec.codes_get(bufr, 'day')
+            hour = ec.codes_get(bufr, 'hour')
+            minute = ec.codes_get(bufr, 'minute')
+            second = ec.codes_get(bufr, 'second')
 
-    def _read_mpef_header(self):
-        """Read MPEF header."""
-        hdr = np.fromfile(self.filename, mpef_product_header, 1)
-        return recarray2dict(hdr)
+            obs_time = datetime(year=year, month=month, day=day, hour=hour, minute=minute, second=second)
+
+            if i == 0:
+                start_time = obs_time
+
+            ec.codes_release(bufr)
+
+            i += 1
+
+        end_time = obs_time
+
+        fh.close()
+
+        return(start_time, end_time)
 
     def get_attribute(self, key):
         ''' Get BUFR attributes '''
         # This function is inefficient as it is looping through the entire
         # file to get 1 attribute. It causes a problem though if you break
         # from the file early - dont know why but investigating - fix later
+
         fh = open(self.filename, "rb")
         while True:
             # get handle for message
@@ -135,10 +138,8 @@ class IASIL2SO2BUFR(BaseFileHandler):
                 values = ec.codes_get_array(
                         bufr, key, float)
 
-                
-                if len(values)==1:
-                    values = np.repeat(values,120)
-
+                if len(values) == 1:
+                    values = np.repeat(values, 120)
 
                 # if is the first message initialise our final array
                 if (msgCount == 0):
@@ -147,9 +148,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
                 else:
                     tmpArr = da.from_array([values], chunks=CHUNK_SIZE)
 
-                    arr = da.concatenate((arr, tmpArr),axis=0)
-
-
+                    arr = da.concatenate((arr, tmpArr), axis=0)
 
                 msgCount = msgCount+1
                 ec.codes_release(bufr)
@@ -161,15 +160,13 @@ class IASIL2SO2BUFR(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the BUFR key in dataset_info."""
-        
+
         arr = self.get_array(dataset_info['key'])
         arr[arr == dataset_info['fill_value']] = np.nan
 
-        xarr = xr.DataArray(arr, dims=["y","x"],name=dataset_info['name'])
+        xarr = xr.DataArray(arr, dims=["y", "x"], name=dataset_info['name'])
         xarr.attrs['sensor'] = 'IASI'
         xarr.attrs['platform_name'] = self.platform_name
-        #xarr.attrs['ssp_lon'] = self.ssp_lon
-        #xarr.attrs['seg_size'] = self.seg_size
         xarr.attrs.update(dataset_info)
 
         return xarr

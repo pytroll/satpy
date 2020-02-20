@@ -287,14 +287,6 @@ datasets:
     key: '#1#brightnessTemperatureRealPart'
     fill_value: -1.e+100
 
-  delayedDescriptorReplicationFactor:
-    name: delayedDescriptorReplicationFactor
-    file_type: iasi_l2_so2_bufr
-    units: ""
-    resolution: 12000
-    coordinates: [longitude, latitude]
-    key: '#1#delayedDescriptorReplicationFactor'
-    fill_value: -1.e+100
 
 
 
