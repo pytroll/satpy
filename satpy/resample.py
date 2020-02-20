@@ -141,7 +141,6 @@ import dask
 import dask.array as da
 import zarr
 import six
-import warnings
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
