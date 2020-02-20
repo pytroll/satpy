@@ -15,7 +15,23 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to NUCAPS Retrieval NetCDF files."""
+"""Interface to NUCAPS Retrieval NetCDF files.
+
+NUCAPS stands for NOAA Unique Combined Atmospheric Processing System.
+NUCAPS retrievals include temperature, moisture, trace gas, and cloud-cleared
+radiance profiles. Product details can be found at:
+
+https://www.ospo.noaa.gov/Products/atmosphere/soundings/nucaps/
+
+This reader supports both standard NOAA NUCAPS EDRs, and Science EDRs,
+which are essentially a subset of the standard EDRs with some additional
+parameters such as relative humidity and boundary layer temperature.
+
+NUCAPS data is derived from Cross-track Infrared Sounder (CrIS) data, and
+from Advanced Technology Microwave Sounder (ATMS) data, instruments
+onboard Joint Polar Satellite System spacecraft.
+
+"""
 
 from datetime import datetime
 import xarray as xr
