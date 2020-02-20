@@ -40,9 +40,9 @@ logger = logging.getLogger('IASIL2SO2BUFR')
 data_center_dict = {3: {'name': 'METOP-1'}, 4:  { 'name': 'METOP-2'},
                     5: { 'name': 'METOP-3'}}
 
-seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
-                 'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
-                 'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
+#seg_size_dict = {'seviri_l2_bufr_asr': 16, 'seviri_l2_bufr_cla': 16,
+#                 'seviri_l2_bufr_csr': 16, 'seviri_l2_bufr_gii': 3,
+#                 'seviri_l2_bufr_thu': 16, 'seviri_l2_bufr_toz': 3}
 
 
 class IASIL2SO2BUFR(BaseFileHandler):
@@ -54,19 +54,19 @@ class IASIL2SO2BUFR(BaseFileHandler):
                                                       filename_info,
                                                       filetype_info)
 
-        if ('server' in filename_info):
+        #if ('server' in filename_info):
             # EUMETSAT Offline Bufr product
-            self.mpef_header = self._read_mpef_header()
-        else:
-            # Product was retrieved from the EUMETSAT Data Center
-            timeStr = self.get_attribute('typicalDate')+self.get_attribute('typicalTime')
-            buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
-            sc_id = self.get_attribute('satelliteIdentifier')
-            #print("satelliteIdentifier", sc_id)
-            self.mpef_header = {}
-            self.mpef_header['NominalTime'] = buf_start_time
-            #print("buf_start_time:",buf_start_time)
-            self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
+         #   self.mpef_header = self._read_mpef_header()
+        #else:
+        # Product was retrieved from the EUMETSAT Data Center
+        timeStr = self.get_attribute('typicalDate')+self.get_attribute('typicalTime')
+        buf_start_time = datetime.strptime(timeStr, "%Y%m%d%H%M%S")
+        sc_id = self.get_attribute('satelliteIdentifier')
+        #print("satelliteIdentifier", sc_id)
+        self.mpef_header = {}
+        self.mpef_header['NominalTime'] = buf_start_time
+        #print("buf_start_time:",buf_start_time)
+        self.mpef_header['SpacecraftName'] = data_center_dict[sc_id]['name']
 
             # ignore sub satellite point
             #self.mpef_header['RectificationLongitude'] = data_center_dict[sc_id]['ssp']

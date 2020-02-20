@@ -19,24 +19,16 @@
 """Unittesting the SEVIRI L2 BUFR reader."""
 
 import sys
-
 import numpy as np
 from datetime import datetime
-
-#if sys.version_info < (2, 7):
-#    import unittest2 as unittest
-#else:
 import unittest
-
-#try:
 from unittest import mock
-#except ImportError:
-#    import mock
 
 
 
 
-# Test IASI level 2 SO2 product messages
+
+# Test IASI level 2 SO2 product message
 
 msg={
 'unpack': 1,
@@ -288,40 +280,76 @@ msg={
     
 }
 
+# the notional filename that would contain the above test message data
+FILENAME = 'W_XX-EUMETSAT-Darmstadt,SOUNDING+SATELLITE,METOPA+IASI_C_EUMC_20200204091455_68977_eps_o_so2_l2.bin'
+
+def save_test_data(path):
+    """Save the test file to the indicated directory"""
+
+    with open((os.path.join(path, FNAME),"wb") as file:
+        
+        for msg in [msg2]:
+            
+            buf = ec.codes_bufr_new_from_samples('BUFR4_local_satellite')
+            
+            for key in msg.keys():
+                val = msg[key]
+    
+                if np.isscalar(val):
+                    ec.codes_set(buf, key,val)
+    
+                else:
+                    ec.codes_set_array(buf, key, val)
+            
+            
+            ec.codes_set(buf,'pack',1)
+            ec.codes_write(buf, file)
+            ec.codes_release(buf)
 
 
 
-FILETYPE_INFO = {'file_type':  'seviri_l2_bufr_csr'}
+# the filetype associated with the above filename, according to the pattern defined in IASI_l2_so2_bufr.yaml
+#FILETYPE_INFO = {'file_type':  'iasi_l2_so2_bufr'}
 
-FILENAME_INFO = {'start_time': '20191112000000',
-                 'spacecraft': 'MSG4'}
-FILENAME_INFO2 = {'start_time': '20191112000000',
-                  'spacecraft': 'MSG4',
-                  'server': 'TESTSERVER'}
-#MPEF_PRODUCT_HEADER = {
-#    'NominalTime': datetime(2019, 11, 6, 18, 0),
-#    'SpacecraftName': '08',
-#    'RectificationLongitude': 'E0415'
+
+# the information that would be extracted from the above filename, according to the pattern defined in IASI_l2_so2_bufr.yaml 
+#FILENAME_INFO = {'reception_location': 'EUMETSAT-Darmstadt',
+#                  'platform':'METOPA',
+#                  'instrument':'IASI_C',
+#                  'start_time':'20200204091455',
+#                  'perigee':'68977',
+#                  'species':'so2',
+#                  'level':2}
+    
+# the dataset info that would be retrieved from IASI_l2_so2_bufr.yaml, when satpy is asked to load so2_height_6 from the above file
+#DATASET_INFO = {
+#    'name': 'so2_height_6',
+#   'file_type': 'iasi_l2_so2_bufr',
+#    'units': "dobson",
+#    'resolution': 12000,
+#    'coordinates': ['longitude', 'latitude'],
+#    'key': '#6#sulphurDioxide',
+#    'fill_value': -1.e+100
 #}
 
-DATASET_INFO = {
-    'name': 'so2_height_6',
-    'file_type': 'iasi_l2_so2_bufr',
-    'units': "dobson",
-    'resolution': 12000,
-    'coordinates': ['longitude', 'latitude'],
-    'key': '#6#sulphurDioxide',
-    'fill_value': -1.e+100
-}
-
-DATASET_ATTRS = {
-    'platform_name': 'METOP-2',
-
-}
+# attributes loaded from the datafile by iasi_l2_so2_bufr
+#DATASET_ATTRS = {
+#    'platform_name': 'METOP-2',
+#
+#}
 
 
 class TestIasiL2So2Bufr(unittest.TestCase):
-    """Test NativeMSGBufrHandler."""
+    """Test SEVIRI l2 SO2 loader"""
+
+    def setUp(self)
+
+
+
+    def tearDown(self)
+
+
+
 
     @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def iasi_l2_so2_bufr_test(self, filename):
@@ -343,39 +371,23 @@ class TestIasiL2So2Bufr(unittest.TestCase):
         
 
         
-        #ec.codes_set(buf1, 'unpack', 1)
-        #samp1 = np.random.uniform(low=250, high=350, size=(128,))
-        # write the bufr test data twice as we want to read in and the concatenate the data in the reader
-        # 55 id corresponds to METEOSAT 8
-        #ec.codes_set(buf1, 'satelliteIdentifier', 55)
-        #ec.codes_set_array(buf1, '#1#brightnessTemperature', samp1)
-        #ec.codes_set_array(buf1, '#1#brightnessTemperature', samp1)
 
         m = mock.mock_open()
-        # only our offline product contain MPEF product headers so we get the metadata from there
-        if ('BUFRProd' in filename):
-            with mock.patch('satpy.readers.iasi_l2_so2_bufr.np.fromfile') as fromfile:
-                fromfile.return_value = MPEF_PRODUCT_HEADER
-                with mock.patch('satpy.readers.iasi_l2_so2_bufr.recarray2dict') as recarray2dict:
-                    recarray2dict.side_effect = (lambda x: x)
-                    fh = IASIL2SO2BUFR(filename, FILENAME_INFO2, FILETYPE_INFO)
-                    fh.mpef_header = MPEF_PRODUCT_HEADER
-
-        else:
-            # No Mpef Header  so we get the metadata from the BUFR messages
-            with mock.patch('satpy.readers.iasi_l2_so2_bufr.open', m, create=True):
-                with mock.patch('eccodes.codes_bufr_new_from_file',
-                                side_effect=[buf1, None, buf1, None, buf1, None]) as ec1:
-                    ec1.return_value = ec1.side_effect
-                    with mock.patch('eccodes.codes_set') as ec2:
-                        ec2.return_value = 1
-                        with mock.patch('eccodes.codes_release') as ec5:
-                            ec5.return_value = 1
-                            fh = IASIL2SO2BUFR(filename, FILENAME_INFO, FILETYPE_INFO)
 
         with mock.patch('satpy.readers.iasi_l2_so2_bufr.open', m, create=True):
             with mock.patch('eccodes.codes_bufr_new_from_file',
-                            side_effect=[buf1, None, buf1]) as ec1:  # changed from [buf1, buf1, None] to prevent duplication of rows in array
+                            side_effect=[buf1, None, buf1, None, buf1, None]) as ec1:
+                ec1.return_value = ec1.side_effect
+                with mock.patch('eccodes.codes_set') as ec2:
+                    ec2.return_value = 1
+                    with mock.patch('eccodes.codes_release') as ec5:
+                        ec5.return_value = 1
+                        fh = IASIL2SO2BUFR(filename, FILENAME_INFO, FILETYPE_INFO)
+
+        with mock.patch('satpy.readers.iasi_l2_so2_bufr.open', m, create=True):
+            with mock.patch('eccodes.codes_bufr_new_from_file',
+                            # changed from [buf1, buf1, None] in SEVIRI bufr readerto prevent duplication of rows in array
+                            side_effect=[buf1, None, buf1]) as ec1:  
                 ec1.return_value = ec1.side_effect
                 with mock.patch('eccodes.codes_set') as ec2:
                     ec2.return_value = 1
@@ -385,19 +397,30 @@ class TestIasiL2So2Bufr(unittest.TestCase):
                         print(z.values)
  
 
-
+                        # test attributes
                         self.assertEqual(z.attrs['platform_name'],
                                          DATASET_ATTRS['platform_name'])
-                        #self.assertEqual(z.attrs['ssp_lon'],
-                        #                 DATASET_ATTRS['ssp_lon'])
-                        #self.assertEqual(z.attrs['seg_size'],
-                        #                 DATASET_ATTRS['seg_size'])
+
+                    
+                        # test data is right shape
+                        self.assertEqual(z.values.shape,
+                                         (1,120))
+                        
+                        # test data has right values
+                        self.assertEqual(0.5 in z.values, True)
 
     def test_seviri_l2_bufr(self):
         """Call the test function."""
-        self.iasi_l2_so2_bufr_test('W_XX-EUMETSAT-Darmstadt,SOUNDING+SATELLITE,METOPA+IASI_C_EUMC_20200204091455_68977_eps_o_so2_l2.bin')
+        self.iasi_l2_so2_bufr_test(FILENAME)
 
 
+
+
+
+
+
+
+                            TEST_DATA[grp][dset]['attrs'][attr]
 
 def suite():
     """Test suite for test_scene."""
