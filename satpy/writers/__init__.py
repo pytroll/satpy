@@ -581,7 +581,7 @@ class Writer(Plugin):
                 package may also be used. Any directories in the provided
                 pattern will be created if they do not exist. Example::
 
-                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S.tif
+                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S}.tif
 
             base_dir (str):
                 Base destination directories for all created files.
@@ -764,7 +764,7 @@ class ImageWriter(Writer):
                 package may also be used. Any directories in the provided
                 pattern will be created if they do not exist. Example::
 
-                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S.tif
+                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S}.tif
 
             base_dir (str):
                 Base destination directories for all created files.
