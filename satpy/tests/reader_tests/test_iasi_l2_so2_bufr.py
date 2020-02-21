@@ -390,7 +390,7 @@ class TestIasiL2So2Bufr(unittest.TestCase):
 
             fill_value = scn.datasets[name].attrs['fill_value']
 
-            # replace nans in data loaded from file with he fill value defined in the .yaml
+            # replace nans in data loaded from file with the fill value defined in the .yaml
             # to make them comparable
             loaded_values_nan_filled = np.nan_to_num(loaded_values, nan=fill_value)
 

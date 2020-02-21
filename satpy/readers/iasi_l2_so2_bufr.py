@@ -15,7 +15,73 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SEVIRI L2 BUFR format reader."""
+r"""IASI L2 SO2 BUFR format reader.
+
+Introduction
+------------
+
+The ``iasi_l2_so2_bufr`` reader reads IASI level2 SO2 data in BUFR format. The algorithm is described in the
+Theoretical Basis Document, linked below.
+
+Each BUFR file consists of a number of messages, one for each scan, each of which contains SO2 column amounts 
+in Dobson units for retrievals performed with plume heights of 7, 10, 13, 16 and 25 km.
+
+Reader Arguments
+----------------
+A list of retrieval files, fnames, can be opened as follows::
+
+  Scene(reader="iasi_l2_so2_bufr", filenames=fnames)
+
+Example
+-------
+Here is an example how to read the data in satpy:
+
+.. code-block:: python
+
+    from satpy import Scene
+    import glob
+
+    filenames = glob.glob('/test_data/W_XX-EUMETSAT-Darmstadt,SOUNDING+SATELLITE,METOPA+IASI_C_EUMC_20200204091455_68984_eps_o_so2_l2.bin')
+    scn = Scene(filenames=filenames, reader='iasi_l2_so2_bufr')
+    scn.load(['so2_height_3', 'so2_height_4'])
+    print(scn['so2_height_3'])
+
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray 'so2_height_3' (y: 23, x: 120)>
+    dask.array<where, shape=(23, 120), dtype=float64, chunksize=(1, 120), chunktype=numpy.ndarray>
+    Coordinates:
+        crs      object +proj=latlong +datum=WGS84 +ellps=WGS84 +type=crs
+    Dimensions without coordinates: y, x
+    Attributes:
+        sensor:               IASI
+        units:                dobson
+        file_type:            iasi_l2_so2_bufr
+        wavelength:           None
+        modifiers:            ()
+        platform_name:        METOP-2
+        resolution:           12000
+        fill_value:           -1e+100
+        level:                None
+        polarization:         None
+        coordinates:          ('longitude', 'latitude')
+        calibration:          None
+        key:                  #3#sulphurDioxide
+        name:                 so2_height_3
+        start_time:           2020-02-04 09:14:55
+        end_time:             2020-02-04 09:17:51
+        area:                 Shape: (23, 120)\nLons: <xarray.DataArray 'longitud...
+        ancillary_variables:  []
+
+References:
+
+Algorithm Theoretical Basis Document: https://acsaf.org/docs/atbd/Algorithm_Theoretical_Basis_Document_IASI_SO2_Jul_2016.pdf
+
+"""
+
 
 # TDB: this reader is based on iasi_l2.py and seviri_l2_bufr.py
 
