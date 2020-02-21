@@ -23,7 +23,7 @@ Introduction
 The ``iasi_l2_so2_bufr`` reader reads IASI level2 SO2 data in BUFR format. The algorithm is described in the
 Theoretical Basis Document, linked below.
 
-Each BUFR file consists of a number of messages, one for each scan, each of which contains SO2 column amounts 
+Each BUFR file consists of a number of messages, one for each scan, each of which contains SO2 column amounts
 in Dobson units for retrievals performed with plume heights of 7, 10, 13, 16 and 25 km.
 
 Reader Arguments
@@ -41,7 +41,8 @@ Here is an example how to read the data in satpy:
     from satpy import Scene
     import glob
 
-    filenames = glob.glob('/test_data/W_XX-EUMETSAT-Darmstadt,SOUNDING+SATELLITE,METOPA+IASI_C_EUMC_20200204091455_68984_eps_o_so2_l2.bin')
+    filenames = glob.glob(
+        '/test_data/W_XX-EUMETSAT-Darmstadt,SOUNDING+SATELLITE,METOPA+IASI_C_EUMC_20200204091455_68984_eps_o_so2_l2.bin')
     scn = Scene(filenames=filenames, reader='iasi_l2_so2_bufr')
     scn.load(['so2_height_3', 'so2_height_4'])
     print(scn['so2_height_3'])
@@ -78,7 +79,8 @@ Output:
 
 References:
 
-Algorithm Theoretical Basis Document: https://acsaf.org/docs/atbd/Algorithm_Theoretical_Basis_Document_IASI_SO2_Jul_2016.pdf
+Algorithm Theoretical Basis Document:
+https://acsaf.org/docs/atbd/Algorithm_Theoretical_Basis_Document_IASI_SO2_Jul_2016.pdf
 
 """
 
@@ -111,7 +113,6 @@ class IASIL2SO2BUFR(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
         """Initialise the file handler for the IASI L2 SO2 BUFR data."""
-
         super(IASIL2SO2BUFR, self).__init__(filename, filename_info, filetype_info)
 
         start_time, end_time = self.get_start_end_date()
@@ -139,7 +140,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
         return '{}'.format(self.properties['SpacecraftName'])
 
     def get_start_end_date(self):
-        """Gets the first and last date from the bufr file"""
+        """Gets the first and last date from the bufr file."""
         fh = open(self.filename, "rb")
         i = 0
         while True:
@@ -171,7 +172,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
         return(start_time, end_time)
 
     def get_attribute(self, key):
-        ''' Get BUFR attributes '''
+        """Get BUFR attributes."""
         # This function is inefficient as it is looping through the entire
         # file to get 1 attribute. It causes a problem though if you break
         # from the file early - dont know why but investigating - fix later
@@ -226,7 +227,6 @@ class IASIL2SO2BUFR(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset using the BUFR key in dataset_info."""
-
         arr = self.get_array(dataset_info['key'])
         arr[arr == dataset_info['fill_value']] = np.nan
 
