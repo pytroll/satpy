@@ -12,8 +12,6 @@ file_types:
   iasi_l2_so2_bufr:
     file_reader: !!python/name:satpy.readers.iasi_l2_so2_bufr.IASIL2SO2BUFR
     file_patterns: ["W_XX-EUMETSAT-{reception_location},SOUNDING+SATELLITE,{platform}+{instrument}_C_EUMC_{start_time:%Y%m%d%H%M%S}_{perigee}_eps_o_{species}_{level}.bin"]
-                    
-                    
 
 datasets:
 
@@ -106,7 +104,7 @@ datasets:
     resolution: 12000
     key: '#1#longitude'
     fill_value: -1.e+100
-  
+
   field_of_view_number:
     name: field_of_view_number
     file_type:  iasi_l2_so2_bufr

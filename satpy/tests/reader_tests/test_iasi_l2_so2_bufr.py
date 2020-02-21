@@ -308,7 +308,7 @@ SCAN_WIDTH = 120
 
 def save_test_data(path):
     """Save the test file to the indicated directory."""
-    with open(os.path.join(path, FILENAME), "wb") as file:
+    with open(os.path.join(path, FILENAME), "wb") as f:
 
         for m in [msg]:
 
@@ -324,7 +324,7 @@ def save_test_data(path):
                     ec.codes_set_array(buf, key, val)
 
             ec.codes_set(buf, 'pack', 1)
-            ec.codes_write(buf, file)
+            ec.codes_write(buf, f)
             ec.codes_release(buf)
 
 
