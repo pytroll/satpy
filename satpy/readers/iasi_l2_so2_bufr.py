@@ -95,17 +95,17 @@ import dask.array as da
 
 try:
     import eccodes as ec
-except ImportError:
+except ImportError as e:
     raise ImportError(
-        """Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes""")
+        """Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes.
+           Error: """ + e)
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
 logger = logging.getLogger('IASIL2SO2BUFR')
 
-data_center_dict = {3: {'name': 'METOP-1'}, 4:  {'name': 'METOP-2'},
-                    5: {'name': 'METOP-3'}}
+data_center_dict = {3: 'METOP-1', 4: 'METOP-2', 5: 'METOP-3'}
 
 
 class IASIL2SO2BUFR(BaseFileHandler):
@@ -119,25 +119,25 @@ class IASIL2SO2BUFR(BaseFileHandler):
 
         sc_id = self.get_attribute('satelliteIdentifier')
 
-        self.properties = {}
-        self.properties['start_time'] = start_time
-        self.properties['end_time'] = end_time
-        self.properties['SpacecraftName'] = data_center_dict[sc_id]['name']
+        self.metadata = {}
+        self.metadata['start_time'] = start_time
+        self.metadata['end_time'] = end_time
+        self.metadata['SpacecraftName'] = data_center_dict[sc_id]
 
     @property
     def start_time(self):
         """Return the start time of data acqusition."""
-        return self.properties['start_time']
+        return self.metadata['start_time']
 
     @property
     def end_time(self):
         """Return the end time of data acquisition."""
-        return self.properties['end_time']
+        return self.metadata['end_time']
 
     @property
     def platform_name(self):
         """Return spacecraft name."""
-        return '{}'.format(self.properties['SpacecraftName'])
+        return '{}'.format(self.metadata['SpacecraftName'])
 
     def get_start_end_date(self):
         """Gets the first and last date from the bufr file."""
@@ -169,7 +169,7 @@ class IASIL2SO2BUFR(BaseFileHandler):
 
         fh.close()
 
-        return(start_time, end_time)
+        return start_time, end_time
 
     def get_attribute(self, key):
         """Get BUFR attributes."""
