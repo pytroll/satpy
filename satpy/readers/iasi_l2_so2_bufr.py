@@ -19,7 +19,6 @@ r"""IASI L2 SO2 BUFR format reader.
 
 Introduction
 ------------
-
 The ``iasi_l2_so2_bufr`` reader reads IASI level2 SO2 data in BUFR format. The algorithm is described in the
 Theoretical Basis Document, linked below.
 
@@ -78,10 +77,8 @@ Output:
         ancillary_variables:  []
 
 References:
-
 Algorithm Theoretical Basis Document:
 https://acsaf.org/docs/atbd/Algorithm_Theoretical_Basis_Document_IASI_SO2_Jul_2016.pdf
-
 """
 
 
