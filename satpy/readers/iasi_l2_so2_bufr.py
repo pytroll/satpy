@@ -95,7 +95,7 @@ try:
 except ImportError as e:
     raise ImportError(
         """Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes.
-           Error: """ + e)
+           Error: """ , e)
 
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
