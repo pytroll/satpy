@@ -19,6 +19,7 @@
 """Unittesting the SEVIRI L2 BUFR reader."""
 
 import os
+import sys
 import numpy as np
 import unittest
 import eccodes as ec
@@ -350,6 +351,7 @@ class TestIasiL2So2Bufr(unittest.TestCase):
         except OSError:
             pass
 
+    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_scene(self):
         """Test scene creation."""
         from satpy import Scene
@@ -363,6 +365,7 @@ class TestIasiL2So2Bufr(unittest.TestCase):
         self.assertTrue('sensor' in scn.attrs)
         self.assertTrue('iasi' in scn.attrs['sensor'])
 
+    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_scene_load_available_datasets(self):
         """Test that all datasets are available."""
         from satpy import Scene
@@ -370,6 +373,7 @@ class TestIasiL2So2Bufr(unittest.TestCase):
         scn = Scene(reader='iasi_l2_so2_bufr', filenames=[fname])
         scn.load(scn.available_dataset_names())
 
+    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_scene_dataset_values(self):
         """Test loading data."""
         from satpy import Scene
@@ -400,6 +404,7 @@ class TestIasiL2So2Bufr(unittest.TestCase):
 
                 self.assertTrue(np.allclose(original_values, loaded_values_nan_filled))
 
+    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     def test_init(self):
         """Test reader initialization."""
         self.assertTrue(True)
