@@ -22,7 +22,6 @@ import os
 import sys
 import numpy as np
 import unittest
-import eccodes as ec
 
 # TDB: this test is based on test_seviri_l2_bufr.py and test_iasi_l2.py
 
@@ -309,6 +308,8 @@ SCAN_WIDTH = 120
 
 def save_test_data(path):
     """Save the test file to the indicated directory."""
+    import eccodes as ec
+
     with open(os.path.join(path, FILENAME), "wb") as f:
 
         for m in [msg]:
