@@ -695,7 +695,16 @@ class MITIFFWriter(ImageWriter):
                             # Note the last index is a tuple index.
                             cn = cns.get(chn.attrs['prerequisites'][_cn_i][0],
                                          chn.attrs['prerequisites'][_cn_i][0])
-                            data = self._calibrate_data(chn, chn.attrs['prerequisites'][_cn_i][4],
+                            pre_index = _cn_i
+                            if isinstance(chn.attrs['prerequisites'], list):
+                                # if prerequisites is a list, prerequisites is not necessarily in order.
+                                # Need to loop over the prerequisites to find the correct one.
+                                for pre_i, pre in enumerate(chn.attrs['prerequisites']):
+                                    if pre[0] == _cn:
+                                        cn = cns.get(pre[0])
+                                        pre_index = pre_i
+                                        break
+                            data = self._calibrate_data(chn, chn.attrs['prerequisites'][pre_index][4],
                                                         self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                         self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 
