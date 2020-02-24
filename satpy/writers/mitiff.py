@@ -646,6 +646,22 @@ class MITIFFWriter(ImageWriter):
             data = data.clip(0, 255)
             tif.write_image(data.astype(np.uint8), compression='deflate')
 
+    def _find_prerequsites_index(self, cns, chn, cn_i, _cn):
+        # Need to possible translate channels names from satpy to mitiff
+        # Note the last index is a tuple index.
+        cn = cns.get(chn.attrs['prerequisites'][cn_i][0],
+                     chn.attrs['prerequisites'][cn_i][0])
+        pre_index = cn_i
+        if isinstance(chn.attrs['prerequisites'], list):
+            # if prerequisites is a list, prerequisites is not necessarily in order.
+            # Need to loop over the prerequisites to find the correct one.
+            for pre_i, pre in enumerate(chn.attrs['prerequisites']):
+                if pre[0] == _cn:
+                    cn = cns.get(pre[0])
+                    pre_index = pre_i
+                    break
+        return pre_index, cn
+
     def _save_datasets_as_mitiff(self, datasets, image_description,
                                  gen_filename, **kwargs):
         """Put all together and save as a tiff file.
@@ -691,19 +707,7 @@ class MITIFFWriter(ImageWriter):
                     for band in datasets['bands']:
                         if band == _cn:
                             chn = datasets.sel(bands=band)
-                            # Need to possible translate channels names from satpy to mitiff
-                            # Note the last index is a tuple index.
-                            cn = cns.get(chn.attrs['prerequisites'][_cn_i][0],
-                                         chn.attrs['prerequisites'][_cn_i][0])
-                            pre_index = _cn_i
-                            if isinstance(chn.attrs['prerequisites'], list):
-                                # if prerequisites is a list, prerequisites is not necessarily in order.
-                                # Need to loop over the prerequisites to find the correct one.
-                                for pre_i, pre in enumerate(chn.attrs['prerequisites']):
-                                    if pre[0] == _cn:
-                                        cn = cns.get(pre[0])
-                                        pre_index = pre_i
-                                        break
+                            pre_index, cn = _find_prerequsites_index(cns, chn, _cn_i, _cn)
                             data = self._calibrate_data(chn, chn.attrs['prerequisites'][pre_index][4],
                                                         self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                         self.mitiff_config[kwargs['sensor']][cn]['max-val'])
