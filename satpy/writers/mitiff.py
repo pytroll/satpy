@@ -707,7 +707,7 @@ class MITIFFWriter(ImageWriter):
                     for band in datasets['bands']:
                         if band == _cn:
                             chn = datasets.sel(bands=band)
-                            pre_index, cn = _find_prerequsites_index(cns, chn, _cn_i, _cn)
+                            pre_index, cn = self._find_prerequsites_index(cns, chn, _cn_i, _cn)
                             data = self._calibrate_data(chn, chn.attrs['prerequisites'][pre_index][4],
                                                         self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                         self.mitiff_config[kwargs['sensor']][cn]['max-val'])
