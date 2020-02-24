@@ -9,6 +9,30 @@ composites:
     - S8_in
     standard_name: overview
 
+  overview_oblique:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - S2_ao
+    - S3_ao
+    - S8_io
+    standard_name: overview_oblique
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - S5_an
+    - S3_an
+    - S2_an
+    standard_name: natural_color
+
+  natural_color_oblique:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - S5_ao
+    - S3_ao
+    - S2_ao
+    standard_name: natural_color_oblique
+
   day_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -17,3 +41,12 @@ composites:
       modifiers: [nir_reflectance]
     - S8_in
     standard_name: day_microphysics
+
+  day_microphysics_oblique:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - S3_ao
+    - name: S7_io
+      modifiers: [nir_reflectance]
+    - S8_io
+    standard_name: day_microphysics_oblique
