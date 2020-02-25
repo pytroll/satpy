@@ -15,7 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Utilities and eventually also base classes for MSG HRIT/Native data reading."""
+"""Utilities and helper classes for MSG HRIT/Native data reading.
+
+References:
+    MSG Level 1.5 Image Data Format Description
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+
+"""
 
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
