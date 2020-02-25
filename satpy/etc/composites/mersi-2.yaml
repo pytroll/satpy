@@ -87,7 +87,15 @@ composites:
         modifiers: [sunz_corrected]
     standard_name: natural_color
 
-  overview_sun:
+  overview_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '12'
+      - name: '15'
+      - name: '24'
+    standard_name: overview
+
+  overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
       - name: '12'

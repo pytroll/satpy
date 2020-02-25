@@ -392,7 +392,7 @@ class TestDayNightCompositor(unittest.TestCase):
         comp = DayNightCompositor(name='dn_test')
         res = comp((self.data_a, self.data_b, self.sza))
         res = res.compute()
-        expected = np.array([[0., 0.2985455], [0.51680423, 1.]])
+        expected = np.array([[0., 0.22122352], [0.5, 1.]])
         np.testing.assert_allclose(res.values[0], expected)
 
     def test_basic_area(self):
