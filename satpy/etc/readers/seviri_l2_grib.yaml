@@ -30,7 +30,7 @@ datasets:
     file_type: grib_seviri_clm
     parameter_number: 7
     units: ""
-    standard_name: cloud_mask_classification
+    long_name: cloud_mask_classification
 
   pixel_scene_type:
     name: pixel_scene_type
@@ -38,7 +38,7 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 8
     units: ""
-    standard_name: scene_classification
+    long_name: scene_classification
 
   measurement_cost:
     name: measurement_cost
@@ -46,7 +46,7 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 30
     units: ""
-    standard_name: cost_function
+    long_name: cost_function
 
   upper_layer_cloud_optical_depth:
     name: upper_layer_cloud_optical_depth
@@ -54,7 +54,7 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 31
     units: ""
-    standard_name: cloud_optical_depth
+    long_name: cloud_optical_depth
 
   upper_layer_cloud_top_pressure:
     name: upper_layer_cloud_top_pressure
@@ -78,7 +78,7 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 34
     units: ""
-    standard_name: cloud_optical_depth
+    long_name: cloud_optical_depth
 
   error_in_upper_layer_cloud_top_pressure:
     name: error_in_upper_layer_cloud_top_pressure
@@ -86,7 +86,7 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 35
     units: Pa
-    standard_name: air_pressure_at_cloud_top
+    standard_name: air_pressure_at_cloud_top_standard_error
 
   error_in_upper_layer_cloud_effective_radius:
     name: error_in_upper_layer_cloud_effective_radius
@@ -94,7 +94,7 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 36
     units: m
-    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top_standard_error
 
   lower_layer_cloud_optical_depth:
     name: lower_layer_cloud_optical_depth
@@ -102,7 +102,7 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 37
     units: ""
-    standard_name: cloud_optical_depth
+    long_name: cloud_optical_depth
 
   lower_layer_cloud_top_pressure:
     name: lower_layer_cloud_top_pressure
@@ -118,7 +118,7 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 39
     units: ""
-    standard_name: cloud_optical_depth
+    long_name: cloud_optical_depth_standard_error
 
   error_in_lower_layer_cloud_top_pressure:
     name: error_in_lower_layer_cloud_top_pressure
@@ -126,4 +126,4 @@ datasets:
     file_type: grib_seviri_oca
     parameter_number: 40
     units: Pa
-    standard_name: air_pressure_at_cloud_top
+    standard_name: air_pressure_at_cloud_top_standard_error
