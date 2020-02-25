@@ -773,7 +773,7 @@ datasets:
     file_key: solar_azimuth_to
 
   satellite_zenith_angle_o:
-    name: satellite_zenith_angle
+    name: satellite_zenith_angle_o
     sensor: slstr
     resolution: 1000
     coordinates: [longitude_io, latitude_io]
