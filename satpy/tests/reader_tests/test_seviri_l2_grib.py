@@ -34,7 +34,7 @@ except ImportError:
 
 # Dictionary to be used as fake GRIB message
 FAKE_MESSAGE = {
-    'latitudeOfSubSatellitePointInDegrees': 10.0,
+    'longitudeOfSubSatellitePointInDegrees': 10.0,
     'dataDate': 20191020,
     'dataTime': 1745,
     'Nx': 1000,
@@ -43,12 +43,6 @@ FAKE_MESSAGE = {
     'earthMinorAxis': 6300.,
     'NrInRadiusOfEarth': 6.,
     'XpInGridLengths': 500,
-    'shortName': 'test_short_name',
-    'name': 'test_name',
-    'shortNameECMF': 'test_short_name_ecmf',
-    'nameECMF': 'test_name_ecmf',
-    'cfNameECMF': 'test_cf_name_ecmf',
-    'cfName': 'test_cf_name',
     'parameterNumber': 30,
     'missingValue': 9999,
 }
@@ -102,7 +96,10 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 # Checks the correct execution of the _get_global_attributes and _get_metadata_from_msg functions
                 global_attributes = self.reader._get_global_attributes()
                 expected_global_attributes = {
-                    'ssp_lon': 10.,
+                    'orbital_parameters': {
+                        'satellite_nominal_longitude': 10.,
+                        'projection_longitude': 10.
+                    },
                     'sensor': 'seviri',
                     'platform_name': 'Meteosat-11'
                 }

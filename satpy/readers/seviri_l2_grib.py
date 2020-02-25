@@ -74,7 +74,7 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                 return
 
             # Read SSP and date/time
-            self._ssp_lon = self._get_from_msg(gid, 'latitudeOfSubSatellitePointInDegrees')
+            self._ssp_lon = self._get_from_msg(gid, 'longitudeOfSubSatellitePointInDegrees')
 
             # Read number of points on the x and y axes
             self._nrows = self._get_from_msg(gid, 'Ny')
@@ -239,8 +239,13 @@ class SeviriL2GribFileHandler(BaseFileHandler):
                 platform_name: name of the platform
 
         """
+        orbital_parameters = {
+            'satellite_nominal_longitude': self._ssp_lon,
+            'projection_longitude': self._ssp_lon
+        }
+
         attributes = {
-            'ssp_lon': self._ssp_lon,
+            'orbital_parameters': orbital_parameters,
             'sensor': 'seviri',
             'platform_name': PLATFORM_DICT[self.filename_info['spacecraft']]
         }
