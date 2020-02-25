@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016 Satpy developers
+# Copyright (c) 2016-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Compact viirs format.
-"""
+"""SLSTR L1b reader."""
 
 import logging
 import os
@@ -38,8 +37,10 @@ PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
 
 
 class NCSLSTRGeo(BaseFileHandler):
+    """Filehandler for geo info."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the geo filehandler."""
         super(NCSLSTRGeo, self).__init__(filename, filename_info,
                                          filetype_info)
         self.nc = xr.open_dataset(self.filename,
@@ -52,9 +53,7 @@ class NCSLSTRGeo(BaseFileHandler):
         self.cache = {}
 
     def get_dataset(self, key, info):
-        """Load a dataset
-        """
-
+        """Load a dataset."""
         logger.debug('Reading %s.', key.name)
 
         try:
@@ -69,16 +68,20 @@ class NCSLSTRGeo(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
+        """Get the end time."""
         return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
 class NCSLSTR1B(BaseFileHandler):
+    """Filehandler for l1 SLSTR data."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the SLSTR l1 data filehandler."""
         super(NCSLSTR1B, self).__init__(filename, filename_info,
                                         filetype_info)
 
@@ -110,13 +113,13 @@ class NCSLSTR1B(BaseFileHandler):
 
     @staticmethod
     def _cal_rad(rad, didx, solar_flux=None):
+        """Calibrate."""
         indices = np.isfinite(didx)
         rad[indices] /= solar_flux[didx[indices].astype(int)]
         return rad
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-
         if self.channel not in key.name:
             return
 
@@ -153,17 +156,20 @@ class NCSLSTR1B(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
+        """Get the end time."""
         return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
 class NCSLSTRAngles(BaseFileHandler):
+    """Filehandler for angles."""
 
     def __init__(self, filename, filename_info, filetype_info):
-
+        """Initialize the angles reader."""
         super(NCSLSTRAngles, self).__init__(filename, filename_info,
                                             filetype_info)
 
@@ -197,15 +203,14 @@ class NCSLSTRAngles(BaseFileHandler):
                                              'rows': CHUNK_SIZE})
 
     def get_dataset(self, key, info):
-        """Load a dataset
-        """
+        """Load a dataset."""
+        if not info['view'].startswith(self.view):
+            return
         logger.debug('Reading %s.', key.name)
-
         # Check if file_key is specified in the yaml
         file_key = info.get('file_key', key.name)
 
         variable = self.nc[file_key]
-
         l_step = self.nc.attrs.get('al_subsampling_factor', 1)
         c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
 
@@ -225,16 +230,7 @@ class NCSLSTRAngles(BaseFileHandler):
             spl = RectBivariateSpline(
                 tie_y, tie_x, variable.data[:, ::-1])
 
-            valid = np.isfinite(full_y)
-
-            interpolated = spl.ev(full_y[valid],
-                                  full_x[valid])
-
-            values = np.full_like(full_y, np.nan,
-                                  dtype=variable.dtype)
-
-            values[valid] = interpolated
-            values = np.ma.masked_invalid(values, copy=False)
+            values = spl.ev(full_y, full_x)
 
             variable = xr.DataArray(da.from_array(values, chunks=(CHUNK_SIZE, CHUNK_SIZE)),
                                     dims=['y', 'x'], attrs=variable.attrs)
@@ -251,16 +247,20 @@ class NCSLSTRAngles(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
+        """Get the end time."""
         return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
 
 class NCSLSTRFlag(BaseFileHandler):
+    """File handler for flags."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize the flag reader."""
         super(NCSLSTRFlag, self).__init__(filename, filename_info,
                                           filetype_info)
         self.nc = xr.open_dataset(self.filename,
@@ -291,8 +291,10 @@ class NCSLSTRFlag(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return datetime.strptime(self.nc.attrs['start_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
+        """Get the end time."""
         return datetime.strptime(self.nc.attrs['stop_time'], '%Y-%m-%dT%H:%M:%S.%fZ')
