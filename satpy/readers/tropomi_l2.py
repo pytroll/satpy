@@ -110,7 +110,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
                 logger.debug("Evaluating new variable: %s", var_name)
                 var_shape = self[var_name + "/shape"]
                 logger.debug("Dims:{}".format(var_shape))
-                if (var_shape == lat_shape or 'latitude_bounds' in var_name or 'longitude_bounds' in var_name):
+                if (lat_shape == var_shape[:len(lat_shape)]):
                     logger.debug("Found valid additional dataset: %s", var_name)
                     # Skip anything we have already configured
                     if (var_name in handled_variables):
@@ -122,10 +122,14 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
                     var_name_no_path = var_name[last_index_separator:]
                     logger.debug("Using short name of: %s", var_name_no_path)
                     # Create new ds_info object
+                    if var_name_no_path in ['latitude_bounds', 'longitude_bounds']:
+                        coordinates = []
+                    else:
+                        coordinates = ['longitude', 'latitude']
                     new_info = {
                         'name': var_name_no_path,
                         'file_key': var_name,
-                        'coordinates': ['longitude', 'latitude'],
+                        'coordinates': coordinates,
                         'file_type': self.filetype_info['file_type'],
                         'resolution': None,
                     }
