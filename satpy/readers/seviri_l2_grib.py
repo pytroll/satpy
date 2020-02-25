@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2019-2020 Satpy developers
 #
 # satpy is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,7 +16,13 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Reader for the SEVIRI L2 products in GRIB format."""
+"""Reader for the SEVIRI L2 products in GRIB2 format.
+
+References:
+    FM 92 GRIB Edition 2
+    https://www.wmo.int/pages/prog/www/WMOCodes/Guides/GRIB/GRIB2_062006.pdf
+
+"""
 
 import logging
 import numpy as np
