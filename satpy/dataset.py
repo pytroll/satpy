@@ -313,9 +313,3 @@ def replace_anc(dataset, parent_dataset):
         if current_dsid == DatasetID.from_dict(ds.attrs):
             parent_dataset.attrs['ancillary_variables'][idx] = dataset
             return
-
-
-class Dataset(object):
-    """Placeholder for the deprecated class."""
-
-    pass
