@@ -68,6 +68,8 @@ class FiduceoFileHandler(BaseFileHandler):
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset for a given key."""
         dataset = self.nc[dataset_info['nc_key']]
+        dataset = dataset.drop_vars('longitude')
+        dataset = dataset.drop_vars('latitude')
         dataset.attrs.update(dataset_info)
         dataset.attrs.update(self.nc.attrs)
         return dataset
