@@ -62,12 +62,12 @@ class FiduceoFileHandler(BaseFileHandler):
             self.satellite_name = self.nc.attrs['platform']
             self.gac_file = self.nc.attrs['source']
             f_time = self.nc['Time'].values[:]
-            f_time = f_time * 1000.0
-            self.starttime = datetime.datetime.utcfromtimestamp(f_time[0]/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
-            self.endtime = datetime.datetime.utcfromtimestamp(f_time[-1]/1000.0).strftime('%Y-%m-%d %H:%M:%S.%f')
+            self.starttime = datetime.datetime.utcfromtimestamp(f_time[0])
+            self.endtime = datetime.datetime.utcfromtimestamp(f_time[-1])
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get dataset for a given key."""
         dataset = self.nc[dataset_info['nc_key']]
         dataset.attrs.update(dataset_info)
+        dataset.attrs.update(self.nc.attrs)
         return dataset
