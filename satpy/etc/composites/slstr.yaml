@@ -5,61 +5,70 @@ composites:
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: S2_an
+    - name: S2_a
       modifiers: [sunz_corrected]
-    - name: S3_an
+    - name: S3_a
       modifiers: [sunz_corrected]
-    - S8_in
+    - S8_i
     standard_name: overview
 
   overview_oblique:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: S2_ao
+    - name: S2_a
       modifiers: [sunz_corrected]
-    - name: S3_ao
+      view: oblique
+    - name: S3_a
       modifiers: [sunz_corrected]
-    - S8_io
+      view: oblique
+    - name: S8_i
+      view: oblique
     standard_name: overview_oblique
 
   natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: S5_an
+    - name: S5_a
       modifiers: [sunz_corrected]
-    - name: S3_an
+    - name: S3_a
       modifiers: [sunz_corrected]
-    - name: S2_an
+    - name: S2_a
       modifiers: [sunz_corrected]
     standard_name: natural_color
 
   natural_color_oblique:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: S5_ao
+    - name: S5_a
       modifiers: [sunz_corrected]
-    - name: S3_ao
+      view: oblique
+    - name: S3_a
       modifiers: [sunz_corrected]
-    - name: S2_ao
+      view: oblique
+    - name: S2_a
       modifiers: [sunz_corrected]
+      view: oblique
     standard_name: natural_color_oblique
 
   day_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: S3_an
+    - name: S3_a
       modifiers: [sunz_corrected]
-    - name: S7_in
+    - name: S7_i
       modifiers: [nir_reflectance]
-    - S8_in
+    - S8_i
     standard_name: day_microphysics
 
   day_microphysics_oblique:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: S3_ao
+    - name: S3_a
       modifiers: [sunz_corrected]
-    - name: S7_io
+      view: oblique
+    - name: S7_i
       modifiers: [nir_reflectance]
-    - S8_io
+      view: oblique
+    - name: S8_i
+      view: oblique
     standard_name: day_microphysics_oblique
