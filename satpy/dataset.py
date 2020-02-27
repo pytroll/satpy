@@ -188,8 +188,7 @@ class WavelengthRange(wlklass):
             return False
         elif isinstance(other, numbers.Number):
             return self.min <= other <= self.max
-        else:
-            return super().__eq__(other)
+        return super().__eq__(other)
 
     def __ne__(self, other):
         """Return the opposite of `__eq__`."""
@@ -335,8 +334,6 @@ def make_dsid_class(types=None, **kwargs):
                     if getattr(self, key) is not None}
 
     return DatasetID
-
-    pass
 
 
 # TODO: remove this static list
