@@ -15,24 +15,41 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test objects and functions in the dataset module.
-"""
+"""Test objects and functions in the dataset module."""
 
-import sys
 from datetime import datetime
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 
 class TestDatasetID(unittest.TestCase):
     """Test DatasetID object creation and other methods."""
 
+    def test_make_dsid_class(self):
+        """Test making a new DatasetID class."""
+        from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
+        types = {'wavelength': WavelengthRange,
+                 'modifiers': ModifierTuple}
+        klass = make_dsid_class(types, name='', wavelength=None, modifiers=ModifierTuple())
+        dsid = klass('hej', (1., 2., 3.))
+        klass2 = make_dsid_class(name='', polarization='')
+        dsid2 = klass2('hej')
+        assert(dsid == dsid2)
+
+        klass3 = make_dsid_class(types, name='', wavelength=None, view='nadir')
+        dsid3 = klass3('hej', 2.)
+        assert(dsid == dsid3)
+        assert(hash(dsid))
+
     def test_basic_init(self):
         """Test basic ways of creating a DatasetID."""
-        from satpy.dataset import DatasetID
+        from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
+        types = {'wavelength': WavelengthRange,
+                 'modifiers': ModifierTuple}
+        DatasetID = make_dsid_class(types,
+                                    name='', wavelength=None, resolution=None,
+                                    calibration=None, modifiers=ModifierTuple())
+
         DatasetID(name="a")
         DatasetID(name="a", wavelength=0.86)
         DatasetID(name="a", resolution=1000)
@@ -45,12 +62,18 @@ class TestDatasetID(unittest.TestCase):
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
-        from satpy.dataset import DatasetID
+        from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
+        types = {'wavelength': WavelengthRange,
+                 'modifiers': ModifierTuple}
+        DatasetID = make_dsid_class(types, name='', wavelength=None, modifiers=ModifierTuple())
         self.assertRaises(TypeError, DatasetID, name="a", modifiers="str")
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""
-        from satpy.dataset import DatasetID
+        from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
+        types = {'wavelength': WavelengthRange,
+                 'modifiers': ModifierTuple}
+        DatasetID = make_dsid_class(types, name='', wavelength=None, modifiers=ModifierTuple())
         d1 = DatasetID(name="a", wavelength=(0.1, 0.2, 0.3))
         d2 = DatasetID(name="a", wavelength=None)
 
@@ -93,8 +116,7 @@ class TestCombineMetadata(unittest.TestCase):
 
 
 def suite():
-    """The test suite for test_projector.
-    """
+    """Test suite."""
     loader = unittest.TestLoader()
     my_suite = unittest.TestSuite()
     my_suite.addTest(loader.loadTestsFromTestCase(TestDatasetID))

@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base classes and utilities for all readers configured by YAML files."""
+
 import glob
 import itertools
 import logging
@@ -40,7 +41,7 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DATASET_KEYS, DatasetID
+from satpy.dataset import DatasetID, new_dataset_id_from_keys, get_keys_from_config, default_id_keys_config
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
@@ -115,6 +116,7 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         if 'sensors' in self.info and not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
         self.datasets = self.config.get('datasets', {})
+        self._id_keys = self.info.get('identification_keys', default_id_keys_config)
         self.info['filenames'] = []
         self.all_ids = {}
         self.load_ds_ids_from_config()
@@ -223,20 +225,19 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
             if 'coordinates' in dataset and \
                     isinstance(dataset['coordinates'], list):
                 dataset['coordinates'] = tuple(dataset['coordinates'])
+            id_keys = get_keys_from_config(self._id_keys, dataset)
+
             # Build each permutation/product of the dataset
             id_kwargs = []
-            for key in DATASET_KEYS:
-                val = dataset.get(key)
-                if key in ["wavelength", "modifiers"] and isinstance(val,
-                                                                     list):
+            for key, idval in id_keys.items():
+                val = dataset.get(key, idval.get('default') if idval is not None else None)
+                val_type = None
+                if idval is not None:
+                    val_type = idval.get('type')
+                if val_type is not None and issubclass(val_type, tuple):
                     # special case: wavelength can be [min, nominal, max]
                     # but is still considered 1 option
-                    # it also needs to be a tuple so it can be used in
-                    # a dictionary key (DatasetID)
-                    id_kwargs.append((tuple(val), ))
-                elif key == "modifiers" and val is None:
-                    # empty modifiers means no modifiers applied
-                    id_kwargs.append((tuple(), ))
+                    id_kwargs.append((val, ))
                 elif isinstance(val, (list, tuple, set)):
                     # this key has multiple choices
                     # (ex. 250 meter, 500 meter, 1000 meter resolutions)
@@ -247,20 +248,21 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
                     # this key only has one choice so make it a one
                     # item iterable
                     id_kwargs.append((val, ))
+            dsid_klass = new_dataset_id_from_keys(id_keys)
             for id_params in itertools.product(*id_kwargs):
-                dsid = DatasetID(*id_params)
+                dsid = dsid_klass(*id_params)
                 ids.append(dsid)
 
                 # create dataset infos specifically for this permutation
                 ds_info = dataset.copy()
-                for key in DATASET_KEYS:
+                for key in dsid._fields:
                     if isinstance(ds_info.get(key), dict):
                         ds_info.update(ds_info[key][getattr(dsid, key)])
                     # this is important for wavelength which was converted
                     # to a tuple
                     ds_info[key] = getattr(dsid, key)
                 self.all_ids[dsid] = ds_info
-
+        # TODO: why is this called twice ?
         return ids
 
 

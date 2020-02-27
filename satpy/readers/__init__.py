@@ -32,7 +32,7 @@ except ImportError:
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
-from satpy.dataset import DATASET_KEYS, DatasetID
+from satpy.dataset import DatasetID, wavelength_match
 from satpy import CALIBRATION_ORDER
 
 try:
@@ -141,13 +141,13 @@ def filter_keys_by_dataset_id(did, key_container):
     """
     keys = iter(key_container)
 
-    for key in DATASET_KEYS:
+    for key in DatasetID._fields:
         if getattr(did, key) is not None:
             if key == "wavelength":
                 keys = [k for k in keys
                         if (getattr(k, key) is not None and
-                            DatasetID.wavelength_match(getattr(k, key),
-                                                       getattr(did, key)))]
+                            wavelength_match(getattr(k, key),
+                                             getattr(did, key)))]
             else:
                 keys = [k for k in keys
                         if getattr(k, key) is not None and getattr(k, key)
