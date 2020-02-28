@@ -16,17 +16,8 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.olci_nc module."""
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import unittest
+import unittest.mock as mock
 
 
 class TestOLCIReader(unittest.TestCase):
@@ -199,16 +190,3 @@ class TestBitFlags(unittest.TestCase):
                              False, False,  True,  True, False, False, True,
                              False])
         self.assertTrue(all(mask == expected))
-
-
-def suite():
-    """Test suite for test_nc_slstr."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBitFlags))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestOLCIReader))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -15,11 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.netcdf_utils module.
-"""
+"""Module for testing the satpy.readers.netcdf_utils module."""
 
 import os
-import sys
+import unittest
 import numpy as np
 
 try:
@@ -27,11 +26,6 @@ try:
 except ImportError:
     # fake the import so we can at least run the tests in this file
     NetCDF4FileHandler = object
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -171,12 +165,3 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
         with self.assertRaises(IOError):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
-
-
-def suite():
-    """The test suite for test_netcdf_utils."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNetCDF4FileHandler))
-
-    return mysuite

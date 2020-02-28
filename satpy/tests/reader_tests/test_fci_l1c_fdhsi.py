@@ -20,21 +20,14 @@
 from __future__ import (division, absolute_import, print_function,
                         unicode_literals)
 
-import sys
 import os
-
 import numpy as np
 import xarray as xr
 import dask.array as da
 import unittest
 import numpy.testing
-
+from unittest import mock
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-
-try:
-    from unittest import mock  # Python 3.3 or newer
-except ImportError:
-    import mock  # Python 2.7
 
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
@@ -380,13 +373,3 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
                     name="ir_123",
                     calibration="brightness_temperature")])
         self.assertRegex(cm.output[0], "cannot produce brightness temperatur")
-
-
-def suite():
-    """The test suite
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFCIL1CFDHSIReaderGoodData))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFCIL1CFDHSIReaderBadData))
-    return mysuite

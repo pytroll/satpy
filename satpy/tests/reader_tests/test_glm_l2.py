@@ -21,11 +21,7 @@ import os
 import numpy as np
 import xarray as xr
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 
 def setup_fake_dataset():
@@ -170,16 +166,3 @@ class TestGLML2Reader(unittest.TestCase):
         self.assertEqual(len(available_datasets), 1)
         for ds_id in available_datasets:
             self.assertEqual(ds_id.resolution, 2000)
-
-
-def suite():
-    """Create test suite for this module."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGLML2FileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGLML2Reader))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
