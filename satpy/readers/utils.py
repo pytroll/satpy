@@ -207,39 +207,39 @@ def unzip_file(filename):
     if filename.endswith('bz2'):
         fdn, tmpfilepath = tempfile.mkstemp()
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
-        # If in python 3, try pbzip2
-        if sys.version_info.major >= 3:
-            pbzip = which('pbzip2')
-            # Run external pbzip2
-            if pbzip is not None:
-                n_thr = os.environ.get('OMP_NUM_THREADS')
-                if n_thr:
-                    runner = [pbzip,
-                              '-dc',
-                              '-p'+str(n_thr),
-                              filename]
-                else:
-                    runner = [pbzip,
-                              '-dc',
-                              filename]
-                p = Popen(runner, stdout=PIPE, stderr=PIPE)
-                stdout = BytesIO(p.communicate()[0])
-                status = p.returncode
-                if status != 0:
-                    raise IOError("pbzip2 error '%s', failed, status=%d"
-                                  % (filename, status))
-                with closing(os.fdopen(fdn, 'wb')) as ofpt:
-                    try:
-                        stdout.seek(0)
-                        shutil.copyfileobj(stdout, ofpt)
-                    except IOError:
-                        import traceback
-                        traceback.print_exc()
-                        LOGGER.info("Failed to read bzipped file %s",
-                                    str(filename))
-                        os.remove(tmpfilepath)
-                        raise
-                return tmpfilepath
+        # try pbzip2
+        pbzip = which('pbzip2')
+        # Run external pbzip2
+        if pbzip is not None:
+            n_thr = os.environ.get('OMP_NUM_THREADS')
+            if n_thr:
+                runner = [pbzip,
+                          '-dc',
+                          '-p'+str(n_thr),
+                          filename]
+            else:
+                runner = [pbzip,
+                          '-dc',
+                          filename]
+            p = Popen(runner, stdout=PIPE, stderr=PIPE)
+            stdout = BytesIO(p.communicate()[0])
+            status = p.returncode
+            if status != 0:
+                raise IOError("pbzip2 error '%s', failed, status=%d"
+                              % (filename, status))
+            with closing(os.fdopen(fdn, 'wb')) as ofpt:
+                try:
+                    stdout.seek(0)
+                    shutil.copyfileobj(stdout, ofpt)
+                except IOError:
+                    import traceback
+                    traceback.print_exc()
+                    LOGGER.info("Failed to read bzipped file %s",
+                                str(filename))
+                    os.remove(tmpfilepath)
+                    raise
+            return tmpfilepath
+
         # Otherwise, fall back to the original method
         bz2file = bz2.BZ2File(filename)
         with closing(os.fdopen(fdn, 'wb')) as ofpt:

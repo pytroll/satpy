@@ -347,10 +347,6 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     _alt_handler = FakeNetCDF4FileHandler3
 
-    @unittest.skipIf(
-            sys.version_info < (3, 4),
-            "skipping log message testing on old Python version "
-            "that doesn't have TestCase.assertLogs")
     def test_handling_bad_data_ir(self):
         """Test handling of bad data
         """
