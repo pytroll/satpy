@@ -20,16 +20,10 @@
 
 import logging
 import os
-import sys
 import re
 import warnings
-
 import numpy as np
-
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser
+import configparser
 
 _is_logging_on = False
 TRACE_LEVEL = 5

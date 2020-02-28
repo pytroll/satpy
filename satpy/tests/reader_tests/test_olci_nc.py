@@ -165,7 +165,7 @@ class TestBitFlags(unittest.TestCase):
     def test_bitflags(self):
         """Test the BitFlags class."""
         import numpy as np
-        from six.moves import reduce
+        from functools import reduce
         from satpy.readers.olci_nc import BitFlags
         flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
                      'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',

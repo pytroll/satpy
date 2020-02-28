@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.grib module."""
 
+import sys
 import numpy as np
 import unittest
 from unittest import mock
