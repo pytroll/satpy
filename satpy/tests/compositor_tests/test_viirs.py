@@ -18,7 +18,7 @@
 """Tests for VIIRS compositors."""
 
 import unittest
-import mock
+from unittest import mock
 
 
 class TestVIIRSComposites(unittest.TestCase):

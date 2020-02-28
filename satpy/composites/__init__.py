@@ -25,7 +25,6 @@ from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
-import six
 import xarray as xr
 import yaml
 
@@ -818,7 +817,7 @@ class GenericCompositor(CompositeBase):
         for projectable in projectables:
             current_sensor = projectable.attrs.get("sensor", None)
             if current_sensor:
-                if isinstance(current_sensor, (str, bytes, six.text_type)):
+                if isinstance(current_sensor, (str, bytes)):
                     sensor.add(current_sensor)
                 else:
                     sensor |= current_sensor

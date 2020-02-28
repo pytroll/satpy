@@ -18,6 +18,7 @@
 """Module for testing the satpy.readers.grib module."""
 
 import os
+import sys
 import numpy as np
 import xarray as xr
 import unittest

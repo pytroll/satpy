@@ -21,7 +21,6 @@ import unittest
 
 
 class TestABIComposites(unittest.TestCase):
-
     """Test ABI-specific composites."""
 
     def test_load_composite_yaml(self):

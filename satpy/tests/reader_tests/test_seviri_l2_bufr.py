@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the SEVIRI L2 BUFR reader."""
 
+import sys
 import unittest
 from unittest import mock
 import numpy as np

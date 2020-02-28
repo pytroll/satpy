@@ -22,12 +22,11 @@ import logging
 from contextlib import closing
 import tempfile
 import bz2
-import sys
 import os
 import shutil
 import numpy as np
 import pyproj
-from six import BytesIO
+from io import BytesIO
 from subprocess import Popen, PIPE
 from pyresample.geometry import AreaDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
