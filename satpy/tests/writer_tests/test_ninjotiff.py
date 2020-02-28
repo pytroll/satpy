@@ -78,11 +78,3 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         assert(nt.save.mock_calls[0][2]['ch_min_measurement_unit']
                < nt.save.mock_calls[0][2]['ch_max_measurement_unit'])
         assert(ret == nt.save.return_value)
-
-
-def suite():
-    """Test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNinjoTIFFWriter))
-    return mysuite

@@ -16,14 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the mitiff writer.
-Based on the test for geotiff writer
-"""
-import sys
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+Based on the test for geotiff writer
+
+"""
+import unittest
 
 
 class TestMITIFFWriter(unittest.TestCase):
@@ -817,16 +814,3 @@ class TestMITIFFWriter(unittest.TestCase):
         dataset = self._get_test_dataset_three_bands_two_prereq()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
-
-
-def suite():
-    """The test suite for this writer's tests.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMITIFFWriter))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
