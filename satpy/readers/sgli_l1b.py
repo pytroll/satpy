@@ -118,6 +118,8 @@ class HDF5SGLI(BaseFileHandler):
                     # equivalent to the two lines above
                     dataset = (dataset * h5dataset.attrs['Slope_reflectance']
                                + h5dataset.attrs['Offset_reflectance']) * 100
+            else:
+                dataset = dataset * h5dataset.attrs['Slope'] + h5dataset.attrs['Offset']
 
         dataset.attrs['platform_name'] = 'GCOM-C1'
         return dataset
