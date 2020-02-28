@@ -45,7 +45,7 @@ Running tests
 =============
 
 Satpy tests are written using the python :mod:`unittest` module and the
-third-party :doc:`pytest:index` package. Satpy tests can be executed by
+third-party :doc:`pytest <pytest:index>` package. Satpy tests can be executed by
 running::
 
     pytest satpy/tests
