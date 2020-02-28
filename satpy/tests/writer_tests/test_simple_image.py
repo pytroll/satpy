@@ -15,14 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the CF writer.
-"""
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+"""Tests for the CF writer."""
+import unittest
 
 
 class TestPillowWriter(unittest.TestCase):
@@ -78,11 +72,3 @@ class TestPillowWriter(unittest.TestCase):
             self.assertIsInstance(r__, Delayed)
             r__.compute()
         compute_writer_results(res)
-
-
-def suite():
-    """The test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestPillowWriter))
-    return mysuite
