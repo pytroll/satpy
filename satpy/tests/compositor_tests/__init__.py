@@ -23,12 +23,7 @@ import dask
 import numpy as np
 from datetime import datetime
 from satpy.tests.compositor_tests import test_abi, test_ahi, test_viirs
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 import unittest
 
 
@@ -1253,40 +1248,3 @@ class TestMaskingCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
         # The compositor should drop the original alpha band
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
-
-
-def suite():
-    """Test suite for all reader tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTests(test_abi.suite())
-    mysuite.addTests(test_ahi.suite())
-    mysuite.addTests(test_viirs.suite())
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMatchDataArrays))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestRatioSharpenedCompositors))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSunZenithCorrector))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDifferenceCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDayNightCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFillingCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSandwichCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestLuminanceSharpeningCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestInlineComposites))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestColormapCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestPaletteCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCloudTopHeightCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSingleBandCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGenericCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNIRReflectance))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestPrecipCloudsCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAddBands))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBackgroundCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestStaticImageCompositor))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestPSPAtmosphericalCorrection))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestPSPRayleighReflectance))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMaskingCompositor))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

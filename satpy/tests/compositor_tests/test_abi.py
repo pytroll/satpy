@@ -15,15 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for ABI compositors.
-"""
+"""Tests for ABI compositors."""
 
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 
 class TestABIComposites(unittest.TestCase):
@@ -71,12 +65,3 @@ class TestABIComposites(unittest.TestCase):
                          'toa_bidirectional_reflectance')
         data = res.compute()
         np.testing.assert_allclose(data, 0.28025)
-
-
-def suite():
-    """The test suite for test_abi.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestABIComposites))
-    return mysuite
