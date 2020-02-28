@@ -15,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Test the eps l1b format."""
 
 import os
@@ -132,12 +131,3 @@ class TestEPSL1B(TestCase):
         """Tear down the tests."""
         with suppress(OSError):
             os.remove(self.filename)
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = TestLoader()
-    mysuite = TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestEPSL1B))
-
-    return mysuite

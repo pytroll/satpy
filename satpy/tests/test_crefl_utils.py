@@ -15,9 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test CREFL rayleigh correction functions.
-"""
-import unittest2 as unittest
+"""Test CREFL rayleigh correction functions."""
+import unittest
 
 
 class TestCreflUtils(unittest.TestCase):

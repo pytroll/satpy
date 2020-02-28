@@ -15,23 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Unittesting the SEVIRI L2 BUFR reader."""
 
-import sys
-
+import unittest
+from unittest import mock
 import numpy as np
 from datetime import datetime
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 FILETYPE_INFO = {'file_type':  'seviri_l2_bufr_csr'}
 
@@ -122,16 +111,3 @@ class TestSeviriL2Bufr(unittest.TestCase):
         self.seviri_l2_bufr_test('GIIBUFRProduct_20191106130000Z_00_OMPEFS04_MET11_FES_E0000')
         self.seviri_l2_bufr_test('MSG4-SEVI-MSGGIIN-0101-0101-20191106130000.000000000Z-20191106131702-1362128.bfr')
         self.seviri_l2_bufr_test('MSG4-SEVI-MSGGIIN-0101-0101-20191106101500.000000000Z-20191106103218-1362148')
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSeviriL2Bufr))
-    return mysuite
-
-
-if __name__ == "__main__":
-    # So you can run tests from this module individually.
-    unittest.main()

@@ -15,23 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.grib module.
-"""
+"""Module for testing the satpy.readers.grib module."""
 
 import os
-import sys
 import numpy as np
 import xarray as xr
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 
 class FakeMessage(object):
@@ -243,12 +233,3 @@ class TestGRIBReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
             self.assertIsInstance(v, xr.DataArray)
-
-
-def suite():
-    """The test suite for test_grib."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGRIBReader))
-
-    return mysuite

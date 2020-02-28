@@ -299,15 +299,3 @@ class TestIasiL2(unittest.TestCase):
         msecs = TEST_DATA['L1C']['SensingTime_msec']['data']
         times = _form_datetimes(days, msecs)
         self.check_sensing_times(times)
-
-
-def suite():
-    """The test suite for test_iasi_l2."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestIasiL2))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

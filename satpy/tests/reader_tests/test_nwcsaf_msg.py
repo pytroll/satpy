@@ -14,7 +14,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-#
 """Unittests for NWC SAF MSG (2013) reader."""
 
 import unittest
@@ -23,11 +22,7 @@ import tempfile
 import os
 import h5py
 from collections import OrderedDict
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock  # noqa
+from unittest import mock
 
 CTYPE_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
 CTYPE_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 20).astype(np.uint8)
@@ -560,12 +555,3 @@ class TestH5NWCSAF(unittest.TestCase):
             os.remove(self.filename_ctth)
         except OSError:
             pass
-
-
-def suite():
-    """Test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestH5NWCSAF))
-
-    return my_suite
