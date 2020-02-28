@@ -27,12 +27,17 @@ matrix:
   - env: PYTHON_VERSION=3.7
     os: osx
     language: generic
+  # allowed to fail:
   - os: linux
     env:
-    - PYTHON_VERSION=3.8
-    - UNSTABLE_DEPS=True
+      - PYTHON_VERSION=3.8
+      - UNSTABLE_DEPS=True
+
   allow_failures:
-    - env: UNSTABLE_DEPS=True
+  - os: linux
+    env:
+      - PYTHON_VERSION=3.8
+      - UNSTABLE_DEPS=True
 install:
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
