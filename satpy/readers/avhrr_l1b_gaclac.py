@@ -88,7 +88,8 @@ class GACLACFile(BaseFileHandler):
         self.tle_thresh = tle_thresh
         self.creation_site = filename_info.get('creation_site')
         self.reader = None
-        self.channels = None
+        self.calib_channels = None
+        self.counts = None
         self.angles = None
         self.qual_flags = None
         self.midnight_scanline = None
@@ -164,19 +165,9 @@ class GACLACFile(BaseFileHandler):
                        'Solar contamination of blackbody in channels 3',
                        'Solar contamination of blackbody in channels 4',
                        'Solar contamination of blackbody in channels 5']
-        elif key.calibration == 'counts':
-            # if we ask for uncalibrated data we will get all channels back
-            data = self.reader.get_counts()
-            data = data[:, :, self.chn_dict[key.name.upper()]]
-            xdim = 'x'
-            xcoords = None
-        elif key.calibration in ['reflectance', 'radiance']:
-            # get calibrated data of all channels back
-            data = self._get_calibrated_data(key.name)
-            xdim = 'x'
-            xcoords = None
-        else:
-            data = self._get_calibrated_data(key.name)
+        elif key.calibration in ['counts', 'reflectance', 'brightness_temperature']:
+            # Read and calibrate channel data
+            data = self._get_channel(name=key.name, calibration=key.calibration)
             xdim = 'x'
             xcoords = None
 
@@ -275,11 +266,18 @@ class GACLACFile(BaseFileHandler):
 
         return sliced, midnight_scanline, miss_lines
 
-    def _get_calibrated_data(self, name):
+    def _get_channel(self, name, calibration):
         """Get channel by name and buffer results."""
-        if self.channels is None:
-            self.channels = self.reader.get_calibrated_channels()
-        return self.channels[:, :, self.chn_dict[name.upper()]]
+        if calibration == 'counts':
+            if self.counts is None:
+                counts = self.reader.get_counts()
+                self.counts = counts
+            channels = self.counts
+        else:
+            if self.calib_channels is None:
+                self.calib_channels = self.reader.get_calibrated_channels()
+            channels = self.calib_channels
+        return channels[:, :, self.chn_dict[name.upper()]]
 
     def _get_qual_flags(self):
         """Get quality flags and buffer results."""
