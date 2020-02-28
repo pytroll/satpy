@@ -19,15 +19,8 @@
 
 import os
 import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -747,20 +740,3 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(6, len(groups[0]['viirs_sdr']))
         # 5 granules * 3 file types
         self.assertEqual(5 * 3, len(groups[1]['viirs_sdr']))
-
-
-def suite():
-    """Create test suite for test_readers."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestReaderLoader))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFindFilesAndReaders))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGroupFiles))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

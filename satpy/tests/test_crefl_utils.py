@@ -17,12 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test CREFL rayleigh correction functions.
 """
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest2 as unittest
 
 
 class TestCreflUtils(unittest.TestCase):
@@ -39,12 +34,3 @@ class TestCreflUtils(unittest.TestCase):
         self.assertLess(abs(rhoray - 2.2030281148621356), 1e-10)
         self.assertLess(abs(TtotraytH2O - 0.30309880915889087), 1e-10)
         self.assertLess(abs(tOG - 0.5969089524560548), 1e-10)
-
-
-def suite():
-    """The test suite for test_crefl_utils."""
-
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCreflUtils))
-    return mysuite
