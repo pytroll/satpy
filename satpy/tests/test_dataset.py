@@ -15,16 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test objects and functions in the dataset module.
-"""
+"""Test objects and functions in the dataset module."""
 
-import sys
 from datetime import datetime
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 
 class TestDatasetID(unittest.TestCase):
@@ -90,14 +84,3 @@ class TestCombineMetadata(unittest.TestCase):
         ret = combine_metadata(*dts, average_times=False)
         # times are not equal so don't include it in the final result
         self.assertNotIn('start_time', ret)
-
-
-def suite():
-    """The test suite for test_projector.
-    """
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestDatasetID))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCombineMetadata))
-
-    return my_suite
