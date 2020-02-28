@@ -125,8 +125,6 @@ def get_logger(name):
         logging.Logger.trace = trace
 
     log = logging.getLogger(name)
-    if not log.handlers and sys.version_info[0] < 3:
-        log.addHandler(logging.NullHandler())
     return log
 
 
