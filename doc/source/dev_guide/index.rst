@@ -44,10 +44,11 @@ clone your fork. The package can then be installed in development by doing::
 Running tests
 =============
 
-Satpy tests are written using the python :mod:`unittest` module and the tests
-can be executed by running::
+Satpy tests are written using the python :mod:`unittest` module and the
+third-party :doc:`pytest:index` package. Satpy tests can be executed by
+running::
 
-    python setup.py test
+    pytest satpy/tests
 
 Documentation
 =============
