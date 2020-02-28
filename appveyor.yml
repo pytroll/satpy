@@ -26,7 +26,7 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Build the compiled extension and run the project tests
-  - "%CMD_IN_ENV% python setup.py test"
+  - "%CMD_IN_ENV% pytest --cov=satpy satpy/tests"
 
 after_test:
   # If tests are successful, create a whl package for the project.
