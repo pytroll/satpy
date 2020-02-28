@@ -22,7 +22,6 @@ import tempfile
 import os
 import h5py
 from collections import OrderedDict
-from unittest import mock
 
 CTYPE_TEST_ARRAY = (np.random.rand(1856, 3712) * 255).astype(np.uint8)
 CTYPE_TEST_FRAME = (np.arange(100).reshape(10, 10) / 100. * 20).astype(np.uint8)
