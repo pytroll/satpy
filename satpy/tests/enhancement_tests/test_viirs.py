@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit testing for the VIIRS enhancement function
-"""
+"""Unit testing for the VIIRS enhancement function."""
 
 import unittest
 import numpy as np
@@ -88,13 +87,3 @@ class TestVIIRSEnhancement(unittest.TestCase):
     def tearDown(self):
         """Clean up"""
         pass
-
-
-def suite():
-    """The test suite for test_viirs.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSEnhancement))
-
-    return mysuite
