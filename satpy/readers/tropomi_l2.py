@@ -32,6 +32,7 @@ http://www.tropomi.eu/data-products/level-2-products
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 import logging
 import numpy as np
+import xarray as xr
 
 logger = logging.getLogger(__name__)
 
@@ -89,9 +90,13 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
             matches = self.file_type_matches(ds_info['file_type'])
             # we can confidently say that we can provide this dataset and can
             # provide more info
-            if matches and var_name in self:
+            assembled = var_name in ['assembled_lat_bounds', 'assembled_lon_bounds']
+            if (matches and var_name in self) or (assembled):
                 logger.debug("Handling previously configured variable: %s", var_name)
-                handled_variables.add(var_name)
+                if not assembled:
+                    # Because assembled variables and bounds use the same file_key,
+                    # we need to omit file_key once.
+                    handled_variables.add(var_name)
                 new_info = ds_info.copy()  # don't mess up the above yielded
                 yield True, new_info
             elif is_avail is None:
@@ -158,6 +163,30 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
             dims_dict['scanline'] = 'y'
         return data_arr.rename(dims_dict)
 
+    def prepare_geo(self, bounds_data):
+        # lat/lon bounds are ordered in the following way:
+        # 3----2
+        # |    |
+        # 0----1
+        # Extend longitudes and latitudes with one element to support "pcolormesh"
+        dest_shape = (bounds_data.shape[0]+1, bounds_data.shape[1]+1)
+        dest = np.zeros(dest_shape, dtype=np.float64)
+        # Fill most elements with the left-bottom lat/lon coordinates
+        dest[0:-1, 0:-1] = bounds_data[:, :, 0]
+        # Fill the rightmost column with the right-bottom lat/lon coordinates
+        dest[0:-1, -1] = bounds_data[:, -1, 1]
+        # Fill the rightmost top element with right-top lat/lon coordinates
+        dest[-1, -1] = bounds_data[-1, -1, 2]
+        # Fill the top row with left-top lat/lon coordinates
+        dest[-1, 0:-1] = bounds_data[-1, :, 3]
+        # Convert to DataArray
+        dest = xr.DataArray(dest,
+                            dims=('y', 'x')
+                            )
+        # Copy attrs
+        dest.attrs = bounds_data.attrs
+        return dest
+
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
         logger.debug("Getting data for: %s", ds_id.name)
@@ -168,4 +197,6 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         data = data.squeeze()
         data = data.where(data != fill)
         data = self._rename_dims(data)
+        if ds_id.name in ['assembled_lat_bounds', 'assembled_lon_bounds']:
+            data = self.prepare_geo(data)
         return data
