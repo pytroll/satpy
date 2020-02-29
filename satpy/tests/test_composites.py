@@ -22,7 +22,6 @@ import dask.array as da
 import dask
 import numpy as np
 from datetime import datetime
-from satpy.tests.compositor_tests import test_abi, test_ahi, test_viirs
 from unittest import mock
 import unittest
 
