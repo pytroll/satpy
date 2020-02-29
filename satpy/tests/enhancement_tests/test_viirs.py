@@ -29,6 +29,7 @@ class TestVIIRSEnhancement(unittest.TestCase):
     def setUp(self):
         """Create test data."""
         data = np.arange(15, 301, 15).reshape(2, 10)
+        data = da.from_array(data, chunks=(2, 10))
         self.da = xr.DataArray(data, dims=('y', 'x'), attrs={'test': 'test'})
         self.palette = {'colors':
                         [[14, [0.0, 0.0, 0.0]],
