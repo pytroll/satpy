@@ -17,7 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the NinJoTIFF writer."""
 
-import sys
 import unittest
 from unittest import mock
 
@@ -41,11 +40,11 @@ modules = {'pyninjotiff': mock.Mock(),
            'pyninjotiff.ninjotiff': mock.Mock()}
 
 
-@mock.patch.dict(sys.modules, modules)
 class TestNinjoTIFFWriter(unittest.TestCase):
     """The ninjo tiff writer tests."""
 
-    def test_init(self):
+    @mock.patch('satpy.writers.ninjotiff.nt')
+    def test_init(self, nt):
         """Test the init."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ninjo_tags = {40000: 'NINJO'}
@@ -54,7 +53,8 @@ class TestNinjoTIFFWriter(unittest.TestCase):
 
     @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_dataset')
     @mock.patch('satpy.writers.ninjotiff.convert_units')
-    def test_dataset(self, uconv, iwsd):
+    @mock.patch('satpy.writers.ninjotiff.nt')
+    def test_dataset(self, nt, uconv, iwsd):
         """Test saving a dataset."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
@@ -65,9 +65,9 @@ class TestNinjoTIFFWriter(unittest.TestCase):
 
     @mock.patch('satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset')
     @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_image')
-    def test_image(self, iwsi, save_dataset):
+    @mock.patch('satpy.writers.ninjotiff.nt')
+    def test_image(self, nt, iwsi, save_dataset):
         """Test saving an image."""
-        import pyninjotiff.ninjotiff as nt
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
         dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
