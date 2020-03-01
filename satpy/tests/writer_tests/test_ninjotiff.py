@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the NinJoTIFF writer."""
 
+import sys
 import unittest
 from unittest import mock
 
@@ -36,11 +37,16 @@ class FakeImage:
         return xr.DataArray(1), xr.DataArray(0)
 
 
+pyninjotiff_mock = mock.Mock()
+pyninjotiff_mock.ninjotiff = mock.Mock()
+
+
+@mock.patch.dict(sys.modules, {'pyninjotiff': pyninjotiff_mock, 'pyninjotiff.ninjotiff': pyninjotiff_mock.ninjotiff})
 class TestNinjoTIFFWriter(unittest.TestCase):
     """The ninjo tiff writer tests."""
 
-    @mock.patch('satpy.writers.ninjotiff.nt')
-    def test_init(self, nt):
+    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    def test_init(self):
         """Test the init."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ninjo_tags = {40000: 'NINJO'}
@@ -49,8 +55,8 @@ class TestNinjoTIFFWriter(unittest.TestCase):
 
     @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_dataset')
     @mock.patch('satpy.writers.ninjotiff.convert_units')
-    @mock.patch('satpy.writers.ninjotiff.nt')
-    def test_dataset(self, nt, uconv, iwsd):
+    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    def test_dataset(self, uconv, iwsd):
         """Test saving a dataset."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
@@ -61,9 +67,11 @@ class TestNinjoTIFFWriter(unittest.TestCase):
 
     @mock.patch('satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset')
     @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_image')
-    @mock.patch('satpy.writers.ninjotiff.nt')
-    def test_image(self, nt, iwsi, save_dataset):
+    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
+    def test_image(self, iwsi, save_dataset):
         """Test saving an image."""
+        nt = pyninjotiff_mock.ninjotiff
+        nt.reset_mock()
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
         dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
