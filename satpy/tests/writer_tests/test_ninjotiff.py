@@ -36,10 +36,6 @@ class FakeImage:
         return xr.DataArray(1), xr.DataArray(0)
 
 
-modules = {'pyninjotiff': mock.Mock(),
-           'pyninjotiff.ninjotiff': mock.Mock()}
-
-
 class TestNinjoTIFFWriter(unittest.TestCase):
     """The ninjo tiff writer tests."""
 
