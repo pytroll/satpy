@@ -29,7 +29,6 @@ import pyproj
 from io import BytesIO
 from subprocess import Popen, PIPE
 from pyresample.geometry import AreaDefinition
-from pyresample.boundary import AreaDefBoundary, Boundary
 
 from satpy import CHUNK_SIZE
 
@@ -154,33 +153,6 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     y = np.clip(np.concatenate([y, -y]), min(ll_y, ur_y), max(ll_y, ur_y))
 
     return _lonlat_from_geos_angle(x, y, geos_area)
-
-
-def get_area_slices(data_area, area_to_cover):
-    """Compute the slice to read from an *area* based on an *area_to_cover*."""
-    if data_area.proj_dict['proj'] != 'geos':
-        raise NotImplementedError('Only geos supported')
-
-    # Intersection only required for two different projections
-    if area_to_cover.proj_dict['proj'] == data_area.proj_dict['proj']:
-        LOGGER.debug('Projections for data and slice areas are'
-                     ' identical: {}'.format(area_to_cover.proj_dict['proj']))
-        # Get xy coordinates
-        llx, lly, urx, ury = area_to_cover.area_extent
-        x, y = data_area.get_xy_from_proj_coords([llx, urx], [lly, ury])
-
-        return slice(x[0], x[1] + 1), slice(y[1], y[0] + 1)
-
-    data_boundary = Boundary(*get_geostationary_bounding_box(data_area))
-
-    area_boundary = AreaDefBoundary(area_to_cover, 100)
-    intersection = data_boundary.contour_poly.intersection(
-        area_boundary.contour_poly)
-
-    x, y = data_area.get_xy_from_lonlat(np.rad2deg(intersection.lon),
-                                        np.rad2deg(intersection.lat))
-
-    return slice(min(x), max(x) + 1), slice(min(y), max(y) + 1)
 
 
 def get_sub_area(area, xslice, yslice):
