@@ -10,7 +10,7 @@ reader:
 file_types:
     fiduceo_avhrr_fcdr_nc:
         file_reader: !!python/name:satpy.readers.fiduceo_avhrr_fcdr_nc.FiduceoFileHandler
-        file_patterns: ['FIDUCEO_FCDR_L1C_AVHRR_N18ALL_{starttime:%Y%m%d%H%M%S}_{endtime:%Y%m%d%H%M%S}_EASY_v1.00_fv2.0.0.nc']   
+        file_patterns: ['FIDUCEO_FCDR_L1C_AVHRR_{sat:6s}_{starttime:%Y%m%d%H%M%S}_{endtime:%Y%m%d%H%M%S}_EASY_v1.00_fv2.0.0.nc']   
 
 datasets:
     '1':
