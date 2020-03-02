@@ -17,14 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Testing of helper functions."""
 
-
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 import os
 import sys
 import numpy as np
@@ -274,29 +268,15 @@ class TestHelpers(unittest.TestCase):
             self.assertTrue(os.path.exists(new_fname))
             if os.path.exists(new_fname):
                 os.remove(new_fname)
-        # bz2 installed, but python 3 only
-        if sys.version_info.major >= 3:
-            with mock.patch(whichstr) as whichmock:
-                whichmock.return_value = '/usr/bin/pbzip2'
-                new_fname = hf.unzip_file(filename)
-                self.assertTrue(mock_popen.called)
-                self.assertTrue(os.path.exists(new_fname))
-                if os.path.exists(new_fname):
-                    os.remove(new_fname)
+        # bz2 installed
+        with mock.patch(whichstr) as whichmock:
+            whichmock.return_value = '/usr/bin/pbzip2'
+            new_fname = hf.unzip_file(filename)
+            self.assertTrue(mock_popen.called)
+            self.assertTrue(os.path.exists(new_fname))
+            if os.path.exists(new_fname):
+                os.remove(new_fname)
 
         filename = 'tester.DAT'
         new_fname = hf.unzip_file(filename)
         self.assertIsNone(new_fname)
-
-
-def suite():
-    """Test suite for utils library."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHelpers))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unittests for generic image reader.
-"""
+"""Unittests for generic image reader."""
 
 import os
 import unittest
@@ -192,16 +191,3 @@ class TestGenericImage(unittest.TestCase):
         self.assertTrue(data.bands.size == 4)
         data = mask_image_data(data)
         self.assertTrue(data.bands.size == 3)
-
-
-def suite():
-    """The test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestGenericImage))
-
-    return my_suite
-
-
-if __name__ == '__main__':
-    unittest.main()

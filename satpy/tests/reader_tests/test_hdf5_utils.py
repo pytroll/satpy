@@ -18,6 +18,7 @@
 """Module for testing the satpy.readers.hdf5_utils module."""
 
 import os
+import unittest
 import numpy as np
 
 try:
@@ -25,8 +26,6 @@ try:
 except ImportError:
     # fake the import so we can at least run the tests in this file
     HDF5FileHandler = object
-
-import unittest
 
 
 class FakeHDF5FileHandler(HDF5FileHandler):
@@ -137,12 +136,3 @@ class TestHDF5FileHandler(unittest.TestCase):
         self.assertFalse('fake_ds' in file_handler)
 
         self.assertIsInstance(file_handler['ds2_f/attr/test_ref'], np.ndarray)
-
-
-def suite():
-    """Test suite for test_hdf5_utils."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHDF5FileHandler))
-
-    return mysuite

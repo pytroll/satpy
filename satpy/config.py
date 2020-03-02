@@ -20,11 +20,11 @@ from __future__ import print_function
 import glob
 import logging
 import os
+import configparser
 from collections.abc import Mapping
 from collections import OrderedDict
 
 import yaml
-from six.moves import configparser
 
 try:
     from yaml import UnsafeLoader
