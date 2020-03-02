@@ -79,6 +79,8 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
         # update previously configured datasets
         logger.debug("Starting previously configured variables loop...")
+        # if bounds exists, we can assemble them later
+        bounds_exist = 'latitude_bounds' in self and 'longitude_bounds' in self
         for is_avail, ds_info in (configured_datasets or []):
 
             # some other file handler knows how to load this
@@ -91,7 +93,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
             # we can confidently say that we can provide this dataset and can
             # provide more info
             assembled = var_name in ['assembled_lat_bounds', 'assembled_lon_bounds']
-            if (matches and var_name in self) or (assembled):
+            if (matches and var_name in self) or (assembled and bounds_exist):
                 logger.debug("Handling previously configured variable: %s", var_name)
                 if not assembled:
                     # Because assembled variables and bounds use the same file_key,
@@ -169,16 +171,12 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         # |    |
         # 0----1
         # Extend longitudes and latitudes with one element to support "pcolormesh"
-        dest_shape = (bounds_data.shape[0]+1, bounds_data.shape[1]+1)
-        dest = np.zeros(dest_shape, dtype=np.float64)
-        # Fill most elements with the left-bottom lat/lon coordinates
-        dest[0:-1, 0:-1] = bounds_data[:, :, 0]
-        # Fill the rightmost column with the right-bottom lat/lon coordinates
-        dest[0:-1, -1] = bounds_data[:, -1, 1]
-        # Fill the rightmost top element with right-top lat/lon coordinates
-        dest[-1, -1] = bounds_data[-1, -1, 2]
-        # Fill the top row with left-top lat/lon coordinates
-        dest[-1, 0:-1] = bounds_data[-1, :, 3]
+        # Create the bottom array
+        bottom = np.hstack([bounds_data[:, :, 0], bounds_data[:, -1:, 1]])
+        # Create the top array
+        top = np.hstack([bounds_data[-1, :, 3], bounds_data[-1, -1, 2]])
+        # Stack vertically
+        dest = np.vstack([top, bottom])
         # Convert to DataArray
         dest = xr.DataArray(dest,
                             dims=('y', 'x')
