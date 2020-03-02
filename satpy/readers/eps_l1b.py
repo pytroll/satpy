@@ -225,13 +225,12 @@ class EPSAVHRRFile(BaseFileHandler):
             from geotiepoints import metop20kmto1km
             # Note: interpolation asumes lat values values between -90 and 90
             # Solar and satellite zenith is between 0 and 180.
-            solar_zenith -= 90
+            # Note: delayed will cast input dask-arrays to numpy arrays (needed by metop20kmto1km).
             sun_azi, sun_zen = metop20kmto1km(
-                solar_azimuth, solar_zenith)
+                solar_azimuth, solar_zenith - 90)
             sun_zen += 90
-            sat_zenith -= 90
             sat_azi, sat_zen = metop20kmto1km(
-                sat_azimuth, sat_zenith)
+                sat_azimuth, sat_zenith - 90)
             sat_zen += 90
             return sun_azi, sun_zen, sat_azi, sat_zen
         else:
