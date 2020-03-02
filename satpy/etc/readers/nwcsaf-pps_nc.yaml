@@ -194,7 +194,6 @@ datasets:
     file_type: nc_nwcsaf_ctth
     coordinates: [lon, lat]
 
-
   ctth_pres:
     name: ctth_pres
     file_type: nc_nwcsaf_ctth

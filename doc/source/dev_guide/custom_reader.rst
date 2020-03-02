@@ -3,11 +3,19 @@
 =================================
 
 In order to add a reader to satpy, you will need to create two files:
+
  - a YAML file for describing the files to read and the datasets that are available
  - a python file implementing the actual reading of the datasets and metadata
 
-For this tutorial, we will implement a reader for the Eumetsat NetCDF
-format for SEVIRI data
+Satpy implements readers by defining a single "reader" object that pulls
+information from one or more file handler objects. The base reader class
+provided by Satpy is enough for most cases and does not need to be modified.
+The individual file handler classes do need to be created due to the small
+differences between file formats.
+
+The below documentation will walk through each part of making a reader in
+detail. To do this we will implement a reader for the EUMETSAT NetCDF
+format for SEVIRI data.
 
 .. _reader_naming:
 
@@ -63,16 +71,23 @@ The YAML file
 -------------
 
 The yaml file is composed of three sections:
- - the ``reader`` section, that provides basic parameters for the reader
- - the ``file_types`` section, which gives the patterns of the files this reader can handle
- - the ``datasets`` section, describing the datasets available from this reader
+
+ - the :ref:`reader <custom_reader_reader_section>` section,
+   that provides basic parameters for the reader
+ - the :ref:`file_types <custom_reader_file_types_section>` section,
+   that gives the patterns of the files this reader can handle
+ - the :ref:`datasets <custom_reader_datasets_section>` section,
+   that describes the datasets available from this reader
+
+.. _custom_reader_reader_section:
 
 The ``reader`` section
 ~~~~~~~~~~~~~~~~~~~~~~
 
-The ``reader`` section, that provides basic parameters for the reader.
+The ``reader`` section provides basic parameters for the overall reader.
 
 The parameters to provide in this section are:
+
  - name: This is the name of the reader, it should be the same as the
    filename (without the .yaml extension). The naming convention for
    this is described above in the :ref:`reader_naming` section above.
@@ -107,13 +122,17 @@ The parameters to provide in this section are:
       sensors: [seviri]
       reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
+.. _custom_reader_file_types_section:
+
 The ``file_types`` section
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Each file type needs to provide:
+
  - ``file_reader``, the class that will
    handle the files for this reader, that you will implement in the
-   corresponding python file (see next section)
+   corresponding python file. See the :ref:`custom_reader_python`
+   section below.
  - ``file_patterns``, the
    patterns to match to find files this reader can handle. The syntax to
    use is basically the same as ``format`` with the addition of time. See
@@ -136,37 +155,59 @@ Each file type needs to provide:
             file_reader: !!python/name:satpy.readers.nc_seviri_l1b.NCSEVIRIHRVFileHandler
             file_patterns: ['W_XX-EUMETSAT-Darmstadt,HRV+IMAGERY,{satid:4s}+SEVIRI_C_EUMG_{processing_time:%Y%m%d%H%M%S}.nc']
 
+.. _custom_reader_datasets_section:
+
 The ``datasets`` section
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 The datasets section describes each dataset available in the files. The
 parameters provided are made available to the methods of the
-implementing class.
+implemented python class.
+
+If your input files contain all the necessary metadata or you have a lot
+of datasets to configure look at the :ref:`custom_reader_available_datasets`
+section below. Implementing this will save you from having to write
+a lot of configuration in the YAML files.
 
 Parameters you can define for example are:
+
  - name
  - sensor
  - resolution
  - wavelength
  - polarization
- - standard\_name: the name used for the
-   dataset, that will be used for knowing what kind of data it is and
-   handle it appropriately
- - units: the units of the data, important to get
-   consistent processing across multiple platforms/instruments
- - modifiers: what modification have already been applied to the data, eg
-   ``sunz_corrected``
- - file\_type
- - coordinates: this tells which datasets
-   to load to navigate the current dataset
- - and any other field that is
-   relevant for the reader
+ - standard\_name: The
+   `CF standard name <http://cfconventions.org/Data/cf-standard-names/70/build/cf-standard-name-table.html>`_
+   for the dataset that will be used to determine the type of data. See
+   existing readers for common standard names in Satpy or the CF standard name
+   documentation for other available names or how to define your own. Satpy
+   does not currently have a hard requirement on these names being completely
+   CF compliant, but consistency across readers is important.
+ - units: The units of the data when returned by the file handler. Although
+   not technically a requirement, it is common for Satpy datasets to use "%"
+   for reflectance fields and "K" for brightness temperature fields.
+ - modifiers: The modification(s) that have already been applied to the data
+   when it is returned by the file handler. Only a few of these have been
+   standardized across Satpy, but are based on the names of the modifiers
+   configured in the "composites" YAML files. Examples include
+   ``sunz_corrected`` or ``rayleigh_corrected``. See the
+   `metadata wiki <https://github.com/pytroll/satpy/wiki/Metadata-names>`_
+   for more information.
+ - file\_type: Name of file type (see above).
+ - coordinates: An optional two-element list with the names of the longitude
+   and latitude datasets describing the location of this dataset. This
+   is optional if the data being read is gridded already. Swath data,
+   from example data from some polar-orbiting satellites, should have these
+   defined or no geolocation information will be available when the data
+   is loaded. For gridded datasets a `get_area_def` function will be
+   implemented in python (see below) to define geolocation information.
+ - Any other field that is relevant for the reader or could be useful metadata
+   provided to the user.
 
 This section can be copied and adapted simply from existing seviri
 readers, like for example the ``msg_native`` reader.
 
 .. code:: yaml
-
 
     datasets:
       HRV:
@@ -363,10 +404,41 @@ readers, like for example the ``msg_native`` reader.
             units: count
         file_type: nc_seviri_l1b
 
+The YAML file is now ready and you can move on to writing your python code.
 
+.. _custom_reader_available_datasets:
 
-The YAML file is now ready, let's go on with the corresponding python
-file.
+Dynamic Dataset Configuration
+-----------------------------
+
+The above "datasets" section for reader configuration is the most explicit
+method for specifying metadata about possible data that can be loaded from
+input files. It is also the easiest way for people with little python
+experience to customize or add new datasets to a reader. However, some file
+formats may have 10s or even 100s of datasets or variations of datasets.
+Writing the metadata and access information for every one of these datasets
+can easily become a problem. To help in these cases the
+:meth:`~satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+file handler interface can be used.
+
+This method, if needed, should be implemented in your reader's file handler
+classes. The best information for what this method does and how to use it
+is available in the
+:meth:`API documentation <satpy.readers.file_handlers.BaseFileHandler.available_datasets>`.
+This method is good when you want to:
+
+1. Define datasets dynamically without needing to define them in the YAML.
+2. Supplement metadata from the YAML file with information from the file
+   content (ex. `resolution`).
+3. Determine if a dataset is available by the file contents. This differs from
+   the default behavior of a dataset being considered loadable if its
+   "file_type" is loaded.
+
+Note that this is considered an advanced interface and involves more advanced
+Python concepts like generators. If you need help with anything feel free
+to ask questions in your pull request or on the :ref:`Pytroll Slack <dev_help>`.
+
+.. _custom_reader_python:
 
 The python file
 ---------------
@@ -381,25 +453,43 @@ needs to implement a few methods:
    - the filename info (dict) that we get by parsing the filename using the pattern defined in the yaml file
    - the filetype info that we get from the filetype definition in the yaml file
 
-  This method can also receive other file handler instances as parameter
-  if the filetype at hand has requirements. (See the explanation in the
-  YAML file filetype section above)
+   This method can also receive other file handler instances as parameter
+   if the filetype at hand has requirements. (See the explanation in the
+   YAML file filetype section above)
 
  - the ``get_dataset`` method, which takes as arguments
 
    - the dataset ID of the dataset to load
    - the dataset info that is the description of the channel in the YAML file
 
-  This method has to return an xarray.DataArray instance if the loading is
-  successful, containing the data and metadata of the loaded dataset, or
-  return None if the loading was unsuccessful.
+   This method has to return an xarray.DataArray instance if the loading is
+   successful, containing the data and :ref:`metadata <dataset_metadata>` of the
+   loaded dataset, or return None if the loading was unsuccessful.
 
- - the ``get_area_def`` method, that takes as single argument the dataset ID for which we want
-   the area. For the data that cannot be geolocated with an area
-   definition, the pixel coordinates need to be loadable from
-   ``get_dataset`` for the resulting scene to be navigated. That is, if the
-   data cannot be geolocated with an area definition then the dataset
-   section should specify ``coordinates: [longitude_dataset, latitude_dataset]``
+   The DataArray should at least have a ``y`` dimension. For data covering
+   a 2D region on the Earth, their should be at least a ``y`` and ``x``
+   dimension. This applies to
+   non-gridded data like that of a polar-orbiting satellite instrument. The
+   latitude dimension is typically named ``y`` and longitude named ``x``.
+   This may require renaming dimensions from the file, see for the
+   :meth:`xarray.DataArray.rename` method for more information and its use
+   in the example below.
+
+ - the ``get_area_def`` method, that takes as single argument the
+   :class:`~satpy.dataset.DatasetID` for which we want
+   the area. It should return a :class:`~pyresample.geometry.AreaDefinition`
+   object. For data that cannot be geolocated with an area
+   definition, the pixel coordinates will be loaded using the
+   ``get_dataset`` method for the resulting scene to be navigated.
+   The names of the datasets to be loaded should be specified as a special
+   ``coordinates`` attribute in the YAML file. For example, by specifying
+   ``coordinates: [longitude_dataset, latitude_dataset]`` in the YAML, Satpy
+   will call ``get_dataset`` twice, once to load the dataset named
+   ``longitude_dataset`` and once to load ``latitude_dataset``. Satpy will
+   then create a :class:`~pyresample.geometry.SwathDefinition` with this
+   coordinate information and assign it to the dataset's
+   ``.attrs['area']`` attribute.
+
  - Optionally, the
    ``get_bounding_box`` method can be implemented if filtering files by
    area is desirable for this data type
@@ -407,10 +497,24 @@ needs to implement a few methods:
 On top of that, two attributes need to be defined: ``start_time`` and
 ``end_time``, that define the start and end times of the sensing.
 
+If you are writing a file handler for more common formats like HDF4, HDF5, or
+NetCDF4 you may want to consider using the utility base classes for each:
+:class:`satpy.readers.hdf4_utils.HDF4FileHandler`,
+:class:`satpy.readers.hdf5_utils.HDF5FileHandler`, and
+:class:`satpy.readers.netcdf_utils.NetCDF4FileHandler`. These were added as
+a convenience and are not required to read these formats. In many cases using
+the :func:`xarray.open_dataset` function in a custom file handler is a much
+better idea.
+
+One way of implementing a file handler is shown below:
+
 .. code:: python
 
-    # this is nc_seviri_l1b.py
-    class NCSEVIRIFileHandler():
+    # this is seviri_l1b_nc.py
+    from satpy.readers.file_handlers import BaseFileHandler
+    from pyresample.geometry import AreaDefinition
+
+    class NCSEVIRIFileHandler(BaseFileHandler):
         def __init__(self, filename, filename_info, filetype_info):
             super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
             self.nc = None
@@ -431,8 +535,17 @@ On top of that, two attributes need to be defined: ``start_time`` and
             return dataset
 
         def get_area_def(self, dataset_id):
-            # TODO
-            pass
+            return pyresample.geometry.AreaDefinition(
+                "some_area_name",
+                "on-the-fly area",
+                "geos",
+                "+a=6378169.0 +h=35785831.0 +b=6356583.8 +lon_0=0 +proj=geos",
+                3636,
+                3636,
+                [-5456233.41938636, -5453233.01608472, 5453233.01608472, 5456233.41938636])
 
     class NCSEVIRIHRVFileHandler():
       # left as an exercise to the reader :)
+
+If you have any questions, please contact the
+:ref:`Satpy developers <dev_help>`.

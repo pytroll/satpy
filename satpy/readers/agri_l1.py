@@ -28,7 +28,7 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 from datetime import datetime
-from pyresample import geometry
+from satpy.readers._geos_area import get_area_extent, get_area_definition
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         satname = PLATFORM_NAMES.get(self['/attr/Satellite Name'], self['/attr/Satellite Name'])
         data.attrs.update({'platform_name': satname,
-                           'sensor': self['/attr/Sensor Identification Code'],
+                           'sensor': self['/attr/Sensor Identification Code'].lower(),
                            'orbital_parameters': {
                                'satellite_nominal_latitude': self['/attr/NOMCenterLat'],
                                'satellite_nominal_longitude': self['/attr/NOMCenterLon'],
@@ -124,46 +124,50 @@ class HDF_AGRI_L1(HDF5FileHandler):
         # Coordination Group for Meteorological Satellites LRIT/HRIT Global Specification
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
         res = key.resolution
-        coff = _COFF_list[_resolution_list.index(res)]
-        loff = _LOFF_list[_resolution_list.index(res)]
-        cfac = _CFAC_list[_resolution_list.index(res)]
-        lfac = _LFAC_list[_resolution_list.index(res)]
-        a = self.file_content['/attr/dEA'] * 1E3  # equator radius (m)
-        b = a * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
-        h = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)
+        pdict = {}
+        pdict['coff'] = _COFF_list[_resolution_list.index(res)]
+        pdict['loff'] = _LOFF_list[_resolution_list.index(res)]
+        pdict['cfac'] = _CFAC_list[_resolution_list.index(res)]
+        pdict['lfac'] = _LFAC_list[_resolution_list.index(res)]
+        pdict['a'] = self.file_content['/attr/dEA'] * 1E3  # equator radius (m)
+        pdict['b'] = pdict['a'] * (1 - 1 / self.file_content['/attr/dObRecFlat'])  # polar radius (m)
+        pdict['h'] = self.file_content['/attr/NOMSatHeight']  # the altitude of satellite (m)
 
-        lon_0 = self.file_content['/attr/NOMCenterLon']
-        nlines = self.file_content['/attr/RegLength']
-        ncols = self.file_content['/attr/RegWidth']
+        pdict['ssp_lon'] = self.file_content['/attr/NOMCenterLon']
+        pdict['nlines'] = self.file_content['/attr/RegLength']
+        pdict['ncols'] = self.file_content['/attr/RegWidth']
 
-        cols = 0
-        left_x = (cols - coff) * (2.**16 / cfac)
-        cols += ncols - 1
-        right_x = (cols - coff) * (2.**16 / cfac)
+        pdict['scandir'] = 'S2N'
 
-        lines = self.file_content['/attr/Begin Line Number']
-        upper_y = -(lines - loff) * (2.**16 / lfac)
-        lines = self.file_content['/attr/End Line Number']
-        lower_y = -(lines - loff) * (2.**16 / lfac)
-        area_extent = (np.deg2rad(left_x) * h, np.deg2rad(lower_y) * h,
-                       np.deg2rad(right_x) * h, np.deg2rad(upper_y) * h)
+        b500 = ['C02']
+        b1000 = ['C01', 'C03']
+        b2000 = ['C04', 'C05', 'C06', 'C07']
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm',
-                     'sweep': 'y'}
+        pdict['a_desc'] = "AGRI {} area".format(self.filename_info['observation_type'])
 
-        area = geometry.AreaDefinition(
-            self.filename_info['observation_type'],
-            "AGRI {} area".format(self.filename_info['observation_type']),
-            'FY-4A',
-            proj_dict,
-            ncols,
-            nlines,
-            area_extent)
+        if (key.name in b500):
+            pdict['a_name'] = self.filename_info['observation_type']+'_500m'
+            pdict['p_id'] = 'FY-4A, 500m'
+        elif (key.name in b1000):
+            pdict['a_name'] = self.filename_info['observation_type']+'_1000m'
+            pdict['p_id'] = 'FY-4A, 1000m'
+        elif (key.name in b2000):
+            pdict['a_name'] = self.filename_info['observation_type']+'_2000m'
+            pdict['p_id'] = 'FY-4A, 2000m'
+        else:
+            pdict['a_name'] = self.filename_info['observation_type']+'_2000m'
+            pdict['p_id'] = 'FY-4A, 4000m'
+
+        pdict['coff'] = pdict['coff'] + 0.5
+        pdict['nlines'] = pdict['nlines'] - 1
+        pdict['ncols'] = pdict['ncols'] - 1
+        pdict['loff'] = (pdict['loff'] - self.file_content['/attr/End Line Number'] + 0.5)
+        area_extent = get_area_extent(pdict)
+        area_extent = (area_extent[0] + 2000, area_extent[1], area_extent[2] + 2000, area_extent[3])
+
+        pdict['nlines'] = pdict['nlines'] + 1
+        pdict['ncols'] = pdict['ncols'] + 1
+        area = get_area_definition(pdict, area_extent)
 
         return area
 

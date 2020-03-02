@@ -13,6 +13,36 @@ modifiers:
 
 composites:
 
+  ct_masked_ir:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - IR_108
+    - ct
+    standard_name: ct_masked_ir
+    transparency:
+      0: 100
+      1: 100
+      2: 100
+      3: 100
+      4: 100
+      10: 35
+
+  nwc_geo_ct_masked_ir:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - IR_108
+    - ct
+    standard_name: nwc_geo_ct_masked_ir
+    # Default is opaque (transparency = 0)
+    transparency:
+      Cloud-free_land: 100
+      Cloud-free_sea: 100
+      Snow_over_land: 100
+      Sea_ice: 100
+      Fractional_clouds: 45
+      High_semitransparent_thin_clouds: 50
+      High_semitransparent_above_snow_ice: 60
+
   cloudtop:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -95,7 +125,7 @@ composites:
     - IR_108
     standard_name: day_microphysics_winter
 
-  natural_color:
+  natural_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - IR_016
@@ -103,7 +133,7 @@ composites:
     - VIS006
     standard_name: natural_color
 
-  natural_color_sun:
+  natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: IR_016
@@ -295,14 +325,14 @@ composites:
     - IR_120
     standard_name: ir_overview
 
-  overview:
+  overview_raw:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - VIS006
     - VIS008
     - IR_108
     standard_name: overview
-  overview_sun:
+  overview:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: VIS006
@@ -313,7 +343,7 @@ composites:
     standard_name: overview
 
   colorized_ir_clouds:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
       - name: 'IR_108'
     standard_name: colorized_ir_clouds
@@ -333,6 +363,33 @@ composites:
       - name: 'HRV'
         modifiers: [sunz_corrected]
       - name: colorized_ir_clouds
+
+  hrv_clouds:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: hrv_clouds
+    prerequisites:
+      - name: HRV
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+      - IR_108
+  hrv_fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: hrv_fog
+    prerequisites:
+      - name: IR_016
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural_color
+      - night_fog
 
   natural_color_with_night_ir:
     compositor: !!python/name:satpy.composites.DayNightCompositor
@@ -362,11 +419,11 @@ composites:
     standard_name: night_ir_with_background
     prerequisites:
       - night_ir_alpha
-      - night_background
+      - _night_background
 
   night_ir_with_background_hires:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
     standard_name: night_ir_with_background_hires
     prerequisites:
       - night_ir_alpha
-      - night_background_hires
+      - _night_background_hires

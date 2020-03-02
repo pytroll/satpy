@@ -17,12 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for VIIRS compositors."""
 
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
+try:
+    from unittest import mock
+except ImportError:
+    import mock
 
 
 class TestVIIRSComposites(unittest.TestCase):
@@ -279,10 +278,11 @@ class TestVIIRSComposites(unittest.TestCase):
             DatasetID(name='solar_zenith_angle')])
 
         area, dnb = self.data_area_ref_corrector()
+        print(dnb.compute())
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={'satellite_longitude': -89.5, 'satellite_latitude': 0.0,
-                                  'satellite_altitude': 35786.0234375, 'platform_name': 'GOES-16',
+                                  'satellite_altitude': 35786023.4375, 'platform_name': 'GOES-16',
                                   'calibration': 'reflectance', 'units': '%', 'wavelength': (0.45, 0.47, 0.49),
                                   'name': 'C01', 'resolution': 1000, 'sensor': 'abi',
                                   'start_time': '2017-09-20 17:30:40.800000', 'end_time': '2017-09-20 17:41:17.500000',
@@ -293,7 +293,7 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertIsInstance(res.data, da.Array)
         self.assertEqual(res.attrs['satellite_longitude'], -89.5)
         self.assertEqual(res.attrs['satellite_latitude'], 0.0)
-        self.assertEqual(res.attrs['satellite_altitude'], 35786.0234375)
+        self.assertEqual(res.attrs['satellite_altitude'], 35786023.4375)
         self.assertEqual(res.attrs['modifiers'], ('sunz_corrected', 'rayleigh_corrected_crefl',))
         self.assertEqual(res.attrs['platform_name'], 'GOES-16')
         self.assertEqual(res.attrs['calibration'], 'reflectance')
@@ -307,9 +307,9 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(res.attrs['area'], area)
         self.assertEqual(res.attrs['ancillary_variables'], [])
         data = res.values
-        self.assertLess(abs(np.mean(data) - 29.907390988422513), 1e-10)
+        self.assertLess(abs(np.nanmean(data) - 26.00760944144745), 1e-10)
         self.assertEqual(data.shape, (5, 10))
-        unique = np.unique(data)
+        unique = np.unique(data[~np.isnan(data)])
         np.testing.assert_allclose(unique, [-1.0, 4.210745457958135, 6.7833906076177595, 8.730371329824473,
                                             10.286627569545209, 11.744159436709374, 12.20226097829902,
                                             13.501444598985305, 15.344399223932212, 17.173329483996515,
@@ -317,11 +317,11 @@ class TestVIIRSComposites(unittest.TestCase):
                                             19.288331720959864, 19.77043407084455, 19.887082168377006,
                                             20.091028778326375, 20.230341149334617, 20.457671064690196,
                                             20.82686905639114, 21.021094816441195, 21.129963777952124,
-                                            21.94957397026227, 41.601857910095575, 43.963919057675504,
+                                            41.601857910095575, 43.963919057675504,
                                             46.21672174361075, 46.972099490462085, 47.497072794632835,
                                             47.80393007974336, 47.956765988770385, 48.043025685032106,
                                             51.909142813383916, 58.8234273736508, 68.84706145641482, 69.91085190887961,
-                                            71.10179768327806, 71.33161009169649, 78.81291424983952])
+                                            71.10179768327806, 71.33161009169649])
 
     def test_reflectance_corrector_viirs(self):
         """Test ReflectanceCorrector modifier with VIIRS data."""
@@ -474,9 +474,64 @@ class TestVIIRSComposites(unittest.TestCase):
         np.testing.assert_allclose(unique, [24.641586, 50.431692, 69.315375])
 
 
+class ViirsReflectanceCorrectorTest(unittest.TestCase):
+    """Tests for the VIIRS/MODIS Corrected Reflectance modifier."""
+
+    def setUp(self):
+        """Patch in-class imports."""
+        self.astronomy = mock.MagicMock()
+        self.orbital = mock.MagicMock()
+        modules = {
+            'pyorbital.astronomy': self.astronomy,
+            'pyorbital.orbital': self.orbital,
+        }
+        self.module_patcher = mock.patch.dict('sys.modules', modules)
+        self.module_patcher.start()
+
+    def tearDown(self):
+        """Unpatch in-class imports."""
+        self.module_patcher.stop()
+
+    @mock.patch('satpy.composites.viirs.get_satpos')
+    def test_get_angles(self, get_satpos):
+        """Test sun and satellite angle calculation."""
+        import numpy as np
+        import dask.array as da
+        from satpy.composites.viirs import ReflectanceCorrector
+
+        # Patch methods
+        get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
+        self.orbital.get_observer_look.return_value = 0, 0
+        self.astronomy.get_alt_az.return_value = 0, 0
+        area = mock.MagicMock()
+        lons = np.zeros((5, 5))
+        lons[1, 1] = np.inf
+        lons = da.from_array(lons, chunks=5)
+        lats = np.zeros((5, 5))
+        lats[1, 1] = np.inf
+        lats = da.from_array(lats, chunks=5)
+        area.get_lonlats.return_value = (lons, lats)
+        vis = mock.MagicMock(attrs={'area': area,
+                                    'start_time': 'start_time'})
+
+        # Compute angles
+        psp = ReflectanceCorrector(name='dummy')
+        psp.get_angles(vis)
+
+        # Check arguments of get_orbserver_look() call, especially the altitude
+        # unit conversion from meters to kilometers
+        self.orbital.get_observer_look.assert_called_once()
+        args = self.orbital.get_observer_look.call_args[0]
+        self.assertEqual(args[:4], ('sat_lon', 'sat_lat', 12345.678, 'start_time'))
+        self.assertIsInstance(args[4], da.Array)
+        self.assertIsInstance(args[5], da.Array)
+        self.assertEqual(args[6], 0)
+
+
 def suite():
     """Create test suite for test_ahi."""
     loader = unittest.TestLoader()
     mysuite = unittest.TestSuite()
     mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSComposites))
+    mysuite.addTest(loader.loadTestsFromTestCase(ViirsReflectanceCorrectorTest))
     return mysuite

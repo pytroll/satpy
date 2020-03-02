@@ -105,7 +105,7 @@ zone can be defined when initializing the compositor (default values
 shown in the example below).
 
     >>> from satpy.composites import DayNightCompositor
-    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=95.)
+    >>> compositor = DayNightCompositor("dnc", lim_low=85., lim_high=88.)
     >>> composite = compositor([local_scene['true_color'],
     ...                         local_scene['night_fog']])
 

@@ -481,6 +481,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
                     }
 
         for index, band_name in enumerate(band_names):
+            self.assertEqual(1, res[band_name].attrs['sensor'].islower())
             self.assertEqual((2, 5), res[band_name].shape)
             self.assertEqual('reflectance', res[band_name].attrs['calibration'])
             self.assertEqual('%', res[band_name].attrs['units'])
@@ -536,3 +537,8 @@ def suite():
     mysuite.addTest(loader.loadTestsFromTestCase(Test_HDF_AGRI_L1_cal))
 
     return mysuite
+
+
+if __name__ == "__main__":
+    # So you can run tests from this module individually.
+    unittest.main()
