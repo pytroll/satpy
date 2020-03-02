@@ -32,28 +32,47 @@ import h5py
 
 logger = logging.getLogger(__name__)
 
+
 class Hdf5IMERG(HDF5FileHandler):
     """IMERG hdf5 reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Init method."""
         super(Hdf5IMERG, self).__init__(filename, filename_info,
-                                         filetype_info)
-
+                                        filetype_info)
+        self.finfo = filename_info
         self.cache = {}
+
+    @property
+    def start_time(self):
+        """Find the start time from filename info."""
+        return datetime(self.finfo['date'].year,
+                        self.finfo['date'].month,
+                        self.finfo['date'].day,
+                        self.finfo['start_time'].hour,
+                        self.finfo['start_time'].minute,
+                        self.finfo['start_time'].second)
+
+    @property
+    def end_time(self):
+        """Find the end time from filename info."""
+        return datetime(self.finfo['date'].year,
+                        self.finfo['date'].month,
+                        self.finfo['date'].day,
+                        self.finfo['end_time'].hour,
+                        self.finfo['end_time'].minute,
+                        self.finfo['end_time'].second)
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
         file_key = ds_info.get('file_key', dataset_id.name)
-        dsname = 'Grid/'+file_key
+        dsname = 'Grid/' + file_key
         data = self[dsname].squeeze().transpose()
         data.values = np.flipud(data.values)
-        
+
         fill = data.attrs['_FillValue']
         pts = (data.values == fill).nonzero()
         data.values[pts] = np.nan
-
-        nodata = None
 
         for key in list(data.attrs.keys()):
             val = data.attrs[key]
@@ -63,6 +82,7 @@ class Hdf5IMERG(HDF5FileHandler):
         return data
 
     def get_area_def(self, dsid):
+        """Create area definition from the gridded lat/lon values."""
         lats = self.__getitem__('Grid/lat').values
         lons = self.__getitem__('Grid/lon').values
 
@@ -73,7 +93,7 @@ class Hdf5IMERG(HDF5FileHandler):
         lower_left_y = lats[0]
 
         upper_right_x = lons[-1]
-        upper_right_y = lats[-1]  
+        upper_right_y = lats[-1]
 
         area_extent = (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
         description = "IMERG GPM Equirectangular Projection"
