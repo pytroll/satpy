@@ -18,11 +18,7 @@
 """The abi_l1b reader tests package."""
 
 import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 import warnings
 import numpy as np
 import dask.array as da
@@ -355,16 +351,3 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             {'blocklength': 0}]
         with mock.patch('numpy.fromfile', side_effect=nhdr):
             self.fh._read_header(mock.MagicMock())
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDNavigation))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDFileHandler))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

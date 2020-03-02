@@ -304,11 +304,3 @@ class TestSCMIWriter(unittest.TestCase):
         self.assertEqual(len(all_files), 9)
         all_files = glob(os.path.join(self.base_dir, 'TESTS_AII*test_ds_B*.nc'))
         self.assertEqual(len(all_files), 9)
-
-
-def suite():
-    """Create test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSCMIWriter))
-    return mysuite

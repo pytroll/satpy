@@ -22,8 +22,9 @@ readers.
 
 """
 
-import sys
 import os
+import unittest
+from unittest import mock
 import numpy as np
 import io
 import dask.dataframe as dd
@@ -31,16 +32,6 @@ import pandas as pd
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 DEFAULT_FILE_SHAPE = (1, 100)
@@ -388,15 +379,3 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
             self.assertEqual(v.attrs['units'], 'MW')
             self.assertEqual(v.attrs['platform_name'], 'Suomi-NPP')
             self.assertEqual(v.attrs['sensor'], 'VIIRS')
-
-
-def suite():
-    """Create test suite for testing viirs active fires."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestModVIIRSActiveFiresNetCDF4))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestModVIIRSActiveFiresText))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestImgVIIRSActiveFiresNetCDF4))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestImgVIIRSActiveFiresText))
-
-    return mysuite

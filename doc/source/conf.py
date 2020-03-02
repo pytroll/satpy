@@ -260,6 +260,7 @@ intersphinx_mapping = {
     'pyorbital': ('https://pyorbital.readthedocs.io/en/stable', None),
     'pyproj': ('https://pyproj4.github.io/pyproj/dev', None),
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
+    'pytest': ('https://docs.pytest.org/en/stable/', None),
     'python': ('https://docs.python.org/3', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
