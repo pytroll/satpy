@@ -40,6 +40,10 @@ the base Satpy installation.
     Satpy's interfaces are not guaranteed stable and may change until version
     1.0 when backwards compatibility will be a main focus.
 
+.. versionchanged:: 0.20.0
+
+    Dropped Python 2 support.
+
 .. _project: http://github.com/pytroll/satpy
 
 .. toctree::
@@ -83,6 +87,9 @@ the base Satpy installation.
       - `seviri_l1b_nc`
       - | HRV channel not supported, incomplete metadata
         | in the files. EUMETSAT has been notified.
+    * - MSG (Meteosat 8 to 11) L2 products in BUFR format
+      - `seviri_l2_bufr`
+      - AMV Bufr products not available yet.
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
@@ -215,7 +222,18 @@ the base Satpy installation.
       - `hsaf_grib`
       - | Beta
         | Only the h03, h03b, h05 and h05B products are supported at-present
-
+    * - GEO-KOMPSAT-2 AMI L1B data in NetCDF4 format
+      - `ami_l1b`
+      - Beta
+    * - GOES-R GLM Grided Level 2 in NetCDF4 format
+      - `glm_l2`
+      - Beta
+    * - Sentinel-3 SLSTR SST data in NetCDF4 format
+      - `slstr_l2`
+      - Beta
+    * - IASI level 2 SO2 in BUFR format
+      - `iasi_l2_so2_bufr`
+      - Beta
 
 Indices and tables
 ==================

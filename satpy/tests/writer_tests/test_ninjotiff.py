@@ -19,13 +19,9 @@
 
 import sys
 import unittest
+from unittest import mock
+
 import xarray as xr
-from dask.delayed import Delayed
-import six
-if six.PY3:
-    from unittest import mock
-else:
-    import mock
 
 
 class FakeImage:
@@ -35,6 +31,10 @@ class FakeImage:
         """Init fake image."""
         self.data = data
         self.mode = mode
+
+    def get_scaling_from_history(self):
+        """Return dummy scale and offset."""
+        return xr.DataArray(1), xr.DataArray(0)
 
 
 modules = {'pyninjotiff': mock.Mock(),
@@ -67,12 +67,17 @@ class TestNinjoTIFFWriter(unittest.TestCase):
     @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_image')
     def test_image(self, iwsi, save_dataset):
         """Test saving an image."""
+        import pyninjotiff.ninjotiff as nt
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
         dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
         img = FakeImage(dataset, 'L')
         ret = ntw.save_image(img, filename='bla.tif', compute=False)
-        self.assertIsInstance(ret, Delayed)
+        nt.save.assert_called()
+        assert(nt.save.mock_calls[0][2]['compute'] is False)
+        assert(nt.save.mock_calls[0][2]['ch_min_measurement_unit']
+               < nt.save.mock_calls[0][2]['ch_max_measurement_unit'])
+        assert(ret == nt.save.return_value)
 
 
 def suite():

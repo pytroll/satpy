@@ -57,10 +57,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
             res.attrs['units'] = '%'
 
         res.attrs.update({'platform_name': self.platform_name,
-                          'sensor': self.sensor,
-                          'satellite_latitude': float(self['nominal_satellite_subpoint_lat']),
-                          'satellite_longitude': float(self['nominal_satellite_subpoint_lon']),
-                          'satellite_altitude': float(self['nominal_satellite_height'])})
+                          'sensor': self.sensor})
 
         # Add orbital parameters
         projection = self.nc["goes_imager_projection"]
@@ -70,7 +67,7 @@ class NC_ABI_L1B(NC_ABI_BASE):
             'projection_altitude': float(projection.attrs['perspective_point_height']),
             'satellite_nominal_latitude': float(self['nominal_satellite_subpoint_lat']),
             'satellite_nominal_longitude': float(self['nominal_satellite_subpoint_lon']),
-            'satellite_nominal_altitude': float(self['nominal_satellite_height']),
+            'satellite_nominal_altitude': float(self['nominal_satellite_height']) * 1000.,
             'yaw_flip': bool(self['yaw_flip_flag']),
         }
 

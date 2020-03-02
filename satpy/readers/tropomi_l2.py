@@ -1,23 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
 # Copyright (c) 2019 Satpy developers
 #
-# This file is part of Satpy.
+# This file is part of satpy.
 #
-# Satpy is free software: you can redistribute it and/or modify it under the
+# satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
 #
-# Satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License along with
-# Satpy.  If not, see <http://www.gnu.org/licenses/>.
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Interface to TROPOMI L2 Reader
+"""Interface to TROPOMI L2 Reader.
 
 The TROPOspheric Monitoring Instrument (TROPOMI) is the satellite instrument
 on board the Copernicus Sentinel-5 Precursor satellite. It measures key
@@ -29,6 +28,7 @@ For more information visit the following URL:
 http://www.tropomi.eu/data-products/level-2-products
 
 """
+
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 import logging
 import numpy as np
@@ -37,33 +37,38 @@ logger = logging.getLogger(__name__)
 
 
 class TROPOMIL2FileHandler(NetCDF4FileHandler):
+    """File handler for TROPOMI L2 netCDF files."""
+
     @property
     def start_time(self):
+        """Get start time."""
         return self.filename_info['start_time']
 
     @property
     def end_time(self):
+        """Get end time."""
         return self.filename_info.get('end_time', self.start_time)
 
     @property
     def platform_shortname(self):
+        """Get start time."""
         return self.filename_info['platform_shortname']
 
     @property
     def sensor(self):
-        """ Retrieves the sensor name from the file """
+        """Get sensor."""
         res = self['/attr/sensor']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
         return res
 
     def available_datasets(self, configured_datasets=None):
-        """Automatically determine datasets provided by this file"""
+        """Automatically determine datasets provided by this file."""
         logger.debug("Available_datasets begin...")
 
         # Determine shape of the geolocation data (lat/lon)
         lat_shape = None
-        for var_name, val in self.file_content.items():
+        for var_name, _val in self.file_content.items():
             # Could probably avoid this hardcoding, will think on it
             if (var_name == 'PRODUCT/latitude'):
                 lat_shape = self[var_name + "/shape"]
@@ -105,7 +110,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
                 logger.debug("Evaluating new variable: %s", var_name)
                 var_shape = self[var_name + "/shape"]
                 logger.debug("Dims:{}".format(var_shape))
-                if (var_shape == lat_shape):
+                if (lat_shape == var_shape[:len(lat_shape)]):
                     logger.debug("Found valid additional dataset: %s", var_name)
                     # Skip anything we have already configured
                     if (var_name in handled_variables):
@@ -117,16 +122,21 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
                     var_name_no_path = var_name[last_index_separator:]
                     logger.debug("Using short name of: %s", var_name_no_path)
                     # Create new ds_info object
+                    if var_name_no_path in ['latitude_bounds', 'longitude_bounds']:
+                        coordinates = []
+                    else:
+                        coordinates = ['longitude', 'latitude']
                     new_info = {
                         'name': var_name_no_path,
                         'file_key': var_name,
-                        'coordinates': ['longitude', 'latitude'],
+                        'coordinates': coordinates,
                         'file_type': self.filetype_info['file_type'],
                         'resolution': None,
                     }
                     yield True, new_info
 
     def get_metadata(self, data, ds_info):
+        """Get metadata."""
         metadata = {}
         metadata.update(data.attrs)
         metadata.update(ds_info)
@@ -139,7 +149,17 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
         return metadata
 
+    def _rename_dims(self, data_arr):
+        """Normalize dimension names with the rest of Satpy."""
+        dims_dict = {}
+        if 'ground_pixel' in data_arr.dims:
+            dims_dict['ground_pixel'] = 'x'
+        if 'scanline' in data_arr.dims:
+            dims_dict['scanline'] = 'y'
+        return data_arr.rename(dims_dict)
+
     def get_dataset(self, ds_id, ds_info):
+        """Get dataset."""
         logger.debug("Getting data for: %s", ds_id.name)
         file_key = ds_info.get('file_key', ds_id.name)
         data = self[file_key]
@@ -147,4 +167,5 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         fill = data.attrs.pop('_FillValue')
         data = data.squeeze()
         data = data.where(data != fill)
+        data = self._rename_dims(data)
         return data
