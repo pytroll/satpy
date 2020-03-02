@@ -232,8 +232,8 @@ class TestGACLACFile(TestCase):
     def test_get_dataset_latlon(self):
         from satpy.dataset import DatasetID
 
-        lons = da.ones((3, 3))
-        lats = 2 * da.ones((3, 3))
+        lons = np.ones((3, 3))
+        lats = 2 * lons
         reader = self._get_reader_mocked()
         reader.get_lonlat.return_value = lons, lats
         fh = self._get_fh_mocked(
@@ -270,7 +270,7 @@ class TestGACLACFile(TestCase):
         from satpy.dataset import DatasetID
         from satpy.readers.avhrr_l1b_gaclac import ANGLES
 
-        ones = da.ones((3, 3))
+        ones = np.ones((3, 3))
         get_angle.return_value = ones
         reader = self._get_reader_mocked()
         fh = self._get_fh_mocked(
@@ -305,7 +305,7 @@ class TestGACLACFile(TestCase):
     def test_get_dataset_qual_flags(self):
         from satpy.dataset import DatasetID
 
-        qual_flags = da.ones((3, 7))
+        qual_flags = np.ones((3, 7))
         reader = self._get_reader_mocked()
         reader.get_qual_flags.return_value = qual_flags
         fh = self._get_fh_mocked(
