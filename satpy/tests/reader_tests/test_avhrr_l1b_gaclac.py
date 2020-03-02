@@ -146,7 +146,6 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
     def test_get_dataset_channels(self, get_channel, *mocks):
-        from satpy.readers.avhrr_l1b_gaclac import GACLACFile
         from satpy.dataset import DatasetID
 
         # Mock reader and file handler
@@ -305,7 +304,6 @@ class TestGACLACFile(TestCase):
 
     def test_get_dataset_qual_flags(self):
         from satpy.dataset import DatasetID
-        from satpy.readers.avhrr_l1b_gaclac import ANGLES
 
         qual_flags = da.ones((3, 7))
         reader = self._get_reader_mocked()
