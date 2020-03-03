@@ -910,7 +910,18 @@ class ColormapCompositor(GenericCompositor):
 
     @staticmethod
     def build_colormap(palette, dtype, info):
-        """Create the colormap from the `raw_palette` and the valid_range."""
+        """Create the colormap from the `raw_palette` and the valid_range.
+
+        Colormaps come in different forms, but they are all supposed to have
+        color values between 0 and 255. The following cases are considered:
+        - Palettes comprised of only a list on colors. If *dtype* is uint8,
+          the values of the colormap are the enumaration of the colors.
+          Otherwise, the colormap values will be spread evenly from the min
+          to the max of the valid_range provided in `info`.
+        - Palettes that have a palette_meanings attribute. The palette meanings
+          will be used as values of the colormap.
+
+        """
         from trollimage.colormap import Colormap
         sqpalette = np.asanyarray(palette).squeeze() / 255.0
         set_range = True
@@ -934,7 +945,7 @@ class ColormapCompositor(GenericCompositor):
             if set_range:
                 sf = info.get('scale_factor', np.array(1))
                 colormap.set_range(
-                    *info['valid_range'] * sf + info.get('add_offset', 0))
+                    *(info['valid_range'] * sf + info.get('add_offset', 0)))
         else:
             raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
                                  " in order to be displayable with an attached color-palette!")
