@@ -15,14 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Compositors for cloud products.
-"""
+"""Compositors for cloud products."""
 
 import numpy as np
 import xarray as xr
 
-from satpy.composites import ColormapCompositor
-from satpy.composites import GenericCompositor
+from satpy.composites import GenericCompositor, ColormapCompositor
 
 
 class CloudTopHeightCompositor(ColormapCompositor):
@@ -31,7 +29,6 @@ class CloudTopHeightCompositor(ColormapCompositor):
     @staticmethod
     def build_colormap(palette, info):
         """Create the colormap from the `raw_palette` and the valid_range."""
-
         from trollimage.colormap import Colormap
         if 'palette_meanings' in palette.attrs:
             palette_indices = palette.attrs['palette_meanings']
@@ -74,10 +71,10 @@ class CloudTopHeightCompositor(ColormapCompositor):
 
 
 class PrecipCloudsRGB(GenericCompositor):
+    """Precipitation clouds compositor."""
 
     def __call__(self, projectables, *args, **kwargs):
         """Make an RGB image out of the three probability categories of the NWCSAF precip product."""
-
         projectables = self.match_data_arrays(projectables)
         light = projectables[0]
         moderate = projectables[1]
