@@ -45,11 +45,3 @@ class TestABIEnhancement(unittest.TestCase):
         img = XRImage(self.da)
         cimss_true_color_contrast(img)
         np.testing.assert_almost_equal(img.data.compute(), expected)
-
-
-def suite():
-    """Create the test suite for test_abi."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestABIEnhancement))
-    return mysuite
