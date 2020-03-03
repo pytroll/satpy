@@ -15,23 +15,22 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Compositors for cloud products.
-"""
+"""Compositors for cloud products."""
 
 import numpy as np
 import xarray as xr
 
-from satpy.composites import ColormapCompositor
+from satpy.composites import ColormapCompositor, PaletteCompositor
 from satpy.composites import GenericCompositor
 
 
-class CloudProbabilityCompositor(ColormapCompositor):
-    """Colorize values with a palette"""
+class CloudProbabilityCompositor(PaletteCompositor):
+    """Colorize values with a palette."""
 
     @staticmethod
-    def build_colormap(palette, info):
+    def build_colormap(palette, dtype, info):
         """Create the colormap from the `raw_palette` and the valid_range."""
-
+        del dtype
         from trollimage.colormap import Colormap
         if 'palette_meanings' in palette.attrs:
             palette_indices = palette.attrs['palette_meanings']
@@ -52,28 +51,6 @@ class CloudProbabilityCompositor(ColormapCompositor):
 
         return colormap, sqpalette
 
-    def __call__(self, projectables, **info):
-        """Create the composite."""
-        if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" %
-                             (len(projectables), ))
-        data, palette = projectables
-        colormap, palette = self.build_colormap(palette, data.attrs)
-
-        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
-        channels = palette[channels]
-        mask_nan = data.notnull()
-        chans = []
-        for idx in range(channels.shape[-1]):
-            chan = xr.DataArray(channels[:, :, idx].reshape(data.shape),
-                                dims=data.dims, coords=data.coords,
-                                attrs=data.attrs).where(mask_nan)
-            chans.append(chan)
-
-        res = super(CloudProbabilityCompositor, self).__call__(chans, **data.attrs)
-        res.attrs['_FillValue'] = np.nan
-        return res
-
 
 class CloudTopHeightCompositor(ColormapCompositor):
     """Colorize with a palette, put cloud-free pixels as black."""
@@ -81,7 +58,6 @@ class CloudTopHeightCompositor(ColormapCompositor):
     @staticmethod
     def build_colormap(palette, info):
         """Create the colormap from the `raw_palette` and the valid_range."""
-
         from trollimage.colormap import Colormap
         if 'palette_meanings' in palette.attrs:
             palette_indices = palette.attrs['palette_meanings']
@@ -124,10 +100,10 @@ class CloudTopHeightCompositor(ColormapCompositor):
 
 
 class PrecipCloudsRGB(GenericCompositor):
+    """Precipitation clouds compositor."""
 
     def __call__(self, projectables, *args, **kwargs):
         """Make an RGB image out of the three probability categories of the NWCSAF precip product."""
-
         projectables = self.match_data_arrays(projectables)
         light = projectables[0]
         moderate = projectables[1]

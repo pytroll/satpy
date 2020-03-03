@@ -175,9 +175,7 @@ class NcNWCSAF(BaseFileHandler):
                                         coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
 
             val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
-            # The palette_meanings are applicaple to the unscaled values. Need to scale them:
-            # FIXME! Scale and offset of the palete_meanings are not available!
-            variable.attrs['palette_meanings'] = val * scale + offset
+            variable.attrs['palette_meanings'] = val
             variable = variable[idx]
 
         if 'standard_name' in info:
