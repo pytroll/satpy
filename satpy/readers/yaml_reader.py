@@ -27,7 +27,6 @@ from collections import deque, OrderedDict
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
-import six
 import xarray as xr
 import yaml
 import numpy as np
@@ -58,7 +57,7 @@ def listify_string(something):
     function returns a list containing the string.
     If *something* is None, an empty list is returned.
     """
-    if isinstance(something, (str, six.text_type)):
+    if isinstance(something, str):
         return [something]
     elif something is not None:
         return list(something)
@@ -86,7 +85,7 @@ def match_filenames(filenames, pattern):
     return matching
 
 
-class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
+class AbstractYAMLReader(metaclass=ABCMeta):
     """Base class for all readers that use YAML configuration files.
 
     This class should only be used in rare cases. Its child class

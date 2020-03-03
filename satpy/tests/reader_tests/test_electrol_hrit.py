@@ -15,10 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The HRIT electrol reader tests package.
-"""
+"""The HRIT electrol reader tests package."""
 
-import sys
 import datetime
 import numpy as np
 import dask.array as da
@@ -32,15 +30,8 @@ from satpy.readers.electrol_hrit import (recarray2dict, prologue,
                                          image_acquisition,
                                          epilogue)
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 # Simplify some type selections
 f64_t = np.float64
@@ -242,20 +233,3 @@ class TestHRITGOMSFileHandler(unittest.TestCase):
 
         self.assertTrue(np.allclose(np.array(area.area_extent),
                         np.array(example_area_ext)))
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(Testrecarray2dict))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOMSProFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOMSEpiFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOMSFileHandler))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

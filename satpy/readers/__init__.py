@@ -22,7 +22,6 @@ import numbers
 import os
 from datetime import datetime, timedelta
 
-import six
 import yaml
 
 try:
@@ -34,11 +33,6 @@ from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
 from satpy.dataset import DatasetID, wavelength_match
 from satpy import CALIBRATION_ORDER
-
-try:
-    import configparser  # noqa
-except ImportError:
-    from six.moves import configparser  # noqa
 
 LOG = logging.getLogger(__name__)
 
@@ -209,7 +203,7 @@ def get_key(key, key_container, num_results=1, best=True,
         # we want this ID to act as a query so we set modifiers to None
         # meaning "we don't care how many modifiers it has".
         key = DatasetID(wavelength=key, modifiers=None)
-    elif isinstance(key, (str, six.text_type)):
+    elif isinstance(key, str):
         # ID should act as a query (see wl comment above)
         key = DatasetID(name=key, modifiers=None)
     elif not isinstance(key, DatasetID):
@@ -331,7 +325,7 @@ class DatasetDict(dict):
             try:
                 key = self.get_key(key)
             except KeyError:
-                if isinstance(old_key, (str, six.text_type)):
+                if isinstance(old_key, str):
                     new_name = old_key
                 else:
                     new_name = d.get("name")

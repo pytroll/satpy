@@ -20,14 +20,13 @@
 from abc import ABCMeta
 
 import numpy as np
-import six
 from pathlib import PurePath
 
 from pyresample.geometry import SwathDefinition
 from satpy.dataset import combine_metadata
 
 
-class BaseFileHandler(six.with_metaclass(ABCMeta, object)):
+class BaseFileHandler(metaclass=ABCMeta):
     """Base file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):

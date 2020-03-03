@@ -113,13 +113,3 @@ class TestCombineMetadata(unittest.TestCase):
         ret = combine_metadata(*dts, average_times=False)
         # times are not equal so don't include it in the final result
         self.assertNotIn('start_time', ret)
-
-
-def suite():
-    """Test suite."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestDatasetID))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCombineMetadata))
-
-    return my_suite
