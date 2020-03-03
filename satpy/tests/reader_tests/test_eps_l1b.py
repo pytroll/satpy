@@ -134,7 +134,7 @@ class TestEPSL1B(TestCase):
         """Test get full angles twice."""
         geotiemock = mock.Mock()
         metop20kmto1km = geotiemock.metop20kmto1km
-        metop20kmto1km.side_effect = lambda x, y: (x, y)
+        metop20kmto1km.side_effect = lambda x, y: (x.copy(), y.copy())
 
         def mock_getitem(key):
             data = {"ANGULAR_RELATIONS_FIRST": np.zeros((7, 4)),
