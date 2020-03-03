@@ -622,31 +622,6 @@ class TestPaletteCompositor(unittest.TestCase):
         self.assertTrue(np.allclose(res, exp))
 
 
-class TestCloudProbabilityCompositor(unittest.TestCase):
-    """Test the CloudProbabilityCompositor."""
-
-    def test_call(self):
-        """Test the CloudProbability composite generation."""
-        from satpy.composites.cloud_products import CloudProbabilityCompositor
-        cmap_comp = CloudProbabilityCompositor('test_cmap_compositor')
-        palette = xr.DataArray(np.array([[27, 27, 68],
-                                         [40, 40, 102],
-                                         [255, 255, 255]]),
-                               dims=['value', 'band'])
-        palette.attrs['palette_meanings'] = np.array([0, 1200, 10000])
-        data = xr.DataArray(np.array([[0.0, 1.0, 2.0],
-                                      [2.0, 12.0, 100.0]], dtype=np.float64),
-                            dims=['y', 'x'])
-        res = cmap_comp([data, palette])
-        exp = np.array([[[0.10588235, 0.10588235, 0.10588235],
-                         [0.10588235, 0.15686275, 1.]],
-                        [[0.10588235, 0.10588235, 0.10588235],
-                         [0.10588235, 0.15686275, 1.]],
-                        [[0.26666667, 0.26666667, 0.26666667],
-                         [0.26666667, 0.4, 1.]]], dtype=np.float64)
-        np.testing.assert_allclose(res, exp)
-
-
 class TestCloudTopHeightCompositor(unittest.TestCase):
     """Test the CloudTopHeightCompositor."""
 
