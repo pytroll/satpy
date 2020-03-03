@@ -2460,16 +2460,3 @@ class TestCompact(unittest.TestCase):
             os.remove(self.filename)
         except OSError:
             pass
-
-
-def suite():
-    """Test suite for test_viirs_compact."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCompact))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

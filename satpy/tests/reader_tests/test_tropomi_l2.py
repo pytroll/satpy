@@ -16,26 +16,15 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # Satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-"""Module for testing the satpy.readers.tropomi_l2 module.
-"""
+"""Module for testing the satpy.readers.tropomi_l2 module."""
 
 import os
-import sys
+import unittest
+from unittest import mock
 from datetime import datetime
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 import xarray as xr
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -159,17 +148,3 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             self.assertIsNotNone(d.attrs['area'])
             self.assertIn('y', d.dims)
             self.assertIn('x', d.dims)
-
-
-def suite():
-    """The test suite for test_tropomi_l2.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestTROPOMIL2Reader))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -140,8 +140,6 @@ import xarray as xr
 import dask
 import dask.array as da
 import zarr
-import six
-import warnings
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
@@ -155,10 +153,6 @@ except ImportError:
 
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
-
-# In Python3 os.mkdir raises FileExistsError, in Python2 OSError
-if six.PY2:
-    FileExistsError = OSError
 
 
 LOG = getLogger(__name__)

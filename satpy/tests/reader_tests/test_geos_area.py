@@ -17,18 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Geostationary project utility module tests package."""
 
-import sys
-
+import unittest
 from satpy.readers._geos_area import (get_xy_from_linecol,
                                       get_area_extent,
                                       get_area_definition)
 
 import numpy as np
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 class TestGEOSProjectionUtil(unittest.TestCase):
@@ -149,16 +143,3 @@ class TestGEOSProjectionUtil(unittest.TestCase):
         self.assertEqual(a_def.proj_dict['a'], 6378169)
         self.assertEqual(a_def.proj_dict['b'], 6356583.8)
         self.assertEqual(a_def.proj_dict['h'], 35785831)
-
-
-def suite():
-    """The test suite for test_geos_area."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGEOSProjectionUtil))
-    return mysuite
-
-
-if __name__ == "__main__":
-    # So you can run tests from this module individually.
-    unittest.main()

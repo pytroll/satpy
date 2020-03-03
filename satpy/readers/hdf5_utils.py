@@ -20,7 +20,6 @@
 import logging
 import h5py
 import numpy as np
-import six
 import xarray as xr
 import dask.array as da
 
@@ -52,7 +51,7 @@ class HDF5FileHandler(BaseFileHandler):
         file_handle.close()
 
     def _collect_attrs(self, name, attrs):
-        for key, value in six.iteritems(attrs):
+        for key, value in attrs.items():
             value = np.squeeze(value)
             fc_key = "{}/attr/{}".format(name, key)
             try:

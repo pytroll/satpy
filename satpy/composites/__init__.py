@@ -25,7 +25,6 @@ from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
-import six
 import xarray as xr
 import yaml
 
@@ -818,7 +817,7 @@ class GenericCompositor(CompositeBase):
         for projectable in projectables:
             current_sensor = projectable.attrs.get("sensor", None)
             if current_sensor:
-                if isinstance(current_sensor, (str, bytes, six.text_type)):
+                if isinstance(current_sensor, (str, bytes)):
                     sensor.add(current_sensor)
                 else:
                     sensor |= current_sensor
@@ -1007,7 +1006,7 @@ class PaletteCompositor(ColormapCompositor):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, name, lim_low=85., lim_high=95., **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., **kwargs):
         """Collect custom configuration values.
 
         Args:
