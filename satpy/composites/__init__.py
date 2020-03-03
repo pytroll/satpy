@@ -945,7 +945,8 @@ class ColormapCompositor(GenericCompositor):
             if set_range:
                 sf = info.get('scale_factor', np.array(1))
                 colormap.set_range(
-                    *(info['valid_range'] * sf + info.get('add_offset', 0)))
+                    *(np.array(info['valid_range']) * sf
+                      + info.get('add_offset', 0)))
         else:
             raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
                                  " in order to be displayable with an attached color-palette!")
