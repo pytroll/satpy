@@ -219,15 +219,3 @@ class TestModisL2(unittest.TestCase):
         self.assertIn(cloud_mask_id, scene.datasets)
         cloud_mask = scene[cloud_mask_id]
         self.assertEqual(cloud_mask.shape, (4*5*SCAN_WIDTH, 4*(5*SCAN_LEN+4)))
-
-
-def suite():
-    """Set the test suite for test_modis_l2."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestModisL2))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

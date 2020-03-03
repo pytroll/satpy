@@ -17,7 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT msg reader tests package."""
 
-import sys
+import unittest
+from unittest import mock
 from datetime import datetime
 
 import numpy as np
@@ -27,16 +28,6 @@ from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFi
                                            NoValidOrbitParams, pad_data)
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
 from satpy.dataset import DatasetID
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 def new_get_hd(instance, hdr_info):
@@ -749,18 +740,3 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
         self.reader._reduced = 'red'
         self.assertEqual(self.reader.reduce(123), 'red')
         reduce_mda.assert_not_called()
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    tests = [TestHRITMSGFileHandler, TestHRITMSGPrologueFileHandler, TestHRITMSGEpilogueFileHandler,
-             TestHRITMSGFileHandlerHRV]
-    for test in tests:
-        mysuite.addTest(loader.loadTestsFromTestCase(test))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -15,23 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.safe_sar_l2_ocn module.
-"""
-import sys
+"""Module for testing the satpy.readers.safe_sar_l2_ocn module."""
+import unittest
+import unittest.mock as mock
 import numpy as np
 import xarray as xr
-
 from satpy import DatasetID
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
 
 
 class TestSAFENC(unittest.TestCase):
@@ -107,15 +96,3 @@ class TestSAFENC(unittest.TestCase):
 #        print(test)
 #        mocked_dataset.assert_called()
 #        test.get_dataset(ds_id, filename_info)
-
-
-def suite():
-    """The test suite for test_safe_sar_l2_ocn."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSAFENC))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -194,12 +194,3 @@ class TestGEOCATReader(unittest.TestCase):
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
         self.assertIsInstance(datasets['variable1'].attrs['area'], AreaDefinition)
-
-
-def suite():
-    """Create test suite for test_geocat."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGEOCATReader))
-
-    return mysuite

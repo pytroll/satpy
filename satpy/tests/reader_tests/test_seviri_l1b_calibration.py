@@ -15,17 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unittesting the native msg reader
-"""
+"""Unittesting the native msg reader."""
 
-import sys
+import unittest
 import numpy as np
 from satpy.readers.seviri_base import SEVIRICalibrationHandler
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 COUNTS_INPUT = np.array([[377.,  377.,  377.,  376.,  375.],
                          [376.,  375.,  376.,  374.,  374.],
@@ -195,17 +189,3 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSEVIRICalibrationHandler))
-    return mysuite
-
-
-if __name__ == "__main__":
-    # So you can run tests from this module individually.
-    unittest.main()

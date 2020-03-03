@@ -15,26 +15,17 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.clavrx module.
-"""
+"""Module for testing the satpy.readers.clavrx module."""
 
 import os
-import sys
 import numpy as np
 import dask.array as da
 import xarray as xr
 from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 from pyresample.geometry import AreaDefinition
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -410,14 +401,3 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
-
-
-def suite():
-    """The test suite for test_viirs_l1b.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCLAVRXReaderPolar))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCLAVRXReaderGeo))
-
-    return mysuite

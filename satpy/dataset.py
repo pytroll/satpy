@@ -17,7 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Dataset objects."""
 
-import sys
 import logging
 import numbers
 from collections import namedtuple
@@ -55,16 +54,7 @@ def average_datetimes(dt_list):
     Returns: Average datetime as a datetime object
 
     """
-    if sys.version_info < (3, 3):
-        # timestamp added in python 3.3
-        import time
-
-        def timestamp_func(dt):
-            return time.mktime(dt.timetuple())
-    else:
-        timestamp_func = datetime.timestamp
-
-    total = [timestamp_func(dt) for dt in dt_list]
+    total = [datetime.timestamp(dt) for dt in dt_list]
     return datetime.fromtimestamp(sum(total) / len(total))
 
 
