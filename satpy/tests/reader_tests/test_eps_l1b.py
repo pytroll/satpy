@@ -132,6 +132,12 @@ class TestEPSL1B(TestCase):
     @mock.patch('satpy.readers.eps_l1b.EPSAVHRRFile.__init__')
     def test_get_full_angles_twice(self, mock__init__, mock__getitem__):
         """Test get full angles twice."""
+        try:
+            from geotiepoints import metop20kmto1km  # noqa: F401
+        except ModuleNotFoundError:
+            print("No geotiepoints; Not testing test_get_full_angles_twice")
+            return
+
         def mock_getitem(key):
             data = {"ANGULAR_RELATIONS_FIRST": np.zeros((7, 4)),
                     "ANGULAR_RELATIONS": np.zeros((7, 103, 4)),
