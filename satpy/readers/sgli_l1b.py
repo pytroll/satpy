@@ -103,7 +103,14 @@ class HDF5SGLI(BaseFileHandler):
         dataset.attrs.update(info)
         with xr.set_options(keep_attrs=True):
             if 'Mask' in h5dataset.attrs:
-                dataset = dataset & h5dataset.attrs['Mask'].item()
+                mask_value = h5dataset.attrs['Mask'].item()
+                dataset = dataset & mask_value
+            if 'Bit00(LSB)-13' in h5dataset.attrs:
+                mask_info = h5dataset.attrs['Bit00(LSB)-13'].item()
+                mask_vals = mask_info.split(b'\n')[1:]
+                missing = int(mask_vals[0].split(b':')[0].strip())
+                saturation = int(mask_vals[1].split(b':')[0].strip())
+                dataset = dataset.where(dataset < min(missing, saturation))
             if 'Maximum_valid_DN' in h5dataset.attrs:
                 # dataset = dataset.where(dataset <= h5dataset.attrs['Maximum_valid_DN'].item())
                 pass

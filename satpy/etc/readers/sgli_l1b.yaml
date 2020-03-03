@@ -150,6 +150,22 @@ datasets:
     file_type: gcom-c_l1b_v
     file_key: Image_data/Lt_VN08
 
+  VN9:
+    name: VN9
+    sensor: sgli
+    wavelength: [0.757,0.763,0.769]
+    resolution: [250, 1000]
+    calibration:
+      radiance:
+        standard_name: toa_outgoing_radiance_per_unit_wavelength
+        units: W m-2 um-1 sr-1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    coordinates: [longitude_v, latitude_v]
+    file_type: gcom-c_l1b_v
+    file_key: Image_data/Lt_VN09
+
   VN11:
     name: VN11
     sensor: sgli

@@ -8,7 +8,7 @@ modifiers:
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
-    - name: 'VN8'
+    - name: 'VN9'
       modifiers: [sunz_corrected]
     optional_prerequisites:
     - satellite_azimuth_angle
@@ -73,10 +73,18 @@ composites:
   true_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - name: 'VN8'
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
-    - name: 'VN5'
-      modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    - compositor: !!python/name:satpy.composites.Filler
+      prerequisites:
+      - name: 'VN8'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      - name: 'VN3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+    - compositor: !!python/name:satpy.composites.Filler
+      prerequisites:
+      - name: 'VN5'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
+      - name: 'VN3'
+        modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     - name: 'VN3'
       modifiers: [effective_solar_pathlength_corrected, rayleigh_corrected]
     standard_name: true_color
@@ -126,8 +134,10 @@ composites:
     standard_name: true_color
 
   true_color_raw:
-    compositor: !!python/name:satpy.composites.GenericCompositor
+    compositor: !!python/name:satpy.composites.FillingCompositor
     prerequisites:
+    - name: 'VN3'
+      modifiers: [effective_solar_pathlength_corrected]
     - name: 'VN8'
       modifiers: [effective_solar_pathlength_corrected]
     - name: 'VN5'
