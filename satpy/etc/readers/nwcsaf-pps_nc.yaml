@@ -84,6 +84,7 @@ datasets:
 
   cmaprob_pal:
     name: cmaprob_pal
+    scale_offset_dataset: cmaprob
     file_type: nc_nwcsaf_cmaprob
 
   cmaprob_conditions:

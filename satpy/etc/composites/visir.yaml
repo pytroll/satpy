@@ -293,7 +293,7 @@ composites:
     standard_name: cloudmask
 
   cloudmask_probability:
-    compositor: !!python/name:satpy.composites.cloud_products.CloudProbabilityCompositor
+    compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
     - cmaprob
     - cmaprob_pal

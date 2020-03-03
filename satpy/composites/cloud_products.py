@@ -20,36 +20,7 @@
 import numpy as np
 import xarray as xr
 
-from satpy.composites import ColormapCompositor, PaletteCompositor
-from satpy.composites import GenericCompositor
-
-
-class CloudProbabilityCompositor(PaletteCompositor):
-    """Colorize values with a palette."""
-
-    @staticmethod
-    def build_colormap(palette, dtype, info):
-        """Create the colormap from the `raw_palette` and the valid_range."""
-        del dtype
-        from trollimage.colormap import Colormap
-        if 'palette_meanings' in palette.attrs:
-            palette_indices = palette.attrs['palette_meanings']
-        else:
-            palette_indices = range(len(palette))
-
-        # Scale the bloody palette_meaning:
-        palette_indices = palette_indices * 0.01
-
-        sqpalette = np.asanyarray(palette).squeeze() / 255.0
-        tups = [(val, tuple(tup))
-                for (val, tup) in zip(palette_indices, sqpalette)]
-        colormap = Colormap(*tups)
-        if 'palette_meanings' not in palette.attrs:
-            sf = info.get('scale_factor', np.array(1))
-            colormap.set_range(
-                *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
-
-        return colormap, sqpalette
+from satpy.composites import GenericCompositor, ColormapCompositor
 
 
 class CloudTopHeightCompositor(ColormapCompositor):
