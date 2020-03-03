@@ -37,14 +37,15 @@ class FakeImage:
         return xr.DataArray(1), xr.DataArray(0)
 
 
-modules = {'pyninjotiff': mock.Mock(),
-           'pyninjotiff.ninjotiff': mock.Mock()}
+pyninjotiff_mock = mock.Mock()
+pyninjotiff_mock.ninjotiff = mock.Mock()
 
 
-@mock.patch.dict(sys.modules, modules)
+@mock.patch.dict(sys.modules, {'pyninjotiff': pyninjotiff_mock, 'pyninjotiff.ninjotiff': pyninjotiff_mock.ninjotiff})
 class TestNinjoTIFFWriter(unittest.TestCase):
     """The ninjo tiff writer tests."""
 
+    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
     def test_init(self):
         """Test the init."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
@@ -54,6 +55,7 @@ class TestNinjoTIFFWriter(unittest.TestCase):
 
     @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_dataset')
     @mock.patch('satpy.writers.ninjotiff.convert_units')
+    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
     def test_dataset(self, uconv, iwsd):
         """Test saving a dataset."""
         from satpy.writers.ninjotiff import NinjoTIFFWriter
@@ -65,9 +67,11 @@ class TestNinjoTIFFWriter(unittest.TestCase):
 
     @mock.patch('satpy.writers.ninjotiff.NinjoTIFFWriter.save_dataset')
     @mock.patch('satpy.writers.ninjotiff.ImageWriter.save_image')
+    @mock.patch('satpy.writers.ninjotiff.nt', pyninjotiff_mock.ninjotiff)
     def test_image(self, iwsi, save_dataset):
         """Test saving an image."""
-        import pyninjotiff.ninjotiff as nt
+        nt = pyninjotiff_mock.ninjotiff
+        nt.reset_mock()
         from satpy.writers.ninjotiff import NinjoTIFFWriter
         ntw = NinjoTIFFWriter()
         dataset = xr.DataArray([1, 2, 3], attrs={'units': 'K'})
@@ -78,11 +82,3 @@ class TestNinjoTIFFWriter(unittest.TestCase):
         assert(nt.save.mock_calls[0][2]['ch_min_measurement_unit']
                < nt.save.mock_calls[0][2]['ch_max_measurement_unit'])
         assert(ret == nt.save.return_value)
-
-
-def suite():
-    """Test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNinjoTIFFWriter))
-    return mysuite
