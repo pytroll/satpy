@@ -132,11 +132,9 @@ class TestEPSL1B(TestCase):
     @mock.patch('satpy.readers.eps_l1b.EPSAVHRRFile.__init__')
     def test_get_full_angles_twice(self, mock__init__, mock__getitem__):
         """Test get full angles twice."""
-        try:
-            from geotiepoints import metop20kmto1km  # noqa: F401
-        except ModuleNotFoundError:
-            print("No geotiepoints; Not testing test_get_full_angles_twice")
-            return
+        geotiemock = mock.Mock()
+        metop20kmto1km = geotiemock.metop20kmto1km
+        metop20kmto1km.side_effect = lambda x, y: (x, y)
 
         def mock_getitem(key):
             data = {"ANGULAR_RELATIONS_FIRST": np.zeros((7, 4)),
@@ -153,13 +151,15 @@ class TestEPSL1B(TestCase):
         avhrr_reader.sat_zen = None
         avhrr_reader.scanlines = 7
         avhrr_reader.pixels = 2048
-        # Get dask arrays
-        sun_azi, sun_zen, sat_azi, sat_zen = avhrr_reader.get_full_angles()
-        # Convert to numpy array
-        sun_zen_np1 = np.array(avhrr_reader.sun_zen)
-        # Convert to numpy array again
-        sun_zen_np2 = np.array(avhrr_reader.sun_zen)
-        assert np.allclose(sun_zen_np1, sun_zen_np2)
+
+        with mock.patch.dict("sys.modules", geotiepoints=geotiemock):
+            # Get dask arrays
+            sun_azi, sun_zen, sat_azi, sat_zen = avhrr_reader.get_full_angles()
+            # Convert to numpy array
+            sun_zen_np1 = np.array(avhrr_reader.sun_zen)
+            # Convert to numpy array again
+            sun_zen_np2 = np.array(avhrr_reader.sun_zen)
+            assert np.allclose(sun_zen_np1, sun_zen_np2)
 
     def tearDown(self):
         """Tear down the tests."""
