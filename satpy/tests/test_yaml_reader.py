@@ -868,22 +868,3 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         self.assertEqual(slice_list, [None, projectable, None])
         self.assertFalse(failure)
         self.assertTrue(proj is projectable)
-
-
-def suite():
-    """Create test suite for the yaml reader module."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReader))
-    mysuite.addTest(loader.loadTestsFromTestCase(
-        TestFileFileYAMLReaderMultiplePatterns))
-    mysuite.addTest(loader.loadTestsFromTestCase(
-        TestFileFileYAMLReaderMultipleFileTypes))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGEOSegmentYAMLReader))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()
