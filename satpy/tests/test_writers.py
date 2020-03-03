@@ -24,11 +24,8 @@ import warnings
 
 import numpy as np
 import xarray as xr
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from trollimage.colormap import greys
+from unittest import mock
 
 
 def mkdir_p(path):
@@ -584,7 +581,16 @@ class TestOverlays(unittest.TestCase):
                     'height': 30,
                     'bg': 'black',
                     'bg_opacity': 255,
-                    'line': 'white'}}
+                    'line': 'white'}},
+                {'scale': {
+                    'colormap': greys,
+                    'extend': False,
+                    'width': 1670, 'height': 110,
+                    'tick_marks': 5, 'minor_tick_marks': 1,
+                    'cursor': [0, 0], 'bg':'white',
+                    'title':'TEST TITLE OF SCALE',
+                    'fontsize': 110, 'align': 'cc'
+                }}
             ]
         }
 
@@ -665,18 +671,3 @@ class TestOverlays(unittest.TestCase):
         from satpy.writers import add_decorate
         new_img = add_decorate(self.orig_l_img, **self.decorate)
         self.assertEqual('RGBA', new_img.mode)
-
-
-def suite():
-    """Test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestWritersModule))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancer))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancerUserConfigs))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestComputeWriterResults))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestBaseWriter))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestOverlays))
-
-    return my_suite
