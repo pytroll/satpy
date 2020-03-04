@@ -19,7 +19,7 @@
 
 from datetime import datetime
 import dask.array as da
-from unittest import TestCase, main, TestLoader, TestSuite
+from unittest import TestCase
 import numpy as np
 import xarray as xr
 from unittest import mock
