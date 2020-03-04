@@ -149,6 +149,7 @@ class TestGACLACFile(TestCase):
         # Mock reader and file handler
         fh = self._get_fh_mocked(
             reader=self._get_reader_mocked(),
+            chn_dict={'1': 0, '5': 0},
             start_line=None,
             end_line=None,
             strip_invalid_coords=False,
@@ -186,9 +187,10 @@ class TestGACLACFile(TestCase):
             fh.get_dataset(key=key, info={'name': 1})
             get_channel.assert_called_with(name=key.name, calibration=key.calibration)
 
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.slice')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
-    def test_get_dataset_slice(self, get_channel, slc):
+    def test_get_dataset_slice(self, get_channel, slc, *mocks):
         from satpy.dataset import DatasetID
 
         # Test slicing/stripping
@@ -214,8 +216,7 @@ class TestGACLACFile(TestCase):
         for kwargs in kwargs_list:
             fh = self._get_fh_mocked(
                 reader=self._get_reader_mocked(along_track=len(acq)),
-                filename_info={'orbit_number': 123},
-                sensor='sensor',
+                chn_dict={'1': 0},
                 **kwargs
             )
 
@@ -227,7 +228,8 @@ class TestGACLACFile(TestCase):
             np.testing.assert_array_equal(slc.call_args_list[-1][1]['times'], acq)
             np.testing.assert_array_equal(slc.call_args_list[-1][1]['data'], ch)
 
-    def test_get_dataset_latlon(self):
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
+    def test_get_dataset_latlon(self, *mocks):
         from satpy.dataset import DatasetID
 
         lons = np.ones((3, 3))
@@ -239,8 +241,6 @@ class TestGACLACFile(TestCase):
             start_line=None,
             end_line=None,
             strip_invalid_coords=False,
-            filename_info={'orbit_number': 123},
-            sensor='sensor',
             interpolate_coords=True
         )
 
@@ -263,8 +263,9 @@ class TestGACLACFile(TestCase):
             res = fh.get_dataset(key=key, info=info)
             self.assertTupleEqual(res.dims, ('y', 'x_every_eighth'))
 
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle')
-    def test_get_dataset_angles(self, get_angle):
+    def test_get_dataset_angles(self, get_angle, *mocks):
         from satpy.dataset import DatasetID
         from satpy.readers.avhrr_l1b_gaclac import ANGLES
 
@@ -276,8 +277,6 @@ class TestGACLACFile(TestCase):
             start_line=None,
             end_line=None,
             strip_invalid_coords=False,
-            filename_info={'orbit_number': 123},
-            sensor='sensor',
             interpolate_coords=True
         )
 
@@ -300,7 +299,8 @@ class TestGACLACFile(TestCase):
             res = fh.get_dataset(key=key, info=info)
             self.assertTupleEqual(res.dims, ('y', 'x_every_eighth'))
 
-    def test_get_dataset_qual_flags(self):
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
+    def test_get_dataset_qual_flags(self, *mocks):
         from satpy.dataset import DatasetID
 
         qual_flags = np.ones((3, 7))
@@ -311,8 +311,6 @@ class TestGACLACFile(TestCase):
             start_line=None,
             end_line=None,
             strip_invalid_coords=False,
-            filename_info={'orbit_number': 123},
-            sensor='sensor',
             interpolate_coords=True
         )
 
@@ -348,11 +346,15 @@ class TestGACLACFile(TestCase):
                                             [4, 5, 6]])
         np.testing.assert_array_equal(fh.counts, counts)
 
-        # Other (e.g. Reflectance or Brightness Temperature)
-        res = fh._get_channel(name='1', calibration='other')
-        np.testing.assert_array_equal(res, [[2, 4, 6],
-                                            [8, 10, 12]])
-        np.testing.assert_array_equal(fh.calib_channels, calib_channels)
+        # Reflectance and Brightness Temperature
+        for calib in ['reflectance', 'brightness_temperature']:
+            res = fh._get_channel(name='1', calibration=calib)
+            np.testing.assert_array_equal(res, [[2, 4, 6],
+                                                [8, 10, 12]])
+            np.testing.assert_array_equal(fh.calib_channels, calib_channels)
+
+        # Invalid
+        self.assertRaises(ValueError, fh._get_channel, name='1', calibration='turtles')
 
         # Buffering
         reader.get_counts.reset_mock()
@@ -360,8 +362,9 @@ class TestGACLACFile(TestCase):
         reader.get_counts.assert_not_called()
 
         reader.get_calibrated_channels.reset_mock()
-        fh._get_channel(name='1', calibration='other')
-        reader.get_calibrated_channels.assert_not_called()
+        for calib in ['reflectance', 'brightness_temperature']:
+            fh._get_channel(name='1', calibration=calib)
+            reader.get_calibrated_channels.assert_not_called()
 
     def test_get_angle(self):
         """Test getting the angle."""

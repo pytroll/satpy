@@ -165,11 +165,13 @@ class GACLACFile(BaseFileHandler):
                        'Solar contamination of blackbody in channels 3',
                        'Solar contamination of blackbody in channels 4',
                        'Solar contamination of blackbody in channels 5']
-        elif key.calibration in ['counts', 'reflectance', 'brightness_temperature']:
+        elif key.name.upper() in self.chn_dict:
             # Read and calibrate channel data
             data = self._get_channel(name=key.name, calibration=key.calibration)
             xdim = 'x'
             xcoords = None
+        else:
+            raise ValueError('Unknown dataset: {}'.format(key.name))
 
         # Update start/end time using the actual scanline timestamps
         times = self.reader.get_times()
@@ -183,6 +185,7 @@ class GACLACFile(BaseFileHandler):
                 or self.strip_invalid_coords):
             data, times = self.slice(data=data, times=times)
 
+        # Create data array
         chunk_cols = data.shape[1]
         chunk_lines = int((CHUNK_SIZE ** 2) / chunk_cols)
         res = xr.DataArray(da.from_array(data, chunks=(chunk_lines, chunk_cols)),
@@ -190,17 +193,13 @@ class GACLACFile(BaseFileHandler):
         if xcoords:
             res[xdim] = xcoords
 
-        for attr in self.reader.meta_data:
-            res.attrs[attr] = self.reader.meta_data[attr]
-        res.attrs['platform_name'] = self.reader.spacecraft_name
-        res.attrs['orbit_number'] = self.filename_info['orbit_number']
-        res.attrs['sensor'] = self.sensor
-        try:
-            res.attrs['orbital_parameters'] = {'tle': self.reader.get_tle_lines()}
-        except IndexError:
-            pass
+        # Update dataset attributes
+        self._update_attrs(res)
+
+        # Add scanline acquisition times
         res['acq_time'] = ('y', times)
         res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
+
         return res
 
     def slice(self, data, times):
@@ -273,10 +272,12 @@ class GACLACFile(BaseFileHandler):
                 counts = self.reader.get_counts()
                 self.counts = counts
             channels = self.counts
-        else:
+        elif calibration in ['reflectance', 'brightness_temperature']:
             if self.calib_channels is None:
                 self.calib_channels = self.reader.get_calibrated_channels()
             channels = self.calib_channels
+        else:
+            raise ValueError('Unknown calibration: {}'.format(calibration))
         return channels[:, :, self.chn_dict[name.upper()]]
 
     def _get_qual_flags(self):
@@ -308,6 +309,18 @@ class GACLACFile(BaseFileHandler):
             start, end = pygac.utils.strip_invalid_lat(lats)
             self.first_valid_lat, self.last_valid_lat = start, end
         return self.first_valid_lat, self.last_valid_lat
+
+    def _update_attrs(self, res):
+        """Update dataset attributes."""
+        for attr in self.reader.meta_data:
+            res.attrs[attr] = self.reader.meta_data[attr]
+        res.attrs['platform_name'] = self.reader.spacecraft_name
+        res.attrs['orbit_number'] = self.filename_info['orbit_number']
+        res.attrs['sensor'] = self.sensor
+        try:
+            res.attrs['orbital_parameters'] = {'tle': self.reader.get_tle_lines()}
+        except IndexError:
+            pass
 
     @property
     def start_time(self):
