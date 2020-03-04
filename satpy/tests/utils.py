@@ -18,11 +18,7 @@
 
 from datetime import datetime
 from satpy.readers.yaml_reader import FileYAMLReader
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 
 def spy_decorator(method_to_decorate):

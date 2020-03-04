@@ -15,23 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.viirs_sdr module.
-"""
+"""Module for testing the satpy.readers.viirs_sdr module."""
 
 import os
-import sys
+import unittest
+from unittest import mock
 import numpy as np
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -751,17 +741,3 @@ class TestAggrVIIRSSDRReader(unittest.TestCase):
         lons, lats = r.file_handlers['generic_file'][0].get_bounding_box()
         np.testing.assert_allclose(lons, expected_lons)
         np.testing.assert_allclose(lats, expected_lats)
-
-
-def suite():
-    """The test suite for test_viirs_sdr."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSSDRReader))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAggrVIIRSSDRReader))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
