@@ -43,7 +43,7 @@ DEFAULT_FILE_SHAPE = (3246, 450)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 DEFAULT_BOUND_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1] * 4,
-                              dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE+(4,))
+                               dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE+(4,))
 
 
 class FakeNetCDF4FileHandlerTL2(FakeNetCDF4FileHandler):
@@ -181,23 +181,23 @@ class TestTROPOMIL2Reader(unittest.TestCase):
         ds = r.load(keys)
         self.assertEqual(len(ds), 2)
         for key in keys:
-                self.assertEqual(ds[key].attrs['platform_shortname'], 'S5P')
-                self.assertIn('y', ds[key].dims)
-                self.assertIn('x', ds[key].dims)
-                self.assertIn('corner', ds[key].dims)
-                """check assembled bounds"""
-                bottom = np.hstack([ds[key][:, :, 0],  ds[key][:, -1:, 1]])
-                top = np.hstack([ds[key][-1, :, 3], ds[key][-1, -1, 2]])
-                dest = np.vstack([top, bottom])
-                dest = xr.DataArray(dest,
-                                    dims=('y', 'x')
-                                    )
-                dest.attrs = ds[key].attrs
-                self.assertEqual(dest.attrs['platform_shortname'], 'S5P')
-                self.assertIn('y', dest.dims)
-                self.assertIn('x', dest.dims)
-                self.assertEqual(DEFAULT_FILE_SHAPE[0] + 1, dest.shape[0])
-                self.assertEqual(DEFAULT_FILE_SHAPE[1] + 1, dest.shape[1])
+            self.assertEqual(ds[key].attrs['platform_shortname'], 'S5P')
+            self.assertIn('y', ds[key].dims)
+            self.assertIn('x', ds[key].dims)
+            self.assertIn('corner', ds[key].dims)
+            """check assembled bounds"""
+            bottom = np.hstack([ds[key][:, :, 0],  ds[key][:, -1:, 1]])
+            top = np.hstack([ds[key][-1, :, 3], ds[key][-1, -1, 2]])
+            dest = np.vstack([top, bottom])
+            dest = xr.DataArray(dest,
+                                dims=('y', 'x')
+                                )
+            dest.attrs = ds[key].attrs
+            self.assertEqual(dest.attrs['platform_shortname'], 'S5P')
+            self.assertIn('y', dest.dims)
+            self.assertIn('x', dest.dims)
+            self.assertEqual(DEFAULT_FILE_SHAPE[0] + 1, dest.shape[0])
+            self.assertEqual(DEFAULT_FILE_SHAPE[1] + 1, dest.shape[1])
 
 
 def suite():
