@@ -15,19 +15,9 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.nc_slstr module.
-"""
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+"""Module for testing the satpy.readers.nc_slstr module."""
+import unittest
+import unittest.mock as mock
 
 
 class TestSLSTRReader(unittest.TestCase):
@@ -72,11 +62,3 @@ class TestSLSTRReader(unittest.TestCase):
         assert(test.stripe == 'a')
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
-
-
-def suite():
-    """The test suite for test_nc_slstr."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSLSTRReader))
-    return mysuite

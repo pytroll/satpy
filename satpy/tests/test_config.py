@@ -17,16 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test objects and functions in the satpy.config module."""
 
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 
 class TestCheckSatpy(unittest.TestCase):
@@ -117,13 +109,3 @@ class TestBuiltinAreas(unittest.TestCase):
                 # pyproj 2.0+ seems to drop wktext from PROJ dict
                 continue
             _ = CRS.from_dict(proj_dict)
-
-
-def suite():
-    """Test suite for test_config."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckSatpy))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestBuiltinAreas))
-
-    return my_suite
