@@ -185,7 +185,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             self.assertIn('y', ds[key].dims)
             self.assertIn('x', ds[key].dims)
             self.assertIn('corner', ds[key].dims)
-            """check assembled bounds"""
+            # check assembled bounds
             bottom = np.hstack([ds[key][:, :, 0],  ds[key][:, -1:, 1]])
             top = np.hstack([ds[key][-1, :, 3], ds[key][-1, -1, 2]])
             dest = np.vstack([top, bottom])
