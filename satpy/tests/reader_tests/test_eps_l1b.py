@@ -21,13 +21,13 @@ import os
 from contextlib import suppress
 from tempfile import mkstemp
 from unittest import TestCase, TestLoader, TestSuite
+from unittest import mock
 
 import numpy as np
 import xarray as xr
-
+import satpy
 from satpy import DatasetID
 from satpy.readers import eps_l1b as eps
-
 grh_dtype = np.dtype([("record_class", "|i1"),
                       ("INSTRUMENT_GROUP", "|i1"),
                       ("RECORD_SUBCLASS", "|i1"),
@@ -126,6 +126,39 @@ class TestEPSL1B(TestCase):
         assert(res.attrs['platform_name'] == 'Metop-C')
         assert(res.attrs['sensor'] == 'avhrr-3')
         assert(res.attrs['name'] == 'solar_zenith_angle')
+
+    @mock.patch('satpy.readers.eps_l1b.EPSAVHRRFile.__getitem__')
+    @mock.patch('satpy.readers.eps_l1b.EPSAVHRRFile.__init__')
+    def test_get_full_angles_twice(self, mock__init__, mock__getitem__):
+        """Test get full angles twice."""
+        geotiemock = mock.Mock()
+        metop20kmto1km = geotiemock.metop20kmto1km
+        metop20kmto1km.side_effect = lambda x, y: (x.copy(), y.copy())
+
+        def mock_getitem(key):
+            data = {"ANGULAR_RELATIONS_FIRST": np.zeros((7, 4)),
+                    "ANGULAR_RELATIONS": np.zeros((7, 103, 4)),
+                    "ANGULAR_RELATIONS_LAST": np.zeros((7, 4)),
+                    "NAV_SAMPLE_RATE": 20}
+            return data[key]
+        mock__init__.return_value = None
+        mock__getitem__.side_effect = mock_getitem
+        avhrr_reader = satpy.readers.eps_l1b.EPSAVHRRFile()
+        avhrr_reader.sun_azi = None
+        avhrr_reader.sat_azi = None
+        avhrr_reader.sun_zen = None
+        avhrr_reader.sat_zen = None
+        avhrr_reader.scanlines = 7
+        avhrr_reader.pixels = 2048
+
+        with mock.patch.dict("sys.modules", geotiepoints=geotiemock):
+            # Get dask arrays
+            sun_azi, sun_zen, sat_azi, sat_zen = avhrr_reader.get_full_angles()
+            # Convert to numpy array
+            sun_zen_np1 = np.array(avhrr_reader.sun_zen)
+            # Convert to numpy array again
+            sun_zen_np2 = np.array(avhrr_reader.sun_zen)
+            assert np.allclose(sun_zen_np1, sun_zen_np2)
 
     def tearDown(self):
         """Tear down the tests."""
