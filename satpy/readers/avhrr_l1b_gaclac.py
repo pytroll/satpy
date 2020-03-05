@@ -152,7 +152,7 @@ class GACLACFile(BaseFileHandler):
             xdim = 'x' if self.interpolate_coords else 'x_every_eighth'
             xcoords = None
         elif key.name in ANGLES:
-            data = self._get_angle(key.name)
+            data = self._get_angle(key)
             xdim = 'x' if self.interpolate_coords else 'x_every_eighth'
             xcoords = None
         elif key.name == 'qual_flags':
@@ -167,7 +167,7 @@ class GACLACFile(BaseFileHandler):
                        'Solar contamination of blackbody in channels 5']
         elif key.name.upper() in self.chn_dict:
             # Read and calibrate channel data
-            data = self._get_channel(name=key.name, calibration=key.calibration)
+            data = self._get_channel(key)
             xdim = 'x'
             xcoords = None
         else:
@@ -265,8 +265,10 @@ class GACLACFile(BaseFileHandler):
 
         return sliced, midnight_scanline, miss_lines
 
-    def _get_channel(self, name, calibration):
-        """Get channel by name and buffer results."""
+    def _get_channel(self, key):
+        """Get channel and buffer results."""
+	name = key.name
+	calibration = key.calibration
         if calibration == 'counts':
             if self.counts is None:
                 counts = self.reader.get_counts()
@@ -286,8 +288,8 @@ class GACLACFile(BaseFileHandler):
             self.qual_flags = self.reader.get_qual_flags()
         return self.qual_flags
 
-    def _get_angle(self, name):
-        """Get angle by name and buffer results."""
+    def _get_angle(self):
+        """Get angles and buffer results."""
         if self.angles is None:
             sat_azi, sat_zenith, sun_azi, sun_zenith, rel_azi = self.reader.get_angles()
             self.angles = {'sensor_zenith_angle': sat_zenith,
@@ -295,7 +297,7 @@ class GACLACFile(BaseFileHandler):
                            'solar_zenith_angle': sun_zenith,
                            'solar_azimuth_angle': sun_azi,
                            'sun_sensor_azimuth_difference_angle': rel_azi}
-        return self.angles[name]
+        return self.angles
 
     def _strip_invalid_lat(self):
         """Strip scanlines with invalid coordinates in the beginning/end of the orbit.
@@ -315,7 +317,7 @@ class GACLACFile(BaseFileHandler):
         for attr in self.reader.meta_data:
             res.attrs[attr] = self.reader.meta_data[attr]
         res.attrs['platform_name'] = self.reader.spacecraft_name
-        res.attrs['orbit_number'] = self.filename_info['orbit_number']
+        res.attrs['orbit_number'] = self.filename_info.get('orbit_number', None)
         res.attrs['sensor'] = self.sensor
         try:
             res.attrs['orbital_parameters'] = {'tle': self.reader.get_tle_lines()}
