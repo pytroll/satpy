@@ -267,8 +267,8 @@ class GACLACFile(BaseFileHandler):
 
     def _get_channel(self, key):
         """Get channel and buffer results."""
-	name = key.name
-	calibration = key.calibration
+        name = key.name
+        calibration = key.calibration
         if calibration == 'counts':
             if self.counts is None:
                 counts = self.reader.get_counts()
