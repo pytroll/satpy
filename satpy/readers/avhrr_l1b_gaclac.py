@@ -288,7 +288,7 @@ class GACLACFile(BaseFileHandler):
             self.qual_flags = self.reader.get_qual_flags()
         return self.qual_flags
 
-    def _get_angle(self):
+    def _get_angle(self, key):
         """Get angles and buffer results."""
         if self.angles is None:
             sat_azi, sat_zenith, sun_azi, sun_zenith, rel_azi = self.reader.get_angles()
