@@ -297,7 +297,7 @@ class GACLACFile(BaseFileHandler):
                            'solar_zenith_angle': sun_zenith,
                            'solar_azimuth_angle': sun_azi,
                            'sun_sensor_azimuth_difference_angle': rel_azi}
-        return self.angles
+        return self.angles[key.name]
 
     def _strip_invalid_lat(self):
         """Strip scanlines with invalid coordinates in the beginning/end of the orbit.
