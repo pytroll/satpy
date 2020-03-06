@@ -90,7 +90,14 @@ class HDF5SGLI(BaseFileHandler):
         if key.resolution != self.resolution:
             return
 
-        h5dataset = self.fh[info['file_key']]
+        if key.polarization is not None:
+            pols = {0: '0', -60: 'm60', 60: 'p60'}
+            file_key = info['file_key'].format(pol=pols[key.polarization])
+        else:
+            file_key = info['file_key']
+
+        h5dataset = self.fh[file_key]
+
         resampling_interval = h5dataset.attrs.get('Resampling_interval', 1)
         if resampling_interval != 1:
             logger.debug('Interpolating %s.', key.name)
@@ -114,7 +121,7 @@ class HDF5SGLI(BaseFileHandler):
             if 'Maximum_valid_DN' in h5dataset.attrs:
                 # dataset = dataset.where(dataset <= h5dataset.attrs['Maximum_valid_DN'].item())
                 pass
-            if key.name.startswith('VN'):
+            if key.name[:2] in ['VN', 'SW', 'P1', 'P2']:
                 if key.calibration == 'counts':
                     pass
                 if key.calibration == 'radiance':
