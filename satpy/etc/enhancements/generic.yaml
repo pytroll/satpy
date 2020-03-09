@@ -355,6 +355,15 @@ enhancements:
         stretch: crude
         min_stretch: [0, 0, 0]
         max_stretch: [1, 1, 1]
+  cloudmask_probability:
+    standard_name: cloudmask_probability
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
 
   cloud_top_height:
     standard_name: cloud_top_height

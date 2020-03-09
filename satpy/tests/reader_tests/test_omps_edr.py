@@ -15,23 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.omps_edr module.
-"""
+"""Module for testing the satpy.readers.omps_edr module."""
 
 import os
-import sys
+import unittest
+from unittest import mock
 import numpy as np
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -178,13 +169,3 @@ class TestOMPSEDRReader(unittest.TestCase):
             self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
-
-
-def suite():
-    """The test suite for test_omps_edr.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestOMPSEDRReader))
-
-    return mysuite

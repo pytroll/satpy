@@ -128,6 +128,7 @@ class NcNWCSAF(BaseFileHandler):
         The scale and offset attributes will then be removed from the resulting variable.
         """
         variable = remove_empties(variable)
+
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
@@ -166,6 +167,14 @@ class NcNWCSAF(BaseFileHandler):
             pass
 
         if 'palette_meanings' in variable.attrs:
+            if 'scale_offset_dataset' in info:
+                so_dataset = self.nc[info['scale_offset_dataset']]
+                scale = so_dataset.attrs['scale_factor']
+                offset = so_dataset.attrs['add_offset']
+            else:
+                scale = 1
+                offset = 0
+
             variable.attrs['palette_meanings'] = [int(val)
                                                   for val in variable.attrs['palette_meanings'].split()]
             if variable.attrs['palette_meanings'][0] == 1:
@@ -174,7 +183,7 @@ class NcNWCSAF(BaseFileHandler):
                                         coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
 
             val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
-            variable.attrs['palette_meanings'] = val
+            variable.attrs['palette_meanings'] = val * scale + offset
             variable = variable[idx]
 
         if 'standard_name' in info:

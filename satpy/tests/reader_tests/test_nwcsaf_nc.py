@@ -17,11 +17,7 @@
 """Unittests for NWC SAF reader."""
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 PROJ_KM = {'gdal_projection': '+proj=geos +a=6378.137000 +b=6356.752300 +lon_0=0.000000 +h=35785.863000',
            'gdal_xgeo_up_left': -5569500.0,
@@ -123,16 +119,3 @@ class TestNcNWCSAF(unittest.TestCase):
         np.testing.assert_allclose(var, [np.nan, 5.5, np.nan])
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
-
-
-def suite():
-    """Test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestNcNWCSAF))
-
-    return my_suite
-
-
-if __name__ == '__main__':
-    unittest.main()

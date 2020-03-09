@@ -234,7 +234,9 @@ the base Satpy installation.
     * - Sentinel-3 SLSTR SST data in NetCDF4 format
       - `slstr_l2`
       - Beta
-
+    * - IASI level 2 SO2 in BUFR format
+      - `iasi_l2_so2_bufr`
+      - Beta
 
 Indices and tables
 ==================
