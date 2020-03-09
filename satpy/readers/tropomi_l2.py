@@ -52,7 +52,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
     @property
     def platform_shortname(self):
-        """Get start time."""
+        """Get platform shortname."""
         return self.filename_info['platform_shortname']
 
     @property
