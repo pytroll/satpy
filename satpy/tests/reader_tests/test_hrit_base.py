@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The HRIT base reader tests package.
-"""
+"""The HRIT base reader tests package."""
 
 import os
 import unittest
@@ -26,13 +25,14 @@ from tempfile import gettempdir, NamedTemporaryFile
 
 import numpy as np
 
-from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile, decompress
+from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile, wt_decompress
 
 
 class TestHRITDecompress(unittest.TestCase):
     """Test the on-the-fly decompression."""
 
     def test_xrit_cmd(self):
+        """Test the decompression command."""
         old_env = os.environ.get('XRIT_DECOMPRESS_PATH', None)
 
         os.environ['XRIT_DECOMPRESS_PATH'] = '/path/to/my/bin'
@@ -54,13 +54,14 @@ class TestHRITDecompress(unittest.TestCase):
         self.assertEqual(fname, res)
 
     def test_xrit_outfile(self):
+        """Test xrit decompress outfile."""
         stdout = [b"Decompressed file: bla.__\n"]
         outfile = get_xritdecompress_outfile(stdout)
         self.assertEqual(outfile, b'bla.__')
 
     @mock.patch('satpy.readers.hrit_base.Popen')
     def test_decompress(self, popen):
-
+        """Test decompression."""
         popen.return_value.returncode = 0
         popen.return_value.communicate.return_value = [b"Decompressed file: bla.__\n"]
 
@@ -68,7 +69,7 @@ class TestHRITDecompress(unittest.TestCase):
 
         with NamedTemporaryFile() as fd:
             os.environ['XRIT_DECOMPRESS_PATH'] = fd.name
-            res = decompress('bla.C_')
+            res = wt_decompress('bla.C_')
 
         if old_env is not None:
             os.environ['XRIT_DECOMPRESS_PATH'] = old_env
@@ -83,7 +84,7 @@ class TestHRITFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.hrit_base.np.fromfile')
     def setUp(self, fromfile):
-        """Setup the hrit file handler for testing."""
+        """Set up the hrit file handler for testing."""
         m = mock.mock_open()
         fromfile.return_value = np.array([(1, 2)], dtype=[('total_header_length', int),
                                                           ('hdr_id', int)])
@@ -126,12 +127,14 @@ class TestHRITFileHandler(unittest.TestCase):
         self.assertEqual(131072, y__)
 
     def test_get_area_extent(self):
+        """Test getting the area extent."""
         res = self.reader.get_area_extent((20, 20), (10, 10), (5, 5), 33)
         exp = (-71717.44995740513, -71717.44995740513,
                79266.655216079365, 79266.655216079365)
         self.assertTupleEqual(res, exp)
 
     def test_get_area_def(self):
+        """Test creating the area."""
         area = self.reader.get_area_def('VIS06')
         proj_dict = area.proj_dict
         self.assertEqual(proj_dict['a'], 6378169.0)
@@ -146,6 +149,7 @@ class TestHRITFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.hrit_base.np.memmap')
     def test_read_band(self, memmap):
+        """Test reading a band."""
         nbits = self.reader.mda['number_of_bits_per_pixel']
         memmap.return_value = np.random.randint(0, 256,
                                                 size=int((464 * 3712 * nbits) / 8),
