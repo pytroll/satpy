@@ -183,17 +183,3 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 # (except after the last one which has returned a None)
                 self.assertEqual(self.ec_.codes_grib_new_from_file.call_count,
                                  self.ec_.codes_release.call_count + 1)
-
-
-def suite():
-    """Build the test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-
-    mysuite.addTest(loader.loadTestsFromTestCase(Test_SeviriL2GribFileHandler))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
