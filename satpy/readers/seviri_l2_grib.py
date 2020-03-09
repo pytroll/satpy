@@ -240,7 +240,6 @@ class SeviriL2GribFileHandler(BaseFileHandler):
 
         """
         orbital_parameters = {
-            'satellite_nominal_longitude': self._ssp_lon,
             'projection_longitude': self._ssp_lon
         }
 
