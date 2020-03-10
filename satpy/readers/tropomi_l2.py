@@ -33,6 +33,8 @@ from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 import logging
 import numpy as np
 import xarray as xr
+import dask.array as da
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +173,11 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         # |    |
         # 0----1
         # Extend longitudes and latitudes with one element to support "pcolormesh"
+        # (X[i+1, j], Y[i+1, j])         (X[i+1, j+1], Y[i+1, j+1])
+        #                       +--------+
+        #                       | C[i,j] |
+        #                       +--------+
+        #      (X[i, j], Y[i, j])        (X[i, j+1], Y[i, j+1])
         # Create the bottom array
         bottom = np.hstack([bounds_data[:, :, 0], bounds_data[:, -1:, 1]])
         # Create the top array
@@ -178,11 +185,11 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         # Stack vertically
         dest = np.vstack([top, bottom])
         # Convert to DataArray
-        dest = xr.DataArray(dest,
-                            dims=('y', 'x')
+        dask_dest = da.from_array(dest, chunks=CHUNK_SIZE)
+        dest = xr.DataArray(dask_dest,
+                            dims=('y', 'x'),
+                            attrs=bounds_data.attrs
                             )
-        # Copy attrs
-        dest.attrs = bounds_data.attrs
         return dest
 
     def get_dataset(self, ds_id, ds_info):
