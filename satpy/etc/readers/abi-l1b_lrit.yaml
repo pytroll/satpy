@@ -1,15 +1,11 @@
 reader:
   name: abi-l1b_lrit
-  short_name: GOES Imager HRIT
-  long_name: GOES Imager Level 1 (HRIT)
-  description: Reader for GOES Imager Level 1 data in HRIT format
-  sensors: [goes_imager]
+  short_name: GOES ABI LRIT
+  long_name: GOES ABI Level 1 (LRIT)
+  description: Reader for GOES ABI Level 1 data in LRIT format
+  sensors: [abi]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
-
-# eg.
-# L-000-MSG3__-GOES13______-06_6_075W-000005___-201703261200-__
-# L-000-MSG3__-GOES13______-06_6_075W-PRO______-201703261200-__
 
 file_types:
     HRIT_C02:
