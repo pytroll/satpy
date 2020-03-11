@@ -28,6 +28,7 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
 import xarray as xr
 
 from satpy.readers._geos_area import get_area_definition
+from satpy import CHUNK_SIZE
 
 import datetime
 
@@ -54,7 +55,7 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=False,
-                                      chunks={})
+                                      chunks=CHUNK_SIZE)
 
         # Obtain some area definition attributes
         equatorial_radius = (self.nc.attrs['equatorial_radius'] * 1000.)
@@ -136,6 +137,12 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
             'projection_latitude': 0.,
             'projection_altitude': self.mda['projection_parameters']['h']}
+
+        #remove attributes from original file which don't apply anymore
+        strip_attrs = ["comment", "long_name", "nc_key", "valid_min", "valid_max"]
+        for a in strib_attrs:
+            dataset.attrs.pop(a)
+
         return dataset
 
     def get_area_def(self, dataset_id):
