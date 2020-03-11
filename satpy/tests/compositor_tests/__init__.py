@@ -548,14 +548,17 @@ class TestNIRReflectance(unittest.TestCase):
         get_lonlats = mock.MagicMock()
         lons, lats = 1, 2
         get_lonlats.return_value = (lons, lats)
-        nir.attrs['area'] = mock.MagicMock(get_lonlats=get_lonlats)
+        area = mock.MagicMock(get_lonlats=get_lonlats)
+        nir.attrs['area'] = area
         start_time = 1
         nir.attrs['start_time'] = start_time
         ir_arr = 100 * np.random.random((2, 2))
         ir_ = xr.DataArray(da.from_array(ir_arr), dims=['y', 'x'])
+        ir_.attrs['area'] = area
         sunz_arr = 100 * np.random.random((2, 2))
         sunz = xr.DataArray(da.from_array(sunz_arr), dims=['y', 'x'])
         sunz.attrs['standard_name'] = 'solar_zenith_angle'
+        sunz.attrs['area'] = area
         sunz2 = da.from_array(sunz_arr)
         sza.return_value = sunz2
 
