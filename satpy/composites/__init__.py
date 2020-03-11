@@ -652,6 +652,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         Not supposed to be used for wavelength outside [3, 4] µm.
 
         """
+        projectables = self.match_data_arrays(projectables)
         self._init_refl3x(projectables)
         # Derive the sun-zenith angles, and use the nir and thermal ir
         # brightness tempertures and derive the reflectance using
