@@ -8,6 +8,7 @@ The following people have made contributions to this project:
 <!--- See https://gist.github.com/djhoese/52220272ec73b12eb8f4a29709be110d for auto-generating parts of this list --->
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
+- [Talfan Barnie (TalfanBarnie)](https://github.com/TalfanBarnie)
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss

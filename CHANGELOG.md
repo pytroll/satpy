@@ -1,3 +1,66 @@
+## Version v0.20.0 (2020/02/25)
+
+### Issues Closed
+
+* [Issue 1077](https://github.com/pytroll/satpy/issues/1077) - Tropomi l2 reader needs to handle more filenames ([PR 1078](https://github.com/pytroll/satpy/pull/1078))
+* [Issue 1076](https://github.com/pytroll/satpy/issues/1076) - Metop level 2 EUMETCAST BUFR reader ([PR 1079](https://github.com/pytroll/satpy/pull/1079))
+* [Issue 1004](https://github.com/pytroll/satpy/issues/1004) - Computing the lons and lats of metop granules from the eps_l1b reader is painfully slow ([PR 1063](https://github.com/pytroll/satpy/pull/1063))
+* [Issue 1002](https://github.com/pytroll/satpy/issues/1002) - Resampling of long passes of metop l1b eps data gives strange results
+* [Issue 928](https://github.com/pytroll/satpy/issues/928) - Satpy Writer 'geotiff' exists but could not be loaded
+* [Issue 924](https://github.com/pytroll/satpy/issues/924) - eps_l1b reader does not accept more than 1 veadr element ([PR 1063](https://github.com/pytroll/satpy/pull/1063))
+* [Issue 809](https://github.com/pytroll/satpy/issues/809) - Update avhrr_l1b_aapp reader ([PR 811](https://github.com/pytroll/satpy/pull/811))
+* [Issue 112](https://github.com/pytroll/satpy/issues/112) - Python 2 Cruft ([PR 1047](https://github.com/pytroll/satpy/pull/1047))
+
+In this release 8 issues were closed.
+
+### Pull Requests Merged
+
+#### Bugs fixed
+
+* [PR 1084](https://github.com/pytroll/satpy/pull/1084) - Add latitude_bounds and longitude_bounds to tropomi_l2
+* [PR 1078](https://github.com/pytroll/satpy/pull/1078) - Tropomi l2 reader to handle more types of products ([1077](https://github.com/pytroll/satpy/issues/1077))
+* [PR 1072](https://github.com/pytroll/satpy/pull/1072) - Fix the omerc-bb area to use a sphere as ellps
+* [PR 1066](https://github.com/pytroll/satpy/pull/1066) - Rename natural_color_sun to natural_color in generic VIS/IR RGB recipes
+* [PR 1063](https://github.com/pytroll/satpy/pull/1063) - Fix eps infinite loop ([924](https://github.com/pytroll/satpy/issues/924), [1004](https://github.com/pytroll/satpy/issues/1004))
+* [PR 1058](https://github.com/pytroll/satpy/pull/1058) - Work around changes in xarray 0.15
+* [PR 1057](https://github.com/pytroll/satpy/pull/1057) - lowercase the sensor name
+* [PR 1055](https://github.com/pytroll/satpy/pull/1055) - Fix sst standard name
+* [PR 1049](https://github.com/pytroll/satpy/pull/1049) - Fix handling of paths with forward slashes on Windows
+* [PR 1048](https://github.com/pytroll/satpy/pull/1048) - Fix AMI L1b reader incorrectly grouping files
+* [PR 1045](https://github.com/pytroll/satpy/pull/1045) - Update hrpt.py for new pygac syntax
+* [PR 1043](https://github.com/pytroll/satpy/pull/1043) - Update seviri icare reader that handles differing dataset versions
+* [PR 1042](https://github.com/pytroll/satpy/pull/1042) - Replace a unicode hyphen in the glm_l2 reader
+* [PR 1041](https://github.com/pytroll/satpy/pull/1041) - Unify Dataset attribute naming in SEVIRI L2 BUFR-reader
+
+#### Features added
+
+* [PR 1082](https://github.com/pytroll/satpy/pull/1082) - Update SLSTR composites
+* [PR 1079](https://github.com/pytroll/satpy/pull/1079) - Metop level 2 EUMETCAST BUFR reader ([1076](https://github.com/pytroll/satpy/issues/1076))
+* [PR 1067](https://github.com/pytroll/satpy/pull/1067) - Add GOES-17 support to the 'geocat' reader
+* [PR 1065](https://github.com/pytroll/satpy/pull/1065) - Add AHI airmass, ash, dust, fog, and night_microphysics RGBs
+* [PR 1064](https://github.com/pytroll/satpy/pull/1064) - Adjust default blending in DayNightCompositor
+* [PR 1061](https://github.com/pytroll/satpy/pull/1061) - Add support for NUCAPS Science EDRs
+* [PR 1052](https://github.com/pytroll/satpy/pull/1052) - Delegate dask delays to pyninjotiff
+* [PR 1047](https://github.com/pytroll/satpy/pull/1047) - Remove deprecated abstractproperty usage ([112](https://github.com/pytroll/satpy/issues/112))
+* [PR 1020](https://github.com/pytroll/satpy/pull/1020) - Feature Sentinel-3 Level-2 SST
+* [PR 988](https://github.com/pytroll/satpy/pull/988) - Remove py27 tests and switch to py38
+* [PR 964](https://github.com/pytroll/satpy/pull/964) - Update SEVIRI L2 BUFR reader to handle BUFR products from EUMETSAT Data Centre
+* [PR 839](https://github.com/pytroll/satpy/pull/839) - Add support of colorbar
+* [PR 811](https://github.com/pytroll/satpy/pull/811) - Daskify and test avhrr_l1b_aapp reader ([809](https://github.com/pytroll/satpy/issues/809))
+
+#### Documentation changes
+
+* [PR 1068](https://github.com/pytroll/satpy/pull/1068) - Fix a typo in writer 'filename' documentation
+* [PR 1056](https://github.com/pytroll/satpy/pull/1056) - Fix name of natural_color composite in quickstart
+
+#### Backwards incompatible changes
+
+* [PR 1066](https://github.com/pytroll/satpy/pull/1066) - Rename natural_color_sun to natural_color in generic VIS/IR RGB recipes
+* [PR 988](https://github.com/pytroll/satpy/pull/988) - Remove py27 tests and switch to py38
+
+In this release 31 pull requests were closed.
+
+
 ## Version 0.19.1 (2020/01/10)
 
 ### Issues Closed

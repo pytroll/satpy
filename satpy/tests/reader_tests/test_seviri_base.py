@@ -15,17 +15,11 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Test the MSG common (native and hrit format) functionionalities
-"""
+"""Test the MSG common (native and hrit format) functionionalities."""
 
-import sys
+import unittest
 import numpy as np
 from satpy.readers.seviri_base import dec10216, chebyshev, get_cds_time
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 def chebyshev4(c, x, domain):
@@ -65,11 +59,3 @@ class SeviriBaseTest(unittest.TestCase):
                              np.datetime64('2016-03-04 13:00:00.001'),
                              np.datetime64('2016-03-05 14:00:00.002')])
         self.assertTrue(np.all(get_cds_time(days=days, msecs=msecs) == expected))
-
-
-def suite():
-    """The test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(SeviriBaseTest))
-    return mysuite

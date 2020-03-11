@@ -203,7 +203,7 @@ To get a list of all available composites for the current scene:
      'green_snow',
      'dust',
      'fog',
-     'natural_color_sun',
+     'natural_color_raw',
      'cloudtop',
      'convection',
      'ash']
