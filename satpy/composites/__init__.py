@@ -596,11 +596,9 @@ class NIRReflectance(CompositeBase):
         """
         self._init_refl3x(projectables)
         _nir, _ = projectables
-        try:
-            refl = self._get_reflectance(projectables, optional_datasets) * 100
-        except ValueError:
-            raise IncompatibleAreas(
-                "Please check that modifier has the correct resolution.")
+        projectables = self.match_data_arrays(projectables)
+
+        refl = self._get_reflectance(projectables, optional_datasets) * 100
         proj = xr.DataArray(refl, dims=_nir.dims,
                             coords=_nir.coords, attrs=_nir.attrs)
 
