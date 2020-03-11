@@ -18,12 +18,7 @@
 """Testing of utils."""
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 from numpy import sqrt
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat, proj_units_to_meters, get_satpos
 
@@ -253,12 +248,3 @@ class TestUtils(unittest.TestCase):
         dataset.attrs.pop('orbital_parameters')
         lon, lat, alt = get_satpos(dataset)
         self.assertTupleEqual((lon, lat, alt), (-1, -2, -3))
-
-
-def suite():
-    """Test suite."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
-
-    return mysuite

@@ -15,26 +15,16 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The hrit msg reader tests package.
-"""
+"""The hrit msg reader tests package."""
 
-import sys
+import unittest
 import datetime
 import numpy as np
+from unittest import mock
 from xarray import DataArray
 from satpy.readers.goes_imager_hrit import (make_gvar_float, make_sgs_time,
                                             HRITGOESPrologueFileHandler, sgs_time,
                                             HRITGOESFileHandler, ALTITUDE)
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class TestGVARFloat(unittest.TestCase):
@@ -161,19 +151,3 @@ class TestHRITGOESFileHandler(unittest.TestCase):
                              {'projection_longitude': self.reader.mda['projection_parameters']['SSP_longitude'],
                               'projection_latitude': 0.0,
                               'projection_altitude': ALTITUDE})
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOESPrologueFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITGOESFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGVARFloat))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMakeSGSTime))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

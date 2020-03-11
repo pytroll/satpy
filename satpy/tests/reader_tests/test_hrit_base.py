@@ -18,24 +18,15 @@
 """The HRIT base reader tests package.
 """
 
-import sys
-from datetime import datetime
 import os
+import unittest
+from unittest import mock
+from datetime import datetime
 from tempfile import gettempdir, NamedTemporaryFile
 
 import numpy as np
 
 from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile, decompress
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class TestHRITDecompress(unittest.TestCase):
@@ -161,18 +152,3 @@ class TestHRITFileHandler(unittest.TestCase):
                                                 dtype=np.uint8)
         res = self.reader.read_band('VIS006', None)
         self.assertEqual(res.compute().shape, (464, 3712))
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITDecompress))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
