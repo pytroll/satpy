@@ -47,12 +47,24 @@ SENSOR = {'NOAA-19': 'avhrr/3',
           'EOS-Terra': 'modis',
           'Suomi-NPP': 'viirs',
           'NOAA-20': 'viirs',
-          'JPSS-1': 'viirs', }
+          'JPSS-1': 'viirs',
+          "GOES13": "goes-imager",
+          "GOES14": "goes-imager",
+          "GOES15": "goes-imager",
+          "GOES16": "abi",
+          "GOES17": "abi",
+          "Himawari-08": "ahi"}
 
 PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
                   'MSG2': 'Meteosat-9',
                   'MSG3': 'Meteosat-10',
-                  'MSG4': 'Meteosat-11', }
+                  'MSG4': 'Meteosat-11',
+                  "GOES13": "GOES13",
+                  "GOES14": "GOES14",
+                  "GOES15": "GOES15",
+                  "GOES16": "GOES16",
+                  "GOES17": "GOES17",
+                  "Himawari-08": "Himawari-08"}
 
 
 class NcNWCSAF(BaseFileHandler):
