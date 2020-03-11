@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
+# Copyright (c) 2017-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -150,6 +150,9 @@ class NcNWCSAF(BaseFileHandler):
         attrs = variable.attrs.copy()
         variable = variable * scale + offset
         variable.attrs = attrs
+        if 'valid_range' in variable.attrs:
+            variable.attrs['valid_range'] = variable.attrs['valid_range'] * scale + offset
+
         variable.attrs.pop('add_offset', None)
         variable.attrs.pop('scale_factor', None)
 
@@ -194,6 +197,11 @@ class NcNWCSAF(BaseFileHandler):
         if self.sw_version == 'NWC/PPS version v2014' and dsid.name == 'ctth_alti_pal':
             # pps 2014 palette has the nodata color (black) first
             variable = variable[1:, :]
+        if self.sw_version == 'NWC/GEO version v2016' and dsid.name == 'ctth_alti':
+            # Geo 2016/18 valid range and palette don't match
+            # Valid range is 0 to 27000 in the file. But after scaling the valid range becomes -2000 to 25000
+            # This now fixed by the scaling of the valid range above.
+            pass
 
         return variable
 
