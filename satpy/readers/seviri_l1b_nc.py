@@ -138,9 +138,9 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             'projection_latitude': 0.,
             'projection_altitude': self.mda['projection_parameters']['h']}
 
-        #remove attributes from original file which don't apply anymore
-        strip_attrs = ["comment", "long_name", "nc_key", "valid_min", "valid_max"]
-        for a in strib_attrs:
+        # remove attributes from original file which don't apply anymore
+        strip_attrs = ["comment", "long_name", "nc_key", "scale_factor", "add_offset", "valid_min", "valid_max"]
+        for a in strip_attrs:
             dataset.attrs.pop(a)
 
         return dataset
