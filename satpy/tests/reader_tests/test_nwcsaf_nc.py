@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2018 Satpy developers
+# Copyright (c) 2018, 2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -119,3 +119,15 @@ class TestNcNWCSAF(unittest.TestCase):
         np.testing.assert_allclose(var, [np.nan, 5.5, np.nan])
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
+
+        # CTTH NWCSAF/Geo v2016/v2018:
+        attrs = {'scale_factor': np.array(1.),
+                 'add_offset': np.array(-2000.),
+                 'valid_range': (0., 27000.)}
+        var = xr.DataArray([1, 2, 3], attrs=attrs)
+        var = self.scn.scale_dataset('dummy', var, 'dummy')
+        np.testing.assert_allclose(var, [-1999., -1998., -1997.])
+        self.assertNotIn('scale_factor', var.attrs)
+        self.assertNotIn('add_offset', var.attrs)
+        self.assertEqual(var.attrs['valid_range'][0], -2000.)
+        self.assertEqual(var.attrs['valid_range'][1], 25000.)
