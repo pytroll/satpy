@@ -82,18 +82,30 @@ class NcNWCSAF(BaseFileHandler):
 
         self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})
         self.sw_version = self.nc.attrs['source']
-        self.pps = False
 
         try:
-            # MSG:
-            sat_id = self.nc.attrs['satellite_identifier']
+            # NWCSAF/MSG:
             try:
-                self.platform_name = PLATFORM_NAMES[sat_id]
+                kwrgs = {'sat_id': self.nc.attrs['satellite_identifier']}
             except KeyError:
-                self.platform_name = PLATFORM_NAMES[sat_id.astype(str)]
+                kwrgs = {'sat_id': self.nc.attrs['satellite_identifier'].astype(str)}
+
         except KeyError:
-            # PPS:
-            self.platform_name = self.nc.attrs['platform']
+            # NWCSAF/PPS:
+            kwrgs = {'platform_name': self.nc.attrs['platform']}
+
+        self.set_platform_and_sensor(**kwrgs)
+
+    def set_platform_and_sensor(self, **kwargs):
+        """Set some metadata: platform_name, sensors, and pps (identifying PPS or Geo)."""
+
+        self.pps = False
+        if 'sat_id' in kwargs:
+            # NWCSAF/Geo
+            self.platform_name = PLATFORM_NAMES.get(kwargs['sat_id'])
+        elif 'platform_name' in kwargs:
+            # NWCSAF/PPS
+            self.platform_name = kwargs['platform_name']
             self.pps = True
 
         self.sensors = set([SENSOR.get(self.platform_name, 'seviri')])
