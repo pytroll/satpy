@@ -43,6 +43,20 @@ class TestNcNWCSAF(unittest.TestCase):
         unzip.return_value = ''
         self.scn = NcNWCSAF('filename', {}, {})
 
+    def test_sensor_name(self):
+        """Test that the correct sensor name is being set"""
+
+        self.scn.set_platform_and_sensor(platform_name='Metop-B')
+        self.assertTrue(self.scn.sensors, set(['avhrr-3']))
+        self.scn.set_platform_and_sensor(platform_name='NOAA-20')
+        self.assertTrue(self.scn.sensors, set(['viirs']))
+        self.scn.set_platform_and_sensor(platform_name='Himawari-8')
+        self.assertTrue(self.scn.sensors, set(['ahi']))
+        self.scn.set_platform_and_sensor(platform_name='GOES-17')
+        self.assertTrue(self.scn.sensors, set(['abi']))
+        self.scn.set_platform_and_sensor(platform_name='Meteosat-11')
+        self.assertTrue(self.scn.sensors, set(['seviri']))
+
     def test_get_projection(self):
         """Test generation of the navigation info."""
         # a, b and h in kilometers
