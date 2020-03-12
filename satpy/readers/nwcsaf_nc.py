@@ -37,22 +37,29 @@ from satpy.readers.utils import unzip_file
 
 logger = logging.getLogger(__name__)
 
-SENSOR = {'NOAA-19': 'avhrr/3',
-          'NOAA-18': 'avhrr/3',
-          'NOAA-15': 'avhrr/3',
-          'Metop-A': 'avhrr/3',
-          'Metop-B': 'avhrr/3',
-          'Metop-C': 'avhrr/3',
+SENSOR = {'NOAA-19': 'avhrr-3',
+          'NOAA-18': 'avhrr-3',
+          'NOAA-15': 'avhrr-3',
+          'Metop-A': 'avhrr-3',
+          'Metop-B': 'avhrr-3',
+          'Metop-C': 'avhrr-3',
           'EOS-Aqua': 'modis',
           'EOS-Terra': 'modis',
           'Suomi-NPP': 'viirs',
           'NOAA-20': 'viirs',
-          'JPSS-1': 'viirs', }
+          'JPSS-1': 'viirs',
+          'GOES-16': 'abi',
+          'GOES-17': 'abi',
+          'Himawari-8': 'ahi',
+          'Himawari-9': 'ahi',
+          }
+
 
 PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
                   'MSG2': 'Meteosat-9',
                   'MSG3': 'Meteosat-10',
-                  'MSG4': 'Meteosat-11', }
+                  'MSG4': 'Meteosat-11',
+                  }
 
 
 class NcNWCSAF(BaseFileHandler):
@@ -89,7 +96,7 @@ class NcNWCSAF(BaseFileHandler):
             self.platform_name = self.nc.attrs['platform']
             self.pps = True
 
-        self.sensor = SENSOR.get(self.platform_name, 'seviri')
+        self.sensors = set([SENSOR.get(self.platform_name, 'seviri')])
 
     def remove_timedim(self, var):
         """Remove time dimension from dataset."""
@@ -157,7 +164,7 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs.pop('scale_factor', None)
 
         variable.attrs.update({'platform_name': self.platform_name,
-                               'sensor': self.sensor})
+                               'sensor': self.sensors})
 
         if not variable.attrs.get('standard_name', '').endswith('status_flag'):
             # TODO: do we really need to add units to everything ?
@@ -294,6 +301,11 @@ class NcNWCSAF(BaseFileHandler):
             # PPS:
             return datetime.strptime(self.nc.attrs['time_coverage_end'],
                                      '%Y%m%dT%H%M%S%fZ')
+
+    @property
+    def sensor_names(self):
+        """List of sensors represented in this file."""
+        return self.sensors
 
     def _get_projection(self):
         """Get projection from the NetCDF4 attributes."""
