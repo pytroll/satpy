@@ -31,7 +31,7 @@ from satpy.readers.seviri_base import CHANNEL_NAMES
 def new_read_file(instance):
     new_ds = xr.Dataset({'ch4': (['num_rows_vis_ir', 'num_columns_vis_ir'], np.random.random((2, 2))),
                          'planned_chan_processing': (["channels_dim"], np.ones(12, dtype=np.int8) * 2)},
-                         coords={'num_rows_vis_ir': [1, 2], 'num_columns_vis_ir': [1, 2]})
+                        coords={'num_rows_vis_ir': [1, 2], 'num_columns_vis_ir': [1, 2]})
     # dataset attrs
     attrs = {'comment': 'comment', 'long_name': 'long_name', 'nc_key': 'ch4', 'scale_factor': np.float64(1.0),
              'add_offset': np.float64(1.0), 'valid_min': np.float64(1.0), 'valid_max': np.float64(1.0)}
