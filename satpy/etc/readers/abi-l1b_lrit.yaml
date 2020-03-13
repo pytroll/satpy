@@ -1,0 +1,34 @@
+reader:
+  name: abi-l1b_lrit
+  short_name: GOES ABI LRIT
+  long_name: GOES ABI Level 1 (LRIT)
+  description: Reader for GOES ABI Level 1 data in LRIT format
+  sensors: [abi]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
+
+file_types:
+    HRIT_C02:
+        file_reader: !!python/name:satpy.readers.abi_lrit.LRITGOESFileHandler
+        # OR_ABI-L2-CMIPF-M3C02_G16_s20173481615413_e20173481626180_c20173481630509-img18821-seg01.lrit
+        file_patterns: ['OR_ABI-L2-CMIPF-M3C02_G16_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{processing_time:%Y%j%H%M%S%f}-img{image_number:5d}-seg{segment:02d}.lrit']
+        expected_segments: 15
+
+
+datasets:
+  'C02':
+    name: 'C02'
+    resolution: 1000
+    wavelength: [0.55, 0.7, 0.75]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      # radiance:
+      #   standard_name: toa_outgoing_radiance_per_unit_wavelength
+      #   units: W m-2 um-1 sr-1
+      counts:
+        standard_name: counts
+    file_type: [HRIT_C02]
+
+

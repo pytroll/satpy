@@ -123,7 +123,7 @@ def get_xritdecompress_outfile(stdout):
     return outfile
 
 
-def decompress(infile, outdir='.'):
+def wt_decompress(infile, outdir='.'):
     """Decompress an XRIT data file and return the path to the decompressed file.
 
     It expect to find Eumetsat's xRITDecompress through the environment variable
@@ -157,20 +157,26 @@ class HRITFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(HRITFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
+
         self.mda = {}
         self._get_hd(hdr_info)
 
         if self.mda.get('compression_flag_for_data'):
             logger.debug('Unpacking %s', filename)
-            try:
-                self.filename = decompress(filename, gettempdir())
-            except IOError as err:
-                logger.warning("Unpacking failed: %s", str(err))
-            self.mda = {}
-            self._get_hd(hdr_info)
+            self.decompress(hdr_info)
 
         self._start_time = filename_info['start_time']
         self._end_time = self._start_time + timedelta(minutes=15)
+
+    def decompress(self, hdr_info):
+        """Decompress the file."""
+        try:
+            self.filename = wt_decompress(self.filename, gettempdir())
+        except IOError as err:
+            logger.warning("Unpacking failed: %s", str(err))
+        else:
+            self.mda = {}
+            self._get_hd(hdr_info)
 
     def _get_hd(self, hdr_info):
         """Open the file, read and get the basic file header info and set the mda dictionary."""
