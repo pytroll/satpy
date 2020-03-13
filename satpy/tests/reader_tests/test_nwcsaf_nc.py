@@ -58,9 +58,16 @@ class TestNcNWCSAF(unittest.TestCase):
         self.assertTrue(self.scn.sensors, set(['ahi']))
         self.assertTrue(self.scn.sensor_names, set(['ahi']))
 
+        self.scn.set_platform_and_sensor(sat_id='GOES16')
+        self.assertTrue(self.scn.sensors, set(['abi']))
+        self.assertTrue(self.scn.sensor_names, set(['abi']))
+
         self.scn.set_platform_and_sensor(platform_name='GOES-17')
         self.assertTrue(self.scn.sensors, set(['abi']))
         self.assertTrue(self.scn.sensor_names, set(['abi']))
+
+        self.scn.set_platform_and_sensor(sat_id='MSG4')
+        self.assertTrue(self.scn.sensors, set(['seviri']))
 
         self.scn.set_platform_and_sensor(platform_name='Meteosat-11')
         self.assertTrue(self.scn.sensors, set(['seviri']))

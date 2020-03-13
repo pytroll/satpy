@@ -88,10 +88,9 @@ class NcNWCSAF(BaseFileHandler):
         try:
             # NWCSAF/MSG:
             try:
-                satellite_id = self.nc.attrs['satellite_identifier']
+                kwrgs = {'sat_id': self.nc.attrs['satellite_identifier']}
             except KeyError:
-                satellite_id = self.nc.attrs['satellite_identifier'].astype(str)
-            kwrgs = {'sat_id': PLATFORM_NAMES.get(satellite_id, satellite_id)}
+                kwrgs = {'sat_id': self.nc.attrs['satellite_identifier'].astype(str)}
         except KeyError:
             # NWCSAF/PPS:
             kwrgs = {'platform_name': self.nc.attrs['platform']}
@@ -104,7 +103,7 @@ class NcNWCSAF(BaseFileHandler):
         self.pps = False
         if 'sat_id' in kwargs:
             # NWCSAF/Geo
-            self.platform_name = kwargs['sat_id']
+            self.platform_name = PLATFORM_NAMES.get(kwargs['sat_id'], kwargs['sat_id'])
         elif 'platform_name' in kwargs:
             # NWCSAF/PPS
             self.platform_name = kwargs['platform_name']
