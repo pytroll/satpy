@@ -48,14 +48,23 @@ class TestNcNWCSAF(unittest.TestCase):
 
         self.scn.set_platform_and_sensor(platform_name='Metop-B')
         self.assertTrue(self.scn.sensors, set(['avhrr-3']))
+        self.assertTrue(self.scn.sensor_names, set(['avhrr-3']))
+
         self.scn.set_platform_and_sensor(platform_name='NOAA-20')
         self.assertTrue(self.scn.sensors, set(['viirs']))
+        self.assertTrue(self.scn.sensor_names, set(['viirs']))
+
         self.scn.set_platform_and_sensor(platform_name='Himawari-8')
         self.assertTrue(self.scn.sensors, set(['ahi']))
+        self.assertTrue(self.scn.sensor_names, set(['ahi']))
+
         self.scn.set_platform_and_sensor(platform_name='GOES-17')
         self.assertTrue(self.scn.sensors, set(['abi']))
+        self.assertTrue(self.scn.sensor_names, set(['abi']))
+
         self.scn.set_platform_and_sensor(platform_name='Meteosat-11')
         self.assertTrue(self.scn.sensors, set(['seviri']))
+        self.assertTrue(self.scn.sensor_names, set(['seviri']))
 
     def test_get_projection(self):
         """Test generation of the navigation info."""
