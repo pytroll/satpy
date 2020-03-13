@@ -408,3 +408,15 @@ composites:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background_hires
     filename: BlackMarble_2016_3km_geo.tif
+
+# NWCSAF/Geo and PPS products:
+
+  cloud_top_phase:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmic_phase
+    - cmic_phase_pal
+    standard_name: cloud_top_phase
+
+
+

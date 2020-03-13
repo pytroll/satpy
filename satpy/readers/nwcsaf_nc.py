@@ -59,6 +59,8 @@ PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
                   'MSG2': 'Meteosat-9',
                   'MSG3': 'Meteosat-10',
                   'MSG4': 'Meteosat-11',
+                  'GOES16': 'GOES-16',
+                  'GOES17': 'GOES-17',
                   }
 
 
@@ -86,10 +88,10 @@ class NcNWCSAF(BaseFileHandler):
         try:
             # NWCSAF/MSG:
             try:
-                kwrgs = {'sat_id': self.nc.attrs['satellite_identifier']}
+                satellite_id = self.nc.attrs['satellite_identifier']
             except KeyError:
-                kwrgs = {'sat_id': self.nc.attrs['satellite_identifier'].astype(str)}
-
+                satellite_id = self.nc.attrs['satellite_identifier'].astype(str)
+            kwrgs = {'sat_id': PLATFORM_NAMES.get(satellite_id, satellite_id)}
         except KeyError:
             # NWCSAF/PPS:
             kwrgs = {'platform_name': self.nc.attrs['platform']}
@@ -102,7 +104,7 @@ class NcNWCSAF(BaseFileHandler):
         self.pps = False
         if 'sat_id' in kwargs:
             # NWCSAF/Geo
-            self.platform_name = PLATFORM_NAMES.get(kwargs['sat_id'])
+            self.platform_name = kwargs['sat_id']
         elif 'platform_name' in kwargs:
             # NWCSAF/PPS
             self.platform_name = kwargs['platform_name']
