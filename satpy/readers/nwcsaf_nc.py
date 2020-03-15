@@ -85,6 +85,10 @@ class NcNWCSAF(BaseFileHandler):
         self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})
         self.sw_version = self.nc.attrs['source']
 
+        self.pps = False
+        self.platform_name = None
+        self.sensor = None
+
         try:
             # NWCSAF/MSG:
             try:
@@ -100,16 +104,15 @@ class NcNWCSAF(BaseFileHandler):
     def set_platform_and_sensor(self, **kwargs):
         """Set some metadata: platform_name, sensors, and pps (identifying PPS or Geo)."""
 
-        self.pps = False
-        if 'sat_id' in kwargs:
+        try:
             # NWCSAF/Geo
             self.platform_name = PLATFORM_NAMES.get(kwargs['sat_id'], kwargs['sat_id'])
-        elif 'platform_name' in kwargs:
+        except KeyError:
             # NWCSAF/PPS
             self.platform_name = kwargs['platform_name']
             self.pps = True
 
-        self.sensors = set([SENSOR.get(self.platform_name, 'seviri')])
+        self.sensor = set([SENSOR.get(self.platform_name, 'seviri')])
 
     def remove_timedim(self, var):
         """Remove time dimension from dataset."""
@@ -177,7 +180,7 @@ class NcNWCSAF(BaseFileHandler):
         variable.attrs.pop('scale_factor', None)
 
         variable.attrs.update({'platform_name': self.platform_name,
-                               'sensor': self.sensors})
+                               'sensor': self.sensor})
 
         if not variable.attrs.get('standard_name', '').endswith('status_flag'):
             # TODO: do we really need to add units to everything ?
@@ -318,7 +321,7 @@ class NcNWCSAF(BaseFileHandler):
     @property
     def sensor_names(self):
         """List of sensors represented in this file."""
-        return self.sensors
+        return self.sensor
 
     def _get_projection(self):
         """Get projection from the NetCDF4 attributes."""
