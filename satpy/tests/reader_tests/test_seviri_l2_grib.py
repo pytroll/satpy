@@ -93,7 +93,6 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
                 global_attributes = self.reader._get_global_attributes()
                 expected_global_attributes = {
                     'orbital_parameters': {
-                        'satellite_nominal_longitude': 10.,
                         'projection_longitude': 10.
                     },
                     'sensor': 'seviri',
