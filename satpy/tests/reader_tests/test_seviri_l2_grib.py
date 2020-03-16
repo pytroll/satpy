@@ -26,11 +26,7 @@ from satpy.readers.seviri_l2_grib import (SeviriL2GribFileHandler,
                                           REPEAT_CYCLE_DURATION)
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 # Dictionary to be used as fake GRIB message
 FAKE_MESSAGE = {
