@@ -90,7 +90,7 @@ class NcNWCSAF(BaseFileHandler):
         self.sensor = None
 
         try:
-            # NWCSAF/MSG:
+            # NWCSAF/Geo:
             try:
                 kwrgs = {'sat_id': self.nc.attrs['satellite_identifier']}
             except KeyError:
