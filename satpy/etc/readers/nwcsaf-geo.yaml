@@ -261,7 +261,6 @@ datasets:
 
   cmic_iwp_pal:
     name: cmic_iwp_pal
-    
     resolution: 3000
     file_type: nc_nwcsaf_cmic
 
