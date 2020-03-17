@@ -18,6 +18,7 @@
 
 """SEVIRI L2 GRIB-reader test package."""
 
+import sys
 import numpy as np
 import datetime
 
