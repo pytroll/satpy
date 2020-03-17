@@ -51,7 +51,6 @@ FAKE_GID = [0, 1, 2, 3, None]
 class Test_SeviriL2GribFileHandler(unittest.TestCase):
     """Test the SeviriL2GribFileHandler reader."""
 
-    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     @mock.patch('satpy.readers.seviri_l2_grib.ec')
     def setUp(self, ec_):
         """Set up the test by creating a mocked eccodes library."""
@@ -61,6 +60,7 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
         ec_.codes_get_values.return_value = np.ones(1000*1200)
         self.ec_ = ec_
 
+    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")        
     @mock.patch('satpy.readers.seviri_l2_grib.xr')
     @mock.patch('satpy.readers.seviri_l2_grib.da')
     def test_data_reading(self, da_, xr_):
