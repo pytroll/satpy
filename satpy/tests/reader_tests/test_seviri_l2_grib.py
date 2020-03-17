@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""The seviri_l2_grib reader tests package."""
+"""SEVIRI L2 GRIB-reader test package."""
 
 import numpy as np
 import datetime
@@ -50,6 +50,7 @@ FAKE_GID = [0, 1, 2, 3, None]
 class Test_SeviriL2GribFileHandler(unittest.TestCase):
     """Test the SeviriL2GribFileHandler reader."""
 
+    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     @mock.patch('satpy.readers.seviri_l2_grib.ec')
     def setUp(self, ec_):
         """Set up the test by creating a mocked eccodes library."""
