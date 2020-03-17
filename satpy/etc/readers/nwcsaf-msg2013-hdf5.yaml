@@ -6,20 +6,35 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
-    h5_nwcsaf_cma:
+    h5_nwcsaf_cma_plax:
         file_reader: !!python/name:satpy.readers.nwcsaf_msg2013_hdf5.Hdf5NWCSAF
         #        SAFNWC_MSG4_CMa__201908271145_MSG-N_______.PLAX.CTTH.0.h5
         file_patterns: ['SAFNWC_{platform_id}_CMa__{start_time:%Y%m%d%H%M}_{region_id:_<12s}.PLAX.CTTH.0.h5']
 
-    h5_nwcsaf_ct:
+    h5_nwcsaf_cma:
+        file_reader: !!python/name:satpy.readers.nwcsaf_msg2013_hdf5.Hdf5NWCSAF
+        #        SAFNWC_MSG2_CMa__201507072010_alps________.h5
+        file_patterns: ['SAFNWC_{platform_id}_CMa__{start_time:%Y%m%d%H%M}_{region_id:_<12s}.h5']
+
+    h5_nwcsaf_ct_plax:
         file_reader: !!python/name:satpy.readers.nwcsaf_msg2013_hdf5.Hdf5NWCSAF
         #        SAFNWC_MSG4_CT___201906241245_MSG-N_______.PLAX.CTTH.0.h5
         file_patterns: ['SAFNWC_{platform_id}_CT___{start_time:%Y%m%d%H%M}_{region_id:_<12s}.PLAX.CTTH.0.h5']
 
-    h5_nwcsaf_ctth:
+    h5_nwcsaf_ct:
+        file_reader: !!python/name:satpy.readers.nwcsaf_msg2013_hdf5.Hdf5NWCSAF
+        #        SAFNWC_MSG2_CT___201507072010_alps________.h5
+        file_patterns: ['SAFNWC_{platform_id}_CT___{start_time:%Y%m%d%H%M}_{region_id:_<12s}.h5']
+
+    h5_nwcsaf_ctth_plax:
         file_reader: !!python/name:satpy.readers.nwcsaf_msg2013_hdf5.Hdf5NWCSAF
         #        SAFNWC_MSG4_CTTH_201906241245_MSG-N_______.PLAX.CTTH.0.h5
         file_patterns: ['SAFNWC_{platform_id}_CTTH_{start_time:%Y%m%d%H%M}_{region_id:_<12s}.PLAX.CTTH.0.h5']
+
+    h5_nwcsaf_ctth:
+        file_reader: !!python/name:satpy.readers.nwcsaf_msg2013_hdf5.Hdf5NWCSAF
+        #        SAFNWC_MSG2_CTTH_201507071215_alps________.h5
+        file_patterns: ['SAFNWC_{platform_id}_CTTH_{start_time:%Y%m%d%H%M}_{region_id:_<12s}.h5']
 
 
 datasets:
