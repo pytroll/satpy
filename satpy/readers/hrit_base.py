@@ -32,7 +32,7 @@ import logging
 from datetime import timedelta
 from tempfile import gettempdir
 import os
-from six import BytesIO
+from io import BytesIO
 from subprocess import Popen, PIPE
 
 import numpy as np

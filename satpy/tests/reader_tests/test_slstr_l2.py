@@ -66,15 +66,3 @@ class TestSLSTRL2Reader(unittest.TestCase):
             test.get_dataset('erroneous dataset', {'standard_name': 'erroneous dataset'})
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
-
-
-def suite():
-    """Test suite for test_slstr_l2."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSLSTRL2Reader))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

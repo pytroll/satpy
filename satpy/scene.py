@@ -34,12 +34,6 @@ from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 import xarray as xr
 from xarray import DataArray
 import numpy as np
-import six
-
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser  # noqa: F401
 
 LOG = logging.getLogger(__name__)
 
@@ -1009,7 +1003,7 @@ class Scene(MetadataObject):
         """
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
-        if isinstance(destination_area, (str, six.text_type)):
+        if isinstance(destination_area, str):
             destination_area = get_area_def(destination_area)
         if hasattr(destination_area, 'freeze'):
             try:

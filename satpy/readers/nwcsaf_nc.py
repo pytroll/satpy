@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
+# Copyright (c) 2017-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -128,6 +128,7 @@ class NcNWCSAF(BaseFileHandler):
         The scale and offset attributes will then be removed from the resulting variable.
         """
         variable = remove_empties(variable)
+
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
@@ -149,6 +150,9 @@ class NcNWCSAF(BaseFileHandler):
         attrs = variable.attrs.copy()
         variable = variable * scale + offset
         variable.attrs = attrs
+        if 'valid_range' in variable.attrs:
+            variable.attrs['valid_range'] = variable.attrs['valid_range'] * scale + offset
+
         variable.attrs.pop('add_offset', None)
         variable.attrs.pop('scale_factor', None)
 
@@ -166,6 +170,14 @@ class NcNWCSAF(BaseFileHandler):
             pass
 
         if 'palette_meanings' in variable.attrs:
+            if 'scale_offset_dataset' in info:
+                so_dataset = self.nc[info['scale_offset_dataset']]
+                scale = so_dataset.attrs['scale_factor']
+                offset = so_dataset.attrs['add_offset']
+            else:
+                scale = 1
+                offset = 0
+
             variable.attrs['palette_meanings'] = [int(val)
                                                   for val in variable.attrs['palette_meanings'].split()]
             if variable.attrs['palette_meanings'][0] == 1:
@@ -174,7 +186,7 @@ class NcNWCSAF(BaseFileHandler):
                                         coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
 
             val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
-            variable.attrs['palette_meanings'] = val
+            variable.attrs['palette_meanings'] = val * scale + offset
             variable = variable[idx]
 
         if 'standard_name' in info:
@@ -185,6 +197,11 @@ class NcNWCSAF(BaseFileHandler):
         if self.sw_version == 'NWC/PPS version v2014' and dsid.name == 'ctth_alti_pal':
             # pps 2014 palette has the nodata color (black) first
             variable = variable[1:, :]
+        if self.sw_version == 'NWC/GEO version v2016' and dsid.name == 'ctth_alti':
+            # Geo 2016/18 valid range and palette don't match
+            # Valid range is 0 to 27000 in the file. But after scaling the valid range becomes -2000 to 25000
+            # This now fixed by the scaling of the valid range above.
+            pass
 
         return variable
 

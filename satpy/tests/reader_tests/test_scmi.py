@@ -15,22 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The scmi_abi_l1b reader tests package.
-"""
+"""The scmi_abi_l1b reader tests package."""
 
-import sys
+import unittest
+from unittest import mock
 import numpy as np
 import xarray as xr
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class FakeDataset(object):
@@ -274,13 +264,3 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
             }
         )
         self.assertRaises(ValueError, reader.get_area_def, None)
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSCMIFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSCMIFileHandlerArea))
-    return mysuite

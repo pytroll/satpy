@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2018 Satpy developers
+# Copyright (c) 2018, 2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -17,11 +17,7 @@
 """Unittests for NWC SAF reader."""
 
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 PROJ_KM = {'gdal_projection': '+proj=geos +a=6378.137000 +b=6356.752300 +lon_0=0.000000 +h=35785.863000',
            'gdal_xgeo_up_left': -5569500.0,
@@ -124,15 +120,14 @@ class TestNcNWCSAF(unittest.TestCase):
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
 
-
-def suite():
-    """Test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestNcNWCSAF))
-
-    return my_suite
-
-
-if __name__ == '__main__':
-    unittest.main()
+        # CTTH NWCSAF/Geo v2016/v2018:
+        attrs = {'scale_factor': np.array(1.),
+                 'add_offset': np.array(-2000.),
+                 'valid_range': (0., 27000.)}
+        var = xr.DataArray([1, 2, 3], attrs=attrs)
+        var = self.scn.scale_dataset('dummy', var, 'dummy')
+        np.testing.assert_allclose(var, [-1999., -1998., -1997.])
+        self.assertNotIn('scale_factor', var.attrs)
+        self.assertNotIn('add_offset', var.attrs)
+        self.assertEqual(var.attrs['valid_range'][0], -2000.)
+        self.assertEqual(var.attrs['valid_range'][1], 25000.)
