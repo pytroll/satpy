@@ -43,7 +43,7 @@ try:
 except ImportError:
     raise ImportError(
         "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
- 
+
 
 logger = logging.getLogger(__name__)
 
