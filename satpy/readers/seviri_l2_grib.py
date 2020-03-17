@@ -28,7 +28,6 @@ import logging
 import numpy as np
 import xarray as xr
 import dask.array as da
-import eccodes as ec
 
 from datetime import timedelta
 
@@ -38,6 +37,13 @@ from satpy.readers.seviri_base import (calculate_area_extent,
                                        PLATFORM_DICT,
                                        REPEAT_CYCLE_DURATION)
 from satpy import CHUNK_SIZE
+
+try:
+    import eccodes as ec
+except ImportError:
+    raise ImportError(
+        "Missing eccodes-python and/or eccodes C-library installation. Use conda to install eccodes")
+ 
 
 logger = logging.getLogger(__name__)
 
