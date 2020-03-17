@@ -60,7 +60,7 @@ class Test_SeviriL2GribFileHandler(unittest.TestCase):
         ec_.codes_get_values.return_value = np.ones(1000*1200)
         self.ec_ = ec_
 
-    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")        
+    @unittest.skipIf(sys.platform.startswith('win'), "'eccodes' not supported on Windows")
     @mock.patch('satpy.readers.seviri_l2_grib.xr')
     @mock.patch('satpy.readers.seviri_l2_grib.da')
     def test_data_reading(self, da_, xr_):
