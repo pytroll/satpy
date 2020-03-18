@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
+# Copyright (c) 2017-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -25,7 +25,6 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.seviri_l1b_nc import NCSEVIRIFileHandler
-from satpy.readers.seviri_base import CHANNEL_NAMES
 
 
 def new_read_file(instance):
