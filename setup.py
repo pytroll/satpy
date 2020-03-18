@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Satpy developers
+# Copyright (c) 2009-2020 Satpy developers
 #
 # This file is part of satpy.
 #
