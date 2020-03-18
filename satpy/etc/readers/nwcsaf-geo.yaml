@@ -1,5 +1,5 @@
 reader:
-  description: NetCDF4 reader for the NWCSAF MSG Seviri 2016/2018 format
+  description: NetCDF4 reader for the NWCSAF GEO 2016/2018 format
   name: nwcsaf-geo
   sensors: [seviri, abi, ahi]
   default_channels: []
