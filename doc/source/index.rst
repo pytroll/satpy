@@ -89,7 +89,10 @@ the base Satpy installation.
         | in the files. EUMETSAT has been notified.
     * - MSG (Meteosat 8 to 11) L2 products in BUFR format
       - `seviri_l2_bufr`
-      - AMV Bufr products not available yet.
+      - AMV BUFR products not supported yet.
+    * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
+      - `seviri_l2_grib`
+      - In development, CLM and OCA products supported  
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
