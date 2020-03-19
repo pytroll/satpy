@@ -424,7 +424,7 @@ composites:
     - name: I05
     standard_name: cloudtop
 
-  snow_lowres:
+  snow_lowres: &snow_lowres
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: M07
@@ -434,6 +434,8 @@ composites:
     - name: M12
       modifiers: [nir_reflectance_lowres]
     standard_name: snow
+
+  snow: *snow_lowres
 
   snow_hires:
     compositor: !!python/name:satpy.composites.GenericCompositor
