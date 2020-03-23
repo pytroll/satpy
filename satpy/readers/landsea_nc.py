@@ -152,8 +152,8 @@ class NcLandSea(BaseFileHandler):
         area = get_area_def("worldeqc4km21",
                             "World 7200 x 3600, platecarree",
                             'eqc',
-                            '+ellps=WGS84 +lat_0=0 +lat_ts=0 +lon_0=0 +no_defs"+
-                            " +proj=eqc +type=crs +units=m +x_0=0 +y_0=0',
+                            '+ellps=WGS84 +lat_0=0 +lat_ts=0 +lon_0=0 +no_defs'+
+                            ' +proj=eqc +type=crs +units=m +x_0=0 +y_0=0',
                             7200,
                             3600,
                             (-20037508.3428, -10018754.1714, 20037508.3428, 10018754.1714))
