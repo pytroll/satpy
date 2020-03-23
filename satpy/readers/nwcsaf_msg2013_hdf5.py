@@ -47,6 +47,7 @@ class Hdf5NWCSAF(HDF5FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Init method."""
+        """probably old python 2.2 syntax of super with two arguments """
         super(Hdf5NWCSAF, self).__init__(filename, filename_info,
                                          filetype_info)
 

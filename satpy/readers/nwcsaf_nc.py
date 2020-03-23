@@ -30,7 +30,8 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 
-from pyresample.utils import get_area_def
+#from pyresample.utils import get_area_def
+from pyresample import get_area_def
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file

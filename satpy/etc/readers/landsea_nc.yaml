@@ -1,0 +1,26 @@
+# References:
+# - MSG Level 1.5 Image Data Format Description
+# - Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent
+#   Spectral Blackbody Radiance
+
+reader:
+  name: landsea_nc
+  short_name: LandSea nc
+  long_name: LandSea MOIDS netCDF format
+  description: >
+    nc reader for MODIS land sea mask.
+  sensors: [modis]
+  default_channels: [lsmask]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    nc_landsea:
+        file_reader: !!python/name:satpy.readers.landsea_nc.NcLandSea
+        file_patterns: ['lsmask_modis.nc']
+
+datasets:
+  lsmask:
+    name: lsmask
+    resolution: 4210.0
+    wavelength: [0.0, 0.0, 0.0]
+    file_type: [nc_landsea]
