@@ -57,7 +57,7 @@ class NcLandSea(BaseFileHandler):
     """MODIS land sea mask NetCDF reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
-        
+
         """Init method."""
         super(NcLandSea, self).__init__(filename, filename_info,
                                        filetype_info)
