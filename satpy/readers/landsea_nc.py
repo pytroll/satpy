@@ -37,14 +37,14 @@ import logging
 import os
 from datetime import datetime
 
-import dask.array as da
 import numpy as np
 import xarray as xr
 
-from pyresample.utils import get_area_def
-from satpy import CHUNK_SIZE   
+from pyresample import get_area_def   
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
+
+import h5py
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +70,10 @@ class NcLandSea(BaseFileHandler):
                                   decode_cf=True,
                                   mask_and_scale=False,
                                   chunks=3600)
-                                  #chunks=CHUNK_SIZE)
 
         self.nc = self.nc.rename({'lon': 'x', 'lat': 'y'})
-        #self.sw_version = self.nc.attrs['source']
-        self.pps = False
 
-        sat_id = "Terra/Aqua" # self.nc.attrs['satellite_identifier']
+        sat_id = "Terra/Aqua" 
         self.platform_name = "Terra/Aqua"
         self.sensor = 'modis'
 
@@ -91,7 +88,6 @@ class NcLandSea(BaseFileHandler):
 
         logger.debug('Reading %s.', dsid_name)
         variable = self.nc[dsid_name]
-        #variable = self.remove_timedim(variable)
         variable = self.scale_dataset(dsid, variable, info)
 
         return variable
@@ -101,17 +97,18 @@ class NcLandSea(BaseFileHandler):
 
         The scale and offset attributes will then be removed from the resulting variable.
         """
-        variable = remove_empties(variable)
-        print(type(variable))
-        print(variable.values.min(),variable.values.max())
 
+        for key, val in variable.attrs.items():
+            if isinstance(val, h5py._hl.base.Empty):
+                variable.attrs.pop(key)
+        
         if '_fill_value' in variable.attrs:
             variable = variable.where( variable != variable.attrs['_fill_value'])
 
         if 'valid_range' in variable.attrs:
             variable = variable.where(
                 variable <= variable.attrs['valid_range'][1])
-            
+
         attrs = variable.attrs.copy()
 
         variable.attrs = attrs
@@ -151,19 +148,15 @@ class NcLandSea(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the datasets.
+           fixed area definition worldeqc4km21
         """
-        # fixed area definition 
-        #from satpy.resample import get_area_def
-        #return get_area_def("worldeqc4km21")
-        
-        from pyresample import get_area_def
         area = get_area_def("worldeqc4km21",
-                            "World 7200 x 3600, platecarree",
-                            'eqc',
-                            '+ellps=WGS84 +lat_0=0 +lat_ts=0 +lon_0=0 +no_defs +proj=eqc +type=crs +units=m +x_0=0 +y_0=0',
-                            7200,
-                            3600,
-                            (-20037508.3428, -10018754.1714, 20037508.3428, 10018754.1714))
+                "World 7200 x 3600, platecarree",
+                'eqc',
+                '+ellps=WGS84 +lat_0=0 +lat_ts=0 +lon_0=0 +no_defs +proj=eqc +type=crs +units=m +x_0=0 +y_0=0',
+                7200,
+                3600,
+                (-20037508.3428, -10018754.1714, 20037508.3428, 10018754.1714))
 
         return area
         
@@ -178,21 +171,9 @@ class NcLandSea(BaseFileHandler):
     @property
     def start_time(self):
         """Return the start time of the object."""
-        #return datetime.strptime("2007-06-28T00:00:00Z",'%Y-%m-%dT%H:%M:%SZ') 
         return datetime.strptime("2007-06-28 00:00:00", "%Y-%m-%d %H:%M:%S")
 
     @property
     def end_time(self):
         """Return the end time of the object."""
-        #return datetime.strptime("2007-06-28T00:00:00Z",'%Y-%m-%dT%H:%M:%SZ') 
         return datetime.strptime("2007-06-28 00:00:00", "%Y-%m-%d %H:%M:%S")
-
-
-def remove_empties(variable):
-    """Remove empty objects from the *variable*'s attrs."""
-    import h5py
-    for key, val in variable.attrs.items():
-        if isinstance(val, h5py._hl.base.Empty):
-            variable.attrs.pop(key)
-
-    return variable

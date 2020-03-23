@@ -1118,7 +1118,7 @@ class Scene(MetadataObject):
             # don't lose datasets that we may need later for generating
             # composites
             keepables = set(new_scn.datasets.keys()) | new_scn.wishlist
-            
+
         if new_scn.missing_datasets:
             # copy the set of missing datasets because they won't be valid
             # after they are removed in the next line
