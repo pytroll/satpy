@@ -1101,9 +1101,6 @@ class Scene(MetadataObject):
         """
         to_resample_ids = [dsid for (dsid, dataset) in self.datasets.items()
                            if (not datasets) or dsid in datasets]
-
-        print("=========================")
-        print("to_resample_ids",to_resample_ids)
         
         if destination is None:
             destination = self.max_area(to_resample_ids)
@@ -1112,12 +1109,6 @@ class Scene(MetadataObject):
         new_scn.wishlist = self.wishlist.copy()
         self._resampled_scene(new_scn, destination, resampler=resampler,
                               reduce_data=reduce_data, **resample_kwargs)
-
-        print("======================")
-        print("new_scn", new_scn)
-        print(type(new_scn))
-        print(new_scn['my_index-6be798a65b1ecd75c868d41796524a77'].values)
-        print("resampler",resampler)
         
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
