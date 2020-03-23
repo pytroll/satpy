@@ -60,7 +60,7 @@ class NcLandSea(BaseFileHandler):
 
         """Init method."""
         super(NcLandSea, self).__init__(filename, filename_info,
-                                       filetype_info)
+                                        filetype_info)
 
         self._unzipped = unzip_file(self.filename)
         if self._unzipped:
