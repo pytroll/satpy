@@ -44,3 +44,14 @@ datasets:
         file_type: tropomi_l2
         file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/longitude_bounds'
         standard_name: assembled_longitude_bounds
+    offset_time:
+        name: 'offset_time'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/delta_time'
+        standard_name: offset_time
+    ref_time:
+        name: 'ref_time'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/time'
+        standard_name: ref_time
+
