@@ -40,7 +40,7 @@ from datetime import datetime
 import numpy as np
 import xarray as xr
 
-from pyresample import get_area_def   
+from pyresample import get_area_def
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file
 
@@ -73,7 +73,6 @@ class NcLandSea(BaseFileHandler):
 
         self.nc = self.nc.rename({'lon': 'x', 'lat': 'y'})
 
-        sat_id = "Terra/Aqua" 
         self.platform_name = "Terra/Aqua"
         self.sensor = 'modis'
 
@@ -101,9 +100,9 @@ class NcLandSea(BaseFileHandler):
         for key, val in variable.attrs.items():
             if isinstance(val, h5py._hl.base.Empty):
                 variable.attrs.pop(key)
-        
+
         if '_fill_value' in variable.attrs:
-            variable = variable.where( variable != variable.attrs['_fill_value'])
+            variable = variable.where(variable != variable.attrs['_fill_value'])
 
         if 'valid_range' in variable.attrs:
             variable = variable.where(
@@ -159,7 +158,7 @@ class NcLandSea(BaseFileHandler):
                 (-20037508.3428, -10018754.1714, 20037508.3428, 10018754.1714))
 
         return area
-        
+
     def __del__(self):
         """Delete the instance."""
         if self._unzipped:
