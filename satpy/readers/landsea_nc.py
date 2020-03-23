@@ -153,10 +153,20 @@ class NcLandSea(BaseFileHandler):
         """Get the area definition of the datasets.
         """
         # fixed area definition 
-        from satpy.resample import get_area_def
+        #from satpy.resample import get_area_def
+        #return get_area_def("worldeqc4km21")
         
-        return get_area_def("worldeqc4km21")
+        from pyresample import get_area_def
+        area = get_area_def("worldeqc4km21",
+                            "World 7200 x 3600, platecarree",
+                            'eqc',
+                            '+ellps=WGS84 +lat_0=0 +lat_ts=0 +lon_0=0 +no_defs +proj=eqc +type=crs +units=m +x_0=0 +y_0=0',
+                            7200,
+                            3600,
+                            (-20037508.3428, -10018754.1714, 20037508.3428, 10018754.1714))
 
+        return area
+        
     def __del__(self):
         """Delete the instance."""
         if self._unzipped:
