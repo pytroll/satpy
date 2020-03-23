@@ -170,16 +170,21 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
     def prepare_geo(self, bounds_data):
         """Prepare lat/lon bounds for pcolormesh.
 
-        lat/lon bounds are ordered in the following way:
-        3----2
-        |    |
-        0----1
-        Extend longitudes and latitudes with one element to support "pcolormesh"
-        (X[i+1, j], Y[i+1, j])         (X[i+1, j+1], Y[i+1, j+1])
-                              +--------+
-                              | C[i,j] |
-                              +--------+
-             (X[i, j], Y[i, j])        (X[i, j+1], Y[i, j+1])
+        lat/lon bounds are ordered in the following way::
+
+            3----2
+            |    |
+            0----1
+
+        Extend longitudes and latitudes with one element to support
+        "pcolormesh"::
+
+            (X[i+1, j], Y[i+1, j])         (X[i+1, j+1], Y[i+1, j+1])
+                                  +--------+
+                                  | C[i,j] |
+                                  +--------+
+                 (X[i, j], Y[i, j])        (X[i, j+1], Y[i, j+1])
+
         """
         # Create the left array
         left = np.vstack([bounds_data[:, :, 0], bounds_data[-1:, :, 3]])
