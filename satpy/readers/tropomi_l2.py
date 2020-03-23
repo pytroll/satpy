@@ -181,12 +181,12 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
                               +--------+
              (X[i, j], Y[i, j])        (X[i, j+1], Y[i, j+1])
         """
-        # Create the bottom array
-        bottom = np.hstack([bounds_data[:, :, 0], bounds_data[:, -1:, 1]])
-        # Create the top array
-        top = np.hstack([bounds_data[-1, :, 3], bounds_data[-1, -1, 2]])
-        # Stack vertically
-        dest = np.vstack([top, bottom])
+        # Create the left array
+        left = np.vstack([bounds_data[:, :, 0], bounds_data[-1:, :, 3]])
+        # Create the right array
+        right = np.vstack([bounds_data[:, -1:, 1], bounds_data[-1:, -1:, 2]])
+        # Stack horizontally
+        dest = np.hstack([left, right])
         # Convert to DataArray
         dask_dest = da.from_array(dest, chunks=CHUNK_SIZE)
         dest = xr.DataArray(dask_dest,
