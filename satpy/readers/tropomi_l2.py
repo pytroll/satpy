@@ -169,6 +169,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
     def prepare_geo(self, bounds_data):
         """Prepare lat/lon bounds for pcolormesh.
+
         lat/lon bounds are ordered in the following way:
         3----2
         |    |
