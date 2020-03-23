@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test objects and functions in the satpy.config module."""
 
+import os
 import unittest
 from unittest import mock
 
@@ -120,9 +121,9 @@ class TestPluginsConfigs(unittest.TestCase):
         import pkg_resources
         ep = pkg_resources.EntryPoint.parse('example_composites = satpy_cpe')
         ep.dist = pkg_resources.Distribution.from_filename('satpy_cpe-0.0.0-py3.8.egg')
-        ep.dist.module_path = '/bla/bla'
+        ep.dist.module_path = os.path.join(os.path.sep + 'bla', 'bla')
         iter_entry_points.return_value = [ep]
 
         from satpy.config import get_entry_points_config_dirs
         dirs = get_entry_points_config_dirs('satpy.composites')
-        self.assertListEqual(dirs, ['/bla/bla/satpy_cpe/etc'])
+        self.assertListEqual(dirs, [os.path.join(ep.dist.module_path, 'satpy_cpe', 'etc')])
