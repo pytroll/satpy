@@ -1,5 +1,5 @@
 ================================================
- Adding new functionnality to Satpy via plugins
+ Adding new functionality to Satpy via plugins
 ================================================
 
 .. warning::
