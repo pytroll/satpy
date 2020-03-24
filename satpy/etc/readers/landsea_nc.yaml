@@ -1,7 +1,7 @@
 # References:
-# - MSG Level 1.5 Image Data Format Description
-# - Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent
-#   Spectral Blackbody Radiance
+# - land sea mask from MODIS https://www.ghrsst.org/ghrsst-data-services/tools/
+# - land =1, sea = 0
+# useful as filter for land only or sea only products 
 
 reader:
   name: landsea_nc
