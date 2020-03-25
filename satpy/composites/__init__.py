@@ -385,7 +385,7 @@ class SunZenithCorrectorBase(CompositeBase):
         tic = time.time()
         LOG.debug("Applying sun zen correction")
         coszen = self.coszen.get(key)
-        if coszen is None and len(info.get('optional_datasets', [])) == 0:
+        if coszen is None and not info.get('optional_datasets'):
             # we were not given SZA, generate SZA then calculate cos(SZA)
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
