@@ -15,7 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Unittesting the SEVIRI L2 BUFR reader."""
 
 import os
@@ -409,16 +408,3 @@ class TestIasiL2So2Bufr(unittest.TestCase):
     def test_init(self):
         """Test reader initialization."""
         self.assertTrue(True)
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestIasiL2So2Bufr))
-    return mysuite
-
-
-if __name__ == "__main__":
-    # So you can run tests from this module individually.
-    unittest.main()

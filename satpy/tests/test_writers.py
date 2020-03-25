@@ -25,11 +25,7 @@ import warnings
 import numpy as np
 import xarray as xr
 from trollimage.colormap import greys
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 
 def mkdir_p(path):
@@ -675,18 +671,3 @@ class TestOverlays(unittest.TestCase):
         from satpy.writers import add_decorate
         new_img = add_decorate(self.orig_l_img, **self.decorate)
         self.assertEqual('RGBA', new_img.mode)
-
-
-def suite():
-    """Test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestWritersModule))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancer))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestEnhancerUserConfigs))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestComputeWriterResults))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestBaseWriter))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestOverlays))
-
-    return my_suite
