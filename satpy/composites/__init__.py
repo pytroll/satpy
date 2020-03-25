@@ -34,7 +34,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
-from satpy.config import get_environ_ancpath
+from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
@@ -83,9 +83,11 @@ class CompositorLoader(object):
         """Load all compositor configs for the provided sensor."""
         config_filename = sensor_name + ".yaml"
         LOG.debug("Looking for composites config file %s", config_filename)
+        paths = get_entry_points_config_dirs('satpy.composites')
+        paths.append(self.ppp_config_dir)
         composite_configs = config_search_paths(
             os.path.join("composites", config_filename),
-            self.ppp_config_dir, check_exists=True)
+            *paths, check_exists=True)
         if not composite_configs:
             LOG.debug("No composite config found called {}".format(
                 config_filename))

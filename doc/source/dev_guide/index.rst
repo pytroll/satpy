@@ -14,13 +14,14 @@ at the pages listed below.
     CONTRIBUTING
     xarray_migration
     custom_reader
+    plugins
 
 Coding guidelines
 =================
 
-Satpy is part of `PyTroll <http://pytroll.github.io/>`_,
+Satpy is part of `Pytroll <http://pytroll.github.io/>`_,
 and all code should follow the
-`PyTroll coding guidelines and best
+`Pytroll coding guidelines and best
 practices <http://pytroll.github.io/guidelines.html>`_.
 
 Satpy is now Python 3 only and it is no longer needed to support Python 2.
