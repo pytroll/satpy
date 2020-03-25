@@ -18,7 +18,7 @@
 """Land-sea mask from MODIS format reader.
 
 References:
-   - The land sea mask from MODIS, documentation: https://www.ghrsst.org/ghrsst-data-services/services/
+   - The land sea mask from MODIS, downloaded from https://www.ghrsst.org/ghrsst-data-services/tools/
      lsmask_modis_byte.nc
      The NAVOCEANO SST processing software only generates SST retrievals for pixels
      determined to be over water. A global land/sea tag file is utilized within the
@@ -150,14 +150,44 @@ class NcLandSea(BaseFileHandler):
         """Get the area definition of the datasets.
            fixed area definition worldeqc4km21
         """
-        area = get_area_def("worldeqc4km21",
-                            "World 7200 x 3600, platecarree",
+
+        nlines, ncols = self.nc[dsid.name].shape
+
+        if 'grid_resolution' in self.nc.attrs.keys():
+            import re
+            dx = float(re.sub(r"\D", "", f.attrs['grid_resolution']))
+        else:
+            dx = 0
+
+        if 'southernmost_latitude' in self.nc.attrs.keys():
+            lat_min = self.nc.attrs['southernmost_latitude'] - dx
+        else:
+            lat_min = -90.
+
+        if 'northernmost_latitude' in self.nc.attrs.keys():
+            lat_max = self.nc.attrs['northernmost_latitude'] + dx
+        else:
+            lat_max = 90.
+
+        if 'westernmost_longitude' in self.nc.attrs.keys():
+            lon_min = self.nc.attrs['westernmost_longitude'] - dx
+        else:
+            lon_min = -180.
+
+        if 'easternmost_longitude' in self.nc.attrs.keys():
+            lon_max = self.nc.attrs['easternmost_longitude'] + dx
+        else:
+            lon_max = 180.
+
+        area = get_area_def("worldeqc",
+                            "World, platecarree",
                             'eqc',
                             '+ellps=WGS84 +lat_0=0 +lat_ts=0 +lon_0=0 +no_defs' +
                             ' +proj=eqc +type=crs +units=m +x_0=0 +y_0=0',
-                            7200,
-                            3600,
-                            (-20037508.3428, -10018754.1714, 20037508.3428, 10018754.1714))
+                            ncols,
+                            nlines,
+                            (-20037508.3428*lon_min/(-180.), -10018754.1714*lat_min/(-90.),
+                             20037508.3428*lon_max/(180.),    10018754.1714*lat_max/90.))
 
         return area
 
@@ -172,9 +202,17 @@ class NcLandSea(BaseFileHandler):
     @property
     def start_time(self):
         """Return the start time of the object."""
-        return datetime.strptime("2007-06-28 00:00:00", "%Y-%m-%d %H:%M:%S")
+        if "creation_date" in self.nc.attrs.keys():
+            start_time = datetime.strptime(self.nc.attrs["creation_date"], "%Y-%m-%d")
+        else:
+            start_time = datetime.strptime("2007-06-28 00:00:00", "%Y-%m-%d %H:%M:%S")
+        return start_time
 
     @property
     def end_time(self):
         """Return the end time of the object."""
-        return datetime.strptime("2007-06-28 00:00:00", "%Y-%m-%d %H:%M:%S")
+        if "creation_date" in self.nc.attrs.keys():
+            end_time = datetime.strptime(self.nc.attrs["creation_date"], "%Y-%m-%d")
+        else:
+            end_time = datetime.strptime("2007-06-28 00:00:00", "%Y-%m-%d %H:%M:%S")
+        return end_time

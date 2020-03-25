@@ -14,13 +14,25 @@ reader:
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
 file_types:
+    nc_land_distance:
+        file_reader: !!python/name:satpy.readers.landsea_nc.NcLandSea
+        file_patterns: ['NAVO-lsmask-world8-var.dist5.5.nc']
+
+file_types:
     nc_landsea:
         file_reader: !!python/name:satpy.readers.landsea_nc.NcLandSea
         file_patterns: ['lsmask_modis.nc']
 
 datasets:
+
   lsmask:
     name: lsmask
-    resolution: 4210.0
+    resolution: 5565.97
     wavelength: [0.0, 0.0, 0.0]
     file_type: [nc_landsea]
+
+  dst:
+    name: dst
+    resolution: 927.662
+    wavelength: [0.0, 0.0, 0.0]
+    file_type: [nc_land_distance]
