@@ -24,3 +24,34 @@ datasets:
         file_key: 'PRODUCT/longitude'
         coordinates: [longitude, latitude]
         standard_name: longitude
+    latitude_bounds:
+        name: 'latitude_bounds'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/latitude_bounds'
+        standard_name: latitude_bounds
+    longitude_bounds:
+        name: 'longitude_bounds'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/longitude_bounds'
+        standard_name: longitude_bounds
+    assembled_lat_bounds:
+        name: 'assembled_lat_bounds'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/latitude_bounds'
+        standard_name: assembled_latitude_bounds
+    assembled_lon_bounds:
+        name: 'assembled_lon_bounds'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/longitude_bounds'
+        standard_name: assembled_longitude_bounds
+    offset_time:
+        name: 'offset_time'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/delta_time'
+        standard_name: offset_time
+    ref_time:
+        name: 'ref_time'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/time'
+        standard_name: ref_time
+
