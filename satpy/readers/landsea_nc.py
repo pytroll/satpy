@@ -155,7 +155,7 @@ class NcLandSea(BaseFileHandler):
 
         if 'grid_resolution' in self.nc.attrs.keys():
             import re
-            dx = float(re.sub(r"\D", "", f.attrs['grid_resolution']))
+            dx = float(re.sub(r"\D", "", self.nc.attrs['grid_resolution']))
         else:
             dx = 0
 
