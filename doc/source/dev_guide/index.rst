@@ -23,8 +23,9 @@ and all code should follow the
 `PyTroll coding guidelines and best
 practices <http://pytroll.github.io/guidelines.html>`_.
 
-Satpy currently supports Python 2.7 and 3.4+. All code should be written to
-be compatible with these versions.
+Satpy is now Python 3 only and it is no longer needed to support Python 2.
+Check ``setup.py`` for the current Python versions any new code needs
+to support.
 
 Development installation
 ========================
