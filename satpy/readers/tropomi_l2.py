@@ -32,6 +32,9 @@ http://www.tropomi.eu/data-products/level-2-products
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 import logging
 import numpy as np
+import xarray as xr
+import dask.array as da
+from satpy import CHUNK_SIZE
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +54,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
     @property
     def platform_shortname(self):
-        """Get start time."""
+        """Get platform shortname."""
         return self.filename_info['platform_shortname']
 
     @property
@@ -78,6 +81,8 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
         # update previously configured datasets
         logger.debug("Starting previously configured variables loop...")
+        # if bounds exists, we can assemble them later
+        bounds_exist = 'latitude_bounds' in self and 'longitude_bounds' in self
         for is_avail, ds_info in (configured_datasets or []):
 
             # some other file handler knows how to load this
@@ -89,9 +94,13 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
             matches = self.file_type_matches(ds_info['file_type'])
             # we can confidently say that we can provide this dataset and can
             # provide more info
-            if matches and var_name in self:
+            assembled = var_name in ['assembled_lat_bounds', 'assembled_lon_bounds']
+            if (matches and var_name in self) or (assembled and bounds_exist):
                 logger.debug("Handling previously configured variable: %s", var_name)
-                handled_variables.add(var_name)
+                if not assembled:
+                    # Because assembled variables and bounds use the same file_key,
+                    # we need to omit file_key once.
+                    handled_variables.add(var_name)
                 new_info = ds_info.copy()  # don't mess up the above yielded
                 yield True, new_info
             elif is_avail is None:
@@ -158,6 +167,39 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
             dims_dict['scanline'] = 'y'
         return data_arr.rename(dims_dict)
 
+    def prepare_geo(self, bounds_data):
+        """Prepare lat/lon bounds for pcolormesh.
+
+        lat/lon bounds are ordered in the following way::
+
+            3----2
+            |    |
+            0----1
+
+        Extend longitudes and latitudes with one element to support
+        "pcolormesh"::
+
+            (X[i+1, j], Y[i+1, j])         (X[i+1, j+1], Y[i+1, j+1])
+                                  +--------+
+                                  | C[i,j] |
+                                  +--------+
+                 (X[i, j], Y[i, j])        (X[i, j+1], Y[i, j+1])
+
+        """
+        # Create the left array
+        left = np.vstack([bounds_data[:, :, 0], bounds_data[-1:, :, 3]])
+        # Create the right array
+        right = np.vstack([bounds_data[:, -1:, 1], bounds_data[-1:, -1:, 2]])
+        # Stack horizontally
+        dest = np.hstack([left, right])
+        # Convert to DataArray
+        dask_dest = da.from_array(dest, chunks=CHUNK_SIZE)
+        dest = xr.DataArray(dask_dest,
+                            dims=('y', 'x'),
+                            attrs=bounds_data.attrs
+                            )
+        return dest
+
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
         logger.debug("Getting data for: %s", ds_id.name)
@@ -168,4 +210,6 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         data = data.squeeze()
         data = data.where(data != fill)
         data = self._rename_dims(data)
+        if ds_id.name in ['assembled_lat_bounds', 'assembled_lon_bounds']:
+            data = self.prepare_geo(data)
         return data
