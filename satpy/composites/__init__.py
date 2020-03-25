@@ -595,6 +595,8 @@ class NIRReflectance(CompositeBase):
         """
         self._init_refl3x(projectables)
         _nir, _ = projectables
+        projectables = self.match_data_arrays(projectables)
+
         refl = self._get_reflectance(projectables, optional_datasets) * 100
         proj = xr.DataArray(refl, dims=_nir.dims,
                             coords=_nir.coords, attrs=_nir.attrs)
@@ -649,6 +651,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         Not supposed to be used for wavelength outside [3, 4] µm.
 
         """
+        projectables = self.match_data_arrays(projectables)
         self._init_refl3x(projectables)
         # Derive the sun-zenith angles, and use the nir and thermal ir
         # brightness tempertures and derive the reflectance using
