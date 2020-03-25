@@ -402,7 +402,7 @@ class SunZenithCorrectorBase(CompositeBase):
             self.coszen[key] = coszen
         elif coszen is None:
             # we were given the SZA, calculate the cos(SZA)
-            coszen = np.cos(np.deg2rad(info['optional_datasets'][0]))
+            coszen = np.cos(np.deg2rad(projectables[1]))
             self.coszen[key] = coszen
 
         proj = self._apply_correction(vis, coszen)
