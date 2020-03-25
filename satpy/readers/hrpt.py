@@ -33,8 +33,11 @@ import logging
 from datetime import datetime
 
 import numpy as np
+try:
+    from pygac.calibration import calibrate_solar, calibrate_thermal
+except ImportError:
+    from pygac.gac_calibration import calibrate_solar, calibrate_thermal
 
-from pygac.gac_calibration import calibrate_solar, calibrate_thermal
 from satpy.dataset import Dataset
 from satpy.readers.file_handlers import BaseFileHandler
 

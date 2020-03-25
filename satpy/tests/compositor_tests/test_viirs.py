@@ -18,10 +18,7 @@
 """Tests for VIIRS compositors."""
 
 import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 
 class TestVIIRSComposites(unittest.TestCase):
@@ -526,12 +523,3 @@ class ViirsReflectanceCorrectorTest(unittest.TestCase):
         self.assertIsInstance(args[4], da.Array)
         self.assertIsInstance(args[5], da.Array)
         self.assertEqual(args[6], 0)
-
-
-def suite():
-    """Create test suite for test_ahi."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSComposites))
-    mysuite.addTest(loader.loadTestsFromTestCase(ViirsReflectanceCorrectorTest))
-    return mysuite

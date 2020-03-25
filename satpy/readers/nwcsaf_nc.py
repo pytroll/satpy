@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2019 Satpy developers
+# Copyright (c) 2017-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -37,22 +37,31 @@ from satpy.readers.utils import unzip_file
 
 logger = logging.getLogger(__name__)
 
-SENSOR = {'NOAA-19': 'avhrr/3',
-          'NOAA-18': 'avhrr/3',
-          'NOAA-15': 'avhrr/3',
-          'Metop-A': 'avhrr/3',
-          'Metop-B': 'avhrr/3',
-          'Metop-C': 'avhrr/3',
+SENSOR = {'NOAA-19': 'avhrr-3',
+          'NOAA-18': 'avhrr-3',
+          'NOAA-15': 'avhrr-3',
+          'Metop-A': 'avhrr-3',
+          'Metop-B': 'avhrr-3',
+          'Metop-C': 'avhrr-3',
           'EOS-Aqua': 'modis',
           'EOS-Terra': 'modis',
           'Suomi-NPP': 'viirs',
           'NOAA-20': 'viirs',
-          'JPSS-1': 'viirs', }
+          'JPSS-1': 'viirs',
+          'GOES-16': 'abi',
+          'GOES-17': 'abi',
+          'Himawari-8': 'ahi',
+          'Himawari-9': 'ahi',
+          }
+
 
 PLATFORM_NAMES = {'MSG1': 'Meteosat-8',
                   'MSG2': 'Meteosat-9',
                   'MSG3': 'Meteosat-10',
-                  'MSG4': 'Meteosat-11', }
+                  'MSG4': 'Meteosat-11',
+                  'GOES16': 'GOES-16',
+                  'GOES17': 'GOES-17',
+                  }
 
 
 class NcNWCSAF(BaseFileHandler):
@@ -75,21 +84,35 @@ class NcNWCSAF(BaseFileHandler):
 
         self.nc = self.nc.rename({'nx': 'x', 'ny': 'y'})
         self.sw_version = self.nc.attrs['source']
+
         self.pps = False
+        self.platform_name = None
+        self.sensor = None
 
         try:
-            # MSG:
-            sat_id = self.nc.attrs['satellite_identifier']
+            # NWCSAF/Geo:
             try:
-                self.platform_name = PLATFORM_NAMES[sat_id]
+                kwrgs = {'sat_id': self.nc.attrs['satellite_identifier']}
             except KeyError:
-                self.platform_name = PLATFORM_NAMES[sat_id.astype(str)]
+                kwrgs = {'sat_id': self.nc.attrs['satellite_identifier'].astype(str)}
         except KeyError:
-            # PPS:
-            self.platform_name = self.nc.attrs['platform']
+            # NWCSAF/PPS:
+            kwrgs = {'platform_name': self.nc.attrs['platform']}
+
+        self.set_platform_and_sensor(**kwrgs)
+
+    def set_platform_and_sensor(self, **kwargs):
+        """Set some metadata: platform_name, sensors, and pps (identifying PPS or Geo)."""
+
+        try:
+            # NWCSAF/Geo
+            self.platform_name = PLATFORM_NAMES.get(kwargs['sat_id'], kwargs['sat_id'])
+        except KeyError:
+            # NWCSAF/PPS
+            self.platform_name = kwargs['platform_name']
             self.pps = True
 
-        self.sensor = SENSOR.get(self.platform_name, 'seviri')
+        self.sensor = set([SENSOR.get(self.platform_name, 'seviri')])
 
     def remove_timedim(self, var):
         """Remove time dimension from dataset."""
@@ -128,6 +151,7 @@ class NcNWCSAF(BaseFileHandler):
         The scale and offset attributes will then be removed from the resulting variable.
         """
         variable = remove_empties(variable)
+
         scale = variable.attrs.get('scale_factor', np.array(1))
         offset = variable.attrs.get('add_offset', np.array(0))
         if np.issubdtype((scale + offset).dtype, np.floating) or np.issubdtype(variable.dtype, np.floating):
@@ -149,6 +173,9 @@ class NcNWCSAF(BaseFileHandler):
         attrs = variable.attrs.copy()
         variable = variable * scale + offset
         variable.attrs = attrs
+        if 'valid_range' in variable.attrs:
+            variable.attrs['valid_range'] = variable.attrs['valid_range'] * scale + offset
+
         variable.attrs.pop('add_offset', None)
         variable.attrs.pop('scale_factor', None)
 
@@ -166,6 +193,14 @@ class NcNWCSAF(BaseFileHandler):
             pass
 
         if 'palette_meanings' in variable.attrs:
+            if 'scale_offset_dataset' in info:
+                so_dataset = self.nc[info['scale_offset_dataset']]
+                scale = so_dataset.attrs['scale_factor']
+                offset = so_dataset.attrs['add_offset']
+            else:
+                scale = 1
+                offset = 0
+
             variable.attrs['palette_meanings'] = [int(val)
                                                   for val in variable.attrs['palette_meanings'].split()]
             if variable.attrs['palette_meanings'][0] == 1:
@@ -174,7 +209,7 @@ class NcNWCSAF(BaseFileHandler):
                                         coords=variable.coords, dims=variable.dims, attrs=variable.attrs)
 
             val, idx = np.unique(variable.attrs['palette_meanings'], return_index=True)
-            variable.attrs['palette_meanings'] = val
+            variable.attrs['palette_meanings'] = val * scale + offset
             variable = variable[idx]
 
         if 'standard_name' in info:
@@ -185,6 +220,11 @@ class NcNWCSAF(BaseFileHandler):
         if self.sw_version == 'NWC/PPS version v2014' and dsid.name == 'ctth_alti_pal':
             # pps 2014 palette has the nodata color (black) first
             variable = variable[1:, :]
+        if self.sw_version == 'NWC/GEO version v2016' and dsid.name == 'ctth_alti':
+            # Geo 2016/18 valid range and palette don't match
+            # Valid range is 0 to 27000 in the file. But after scaling the valid range becomes -2000 to 25000
+            # This now fixed by the scaling of the valid range above.
+            pass
 
         return variable
 
@@ -277,6 +317,11 @@ class NcNWCSAF(BaseFileHandler):
             # PPS:
             return datetime.strptime(self.nc.attrs['time_coverage_end'],
                                      '%Y%m%dT%H%M%S%fZ')
+
+    @property
+    def sensor_names(self):
+        """List of sensors represented in this file."""
+        return self.sensor
 
     def _get_projection(self):
         """Get projection from the NetCDF4 attributes."""

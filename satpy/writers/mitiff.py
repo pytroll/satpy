@@ -51,6 +51,7 @@ class MITIFFWriter(ImageWriter):
         self.translate_channel_name = {}
         self.channel_order = {}
         self.palette = False
+        self.sensor = None
 
     def save_image(self):
         """Save dataset as an image array."""
@@ -73,6 +74,12 @@ class MITIFFWriter(ImageWriter):
                     kwargs['start_time'] = dataset.attrs['start_time']
                 if 'sensor' not in kwargs:
                     kwargs['sensor'] = dataset.attrs['sensor']
+
+                # Sensor attrs could be set. MITIFFs needing to handle sensor can only have one sensor
+                # Assume the first value of set as the sensor.
+                if isinstance(kwargs['sensor'], set):
+                    LOG.warning('Sensor is set, will use the first value: %s', kwargs['sensor'])
+                    kwargs['sensor'] = (list(kwargs['sensor']))[0]
 
                 try:
                     self.mitiff_config[kwargs['sensor']] = dataset.attrs['metadata_requirements']['config']
@@ -122,6 +129,12 @@ class MITIFFWriter(ImageWriter):
                     kwargs['start_time'] = datasets[0].attrs['start_time']
                 if 'sensor' not in kwargs:
                     kwargs['sensor'] = datasets[0].attrs['sensor']
+
+                # Sensor attrs could be set. MITIFFs needing to handle sensor can only have one sensor
+                # Assume the first value of set as the sensor.
+                if isinstance(kwargs['sensor'], set):
+                    LOG.warning('Sensor is set, will use the first value: %s', kwargs['sensor'])
+                    kwargs['sensor'] = (list(kwargs['sensor']))[0]
 
                 try:
                     self.mitiff_config[kwargs['sensor']] = datasets[0].attrs['metadata_requirements']['config']
