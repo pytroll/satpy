@@ -142,11 +142,3 @@ class TestAAPPL1B(unittest.TestCase):
             key = DatasetID(name='latitude')
             res = fh.get_dataset(key, info)
             assert(np.all(res == 0))
-
-
-def suite():
-    """Test suite."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAAPPL1B))
-    return mysuite

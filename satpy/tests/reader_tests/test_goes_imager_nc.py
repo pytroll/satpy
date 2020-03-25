@@ -16,22 +16,12 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 import datetime
-import sys
+import unittest
+from unittest import mock
 
 import numpy as np
 import xarray as xr
-
 from satpy import DatasetID
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class GOESNCBaseFileHandlerTest(unittest.TestCase):
@@ -524,18 +514,3 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
                 self.assertTrue(np.all(self.reflectance == refl.to_masked_array()),
                                 msg='get_dataset() returns invalid reflectance for '
                                 'channel {}'.format(ch))
-
-
-def suite():
-    """Test suite for GOES netCDF reader"""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(GOESNCBaseFileHandlerTest))
-    mysuite.addTest(loader.loadTestsFromTestCase(GOESNCFileHandlerTest))
-    mysuite.addTest(loader.loadTestsFromTestCase(GOESNCEUMFileHandlerRadianceTest))
-    mysuite.addTest(loader.loadTestsFromTestCase(GOESNCEUMFileHandlerReflectanceTest))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

@@ -22,10 +22,7 @@ import unittest
 import numpy as np
 import xarray as xr
 import dask.array as da
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 
 class TestEnhancementStretch(unittest.TestCase):
@@ -394,17 +391,3 @@ class TestColormapLoading(unittest.TestCase):
         self.assertEqual(cmap.values.shape[0], 4)
         self.assertEqual(cmap.values[0], 2)
         self.assertEqual(cmap.values[-1], 8)
-
-
-def suite():
-    """Create test suite for builtin enhancement functions."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestEnhancementStretch))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestColormapLoading))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

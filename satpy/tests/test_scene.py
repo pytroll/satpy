@@ -18,17 +18,8 @@
 """Unit tests for scene.py."""
 
 import os
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -512,8 +503,6 @@ class TestScene(unittest.TestCase):
 
     def test_aggregate(self):
         """Test the aggregate method."""
-        if (sys.version_info < (3, 0)):
-            self.skipTest("Not implemented in python 2 (xarray).")
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -2238,20 +2227,3 @@ class TestSceneConversions(unittest.TestCase):
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
         self.assertIsNotNone(gv_obj)
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestScene))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneLoading))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneResampling))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneSaving))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneConversions))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()
