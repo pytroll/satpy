@@ -15,15 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The abi_l1b reader tests package.
-"""
+"""The abi_l1b reader tests package."""
 
 import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 import warnings
 import numpy as np
 import dask.array as da
@@ -43,7 +38,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler(None, {'segment': 1, 'total_segments': 1}, None)
+            fh = AHIHSDFileHandler('somefile', {'segment': 1, 'total_segments': 1}, None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': -591.5,
                             'LFAC': 40932549,
@@ -88,7 +83,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler(None, {'segment': 8, 'total_segments': 10}, None)
+            fh = AHIHSDFileHandler('somefile', {'segment': 8, 'total_segments': 10}, None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
@@ -128,8 +123,10 @@ class TestAHIHSDNavigation(unittest.TestCase):
 
 
 class TestAHIHSDFileHandler(unittest.TestCase):
+    """Test case for the file reading."""
 
     def new_unzip(fname):
+        """Fake unzipping."""
         if(fname[-3:] == 'bz2'):
             return fname[:-4]
         return fname
@@ -145,7 +142,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
             # Check if file handler raises exception for invalid calibration mode
             with self.assertRaises(ValueError):
-                fh = AHIHSDFileHandler(None, {'segment': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
+                fh = AHIHSDFileHandler('somefile', {'segment': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
 
             in_fname = 'test_file.bz2'
             fh = AHIHSDFileHandler(in_fname, {'segment': 8, 'total_segments': 10}, None)
@@ -199,7 +196,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.__init__',
                 return_value=None)
     def test_calibrate(self, *mocks):
-        """Test calibration"""
+        """Test calibration."""
         def_cali = [-0.0037, 15.20]
         upd_cali = [-0.0074, 30.40]
         bad_cali = [0.0, 0.0]
@@ -280,7 +277,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.calibrate')
     def test_read_band(self, calibrate, *mocks):
-        # Test masking of space pixels
+        """Test masking of space pixels."""
         nrows = 25
         ncols = 100
         self.fh.area = AreaDefinition('test', 'test', 'test',
@@ -316,6 +313,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                 mask_space.assert_not_called()
 
     def test_blocklen_error(self, *mocks):
+        """Test erraneous blocklength."""
         open_name = '%s.open' % __name__
         fpos = 50
         with mock.patch(open_name, create=True) as mock_open:
@@ -334,6 +332,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._check_fpos')
     def test_read_header(self, *mocks):
+        """Test header reading."""
         nhdr = [
             {'blocklength': 0},
             {'blocklength': 0},
@@ -352,16 +351,3 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             {'blocklength': 0}]
         with mock.patch('numpy.fromfile', side_effect=nhdr):
             self.fh._read_header(mock.MagicMock())
-
-
-def suite():
-    """The test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDNavigation))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDFileHandler))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

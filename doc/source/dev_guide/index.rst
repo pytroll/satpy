@@ -14,17 +14,19 @@ at the pages listed below.
     CONTRIBUTING
     xarray_migration
     custom_reader
+    plugins
 
 Coding guidelines
 =================
 
-Satpy is part of `PyTroll <http://pytroll.github.io/>`_,
+Satpy is part of `Pytroll <http://pytroll.github.io/>`_,
 and all code should follow the
-`PyTroll coding guidelines and best
+`Pytroll coding guidelines and best
 practices <http://pytroll.github.io/guidelines.html>`_.
 
-Satpy currently supports Python 2.7 and 3.4+. All code should be written to
-be compatible with these versions.
+Satpy is now Python 3 only and it is no longer needed to support Python 2.
+Check ``setup.py`` for the current Python versions any new code needs
+to support.
 
 Development installation
 ========================
@@ -44,10 +46,11 @@ clone your fork. The package can then be installed in development by doing::
 Running tests
 =============
 
-Satpy tests are written using the python :mod:`unittest` module and the tests
-can be executed by running::
+Satpy tests are written using the python :mod:`unittest` module and the
+third-party :doc:`pytest <pytest:index>` package. Satpy tests can be executed by
+running::
 
-    python setup.py test
+    pytest satpy/tests
 
 Documentation
 =============

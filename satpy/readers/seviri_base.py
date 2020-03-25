@@ -15,7 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Utilities and eventually also base classes for MSG HRIT/Native data reading."""
+"""Utilities and helper classes for MSG HRIT/Native data reading.
+
+References:
+    MSG Level 1.5 Image Data Format Description
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+
+"""
 
 import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
@@ -23,6 +29,19 @@ import dask.array as da
 
 from satpy.readers.eum_base import (time_cds_short,
                                     issue_revision)
+
+PLATFORM_DICT = {
+    'MET08': 'Meteosat-8',
+    'MET09': 'Meteosat-9',
+    'MET10': 'Meteosat-10',
+    'MET11': 'Meteosat-11',
+    'MSG1': 'Meteosat-8',
+    'MSG2': 'Meteosat-9',
+    'MSG3': 'Meteosat-10',
+    'MSG4': 'Meteosat-11',
+}
+
+REPEAT_CYCLE_DURATION = 15
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
@@ -368,3 +387,38 @@ def chebyshev(coefs, time, domain):
 
     """
     return Chebyshev(coefs, domain=domain)(time) - 0.5 * coefs[0]
+
+
+def calculate_area_extent(area_dict):
+    """Calculate the area extent seen by a geostationary satellite.
+
+    Args:
+        area_dict: A dictionary containing the required parameters
+            center_point: Center point for the projection
+            resolution: Pixel resulution in meters
+            north: Northmost row number
+            east: Eastmost column number
+            west: Westmost column number
+            south: Southmost row number
+            [column_offset: Column offset, defaults to 0 if not given]
+            [row_offset: Row offset, defaults to 0 if not given]
+    Returns:
+        tuple: An area extent for the scene defined by the lower left and
+               upper right corners
+
+    """
+    # For Earth model 2 and full disk resolution center point
+    # column and row is (1856.5, 1856.5)
+    # See: MSG Level 1.5 Image Data Format Description, Figure 7
+    cp_c = area_dict['center_point'] + area_dict.get('column_offset', 0)
+    cp_r = area_dict['center_point'] + area_dict.get('row_offset', 0)
+
+    # Calculate column and row for lower left and upper right corners.
+    ll_c = (area_dict['west'] - cp_c)
+    ll_r = (area_dict['north'] - cp_r + 1)
+    ur_c = (area_dict['east'] - cp_c - 1)
+    ur_r = (area_dict['south'] - cp_r)
+
+    aex = np.array([ll_c, ll_r, ur_c, ur_r]) * area_dict['resolution']
+
+    return tuple(aex)

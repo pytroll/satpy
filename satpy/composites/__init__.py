@@ -25,7 +25,6 @@ from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
-import six
 import xarray as xr
 import yaml
 
@@ -35,7 +34,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
-from satpy.config import get_environ_ancpath
+from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
@@ -84,9 +83,11 @@ class CompositorLoader(object):
         """Load all compositor configs for the provided sensor."""
         config_filename = sensor_name + ".yaml"
         LOG.debug("Looking for composites config file %s", config_filename)
+        paths = get_entry_points_config_dirs('satpy.composites')
+        paths.append(self.ppp_config_dir)
         composite_configs = config_search_paths(
             os.path.join("composites", config_filename),
-            self.ppp_config_dir, check_exists=True)
+            *paths, check_exists=True)
         if not composite_configs:
             LOG.debug("No composite config found called {}".format(
                 config_filename))
@@ -596,6 +597,8 @@ class NIRReflectance(CompositeBase):
         """
         self._init_refl3x(projectables)
         _nir, _ = projectables
+        projectables = self.match_data_arrays(projectables)
+
         refl = self._get_reflectance(projectables, optional_datasets) * 100
         proj = xr.DataArray(refl, dims=_nir.dims,
                             coords=_nir.coords, attrs=_nir.attrs)
@@ -650,6 +653,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         Not supposed to be used for wavelength outside [3, 4] µm.
 
         """
+        projectables = self.match_data_arrays(projectables)
         self._init_refl3x(projectables)
         # Derive the sun-zenith angles, and use the nir and thermal ir
         # brightness tempertures and derive the reflectance using
@@ -818,7 +822,7 @@ class GenericCompositor(CompositeBase):
         for projectable in projectables:
             current_sensor = projectable.attrs.get("sensor", None)
             if current_sensor:
-                if isinstance(current_sensor, (str, bytes, six.text_type)):
+                if isinstance(current_sensor, (str, bytes)):
                     sensor.add(current_sensor)
                 else:
                     sensor |= current_sensor
@@ -911,10 +915,23 @@ class ColormapCompositor(GenericCompositor):
 
     @staticmethod
     def build_colormap(palette, dtype, info):
-        """Create the colormap from the `raw_palette` and the valid_range."""
+        """Create the colormap from the `raw_palette` and the valid_range.
+
+        Colormaps come in different forms, but they are all supposed to have
+        color values between 0 and 255. The following cases are considered:
+        - Palettes comprised of only a list on colors. If *dtype* is uint8,
+          the values of the colormap are the enumaration of the colors.
+          Otherwise, the colormap values will be spread evenly from the min
+          to the max of the valid_range provided in `info`.
+        - Palettes that have a palette_meanings attribute. The palette meanings
+          will be used as values of the colormap.
+
+        """
         from trollimage.colormap import Colormap
         sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        set_range = True
         if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
+            set_range = False
             meanings = palette.attrs['palette_meanings']
             iterator = zip(meanings, sqpalette)
         else:
@@ -930,9 +947,11 @@ class ColormapCompositor(GenericCompositor):
                     for (val, tup) in iterator]
             colormap = Colormap(*tups)
 
-            sf = info.get('scale_factor', np.array(1))
-            colormap.set_range(
-                *info['valid_range'] * sf + info.get('add_offset', 0))
+            if set_range:
+                sf = info.get('scale_factor', np.array(1))
+                colormap.set_range(
+                    *(np.array(info['valid_range']) * sf
+                      + info.get('add_offset', 0)))
         else:
             raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
                                  " in order to be displayable with an attached color-palette!")
@@ -978,7 +997,6 @@ class PaletteCompositor(ColormapCompositor):
 
         # TODO: support datasets with palette to delegate this to the image
         # writer.
-
         data, palette = projectables
         colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
@@ -1007,7 +1025,7 @@ class PaletteCompositor(ColormapCompositor):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, name, lim_low=85., lim_high=95., **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., **kwargs):
         """Collect custom configuration values.
 
         Args:
