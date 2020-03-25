@@ -175,9 +175,9 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             self.assertIn('x', ds[key].dims)
             self.assertIn('corner', ds[key].dims)
             # check assembled bounds
-            bottom = np.hstack([ds[key][:, :, 0],  ds[key][:, -1:, 1]])
-            top = np.hstack([ds[key][-1, :, 3], ds[key][-1, -1, 2]])
-            dest = np.vstack([top, bottom])
+            left = np.vstack([ds[key][:, :, 0], ds[key][-1:, :, 3]])
+            right = np.vstack([ds[key][:, -1:, 1], ds[key][-1:, -1:, 2]])
+            dest = np.hstack([left, right])
             dest = xr.DataArray(dest,
                                 dims=('y', 'x')
                                 )
@@ -187,3 +187,8 @@ class TestTROPOMIL2Reader(unittest.TestCase):
             self.assertIn('x', dest.dims)
             self.assertEqual(DEFAULT_FILE_SHAPE[0] + 1, dest.shape[0])
             self.assertEqual(DEFAULT_FILE_SHAPE[1] + 1, dest.shape[1])
+            self.assertIsNone(np.testing.assert_array_equal(dest[:-1, :-1], ds[key][:, :, 0]))
+            self.assertIsNone(np.testing.assert_array_equal(dest[-1, :-1], ds[key][-1, :, 3]))
+            self.assertIsNone(np.testing.assert_array_equal(dest[:, -1],
+                              np.append(ds[key][:, -1, 1], ds[key][-1:, -1:, 2]))
+                              )
