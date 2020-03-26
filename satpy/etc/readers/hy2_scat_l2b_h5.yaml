@@ -31,6 +31,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: wind_speed
+    sensor: scatterometer
 
   wind_dir_selection:
     name: wind_dir_selection
@@ -38,6 +39,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: wind_dir
+    sensor: scatterometer
 
   wind_speed:
     name: wind_speed
@@ -45,6 +47,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: wind_speed
+    sensor: scatterometer
 
   wind_dir:
     name: wind_dir
@@ -52,6 +55,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: wind_dir
+    sensor: scatterometer
 
   max_likelihood_est:
     name: max_likelihood_est
@@ -59,6 +63,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: max_likelihood_est
+    sensor: scatterometer
 
   model_speed:
     name: model_speed
@@ -66,6 +71,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: model_speed
+    sensor: scatterometer
 
   model_dir:
     name: model_dir
@@ -73,6 +79,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: model_dir
+    sensor: scatterometer
 
   num_ambigs:
     name: num_ambigs
@@ -80,6 +87,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: num_ambigs
+    sensor: scatterometer
 
   num_in_aft:
     name: num_in_aft
@@ -87,6 +95,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: num_in_aft
+    sensor: scatterometer
 
   num_in_fore:
     name: num_in_fore
@@ -94,6 +103,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: num_in_fore
+    sensor: scatterometer
 
   num_out_aft:
     name: num_out_aft
@@ -101,6 +111,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: num_out_aft
+    sensor: scatterometer
 
   num_out_fore:
     name: num_out_fore
@@ -108,6 +119,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: num_out_fore
+    sensor: scatterometer
 
   wvc_quality_flag:
     name: wvc_quality_flag
@@ -115,6 +127,7 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: wvc_quality_flag
+    sensor: scatterometer
 
   wvc_row_time:
     name: wvc_row_time
@@ -127,3 +140,4 @@ datasets:
     coordinates: [wvc_lon, wvc_lat]
     file_type: hy2_scat_l2b_h5
     standard_name: wvc_selection
+    sensor: scatterometer
