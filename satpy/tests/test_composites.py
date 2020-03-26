@@ -1282,26 +1282,23 @@ class TestNaturalEnhCompositor(unittest.TestCase):
         self.ch06_w = 4.0
 
     @mock.patch('satpy.composites.NaturalEnh.__repr__')
-    @mock.patch('satpy.composites.GenericCompositor')
-    @mock.patch('satpy.composites.NaturalEnh.check_areas')
-    def test_natural_enh(self, check_areas, generic, repr_):
+    @mock.patch('satpy.composites.NaturalEnh.match_data_arrays')
+    def test_natural_enh(self, match_data_arrays, repr_):
         """Test NaturalEnh compositor."""
         from satpy.composites import NaturalEnh
         repr_.return_value = ''
         projectables = [self.ch1, self.ch2, self.ch3]
 
         def temp_func(*args):
-            return args[1]
-        generic.side_effect = temp_func
-        check_areas.return_value = projectables
-        comp = NaturalEnh(ch16_w=self.ch16_w, ch08_w=self.ch08_w,
+            return args[0]
+        match_data_arrays.side_effect = temp_func
+        comp = NaturalEnh("foo", ch16_w=self.ch16_w, ch08_w=self.ch08_w,
                           ch06_w=self.ch06_w)
         self.assertEqual(comp.ch16_w, self.ch16_w)
         self.assertEqual(comp.ch08_w, self.ch08_w)
         self.assertEqual(comp.ch06_w, self.ch06_w)
         res = comp(projectables)
-        check_areas.assert_called_once_with(projectables)
-        generic.assert_called_once()
+        assert mock.call(projectables) in match_data_arrays.mock_calls
         correct = (self.ch16_w * projectables[0] +
                    self.ch08_w * projectables[1] +
                    self.ch06_w * projectables[2])
