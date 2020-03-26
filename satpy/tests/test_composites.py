@@ -17,13 +17,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for compositors in composites/__init__.py."""
 
-import xarray as xr
-import dask.array as da
-import dask
-import numpy as np
+import unittest
 from datetime import datetime
 from unittest import mock
-import unittest
+
+import dask
+import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
 
 
 class TestMatchDataArrays(unittest.TestCase):
@@ -233,6 +235,9 @@ class TestSunZenithCorrector(unittest.TestCase):
         area = AreaDefinition('test', 'test', 'test',
                               {'proj': 'merc'}, 2, 2,
                               (-2000, -2000, 2000, 2000))
+        bigger_area = AreaDefinition('test', 'test', 'test',
+                                     {'proj': 'merc'}, 4, 4,
+                                     (-2000, -2000, 2000, 2000))
         attrs = {'area': area,
                  'start_time': datetime(2018, 1, 1, 18),
                  'modifiers': tuple(),
@@ -241,6 +246,11 @@ class TestSunZenithCorrector(unittest.TestCase):
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         self.ds1 = ds1
+        ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
+        ds2.attrs['area'] = bigger_area
+        self.ds2 = ds2
         self.sza = xr.DataArray(
             np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
                                                chunks=2))),
@@ -283,6 +293,13 @@ class TestSunZenithCorrector(unittest.TestCase):
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         res = comp((self.ds1, self.sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
+
+    def test_imcompatible_areas(self):
+        """Test sunz correction on incompatible areas."""
+        from satpy.composites import SunZenithCorrector, IncompatibleAreas
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
+        with pytest.raises(IncompatibleAreas):
+            comp((self.ds2, self.sza), test_attr='test')
 
 
 class TestDifferenceCompositor(unittest.TestCase):
