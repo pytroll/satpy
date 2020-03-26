@@ -376,7 +376,7 @@ class SunZenithCorrectorBase(CompositeBase):
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
-        projectables = self.match_data_arrays(projectables)
+        projectables = self.match_data_arrays(list(projectables) + list(info.get('optional_datasets', [])))
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
@@ -387,7 +387,7 @@ class SunZenithCorrectorBase(CompositeBase):
         tic = time.time()
         LOG.debug("Applying sun zen correction")
         coszen = self.coszen.get(key)
-        if coszen is None and len(projectables) == 1:
+        if coszen is None and not info.get('optional_datasets'):
             # we were not given SZA, generate SZA then calculate cos(SZA)
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
