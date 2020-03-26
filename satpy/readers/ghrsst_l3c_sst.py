@@ -1,27 +1,22 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-# Copyright (c) 2016 Adam.Dybbroe
-
-# Author(s):
-
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-"""An OSISAF SST reader for the netCDF GHRSST format
-"""
+"""An OSISAF SST reader for the netCDF GHRSST format."""
 
 import logging
 from datetime import datetime
@@ -44,7 +39,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
         return datetime.strptime(datestr, '%Y%m%dT%H%M%SZ')
 
     def get_area_def(self, area_id, area_info):
-        """Override abstract baseclass method"""
+        """Override abstract baseclass method."""
         raise NotImplementedError
 
     def get_dataset(self, dataset_id, ds_info, out=None):
@@ -102,8 +97,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
         return cls(out, **ds_info)
 
     def get_lonlats(self, navid, nav_info, lon_out=None, lat_out=None):
-        """Load an area.
-        """
+        """Load an area."""
         lon_key = 'lon'
         valid_min = self[lon_key + '/attr/valid_min']
         valid_max = self[lon_key + '/attr/valid_max']
@@ -121,9 +115,11 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
 
     @property
     def start_time(self):
+        """Get start time."""
         # return self.filename_info['start_time']
         return self._parse_datetime(self['/attr/start_time'])
 
     @property
     def end_time(self):
+        """Get end time."""
         return self._parse_datetime(self['/attr/stop_time'])

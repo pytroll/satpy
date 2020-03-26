@@ -79,6 +79,60 @@ enhancements:
     - name: gamma
       method: *gammafun
       kwargs: {gamma: 1.8}
+
+  fire_temperature:
+    standard_name: fire_temperature
+    name: fire_temperature
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [3.5, 35., 85.]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: [1.0, 1.0, 1.0]}
+  fire_temperature_awips:
+    standard_name: fire_temperature
+    name: fire_temperature_awips
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [273.0, 0, 0]
+        max_stretch: [333.0, 100., 75.]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: [0.4, 1.0, 1.0]}
+  fire_temperature_eumetsat:
+    standard_name: fire_temperature
+    name: fire_temperature_eumetsat
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [273.0, 0, 0]
+        max_stretch: [350.0, 60., 60.]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: [1.0, 1.0, 1.0]}
+  fire_temperature_39refl:
+    standard_name: fire_temperature
+    name: fire_temperature_39refl
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [50., 100., 75.]
+    - name: gamma
+      method: *gammafun
+      kwargs: {gamma: [1.0, 1.0, 1.0]}
+
   airmass_default:
     standard_name: airmass
     operations:
@@ -88,16 +142,7 @@ enhancements:
         stretch: crude
         min_stretch: [-25, -40, 243]
         max_stretch: [0, 5, 208]
-  airmass_abi:
-    standard_name: airmass
-    sensor: abi
-    operations:
-    - name: stretch
-      method: *stretchfun
-      kwargs:
-        stretch: crude
-        min_stretch: [-26.2, -43.2, 243.9]
-        max_stretch: [0.6, 6.7, 208.5]
+
   green_snow_default:
     standard_name: green_snow
     operations:
@@ -225,12 +270,41 @@ enhancements:
     - name: stretch
       method: *stretchfun
       kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [0.10, 1.37, 0.32 ]
+
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [2, 3, 2]
+
+  sar-ice-legacy:
+    standard_name: sar-ice-legacy
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
         stretch: linear
         cutoffs: [0.2, 0.02]
     - name: gamma
       method: *gammafun
       kwargs:
         gamma: [1, 1.2, 1]
+
+  sar-land:
+    standard_name: sar-land
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0.01, 1. , 0.15 ]
+        max_stretch: [0.765, 50., 1.4]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1.5, 2.25, 1.5]
 
   sar-rgb:
     standard_name: sar-rgb
@@ -274,6 +348,15 @@ enhancements:
         max_stretch: [1, 1, 1]
   cloudmask:
     standard_name: cloudmask
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+  cloudmask_probability:
+    standard_name: cloudmask_probability
     operations:
     - name: stretch
       method: *stretchfun
@@ -677,8 +760,8 @@ enhancements:
         method: &colorizefun !!python/name:satpy.enhancements.colorize ''
         kwargs:
           palettes:
-            - {colors: spectral, min_value: 203.15, max_value: 243.149999}
-            - {colors: greys, min_value: 243.15, max_value: 303.15}
+            - {colors: spectral, min_value: 193.15, max_value: 253.149999}
+            - {colors: greys, min_value: 253.15, max_value: 303.15}
 
   vis_sharpened_ir:
     standard_name: vis_sharpened_ir
@@ -709,3 +792,64 @@ enhancements:
          stretch: crude
          min_stretch: [0, 0, 0]
          max_stretch: [589, 95, 95]
+
+  hrv_clouds:
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 323]
+          max_stretch: [100, 100, 203]
+    standard_name: hrv_clouds
+
+  hrv_fog:
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [0, 0, 0]
+          max_stretch: [70, 100, 100]
+    standard_name: hrv_fog
+
+  true_color_with_night_ir:
+    standard_name: true_color_with_night_ir
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]
+
+  night_background:
+    standard_name: night_background
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [255, 255, 255]
+
+  night_ir_alpha:
+    standard_name: night_ir_alpha
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs: {stretch: linear, cutoffs: [0.02, 0.02]}
+    - name: inverse
+      method: *inversefun
+      args:
+      - [true, true, true, true]
+
+  night_ir_with_background:
+    standard_name: night_ir_with_background
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [0, 0, 0]
+        max_stretch: [1, 1, 1]

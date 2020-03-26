@@ -1,33 +1,47 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2017-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Utilities and helper classes for MSG HRIT/Native data reading.
 
-# Copyright (c) 2017, 2018 PyTroll Community
+References:
+    MSG Level 1.5 Image Data Format Description
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
 
-# Author(s):
-
-#   Adam.Dybbroe <adam.dybbroe@smhi.se>
-#   Sauli.Joro <sauli.joro@eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""Utilities and eventually also base classes for MSG HRIT/Native data reading
 """
 
-from datetime import datetime, timedelta
 import numpy as np
+from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
-import xarray.ufuncs as xu
+
+from satpy.readers.eum_base import (time_cds_short,
+                                    issue_revision)
+
+PLATFORM_DICT = {
+    'MET08': 'Meteosat-8',
+    'MET09': 'Meteosat-9',
+    'MET10': 'Meteosat-10',
+    'MET11': 'Meteosat-11',
+    'MSG1': 'Meteosat-8',
+    'MSG2': 'Meteosat-9',
+    'MSG3': 'Meteosat-10',
+    'MSG4': 'Meteosat-11',
+}
+
+REPEAT_CYCLE_DURATION = 15
 
 C1 = 1.19104273e-5
 C2 = 1.43877523
@@ -48,6 +62,8 @@ CHANNEL_NAMES = {1: "VIS006",
                  10: "IR_120",
                  11: "IR_134",
                  12: "HRV"}
+
+VIS_CHANNELS = ['HRV', 'VIS006', 'VIS008', 'IR_016']
 
 # Polynomial coefficients for spectral-effective BT fits
 BTFIT = {}
@@ -190,11 +206,31 @@ CALIB[324] = {'HRV': {'F': 79.0035 / np.pi},
 
 
 def get_cds_time(days, msecs):
-    """Get the datetime object of the time since epoch given in days and
-    milliseconds of day
+    """Compute timestamp given the days since epoch and milliseconds of the day.
+
+    1958-01-01 00:00 is interpreted as fill value and will be replaced by NaT (Not a Time).
+
+    Args:
+        days (int, either scalar or numpy.ndarray):
+            Days since 1958-01-01
+        msecs (int, either scalar or numpy.ndarray):
+            Milliseconds of the day
+
+    Returns:
+        numpy.datetime64: Timestamp(s)
+
     """
-    return datetime(1958, 1, 1) + timedelta(days=float(days),
-                                            milliseconds=float(msecs))
+    if np.isscalar(days):
+        days = np.array([days], dtype='int64')
+        msecs = np.array([msecs], dtype='int64')
+
+    time = np.datetime64('1958-01-01').astype('datetime64[ms]') + \
+        days.astype('timedelta64[D]') + msecs.astype('timedelta64[ms]')
+    time[time == np.datetime64('1958-01-01 00:00')] = np.datetime64("NaT")
+
+    if len(time) == 1:
+        return time[0]
+    return time
 
 
 def dec10216(inbuf):
@@ -239,17 +275,71 @@ def dec10216(inbuf):
     return arr16
 
 
+class MpefProductHeader(object):
+    """MPEF product header class."""
+
+    def get(self):
+        """Return numpy record_array for MPEF product header."""
+        record = [
+            ('MPEF_File_Id', np.int16),
+            ('MPEF_Header_Version', np.uint8),
+            ('ManualDissAuthRequest', np.bool),
+            ('ManualDisseminationAuth', np.bool),
+            ('DisseminationAuth', np.bool),
+            ('NominalTime', time_cds_short),
+            ('ProductQuality', np.uint8),
+            ('ProductCompleteness', np.uint8),
+            ('ProductTimeliness', np.uint8),
+            ('ProcessingInstanceId', np.int8),
+            ('ImagesUsed', self.images_used, (4,)),
+            ('BaseAlgorithmVersion',
+             issue_revision),
+            ('ProductAlgorithmVersion',
+             issue_revision),
+            ('InstanceServerName', 'S2'),
+            ('SpacecraftName', 'S2'),
+            ('Mission', 'S3'),
+            ('RectificationLongitude', 'S5'),
+            ('Encoding', 'S1'),
+            ('TerminationSpace', 'S1'),
+            ('EncodingVersion', np.uint16),
+            ('Channel', np.uint8),
+            ('Filler', 'S20'),
+            ('RepeatCycle', 'S15'),
+        ]
+
+        return np.dtype(record).newbyteorder('>')
+
+    @property
+    def images_used(self):
+        """Return structure for images_used."""
+        record = [
+            ('Padding1', 'S2'),
+            ('ExpectedImage', time_cds_short),
+            ('ImageReceived', np.bool),
+            ('Padding2', 'S1'),
+            ('UsedImageStart_Day', np.uint16),
+            ('UsedImageStart_Millsec', np.uint32),
+            ('Padding3', 'S2'),
+            ('UsedImageEnd_Day', np.uint16),
+            ('UsedImageEndt_Millsec', np.uint32),
+        ]
+
+        return record
+
+
+mpef_product_header = MpefProductHeader().get()
+
+
 class SEVIRICalibrationHandler(object):
-    """Calibration handler for SEVIRI HRIT- and native-formats.
-    """
+    """Calibration handler for SEVIRI HRIT- and native-formats."""
 
     def _convert_to_radiance(self, data, gain, offset):
         """Calibrate to radiance."""
-
         return (data * gain + offset).clip(0.0, None)
 
     def _erads2bt(self, data, channel_name):
-        """Computation based on effective radiance."""
+        """Convert effective radiance to brightness temperature."""
         cal_info = CALIB[self.platform_id][channel_name]
         alpha = cal_info["ALPHA"]
         beta = cal_info["BETA"]
@@ -269,7 +359,7 @@ class SEVIRICalibrationHandler(object):
             raise NotImplementedError('Unknown calibration type')
 
     def _srads2bt(self, data, channel_name):
-        """Computation based on spectral radiance."""
+        """Convert spectral radiance to brightness temperature."""
         a__, b__, c__ = BTFIT[channel_name]
         wavenumber = CALIB[self.platform_id][channel_name]["VC"]
         temp = self._tl15(data, wavenumber)
@@ -278,11 +368,57 @@ class SEVIRICalibrationHandler(object):
 
     def _tl15(self, data, wavenumber):
         """Compute the L15 temperature."""
-
         return ((C2 * wavenumber) /
-                xu.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
+                np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
     def _vis_calibrate(self, data, solar_irradiance):
         """Calibrate to reflectance."""
-
         return data * 100.0 / solar_irradiance
+
+
+def chebyshev(coefs, time, domain):
+    """Evaluate a Chebyshev Polynomial.
+
+    Args:
+        coefs (list, np.array): Coefficients defining the polynomial
+        time (int, float): Time where to evaluate the polynomial
+        domain (list, tuple): Domain (or time interval) for which the polynomial is defined: [left, right]
+    Reference: Appendix A in the MSG Level 1.5 Image Data Format Description.
+
+    """
+    return Chebyshev(coefs, domain=domain)(time) - 0.5 * coefs[0]
+
+
+def calculate_area_extent(area_dict):
+    """Calculate the area extent seen by a geostationary satellite.
+
+    Args:
+        area_dict: A dictionary containing the required parameters
+            center_point: Center point for the projection
+            resolution: Pixel resulution in meters
+            north: Northmost row number
+            east: Eastmost column number
+            west: Westmost column number
+            south: Southmost row number
+            [column_offset: Column offset, defaults to 0 if not given]
+            [row_offset: Row offset, defaults to 0 if not given]
+    Returns:
+        tuple: An area extent for the scene defined by the lower left and
+               upper right corners
+
+    """
+    # For Earth model 2 and full disk resolution center point
+    # column and row is (1856.5, 1856.5)
+    # See: MSG Level 1.5 Image Data Format Description, Figure 7
+    cp_c = area_dict['center_point'] + area_dict.get('column_offset', 0)
+    cp_r = area_dict['center_point'] + area_dict.get('row_offset', 0)
+
+    # Calculate column and row for lower left and upper right corners.
+    ll_c = (area_dict['west'] - cp_c)
+    ll_r = (area_dict['north'] - cp_r + 1)
+    ur_c = (area_dict['east'] - cp_c - 1)
+    ur_r = (area_dict['south'] - cp_r)
+
+    aex = np.array([ll_c, ll_r, ur_c, ur_r]) * area_dict['resolution']
+
+    return tuple(aex)

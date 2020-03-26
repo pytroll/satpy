@@ -1,33 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2014-2018 Pytroll developpers
-
-# Author(s):
-
-#   Andrew Brooks
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-"""GOES HRIT format reader
-****************************
+# Copyright (c) 2014-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""GOES HRIT format reader.
 
 References:
       LRIT/HRIT Mission Specific Implementation, February 2012
       GVARRDL98.pdf
       05057_SPE_MSG_LRIT_HRI
+
 """
 
 import logging
@@ -46,6 +40,8 @@ from satpy.readers.hrit_base import (HRITFileHandler, ancillary_text,
 
 
 class CalibrationError(Exception):
+    """Dummy error-class."""
+
     pass
 
 
@@ -119,6 +115,7 @@ sgs_time = np.dtype([('century', 'u1'),
 
 
 def make_sgs_time(sgs_time_array):
+    """Make sgs time."""
     year = ((sgs_time_array['century'] >> 4) * 1000 +
             (sgs_time_array['century'] & 15) * 100 +
             (sgs_time_array['year'] >> 4) * 10 +
@@ -162,6 +159,7 @@ gvar_float = '>i4'
 
 
 def make_gvar_float(float_val):
+    """Make gvar float."""
     sign = 1
     if float_val < 0:
         float_val = -float_val
@@ -236,8 +234,7 @@ prologue = np.dtype([
 
 
 class HRITGOESPrologueFileHandler(HRITFileHandler):
-
-    """GOES HRIT format reader"""
+    """GOES HRIT format reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
@@ -260,7 +257,6 @@ class HRITGOESPrologueFileHandler(HRITFileHandler):
 
     def process_prologue(self):
         """Reprocess prologue to correct types."""
-
         for key in ['TCurr', 'TCHED', 'TCTRL', 'TLHED', 'TLTRL', 'TIPFS',
                     'TINFS', 'TISPC', 'TIECL', 'TIBBC', 'TISTR', 'TLRAN',
                     'TIIRT', 'TIVIT', 'TCLMT', 'TIONA']:
@@ -389,6 +385,9 @@ class HRITGOESFileHandler(HRITFileHandler):
         res.attrs = new_attrs
         res.attrs['platform_name'] = self.platform_name
         res.attrs['sensor'] = 'goes_imager'
+        res.attrs['orbital_parameters'] = {'projection_longitude': self.mda['projection_parameters']['SSP_longitude'],
+                                           'projection_latitude': 0.0,
+                                           'projection_altitude': ALTITUDE}
         return res
 
     def _get_calibration_params(self):
@@ -432,12 +431,12 @@ class HRITGOESFileHandler(HRITFileHandler):
         idx = self.mda['calibration_parameters']['indices']
         val = self.mda['calibration_parameters']['values']
         data.data = da.where(data.data == 0, np.nan, data.data)
-        ddata = data.data.map_blocks(lambda block: np.interp(block, idx, val), dtype=val.dtype)
+        ddata = data.data.map_blocks(np.interp, idx, val, dtype=val.dtype)
         res = xr.DataArray(ddata,
                            dims=data.dims, attrs=data.attrs,
                            coords=data.coords)
         res = res.clip(min=0)
-        units = {'percent': '%'}
+        units = {b'percent': '%', b'degree Kelvin': 'K'}
         unit = self.mda['calibration_parameters'][b'_UNIT']
         res.attrs['units'] = units.get(unit, unit)
         return res

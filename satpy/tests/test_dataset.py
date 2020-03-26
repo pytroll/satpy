@@ -1,30 +1,24 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2015-2019 Satpy developers
 #
-# Copyright (c) 2015-2018 SatPy Developers
+# This file is part of satpy.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Test objects and functions in the dataset module.
-"""
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Test objects and functions in the dataset module."""
 
-import sys
 from datetime import datetime
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 
 class TestDatasetID(unittest.TestCase):
@@ -90,14 +84,3 @@ class TestCombineMetadata(unittest.TestCase):
         ret = combine_metadata(*dts, average_times=False)
         # times are not equal so don't include it in the final result
         self.assertNotIn('start_time', ret)
-
-
-def suite():
-    """The test suite for test_projector.
-    """
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestDatasetID))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCombineMetadata))
-
-    return my_suite

@@ -1,25 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2016-2017 Martin Raspaud
-
-# Author(s):
-
-#   Matias Takala  <matias.takala@fmi.fi>
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2016-2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SAFE MSI L1C reader.
 """
 
@@ -137,11 +132,17 @@ class SAFEMSIMDXML(BaseFileHandler):
                     self.tile,
                     "On-the-fly area",
                     self.tile,
-                    proj_dict={'init': epsg},
-                    x_size=cols,
-                    y_size=rows,
-                    area_extent=area_extent)
+                    {'init': epsg},
+                    cols,
+                    rows,
+                    area_extent)
         return area
+
+    @staticmethod
+    def _do_interp(minterp, xcoord, ycoord):
+        interp_points2 = np.vstack((xcoord.ravel(), ycoord.ravel()))
+        res = minterp(interp_points2)
+        return res.reshape(xcoord.shape)
 
     def interpolate_angles(self, angles, resolution):
         # FIXME: interpolate in cartesian coordinates if the lons or lats are
@@ -158,17 +159,10 @@ class SAFEMSIMDXML(BaseFileHandler):
         minterp = MultilinearInterpolator(smin, smax, orders)
         minterp.set_values(da.atleast_2d(angles.ravel()))
 
-        def _do_interp(minterp, xcoord, ycoord):
-            interp_points2 = np.vstack((xcoord.ravel(),
-                                        ycoord.ravel()))
-            res = minterp(interp_points2)
-            return res.reshape(xcoord.shape)
-
         x = da.arange(rows, dtype=angles.dtype, chunks=CHUNK_SIZE) / (rows-1) * (angles.shape[0] - 1)
         y = da.arange(cols, dtype=angles.dtype, chunks=CHUNK_SIZE) / (cols-1) * (angles.shape[1] - 1)
         xcoord, ycoord = da.meshgrid(x, y)
-        return da.map_blocks(_do_interp, minterp, xcoord, ycoord, dtype=angles.dtype,
-                             chunks=xcoord.chunks)
+        return da.map_blocks(self._do_interp, minterp, xcoord, ycoord, dtype=angles.dtype, chunks=xcoord.chunks)
 
     def _get_coarse_dataset(self, key, info):
         """Get the coarse dataset refered to by `key` from the XML data."""

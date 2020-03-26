@@ -3,56 +3,71 @@ reader:
   description: VIIRS SDR Reader
   reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRReader
   sensors: [viirs]
-  default_channels:
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  # by default, don't use start_time group files (only orbit and platform)
+  group_keys: ['orbit', 'platform_shortname']
 
 datasets:
   i_lon:
     name: i_longitude
     resolution: 371
-    file_type: gitco
-    file_key: All_Data/{file_group}_All/Longitude
-    units: "degrees"
+    file_type: generic_file
+    dataset_groups: [GITCO, GIMGO]
+    file_key: All_Data/{dataset_group}_All/Longitude
+    units: "degrees_east"
     standard_name: longitude
+    coordinates: [i_longitude, i_latitude]
   i_lat:
     name: i_latitude
     resolution: 371
-    file_type: gitco
-    file_key: All_Data/{file_group}_All/Latitude
-    units: "degrees"
+    file_type: generic_file
+    dataset_groups: [GITCO, GIMGO]
+    file_key: All_Data/{dataset_group}_All/Latitude
+    units: "degrees_north"
     standard_name: latitude
+    coordinates: [i_longitude, i_latitude]
   m_lon:
     name: m_longitude
     resolution: 742
-    file_type: gmtco
-    file_key: All_Data/{file_group}_All/Longitude
-    units: "degrees"
+    file_type: generic_file
+    dataset_groups: [GMTCO, GMODO]
+    file_key: All_Data/{dataset_group}_All/Longitude
+    units: "degrees_east"
     standard_name: longitude
+    coordinates: [m_longitude, m_latitude]
   m_lat:
     name: m_latitude
     resolution: 742
-    file_type: gmtco
-    file_key: All_Data/{file_group}_All/Latitude
-    units: "degrees"
+    file_type: generic_file
+    dataset_groups: [GMTCO, GMODO]
+    file_key: All_Data/{dataset_group}_All/Latitude
+    units: "degrees_north"
     standard_name: latitude
+    coordinates: [m_longitude, m_latitude]
   dnb_lon:
     name: dnb_longitude
     resolution: 743
-    file_type: gdnbo
-    file_key: All_Data/{file_group}_All/Longitude
-    units: "degrees"
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: All_Data/{dataset_group}_All/Longitude
+    units: "degrees_east"
     standard_name: longitude
+    coordinates: [dnb_longitude, dnb_latitude]
   dnb_lat:
     name: dnb_latitude
     resolution: 743
-    file_type: gdnbo
-    file_key: All_Data/{file_group}_All/Latitude
-    units: "degrees"
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: All_Data/{dataset_group}_All/Latitude
+    units: "degrees_north"
     standard_name: latitude
+    coordinates: [dnb_longitude, dnb_latitude]
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
     modifiers: [sunz_corrected_iband]
-    file_type: svi01
+    dataset_groups: [SVI01]
+    file_type: generic_file
     resolution: 371
     coordinates: [i_longitude, i_latitude]
     calibration:
@@ -66,7 +81,8 @@ datasets:
     name: I02
     wavelength: [0.845, 0.865, 0.884]
     modifiers: [sunz_corrected_iband]
-    file_type: svi02
+    dataset_groups: [SVI02]
+    file_type: generic_file
     resolution: 371
     coordinates: [i_longitude, i_latitude]
     calibration:
@@ -80,7 +96,8 @@ datasets:
     name: I03
     wavelength: [1.580, 1.610, 1.640]
     modifiers: [sunz_corrected_iband]
-    file_type: svi03
+    dataset_groups: [SVI03]
+    file_type: generic_file
     resolution: 371
     coordinates: [i_longitude, i_latitude]
     calibration:
@@ -93,7 +110,8 @@ datasets:
   I04:
     name: I04
     wavelength: [3.580, 3.740, 3.900]
-    file_type: svi04
+    file_type: generic_file
+    dataset_groups: [SVI04]
     resolution: 371
     coordinates: [i_longitude, i_latitude]
     calibration:
@@ -106,7 +124,8 @@ datasets:
   I05:
     name: I05
     wavelength: [10.500, 11.450, 12.300]
-    file_type: svi05
+    dataset_groups: [SVI05]
+    file_type: generic_file
     resolution: 371
     coordinates: [i_longitude, i_latitude]
     calibration:
@@ -120,7 +139,8 @@ datasets:
     name: M01
     wavelength: [0.402, 0.412, 0.422]
     modifiers: [sunz_corrected]
-    file_type: svm01
+    dataset_groups: [SVM01]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -134,7 +154,8 @@ datasets:
     name: M02
     wavelength: [0.436, 0.445, 0.454]
     modifiers: [sunz_corrected]
-    file_type: svm02
+    dataset_groups: [SVM02]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -148,7 +169,8 @@ datasets:
     name: M03
     wavelength: [0.478, 0.488, 0.498]
     modifiers: [sunz_corrected]
-    file_type: svm03
+    dataset_groups: [SVM03]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -162,7 +184,8 @@ datasets:
     name: M04
     wavelength: [0.545, 0.555, 0.565]
     modifiers: [sunz_corrected]
-    file_type: svm04
+    dataset_groups: [SVM04]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -176,7 +199,8 @@ datasets:
     name: M05
     wavelength: [0.662, 0.672, 0.682]
     modifiers: [sunz_corrected]
-    file_type: svm05
+    dataset_groups: [SVM05]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -190,7 +214,8 @@ datasets:
     name: M06
     wavelength: [0.739, 0.746, 0.754]
     modifiers: [sunz_corrected]
-    file_type: svm06
+    dataset_groups: [SVM06]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -204,7 +229,8 @@ datasets:
     name: M07
     wavelength: [0.846, 0.865, 0.885]
     modifiers: [sunz_corrected]
-    file_type: svm07
+    dataset_groups: [SVM07]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -218,7 +244,8 @@ datasets:
     name: M08
     wavelength: [1.230, 1.240, 1.250]
     modifiers: [sunz_corrected]
-    file_type: svm08
+    dataset_groups: [SVM08]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -232,7 +259,8 @@ datasets:
     name: M09
     wavelength: [1.371, 1.378, 1.386]
     modifiers: [sunz_corrected]
-    file_type: svm09
+    dataset_groups: [SVM09]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -246,7 +274,8 @@ datasets:
     name: M10
     wavelength: [1.580, 1.610, 1.640]
     modifiers: [sunz_corrected]
-    file_type: svm10
+    dataset_groups: [SVM10]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -260,7 +289,8 @@ datasets:
     name: M11
     wavelength: [2.225, 2.250, 2.275]
     modifiers: [sunz_corrected]
-    file_type: svm11
+    dataset_groups: [SVM11]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -273,7 +303,8 @@ datasets:
   M12:
     name: M12
     wavelength: [3.610, 3.700, 3.790]
-    file_type: svm12
+    dataset_groups: [SVM12]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -286,7 +317,8 @@ datasets:
   M13:
     name: M13
     wavelength: [3.973, 4.050, 4.128]
-    file_type: svm13
+    dataset_groups: [SVM13]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -299,7 +331,8 @@ datasets:
   M14:
     name: M14
     wavelength: [8.400, 8.550, 8.700]
-    file_type: svm14
+    dataset_groups: [SVM14]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -312,7 +345,8 @@ datasets:
   M15:
     name: M15
     wavelength: [10.263, 10.763, 11.263]
-    file_type: svm15
+    dataset_groups: [SVM15]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -325,7 +359,8 @@ datasets:
   M16:
     name: M16
     wavelength: [11.538, 12.013, 12.489]
-    file_type: svm16
+    dataset_groups: [SVM16]
+    file_type: generic_file
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     calibration:
@@ -342,64 +377,72 @@ datasets:
     resolution: 371
     coordinates: [i_longitude, i_latitude]
     units: degrees
-    file_type: [gitco, gimgo]
-    file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
+    file_type: generic_file
+    dataset_groups: [GITCO, GIMGO]
+    file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
   I_SOLA:
     name: solar_azimuth_angle
     standard_name: solar_azimuth_angle
     resolution: 371
     coordinates: [i_longitude, i_latitude]
     units: degrees
-    file_type: [gitco, gimgo]
-    file_key: 'All_Data/{file_group}_All/SolarAzimuthAngle'
+    file_type: generic_file
+    dataset_groups: [GITCO, GIMGO]
+    file_key: 'All_Data/{dataset_group}_All/SolarAzimuthAngle'
   I_SENZ:
     name: satellite_zenith_angle
     standard_name: sensor_zenith_angle
     resolution: 371
     coordinates: [i_longitude, i_latitude]
     units: degrees
-    file_type: [gitco, gimgo]
-    file_key: 'All_Data/{file_group}_All/SatelliteZenithAngle'
+    file_type: generic_file
+    dataset_groups: [GITCO, GIMGO]
+    file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
   I_SENA:
     name: satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
     resolution: 371
     coordinates: [i_longitude, i_latitude]
     units: degrees
-    file_type: [gitco, gimgo]
-    file_key: 'All_Data/{file_group}_All/SatelliteAzimuthAngle'
+    file_type: generic_file
+    dataset_groups: [GITCO, GIMGO]
+    file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
   M_SOLZ:
     name: solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     units: degrees
-    file_type: [gmtco, gmodo]
-    file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
+    file_type: generic_file
+    dataset_groups: [GMTCO, GMODO]
+    file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
   M_SOLA:
     name: solar_azimuth_angle
     standard_name: solar_azimuth_angle
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     units: degrees
-    file_type: [gmtco, gmodo]
-    file_key: 'All_Data/{file_group}_All/SolarAzimuthAngle'
+    file_type: generic_file
+    dataset_groups: [GMTCO, GMODO]
+    file_key: 'All_Data/{dataset_group}_All/SolarAzimuthAngle'
   M_SENZ:
     name: satellite_zenith_angle
     standard_name: sensor_zenith_angle
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     units: degrees
-    file_type: [gmtco, gmodo]
-    file_key: 'All_Data/{file_group}_All/SatelliteZenithAngle'
+    file_type: generic_file
+    dataset_groups: [GMTCO, GMODO]
+    file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
   M_SENA:
     name: satellite_azimuth_angle
     standard_name: sensor_azimuth_angle
     resolution: 742
     coordinates: [m_longitude, m_latitude]
     units: degrees
-    file_type: [gmtco, gmodo]
-    file_key: 'All_Data/{file_group}_All/SatelliteAzimuthAngle'
+    file_type: generic_file
+    dataset_groups: [GMTCO, GMODO]
+    file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
   DNB:
     name: DNB
     wavelength: [0.500, 0.700, 0.900]
@@ -410,132 +453,54 @@ datasets:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
         units: W m-2 sr-1
         file_units: W cm-2 sr-1
-    file_type: vdnbo
+    dataset_groups: [SVDNB]
+    file_type: generic_file
   DNB_SZA:
     name: dnb_solar_zenith_angle
     standard_name: solar_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
-    file_type: gdnbo
-    file_key: 'All_Data/{file_group}_All/SolarZenithAngle'
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
   DNB_LZA:
     name: dnb_lunar_zenith_angle
     standard_name: lunar_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
-    file_type: gdnbo
-    file_key: 'All_Data/{file_group}_All/LunarZenithAngle'
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/LunarZenithAngle'
+  DNB_SENZ:
+    name: dnb_satellite_zenith_angle
+    standard_name: sensor_zenith_angle
+    resolution: 743
+    coordinates: [dnb_longitude, dnb_latitude]
+    units: degrees
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/SatelliteZenithAngle'
+  DNB_SENA:
+    name: dnb_satellite_azimuth_angle
+    standard_name: sensor_azimuth_angle
+    resolution: 743
+    coordinates: [dnb_longitude, dnb_latitude]
+    units: degrees
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/SatelliteAzimuthAngle'
   dnb_moon_illumination_fraction:
     name: dnb_moon_illumination_fraction
-    file_type: gdnbo
-    file_key: All_Data/{file_group}_All/MoonIllumFraction
+    file_type: generic_file
+    dataset_groups: [GDNBO]
+    file_key: 'All_Data/{dataset_group}_All/MoonIllumFraction'
 
 file_types:
-  gitco:
+  generic_file:
     file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['GITCO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-IMG-GEO-TC
-  gimgo:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['GIMGO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-IMG-GEO
-  gmtco:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['GMTCO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-MOD-GEO-TC
-  gmodo:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['GMODO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-MOD-GEO
-  gdnbo:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['GDNBO_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-DNB-GEO
-  svi01:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVI01_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-I1-SDR
-  svi02:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVI02_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-I2-SDR
-  svi03:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVI03_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-I3-SDR
-  svi04:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVI04_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-I4-SDR
-  svi05:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVI05_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-I5-SDR
-  svm01:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM01_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M1-SDR
-  svm02:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM02_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M2-SDR
-  svm03:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM03_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M3-SDR
-  svm04:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM04_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M4-SDR
-  svm05:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM05_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M5-SDR
-  svm06:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM06_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M6-SDR
-  svm07:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM07_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M7-SDR
-  svm08:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM08_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M8-SDR
-  svm09:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM09_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M9-SDR
-  svm10:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM10_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M10-SDR
-  svm11:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM11_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M11-SDR
-  svm12:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM12_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M12-SDR
-  svm13:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM13_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M13-SDR
-  svm14:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM14_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M14-SDR
-  svm15:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM15_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M15-SDR
-  svm16:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVM16_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-M16-SDR
-  vdnbo:
-    file_reader: !!python/name:satpy.readers.viirs_sdr.VIIRSSDRFileHandler
-    file_patterns: ['SVDNB_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
-    file_group: VIIRS-DNB-SDR
+    file_patterns: ['{datasets}_{platform_shortname}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time:%Y%m%d%H%M%S%f}_{source}.h5']
+    # Example filenames
+    # GMODO-SVM01-SVM02-SVM03-SVM04-SVM05-SVM06-SVM07-SVM08-SVM09-SVM10-SVM11-SVM12-SVM13-SVM14-SVM15-SVM16_j01_d20190304_t1103049_e1108449_b06684_c20190304213641984108_nobc_ops.h5
+    # GMTCO_j01_d20190304_t1103049_e1108449_b06684_c20190304150845549693_nobc_ops.h5
+    # GDNBO-SVDNB_j01_d20190304_t1057236_e1103036_b06684_c20190304213641088765_nobc_ops.h5
+    # SVM15_npp_d20150311_t1126366_e1128008_b17451_c20150311113344455225_cspp_dev.h5

@@ -1,30 +1,23 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
+# Copyright (c) 2017 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-
 """Enhancements."""
 
 import numpy as np
 import xarray as xr
-import xarray.ufuncs as xu
 import dask
 import dask.array as da
 import logging
@@ -110,8 +103,8 @@ def apply_enhancement(data, func, exclude=None, separate=False,
     return data
 
 
-# pointed to by generic.yaml
 def crefl_scaling(img, **kwargs):
+    """Apply non-linear stretch used by CREFL-based RGBs."""
     LOG.debug("Applying the crefl_scaling")
 
     def func(band_data, index=None):
@@ -138,12 +131,18 @@ def cira_stretch(img, **kwargs):
         log_root = np.log10(0.0223)
         denom = (1.0 - log_root) * 0.75
         band_data *= 0.01
-        band_data = xu.log10(band_data)
+        band_data = band_data.clip(np.finfo(float).eps)
+        band_data = np.log10(band_data)
         band_data -= log_root
         band_data /= denom
         return band_data
 
     return apply_enhancement(img.data, func)
+
+
+def _lookup_delayed(luts, band_data):
+    # can't use luts.__getitem__ for some reason
+    return luts[band_data]
 
 
 def lookup(img, **kwargs):
@@ -155,10 +154,7 @@ def lookup(img, **kwargs):
         lut = luts[:, index] if len(luts.shape) == 2 else luts
         band_data = band_data.clip(0, lut.size - 1).astype(np.uint8)
 
-        def _delayed(luts, band_data):
-            # can't use luts.__getitem__ for some reason
-            return luts[band_data]
-        new_delay = dask.delayed(_delayed)(lut, band_data)
+        new_delay = dask.delayed(_lookup_delayed)(lut, band_data)
         new_data = da.from_delayed(new_delay, shape=band_data.shape,
                                    dtype=luts.dtype)
         return new_data
@@ -167,7 +163,37 @@ def lookup(img, **kwargs):
 
 
 def colorize(img, **kwargs):
-    """Colorize the given image."""
+    """Colorize the given image.
+
+    Args:
+        img: image to be colorized
+    Kwargs:
+        palettes: colormap(s) to use
+
+    The `palettes` kwarg can be one of the following:
+        - a trollimage.colormap.Colormap object
+        - list of dictionaries with each of one of the following forms:
+            - {'filename': '/path/to/colors.npy',
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'colors': <trollimage.colormap.Colormap instance>,
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'colors': <tuple of RGB(A) tuples>,
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+            - {'colors': <tuple of RGB(A) tuples>,
+               'values': <tuple of values to match colors to>,
+               'min_value': <float, min value to match colors to>,
+               'max_value': <float, min value to match colors to>,
+               'reverse': <bool, reverse the colormap if True (default: False)}
+
+    If multiple palettes are supplied, they are concatenated before applied.
+
+    """
     full_cmap = _merge_colormaps(kwargs)
     img.colorize(full_cmap)
 
@@ -189,7 +215,6 @@ def _merge_colormaps(kwargs):
     else:
         for itm in palette:
             cmap = create_colormap(itm)
-            cmap.set_range(itm["min_value"], itm["max_value"])
             if full_cmap is None:
                 full_cmap = cmap
             else:
@@ -199,41 +224,143 @@ def _merge_colormaps(kwargs):
 
 
 def create_colormap(palette):
-    """Create colormap of the given numpy file, color vector or colormap."""
+    """Create colormap of the given numpy file, color vector, or colormap.
+
+    Args:
+        palette (dict): Information describing how to create a colormap
+            object. See below for more details.
+
+    **From a file**
+
+    Colormaps can be loaded from ``.npy`` files as 2D raw arrays with rows for
+    each color. The filename to load can be provided with the ``filename`` key
+    in the provided palette information. The colormap is interpreted as 1 of 4
+    different "colormap modes": ``RGB``, ``RGBA``, ``VRGB``, or ``VRGBA``. The
+    colormap mode can be forced with the ``colormap_mode`` key in the provided
+    palette information. If it is not provided then a default will be chosen
+    based on the number of columns in the array (3: RGB, 4: VRGB, 5: VRGBA).
+
+    The "V" in the possible colormap modes represents the control value of
+    where that color should be applied. If "V" is not provided in the colormap
+    data it defaults to the row index in the colormap array (0, 1, 2, ...)
+    divided by the total number of colors to produce a number between 0 and 1.
+    See the "Set Range" section below for more information.
+    The remaining elements in the colormap array represent the Red (R),
+    Green (G), and Blue (B) color to be mapped to.
+
+    See the "Color Scale" section below for more information on the value
+    range of provided numbers.
+
+    **From a list**
+
+    Colormaps can be loaded from lists of colors provided by the ``colors``
+    key in the provided dictionary. Each element in the list represents a
+    single color to be mapped to and can be 3 (RGB) or 4 (RGBA) elements long.
+    By default the value or control point for a color is determined by the
+    index in the list (0, 1, 2, ...) divided by the total number of colors
+    to produce a number between 0 and 1. This can be overridden by providing a
+    ``values`` key in the provided dictionary. See the "Set Range" section
+    below for more information.
+
+    See the "Color Scale" section below for more information on the value
+    range of provided numbers.
+
+    **From a builtin colormap**
+
+    Colormaps can be loaded by name from the builtin colormaps in the
+    ``trollimage``` package. Specify the name with the ``colors``
+    key in the provided dictionary (ex. ``{'colors': 'blues'}``).
+    See :doc:`trollimage:colormap` for the full list of available colormaps.
+
+    **Color Scale**
+
+    By default colors are expected to be in a 0-255 range. This
+    can be overridden by specifying ``color_scale`` in the provided colormap
+    information. A common alternative to 255 is ``1`` to specify floating
+    point numbers between 0 and 1. The resulting Colormap uses the normalized
+    color values (0-1).
+
+    **Set Range**
+
+    By default the control points or values of the Colormap are between 0 and
+    1. This means that data values being mapped to a color must also be
+    between 0 and 1. When this is not the case, the expected input range of
+    the data can be used to configure the Colormap and change the control point
+    values. To do this specify the input data range with ``min_value`` and
+    ``max_value``. See :meth:`trollimage.colormap.Colormap.set_range` for more
+    information.
+
+    """
     from trollimage.colormap import Colormap
     fname = palette.get('filename', None)
+    colors = palette.get('colors', None)
+    # are colors between 0-255 or 0-1
+    color_scale = palette.get('color_scale', 255)
     if fname:
         data = np.load(fname)
-        cmap = []
-        num = 1.0 * data.shape[0]
-        for i in range(int(num)):
-            cmap.append((i / num, (data[i, 0] / 255., data[i, 1] / 255.,
-                                   data[i, 2] / 255.)))
-        return Colormap(*cmap)
+        cols = data.shape[1]
+        default_modes = {
+            3: 'RGB',
+            4: 'VRGB',
+            5: 'VRGBA'
+        }
+        default_mode = default_modes.get(cols)
+        mode = palette.setdefault('colormap_mode', default_mode)
+        if mode is None or len(mode) != cols:
+            raise ValueError(
+                "Unexpected colormap shape for mode '{}'".format(mode))
 
-    colors = palette.get('colors', None)
-    if isinstance(colors, list):
+        rows = data.shape[0]
+        if mode[0] == 'V':
+            colors = data[:, 1:]
+            if color_scale != 1:
+                colors = data[:, 1:] / float(color_scale)
+            values = data[:, 0]
+        else:
+            colors = data
+            if color_scale != 1:
+                colors = colors / float(color_scale)
+            values = np.arange(rows) / float(rows - 1)
+        cmap = Colormap(*zip(values, colors))
+    elif isinstance(colors, (tuple, list)):
         cmap = []
         values = palette.get('values', None)
         for idx, color in enumerate(colors):
-            if values:
+            if values is not None:
                 value = values[idx]
             else:
                 value = idx / float(len(colors) - 1)
+            if color_scale != 1:
+                color = tuple(elem / float(color_scale) for elem in color)
             cmap.append((value, tuple(color)))
-        return Colormap(*cmap)
-
-    if isinstance(colors, str):
+        cmap = Colormap(*cmap)
+    elif isinstance(colors, str):
         from trollimage import colormap
         import copy
-        return copy.copy(getattr(colormap, colors))
+        cmap = copy.copy(getattr(colormap, colors))
+    else:
+        raise ValueError("Unknown colormap format: {}".format(palette))
 
-    return None
+    if palette.get("reverse", False):
+        cmap.reverse()
+    if 'min_value' in palette and 'max_value' in palette:
+        cmap.set_range(palette["min_value"], palette["max_value"])
+    elif 'min_value' in palette or 'max_value' in palette:
+        raise ValueError("Both 'min_value' and 'max_value' must be specified")
+
+    return cmap
+
+
+def _three_d_effect_delayed(band_data, kernel, mode):
+    """Kernel for running delayed 3D effect creation."""
+    from scipy.signal import convolve2d
+    band_data = band_data.reshape(band_data.shape[1:])
+    new_data = convolve2d(band_data, kernel, mode=mode)
+    return new_data.reshape((1, band_data.shape[0], band_data.shape[1]))
 
 
 def three_d_effect(img, **kwargs):
-    """Create 3D effect using convolution"""
-    from scipy.signal import convolve2d
+    """Create 3D effect using convolution."""
     w = kwargs.get('weight', 1)
     LOG.debug("Applying 3D effect with weight %.2f", w)
     kernel = np.array([[-w, 0, w],
@@ -244,22 +371,14 @@ def three_d_effect(img, **kwargs):
     def func(band_data, kernel=kernel, mode=mode, index=None):
         del index
 
-        def _delayed(band_data, kernel, mode):
-            band_data = band_data.reshape(band_data.shape[1:])
-            new_data = convolve2d(band_data, kernel, mode=mode)
-            return new_data.reshape((1, band_data.shape[0],
-                                     band_data.shape[1]))
-
-        delay = dask.delayed(_delayed)(band_data, kernel, mode)
-        new_data = da.from_delayed(delay, shape=band_data.shape,
-                                   dtype=band_data.dtype)
+        delay = dask.delayed(_three_d_effect_delayed)(band_data, kernel, mode)
+        new_data = da.from_delayed(delay, shape=band_data.shape, dtype=band_data.dtype)
         return new_data
 
     return apply_enhancement(img.data, func, separate=True, pass_dask=True)
 
 
-def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None,
-                    **kwargs):
+def btemp_threshold(img, min_in, max_in, threshold, threshold_out=None, **kwargs):
     """Scale data linearly in two separate regions.
 
     This enhancement scales the input data linearly by splitting the data

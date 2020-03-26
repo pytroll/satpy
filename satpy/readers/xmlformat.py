@@ -1,26 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2012 Martin Raspaud
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Reads a format from an xml file to create dtypes and scaling factor arrays.
-"""
+# Copyright (c) 2012 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Reads a format from an xml file to create dtypes and scaling factor arrays."""
 
 from xml.etree.ElementTree import ElementTree
 
@@ -36,15 +31,12 @@ TYPEC = {"boolean": ">i1",
 
 
 def process_delimiter(elt, ascii=False):
-    """Process a 'delimiter' tag.
-    """
+    """Process a 'delimiter' tag."""
     del elt, ascii
 
 
 def process_field(elt, ascii=False):
-    """Process a 'field' tag.
-    """
-
+    """Process a 'field' tag."""
     # NOTE: if there is a variable defined in this field and it is different
     # from the default, we could change the value and restart.
 
@@ -72,10 +64,9 @@ def process_field(elt, ascii=False):
 
 
 def process_array(elt, ascii=False):
-    """Process an 'array' tag.
-    """
+    """Process an 'array' tag."""
     del ascii
-    chld = elt.getchildren()
+    chld = list(elt)
     if len(chld) > 1:
         raise ValueError()
     chld = chld[0]
@@ -102,14 +93,12 @@ CASES = {"delimiter": process_delimiter,
 
 
 def to_dtype(val):
-    """Parse *val* to return a dtype.
-    """
+    """Parse *val* to return a dtype."""
     return np.dtype([i[:-1] for i in val])
 
 
 def to_scaled_dtype(val):
-    """Parse *val* to return a dtype.
-    """
+    """Parse *val* to return a dtype."""
     res = []
     for i in val:
         if i[1].startswith("S"):
@@ -124,8 +113,7 @@ def to_scaled_dtype(val):
 
 
 def to_scales(val):
-    """Parse *val* to return an array of scale factors.
-    """
+    """Parse *val* to return an array of scale factors."""
     res = []
     for i in val:
         if len(i) == 3:
@@ -150,12 +138,10 @@ def to_scales(val):
 
 
 def parse_format(xml_file):
-    """Parse the xml file to create types, scaling factor types, and scales.
-    """
+    """Parse the xml file to create types, scaling factor types, and scales."""
     tree = ElementTree()
     tree.parse(xml_file)
-
-    for param in tree.find("parameters").getchildren():
+    for param in tree.find("parameters"):
         VARIABLES[param.get("name")] = param.get("value")
 
     types_scales = {}
@@ -182,8 +168,7 @@ def parse_format(xml_file):
 
 
 def _apply_scales(array, scales, dtype):
-    """Apply scales to the array.
-    """
+    """Apply scales to the array."""
     new_array = np.empty(array.shape, dtype)
     for i in array.dtype.names:
         try:
@@ -197,10 +182,10 @@ def _apply_scales(array, scales, dtype):
 
 
 class XMLFormat(object):
-    """XMLFormat object.
-    """
+    """XMLFormat object."""
 
     def __init__(self, filename):
+        """Init the format reader."""
         self.types, self.stypes, self.scales = parse_format(filename)
 
         self.translator = {}
@@ -209,13 +194,11 @@ class XMLFormat(object):
             self.translator[val] = (self.scales[key], self.stypes[key])
 
     def dtype(self, key):
-        """Get the dtype for the format object.
-        """
+        """Get the dtype for the format object."""
         return self.types[key]
 
     def apply_scales(self, array):
-        """Apply scales to *array*.
-        """
+        """Apply scales to *array*."""
         return _apply_scales(array, *self.translator[array.dtype])
 
 
