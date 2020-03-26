@@ -1460,11 +1460,13 @@ class NaturalEnh(GenericCompositor):
 
     """
 
-    def __init__(self, ch16_w=1.3, ch08_w=2.5, ch06_w=2.2):
+    def __init__(self, name, ch16_w=1.3, ch08_w=2.5, ch06_w=2.2,
+                 *args, **kwargs):
         """Initialize the class."""
         self.ch06_w = ch06_w
         self.ch08_w = ch08_w
         self.ch16_w = ch16_w
+        super(NaturalEnh, self).__init__(name, *args, **kwargs)
 
     def __call__(self, projectables, *args, **kwargs):
         """Generate the composite."""
