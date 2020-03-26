@@ -1,28 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017-2018 PyTroll Community
-
-# Author(s):
-
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   Ulrich Hamann <ulrich.hamann@meteoswiss.ch>
-#   Sauli Joro <sauli.joro@eumetsat.int>
-#   Colin Duff <colin.duff@external.eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
+# Copyright (c) 2017-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SEVIRI native format reader.
 
 References:
@@ -30,9 +22,9 @@ References:
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_FG15_MSG-NATIVE-FORMAT-15&RevisionSelectionMethod=LatestReleased&Rendition=Web
     MSG Level 1.5 Image Data Format Description
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
+
 """
 
-import os
 import logging
 from datetime import datetime
 import numpy as np
@@ -41,6 +33,7 @@ import xarray as xr
 import dask.array as da
 
 from satpy import CHUNK_SIZE
+
 from pyresample import geometry
 
 from satpy.readers.file_handlers import BaseFileHandler
@@ -48,9 +41,11 @@ from satpy.readers.eum_base import recarray2dict
 from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM,
                                        dec10216, VISIR_NUM_COLUMNS,
-                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS)
+                                       VISIR_NUM_LINES, HRV_NUM_COLUMNS,
+                                       VIS_CHANNELS)
 from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
+from satpy.readers._geos_area import get_area_definition
 
 
 logger = logging.getLogger('native_msg')
@@ -58,13 +53,19 @@ logger = logging.getLogger('native_msg')
 
 class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     """SEVIRI native format reader.
+
+    The Level1.5 Image data calibration method can be changed by adding the
+    required mode to the Scene object instantiation  kwargs eg
+    kwargs = {"calib_mode": "gsics",}
     """
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,  calib_mode='nominal'):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
                                                    filetype_info)
+        self.platform_name = None
+        self.calib_mode = calib_mode
 
         # Declare required variables.
         # Assume a full disk file, reset in _read_header if otherwise.
@@ -81,17 +82,21 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     @property
     def start_time(self):
+        """Read the repeat cycle start time from metadata."""
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['TrueRepeatCycleStart']
 
     @property
     def end_time(self):
+        """Read the repeat cycle end time from metadata."""
         return self.header['15_DATA_HEADER']['ImageAcquisition'][
             'PlannedAcquisitionTime']['PlannedRepeatCycleEnd']
 
     @staticmethod
     def _calculate_area_extent(center_point, north, east, south, west,
                                we_offset, ns_offset, column_step, line_step):
+        # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be 1856.5 .
+        # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
 
         ll_c = (center_point - west - 0.5 + we_offset) * column_step
         ll_l = (south - center_point - 0.5 + ns_offset) * line_step
@@ -101,8 +106,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return (ll_c, ll_l, ur_c, ur_l)
 
     def _get_data_dtype(self):
-        """Get the dtype of the file based on the actual available channels"""
-
+        """Get the dtype of the file based on the actual available channels."""
         pkhrec = [
             ('GP_PK_HEADER', GSDTRecords.gp_pk_header),
             ('GP_PK_SH1', GSDTRecords.gp_pk_sh1)
@@ -140,8 +144,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return np.dtype(drec)
 
     def _get_memmap(self):
-        """Get the memory map for the SEVIRI data"""
-
+        """Get the memory map for the SEVIRI data."""
         with open(self.filename) as fp:
 
             data_dtype = self._get_data_dtype()
@@ -152,8 +155,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                              offset=hdr_size, mode="r")
 
     def _read_header(self):
-        """Read the header info"""
-
+        """Read the header info."""
         data = np.fromfile(self.filename,
                            dtype=native_header, count=1)
 
@@ -167,9 +169,9 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.mda['channel_list'] = [i for i in CHANNEL_NAMES.values()
                                     if self.mda['available_channels'][i]]
 
-        self.mda['platform_id'] = data15hd[
+        self.platform_id = data15hd[
             'SatelliteStatus']['SatelliteDefinition']['SatelliteId']
-        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.mda['platform_id']]
+        self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
 
         equator_radius = data15hd['GeometricProcessing'][
             'EarthModel']['EquatorialRadius'] * 1000.
@@ -243,40 +245,67 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         self.trailer.update(recarray2dict(data))
 
-    def get_area_def(self, dsid):
+    def get_area_def(self, dataset_id):
+        """Get the area definition of the band."""
+        pdict = {}
+        pdict['a'] = self.mda['projection_parameters']['a']
+        pdict['b'] = self.mda['projection_parameters']['b']
+        pdict['h'] = self.mda['projection_parameters']['h']
+        pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
-        a = self.mda['projection_parameters']['a']
-        b = self.mda['projection_parameters']['b']
-        h = self.mda['projection_parameters']['h']
-        lon_0 = self.mda['projection_parameters']['ssp_longitude']
+        if dataset_id.name == 'HRV':
+            pdict['nlines'] = self.mda['hrv_number_of_lines']
+            pdict['ncols'] = self.mda['hrv_number_of_columns']
+            pdict['a_name'] = 'geos_seviri_hrv'
+            pdict['a_desc'] = 'SEVIRI high resolution channel area'
+            pdict['p_id'] = 'seviri_hrv'
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
+            if self.mda['is_full_disk']:
+                # handle full disk HRV data with two separated area definitions
+                [upper_area_extent, lower_area_extent,
+                 upper_nlines, upper_ncols, lower_nlines, lower_ncols] = self.get_area_extent(dataset_id)
 
-        if dsid.name == 'HRV':
-            nlines = self.mda['hrv_number_of_lines']
-            ncols = self.mda['hrv_number_of_columns']
+                # upper area
+                pdict['a_desc'] = 'SEVIRI high resolution channel, upper window'
+                pdict['nlines'] = upper_nlines
+                pdict['ncols'] = upper_ncols
+                upper_area = get_area_definition(pdict, upper_area_extent)
+
+                # lower area
+                pdict['a_desc'] = 'SEVIRI high resolution channel, lower window'
+                pdict['nlines'] = lower_nlines
+                pdict['ncols'] = lower_ncols
+                lower_area = get_area_definition(pdict, lower_area_extent)
+
+                # order of areas is flipped w.r.t. the hrit reader due to the flipping of the data in get_dataset
+                area = geometry.StackedAreaDefinition(upper_area, lower_area)
+                area = area.squeeze()
+            else:
+                # if the HRV data is in a ROI, the HRV channel is delivered in one area
+                area = get_area_definition(pdict, self.get_area_extent(dataset_id))
+
         else:
-            nlines = self.mda['number_of_lines']
-            ncols = self.mda['number_of_columns']
+            pdict['nlines'] = self.mda['number_of_lines']
+            pdict['ncols'] = self.mda['number_of_columns']
+            pdict['a_name'] = 'geos_seviri_visir'
+            pdict['a_desc'] = 'SEVIRI low resolution channel area'
+            pdict['p_id'] = 'seviri_visir'
 
-        area = geometry.AreaDefinition(
-            'some_area_name',
-            "On-the-fly area",
-            'geosmsg',
-            proj_dict,
-            ncols,
-            nlines,
-            self.get_area_extent(dsid))
+            area = get_area_definition(pdict, self.get_area_extent(dataset_id))
 
         return area
 
-    def get_area_extent(self, dsid):
+    def get_area_extent(self, dataset_id):
+        """Get the area extent of the file.
 
+        Until December 2017, the data is shifted by 1.5km SSP North and West against the nominal GEOS projection. Since
+        December 2017 this offset has been corrected. A flag in the data indicates if the correction has been applied.
+        If no correction was applied, adjust the area extent to match the shifted data.
+
+        For more information see Section 3.1.4.2 in the MSG Level 1.5 Image Data Format Description. The correction
+        of the area extent is documented in a `developer's memo <https://github.com/pytroll/satpy/wiki/
+        SEVIRI-georeferencing-offset-correction>`_.
+        """
         data15hd = self.header['15_DATA_HEADER']
         sec15hd = self.header['15_SECONDARY_PRODUCT_HEADER']
 
@@ -291,7 +320,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         elif earth_model == 1:
             ns_offset = -0.5
             we_offset = 0.5
-            if dsid.name == 'HRV':
+            if dataset_id.name == 'HRV':
                 ns_offset = -1.5
                 we_offset = 1.5
         else:
@@ -299,16 +328,22 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 'Unrecognised Earth model: {}'.format(earth_model)
             )
 
+        if dataset_id.name == 'HRV':
+            grid_origin = data15hd['ImageDescription']['ReferenceGridHRV']['GridOrigin']
+            center_point = HRV_NUM_COLUMNS / 2
+            coeff = 3
+            column_step = data15hd['ImageDescription']['ReferenceGridHRV']['ColumnDirGridStep'] * 1000.0
+            line_step = data15hd['ImageDescription']['ReferenceGridHRV']['LineDirGridStep'] * 1000.0
+        else:
+            grid_origin = data15hd['ImageDescription']['ReferenceGridVIS_IR']['GridOrigin']
+            center_point = VISIR_NUM_COLUMNS / 2
+            coeff = 1
+            column_step = data15hd['ImageDescription']['ReferenceGridVIS_IR']['ColumnDirGridStep'] * 1000.0
+            line_step = data15hd['ImageDescription']['ReferenceGridVIS_IR']['LineDirGridStep'] * 1000.0
+
         # Calculations assume grid origin is south-east corner
         # section 7.2.4 of MSG Level 1.5 Image Data Format Description
-        if dsid.name == 'HRV':
-            reference_grid = 'ReferenceGridHRV'
-        else:
-            reference_grid = 'ReferenceGridVIS_IR'
-
         origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
-        grid_origin = data15hd['ImageDescription'][
-            reference_grid]['GridOrigin']
         if grid_origin != 2:
             msg = 'Grid origin not supported number: {}, {} corner'.format(
                 grid_origin, origins[grid_origin]
@@ -317,34 +352,53 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         # When dealing with HRV channel and full disk, area extent is
         # in two pieces
-        if (dsid.name == 'HRV') and self.mda['is_full_disk']:
-            # NOTE: Implement HRV full disk area_extent
-            # NotImplementedError does not catch this, it must
-            # be used elsewhere already
-            msg = 'HRV full disk area extent not implemented.'
-            raise RuntimeError(msg)
+        if (dataset_id.name == 'HRV') and self.mda['is_full_disk']:
+
+            # get actual navigation parameters from trailer data
+            data15tr = self.trailer['15TRAILER']
+            HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV']
+
+            # upper window
+            upper_north_line = HRV_bounds['UpperNorthLineActual']
+            upper_west_column = HRV_bounds['UpperWestColumnActual']
+            upper_south_line = HRV_bounds['UpperSouthLineActual']
+            upper_east_column = HRV_bounds['UpperEastColumnActual']
+
+            upper_area_extent = self._calculate_area_extent(
+                center_point, upper_north_line, upper_east_column,
+                upper_south_line, upper_west_column, we_offset,
+                ns_offset, column_step, line_step
+            )
+
+            upper_nlines = upper_north_line - upper_south_line + 1
+            upper_ncols = upper_west_column - upper_east_column + 1
+
+            # lower window
+            lower_north_line = HRV_bounds['LowerNorthLineActual']
+            lower_west_column = HRV_bounds['LowerWestColumnActual']
+            lower_south_line = HRV_bounds['LowerSouthLineActual']
+            lower_east_column = HRV_bounds['LowerEastColumnActual']
+
+            lower_area_extent = self._calculate_area_extent(
+                center_point, lower_north_line, lower_east_column,
+                lower_south_line, lower_west_column, we_offset,
+                ns_offset, column_step, line_step
+            )
+
+            lower_nlines = lower_north_line - lower_south_line + 1
+            lower_ncols = lower_west_column - lower_east_column + 1
+
+            return [upper_area_extent, lower_area_extent, upper_nlines, upper_ncols, lower_nlines, lower_ncols]
 
         # Otherwise area extent is in one piece, corner points are
         # the same as for VISIR channels, HRV channel is having
         # three times the amount of columns and rows
         else:
 
-            if dsid.name == 'HRV':
-                center_point = HRV_NUM_COLUMNS/2
-                coeff = 3
-            else:
-                center_point = VISIR_NUM_COLUMNS/2
-                coeff = 1
-
             north = coeff * int(sec15hd['NorthLineSelectedRectangle']['Value'])
             east = coeff * int(sec15hd['EastColumnSelectedRectangle']['Value'])
             west = coeff * int(sec15hd['WestColumnSelectedRectangle']['Value'])
             south = coeff * int(sec15hd['SouthLineSelectedRectangle']['Value'])
-
-            column_step = data15hd['ImageDescription'][
-                reference_grid]['ColumnDirGridStep'] * 1000.0
-            line_step = data15hd['ImageDescription'][
-                reference_grid]['LineDirGridStep'] * 1000.0
 
             area_extent = self._calculate_area_extent(
                 center_point, north, east,
@@ -354,12 +408,11 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         return area_extent
 
-    def get_dataset(self, dsid, info,
-                    xslice=slice(None), yslice=slice(None)):
-
-        if dsid.name not in self.mda['channel_list']:
-            raise KeyError('Channel % s not available in the file' % dsid.name)
-        elif dsid.name not in ['HRV']:
+    def get_dataset(self, dataset_id, dataset_info):
+        """Get the dataset."""
+        if dataset_id.name not in self.mda['channel_list']:
+            raise KeyError('Channel % s not available in the file' % dataset_id.name)
+        elif dataset_id.name not in ['HRV']:
             shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
 
             # Check if there is only 1 channel in the list as a change
@@ -367,7 +420,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             if len(self.mda['channel_list']) == 1:
                 raw = self.dask_array['visir']['line_data']
             else:
-                i = self.mda['channel_list'].index(dsid.name)
+                i = self.mda['channel_list'].index(dataset_id.name)
                 raw = self.dask_array['visir']['line_data'][:, i, :]
 
             data = dec10216(raw.flatten())
@@ -401,22 +454,26 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         if xarr is None:
             dataset = None
         else:
-            dataset = self.calibrate(xarr, dsid)
-            dataset.attrs['units'] = info['units']
-            dataset.attrs['wavelength'] = info['wavelength']
-            dataset.attrs['standard_name'] = info['standard_name']
+            dataset = self.calibrate(xarr, dataset_id)
+            dataset.attrs['units'] = dataset_info['units']
+            dataset.attrs['wavelength'] = dataset_info['wavelength']
+            dataset.attrs['standard_name'] = dataset_info['standard_name']
             dataset.attrs['platform_name'] = self.mda['platform_name']
             dataset.attrs['sensor'] = 'seviri'
+            dataset.attrs['orbital_parameters'] = {
+                'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
+                'projection_latitude': 0.,
+                'projection_altitude': self.mda['projection_parameters']['h']}
 
         return dataset
 
-    def calibrate(self, data, dsid):
+    def calibrate(self, data, dataset_id):
         """Calibrate the data."""
         tic = datetime.now()
 
         data15hdr = self.header['15_DATA_HEADER']
-        calibration = dsid.calibration
-        channel = dsid.name
+        calibration = dataset_id.calibration
+        channel = dataset_id.name
 
         # even though all the channels may not be present in the file,
         # the header does have calibration coefficients for all the channels
@@ -427,15 +484,14 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             return data
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            # you cant apply GSICS values to the VIS channels
-            visual_channels = ['HRV', 'VIS006', 'VIS008', 'IR_016']
-
             # determine the required calibration coefficients to use
             # for the Level 1.5 Header
-            calMode = os.environ.get('CAL_MODE', 'NOMINAL')
+            if (self.calib_mode.upper() != 'GSICS' and self.calib_mode.upper() != 'NOMINAL'):
+                raise NotImplementedError(
+                    'Unknown Calibration mode : Please check')
 
             # NB GSICS doesn't have calibration coeffs for VIS channels
-            if (calMode.upper() != 'GSICS' or channel in visual_channels):
+            if (self.calib_mode.upper() != 'GSICS' or channel in VIS_CHANNELS):
                 coeffs = data15hdr[
                     'RadiometricProcessing']['Level15ImageCalibration']
                 gain = coeffs['CalSlope'][i]
@@ -449,7 +505,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             res = self._convert_to_radiance(data, gain, offset)
 
         if calibration == 'reflectance':
-            solar_irradiance = CALIB[self.mda['platform_id']][channel]["F"]
+            solar_irradiance = CALIB[self.platform_id][channel]["F"]
             res = self._vis_calibrate(res, solar_irradiance)
 
         elif calibration == 'brightness_temperature':
@@ -462,8 +518,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
 
 def get_available_channels(header):
-    """Get the available channels from the header information"""
-
+    """Get the available channels from the header information."""
     chlist_str = header['15_SECONDARY_PRODUCT_HEADER'][
         'SelectedBandIDs']['Value']
     retv = {}

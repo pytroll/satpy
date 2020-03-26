@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
-# Author(s):
-#
-#   Panu Lahtinen <panu.lahtinen@fmi.fi
+# Copyright (c) 2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -18,18 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Test classes and functions in the readers/__init__.py module."""
 
 import os
 import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -197,8 +188,9 @@ class TestReaderLoader(unittest.TestCase):
 
     Assumes that the VIIRS SDR reader exists and works.
     """
+
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
+        """Wrap HDF5 file handler with our own fake handler."""
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         from satpy.tests.reader_tests.test_viirs_sdr import FakeHDF5FileHandler2
         # http://stackoverflow.com/questions/12219967/how-to-mock-a-base-class-with-python-mock-library
@@ -207,7 +199,7 @@ class TestReaderLoader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF5 file handler"""
+        """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
     def test_no_args(self):
@@ -220,28 +212,27 @@ class TestReaderLoader(unittest.TestCase):
         self.assertDictEqual(ri, {})
 
     def test_filenames_only(self):
-        """Test with filenames specified"""
+        """Test with filenames specified."""
         from satpy.readers import load_readers
         ri = load_readers(filenames=['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'])
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_filenames_and_reader(self):
-        """Test with filenames and reader specified"""
+        """Test with filenames and reader specified."""
         from satpy.readers import load_readers
         ri = load_readers(reader='viirs_sdr',
                           filenames=['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'])
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_bad_reader_name_with_filenames(self):
-        """Test bad reader name with filenames provided"""
+        """Test bad reader name with filenames provided."""
         from satpy.readers import load_readers
         self.assertRaises(ValueError, load_readers, reader='i_dont_exist', filenames=[
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             ])
 
-    @unittest.skipIf(sys.version_info < (3, 4), "pathlib added in Python 3.4")
     def test_filenames_as_path(self):
-        """Test with filenames specified as pathlib.Path"""
+        """Test with filenames specified as pathlib.Path."""
         from pathlib import Path
         from satpy.readers import load_readers
         ri = load_readers(filenames=[
@@ -250,7 +241,7 @@ class TestReaderLoader(unittest.TestCase):
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
     def test_filenames_as_dict(self):
-        """Test loading readers where filenames are organized by reader"""
+        """Test loading readers where filenames are organized by reader."""
         from satpy.readers import load_readers
         filenames = {
             'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
@@ -272,6 +263,23 @@ class TestReaderLoader(unittest.TestCase):
         ri = load_readers(reader='viirs_sdr', filenames=filenames)
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
+    def test_empty_filenames_as_dict(self):
+        """Test passing filenames as a dictionary with an empty list of filenames."""
+        # only one reader
+        from satpy.readers import load_readers
+        filenames = {
+            'viirs_sdr': [],
+        }
+        self.assertRaises(ValueError, load_readers, filenames=filenames)
+
+        # two readers, one is empty
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+            'viirs_l1b': [],
+        }
+        ri = load_readers(filenames)
+        self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
     @mock.patch('satpy.readers.hrit_base.HRITFileHandler._get_hd')
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler._get_header')
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.start_time')
@@ -287,9 +295,7 @@ class TestReaderLoader(unittest.TestCase):
         epi_miss = epi_pro_miss + ['H-000-MSG4__-MSG4________-_________-PRO______-201809050900-__']
         pro_miss = epi_pro_miss + ['H-000-MSG4__-MSG4________-_________-EPI______-201809050900-__']
         for filenames in [epi_miss, pro_miss, epi_pro_miss]:
-            with mock.patch('warnings.warn') as warn_mock:
-                self.assertRaises(ValueError, load_readers, reader='hrit_msg', filenames=filenames)
-                warn_mock.assert_called()
+            self.assertRaises(ValueError, load_readers, reader='seviri_l1b_hrit', filenames=filenames)
 
         # Filenames from multiple scans
         at_least_one_complete = [
@@ -301,9 +307,7 @@ class TestReaderLoader(unittest.TestCase):
             'H-000-MSG4__-MSG4________-IR_108___-000006___-201809051000-__',
         ]
         try:
-            with mock.patch('warnings.warn') as warn_mock:
-                load_readers(filenames=at_least_one_complete, reader='hrit_msg')
-                warn_mock.assert_called()
+            load_readers(filenames=at_least_one_complete, reader='seviri_l1b_hrit')
         except ValueError:
             self.fail('If at least one set of filenames is complete, no '
                       'exception should be raised')
@@ -493,7 +497,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
             os.remove(fn)
 
     def test_bad_sensor(self):
-        """Test bad sensor doesn't find any files"""
+        """Test bad sensor doesn't find any files."""
         from satpy.readers import find_files_and_readers
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
@@ -505,7 +509,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
             os.remove(fn)
 
     def test_sensor(self):
-        """Test that readers for the current sensor are loaded"""
+        """Test that readers for the current sensor are loaded."""
         from satpy.readers import find_files_and_readers
         fn = 'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'
         # touch the file so it exists on disk
@@ -521,7 +525,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
             os.remove(fn)
 
     def test_sensor_no_files(self):
-        """Test that readers for the current sensor are loaded"""
+        """Test that readers for the current sensor are loaded."""
         from satpy.readers import find_files_and_readers
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
@@ -538,15 +542,12 @@ class TestFindFilesAndReaders(unittest.TestCase):
 
     def test_old_reader_name_mapping(self):
         """Test that requesting old reader names raises a warning."""
-        import warnings
-        from satpy.readers import configs_for_reader
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            configs = list(configs_for_reader('hrit_jma'))[0]
-        self.assertIn('ahi_hrit', configs[0])
-        self.assertNotIn('hrit_jma', configs[0])
-        self.assertEqual(len(w), 1)
-        self.assertTrue(issubclass(w[0].category, DeprecationWarning))
+        from satpy.readers import configs_for_reader, OLD_READER_NAMES
+        if not OLD_READER_NAMES:
+            return unittest.skip("Skipping deprecated reader tests because "
+                                 "no deprecated readers.")
+        test_reader = sorted(OLD_READER_NAMES.keys())[0]
+        self.assertRaises(ValueError, list, configs_for_reader(test_reader))
 
 
 class TestYAMLFiles(unittest.TestCase):
@@ -609,6 +610,31 @@ class TestGroupFiles(unittest.TestCase):
         ]
         self.g16_files = input_files
         self.g17_files = [x.replace('G16', 'G17') for x in input_files]
+        self.noaa20_files = [
+            "GITCO_j01_d20180511_t2027292_e2028538_b02476_c20190530192858056873_noac_ops.h5",
+            "GITCO_j01_d20180511_t2028550_e2030195_b02476_c20190530192932937427_noac_ops.h5",
+            "GITCO_j01_d20180511_t2030208_e2031435_b02476_c20190530192932937427_noac_ops.h5",
+            "GITCO_j01_d20180511_t2031447_e2033092_b02476_c20190530192932937427_noac_ops.h5",
+            "GITCO_j01_d20180511_t2033105_e2034350_b02476_c20190530192932937427_noac_ops.h5",
+            "SVI03_j01_d20180511_t2027292_e2028538_b02476_c20190530190950789763_noac_ops.h5",
+            "SVI03_j01_d20180511_t2028550_e2030195_b02476_c20190530192911205765_noac_ops.h5",
+            "SVI03_j01_d20180511_t2030208_e2031435_b02476_c20190530192911205765_noac_ops.h5",
+            "SVI03_j01_d20180511_t2031447_e2033092_b02476_c20190530192911205765_noac_ops.h5",
+            "SVI03_j01_d20180511_t2033105_e2034350_b02476_c20190530192911205765_noac_ops.h5",
+            "SVI04_j01_d20180511_t2027292_e2028538_b02476_c20190530190951848958_noac_ops.h5",
+            "SVI04_j01_d20180511_t2028550_e2030195_b02476_c20190530192903985164_noac_ops.h5",
+            "SVI04_j01_d20180511_t2030208_e2031435_b02476_c20190530192903985164_noac_ops.h5",
+            "SVI04_j01_d20180511_t2031447_e2033092_b02476_c20190530192903985164_noac_ops.h5",
+            "SVI04_j01_d20180511_t2033105_e2034350_b02476_c20190530192903985164_noac_ops.h5"
+        ]
+        self.npp_files = [
+            "GITCO_npp_d20180511_t1939067_e1940309_b33872_c20190612031740518143_noac_ops.h5",
+            "GITCO_npp_d20180511_t1940321_e1941563_b33872_c20190612031740518143_noac_ops.h5",
+            "GITCO_npp_d20180511_t1941575_e1943217_b33872_c20190612031740518143_noac_ops.h5",
+            "SVI03_npp_d20180511_t1939067_e1940309_b33872_c20190612032009230105_noac_ops.h5",
+            "SVI03_npp_d20180511_t1940321_e1941563_b33872_c20190612032009230105_noac_ops.h5",
+            "SVI03_npp_d20180511_t1941575_e1943217_b33872_c20190612032009230105_noac_ops.h5",
+        ]
 
     def test_no_reader(self):
         """Test that reader must be provided."""
@@ -677,19 +703,39 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(12, len(groups))
         self.assertEqual(2, len(groups[0]['abi_l1b']))
 
+    def test_viirs_orbits(self):
+        """Test a reader that doesn't use 'start_time' for default grouping."""
+        from satpy.readers import group_files
+        groups = group_files(self.noaa20_files + self.npp_files, reader='viirs_sdr')
+        self.assertEqual(2, len(groups))
+        # the noaa-20 files will be first because the orbit number is smaller
+        # 5 granules * 3 file types
+        self.assertEqual(5 * 3, len(groups[0]['viirs_sdr']))
+        # 3 granules * 2 file types
+        self.assertEqual(6, len(groups[1]['viirs_sdr']))
 
-def suite():
-    """The test suite for test_readers."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestReaderLoader))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFindFilesAndReaders))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGroupFiles))
+    def test_viirs_override_keys(self):
+        """Test overriding a group keys to add 'start_time'."""
+        from satpy.readers import group_files
+        groups = group_files(self.noaa20_files + self.npp_files, reader='viirs_sdr',
+                             group_keys=('start_time', 'orbit', 'platform_shortname'))
+        self.assertEqual(8, len(groups))
+        self.assertEqual(2, len(groups[0]['viirs_sdr']))  # NPP
+        self.assertEqual(2, len(groups[1]['viirs_sdr']))  # NPP
+        self.assertEqual(2, len(groups[2]['viirs_sdr']))  # NPP
+        self.assertEqual(3, len(groups[3]['viirs_sdr']))  # N20
+        self.assertEqual(3, len(groups[4]['viirs_sdr']))  # N20
+        self.assertEqual(3, len(groups[5]['viirs_sdr']))  # N20
+        self.assertEqual(3, len(groups[6]['viirs_sdr']))  # N20
+        self.assertEqual(3, len(groups[7]['viirs_sdr']))  # N20
 
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()
+        # Ask for a larger time span with our groups
+        groups = group_files(self.noaa20_files + self.npp_files, reader='viirs_sdr',
+                             time_threshold=60 * 60 * 2,
+                             group_keys=('start_time', 'orbit', 'platform_shortname'))
+        self.assertEqual(2, len(groups))
+        # NPP is first because it has an earlier time
+        # 3 granules * 2 file types
+        self.assertEqual(6, len(groups[0]['viirs_sdr']))
+        # 5 granules * 3 file types
+        self.assertEqual(5 * 3, len(groups[1]['viirs_sdr']))

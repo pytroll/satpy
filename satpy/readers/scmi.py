@@ -1,21 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# Copyright (c) 2018 Satpy developers
 #
-# Copyright (c) 2018 PyTroll developers
+# This file is part of satpy.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""SCMI NetCDF4 Reader
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""SCMI NetCDF4 Reader.
 
 SCMI files are typically used for data for the ABI instrument onboard the
 GOES-16/17 satellites. It is the primary format used for providing ABI data
@@ -30,10 +30,10 @@ There are two forms of these files that this reader supports:
 1. Official SCMI format: NetCDF4 files where the main data variable is stored
     in a variable called "Sectorized_CMI". This variable name can be
     configured in the YAML configuration file.
-2. SatPy/Polar2Grid SCMI format: NetCDF4 files based on the official SCMI
+2. Satpy/Polar2Grid SCMI format: NetCDF4 files based on the official SCMI
     format created for the Polar2Grid project. This format was migrated to
-    SatPy as part of Polar2Grid's adoption of SatPy for the majority of its
-    features. This format is what is produced by SatPy's `scmi` writer.
+    Satpy as part of Polar2Grid's adoption of Satpy for the majority of its
+    features. This format is what is produced by Satpy's `scmi` writer.
     This format can be identified by a single variable named "data" and a
     global attribute named ``"awips_id"`` that is set to a string starting with
     ``"AWIPS_"``.
@@ -61,6 +61,7 @@ class SCMIFileHandler(BaseFileHandler):
     """Handle a single SCMI NetCDF4 file."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Set up the SCMI file handler."""
         super(SCMIFileHandler, self).__init__(filename, filename_info,
                                               filetype_info)
         # xarray's default netcdf4 engine
@@ -84,10 +85,11 @@ class SCMIFileHandler(BaseFileHandler):
 
     @property
     def sensor_names(self):
+        """Get the sensor names."""
         return [self.sensor]
 
     def __getitem__(self, item):
-        """Wrapper around `self.nc[item]`.
+        """Wrap around `self.nc[item]`.
 
         Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
         variables which causes inaccurate unscaled data values. This method
@@ -112,7 +114,7 @@ class SCMIFileHandler(BaseFileHandler):
         new_coords = {}
         # 'time' dimension causes issues in other processing
         if 'time' in data.coords:
-            del data.coords['time']
+            data = data.drop_vars('time')
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():
@@ -174,7 +176,7 @@ class SCMIFileHandler(BaseFileHandler):
         return data
 
     def _get_cf_grid_mapping_var(self):
-        """Figure out which grid mapping should be used"""
+        """Figure out which grid mapping should be used."""
         gmaps = ['fixedgrid_projection', 'goes_imager_projection',
                  'lambert_projection', 'polar_projection',
                  'mercator_projection']
@@ -267,13 +269,16 @@ class SCMIFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return datetime.strptime(self.nc.attrs['start_date_time'], '%Y%j%H%M%S')
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self.start_time
 
     def __del__(self):
+        """Delete the instance."""
         try:
             self.nc.close()
         except (IOError, OSError):

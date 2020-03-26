@@ -1,24 +1,31 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Module for testing the satpy.readers.clavrx module.
-"""
+# Copyright (c) 2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Module for testing the satpy.readers.clavrx module."""
 
 import os
-import sys
 import numpy as np
+import dask.array as da
 import xarray as xr
 from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 from pyresample.geometry import AreaDefinition
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -41,7 +48,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
         }
 
         file_content['longitude'] = xr.DataArray(
-            DEFAULT_LON_DATA,
+            da.from_array(DEFAULT_LON_DATA, chunks=4096),
             attrs={
                 '_FillValue': np.nan,
                 'scale_factor': 1.,
@@ -51,7 +58,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
         file_content['longitude/shape'] = DEFAULT_FILE_SHAPE
 
         file_content['latitude'] = xr.DataArray(
-            DEFAULT_LAT_DATA,
+            da.from_array(DEFAULT_LAT_DATA, chunks=4096),
             attrs={
                 '_FillValue': np.nan,
                 'scale_factor': 1.,
@@ -61,7 +68,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
         file_content['latitude/shape'] = DEFAULT_FILE_SHAPE
 
         file_content['variable1'] = xr.DataArray(
-            DEFAULT_FILE_DATA.astype(np.float32),
+            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
             attrs={
                 '_FillValue': -1,
                 'scale_factor': 1.,
@@ -72,7 +79,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
 
         # data with fill values
         file_content['variable2'] = xr.DataArray(
-            DEFAULT_FILE_DATA.astype(np.float32),
+            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.float32),
             attrs={
                 '_FillValue': -1,
                 'scale_factor': 1.,
@@ -85,7 +92,7 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
 
         # category
         file_content['variable3'] = xr.DataArray(
-            DEFAULT_FILE_DATA.astype(np.byte),
+            da.from_array(DEFAULT_FILE_DATA, chunks=4096).astype(np.byte),
             attrs={
                 '_FillValue': -128,
                 'flag_meanings': 'clear water supercooled mixed ice unknown',
@@ -126,6 +133,72 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
+
+    def test_available_datasets(self):
+        """Test available_datasets with fake variables from YAML."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
+        ])
+        self.assertTrue(len(loadables), 1)
+        r.create_filehandlers(loadables)
+        # make sure we have some files
+        self.assertTrue(r.file_handlers)
+
+        # mimic the YAML file being configured for more datasets
+        fake_dataset_info = [
+            (None, {'name': 'variable1', 'resolution': None, 'file_type': ['level2']}),
+            (True, {'name': 'variable2', 'resolution': 742, 'file_type': ['level2']}),
+            (True, {'name': 'variable2', 'resolution': 1, 'file_type': ['level2']}),
+            (None, {'name': 'variable2', 'resolution': 1, 'file_type': ['level2']}),
+            (None, {'name': '_fake1', 'file_type': ['level2']}),
+            (None, {'name': 'variable1', 'file_type': ['level_fake']}),
+            (True, {'name': 'variable3', 'file_type': ['level2']}),
+        ]
+        new_ds_infos = list(r.file_handlers['level2'][0].available_datasets(
+            fake_dataset_info))
+        self.assertEqual(len(new_ds_infos), 9)
+
+        # we have this and can provide the resolution
+        self.assertTrue(new_ds_infos[0][0])
+        self.assertEqual(new_ds_infos[0][1]['resolution'], 742)  # hardcoded
+
+        # we have this, but previous file handler said it knew about it
+        # and it is producing the same resolution as what we have
+        self.assertTrue(new_ds_infos[1][0])
+        self.assertEqual(new_ds_infos[1][1]['resolution'], 742)
+
+        # we have this, but don't want to change the resolution
+        # because a previous handler said it has it
+        self.assertTrue(new_ds_infos[2][0])
+        self.assertEqual(new_ds_infos[2][1]['resolution'], 1)
+
+        # even though the previous one was known we can still
+        # produce it at our new resolution
+        self.assertTrue(new_ds_infos[3][0])
+        self.assertEqual(new_ds_infos[3][1]['resolution'], 742)
+
+        # we have this and can update the resolution since
+        # no one else has claimed it
+        self.assertTrue(new_ds_infos[4][0])
+        self.assertEqual(new_ds_infos[4][1]['resolution'], 742)
+
+        # we don't have this variable, don't change it
+        self.assertFalse(new_ds_infos[5][0])
+        self.assertIsNone(new_ds_infos[5][1].get('resolution'))
+
+        # we have this, but it isn't supposed to come from our file type
+        self.assertIsNone(new_ds_infos[6][0])
+        self.assertIsNone(new_ds_infos[6][1].get('resolution'))
+
+        # we could have loaded this but some other file handler said it has this
+        self.assertTrue(new_ds_infos[7][0])
+        self.assertIsNone(new_ds_infos[7][1].get('resolution'))
+
+        # we can add resolution to the previous dataset, so we do
+        self.assertTrue(new_ds_infos[8][0])
+        self.assertEqual(new_ds_infos[8][1]['resolution'], 742)
 
     def test_load_all(self):
         """Test loading all test datasets"""
@@ -328,14 +401,3 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
-
-
-def suite():
-    """The test suite for test_viirs_l1b.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCLAVRXReaderPolar))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCLAVRXReaderGeo))
-
-    return mysuite

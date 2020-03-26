@@ -1,52 +1,47 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2017.
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
+# Copyright (c) 2009-2020 Satpy developers
+#
 # This file is part of satpy.
-
-# satpy is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# satpy is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Setup file for satpy."""
 
 import os.path
-import sys
 from glob import glob
-import versioneer
 
 from setuptools import find_packages, setup
 
-requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.10.3', 'trollsift',
-            'trollimage >=1.5.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1',
-            'dask[array] >=0.17.1']
+try:
+    # HACK: https://github.com/pypa/setuptools_scm/issues/190#issuecomment-351181286
+    # Stop setuptools_scm from including all repository files
+    import setuptools_scm.integration
+    setuptools_scm.integration.find_files = lambda _: []
+except ImportError:
+    pass
 
-# pyhdf (conda) == python-hdf4 (pip)
+requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
+            'trollimage >1.10.1', 'pykdtree', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
+            'dask[array] >=0.17.1', 'pyproj', 'zarr']
+
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews']
-
-if sys.version < '3.0':
-    test_requires.append('mock')
-
+                 'rasterio', 'geoviews', 'trollimage']
 
 extras_require = {
     # Readers:
-    'modis_l1b': ['python-hdf4', 'python-geotiepoints >= 1.1.7'],
-    'geocat': ['python-hdf4'],
+    'avhrr_l1b_gaclac': ['pygac >= 1.3.0'],
+    'modis_l1b': ['pyhdf', 'python-geotiepoints >= 1.1.7'],
+    'geocat': ['pyhdf'],
     'acspo': ['netCDF4 >= 1.1.8'],
     'clavrx': ['netCDF4 >= 1.1.8'],
     'viirs_l1b': ['netCDF4 >= 1.1.8'],
@@ -56,16 +51,21 @@ extras_require = {
     'amsr2_l1b': ['h5py >= 2.7.0'],
     'hrpt': ['pyorbital >= 1.3.1', 'pygac', 'python-geotiepoints >= 1.1.7'],
     'proj': ['pyresample'],
-    'pyspectral': ['pyspectral >= 0.7.0'],
+    'pyspectral': ['pyspectral >= 0.8.7'],
     'pyorbital': ['pyorbital >= 1.3.1'],
     'hrit_msg': ['pytroll-schedule'],
     'nc_nwcsaf_msg': ['netCDF4 >= 1.1.8'],
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
+    'seviri_l2_bufr': ['eccodes-python'],
+    'seviri_l2_grib': ['eccodes-python'],
+    'hsaf_grib': ['pygrib'],
     # Writers:
+    'cf': ['h5netcdf >= 0.7.3'],
     'scmi': ['netCDF4 >= 1.1.8'],
-    'geotiff': ['gdal', 'trollimage[geotiff]'],
+    'geotiff': ['rasterio', 'trollimage[geotiff]'],
     'mitiff': ['libtiff'],
+    'ninjo': ['pyninjotiff', 'pint'],
     # MultiScene:
     'animations': ['imageio'],
     # Documentation:
@@ -106,8 +106,6 @@ NAME = 'satpy'
 README = open('README.rst', 'r').read()
 
 setup(name=NAME,
-      version=versioneer.get_version(),
-      cmdclass=versioneer.get_cmdclass(),
       description='Python package for earth-observing satellite data processing',
       long_description=README,
       author='The Pytroll Team',
@@ -120,7 +118,6 @@ setup(name=NAME,
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
-      test_suite='satpy.tests.suite',
       packages=find_packages(),
       package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
                               os.path.join('etc', 'areas.yaml'),
@@ -134,8 +131,9 @@ setup(name=NAME,
                               os.path.join('etc', 'enhancements', '*.yaml'),
                               ]},
       zip_safe=False,
+      use_scm_version=True,
       install_requires=requires,
       tests_require=test_requires,
-      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
+      python_requires='>=3.6',
       extras_require=extras_require,
       )

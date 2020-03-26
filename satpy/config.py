@@ -1,37 +1,38 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016.
+# Copyright (c) 2016-2019 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Satpy Configuration directory and file handling."""
+from __future__ import print_function
 
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-
-# This file is part of the satpy.
-
-# satpy is free software: you can redistribute it and/or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# satpy is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-"""SatPy Configuration directory and file handling
-"""
+import configparser
 import glob
 import logging
 import os
-from collections import Mapping, OrderedDict
+from collections import OrderedDict
+from collections.abc import Mapping
 
-from six.moves import configparser
+import pkg_resources
 import yaml
+from yaml import BaseLoader
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 LOG = logging.getLogger(__name__)
 
@@ -41,12 +42,14 @@ PACKAGE_CONFIG_PATH = os.path.join(BASE_PATH, 'etc')
 
 
 def get_environ_config_dir(default=None):
+    """Get the config dir."""
     if default is None:
         default = PACKAGE_CONFIG_PATH
     return os.environ.get('PPP_CONFIG_DIR', default)
 
 
 def get_environ_ancpath(default='.'):
+    """Get the ancpath."""
     return os.environ.get('SATPY_ANCPATH', default)
 
 
@@ -61,10 +64,21 @@ def runtime_import(object_path):
     return getattr(loader, obj_element)
 
 
+def get_entry_points_config_dirs(name):
+    """Get the config directories for all entry points of given name."""
+    dirs = []
+    for entry_point in pkg_resources.iter_entry_points(name):
+        package_name = entry_point.module_name.split('.', 1)[0]
+        new_dir = os.path.join(entry_point.dist.module_path, package_name, 'etc')
+        if not dirs or dirs[-1] != new_dir:
+            dirs.append(new_dir)
+    return dirs
+
+
 def config_search_paths(filename, *search_dirs, **kwargs):
-    # Get the environment variable value every time (could be set dynamically)
+    """Get the environment variable value every time (could be set dynamically)."""
     # FIXME: Consider removing the 'magic' environment variable all together
-    CONFIG_PATH = get_environ_config_dir()
+    CONFIG_PATH = get_environ_config_dir()  # noqa
 
     paths = [filename, os.path.basename(filename)]
     paths += [os.path.join(search_dir, filename) for search_dir in search_dirs]
@@ -134,48 +148,77 @@ def recursive_dict_update(d, u):
     return d
 
 
-def check_yaml_configs(configs, key, hdr_len):
+def check_yaml_configs(configs, key):
     """Get a diagnostic for the yaml *configs*.
 
     *key* is the section to look for to get a name for the config at hand.
-    *hdr_len* is the number of lines that can be safely read from the config to
-    get a name.
     """
     diagnostic = {}
     for i in configs:
         for fname in i:
             with open(fname) as stream:
                 try:
-                    res = yaml.load(stream)
-                    try:
-                        diagnostic[res[key]['name']] = 'ok'
-                    except Exception:
-                        continue
+                    res = yaml.load(stream, Loader=UnsafeLoader)
+                    msg = 'ok'
                 except yaml.YAMLError as err:
                     stream.seek(0)
-                    lines = ''.join(stream.readline() for line in range(hdr_len))
-                    res = yaml.load(lines)
+                    res = yaml.load(stream, Loader=BaseLoader)
                     if err.context == 'while constructing a Python object':
-                        problem = err.problem
+                        msg = err.problem
                     else:
-                        problem = 'error'
+                        msg = 'error'
+                finally:
                     try:
-                        diagnostic[res[key]['name']] = problem
-                    except Exception:
-                        continue
+                        diagnostic[res[key]['name']] = msg
+                    except (KeyError, TypeError):
+                        # this object doesn't have a 'name'
+                        pass
     return diagnostic
 
 
-def check_satpy():
-    """Check the satpy readers and writers for correct installation."""
+def _check_import(module_names):
+    """Import the specified modules and provide status."""
+    diagnostics = {}
+    for module_name in module_names:
+        try:
+            __import__(module_name)
+            res = 'ok'
+        except ImportError as err:
+            res = str(err)
+        diagnostics[module_name] = res
+    return diagnostics
+
+
+def check_satpy(readers=None, writers=None, extras=None):
+    """Check the satpy readers and writers for correct installation.
+
+    Args:
+        readers (list or None): Limit readers checked to those specified
+        writers (list or None): Limit writers checked to those specified
+        extras (list or None): Limit extras checked to those specified
+
+    Returns: bool
+        True if all specified features were successfully loaded.
+
+    """
     from satpy.readers import configs_for_reader
     from satpy.writers import configs_for_writer
+
     print('Readers')
     print('=======')
-    for reader, res in sorted(check_yaml_configs(configs_for_reader(), 'reader', 5).items()):
-        print(reader + ': ' + res)
+    for reader, res in sorted(check_yaml_configs(configs_for_reader(reader=readers), 'reader').items()):
+        print(reader + ': ', res)
     print()
+
     print('Writers')
     print('=======')
-    for writer, res in sorted(check_yaml_configs(configs_for_writer(), 'writer', 3).items()):
-        print(writer + ': ' + res)
+    for writer, res in sorted(check_yaml_configs(configs_for_writer(writer=writers), 'writer').items()):
+        print(writer + ': ', res)
+    print()
+
+    print('Extras')
+    print('======')
+    module_names = extras if extras is not None else ('cartopy', 'geoviews')
+    for module_name, res in sorted(_check_import(module_names).items()):
+        print(module_name + ': ', res)
+    print()

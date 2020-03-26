@@ -26,7 +26,124 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     - wavelength: 0.85
       modifiers: [sunz_corrected]
-    standard_name: toa_bidirection_reflectance
+    standard_name: toa_bidirectional_reflectance
+
+  airmass:
+    # PDF slides: https://www.eumetsat.int/website/home/News/ConferencesandEvents/DAT_2833302.html
+    # Under session 2 by Akihiro Shimizu (JMA)
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B08
+          - name: B10
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B12
+          - name: B14
+      - name: B08
+    standard_name: airmass
+
+  ash:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B15
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B14
+          - name: B11
+      - name: B13
+    standard_name: ash
+
+  dust:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B15
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B14
+          - name: B11
+      - name: B13
+    standard_name: dust
+
+  fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B15
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B14
+          - name: B11
+      - name: B13
+    standard_name: fog
+
+  night_microphysics:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B15
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B14
+          - name: B07
+      - name: B13
+    standard_name: night_microphysics
+
+  fire_temperature:
+    # CIRA: Original VIIRS
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 3.85
+      calibration: radiance
+    - wavelength: 2.26
+      calibration: radiance
+    - wavelength: 1.61
+      calibration: radiance
+    standard_name: fire_temperature
+    name: fire_temperature
+  fire_temperature_awips:
+    # CIRA: EUMETSAT
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 3.85
+    - wavelength: 2.26
+    - wavelength: 1.61
+    standard_name: fire_temperature
+    name: fire_temperature_awips
+
+  fire_temperature_eumetsat:
+    # CIRA: AWIPS
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 3.85
+    - wavelength: 2.26
+    - wavelength: 1.61
+    standard_name: fire_temperature
+    name: fire_temperature_eumetsat
+  fire_temperature_39refl:
+    # CIRA: All bands in Reflectance units (%)
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - wavelength: 3.85
+      modifiers: [nir_reflectance]
+    - wavelength: 2.26
+      modifiers: [sunz_corrected]
+    - wavelength: 1.61
+      modifiers: [sunz_corrected]
+    standard_name: fire_temperature
+    name: fire_temperature_39refl
+
 
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor

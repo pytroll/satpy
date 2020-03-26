@@ -1,28 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2010-2017
+# Copyright (c) 2010-2017 Satpy developers
 #
-# Author(s):
+# This file is part of satpy.
 #
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Esben S. Nielsen <esn@dmi.dk>
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Scene objects to hold satellite data.
-"""
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Scene object to hold satellite data."""
 
 import logging
 import os
@@ -41,14 +34,14 @@ from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 import xarray as xr
 from xarray import DataArray
 import numpy as np
-import six
-
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser  # noqa: F401
 
 LOG = logging.getLogger(__name__)
+
+
+class DelayedGeneration(KeyError):
+    """Mark that a dataset can't be generated without further modification."""
+
+    pass
 
 
 class Scene(MetadataObject):
@@ -146,6 +139,8 @@ class Scene(MetadataObject):
         if filter_parameters:
             if reader_kwargs is None:
                 reader_kwargs = {}
+            else:
+                reader_kwargs = reader_kwargs.copy()
             reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
@@ -212,11 +207,11 @@ class Scene(MetadataObject):
 
     @property
     def missing_datasets(self):
-        """DatasetIDs that have not been loaded."""
+        """Set of DatasetIDs that have not been successfully loaded."""
         return set(self.wishlist) - set(self.datasets.keys())
 
     def _compare_areas(self, datasets=None, compare_func=max):
-        """Get  for the provided datasets.
+        """Compare areas for the provided datasets.
 
         Args:
             datasets (iterable): Datasets whose areas will be compared. Can
@@ -289,14 +284,19 @@ class Scene(MetadataObject):
         return self._compare_areas(datasets=datasets, compare_func=min)
 
     def available_dataset_ids(self, reader_name=None, composites=False):
-        """Get names of available datasets, globally or just for *reader_name*
-        if specified, that can be loaded.
+        """Get DatasetIDs of loadable datasets.
+
+        This can be for all readers loaded by this Scene or just for
+        ``reader_name`` if specified.
 
         Available dataset names are determined by what each individual reader
         can load. This is normally determined by what files are needed to load
         a dataset and what files have been provided to the scene/reader.
+        Some readers dynamically determine what is available based on the
+        contents of the files provided.
 
-        :return: list of available dataset names
+        Returns: list of available dataset names
+
         """
         try:
             if reader_name:
@@ -310,8 +310,7 @@ class Scene(MetadataObject):
                                      for reader in readers
                                      for dataset_id in reader.available_dataset_ids])
         if composites:
-            available_datasets += sorted(self.available_composite_ids(
-                available_datasets))
+            available_datasets += sorted(self.available_composite_ids())
         return available_datasets
 
     def available_dataset_names(self, reader_name=None, composites=False):
@@ -320,10 +319,10 @@ class Scene(MetadataObject):
             reader_name=reader_name, composites=composites)))
 
     def all_dataset_ids(self, reader_name=None, composites=False):
-        """Get names of all datasets from loaded readers or `reader_name` if
-        specified..
+        """Get names of all datasets from loaded readers or `reader_name` if specified.
 
-        :return: list of all dataset names
+        Returns: list of all dataset names
+
         """
         try:
             if reader_name:
@@ -341,56 +340,55 @@ class Scene(MetadataObject):
         return all_datasets
 
     def all_dataset_names(self, reader_name=None, composites=False):
+        """Get all known dataset names configured for the loaded readers.
+
+        Note that some readers dynamically determine what datasets are known
+        by reading the contents of the files they are provided. This means
+        that the list of datasets returned by this method may change depending
+        on what files are provided even if a product/dataset is a "standard"
+        product for a particular reader.
+
+        """
         return sorted(set(x.name for x in self.all_dataset_ids(
             reader_name=reader_name, composites=composites)))
 
-    def available_composite_ids(self, available_datasets=None):
-        """Get names of compositors that can be generated from the available datasets.
-
-        Returns: generator of available compositor's names
-        """
-        if available_datasets is None:
-            available_datasets = self.available_dataset_ids(composites=False)
-        else:
-            if not all(isinstance(ds_id, DatasetID) for ds_id in available_datasets):
-                raise ValueError(
-                    "'available_datasets' must all be DatasetID objects")
-
-        all_comps = self.all_composite_ids()
+    def _check_known_composites(self, available_only=False):
+        """Create new dependency tree and check what composites we know about."""
+        # Note if we get compositors from the dep tree then it will include
+        # modified composites which we don't want
+        sensor_comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
         # recreate the dependency tree so it doesn't interfere with the user's
-        # wishlist
-        comps, mods = self.cpl.load_compositors(self.attrs['sensor'])
-        dep_tree = DependencyTree(self.readers, comps, mods)
-        dep_tree.find_dependencies(set(available_datasets + all_comps))
+        # wishlist from self.dep_tree
+        dep_tree = DependencyTree(self.readers, sensor_comps, mods, available_only=True)
+        # ignore inline compositor dependencies starting with '_'
+        comps = (comp for comp_dict in sensor_comps.values()
+                 for comp in comp_dict.keys() if not comp.name.startswith('_'))
+        # make sure that these composites are even create-able by these readers
+        all_comps = set(comps)
+        # find_dependencies will update the all_comps set with DatasetIDs
+        dep_tree.find_dependencies(all_comps)
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & set(all_comps))
 
-    def available_composite_names(self, available_datasets=None):
+    def available_composite_ids(self):
+        """Get names of composites that can be generated from the available datasets."""
+        return self._check_known_composites(available_only=True)
+
+    def available_composite_names(self):
         """All configured composites known to this Scene."""
-        return sorted(set(x.name for x in self.available_composite_ids(
-            available_datasets=available_datasets)))
+        return sorted(set(x.name for x in self.available_composite_ids()))
 
-    def all_composite_ids(self, sensor_names=None):
-        """Get all composite IDs that are configured.
+    def all_composite_ids(self):
+        """Get all IDs for configured composites."""
+        return self._check_known_composites()
 
-        Returns: generator of configured composite names
-        """
-        if sensor_names is None:
-            sensor_names = self.attrs['sensor']
-        compositors = []
-        # Note if we get compositors from the dep tree then it will include
-        # modified composites which we don't want
-        for sensor_name in sensor_names:
-            sensor_comps = self.cpl.compositors.get(sensor_name, {}).keys()
-            # ignore inline compositor dependencies starting with '_'
-            compositors.extend(c for c in sensor_comps if not c.name.startswith('_'))
-        return sorted(set(compositors))
-
-    def all_composite_names(self, sensor_names=None):
-        return sorted(set(x.name for x in self.all_composite_ids(sensor_names=sensor_names)))
+    def all_composite_names(self):
+        """Get all names for all configured composites."""
+        return sorted(set(x.name for x in self.all_composite_ids()))
 
     def all_modifier_names(self):
+        """Get names of configured modifier objects."""
         return sorted(self.dep_tree.modifiers.keys())
 
     def __str__(self):
@@ -417,9 +415,11 @@ class Scene(MetadataObject):
         return datasets_by_area.items()
 
     def keys(self, **kwargs):
+        """Get DatasetID keys for the underlying data container."""
         return self.datasets.keys(**kwargs)
 
     def values(self):
+        """Get values for the underlying data container."""
         return self.datasets.values()
 
     def copy(self, datasets=None):
@@ -586,6 +586,8 @@ class Scene(MetadataObject):
         # get the lowest resolution area, use it as the base of the slice
         # this makes sure that the other areas *should* be a consistent factor
         min_area = new_scn.min_area()
+        if isinstance(area, str):
+            area = get_area_def(area)
         new_min_area, min_y_slice, min_x_slice = self._slice_area_from_bbox(
             min_area, area, ll_bbox, xy_bbox)
         new_target_areas = {}
@@ -607,12 +609,61 @@ class Scene(MetadataObject):
                 x_slice = slice(min_x_slice.start * x_factor,
                                 min_x_slice.stop * x_factor)
                 new_area = src_area[y_slice, x_slice]
-                slice_key = (y_slice, x_slice)
+                slice_key = {'y': y_slice, 'x': x_slice}
                 new_scn._slice_datasets(dataset_ids, slice_key, new_area)
             else:
                 new_target_areas[src_area] = self._slice_area_from_bbox(
                     src_area, area, ll_bbox, xy_bbox
                 )
+
+        return new_scn
+
+    def aggregate(self, dataset_ids=None, boundary='exact', side='left', func='mean', **dim_kwargs):
+        """Create an aggregated version of the Scene.
+
+        Args:
+            dataset_ids (iterable): DatasetIDs to include in the returned
+                                    `Scene`. Defaults to all datasets.
+            func (string): Function to apply on each aggregation window. One of
+                           'mean', 'sum', 'min', 'max', 'median', 'argmin',
+                           'argmax', 'prod', 'std', 'var'.
+                           'mean' is the default.
+            boundary: Not implemented.
+            side: Not implemented.
+            dim_kwargs: the size of the windows to aggregate.
+
+        Returns:
+            A new aggregated scene
+
+        See also:
+            xarray.DataArray.coarsen
+
+        Example:
+            `scn.aggregate(func='min', x=2, y=2)` will aggregate 2x2 pixels by
+            applying the `min` function.
+
+        """
+        new_scn = self.copy(datasets=dataset_ids)
+
+        for src_area, ds_ids in new_scn.iter_by_area():
+            if src_area is None:
+                for ds_id in ds_ids:
+                    new_scn.datasets[ds_id] = self[ds_id]
+                continue
+
+            if boundary != 'exact':
+                raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
+            target_area = src_area.aggregate(**dim_kwargs)
+            try:
+                resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            except AttributeError:
+                resolution = max(target_area.lats.resolution, target_area.lons.resolution)
+            for ds_id in ds_ids:
+                res = self[ds_id].coarsen(boundary=boundary, side=side, **dim_kwargs)
+
+                new_scn.datasets[ds_id] = getattr(res, func)()
+                new_scn.datasets[ds_id].attrs['area'] = target_area
+                new_scn.datasets[ds_id].attrs['resolution'] = resolution
 
         return new_scn
 
@@ -699,14 +750,19 @@ class Scene(MetadataObject):
                     and not prereq_node.is_leaf:
                 self._generate_composite(prereq_node, keepables)
 
-            if prereq_id in self.datasets:
+            if prereq_node is self.dep_tree.empty_node:
+                # empty sentinel node - no need to load it
+                continue
+            elif prereq_id in self.datasets:
                 prereq_datasets.append(self.datasets[prereq_id])
             elif not prereq_node.is_leaf and prereq_id in keepables:
                 delayed_gen = True
                 continue
             elif not skip:
-                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite")
+                LOG.debug("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite for"
+                               " '{}': '{}'".format(comp_id, prereq_id))
             else:
                 LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
@@ -715,10 +771,12 @@ class Scene(MetadataObject):
             keepables.update([x.name for x in prereq_nodes])
             LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
             if not skip:
-                LOG.debug("Missing prerequisite for '{}': '{}'".format(comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite")
+                LOG.debug("Delayed prerequisite for '{}': '{}'".format(comp_id, prereq_id))
+                raise DelayedGeneration(
+                    "Delayed composite prerequisite for "
+                    "'{}': '{}'".format(comp_id, prereq_id))
             else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
+                LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
 
         return prereq_datasets
 
@@ -739,12 +797,20 @@ class Scene(MetadataObject):
         compositor, prereqs, optional_prereqs = comp_node.data
 
         try:
+            delayed_prereq = False
             prereq_datasets = self._get_prereq_datasets(
                 comp_node.name,
                 prereqs,
                 keepables,
             )
+        except DelayedGeneration:
+            # if we are missing a required dependency that could be generated
+            # later then we need to wait to return until after we've also
+            # processed the optional dependencies
+            delayed_prereq = True
         except KeyError:
+            # we are missing a hard requirement that will never be available
+            # there is no need to "keep" optional dependencies
             return
 
         optional_datasets = self._get_prereq_datasets(
@@ -753,6 +819,17 @@ class Scene(MetadataObject):
             keepables,
             skip=True
         )
+
+        # we are missing some prerequisites
+        # in the future we may be able to generate this composite (delayed)
+        # so we need to hold on to successfully loaded prerequisites and
+        # optional prerequisites
+        if delayed_prereq:
+            preservable_datasets = set(self.datasets.keys())
+            prereq_ids = set(p.name for p in prereqs)
+            opt_prereq_ids = set(p.name for p in optional_prereqs)
+            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
+            return
 
         try:
             composite = compositor(prereq_datasets,
@@ -802,8 +879,7 @@ class Scene(MetadataObject):
         return self._read_datasets(nodes, **kwargs)
 
     def generate_composites(self, nodes=None):
-        """Compute all the composites contained in `requirements`.
-        """
+        """Compute all the composites contained in `requirements`."""
         if nodes is None:
             required_nodes = self.wishlist - set(self.datasets.keys())
             nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - \
@@ -908,10 +984,9 @@ class Scene(MetadataObject):
         if unload:
             self.unload(keepables=keepables)
 
-    def _reduce_data(self, source_area, destination_area, dataset):
-        """Reduce data by slicing it."""
-        slice_x, slice_y = source_area.get_area_slices(destination_area)
-        source_area = source_area[slice_y, slice_x]
+    def _slice_data(self, source_area, slices, dataset):
+        """Slice the data to reduce it."""
+        slice_x, slice_y = slices
         dataset = dataset.isel(x=slice_x, y=slice_y)
         assert ('x', source_area.x_size) in dataset.sizes.items()
         assert ('y', source_area.y_size) in dataset.sizes.items()
@@ -921,10 +996,14 @@ class Scene(MetadataObject):
 
     def _resampled_scene(self, new_scn, destination_area, reduce_data=True,
                          **resample_kwargs):
-        """Resample `datasets` to the `destination` area."""
+        """Resample `datasets` to the `destination` area.
+
+        If data reduction is enabled, some local caching is perfomed in order to
+        avoid recomputation of area intersections.
+        """
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
-        if isinstance(destination_area, (str, six.text_type)):
+        if isinstance(destination_area, str):
             destination_area = get_area_def(destination_area)
         if hasattr(destination_area, 'freeze'):
             try:
@@ -935,13 +1014,16 @@ class Scene(MetadataObject):
                                  "DynamicAreaDefinition.")
 
         resamplers = {}
+        reductions = {}
         for dataset, parent_dataset in dataset_walker(datasets):
             ds_id = DatasetID.from_dict(dataset.attrs)
             pres = None
             if parent_dataset is not None:
                 pres = new_datasets[DatasetID.from_dict(parent_dataset.attrs)]
             if ds_id in new_datasets:
-                replace_anc(dataset, pres)
+                replace_anc(new_datasets[ds_id], pres)
+                if ds_id in new_scn.datasets:
+                    new_scn.datasets[ds_id] = new_datasets[ds_id]
                 continue
             if dataset.attrs.get('area') is None:
                 if parent_dataset is None:
@@ -953,8 +1035,23 @@ class Scene(MetadataObject):
             source_area = dataset.attrs['area']
             try:
                 if reduce_data:
-                    dataset = self._reduce_data(source_area, destination_area, dataset)
-                    source_area = dataset.attrs['area']
+                    key = source_area
+                    try:
+                        (slice_x, slice_y), source_area = reductions[key]
+                    except KeyError:
+                        if resample_kwargs.get('resampler') == 'gradient_search':
+                            factor = resample_kwargs.get('shape_divisible_by', 2)
+                        else:
+                            factor = None
+                        try:
+                            slice_x, slice_y = source_area.get_area_slices(
+                                destination_area, shape_divisible_by=factor)
+                        except TypeError:
+                            slice_x, slice_y = source_area.get_area_slices(
+                                destination_area)
+                        source_area = source_area[slice_y, slice_x]
+                        reductions[key] = (slice_x, slice_y), source_area
+                    dataset = self._slice_data(source_area, (slice_x, slice_y), dataset)
                 else:
                     LOG.debug("Data reduction disabled by the user")
             except NotImplementedError:
@@ -966,12 +1063,11 @@ class Scene(MetadataObject):
                 self.resamplers[key] = resampler
             kwargs = resample_kwargs.copy()
             kwargs['resampler'] = resamplers[source_area]
-            res = resample_dataset(dataset, destination_area,
-                                   **kwargs)
+            res = resample_dataset(dataset, destination_area, **kwargs)
             new_datasets[ds_id] = res
-            if parent_dataset is None:
+            if ds_id in new_scn.datasets:
                 new_scn.datasets[ds_id] = res
-            else:
+            if parent_dataset is not None:
                 replace_anc(res, pres)
 
     def resample(self, destination=None, datasets=None, generate=True,
@@ -1038,7 +1134,26 @@ class Scene(MetadataObject):
         return new_scn
 
     def show(self, dataset_id, overlay=None):
-        """Show the *dataset* on screen as an image."""
+        """Show the *dataset* on screen as an image.
+
+        Show dataset on screen as an image, possibly with an overlay.
+
+        Args:
+            dataset_id (DatasetID or str):
+                Either a DatasetID or a string representing a DatasetID, that
+                has been previously loaded using Scene.load.
+            overlay (dict, optional):
+                Add an overlay before showing the image.  The keys/values for
+                this dictionary are as the arguments for
+                :meth:`~satpy.writers.add_overlay`.  The dictionary should
+                contain at least the key ``"coast_dir"``, which should refer
+                to a top-level directory containing shapefiles.  See the
+                pycoast_ package documentation for coastline shapefile
+                installation instructions.
+
+        .. _pycoast: https://pycoast.readthedocs.io/
+
+        """
         from satpy.writers import get_enhanced_image
         from satpy.utils import in_ipynb
         img = get_enhanced_image(self[dataset_id].squeeze(), overlay=overlay)
@@ -1069,13 +1184,8 @@ class Scene(MetadataObject):
               to be passed to geoviews
 
         """
-        try:
-            import geoviews as gv
-            from cartopy import crs  # noqa
-        except ImportError:
-            import warnings
-            warnings.warn("This method needs the geoviews package installed.")
-
+        import geoviews as gv
+        from cartopy import crs  # noqa
         if gvtype is None:
             gvtype = gv.Image
 
@@ -1139,8 +1249,46 @@ class Scene(MetadataObject):
             if ds_id in self.wishlist:
                 yield projectable.to_image()
 
-    def save_dataset(self, dataset_id, filename=None, writer=None, overlay=None, compute=True, **kwargs):
-        """Save the *dataset_id* to file using *writer* (default: geotiff)."""
+    def save_dataset(self, dataset_id, filename=None, writer=None,
+                     overlay=None, decorate=None, compute=True, **kwargs):
+        """Save the ``dataset_id`` to file using ``writer``.
+
+        Args:
+            dataset_id (str or Number or DatasetID): Identifier for the
+                dataset to save to disk.
+            filename (str): Optionally specify the filename to save this
+                            dataset to. It may include string formatting
+                            patterns that will be filled in by dataset
+                            attributes.
+            writer (str): Name of writer to use when writing data to disk.
+                Default to ``"geotiff"``. If not provided, but ``filename`` is
+                provided then the filename's extension is used to determine
+                the best writer to use. See :meth:`Scene.get_writer_by_ext`
+                for details.
+            overlay (dict): See :func:`satpy.writers.add_overlay`. Only valid
+                for "image" writers like `geotiff` or `simple_image`.
+            decorate (dict): See :func:`satpy.writers.add_decorate`. Only valid
+                for "image" writers like `geotiff` or `simple_image`.
+            compute (bool): If `True` (default), compute all of the saves to
+                disk. If `False` then the return value is either a
+                :doc:`dask:delayed` object or two lists to be passed to
+                a `dask.array.store` call. See return values below for more
+                details.
+            kwargs: Additional writer arguments. See :doc:`../writers` for more
+                information.
+
+        Returns:
+            Value returned depends on `compute`. If `compute` is `True` then
+            the return value is the result of computing a
+            :doc:`dask:delayed` object or running :func:`dask.array.store`.
+            If `compute` is `False` then the returned value is either a
+            :doc:`dask:delayed` object that can be computed using
+            `delayed.compute()` or a tuple of (source, target) that should be
+            passed to :func:`dask.array.store`. If target is provided the the
+            caller is responsible for calling `target.close()` if the target
+            has this method.
+
+        """
         if writer is None and filename is None:
             writer = 'geotiff'
         elif writer is None:
@@ -1151,11 +1299,44 @@ class Scene(MetadataObject):
                                           filename=filename,
                                           **kwargs)
         return writer.save_dataset(self[dataset_id],
-                                   overlay=overlay, compute=compute,
-                                   **save_kwargs)
+                                   overlay=overlay, decorate=decorate,
+                                   compute=compute, **save_kwargs)
 
-    def save_datasets(self, writer="geotiff", datasets=None, compute=True, **kwargs):
-        """Save all the datasets present in a scene to disk using *writer*."""
+    def save_datasets(self, writer=None, filename=None, datasets=None, compute=True,
+                      **kwargs):
+        """Save all the datasets present in a scene to disk using ``writer``.
+
+        Args:
+            writer (str): Name of writer to use when writing data to disk.
+                Default to ``"geotiff"``. If not provided, but ``filename`` is
+                provided then the filename's extension is used to determine
+                the best writer to use. See :meth:`Scene.get_writer_by_ext`
+                for details.
+            filename (str): Optionally specify the filename to save this
+                            dataset to. It may include string formatting
+                            patterns that will be filled in by dataset
+                            attributes.
+            datasets (iterable): Limit written products to these datasets
+            compute (bool): If `True` (default), compute all of the saves to
+                disk. If `False` then the return value is either a
+                :doc:`dask:delayed` object or two lists to be passed to
+                a `dask.array.store` call. See return values below for more
+                details.
+            kwargs: Additional writer arguments. See :doc:`../writers` for more
+                information.
+
+        Returns:
+            Value returned depends on `compute` keyword argument. If
+            `compute` is `True` the value is the result of a either a
+            `dask.array.store` operation or a :doc:`dask:delayed`
+            compute, typically this is `None`. If `compute` is `False` then the
+            result is either a :doc:`dask:delayed` object that can be
+            computed with `delayed.compute()` or a two element tuple of
+            sources and targets to be passed to :func:`dask.array.store`. If
+            `targets` is provided then it is the caller's responsibility to
+            close any objects that have a "close" method.
+
+        """
         if datasets is not None:
             datasets = [self[ds] for ds in datasets]
         else:
@@ -1166,12 +1347,37 @@ class Scene(MetadataObject):
                                "generated or could not be loaded. Requested "
                                "composite inputs may need to have matching "
                                "dimensions (eg. through resampling).")
-        writer, save_kwargs = load_writer(writer, ppp_config_dir=self.ppp_config_dir, **kwargs)
+        if writer is None and filename is None:
+            writer = 'geotiff'
+        elif writer is None:
+            writer = self.get_writer_by_ext(os.path.splitext(filename)[1])
+        writer, save_kwargs = load_writer(writer,
+                                          ppp_config_dir=self.ppp_config_dir,
+                                          filename=filename,
+                                          **kwargs)
         return writer.save_datasets(datasets, compute=compute, **save_kwargs)
 
     @classmethod
     def get_writer_by_ext(cls, extension):
-        """Find the writer matching the *extension*."""
+        """Find the writer matching the ``extension``.
+
+        Defaults to "simple_image".
+
+        Example Mapping:
+
+            - geotiff: .tif, .tiff
+            - cf: .nc
+            - mitiff: .mitiff
+            - simple_image: .png, .jpeg, .jpg, ...
+
+        Args:
+            extension (str): Filename extension starting with
+                "." (ex. ".png").
+
+        Returns:
+            str: The name of the writer to use for this extension.
+
+        """
         mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf",
                    ".mitiff": "mitiff"}
         return mapping.get(extension.lower(), 'simple_image')

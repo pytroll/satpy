@@ -1,26 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017-2018 PyTroll Community
-
-# Author(s):
-
-#   Sauli Joro <sauli.joro@eumetsat.int>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-"""Utilities for EUMETSAT satellite data (HRIT/NATIVE)
-"""
+# Copyright (c) 2017-2018 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Utilities for EUMETSAT satellite data."""
 
 from datetime import datetime, timedelta
 import numpy as np
@@ -29,13 +24,14 @@ import numpy as np
 time_cds_short = [('Days', '>u2'), ('Milliseconds', '>u4')]
 time_cds = time_cds_short + [('Microseconds', '>u2')]
 time_cds_expanded = time_cds + [('Nanoseconds', '>u2')]
+issue_revision = [('Issue', np.uint16), ('Revision', np.uint16)]
 
 
 def timecds2datetime(tcds):
-    """Method for converting time_cds-variables to datetime-objectsself.
+    """Convert time_cds-variables to datetime-object.
+
     Works both with a dictionary and a numpy record_array.
     """
-
     days = int(tcds['Days'])
     milliseconds = int(tcds['Milliseconds'])
     try:
@@ -55,7 +51,7 @@ def timecds2datetime(tcds):
 
 
 def recarray2dict(arr):
-
+    """Convert numpy record array to a dictionary."""
     res = {}
     tcds_types = [time_cds_short, time_cds, time_cds_expanded]
 

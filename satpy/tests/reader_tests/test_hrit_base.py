@@ -1,44 +1,32 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2017 Martin Raspaud
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2017 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT base reader tests package.
 """
 
-import sys
-from datetime import datetime
 import os
+import unittest
+from unittest import mock
+from datetime import datetime
 from tempfile import gettempdir, NamedTemporaryFile
 
 import numpy as np
 
 from satpy.readers.hrit_base import HRITFileHandler, get_xritdecompress_cmd, get_xritdecompress_outfile, decompress
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class TestHRITDecompress(unittest.TestCase):
@@ -145,12 +133,13 @@ class TestHRITFileHandler(unittest.TestCase):
 
     def test_get_area_def(self):
         area = self.reader.get_area_def('VIS06')
-        self.assertEqual(area.proj_dict, {'a': 6378169.0,
-                                          'b': 6356583.8,
-                                          'h': 35785831.0,
-                                          'lon_0': 44.0,
-                                          'proj': 'geos',
-                                          'units': 'm'})
+        proj_dict = area.proj_dict
+        self.assertEqual(proj_dict['a'], 6378169.0)
+        self.assertEqual(proj_dict['b'], 6356583.8)
+        self.assertEqual(proj_dict['h'], 35785831.0)
+        self.assertEqual(proj_dict['lon_0'], 44.0)
+        self.assertEqual(proj_dict['proj'], 'geos')
+        self.assertEqual(proj_dict['units'], 'm')
         self.assertEqual(area.area_extent,
                          (-77771774058.38356, -77771774058.38356,
                           30310525626438.438, 3720765401003.719))
@@ -163,18 +152,3 @@ class TestHRITFileHandler(unittest.TestCase):
                                                 dtype=np.uint8)
         res = self.reader.read_band('VIS006', None)
         self.assertEqual(res.compute().shape, (464, 3712))
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITDecompress))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

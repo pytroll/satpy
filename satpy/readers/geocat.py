@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -39,7 +35,6 @@ from pyproj import Proj
 from pyresample import geometry
 from pyresample.utils import proj4_str_to_dict
 
-from satpy.dataset import DatasetID
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 
 LOG = logging.getLogger(__name__)
@@ -52,11 +47,14 @@ CF_UNITS = {
 # GEOCAT currently doesn't include projection information in it's files
 GEO_PROJS = {
     'GOES-16': '+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs',
+    'GOES-17': '+proj=geos +lon_0={lon_0:0.02f} +h=35786023.0 +a=6378137.0 +b=6356752.31414 +sweep=x +units=m +no_defs',
     'HIMAWARI-8': '+proj=geos +over +lon_0=140.7 +h=35785863 +a=6378137 +b=6356752.299581327 +units=m +no_defs',
 }
 
 
 class GEOCATFileHandler(NetCDF4FileHandler):
+    """GEOCAT netCDF4 file handler."""
+
     sensors = {
         'goes': 'goes_imager',
         'himawari8': 'ahi',
@@ -78,6 +76,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
     }
 
     def get_sensor(self, sensor):
+        """Get sensor."""
         last_resort = None
         for k, v in self.sensors.items():
             if k == sensor:
@@ -89,6 +88,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         raise ValueError("Unknown sensor '{}'".format(sensor))
 
     def get_platform(self, platform):
+        """Get platform."""
         for k, v in self.platforms.items():
             if k in platform:
                 return v
@@ -103,23 +103,28 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     @property
     def sensor_names(self):
+        """Get sensor names."""
         return [self.get_sensor(self['/attr/Sensor_Name'])]
 
     @property
     def start_time(self):
+        """Get start time."""
         return self.filename_info['start_time']
 
     @property
     def end_time(self):
+        """Get end time."""
         return self.filename_info.get('end_time', self.start_time)
 
     @property
     def is_geo(self):
+        """Check platform."""
         platform = self.get_platform(self['/attr/Platform_Name'])
         return platform in GEO_PROJS
 
     @property
     def resolution(self):
+        """Get resolution."""
         elem_res = self['/attr/Element_Resolution']
         return int(elem_res * 1000)
 
@@ -129,21 +134,63 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return self.resolutions.get(sensor, {}).get(int(elem_res),
                                                     elem_res * 1000.)
 
-    def available_datasets(self):
-        """Automatically determine datasets provided by this file"""
+    def available_datasets(self, configured_datasets=None):
+        """Update information for or add datasets provided by this file.
+
+        If this file handler can load a dataset then it will supplement the
+        dataset info with the resolution and possibly coordinate datasets
+        needed to load it. Otherwise it will continue passing the dataset
+        information down the chain.
+
+        See
+        :meth:`satpy.readers.file_handlers.BaseFileHandler.available_datasets`
+        for details.
+
+        """
         res = self.resolution
-        coordinates = ['pixel_longitude', 'pixel_latitude']
+        coordinates = ('pixel_longitude', 'pixel_latitude')
+        handled_variables = set()
+
+        # update previously configured datasets
+        for is_avail, ds_info in (configured_datasets or []):
+            this_res = ds_info.get('resolution')
+            this_coords = ds_info.get('coordinates')
+            # some other file handler knows how to load this
+            if is_avail is not None:
+                yield is_avail, ds_info
+
+            var_name = ds_info.get('file_key', ds_info['name'])
+            matches = self.file_type_matches(ds_info['file_type'])
+            # we can confidently say that we can provide this dataset and can
+            # provide more info
+            if matches and var_name in self and this_res != res:
+                handled_variables.add(var_name)
+                new_info = ds_info.copy()  # don't mess up the above yielded
+                new_info['resolution'] = res
+                if not self.is_geo and this_coords is None:
+                    new_info['coordinates'] = coordinates
+                yield True, new_info
+            elif is_avail is None:
+                # if we didn't know how to handle this dataset and no one else did
+                # then we should keep it going down the chain
+                yield is_avail, ds_info
+
+        # Provide new datasets
         for var_name, val in self.file_content.items():
+            if var_name in handled_variables:
+                continue
             if isinstance(val, netCDF4.Variable):
                 ds_info = {
                     'file_type': self.filetype_info['file_type'],
                     'resolution': res,
+                    'name': var_name,
                 }
                 if not self.is_geo:
                     ds_info['coordinates'] = coordinates
-                yield DatasetID(name=var_name, resolution=res), ds_info
+                yield True, ds_info
 
     def get_shape(self, dataset_id, ds_info):
+        """Get shape."""
         var_name = ds_info.get('file_key', dataset_id.name)
         return self[var_name + '/shape']
 
@@ -183,6 +230,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return nav[:]
 
     def get_area_def(self, dsid):
+        """Get area definition."""
         if not self.is_geo:
             raise NotImplementedError("Don't know how to get the Area Definition for this file")
 
@@ -208,6 +256,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
         return area_def
 
     def get_metadata(self, dataset_id, ds_info):
+        """Get metadata."""
         var_name = ds_info.get('file_key', dataset_id.name)
         shape = self.get_shape(dataset_id, ds_info)
         info = getattr(self[var_name], 'attrs', {})
@@ -228,11 +277,12 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
         return info
 
-    def get_dataset(self, dataset_id, ds_info, xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, dataset_id, ds_info):
+        """Get dataset."""
         var_name = ds_info.get('file_key', dataset_id.name)
         # FUTURE: Metadata retrieval may be separate
         info = self.get_metadata(dataset_id, ds_info)
-        data = self[var_name][yslice, xslice]
+        data = self[var_name]
         fill = self[var_name + '/attr/_FillValue']
         factor = self.get(var_name + '/attr/scale_factor')
         offset = self.get(var_name + '/attr/add_offset')

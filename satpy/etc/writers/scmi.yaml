@@ -1,6 +1,6 @@
 # Originally converted from the CSPP Polar2Grid SCMI Writer
 # Some datasets are named differently and have not been converted to
-# SatPy-style naming yet. These config entries are commented out.
+# Satpy-style naming yet. These config entries are commented out.
 writer:
   name: scmi
   description: AWIPS-compatible Tiled NetCDF4 Writer

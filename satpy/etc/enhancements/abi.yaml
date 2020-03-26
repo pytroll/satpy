@@ -1,0 +1,31 @@
+enhancements:
+  cimss_true_color:
+    standard_name: cimss_true_color
+    sensor: abi
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 120.}
+      - name: sqrt
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs: {gamma: 2.0}
+      - name: contrast
+        method: !!python/name:satpy.enhancements.abi.cimss_true_color_contrast
+  cmi_reflectance_default:
+    standard_name: toa_lambertian_equivalent_albedo_multiplied_by_cosine_solar_zenith_angle
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 100.}
+      - name: gamma
+        method: !!python/name:satpy.enhancements.gamma
+        kwargs: {gamma: 1.5}
+  airmass:
+    standard_name: airmass
+    operations:
+      - name: stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs:
+          stretch: crude
+          min_stretch: [-26.2, -43.2, 243.9]
+          max_stretch: [0.6, 6.7, 208.5]
