@@ -399,6 +399,17 @@ composites:
     transition_max: 298.15
     transition_gamma: 3.0
 
+  natural_enh:
+    compositor: !!python/name:satpy.composites.NaturalEnh
+    standard_name: natural_enh
+    prerequisites:
+    - wavelength: 1.6
+      modifiers: [sunz_corrected]
+    - wavelength: 0.8
+      modifiers: [sunz_corrected]
+    - wavelength: 0.6
+      modifiers: [sunz_corrected]
+
   _night_background:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background

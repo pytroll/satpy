@@ -1267,3 +1267,41 @@ class TestMaskingCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
         # The compositor should drop the original alpha band
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+
+class TestNaturalEnhCompositor(unittest.TestCase):
+    """Test NaturalEnh compositor."""
+
+    def setUp(self):
+        """Create channel data and set channel weights."""
+        self.ch1 = xr.DataArray([1.0])
+        self.ch2 = xr.DataArray([2.0])
+        self.ch3 = xr.DataArray([3.0])
+        self.ch16_w = 2.0
+        self.ch08_w = 3.0
+        self.ch06_w = 4.0
+
+    @mock.patch('satpy.composites.NaturalEnh.__repr__')
+    @mock.patch('satpy.composites.NaturalEnh.match_data_arrays')
+    def test_natural_enh(self, match_data_arrays, repr_):
+        """Test NaturalEnh compositor."""
+        from satpy.composites import NaturalEnh
+        repr_.return_value = ''
+        projectables = [self.ch1, self.ch2, self.ch3]
+
+        def temp_func(*args):
+            return args[0]
+        match_data_arrays.side_effect = temp_func
+        comp = NaturalEnh("foo", ch16_w=self.ch16_w, ch08_w=self.ch08_w,
+                          ch06_w=self.ch06_w)
+        self.assertEqual(comp.ch16_w, self.ch16_w)
+        self.assertEqual(comp.ch08_w, self.ch08_w)
+        self.assertEqual(comp.ch06_w, self.ch06_w)
+        res = comp(projectables)
+        assert mock.call(projectables) in match_data_arrays.mock_calls
+        correct = (self.ch16_w * projectables[0] +
+                   self.ch08_w * projectables[1] +
+                   self.ch06_w * projectables[2])
+        self.assertEqual(res[0], correct)
+        self.assertEqual(res[1], projectables[1])
+        self.assertEqual(res[2], projectables[2])
