@@ -44,11 +44,14 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         info.update({
             "Equator_Crossing_Longitude": self['/attr/Equator_Crossing_Longitude'],
             "Equator_Crossing_Time": self['/attr/Equator_Crossing_Time'],
+            "Input_L2A_Filename": self['/attr/Input_L2A_Filename'],
             "L2B_Actual_WVC_Rows": self['/attr/L2B_Actual_WVC_Rows'],
             "Orbit_Inclination": self['/attr/Orbit_Inclination'],
             "Orbit_Number": self['/attr/Orbit_Number'],
             "Output_L2B_Filename": self['/attr/Output_L2B_Filename'],
             "Production_Date_Time": self['/attr/Production_Date_Time'],
+            "L2B_Expected_WVC_Rows": self['/attr/L2B_Expected_WVC_Rows'],
+            "L2B_Number_WVC_cells": self['/attr/L2B_Number_WVC_cells'],
         })
         return info
 
@@ -57,13 +60,10 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         info.update({
             "WVC_Size": self['/attr/WVC_Size'],
             "HDF_Version_Id": self['/attr/HDF_Version_Id'],
-            "Input_L2A_Filename": self['/attr/Input_L2A_Filename'],
             "Instrument_ShorName": self['/attr/Instrument_ShorName'],
             "L2A_Inputdata_Version": self['/attr/L2A_Inputdata_Version'],
             "L2B_Algorithm_Descriptor": self['/attr/L2B_Algorithm_Descriptor'],
             "L2B_Data_Version": self['/attr/L2B_Data_Version'],
-            "L2B_Expected_WVC_Rows": self['/attr/L2B_Expected_WVC_Rows'],
-            "L2B_Number_WVC_cells": self['/attr/L2B_Number_WVC_cells'],
             "L2B_Processing_Type": self['/attr/L2B_Processing_Type'],
             "L2B_Processor_Name": self['/attr/L2B_Processor_Name'],
             "L2B_Processor_Version": self['/attr/L2B_Processor_Version'],
@@ -92,17 +92,24 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
             data = xr.DataArray(da.from_array(self[key.name][:],
                                               chunks=CHUNK_SIZE),
                                 name=key.name, dims=dims)
-            data = xr.where(data == self[key.name].attrs['fill_value'], np.nan, data)
 
-            valid_range = self[key.name].attrs['valid range']
-            data = xr.where(data < valid_range[0], np.nan, data)
-            data = xr.where(data > valid_range[1], np.nan, data)
-
-            data = data * self[key.name].attrs['scale_factor'] + self[key.name].attrs['add_offset']
+            data = self._mask_data(key.name, data)
+            data = self._scale_data(key.name, data)
 
             if key.name in 'wvc_lon':
                 data = xr.where(data > 180, data - 360., data)
         data.attrs.update(info)
         data.attrs.update(self.get_metadata())
         data.attrs.update(self.get_variable_metadata())
+        return data
+
+    def _scale_data(self, key_name, data):
+        return data * self[key_name].attrs['scale_factor'] + self[key_name].attrs['add_offset']
+
+    def _mask_data(self, key_name, data):
+        data = xr.where(data == self[key_name].attrs['fill_value'], np.nan, data)
+
+        valid_range = self[key_name].attrs['valid range']
+        data = xr.where(data < valid_range[0], np.nan, data)
+        data = xr.where(data > valid_range[1], np.nan, data)
         return data
