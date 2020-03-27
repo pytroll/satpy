@@ -277,8 +277,6 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         num_cols = 10
         num_amb = 8
         global_attrs = {
-            '/attr/Range_Beginning_Time': '20200326T01:11:07',
-            '/attr/Range_Ending_Time': '20200326T02:55:40',
             '/attr/Equator_Crossing_Longitude': '246.408397',
             '/attr/Equator_Crossing_Time': '20200326T01:37:15.875',
             '/attr/HDF_Version_Id': 'HDF5-1.8.16',
