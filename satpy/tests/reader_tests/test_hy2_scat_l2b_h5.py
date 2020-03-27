@@ -40,9 +40,6 @@ DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler"""
 
-    def make_test_data(self, dims):
-        return xr.DataArray(da.from_array(np.ones([dim for dim in dims], dtype=np.float32) * 10, [dim for dim in dims]))
-
     def _get_geo_data(self, num_rows, num_cols):
         geo = {
             'wvc_lon':
