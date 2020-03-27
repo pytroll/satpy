@@ -79,9 +79,10 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         if self[key.name].ndim == 3:
             dims = ['y', 'x', 'selection']
         if key.name in 'wvc_row_time':
-            row_time = [datetime.strptime(rt, '%Y%m%dT%H:%M:%S.%f') for rt in np.char.decode(self[key.name][:])]
-
-            data = xr.DataArray(row_time, name=key.name, dims=['y', ])
+            data = xr.DataArray(da.from_array(self[key.name][:]),
+                                attrs={'fill_value': self[key.name].attrs['fill_value']},
+                                name=key.name,
+                                dims=['y', ])
         else:
             data = xr.DataArray(da.from_array(self[key.name][:],
                                               chunks=CHUNK_SIZE),
