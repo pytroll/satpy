@@ -23,7 +23,6 @@ import numpy as np
 import xarray as xr
 import dask.array as da
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-from satpy.tests.utils import convert_file_content_to_data_array
 
 import unittest
 from unittest import mock
@@ -287,7 +286,10 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             '/attr/Instrument_ShorName': 'HSCAT-B',
             '/attr/L2A_Inputdata_Version': '10',
             '/attr/L2B_Actual_WVC_Rows': np.int32(num_rows),
-            '/attr/L2B_Algorithm_Descriptor': 'Wind retrieval processing uses the multiple solution scheme (MSS) for wind inversion with the NSCAT-4 GMF,and a circular median filter method (CMF) for ambiguity removal. The ECMWF/NCEP forescate data are used as background winds in the CMF',
+            '/attr/L2B_Algorithm_Descriptor': ('Wind retrieval processing uses the multiple solution scheme (MSS) for '
+                                               'wind inversion with the NSCAT-4 GMF,and a circular median filter '
+                                               'method (CMF) for ambiguity removal. The ECMWF/NCEP forescate data are '
+                                               'used as background winds in the CMF'),
             '/attr/L2B_Data_Version': '10',
             '/attr/L2B_Expected_WVC_Rows': np.int32(num_rows),
             '/attr/L2B_Number_WVC_cells': np.int32(num_cols),
@@ -414,7 +416,6 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
             'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
 
         reader = load_reader(self.reader_configs)
-        print("reader", reader)
         files = reader.select_files_from_pathnames(filenames)
         self.assertTrue(1, len(files))
         reader.create_filehandlers(files)
@@ -422,13 +423,3 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
         self.assertTrue(reader.file_handlers)
         res = reader.load(['wvc_row_time'])
         self.assertEqual(1, len(res))
-
-
-
-
-#        file_content['wvc_row_time/ndim'] = 1
-#        attrs = ('fill_value', 'scale_factor', 'add_offset', 'valid range')
-#        convert_file_content_to_data_array(file_content, attrs=attrs)
-#        return file_content
-
-
