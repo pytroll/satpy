@@ -757,11 +757,20 @@ enhancements:
     standard_name: colorized_ir_clouds
     operations:
       - name: colorize
-        method: &colorizefun !!python/name:satpy.enhancements.colorize ''
+        method: !!python/name:satpy.enhancements.colorize ''
         kwargs:
           palettes:
             - {colors: spectral, min_value: 193.15, max_value: 253.149999}
             - {colors: greys, min_value: 253.15, max_value: 303.15}
+
+  colorized_radar:
+    standard_name: reflectivity
+    operations:
+      - name: colorize
+        method: !!python/name:satpy.enhancements.colorize ''
+        kwargs:
+          palettes:
+            - {colors: spectral, min_value: -32, max_value: 50}
 
   vis_sharpened_ir:
     standard_name: vis_sharpened_ir

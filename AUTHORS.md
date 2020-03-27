@@ -30,6 +30,7 @@ The following people have made contributions to this project:
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
 - [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
+- Daniel Johnsson
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
