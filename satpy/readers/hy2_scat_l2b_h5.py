@@ -14,8 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""HY-2B L2B Reader, distributed by Eumetsat in HDF5 format
-"""
+"""HY-2B L2B Reader, distributed by Eumetsat in HDF5 format"""
 
 import numpy as np
 import xarray as xr
@@ -40,17 +39,27 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         return datetime.strptime(self['/attr/Range_Ending_Time'],
                                  '%Y%m%dT%H:%M:%S')
 
+    def get_variable_metadata(self):
+        info = getattr(self, 'attrs', {})
+        info.update({
+            "Equator_Crossing_Longitude": self['/attr/Equator_Crossing_Longitude'],
+            "Equator_Crossing_Time": self['/attr/Equator_Crossing_Time'],
+            "L2B_Actual_WVC_Rows": self['/attr/L2B_Actual_WVC_Rows'],
+            "Orbit_Inclination": self['/attr/Orbit_Inclination'],
+            "Orbit_Number": self['/attr/Orbit_Number'],
+            "Output_L2B_Filename": self['/attr/Output_L2B_Filename'],
+            "Production_Date_Time": self['/attr/Production_Date_Time'],
+        })
+        return info
+
     def get_metadata(self):
         info = getattr(self, 'attrs', {})
         info.update({
             "WVC_Size": self['/attr/WVC_Size'],
-            "Equator_Crossing_Longitude": self['/attr/Equator_Crossing_Longitude'],
-            "Equator_Crossing_Time": self['/attr/Equator_Crossing_Time'],
             "HDF_Version_Id": self['/attr/HDF_Version_Id'],
             "Input_L2A_Filename": self['/attr/Input_L2A_Filename'],
             "Instrument_ShorName": self['/attr/Instrument_ShorName'],
             "L2A_Inputdata_Version": self['/attr/L2A_Inputdata_Version'],
-            "L2B_Actual_WVC_Rows": self['/attr/L2B_Actual_WVC_Rows'],
             "L2B_Algorithm_Descriptor": self['/attr/L2B_Algorithm_Descriptor'],
             "L2B_Data_Version": self['/attr/L2B_Data_Version'],
             "L2B_Expected_WVC_Rows": self['/attr/L2B_Expected_WVC_Rows'],
@@ -59,15 +68,11 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
             "L2B_Processor_Name": self['/attr/L2B_Processor_Name'],
             "L2B_Processor_Version": self['/attr/L2B_Processor_Version'],
             "Long_Name": self['/attr/Long_Name'],
-            "Orbit_Inclination": self['/attr/Orbit_Inclination'],
-            "Orbit_Number": self['/attr/Orbit_Number'],
-            "Output_L2B_Filename": self['/attr/Output_L2B_Filename'],
             "Platform_LongName": self['/attr/Platform_LongName'],
             "Platform_ShortName": self['/attr/Platform_ShortName'],
             "Platform_Type": self['/attr/Platform_Type'],
             "Producer_Agency": self['/attr/Producer_Agency'],
             "Producer_Institution": self['/attr/Producer_Institution'],
-            "Production_Date_Time": self['/attr/Production_Date_Time'],
             "Rev_Orbit_Perio": self['/attr/Rev_Orbit_Period'],
             "Short_Name": self['/attr/Short_Name'],
             "Sigma0_Granularity": self['/attr/Sigma0_Granularity'],
@@ -87,19 +92,17 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
             data = xr.DataArray(da.from_array(self[key.name][:],
                                               chunks=CHUNK_SIZE),
                                 name=key.name, dims=dims)
-            fill_value = self[key.name].attrs['fill_value']
-            data = xr.where(data == fill_value, np.nan, data)
+            data = xr.where(data == self[key.name].attrs['fill_value'], np.nan, data)
 
             valid_range = self[key.name].attrs['valid range']
             data = xr.where(data < valid_range[0], np.nan, data)
             data = xr.where(data > valid_range[1], np.nan, data)
 
-            add_offset = self[key.name].attrs['add_offset']
-            scale_factor = self[key.name].attrs['scale_factor']
-            data = data * scale_factor + add_offset
+            data = data * self[key.name].attrs['scale_factor'] + self[key.name].attrs['add_offset']
 
             if key.name in 'wvc_lon':
                 data = xr.where(data > 180, data - 360., data)
         data.attrs.update(info)
         data.attrs.update(self.get_metadata())
+        data.attrs.update(self.get_variable_metadata())
         return data
