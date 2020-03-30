@@ -236,6 +236,14 @@ satpy.readers.hsaf\_grib module
    :undoc-members:
    :show-inheritance:
 
+satpy.readers.hy2\_scat\_l2b\_h5 module
+---------------------------------------
+
+.. automodule:: satpy.readers.hy2_scat_l2b_h5
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.readers.iasi\_l2 module
 -----------------------------
 
