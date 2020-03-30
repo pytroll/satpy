@@ -1,19 +1,65 @@
 sensor_name: visir/slstr
 
 composites:
+
   overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - S2_an
-    - S3_an
+    - name: S2_an
+      modifiers: [sunz_corrected]
+    - name: S3_an
+      modifiers: [sunz_corrected]
     - S8_in
     standard_name: overview
+
+  overview_oblique:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: S2_ao
+      modifiers: [sunz_corrected]
+    - name: S3_ao
+      modifiers: [sunz_corrected]
+    - S8_io
+    standard_name: overview_oblique
+
+  natural_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: S5_an
+      modifiers: [sunz_corrected]
+    - name: S3_an
+      modifiers: [sunz_corrected]
+    - name: S2_an
+      modifiers: [sunz_corrected]
+    standard_name: natural_color
+
+  natural_color_oblique:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: S5_ao
+      modifiers: [sunz_corrected]
+    - name: S3_ao
+      modifiers: [sunz_corrected]
+    - name: S2_ao
+      modifiers: [sunz_corrected]
+    standard_name: natural_color_oblique
 
   day_microphysics:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - S3_an
+    - name: S3_an
+      modifiers: [sunz_corrected]
     - name: S7_in
       modifiers: [nir_reflectance]
     - S8_in
     standard_name: day_microphysics
+
+  day_microphysics_oblique:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: S3_ao
+      modifiers: [sunz_corrected]
+    - name: S7_io
+      modifiers: [nir_reflectance]
+    - S8_io
+    standard_name: day_microphysics_oblique

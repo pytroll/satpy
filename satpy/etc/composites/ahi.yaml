@@ -28,6 +28,78 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
+  airmass:
+    # PDF slides: https://www.eumetsat.int/website/home/News/ConferencesandEvents/DAT_2833302.html
+    # Under session 2 by Akihiro Shimizu (JMA)
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B08
+          - name: B10
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B12
+          - name: B14
+      - name: B08
+    standard_name: airmass
+
+  ash:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B15
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B14
+          - name: B11
+      - name: B13
+    standard_name: ash
+
+  dust:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B15
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B14
+          - name: B11
+      - name: B13
+    standard_name: dust
+
+  fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B15
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B14
+          - name: B11
+      - name: B13
+    standard_name: fog
+
+  night_microphysics:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B15
+          - name: B13
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: B14
+          - name: B07
+      - name: B13
+    standard_name: night_microphysics
+
   fire_temperature:
     # CIRA: Original VIIRS
     compositor: !!python/name:satpy.composites.GenericCompositor
