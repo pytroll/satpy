@@ -113,6 +113,12 @@ from pyresample.geometry import AreaDefinition, SwathDefinition
 from satpy.writers import Writer
 from satpy.writers.utils import flatten_dict
 
+from distutils.version import LooseVersion
+import pyproj
+if LooseVersion(pyproj.__version__) < LooseVersion('2.4.1'):
+    # technically 2.2, but important bug fixes in 2.4.1
+    raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
+
 
 logger = logging.getLogger(__name__)
 
@@ -139,97 +145,12 @@ CF_DTYPES = [np.dtype('int8'),
 CF_VERSION = 'CF-1.7'
 
 
-def tmerc2cf(area):
-    """Return the cf grid mapping for the tmerc projection."""
-    proj_dict = area.proj_dict
-    args = dict(latitude_of_projection_origin=proj_dict.get('lat_0'),
-                longitude_of_central_meridian=proj_dict.get('lon_0'),
-                grid_mapping_name='transverse_mercator',
-                reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
-                false_easting=0.,
-                false_northing=0.
-                )
-    if "no_rot" in proj_dict:
-        args['no_rotation'] = 1
-    if "gamma" in proj_dict:
-        args['gamma'] = proj_dict['gamma']
-    return args
-
-
-def omerc2cf(area):
-    """Return the cf grid mapping for the omerc projection."""
-    proj_dict = area.proj_dict
-
-    args = dict(azimuth_of_central_line=proj_dict.get('alpha'),
-                latitude_of_projection_origin=proj_dict.get('lat_0'),
-                longitude_of_projection_origin=proj_dict.get('lonc'),
-                grid_mapping_name='oblique_mercator',
-                reference_ellipsoid_name=proj_dict.get('ellps', 'WGS84'),
-                prime_meridian_name=proj_dict.get('pm', 'Greenwich'),
-                horizontal_datum_name=proj_dict.get('datum', 'unknown'),
-                geographic_crs_name='unknown',
-                false_easting=0.,
-                false_northing=0.
-                )
-    if "no_rot" in proj_dict:
-        args['no_rotation'] = 1
-    if "gamma" in proj_dict:
-        args['gamma'] = proj_dict['gamma']
-    return args
-
-
-def geos2cf(area):
-    """Return the cf grid mapping for the geos projection."""
-    from pyresample.utils import proj4_radius_parameters
-    proj_dict = area.proj_dict
-    a, b = proj4_radius_parameters(proj_dict)
-    args = dict(perspective_point_height=proj_dict.get('h'),
-                latitude_of_projection_origin=proj_dict.get('lat_0', 0),
-                longitude_of_projection_origin=proj_dict.get('lon_0', 0),
-                grid_mapping_name='geostationary',
-                semi_major_axis=a,
-                semi_minor_axis=b,
-                # semi_major_axis=proj_dict.get('a'),
-                # semi_minor_axis=proj_dict.get('b'),
-                sweep_axis=proj_dict.get('sweep'),
-                )
-    return args
-
-
-def laea2cf(area):
-    """Return the cf grid mapping for the laea projection."""
-    proj_dict = area.proj_dict
-    args = dict(latitude_of_projection_origin=proj_dict.get('lat_0'),
-                longitude_of_projection_origin=proj_dict.get('lon_0'),
-                grid_mapping_name='lambert_azimuthal_equal_area',
-                )
-    return args
-
-
-mappings = {'omerc': omerc2cf,
-            'laea': laea2cf,
-            'geos': geos2cf,
-            'tmerc': tmerc2cf}
-
-
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
-    try:
-        try:
-            # let pyproj do the heavily lifting
-            # pyproj 2.0+ required
-            grid_mapping = area.crs.to_cf()
-            # not sure there is a better "standard" way of doing this
-            grid_mapping['name'] = grid_mapping['grid_mapping_name']
-        except AttributeError:
-            grid_mapping = mappings[area.proj_dict['proj']](area)
-            grid_mapping['name'] = area.proj_dict['proj']
-    except KeyError:
-        warnings.warn('The projection "{}" is either not CF compliant or not implemented yet. '
-                      'Using the proj4 string instead.'.format(area.proj_str))
-        grid_mapping = {'name': 'proj4', 'proj4': area.proj_str}
-
-    return grid_mapping
+    # let pyproj do the heavily lifting
+    # pyproj 2.0+ required
+    grid_mapping = area.crs.to_cf()
+    return area.area_id, grid_mapping
 
 
 def get_extra_ds(dataset):
@@ -245,7 +166,8 @@ def get_extra_ds(dataset):
 def area2lonlat(dataarray):
     """Convert an area to longitudes and latitudes."""
     area = dataarray.attrs['area']
-    lons, lats = area.get_lonlats_dask()
+    chunks = getattr(dataarray.data, 'chunks', None)
+    lons, lats = area.get_lonlats(chunks=chunks)
     lons = xr.DataArray(lons, dims=['y', 'x'],
                         attrs={'name': "longitude",
                                'standard_name': "longitude",
@@ -264,17 +186,9 @@ def area2lonlat(dataarray):
 def area2gridmapping(dataarray):
     """Convert an area to at CF grid mapping."""
     area = dataarray.attrs['area']
-    attrs = create_grid_mapping(area)
-    if (attrs is not None and 'name' in attrs and
-            attrs['name'] not in ("proj4", "unknown")):
-        dataarray.attrs['grid_mapping'] = attrs['name']
-        name = attrs['name']
-    else:
-        # Handle the case when the projection cannot be converted to a standard CF representation or this has not
-        # been implemented yet.
-        dataarray.attrs['grid_proj4'] = area.proj4_string
-        name = "proj4"
-    return [dataarray, xr.DataArray(0, attrs=attrs, name=name)]
+    gmapping_var_name, attrs = create_grid_mapping(area)
+    dataarray.attrs['grid_mapping'] = gmapping_var_name
+    return [dataarray, xr.DataArray(0, attrs=attrs, name=gmapping_var_name)]
 
 
 def area2cf(dataarray, strict=False):
