@@ -6,7 +6,7 @@ env:
         - NUMPY_VERSION=stable
         - MAIN_CMD='python setup.py'
         - CONDA_DEPENDENCIES='xarray dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml
-          pyproj=2.4.1 pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf
+          pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf
           mock libtiff geoviews zarr python-eccodes geoviews pytest pytest-cov'
         - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
