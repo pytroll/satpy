@@ -457,6 +457,35 @@ class TestScene(unittest.TestCase):
         self.assertTupleEqual(new_scn1['3'].shape, (36, 70))
         self.assertTupleEqual(new_scn1['4'].shape, (18, 35))
 
+    def test_crop_epsg_crs(self):
+        """Test the crop method when source area uses an EPSG code."""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        import numpy as np
+        try:
+            from pyproj import CRS  # noqa
+        except ImportError:
+            self.skipTest("Test requires pyproj 2.0+")
+
+        scene1 = Scene()
+        area_extent = (699960.0, 5390220.0, 809760.0, 5500020.0)
+        x_size = 3712
+        y_size = 3712
+        area_def = AreaDefinition(
+            'test', 'test', 'test',
+            "EPSG:32630",
+            x_size,
+            y_size,
+            area_extent,
+        )
+        scene1["1"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def})
+        # by x/y bbox
+        new_scn1 = scene1.crop(xy_bbox=(719695.7781587119, 5427887.407618969, 725068.1609052602, 5433708.364368956))
+        self.assertIn('1', new_scn1)
+        self.assertTupleEqual(new_scn1['1'].shape, (198, 182))
+
     def test_crop_rgb(self):
         """Test the crop method on multi-dimensional data."""
         from satpy import Scene
