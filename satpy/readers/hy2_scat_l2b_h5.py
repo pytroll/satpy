@@ -39,6 +39,11 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         return datetime.strptime(self['/attr/Range_Ending_Time'],
                                  '%Y%m%dT%H:%M:%S')
 
+    @property
+    def platform_name(self):
+        """Platform ShortName"""
+        return self['/attr/Platform_ShortName']
+
     def get_variable_metadata(self):
         info = getattr(self, 'attrs', {})
         info.update({
@@ -101,6 +106,9 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         data.attrs.update(info)
         data.attrs.update(self.get_metadata())
         data.attrs.update(self.get_variable_metadata())
+        if "Platform_ShortName" in data.attrs:
+            data.attrs.update({'platform_name': data.attrs['Platform_ShortName']})
+
         return data
 
     def _scale_data(self, key_name, data):
