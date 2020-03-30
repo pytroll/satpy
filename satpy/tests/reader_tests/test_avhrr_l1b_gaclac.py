@@ -20,10 +20,7 @@
 from datetime import datetime
 from unittest import TestCase, main, TestLoader, TestSuite
 import numpy as np
-try:
-    from unittest import mock
-except ImportError:  # python 2
-    import mock
+from unittest import mock
 
 GAC_PATTERN = '{creation_site:3s}.{transfer_mode:4s}.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'  # noqa
 
@@ -371,16 +368,3 @@ class TestGACLACFile(TestCase):
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,
             first_valid_lat=3, last_valid_lat=4, along_track=2)
-
-
-def suite():
-    """Test suite."""
-    loader = TestLoader()
-    mysuite = TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGACLACFile))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    main()

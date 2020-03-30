@@ -125,7 +125,7 @@ composites:
     - IR_108
     standard_name: day_microphysics_winter
 
-  natural_color:
+  natural_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - IR_016
@@ -133,7 +133,7 @@ composites:
     - VIS006
     standard_name: natural_color
 
-  natural_color_sun:
+  natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: IR_016
@@ -325,14 +325,14 @@ composites:
     - IR_120
     standard_name: ir_overview
 
-  overview:
+  overview_raw:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - VIS006
     - VIS008
     - IR_108
     standard_name: overview
-  overview_sun:
+  overview:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: VIS006
@@ -364,6 +364,20 @@ composites:
         modifiers: [sunz_corrected]
       - name: colorized_ir_clouds
 
+  natural_enh:
+    compositor: !!python/name:satpy.composites.NaturalEnh
+    standard_name: natural_enh
+    ch16_w: 1.3
+    ch08_w: 2.5
+    ch06_w: 2.2
+    prerequisites:
+    - name: IR_016
+      modifiers: [sunz_corrected]
+    - name: VIS008
+      modifiers: [sunz_corrected]
+    - name: VIS006
+      modifiers: [sunz_corrected]
+
   hrv_clouds:
     compositor: !!python/name:satpy.composites.GenericCompositor
     standard_name: hrv_clouds
@@ -388,7 +402,7 @@ composites:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: natural_with_night_fog
     prerequisites:
-      - natural_color_sun
+      - natural_color
       - night_fog
 
   natural_color_with_night_ir:

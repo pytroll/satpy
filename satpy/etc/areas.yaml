@@ -1,7 +1,8 @@
 omerc_bb:
   description: Oblique Mercator Bounding Box for Polar Overpasses
   projection:
-    ellps: WGS84
+    # The omerc projection does not work well with non-spherical ellipsoids.
+    ellps: sphere
     proj: omerc
   optimize_projection: True
 

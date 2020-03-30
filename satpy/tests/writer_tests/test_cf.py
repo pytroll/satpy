@@ -19,15 +19,13 @@
 
 from collections import OrderedDict
 import os
-import sys
+import unittest
+from unittest import mock
 from datetime import datetime
 import tempfile
 from satpy import DatasetID
-import unittest
-from unittest import mock
 
 import numpy as np
-
 
 try:
     from pyproj import CRS
@@ -371,12 +369,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(f.attrs['sensor'], 'SEVIRI')
                 self.assertEqual(f.attrs['orbit'], 99999)
                 np.testing.assert_array_equal(f.attrs['list'], [1, 2, 3])
-                if sys.version_info.major == 3:
-                    self.assertEqual(f.attrs['set'], '{1, 2, 3}')
-                else:
-                    # json module seems to encode sets differently in
-                    # Python 2 and 3
-                    self.assertEqual(f.attrs['set'], u'set([1, 2, 3])')
+                self.assertEqual(f.attrs['set'], '{1, 2, 3}')
                 self.assertEqual(f.attrs['dict_a'], 1)
                 self.assertEqual(f.attrs['dict_b'], 2)
                 self.assertEqual(f.attrs['nested_outer_inner1'], 1)
