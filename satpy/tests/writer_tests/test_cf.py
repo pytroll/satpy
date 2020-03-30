@@ -883,7 +883,7 @@ class TestCFWriter(unittest.TestCase):
         self.assertEqual(res.attrs['grid_mapping'], 'omerc_otf')
         _gm_matches(grid_mapping, omerc_expected)
 
-        # d) Projection that has a representation but no explicit a/b
+        # f) Projection that has a representation but no explicit a/b
         h = 35785831.
         geos = pyresample.geometry.AreaDefinition(
             area_id='geos',
@@ -907,38 +907,6 @@ class TestCFWriter(unittest.TestCase):
 
         self.assertEqual(res.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
-
-        # e) oblique Mercator
-        area = pyresample.geometry.AreaDefinition(
-            area_id='omerc_otf',
-            description='On-the-fly omerc area',
-            proj_id='omerc',
-            projection={'alpha': '9.02638777018478', 'ellps': 'WGS84', 'gamma': '0', 'k': '1',
-                        'lat_0': '-0.256794486098476', 'lonc': '13.7888658224205',
-                        'proj': 'omerc', 'units': 'm'},
-            width=2837,
-            height=5940,
-            area_extent=[-1460463.0893, 3455291.3877, 1538407.1158, 9615788.8787]
-        )
-
-        omerc_dict = {'azimuth_of_central_line': 9.02638777018478,
-                      'false_easting': 0.,
-                      'false_northing': 0.,
-                      # 'gamma': 0,  # not CF compliant
-                      'grid_mapping_name': "oblique_mercator",
-                      'latitude_of_projection_origin': -0.256794486098476,
-                      # 'long_name': "omerc",
-                      'longitude_of_projection_origin': 13.7888658224205,
-                      # 'prime_meridian_name': "Greenwich",
-                      'reference_ellipsoid_name': "WGS 84"}
-        omerc_expected = xr.DataArray(data=0, attrs=omerc_dict)
-
-        ds = ds_base.copy()
-        ds.attrs['area'] = area
-        res, grid_mapping = area2gridmapping(ds)
-
-        self.assertEqual(res.attrs['grid_mapping'], 'omerc_otf')
-        _gm_matches(grid_mapping, omerc_expected)
 
     def test_area2lonlat(self):
         """Test the conversion from areas to lon/lat."""
