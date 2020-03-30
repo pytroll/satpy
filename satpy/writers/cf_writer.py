@@ -180,7 +180,6 @@ def area2lonlat(dataarray):
                         name='latitude')
     dataarray['longitude'] = lons
     dataarray['latitude'] = lats
-    return [dataarray]
 
 
 def area2gridmapping(dataarray):
@@ -188,7 +187,7 @@ def area2gridmapping(dataarray):
     area = dataarray.attrs['area']
     gmapping_var_name, attrs = create_grid_mapping(area)
     dataarray.attrs['grid_mapping'] = gmapping_var_name
-    return [dataarray, xr.DataArray(0, attrs=attrs, name=gmapping_var_name)]
+    return xr.DataArray(0, attrs=attrs, name=gmapping_var_name)
 
 
 def area2cf(dataarray, strict=False):
@@ -196,9 +195,10 @@ def area2cf(dataarray, strict=False):
     res = []
     dataarray = dataarray.copy(deep=True)
     if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
-        res = area2lonlat(dataarray)
+        # modifies dataarray in-place
+        area2lonlat(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
-        res.extend(area2gridmapping(dataarray))
+        res.append(area2gridmapping(dataarray))
 
     res.append(dataarray)
     return res
@@ -418,6 +418,9 @@ class CFWriter(Writer):
             exclude_attrs = []
 
         new_data = dataarray.copy()
+        if 'name' in new_data.attrs:
+            name = new_data.attrs.pop('name')
+            new_data = new_data.rename(name)
 
         # Remove area as well as user-defined attributes
         for key in ['area'] + exclude_attrs:
@@ -456,7 +459,8 @@ class CFWriter(Writer):
         if 'crs' in new_data.coords:
             new_data = new_data.drop('crs')
 
-        new_data.attrs.setdefault('long_name', new_data.attrs.pop('name'))
+        if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
+            new_data.attrs['long_name'] = new_data.name
         if 'prerequisites' in new_data.attrs:
             new_data.attrs['prerequisites'] = [np.string_(str(prereq)) for prereq in new_data.attrs['prerequisites']]
 
@@ -493,8 +497,9 @@ class CFWriter(Writer):
             for new_ds in new_datasets:
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
-                datas[new_ds.attrs['name']] = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
-                                                         exclude_attrs=exclude_attrs, compression=compression)
+                new_var = self.da2cf(new_ds, epoch=epoch, flatten_attrs=flatten_attrs,
+                                     exclude_attrs=exclude_attrs, compression=compression)
+                datas[new_var.name] = new_var
 
         # Check and prepare coordinates
         assert_xy_unique(datas)
