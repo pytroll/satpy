@@ -464,7 +464,7 @@ class TestScene(unittest.TestCase):
         from pyresample.geometry import AreaDefinition
         import numpy as np
         try:
-            from pyproj import CRS
+            from pyproj import CRS  # noqa
         except ImportError:
             self.skipTest("Test requires pyproj 2.0+")
 
