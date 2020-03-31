@@ -196,7 +196,6 @@ def area2gridmapping(dataarray):
 def area2cf(dataarray, strict=False):
     """Convert an area to at CF grid mapping or lon and lats."""
     res = []
-    dataarray = dataarray.copy(deep=True)
     if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
         dataarray = area2lonlat(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
@@ -391,6 +390,7 @@ def encode_attrs_nc(attrs):
             Attributes to be encoded
     Returns:
         dict: Encoded (and sorted) attributes
+
     """
     encoded_attrs = []
     for key, val in sorted(attrs.items()):
@@ -415,6 +415,7 @@ class CFWriter(Writer):
                 If True, flatten dict-type attributes
             exclude_attrs (list):
                 List of dataset attributes to be excluded
+
         """
         if exclude_attrs is None:
             exclude_attrs = []
@@ -489,13 +490,17 @@ class CFWriter(Writer):
         datas = {}
         start_times = []
         end_times = []
-        for ds_name, ds in sorted(ds_collection.items()):
+        # sort by name, but don't use the name
+        for _, ds in sorted(ds_collection.items()):
             if ds.dtype not in CF_DTYPES:
                 warnings.warn('Dtype {} not compatible with {}.'.format(str(ds.dtype), CF_VERSION))
+            # we may be adding attributes, coordinates, or modifying the
+            # structure of attributes
+            ds = ds.copy(deep=True)
             try:
                 new_datasets = area2cf(ds, strict=include_lonlats)
             except KeyError:
-                new_datasets = [ds.copy(deep=True)]
+                new_datasets = [ds]
             for new_ds in new_datasets:
                 start_times.append(new_ds.attrs.get("start_time", None))
                 end_times.append(new_ds.attrs.get("end_time", None))
@@ -518,7 +523,7 @@ class CFWriter(Writer):
         other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
         encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
         coord_vars = []
-        for name, data_array in dataset.items():
+        for data_array in dataset.values():
             coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
         for coord_var in coord_vars:
             encoding.setdefault(coord_var, {})
@@ -579,6 +584,7 @@ class CFWriter(Writer):
                 Compression to use on the datasets before saving, for example {'zlib': True, 'complevel': 9}.
                 This is in turn passed the xarray's `to_netcdf` method:
                 http://xarray.pydata.org/en/stable/generated/xarray.Dataset.to_netcdf.html for more possibilities.
+
         """
         logger.info('Saving datasets to NetCDF4/CF.')
 
