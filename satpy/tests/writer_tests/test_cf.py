@@ -759,10 +759,15 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
+        if 'sweep_angle_axis' in grid_mapping.attrs:
+            # older versions of pyproj might not include this
+            self.assertEqual(grid_mapping.attrs['sweep_angle_axis'], 'y')
 
-        self.assertEqual(ds.attrs['grid_mapping'], 'geos')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
+        # should not have been modified
+        self.assertNotIn('grid_mapping', ds.attrs)
 
         # b) Projection does not have a corresponding CF representation (COSMO)
         cosmo7 = pyresample.geometry.AreaDefinition(
@@ -778,19 +783,15 @@ class TestCFWriter(unittest.TestCase):
         ds = ds_base.copy()
         ds.attrs['area'] = cosmo7
 
-        # with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
-        grid_mapping = area2gridmapping(ds)
-        # warn.assert_called()
-        # proj_dict = pyresample.geometry.proj4_str_to_dict(res.attrs['grid_proj4'])
-        # self.assertEqual(proj_dict['lon_0'], 4.535)
-        # self.assertEqual(proj_dict['lat_0'], 46.0)
-        # self.assertEqual(proj_dict['o_lon_p'], -5.465)
-        # self.assertEqual(proj_dict['o_lat_p'], 90.0)
-        # self.assertEqual(proj_dict['proj'], 'ob_tran')
-        # self.assertEqual(proj_dict['o_proj'], 'stere')
-        # self.assertEqual(proj_dict['ellps'], 'WGS84')
+        new_ds, grid_mapping = area2gridmapping(ds)
         self.assertIn('crs_wkt', grid_mapping.attrs)
-        self.assertEqual(ds.attrs['grid_mapping'], 'cosmo7')
+        wkt = grid_mapping.attrs['crs_wkt']
+        self.assertIn('ELLIPSOID["WGS 84"', wkt)
+        self.assertIn('PARAMETER["lat_0",46', wkt)
+        self.assertIn('PARAMETER["lon_0",4.535', wkt)
+        self.assertIn('PARAMETER["o_lat_p",90', wkt)
+        self.assertIn('PARAMETER["o_lon_p",-5.465', wkt)
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'cosmo7')
 
         # c) Projection Transverse Mercator
         lat_0 = 36.5
@@ -815,8 +816,8 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = tmerc
-        grid_mapping = area2gridmapping(ds)
-        self.assertEqual(ds.attrs['grid_mapping'], 'tmerc')
+        new_ds, grid_mapping = area2gridmapping(ds)
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'tmerc')
         _gm_matches(grid_mapping, tmerc_expected)
 
         # d) Projection that has a representation but no explicit a/b
@@ -841,9 +842,9 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
 
-        self.assertEqual(ds.attrs['grid_mapping'], 'geos')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
 
         # e) oblique Mercator
@@ -872,9 +873,9 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = area
-        grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
 
-        self.assertEqual(ds.attrs['grid_mapping'], 'omerc_otf')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'omerc_otf')
         _gm_matches(grid_mapping, omerc_expected)
 
         # f) Projection that has a representation but no explicit a/b
@@ -897,9 +898,9 @@ class TestCFWriter(unittest.TestCase):
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
 
-        self.assertEqual(ds.attrs['grid_mapping'], 'geos')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
 
     def test_area2lonlat(self):
@@ -919,13 +920,13 @@ class TestCFWriter(unittest.TestCase):
         lons_ref, lats_ref = area.get_lonlats()
         dataarray = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), attrs={'area': area})
 
-        area2lonlat(dataarray)
-        res = [dataarray]  # modified in-place
+        res = area2lonlat(dataarray)
 
-        self.assertEqual(len(res), 1)
-        self.assertEqual(set(res[0].coords), {'longitude', 'latitude'})
-        lat = res[0]['latitude']
-        lon = res[0]['longitude']
+        # original should be unmodified
+        self.assertNotIn('longitude', dataarray.coords)
+        self.assertEqual(set(res.coords), {'longitude', 'latitude'})
+        lat = res['latitude']
+        lon = res['longitude']
         self.assertTrue(np.all(lat.data == lats_ref))
         self.assertTrue(np.all(lon.data == lons_ref))
         self.assertDictContainsSubset({'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'},

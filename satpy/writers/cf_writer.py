@@ -165,6 +165,7 @@ def get_extra_ds(dataset):
 
 def area2lonlat(dataarray):
     """Convert an area to longitudes and latitudes."""
+    dataarray = dataarray.copy()
     area = dataarray.attrs['area']
     chunks = getattr(dataarray.data, 'chunks', None)
     lons, lats = area.get_lonlats(chunks=chunks)
@@ -180,14 +181,16 @@ def area2lonlat(dataarray):
                         name='latitude')
     dataarray['longitude'] = lons
     dataarray['latitude'] = lats
+    return dataarray
 
 
 def area2gridmapping(dataarray):
     """Convert an area to at CF grid mapping."""
+    dataarray = dataarray.copy()
     area = dataarray.attrs['area']
     gmapping_var_name, attrs = create_grid_mapping(area)
     dataarray.attrs['grid_mapping'] = gmapping_var_name
-    return xr.DataArray(0, attrs=attrs, name=gmapping_var_name)
+    return dataarray, xr.DataArray(0, attrs=attrs, name=gmapping_var_name)
 
 
 def area2cf(dataarray, strict=False):
@@ -195,11 +198,10 @@ def area2cf(dataarray, strict=False):
     res = []
     dataarray = dataarray.copy(deep=True)
     if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
-        # modifies dataarray in-place
-        area2lonlat(dataarray)
+        dataarray = area2lonlat(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
-        res.append(area2gridmapping(dataarray))
-
+        dataarray, gmapping = area2gridmapping(dataarray)
+        res.append(gmapping)
     res.append(dataarray)
     return res
 
