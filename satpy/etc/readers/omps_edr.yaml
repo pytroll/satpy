@@ -22,6 +22,10 @@ file_types:
   omps_tc_to3_edr:
     file_reader: !!python/name:satpy.readers.omps_edr.EDRFileHandler
     file_patterns: ['{instrument_shortname}-{platform_shortname}-TC_EDR_TO3-{version}-{start_time:%Ym%m%dt%H%M%S}-o{orbit:05d}-{end_time:%Ym%m%dt%H%M%S}.h5']
+  # HDF5 file from FMI SAMPO https://sampo.fmi.fi/ via Eumetcast
+  omps_sampo:
+    file_reader: !!python/name:satpy.readers.omps_edr.EDRFileHandler
+    file_patterns: ['{instrument_shortname}-{platform_shortname}_NMSO2-PCA-L2_{version}_{start_time:%Ym%m%dt%H%M%S}_o{orbit:05d}_{end_time:%Ym%m%dt%H%M%S}.h5']
 
 # ftp://omisips1.omisips.eosdis.nasa.gov/OMPS/LANCE/NMSO2-L2-NRT-NRT/
 # ftp://omisips1.omisips.eosdis.nasa.gov/OMPS/LANCE/NMSO2-L2-NRT-NRT/OMPS-NPP_NMSO2-L2-NRT_2017m0804t030731_o29890_2017m0804t021637.he5
@@ -166,4 +170,74 @@ datasets:
     units: degrees
     standard_name: latitude
 
+  Longitude:
+    name: Longitude
+    resolution: 50000
+    file_type: omps_sampo
+    file_key: GEOLOCATION_DATA/Longitude
+    units: degrees
+    standard_name: longitude
+  Latitude:
+    name: Latitude
+    resolution: 50000
+    file_type: omps_sampo
+    file_key: GEOLOCATION_DATA/Latitude
+    units: degrees
+    standard_name: latitude
+
+  ColumnAmountO3:
+    name: ColumnAmountO3
+    resolution: 50000
+    coordinates: [Longitude, Latitude]
+    file_type: omps_sampo
+    file_key: SCIENCE_DATA/ColumnAmountO3
+
+  ColumnAmountSO2_PBL:
+    name: ColumnAmountSO2_PBL
+    resolution: 50000
+    coordinates: [Longitude, Latitude]
+    file_type: omps_sampo
+    file_key: SCIENCE_DATA/ColumnAmountSO2_PBL
+
+  ColumnAmountSO2_STL:
+    name: ColumnAmountSO2_STL
+    resolution: 50000
+    coordinates: [Longitude, Latitude]
+    file_type: omps_sampo
+    file_key: SCIENCE_DATA/ColumnAmountSO2_TRL
+
+  ColumnAmountSO2_TRL:
+    name: ColumnAmountSO2_TRL
+    resolution: 50000
+    coordinates: [Longitude, Latitude]
+    file_type: omps_sampo
+    file_key: SCIENCE_DATA/ColumnAmountSO2_TRL
+
+  ColumnAmountSO2_TRM:
+    name: ColumnAmountSO2_TRM
+    resolution: 50000
+    coordinates: [Longitude, Latitude]
+    file_type: omps_sampo
+    file_key: SCIENCE_DATA/ColumnAmountSO2_TRM
+
+  ColumnAmountSO2_TRU:
+    name: ColumnAmountSO2_TRU
+    resolution: 50000
+    coordinates: [Longitude, Latitude]
+    file_type: omps_sampo
+    file_key: SCIENCE_DATA/ColumnAmountSO2_TRU
+
+  UVAerosolIndex:
+    name: UVAerosolIndex
+    resolution: 50000
+    coordinates: [Longitude, Latitude]
+    file_type: omps_sampo
+    file_key: SCIENCE_DATA/UVAerosolIndex
+
+  CloudFraction:
+    name: CloudFraction
+    resolution: 50000
+    coordinates: [Longitude, Latitude]
+    file_type: omps_sampo
+    file_key: SCIENCE_DATA/CloudFraction
 

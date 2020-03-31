@@ -62,6 +62,7 @@ class EDRFileHandler(HDF5FileHandler):
     def get_metadata(self, dataset_id, ds_info):
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         info = getattr(self[var_path], 'attrs', {})
+        info.pop('DIMENSION_LIST', None)
         info.update(ds_info)
 
         file_units = ds_info.get('file_units')
@@ -94,7 +95,10 @@ class EDRFileHandler(HDF5FileHandler):
         valid_min, valid_max = self.get(var_path + '/attr/valid_range',
                                         self.get(var_path + '/attr/ValidRange', (None, None)))
         if valid_min is None or valid_max is None:
-            raise KeyError("File variable '{}' has no valid range attribute".format(var_path))
+            valid_min = self.get(var_path + '/attr/valid_min', None)
+            valid_max = self.get(var_path + '/attr/valid_max', None)
+            if valid_min is None or valid_max is None:
+                raise KeyError("File variable '{}' has no valid range attribute".format(var_path))
         fill_name = var_path + '/attr/{}'.format(self._fill_name)
         if fill_name in self:
             fill_value = self[fill_name]
@@ -102,6 +106,11 @@ class EDRFileHandler(HDF5FileHandler):
             fill_value = None
 
         data = self[var_path]
+        if 'DIMENSION_LIST' in data.attrs:
+            data.attrs.pop('DIMENSION_LIST')
+            dimensions = self.get_reference(var_path, 'DIMENSION_LIST')
+            for dim, coord in zip(data.dims, dimensions):
+                data.coords[dim] = coord[0]
         scale_factor_path = var_path + '/attr/ScaleFactor'
         if scale_factor_path in self:
             scale_factor = self[scale_factor_path]
