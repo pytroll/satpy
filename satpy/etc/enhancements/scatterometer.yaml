@@ -1,0 +1,11 @@
+---
+enhancements:
+
+  scat_wind_speed:
+    name: scat_wind_speed
+    operations:
+      - name: colorize
+        method: &colorizefun !!python/name:satpy.enhancements.colorize ''
+        kwargs:
+          palettes:
+            - {colors: spectral, min_value: 0, max_value: 25}

@@ -17,20 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The hrit ahi reader tests package."""
 
-import sys
 import numpy as np
 import dask.array as da
 from xarray import DataArray
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 
 class TestHRITJMAFileHandler(unittest.TestCase):
@@ -280,15 +271,3 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         with mock.patch('logging.Logger.error') as log_mock:
             reader.get_dataset(key, {'units': '%', 'sensor': 'jami'})
             log_mock.assert_called()
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITJMAFileHandler))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
