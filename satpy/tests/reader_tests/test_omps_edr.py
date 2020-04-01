@@ -206,6 +206,9 @@ class TestOMPSEDRReader(unittest.TestCase):
         ds = r.load(['tcso2_stl_sampo'])
         self.assertEqual(len(ds), 0)
 
+        ds = r.load(['tcso2_trl_sampo'])
+        self.assertEqual(len(ds), 1)
+
     def test_basic_load_to3(self):
         """Test basic load of to3 datasets"""
         from satpy.readers import load_reader
