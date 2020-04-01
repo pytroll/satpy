@@ -170,74 +170,74 @@ datasets:
     units: degrees
     standard_name: latitude
 
-  Longitude:
-    name: Longitude
+  longitude_sampo:
+    name: longitude_sampo
     resolution: 50000
     file_type: omps_sampo
     file_key: GEOLOCATION_DATA/Longitude
-    units: degrees
+    units: degrees_east
     standard_name: longitude
-  Latitude:
-    name: Latitude
+  latitude_sampo:
+    name: latitude_sampo
     resolution: 50000
     file_type: omps_sampo
     file_key: GEOLOCATION_DATA/Latitude
-    units: degrees
+    units: degrees_north
     standard_name: latitude
 
   ColumnAmountO3:
-    name: ColumnAmountO3
+    name: tco3_sampo
     resolution: 50000
-    coordinates: [Longitude, Latitude]
+    coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
     file_key: SCIENCE_DATA/ColumnAmountO3
 
   ColumnAmountSO2_PBL:
-    name: ColumnAmountSO2_PBL
+    name: tcso2_pbl_sampo
     resolution: 50000
-    coordinates: [Longitude, Latitude]
+    coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
     file_key: SCIENCE_DATA/ColumnAmountSO2_PBL
 
   ColumnAmountSO2_STL:
-    name: ColumnAmountSO2_STL
+    name: tcso2_stl_sampo
     resolution: 50000
-    coordinates: [Longitude, Latitude]
+    coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
-    file_key: SCIENCE_DATA/ColumnAmountSO2_TRL
+    file_key: SCIENCE_DATA/ColumnAmountSO2_STL
 
   ColumnAmountSO2_TRL:
-    name: ColumnAmountSO2_TRL
+    name: tcso2_trl_sampo
     resolution: 50000
-    coordinates: [Longitude, Latitude]
+    coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
     file_key: SCIENCE_DATA/ColumnAmountSO2_TRL
 
   ColumnAmountSO2_TRM:
-    name: ColumnAmountSO2_TRM
+    name: tcso2_trm_sampo
     resolution: 50000
-    coordinates: [Longitude, Latitude]
+    coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
     file_key: SCIENCE_DATA/ColumnAmountSO2_TRM
 
   ColumnAmountSO2_TRU:
-    name: ColumnAmountSO2_TRU
+    name: tcso2_tru_sampo
     resolution: 50000
-    coordinates: [Longitude, Latitude]
+    coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
     file_key: SCIENCE_DATA/ColumnAmountSO2_TRU
 
   UVAerosolIndex:
-    name: UVAerosolIndex
+    name: uvaerosol_index_sampo
     resolution: 50000
-    coordinates: [Longitude, Latitude]
+    coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
     file_key: SCIENCE_DATA/UVAerosolIndex
 
   CloudFraction:
-    name: CloudFraction
+    name: cldfra_sampo
     resolution: 50000
-    coordinates: [Longitude, Latitude]
+    coordinates: [longitude_sampo, latitude_sampo]
     file_type: omps_sampo
     file_key: SCIENCE_DATA/CloudFraction
 
