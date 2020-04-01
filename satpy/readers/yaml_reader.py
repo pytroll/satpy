@@ -21,12 +21,11 @@ import itertools
 import logging
 import os
 import warnings
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import ABCMeta, abstractmethod
 from collections import deque, OrderedDict
 from fnmatch import fnmatch
 from weakref import WeakValueDictionary
 
-import six
 import xarray as xr
 import yaml
 import numpy as np
@@ -57,7 +56,7 @@ def listify_string(something):
     function returns a list containing the string.
     If *something* is None, an empty list is returned.
     """
-    if isinstance(something, (str, six.text_type)):
+    if isinstance(something, str):
         return [something]
     elif something is not None:
         return list(something)
@@ -67,6 +66,8 @@ def listify_string(something):
 
 def get_filebase(path, pattern):
     """Get the end of *path* of same length as *pattern*."""
+    # convert any `/` on Windows to `\\`
+    path = os.path.normpath(path)
     # A pattern can include directories
     tail_len = len(pattern.split(os.path.sep))
     return os.path.join(*str(path).split(os.path.sep)[-tail_len:])
@@ -83,7 +84,7 @@ def match_filenames(filenames, pattern):
     return matching
 
 
-class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
+class AbstractYAMLReader(metaclass=ABCMeta):
     """Base class for all readers that use YAML configuration files.
 
     This class should only be used in rare cases. Its child class
@@ -145,11 +146,13 @@ class AbstractYAMLReader(six.with_metaclass(ABCMeta, object)):
         """Get names of datasets that are loadable by this reader."""
         return (ds_id.name for ds_id in self.available_dataset_ids)
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def start_time(self):
         """Start time of the reader."""
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def end_time(self):
         """End time of the reader."""
 

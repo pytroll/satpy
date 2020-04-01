@@ -15,7 +15,23 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to NUCAPS Retrieval NetCDF files."""
+"""Interface to NUCAPS Retrieval NetCDF files.
+
+NUCAPS stands for NOAA Unique Combined Atmospheric Processing System.
+NUCAPS retrievals include temperature, moisture, trace gas, and cloud-cleared
+radiance profiles. Product details can be found at:
+
+https://www.ospo.noaa.gov/Products/atmosphere/soundings/nucaps/
+
+This reader supports both standard NOAA NUCAPS EDRs, and Science EDRs,
+which are essentially a subset of the standard EDRs with some additional
+parameters such as relative humidity and boundary layer temperature.
+
+NUCAPS data is derived from Cross-track Infrared Sounder (CrIS) data, and
+from Advanced Technology Microwave Sounder (ATMS) data, instruments
+onboard Joint Polar Satellite System spacecraft.
+
+"""
 
 from datetime import datetime
 import xarray as xr
@@ -67,42 +83,62 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get start time."""
-        return self._parse_datetime(self['/attr/time_coverage_start'])
+        try:
+            return self._parse_datetime(self['/attr/time_coverage_start'])
+        except KeyError:
+            # If attribute not present, use time from file name
+            return self.filename_info['start_time']
 
     @property
     def end_time(self):
         """Get end time."""
-        return self._parse_datetime(self['/attr/time_coverage_end'])
+        try:
+            return self._parse_datetime(self['/attr/time_coverage_end'])
+        except KeyError:
+            # If attribute not present, use time from file name
+            return self.filename_info['end_time']
 
     @property
     def start_orbit_number(self):
         """Return orbit number for the beginning of the swath."""
-        return int(self['/attr/start_orbit_number'])
+        try:
+            return int(self['/attr/start_orbit_number'])
+        except KeyError:
+            return 0
 
     @property
     def end_orbit_number(self):
         """Return orbit number for the end of the swath."""
-        return int(self['/attr/end_orbit_number'])
+        try:
+            return int(self['/attr/end_orbit_number'])
+        except KeyError:
+            return 0
 
     @property
     def platform_name(self):
         """Return standard platform name for the file's data."""
-        res = self['/attr/platform_name']
-        if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        else:
-            return res
+        try:
+            res = self['/attr/platform_name']
+            if isinstance(res, np.ndarray):
+                return str(res.astype(str))
+            else:
+                return res
+        except KeyError:
+            return self.filename_info['platform_shortname']
 
     @property
     def sensor_names(self):
         """Return standard sensor or instrument name for the file's data."""
-        res = self['/attr/instrument_name']
-        if isinstance(res, np.ndarray):
-            res = str(res.astype(str))
-        res = [x.strip() for x in res.split(',')]
-        if len(res) == 1:
-            return res[0]
-        return res
+        try:
+            res = self['/attr/instrument_name']
+            if isinstance(res, np.ndarray):
+                res = str(res.astype(str))
+            res = [x.strip() for x in res.split(',')]
+            if len(res) == 1:
+                return res[0]
+            return res
+        except KeyError:
+            return ['CrIS', 'ATMS', 'VIIRS']
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified."""
@@ -164,8 +200,12 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             # this is a pressure based field
             # include surface_pressure as metadata
             sp = self['Surface_Pressure']
+            # Older format
             if 'number_of_FORs' in sp.dims:
                 sp = sp.rename({'number_of_FORs': 'y'})
+            # Newer format
+            if 'Number_of_CrIS_FORs' in sp.dims:
+                sp = sp.rename({'Number_of_CrIS_FORs': 'y'})
             if 'surface_pressure' in ds_info:
                 ds_info['surface_pressure'] = xr.concat((ds_info['surface_pressure'], sp))
             else:
@@ -181,8 +221,12 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
             data = data.where(data != fill_value)
 
         data.attrs.update(metadata)
+        # Older format
         if 'number_of_FORs' in data.dims:
             data = data.rename({'number_of_FORs': 'y'})
+        # Newer format
+        if 'Number_of_CrIS_FORs' in data.dims:
+            data = data.rename({'Number_of_CrIS_FORs': 'y'})
         return data
 
 

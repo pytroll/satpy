@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
-import sys
-
+import unittest
+from unittest import mock
 import numpy as np
 import xarray as xr
 
@@ -27,16 +27,6 @@ from satpy.readers.seviri_l1b_native import (
     get_available_channels,
 )
 from satpy.dataset import DatasetID
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
@@ -635,18 +625,3 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
                           TEST_CALIBRATION_MODE,
                           'dummy',
                           )
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGArea))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGCalibrationMode))
-    return mysuite
-
-
-if __name__ == "__main__":
-    # So you can run tests from this module individually.
-    unittest.main()
