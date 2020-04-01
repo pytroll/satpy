@@ -69,6 +69,49 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             file_content[k + '/attr/MissingValue'] = -1
             file_content[k + '/attr/Title'] = 'Geodetic Latitude'
             file_content[k + '/attr/ValidRange'] = (-90, 90)
+        elif 'NMSO2' in filename:
+            file_content['GEOLOCATION_DATA/Longitude'] = DEFAULT_LON_DATA
+            file_content['GEOLOCATION_DATA/Longitude/shape'] = DEFAULT_FILE_SHAPE
+            file_content['GEOLOCATION_DATA/Longitude/attr/valid_max'] = 180
+            file_content['GEOLOCATION_DATA/Longitude/attr/valid_min'] = -180
+            file_content['GEOLOCATION_DATA/Longitude/attr/_FillValue'] = -1.26765e+30
+            file_content['GEOLOCATION_DATA/Longitude/attr/long_name'] = 'Longitude'
+            file_content['GEOLOCATION_DATA/Longitude/attr/standard_name'] = 'longitude'
+            file_content['GEOLOCATION_DATA/Longitude/attr/units'] = 'degrees_east'
+            file_content['GEOLOCATION_DATA/Latitude'] = DEFAULT_LAT_DATA
+            file_content['GEOLOCATION_DATA/Latitude/shape'] = DEFAULT_FILE_SHAPE
+            file_content['GEOLOCATION_DATA/Latitude/attr/valid_max'] = 90
+            file_content['GEOLOCATION_DATA/Latitude/attr/valid_min'] = -90
+            file_content['GEOLOCATION_DATA/Latitude/attr/_FillValue'] = -1.26765e+30
+            file_content['GEOLOCATION_DATA/Latitude/attr/long_name'] = 'Latitude'
+            file_content['GEOLOCATION_DATA/Latitude/attr/standard_name'] = 'latitude'
+            file_content['GEOLOCATION_DATA/Latitude/attr/units'] = 'degress_north'
+
+            k = 'SCIENCE_DATA/ColumnAmountSO2_TRM'
+            file_content[k] = DEFAULT_FILE_DATA
+            file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
+            file_content[k + '/attr/_FillValue'] = -1.26765e+30
+            file_content[k + '/attr/long_name'] = 'Column Amount SO2 (TRM)'
+            file_content[k + '/attr/units'] = 'DU'
+            file_content[k + '/attr/valid_max'] = 2000
+            file_content[k + '/attr/valid_min'] = -10
+
+            k = 'SCIENCE_DATA/ColumnAmountSO2_STL'
+            file_content[k] = DEFAULT_FILE_DATA
+            file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
+            file_content[k + '/attr/_FillValue'] = -1.26765e+30
+            file_content[k + '/attr/long_name'] = 'Column Amount SO2 (TRM)'
+            file_content[k + '/attr/units'] = 'DU'
+
+            k = 'SCIENCE_DATA/ColumnAmountSO2_TRL'
+            file_content[k] = DEFAULT_FILE_DATA
+            file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
+            file_content[k + '/attr/_FillValue'] = -1.26765e+30
+            file_content[k + '/attr/long_name'] = 'Column Amount SO2 (TRL)'
+            file_content[k + '/attr/units'] = 'DU'
+            file_content[k + '/attr/valid_max'] = 2000
+            file_content[k + '/attr/valid_min'] = -10
+            file_content[k + '/attr/DIMENSION_LIST'] = -10
         else:
             for k in ['Reflectivity331', 'UVAerosolIndex']:
                 k = 'SCIENCE_DATA/' + k
@@ -128,8 +171,9 @@ class TestOMPSEDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'OMPS-NPP-TC_EDR_SO2NRT-2016m0607t192031-o00001-2016m0607t192947.he5',
             'OMPS-NPP-TC_EDR_TO3-v1.0-2016m0607t192031-o00001-2016m0607t192947.h5',
+            'OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5',
         ])
-        self.assertTrue(len(loadables), 2)
+        self.assertEqual(len(loadables), 3)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -141,8 +185,9 @@ class TestOMPSEDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'OMPS-NPP-TC_EDR_SO2NRT-2016m0607t192031-o00001-2016m0607t192947.he5',
             'OMPS-NPP-TC_EDR_TO3-v1.0-2016m0607t192031-o00001-2016m0607t192947.h5',
+            'OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5',
         ])
-        self.assertTrue(len(loadables), 2)
+        self.assertEqual(len(loadables), 3)
         r.create_filehandlers(loadables)
         ds = r.load(['so2_trm'])
         self.assertEqual(len(ds), 1)
@@ -152,6 +197,15 @@ class TestOMPSEDRReader(unittest.TestCase):
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
 
+        ds = r.load(['tcso2_trm_sampo'])
+        self.assertEqual(len(ds), 1)
+        for d in ds.values():
+            self.assertEqual(d.attrs['resolution'], 50000)
+            self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
+
+        ds = r.load(['tcso2_stl_sampo'])
+        self.assertEqual(len(ds), 0)
+
     def test_basic_load_to3(self):
         """Test basic load of to3 datasets"""
         from satpy.readers import load_reader
@@ -159,8 +213,9 @@ class TestOMPSEDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'OMPS-NPP-TC_EDR_SO2NRT-2016m0607t192031-o00001-2016m0607t192947.he5',
             'OMPS-NPP-TC_EDR_TO3-v1.0-2016m0607t192031-o00001-2016m0607t192947.h5',
+            'OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5',
         ])
-        self.assertTrue(len(loadables), 2)
+        self.assertEqual(len(loadables), 3)
         r.create_filehandlers(loadables)
         ds = r.load(['reflectivity_331', 'uvaerosol_index'])
         self.assertEqual(len(ds), 2)
