@@ -106,11 +106,6 @@ class EDRFileHandler(HDF5FileHandler):
             fill_value = None
 
         data = self[var_path]
-        if 'DIMENSION_LIST' in data.attrs:
-            data.attrs.pop('DIMENSION_LIST')
-            dimensions = self.get_reference(var_path, 'DIMENSION_LIST')
-            for dim, coord in zip(data.dims, dimensions):
-                data.coords[dim] = coord[0]
         scale_factor_path = var_path + '/attr/ScaleFactor'
         if scale_factor_path in self:
             scale_factor = self[scale_factor_path]
@@ -131,6 +126,11 @@ class EDRFileHandler(HDF5FileHandler):
             data = data * factors[0] + factors[1]
 
         data.attrs.update(metadata)
+        if 'DIMENSION_LIST' in data.attrs:
+            data.attrs.pop('DIMENSION_LIST')
+            dimensions = self.get_reference(var_path, 'DIMENSION_LIST')
+            for dim, coord in zip(data.dims, dimensions):
+                data.coords[dim] = coord[0]
         return data
 
 
