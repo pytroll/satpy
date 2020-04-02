@@ -23,8 +23,7 @@ Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.  FCI will fly
 on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
 in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 
-Geolocation is based on a combination of information from the Product User
-Guide (`PUG`_) and from the data files.  It uses:
+Geolocation is based on information from the data files.  It uses:
 
     * From the shape of the data variable ``data/<channel>/measured/effective_radiance``,
       start and end line columns of current swath.
@@ -172,7 +171,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         logger.debug('Channel {} resolution: {}'.format(key.name, ncols))
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
-        # total_segments = 70
 
         # Calculate full globe line extent
         h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
@@ -220,7 +218,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         if_ = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
-        # Channel dependent swath resoultion
+        # Channel dependent swath resolution
         (area_extent, nlines, ncols) = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
@@ -253,7 +251,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         elif key.calibration == 'reflectance':
             data = self._vis_calibrate(data, measured)
         else:
-            raise RuntimeError(
+            raise ValueError(
                     "Received unknown calibration key.  Expected "
                     "'brightness_temperature' or 'reflectance', got "
                     + key.calibration)
