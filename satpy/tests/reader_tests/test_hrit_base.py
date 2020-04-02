@@ -132,10 +132,12 @@ class TestHRITFileHandler(unittest.TestCase):
         self.assertTupleEqual(res, exp)
 
     def test_get_area_def(self):
+        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def('VIS06')
         proj_dict = area.proj_dict
-        self.assertEqual(proj_dict['a'], 6378169.0)
-        self.assertEqual(proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(proj_dict)
+        self.assertEqual(a, 6378169.0)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(proj_dict['h'], 35785831.0)
         self.assertEqual(proj_dict['lon_0'], 44.0)
         self.assertEqual(proj_dict['proj'], 'geos')
