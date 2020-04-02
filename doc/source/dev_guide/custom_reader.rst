@@ -506,6 +506,18 @@ a convenience and are not required to read these formats. In many cases using
 the :func:`xarray.open_dataset` function in a custom file handler is a much
 better idea.
 
+.. note::
+   Be careful about the data types of the datasets your reader is returning.
+   It is easy to let the data being coerced into double precision floats. At the
+   moment, satellite instruments are rarely measuring in a resolution greater
+   than what can be encoded in 16 bits. As such, to preserve processing power,
+   please consider carefully what data type you should scale or calibrate your
+   data to.
+
+   Single precision floats (`np.float32`) is a good compromise, as it has 23
+   significant bits (mantissa) and can thus represent 16 bit integers exactly,
+   as well as keeping the memory footprint half of a double precision float.
+
 One way of implementing a file handler is shown below:
 
 .. code:: python
