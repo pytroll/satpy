@@ -26,9 +26,6 @@ in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 Geolocation is based on a combination of information from the Product User
 Guide (`PUG`_) and from the data files.  It uses:
 
-    * Extent information from the PUG for the three different possible
-      resolutions.  In the PUG dated 2019-06-27 (EUM/MTG/USR/13/719113),
-      this is Table 3.
     * From the shape of the data variable ``data/<channel>/measured/effective_radiance``,
       start and end line columns of current swath.
     * From the data variable ``data/<channel>/measured/x``, the x-coordinates
@@ -167,18 +164,13 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset.
         """
-        # Calculate the area extent of the swath based on start line and column
-        # information, total number of segments and channel resolution
-        # numbers from PUG, Table 3
-        xyres = {500: 22272, 1000: 11136, 2000: 5568}
-        chkres = xyres[key.resolution]
 
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
         # Get start/end line and column of loaded swath.
         nlines, ncols = self[measured + "/effective_radiance/shape"]
 
-        logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
+        logger.debug('Channel {} resolution: {}'.format(key.name, ncols))
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
         # total_segments = 70
 
