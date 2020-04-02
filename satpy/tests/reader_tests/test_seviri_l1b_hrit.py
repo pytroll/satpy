@@ -240,12 +240,14 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting the area def."""
+        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(DatasetID('HRV'))
         self.assertEqual(area.area_extent,
                          (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356))
         proj_dict = area.proj_dict
-        self.assertEqual(proj_dict['a'], 6378169.0)
-        self.assertEqual(proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(proj_dict)
+        self.assertEqual(a, 6378169.0)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(proj_dict['h'], 35785831.0)
         self.assertEqual(proj_dict['lon_0'], 44.0)
         self.assertEqual(proj_dict['proj'], 'geos')
@@ -323,10 +325,12 @@ class TestHRITMSGFileHandler(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting the area def."""
+        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(DatasetID('VIS006'))
         proj_dict = area.proj_dict
-        self.assertEqual(proj_dict['a'], 6378169.0)
-        self.assertEqual(proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(proj_dict)
+        self.assertEqual(a, 6378169.0)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(proj_dict['h'], 35785831.0)
         self.assertEqual(proj_dict['lon_0'], 44.0)
         self.assertEqual(proj_dict['proj'], 'geos')
