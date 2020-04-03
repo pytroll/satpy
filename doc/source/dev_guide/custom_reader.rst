@@ -508,7 +508,7 @@ better idea.
 
 .. note::
    Be careful about the data types of the datasets your reader is returning.
-   It is easy to let the data being coerced into double precision floats. At the
+   It is easy to let the data be coerced into double precision floats (`np.float64`). At the
    moment, satellite instruments are rarely measuring in a resolution greater
    than what can be encoded in 16 bits. As such, to preserve processing power,
    please consider carefully what data type you should scale or calibrate your
@@ -517,6 +517,13 @@ better idea.
    Single precision floats (`np.float32`) is a good compromise, as it has 23
    significant bits (mantissa) and can thus represent 16 bit integers exactly,
    as well as keeping the memory footprint half of a double precision float.
+
+   One commonly used method in readers is :meth:`xarray.DataArray.where` (to
+   mask invalid data) which can be coercing the data to `np.float64`. To ensure
+   for example that integer data is coerced to `np.float32` when
+   :meth:`xarray.DataArray.where` is used, you can do::
+
+     my_float_dataarray = my_int_dataarray.where(some_condition, np.float32(np.nan))
 
 One way of implementing a file handler is shown below:
 
