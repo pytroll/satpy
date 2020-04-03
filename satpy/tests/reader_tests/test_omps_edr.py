@@ -24,7 +24,6 @@ import numpy as np
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
-
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
 DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
@@ -102,7 +101,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             file_content[k] = DEFAULT_FILE_DATA
             file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
             file_content[k + '/attr/_FillValue'] = -1.26765e+30
-            file_content[k + '/attr/long_name'] = 'Column Amount SO2 (TRM)'
+            file_content[k + '/attr/long_name'] = 'Column Amount SO2 (STL)'
             file_content[k + '/attr/units'] = 'DU'
 
             k = 'SCIENCE_DATA/ColumnAmountSO2_TRL'
@@ -113,8 +112,25 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             file_content[k + '/attr/units'] = 'DU'
             file_content[k + '/attr/valid_max'] = 2000
             file_content[k + '/attr/valid_min'] = -10
-            file_content[k + '/attr/DIMENSION_LIST'] = -10
+            file_content[k + '/attr/DIMENSION_LIST'] = [10, 10]
             attrs = ['_FillValue', 'long_name', 'units', 'valid_max', 'valid_min', 'DIMENSION_LIST']
+
+            k = 'SCIENCE_DATA/ColumnAmountSO2_TRU'
+            file_content[k] = DEFAULT_FILE_DATA
+            file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
+            file_content[k + '/attr/long_name'] = 'Column Amount SO2 (TRU)'
+            file_content[k + '/attr/units'] = 'DU'
+            file_content[k + '/attr/valid_max'] = 2000
+            file_content[k + '/attr/valid_min'] = -10
+
+            # Dataset with out unit
+            k = 'SCIENCE_DATA/ColumnAmountSO2_PBL'
+            file_content[k] = DEFAULT_FILE_DATA
+            file_content[k + '/shape'] = DEFAULT_FILE_SHAPE
+            file_content[k + '/attr/_FillValue'] = -1.26765e+30
+            file_content[k + '/attr/long_name'] = 'Column Amount SO2 (PBL)'
+            file_content[k + '/attr/valid_max'] = 2000
+            file_content[k + '/attr/valid_min'] = -10
         else:
             for k in ['Reflectivity331', 'UVAerosolIndex']:
                 k = 'SCIENCE_DATA/' + k
@@ -210,8 +226,13 @@ class TestOMPSEDRReader(unittest.TestCase):
         ds = r.load(['tcso2_stl_sampo'])
         self.assertEqual(len(ds), 0)
 
-        ds = r.load(['tcso2_trl_sampo'])
+        # Dataset without _FillValue
+        ds = r.load(['tcso2_tru_sampo'])
         self.assertEqual(len(ds), 1)
+
+        # Dataset without unit
+        ds = r.load(['tcso2_pbl_sampo'])
+        self.assertEqual(len(ds), 0)
 
     def test_basic_load_to3(self):
         """Test basic load of to3 datasets."""
@@ -231,3 +252,19 @@ class TestOMPSEDRReader(unittest.TestCase):
             self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
+
+    @mock.patch('satpy.readers.hdf5_utils.HDF5FileHandler._get_reference')
+    @mock.patch('h5py.File')
+    def test_load_so2_DIMENSION_LIST(self, mock_h5py_file, mock_hdf5_utils_get_reference):
+        """Test load of so2 datasets with DIMENSION_LIST."""
+        from satpy.readers import load_reader
+        mock_h5py_file.return_value = mock.MagicMock()
+        mock_hdf5_utils_get_reference.return_value = [[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]]]
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'OMPS-NPP_NMSO2-PCA-L2_v1.1_2018m1129t112824_o00001_2018m1129t114426.h5',
+        ])
+        r.create_filehandlers(loadables)
+
+        ds = r.load(['tcso2_trl_sampo'])
+        self.assertEqual(len(ds), 1)
