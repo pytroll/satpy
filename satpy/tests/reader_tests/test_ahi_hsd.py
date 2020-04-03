@@ -35,6 +35,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
     def test_region(self, fromfile, np2str):
         """Test region navigation."""
+        from pyresample.utils import proj4_radius_parameters
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
@@ -67,8 +68,9 @@ class TestAHIHSDNavigation(unittest.TestCase):
 
             area_def = fh.get_area_def(None)
             proj_dict = area_def.proj_dict
-            self.assertEqual(proj_dict['a'], 6378137.0)
-            self.assertEqual(proj_dict['b'], 6356752.3)
+            a, b = proj4_radius_parameters(proj_dict)
+            self.assertEqual(a, 6378137.0)
+            self.assertEqual(b, 6356752.3)
             self.assertEqual(proj_dict['h'], 35785863.0)
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
@@ -80,6 +82,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
     def test_segment(self, fromfile, np2str):
         """Test segment navigation."""
+        from pyresample.utils import proj4_radius_parameters
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
@@ -112,8 +115,9 @@ class TestAHIHSDNavigation(unittest.TestCase):
 
             area_def = fh.get_area_def(None)
             proj_dict = area_def.proj_dict
-            self.assertEqual(proj_dict['a'], 6378137.0)
-            self.assertEqual(proj_dict['b'], 6356752.3)
+            a, b = proj4_radius_parameters(proj_dict)
+            self.assertEqual(a, 6378137.0)
+            self.assertEqual(b, 6356752.3)
             self.assertEqual(proj_dict['h'], 35785863.0)
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
