@@ -161,9 +161,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         return group, root_group
 
     def calc_area_extent(self, key):
-        """Calculate area extent for a dataset.
-        """
-
+        """Calculate area extent for a dataset."""
         # Get metadata for given dataset
         measured, root = self.get_channel_dataset(key.name)
         # Get start/end line and column of loaded swath.
