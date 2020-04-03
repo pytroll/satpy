@@ -37,10 +37,12 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler"""
+    """Swap-in HDF5 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {}
+        attrs = []
         if 'SO2NRT' in filename:
             k = 'HDFEOS/SWATHS/OMPS Column Amount SO2/Data Fields/ColumnAmountSO2_TRM'
             file_content[k] = DEFAULT_FILE_DATA
@@ -112,6 +114,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             file_content[k + '/attr/valid_max'] = 2000
             file_content[k + '/attr/valid_min'] = -10
             file_content[k + '/attr/DIMENSION_LIST'] = -10
+            attrs = ['_FillValue', 'long_name', 'units', 'valid_max', 'valid_min', 'DIMENSION_LIST']
         else:
             for k in ['Reflectivity331', 'UVAerosolIndex']:
                 k = 'SCIENCE_DATA/' + k
@@ -138,16 +141,17 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
             file_content['GEOLOCATION_DATA/Latitude/attr/Title'] = 'Geodetic Latitude'
             file_content['GEOLOCATION_DATA/Latitude/attr/Units'] = 'deg'
 
-        convert_file_content_to_data_array(file_content)
+        convert_file_content_to_data_array(file_content, attrs)
         return file_content
 
 
 class TestOMPSEDRReader(unittest.TestCase):
-    """Test OMPS EDR Reader"""
+    """Test OMPS EDR Reader."""
+
     yaml_file = "omps_edr.yaml"
 
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
+        """Wrap HDF5 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.omps_edr import EDRFileHandler, EDREOSFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -160,7 +164,7 @@ class TestOMPSEDRReader(unittest.TestCase):
         self.p2.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p2.stop()
         self.p.stop()
 
@@ -179,7 +183,7 @@ class TestOMPSEDRReader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_basic_load_so2(self):
-        """Test basic load of so2 datasets"""
+        """Test basic load of so2 datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -210,7 +214,7 @@ class TestOMPSEDRReader(unittest.TestCase):
         self.assertEqual(len(ds), 1)
 
     def test_basic_load_to3(self):
-        """Test basic load of to3 datasets"""
+        """Test basic load of to3 datasets."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
