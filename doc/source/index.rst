@@ -240,6 +240,9 @@ the base Satpy installation.
     * - HY-2B Scatterometer level 2b data in HDF5 format
       - `hy2_scat_l2b_h5`
       - Beta
+    * - OMPS EDR data in HDF5 format
+      - `omps_edr`
+      - Beta
 
 Indices and tables
 ==================
