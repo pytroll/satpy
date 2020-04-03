@@ -204,7 +204,6 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
-
         # assumption: channels with same resolution should have same area
         # cache results to improve performance
         if key.resolution in self._cache.keys():
