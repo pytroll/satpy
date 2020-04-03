@@ -15,9 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to OMPS EDR format
-
-"""
+"""Interface to OMPS EDR format."""
 from datetime import datetime, timedelta
 import numpy as np
 import logging
@@ -30,28 +28,36 @@ LOG = logging.getLogger(__name__)
 
 
 class EDRFileHandler(HDF5FileHandler):
+    """EDR file handler."""
+
     _fill_name = "_FillValue"
 
     @property
     def start_orbit_number(self):
+        """Get the start orbit number."""
         return self.filename_info['orbit']
 
     @property
     def end_orbit_number(self):
+        """Get the end orbit number."""
         return self.filename_info['orbit']
 
     @property
     def platform_name(self):
+        """Get the platform name."""
         return self.filename_info['platform_shortname']
 
     @property
     def sensor_name(self):
+        """Get the sensor name."""
         return self.filename_info['instrument_shortname']
 
     def get_shape(self, ds_id, ds_info):
+        """Get the shape."""
         return self[ds_info['file_key'] + '/shape']
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
+        """Adjust scaling factors."""
         if factors is None or factors[0] is None:
             factors = [1, 0]
         if file_units == output_units:
@@ -60,8 +66,9 @@ class EDRFileHandler(HDF5FileHandler):
         return np.array(factors)
 
     def get_metadata(self, dataset_id, ds_info):
+        """Get the metadata."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
-        info = getattr(self[var_path], 'attrs', {})
+        info = getattr(self[var_path], 'attrs', {}).copy()
         info.pop('DIMENSION_LIST', None)
         info.update(ds_info)
 
@@ -90,6 +97,7 @@ class EDRFileHandler(HDF5FileHandler):
         return info
 
     def get_dataset(self, dataset_id, ds_info):
+        """Get the dataset."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         metadata = self.get_metadata(dataset_id, ds_info)
         valid_min, valid_max = self.get(var_path + '/attr/valid_range',
@@ -135,4 +143,6 @@ class EDRFileHandler(HDF5FileHandler):
 
 
 class EDREOSFileHandler(EDRFileHandler):
+    """EDR EOS file handler."""
+
     _fill_name = "MissingValue"
