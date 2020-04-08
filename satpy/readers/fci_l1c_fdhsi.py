@@ -37,7 +37,7 @@ Geolocation is based on information from the data files.  It uses:
       radius
     * From the attribute ``perspective_point_height`` on the same data
       variable, the geostationary altitude in the normalised geostationary
-      projection (see PUG §5.2)
+      projection (see `PUG`_ §5.2)
     * From the attribute ``longitude_of_projection_origin`` on the same
       data variable, the longitude of the projection origin
     * From the attribute ``inverse_flattening`` on the same data variable, the
@@ -53,6 +53,10 @@ geostationary altitude, and longitude of projection origin, are passed on to
 ``pyresample.geometry.AreaDefinition``, which then uses proj4 for the actual
 geolocation calculations.
 
+The brightness temperature calculation is based on the formulas indicated in
+`PUG`_ and `RADTOBR`_.
+
+.. _RADTOBR: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_EFFECT_RAD_TO_BRIGHTNESS&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _PUG: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_DMT_719113&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci  # noqa: E501
 """
@@ -268,7 +272,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def _ir_calibrate(self, radiance, measured, root):
         """IR channel calibration."""
-        # using the method from EUM/MET/TEN/11/0569 and PUG
+        # using the method from RADTOBR and PUG
         vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
 
         a = self[measured + "/radiance_to_bt_conversion_coefficient_a"]
