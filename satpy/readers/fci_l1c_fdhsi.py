@@ -200,7 +200,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             ext[c] = (min_c.item(), max_c.item())
 
         area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
-        return (area_extent, nlines, ncols)
+        return area_extent, nlines, ncols
 
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
@@ -216,7 +216,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
         # Channel dependent swath resolution
-        (area_extent, nlines, ncols) = self.calc_area_extent(key)
+        area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
 
@@ -308,7 +308,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                 coords=radiance.coords,
                 attrs=radiance.attrs)
 
-        sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7 # [AU]
+        sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
 
         res = 100 * radiance * np.pi * sun_earth_distance**2 / cesi
         res.attrs["units"] = "%"
