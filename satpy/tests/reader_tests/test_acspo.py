@@ -15,25 +15,15 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.acspo module.
-"""
+"""Module for testing the satpy.readers.acspo module."""
 
 import os
-import sys
 from datetime import datetime, timedelta
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -150,13 +140,3 @@ class TestACSPOReader(unittest.TestCase):
         self.assertEqual(len(datasets), 4)
         for d in datasets.values():
             self.assertTupleEqual(d.shape, DEFAULT_FILE_SHAPE)
-
-
-def suite():
-    """The test suite for test_acspo.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestACSPOReader))
-
-    return mysuite

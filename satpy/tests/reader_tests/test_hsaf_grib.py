@@ -15,22 +15,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.grib module.
-"""
+"""Module for testing the satpy.readers.grib module."""
 
 import sys
 import numpy as np
+import unittest
+from unittest import mock
 from datetime import datetime
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class FakeMessage(object):
@@ -172,16 +163,3 @@ class TestHSAFFileHandler(unittest.TestCase):
         ds_id.name = 'H05B'
         data = fh.get_dataset(ds_id, mock.Mock())
         np.testing.assert_array_equal(data.values, np.arange(25.).reshape((5, 5)))
-
-
-def suite():
-    """The test suite for test_grib."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHSAFFileHandler))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

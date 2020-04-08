@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,24 +15,6 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-# Author(s):
-
-#   Lorenzo Clementi <lorenzo.clementi@meteoswiss.ch>
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 """
 Reader for generic image (e.g. gif, png, jpg, tif, geotiff, ...).
 
@@ -60,8 +42,10 @@ logger = logging.getLogger(__name__)
 
 
 class GenericImageFileHandler(BaseFileHandler):
+    """Handle reading of generic image files."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize filehandler."""
         super(GenericImageFileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.finfo = filename_info
@@ -75,7 +59,7 @@ class GenericImageFileHandler(BaseFileHandler):
         self.read()
 
     def read(self):
-        """Read the image"""
+        """Read the image."""
         dataset = rasterio.open(self.finfo['filename'])
 
         # Create area definition
@@ -101,22 +85,26 @@ class GenericImageFileHandler(BaseFileHandler):
         self.file_content['image'] = data
 
     def get_area_def(self, dsid):
+        """Get area definition of the image."""
         if self.area is None:
             raise NotImplementedError("No CRS information available from image")
         return self.area
 
     @property
     def start_time(self):
+        """Return start time."""
         return self.finfo['start_time']
 
     @property
     def end_time(self):
+        """Return end time."""
         return self.finfo['end_time']
 
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
         logger.debug("Reading %s.", key)
         return self.file_content[key.name]
+
 
 def mask_image_data(data):
     """Mask image data if alpha channel is present."""

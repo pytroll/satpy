@@ -70,7 +70,7 @@ modifiers:
 
 
 composites:
-  natural_color_sun:
+  natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - name: 'B11'
