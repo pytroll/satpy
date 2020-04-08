@@ -117,6 +117,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         attrs = data.attrs.copy()
         info = info.copy()
+
         fv = attrs.pop(
                 "FillValue",
                 default_fillvals.get(data.dtype.str[1:], np.nan))
@@ -128,6 +129,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             nfv = np.nan
         data = data.where(data >= vr[0], nfv)
         data = data.where(data <= vr[1], nfv)
+
         if key.calibration == "counts":
             # from package description, this just means not applying add_offset
             # and scale_factor
@@ -136,8 +138,17 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             data.attrs["units"] = "1"
             res = data
         else:
-            data = (data * attrs.pop("scale_factor", 1) +
-                    attrs.pop("add_offset", 0))
+            # counts to radiance scaling
+            if key.name == 'ir_38':
+                data = xr.where(((2**12-1 < data) & (data <= 2**13-1)),
+                                (data * attrs.pop("warm_scale_factor", 1) +
+                                 attrs.pop("warm_add_offset", 0)),
+                                (data * attrs.pop("scale_factor", 1) +
+                                 attrs.pop("add_offset", 0))
+                                )
+            else:
+                data = (data * attrs.pop("scale_factor", 1) +
+                        attrs.pop("add_offset", 0))
 
             if key.calibration in ("brightness_temperature", "reflectance"):
                 res = self.calibrate(data, key, measured, root)
