@@ -8,64 +8,64 @@ reader:
 file_types:
     esa_l1b_an:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_an.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_an.nc']
     esa_l1b_ao:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_ao.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_ao.nc']
     esa_l1b_bn:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_bn.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_bn.nc']
     esa_l1b_bo:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_bo.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_bo.nc']
     esa_l1b_cn:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_cn.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_cn.nc']
     esa_l1b_co:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_co.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_radiance_co.nc']
     esa_l1b_ntir:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}n.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}n.nc']
     esa_l1b_otir:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTR1B
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}o.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/{dataset_name}_BT_{stripe:1s}o.nc']
     esa_angles:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRAngles
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geometry_t{view:1s}.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geometry_t{view:1s}.nc']
     esa_geo_an:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRGeo
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_a{view:1s}.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_a{view:1s}.nc']
     esa_geo_bn:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRGeo
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_b{view:1s}.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_b{view:1s}.nc']
     esa_geo_in:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRGeo
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_i{view:1s}.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/geodetic_i{view:1s}.nc']
     esa_l1b_flag_an:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_an.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_an.nc']
     esa_l1b_flag_bn:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_bn.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_bn.nc']
     esa_l1b_flag_cn:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_cn.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_cn.nc']
     esa_l1b_flag_in:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_in.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_in.nc']
     esa_l1b_flag_ao:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_ao.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_ao.nc']
     esa_l1b_flag_bo:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_bo.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_bo.nc']
     esa_l1b_flag_co:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_co.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_co.nc']
     esa_l1b_flag_io:
         file_reader: !!python/name:satpy.readers.slstr_l1b.NCSLSTRFlag
-        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_io.nc']
+        file_patterns: ['{mission_id:3s}_SL_{processing_level:1s}_{datatype_id:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{creation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relative_orbit:3d}_{frame:4s}_{centre:3s}_{mode:1s}_{timeliness:2s}_{collection:3s}.SEN3/flags_io.nc']
 
 
 datasets:
@@ -712,41 +712,85 @@ datasets:
     file_type: esa_l1b_otir
 
 
-  solar_zenith_angle:
-    name: solar_zenith_angle
+  solar_zenith_angle_n:
+    name: solar_zenith_angle_n
     sensor: slstr
     resolution: 1000
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_in, latitude_in]
+    view: nadir
     standard_name: solar_zenith_angle
     file_type: esa_angles
     file_key: solar_zenith_tn
 
-  solar_azimuth_angle:
-    name: solar_azimuth_angle
+  solar_azimuth_angle_n:
+    name: solar_azimuth_angle_n
     sensor: slstr
     resolution: 1000
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_in, latitude_in]
+    view: nadir
     standard_name: solar_azimuth_angle
     file_type: esa_angles
     file_key: solar_azimuth_tn
 
-  satellite_zenith_angle:
-    name: satellite_zenith_angle
+  satellite_zenith_angle_n:
+    name: satellite_zenith_angle_n
     sensor: slstr
     resolution: 1000
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_in, latitude_in]
+    view: nadir
     standard_name: satellite_zenith_angle
     file_type: esa_angles
     file_key: sat_zenith_tn
 
-  satellite_azimuth_angle:
-    name: satellite_azimuth_angle
+  satellite_azimuth_angle_n:
+    name: satellite_azimuth_angle_n
     sensor: slstr
     resolution: 1000
-    coordinates: [longitude, latitude]
+    coordinates: [longitude_in, latitude_in]
+    view: nadir
     standard_name: satellite_azimuth_angle
     file_type: esa_angles
     file_key: sat_azimuth_tn
+
+  solar_zenith_angle_o:
+    name: solar_zenith_angle_o
+    sensor: slstr
+    resolution: 1000
+    coordinates: [longitude_io, latitude_io]
+    view: oblique
+    standard_name: solar_zenith_angle
+    file_type: esa_angles
+    file_key: solar_zenith_to
+
+  solar_azimuth_angle_o:
+    name: solar_azimuth_angle_o
+    sensor: slstr
+    resolution: 1000
+    coordinates: [longitude_io, latitude_io]
+    view: oblique
+    standard_name: solar_azimuth_angle
+    file_type: esa_angles
+    file_key: solar_azimuth_to
+
+  satellite_zenith_angle_o:
+    name: satellite_zenith_angle_o
+    sensor: slstr
+    resolution: 1000
+    coordinates: [longitude_io, latitude_io]
+    view: oblique
+    standard_name: satellite_zenith_angle
+    file_type: esa_angles
+    file_key: sat_zenith_to
+
+  satellite_azimuth_angle_o:
+    name: satellite_azimuth_angle_o
+    sensor: slstr
+    resolution: 1000
+    coordinates: [longitude_io, latitude_io]
+    view: oblique
+    standard_name: satellite_azimuth_angle
+    file_type: esa_angles
+    file_key: sat_azimuth_to
 
 # CloudFlags are all bitfields. They are available in nadir (default) and oblique view for
 # each of the a,b,c,i stripes.

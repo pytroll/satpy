@@ -202,7 +202,7 @@ composites:
     - 10.8
     standard_name: green_snow
 
-  natural_color:
+  natural_color_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 1.63
@@ -210,7 +210,7 @@ composites:
     - 0.635
     standard_name: natural_color
 
-  natural_color_sun:
+  natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 1.63
@@ -235,7 +235,7 @@ composites:
     - 10.8
     standard_name: night_fog
 
-  overview:
+  overview_raw:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - 0.6
@@ -243,7 +243,7 @@ composites:
     - 10.8
     standard_name: overview
 
-  overview_sun:
+  overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - wavelength: 0.6
@@ -291,6 +291,13 @@ composites:
     - cma_extended
     - cma_extended_pal
     standard_name: cloudmask
+
+  cloudmask_probability:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmaprob
+    - cmaprob_pal
+    standard_name: cloudmask_probability
 
   cloudtype:
     compositor: !!python/name:satpy.composites.PaletteCompositor
@@ -391,3 +398,25 @@ composites:
     transition_min: 258.15
     transition_max: 298.15
     transition_gamma: 3.0
+
+  natural_enh:
+    compositor: !!python/name:satpy.composites.NaturalEnh
+    standard_name: natural_enh
+    prerequisites:
+    - wavelength: 1.6
+      modifiers: [sunz_corrected]
+    - wavelength: 0.8
+      modifiers: [sunz_corrected]
+    - wavelength: 0.6
+      modifiers: [sunz_corrected]
+
+  _night_background:
+    compositor: !!python/name:satpy.composites.StaticImageCompositor
+    standard_name: night_background
+    filename: BlackMarble_2016_01deg_geo.tif
+
+  _night_background_hires:
+    compositor: !!python/name:satpy.composites.StaticImageCompositor
+    standard_name: night_background_hires
+    filename: BlackMarble_2016_3km_geo.tif
+

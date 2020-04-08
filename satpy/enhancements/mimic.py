@@ -1,6 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2018-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -16,6 +15,17 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-import doctest
+from trollimage.colormap import Colormap
 
-doctest.testfile("../../doc/source/quickstart.rst")
+
+def total_precipitable_water(img, **kwargs):
+    """Palettizes images from VIIRS flood data.
+
+    This modifies the image's data so the correct colors
+    can be applied to it, and then palettizes the image.
+    """
+    palette = kwargs['palettes']
+    palette['colors'] = tuple(map(tuple, palette['colors']))
+
+    cm = Colormap(*palette['colors'])
+    img.palettize(cm)

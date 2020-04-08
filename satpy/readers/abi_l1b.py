@@ -24,87 +24,16 @@ The files read by this reader are described in the official PUG document:
 """
 
 import logging
-from datetime import datetime
 
 import numpy as np
-import xarray as xr
 
-from pyresample import geometry
-from satpy.readers.file_handlers import BaseFileHandler
-from satpy import CHUNK_SIZE
+from satpy.readers.abi_base import NC_ABI_BASE
 
 logger = logging.getLogger(__name__)
 
-PLATFORM_NAMES = {
-    'G16': 'GOES-16',
-    'G17': 'GOES-17',
-}
 
-
-class NC_ABI_L1B(BaseFileHandler):
+class NC_ABI_L1B(NC_ABI_BASE):
     """File reader for individual ABI L1B NetCDF4 files."""
-
-    def __init__(self, filename, filename_info, filetype_info):
-        """Open the NetCDF file with xarray and prepare the Dataset for reading."""
-        super(NC_ABI_L1B, self).__init__(filename, filename_info, filetype_info)
-        # xarray's default netcdf4 engine
-        self.nc = xr.open_dataset(self.filename,
-                                  decode_cf=True,
-                                  mask_and_scale=False,
-                                  chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE})
-        self.nc = self.nc.rename({'t': 'time'})
-        platform_shortname = filename_info['platform_shortname']
-        self.platform_name = PLATFORM_NAMES.get(platform_shortname)
-        self.sensor = 'abi'
-        self.nlines, self.ncols = self.nc["Rad"].shape
-        self.coords = {}
-
-    def __getitem__(self, item):
-        """Wrap `self.nc[item]` for better floating point precision.
-
-        Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
-        variables which causes inaccurate unscaled data values. This method
-        forces the scale factor to a 64-bit float first.
-
-        """
-        data = self.nc[item]
-        attrs = data.attrs
-        factor = data.attrs.get('scale_factor')
-        offset = data.attrs.get('add_offset')
-        fill = data.attrs.get('_FillValue')
-        if fill is not None:
-            data = data.where(data != fill)
-        if factor is not None and item in ('x', 'y'):
-            # be more precise with x/y coordinates
-            # set get_area_def for more information
-            data = data * np.round(float(factor), 6) + np.round(float(offset), 6)
-        elif factor is not None:
-            # make sure the factor is a 64-bit float
-            # can't do this in place since data is most likely uint16
-            # and we are making it a 64-bit float
-            data = data * float(factor) + offset
-        data.attrs = attrs
-
-        # handle coordinates (and recursive fun)
-        new_coords = {}
-        # 'time' dimension causes issues in other processing
-        # 'x_image' and 'y_image' are confusing to some users and unnecessary
-        # 'x' and 'y' will be overwritten by base class AreaDefinition
-        for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
-            if coord_name in data.coords:
-                del data.coords[coord_name]
-        if item in data.coords:
-            self.coords[item] = data
-        for coord_name in data.coords.keys():
-            if coord_name not in self.coords:
-                self.coords[coord_name] = self[coord_name]
-            new_coords[coord_name] = self.coords[coord_name]
-        data.coords.update(new_coords)
-        return data
-
-    def get_shape(self, key, info):
-        """Get the shape of the data."""
-        return self.nlines, self.ncols
 
     def get_dataset(self, key, info):
         """Load a dataset."""
@@ -128,10 +57,7 @@ class NC_ABI_L1B(BaseFileHandler):
             res.attrs['units'] = '%'
 
         res.attrs.update({'platform_name': self.platform_name,
-                          'sensor': self.sensor,
-                          'satellite_latitude': float(self['nominal_satellite_subpoint_lat']),
-                          'satellite_longitude': float(self['nominal_satellite_subpoint_lon']),
-                          'satellite_altitude': float(self['nominal_satellite_height'])})
+                          'sensor': self.sensor})
 
         # Add orbital parameters
         projection = self.nc["goes_imager_projection"]
@@ -141,7 +67,7 @@ class NC_ABI_L1B(BaseFileHandler):
             'projection_altitude': float(projection.attrs['perspective_point_height']),
             'satellite_nominal_latitude': float(self['nominal_satellite_subpoint_lat']),
             'satellite_nominal_longitude': float(self['nominal_satellite_subpoint_lon']),
-            'satellite_nominal_altitude': float(self['nominal_satellite_height']),
+            'satellite_nominal_altitude': float(self['nominal_satellite_height']) * 1000.,
             'yaw_flip': bool(self['yaw_flip_flag']),
         }
 
@@ -153,67 +79,17 @@ class NC_ABI_L1B(BaseFileHandler):
         res.attrs.pop('_Unsigned', None)
         res.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
         # add in information from the filename that may be useful to the user
-        for key in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname'):
-            res.attrs[key] = self.filename_info[key]
+        for attr in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname'):
+            res.attrs[attr] = self.filename_info[attr]
         # copy global attributes to metadata
-        for key in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
-            res.attrs[key] = self.nc.attrs.get(key)
+        for attr in ('scene_id', 'orbital_slot', 'instrument_ID', 'production_site', 'timeline_ID'):
+            res.attrs[attr] = self.nc.attrs.get(attr)
         # only include these if they are present
-        for key in ('fusion_args',):
-            if key in self.nc.attrs:
-                res.attrs[key] = self.nc.attrs[key]
+        for attr in ('fusion_args',):
+            if attr in self.nc.attrs:
+                res.attrs[attr] = self.nc.attrs[attr]
 
         return res
-
-    def get_area_def(self, key):
-        """Get the area definition of the data at hand.
-
-        Note this method takes special care to round and cast numbers to new
-        data types so that the area definitions for different resolutions
-        (different bands) should be equal. Without the special rounding in
-        `__getitem__` and this method the area extents can be 0 to 1.0 meters
-        off depending on how the calculations are done.
-
-        """
-        projection = self.nc["goes_imager_projection"]
-        a = projection.attrs['semi_major_axis']
-        h = projection.attrs['perspective_point_height']
-        b = projection.attrs['semi_minor_axis']
-
-        lon_0 = projection.attrs['longitude_of_projection_origin']
-        sweep_axis = projection.attrs['sweep_angle_axis'][0]
-
-        # x and y extents in m
-        h = np.float64(h)
-        x = self['x']
-        y = self['y']
-        x_l = x[0].values
-        x_r = x[-1].values
-        y_l = y[-1].values
-        y_u = y[0].values
-        x_half = (x_r - x_l) / (self.ncols - 1) / 2.
-        y_half = (y_u - y_l) / (self.nlines - 1) / 2.
-        area_extent = (x_l - x_half, y_l - y_half, x_r + x_half, y_u + y_half)
-        area_extent = tuple(np.round(h * val, 6) for val in area_extent)
-
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': h,
-                     'proj': 'geos',
-                     'units': 'm',
-                     'sweep': sweep_axis}
-
-        area = geometry.AreaDefinition(
-            self.nc.attrs.get('orbital_slot', 'abi_geos'),
-            self.nc.attrs.get('spatial_resolution', 'ABI L1B file area'),
-            'abi_geos',
-            proj_dict,
-            self.ncols,
-            self.nlines,
-            np.asarray(area_extent))
-
-        return area
 
     def _vis_calibrate(self, data):
         """Calibrate visible channels to reflectance."""
@@ -242,20 +118,3 @@ class NC_ABI_L1B(BaseFileHandler):
         res.attrs['long_name'] = 'Brightness Temperature'
         res.attrs['standard_name'] = 'toa_brightness_temperature'
         return res
-
-    @property
-    def start_time(self):
-        """Start time of the current file's observations."""
-        return datetime.strptime(self.nc.attrs['time_coverage_start'], '%Y-%m-%dT%H:%M:%S.%fZ')
-
-    @property
-    def end_time(self):
-        """End time of the current file's observations."""
-        return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
-
-    def __del__(self):
-        """Close the NetCDF file that may still be open."""
-        try:
-            self.nc.close()
-        except (IOError, OSError, AttributeError):
-            pass

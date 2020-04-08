@@ -27,7 +27,8 @@ from satpy.readers.seviri_base import (SEVIRICalibrationHandler,
                                        CHANNEL_NAMES, CALIB, SATNUM)
 import xarray as xr
 
-from pyresample import geometry
+from satpy.readers._geos_area import get_area_definition
+from satpy import CHUNK_SIZE
 
 import datetime
 
@@ -54,7 +55,7 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=False,
-                                      chunks={})
+                                      chunks=CHUNK_SIZE)
 
         # Obtain some area definition attributes
         equatorial_radius = (self.nc.attrs['equatorial_radius'] * 1000.)
@@ -136,36 +137,36 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             'projection_longitude': self.mda['projection_parameters']['ssp_longitude'],
             'projection_latitude': 0.,
             'projection_altitude': self.mda['projection_parameters']['h']}
+
+        # remove attributes from original file which don't apply anymore
+        strip_attrs = ["comment", "long_name", "nc_key", "scale_factor", "add_offset", "valid_min", "valid_max"]
+        for a in strip_attrs:
+            dataset.attrs.pop(a)
+
         return dataset
 
     def get_area_def(self, dataset_id):
-        a = self.mda['projection_parameters']['a']
-        b = self.mda['projection_parameters']['b']
-        h = self.mda['projection_parameters']['h']
-        lon_0 = self.mda['projection_parameters']['ssp_longitude']
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
+        pdict = {}
+        pdict['a'] = self.mda['projection_parameters']['a']
+        pdict['b'] = self.mda['projection_parameters']['b']
+        pdict['h'] = self.mda['projection_parameters']['h']
+        pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
         if dataset_id.name == 'HRV':
-            nlines = self.mda['hrv_number_of_lines']
-            ncols = self.mda['hrv_number_of_columns']
+            pdict['nlines'] = self.mda['hrv_number_of_lines']
+            pdict['ncols'] = self.mda['hrv_number_of_columns']
+            pdict['a_name'] = 'geosmsg_hrv'
+            pdict['a_desc'] = 'MSG/SEVIRI high resolution channel area'
+            pdict['p_id'] = 'msg_hires'
         else:
-            nlines = self.mda['number_of_lines']
-            ncols = self.mda['number_of_columns']
+            pdict['nlines'] = self.mda['number_of_lines']
+            pdict['ncols'] = self.mda['number_of_columns']
+            pdict['a_name'] = 'geosmsg'
+            pdict['a_desc'] = 'MSG/SEVIRI low resolution channel area'
+            pdict['p_id'] = 'msg_lowres'
 
-        area = geometry.AreaDefinition(
-             'some_area_name',
-             "On-the-fly area",
-             'geosmsg',
-             proj_dict,
-             ncols,
-             nlines,
-             self.get_area_extent(dataset_id))
+        area = get_area_definition(pdict, self.get_area_extent(dataset_id))
 
         return area
 

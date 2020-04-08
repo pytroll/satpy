@@ -15,9 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""GeoTIFF writer objects for creating GeoTIFF files from `Dataset` objects.
-
-"""
+"""GeoTIFF writer objects for creating GeoTIFF files from `DataArray` objects."""
 
 import logging
 import numpy as np
@@ -74,6 +72,7 @@ class GeoTIFFWriter(ImageWriter):
                     "copy_src_overviews",)
 
     def __init__(self, dtype=None, tags=None, **kwargs):
+        """Init the writer."""
         super(GeoTIFFWriter, self).__init__(default_config_filename="writers/geotiff.yaml", **kwargs)
         self.dtype = self.info.get("dtype") if dtype is None else dtype
         self.tags = self.info.get("tags", None) if tags is None else tags
@@ -91,6 +90,7 @@ class GeoTIFFWriter(ImageWriter):
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
+        """Separate the init keyword args."""
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
         init_kwargs, kwargs = super(GeoTIFFWriter, cls).separate_init_kwargs(
             kwargs)
@@ -101,7 +101,9 @@ class GeoTIFFWriter(ImageWriter):
         return init_kwargs, kwargs
 
     def save_image(self, img, filename=None, dtype=None, fill_value=None,
-                   compute=True, keep_palette=False, cmap=None, **kwargs):
+                   compute=True, keep_palette=False, cmap=None, tags=None,
+                   include_scale_offset=False,
+                   **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
         Note for faster output and reduced memory usage the ``rasterio``
@@ -145,6 +147,9 @@ class GeoTIFFWriter(ImageWriter):
                 the index range of the palette
                 (ex. `cmap.set_range(0, len(colors))`).
             tags (dict): Extra metadata to store in geotiff.
+            include_scale_offset (bool): Activate inclusion of scale and offset
+                factors in the geotiff to allow retrieving original values from
+                the pixel values. ``False`` by default.
 
         .. _geotiff: http://trac.osgeo.org/geotiff/
 
@@ -181,10 +186,11 @@ class GeoTIFFWriter(ImageWriter):
             cmap = create_colormap({'colors': img.palette})
             cmap.set_range(0, len(img.palette) - 1)
 
-        tags = kwargs.get('tags', {})
+        if tags is None:
+            tags = {}
         tags.update(self.tags)
         return img.save(filename, fformat='tif', fill_value=fill_value,
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
-                        tags=tags,
+                        tags=tags, include_scale_offset_tags=include_scale_offset,
                         **gdal_options)

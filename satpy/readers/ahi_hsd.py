@@ -39,11 +39,13 @@ import numpy as np
 import dask.array as da
 import xarray as xr
 import warnings
+import os
 
-from pyresample import geometry
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import get_geostationary_mask, np2str, get_earth_radius
+from satpy.readers.utils import unzip_file, get_geostationary_mask, \
+                                np2str, get_earth_radius
+from satpy.readers._geos_area import get_area_extent, get_area_definition
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
                      "6", "7", "8", "9", "10",
@@ -263,6 +265,14 @@ class AHIHSDFileHandler(BaseFileHandler):
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
 
+        self.is_zipped = False
+        self._unzipped = unzip_file(self.filename)
+        # Assume file is not zipped
+        if self._unzipped:
+            # But if it is, set the filename to point to unzipped temp file
+            self.is_zipped = True
+            self.filename = self._unzipped
+
         self.channels = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self.units = dict([(i, 'counts') for i in AHI_CHANNEL_NAMES])
 
@@ -270,7 +280,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         self._header = dict([(i, None) for i in AHI_CHANNEL_NAMES])
         self.lons = None
         self.lats = None
-        self.segment_number = filename_info['segment_number']
+        self.segment_number = filename_info['segment']
         self.total_segments = filename_info['total_segments']
 
         with open(self.filename) as fd:
@@ -297,6 +307,10 @@ class AHIHSDFileHandler(BaseFileHandler):
                 calib_mode, calib_mode_choices))
         self.calib_mode = calib_mode.upper()
 
+    def __del__(self):
+        if (self.is_zipped and os.path.exists(self.filename)):
+            os.remove(self.filename)
+
     @property
     def start_time(self):
         return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
@@ -316,45 +330,29 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def get_area_def(self, dsid):
         del dsid
-        cfac = np.uint32(self.proj_info['CFAC'])
-        lfac = np.uint32(self.proj_info['LFAC'])
-        coff = np.float32(self.proj_info['COFF'])
-        loff = np.float32(self.proj_info['LOFF'])
-        a = float(self.proj_info['earth_equatorial_radius'] * 1000)
-        h = float(self.proj_info['distance_from_earth_center'] * 1000 - a)
-        b = float(self.proj_info['earth_polar_radius'] * 1000)
-        lon_0 = float(self.proj_info['sub_lon'])
-        nlines = int(self.data_info['number_of_lines'])
-        ncols = int(self.data_info['number_of_columns'])
 
-        # count starts at 1
-        cols = 1 - 0.5
-        left_x = (cols - coff) * (2.**16 / cfac)
-        cols += ncols
-        right_x = (cols - coff) * (2.**16 / cfac)
+        pdict = {}
+        pdict['cfac'] = np.uint32(self.proj_info['CFAC'])
+        pdict['lfac'] = np.uint32(self.proj_info['LFAC'])
+        pdict['coff'] = np.float32(self.proj_info['COFF'])
+        pdict['loff'] = -np.float32(self.proj_info['LOFF']) + 1
+        pdict['a'] = float(self.proj_info['earth_equatorial_radius'] * 1000)
+        pdict['h'] = float(self.proj_info['distance_from_earth_center'] * 1000 - pdict['a'])
+        pdict['b'] = float(self.proj_info['earth_polar_radius'] * 1000)
+        pdict['ssp_lon'] = float(self.proj_info['sub_lon'])
+        pdict['nlines'] = int(self.data_info['number_of_lines'])
+        pdict['ncols'] = int(self.data_info['number_of_columns'])
+        pdict['scandir'] = 'N2S'
 
-        lines = (self.segment_number - 1) * nlines + 1 - 0.5
-        upper_y = -(lines - loff) * (2.**16 / lfac)
-        lines += nlines
-        lower_y = -(lines - loff) * (2.**16 / lfac)
-        area_extent = (np.deg2rad(left_x) * h, np.deg2rad(lower_y) * h,
-                       np.deg2rad(right_x) * h, np.deg2rad(upper_y) * h)
+        pdict['loff'] = pdict['loff'] + (self.segment_number * pdict['nlines'])
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
-                     'proj': 'geos',
-                     'units': 'm'}
+        aex = get_area_extent(pdict)
 
-        area = geometry.AreaDefinition(
-            self.observation_area,
-            "AHI {} area".format(self.observation_area),
-            'geosh8',
-            proj_dict,
-            ncols,
-            nlines,
-            area_extent)
+        pdict['a_name'] = self.observation_area
+        pdict['a_desc'] = "AHI {} area".format(self.observation_area)
+        pdict['p_id'] = 'geosh8'
+
+        area = get_area_definition(pdict, aex)
 
         self.area = area
         return area
