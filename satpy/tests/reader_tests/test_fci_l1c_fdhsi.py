@@ -38,17 +38,17 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 C_SPEED as c)
         xrda = xr.DataArray
         data = {}
-        data[meas + "/radiance_unit_conversion_coefficient"] = xrda(1)
-        data[chroot + "/central_wavelength_actual"] = xrda(10)
-        data[meas + "/radiance_to_bt_conversion_coefficient_a"] = xrda(1000)
-        data[meas + "/radiance_to_bt_conversion_coefficient_b"] = xrda(1)
-        data[meas + "/radiance_to_bt_conversion_constant_c1"] = xrda(2*h*c**2)
-        data[meas + "/radiance_to_bt_conversion_constant_c2"] = xrda(h*c/k)
+        data[meas + "/radiance_to_bt_conversion_coefficient_wavenumber"] = xrda(955)
+        data[meas + "/radiance_to_bt_conversion_coefficient_a"] = xrda(1)
+        data[meas + "/radiance_to_bt_conversion_coefficient_b"] = xrda(0.4)
+        data[meas + "/radiance_to_bt_conversion_constant_c1"] = xrda(1e11*2*h*c**2)
+        data[meas + "/radiance_to_bt_conversion_constant_c2"] = xrda(1e2*h*c/k)
         return data
 
     def _get_test_calib_for_channel_vis(self, chroot, meas):
         xrda = xr.DataArray
         data = {}
+        data["state/celestial/earth_sun_distance"] = xrda(149597870.7)
         data[meas + "/channel_effective_solar_irradiance"] = xrda(50)
         return data
 
@@ -173,8 +173,7 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
         from netCDF4 import default_fillvals
         v = xr.DataArray(default_fillvals["f4"])
         data = {}
-        data[meas + "/radiance_unit_conversion_coefficient"] = v
-        data[chroot + "/central_wavelength_actual"] = v
+        data[meas + "/radiance_to_bt_conversion_coefficient_wavenumber"] = v
         data[meas + "/radiance_to_bt_conversion_coefficient_a"] = v
         data[meas + "/radiance_to_bt_conversion_coefficient_b"] = v
         data[meas + "/radiance_to_bt_conversion_constant_c1"] = v
@@ -337,7 +336,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             self.assertEqual(res[ch].dtype, np.float64)
             self.assertEqual(res[ch].attrs["calibration"], "reflectance")
             self.assertEqual(res[ch].attrs["units"], "%")
-            numpy.testing.assert_array_equal(res[ch], 15 / 50 * 100)
+            numpy.testing.assert_array_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
 
     def test_load_bt(self):
         """Test loading with bt
@@ -366,7 +365,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             self.assertEqual(res[ch].attrs["units"], "K")
             numpy.testing.assert_array_almost_equal(
                     res[ch],
-                    181.917084)
+                    209.68274099)
 
     def test_load_composite(self):
         """Test that composites are loadable
