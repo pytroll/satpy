@@ -206,7 +206,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         file_key = ds_info.get('file_key', ds_id.name)
         data = self[file_key]
         data.attrs = self.get_metadata(data, ds_info)
-        fill_value = data.attrs.pop('_FillValue')
+        fill_value = data._FillValue
         data = data.squeeze()
 
         # preserve integer data types if possible
