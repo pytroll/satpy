@@ -206,9 +206,22 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         file_key = ds_info.get('file_key', ds_id.name)
         data = self[file_key]
         data.attrs = self.get_metadata(data, ds_info)
-        fill = data.attrs.pop('_FillValue')
+        fill_value = data.attrs.pop('_FillValue')
         data = data.squeeze()
-        data = data.where(data != fill)
+
+        # preserve integer data types if possible
+        if np.issubdtype(data.dtype, np.integer):
+            new_fill = fill_value
+        else:
+            new_fill = np.float32(np.nan)
+            data.attrs.pop('_FillValue', None)
+        good_mask = data != fill_value
+
+        scale_factor = data.attrs.get('scale_factor')
+        if scale_factor is not None:
+            data = data * scale_factor
+
+        data = data.where(good_mask, new_fill)
         data = self._rename_dims(data)
         if ds_id.name in ['assembled_lat_bounds', 'assembled_lon_bounds']:
             data = self.prepare_geo(data)
