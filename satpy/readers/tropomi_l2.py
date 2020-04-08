@@ -213,7 +213,10 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         if np.issubdtype(data.dtype, np.integer):
             new_fill = fill_value
         else:
-            new_fill = np.float32(np.nan)
+            if np.issubdtype(data.dtype, np.datetime64):
+                new_fill = np.datetime64('NaT')
+            else:
+                new_fill = np.float32(np.nan)
             data.attrs.pop('_FillValue', None)
         good_mask = data != fill_value
 
