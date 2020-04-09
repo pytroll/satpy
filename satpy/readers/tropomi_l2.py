@@ -221,8 +221,9 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         good_mask = data != fill_value
 
         scale_factor = data.attrs.get('scale_factor')
+        add_offset = data.attrs.get('add_offset')
         if scale_factor is not None:
-            data = data * scale_factor
+            data = data * scale_factor + add_offset
 
         data = data.where(good_mask, new_fill)
         data = self._rename_dims(data)
