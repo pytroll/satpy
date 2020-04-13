@@ -153,11 +153,12 @@ def create_grid_mapping(area):
     return area.area_id, grid_mapping
 
 
-def get_extra_ds(dataset):
+def get_extra_ds(dataset, extra):
     """Get the extra datasets associated to *dataset*."""
     ds_collection = {}
-    for ds in dataset.attrs.get('ancillary_variables', []):
-        ds_collection.update(get_extra_ds(ds))
+    if extra:
+        for ds in dataset.attrs.get('ancillary_variables', []):
+            ds_collection.update(get_extra_ds(ds))
     ds_collection[dataset.attrs['name']] = dataset
 
     return ds_collection
@@ -484,9 +485,12 @@ class CFWriter(Writer):
                           pretty=False, compression=None):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
-        if 'ancillary_variables' not in exclude_attrs:
-            for ds in datasets:
-                ds_collection.update(get_extra_ds(ds))
+        if 'ancillary_variables' in exclude_attrs:
+            extra = False
+        else:
+            extra = True
+        for i,ds in enumerate(datasets):
+            ds_collection.update(get_extra_ds(ds, extra))
 
         datas = {}
         start_times = []
