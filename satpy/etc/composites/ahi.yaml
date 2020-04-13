@@ -229,6 +229,12 @@ composites:
     - wavelength: 1.6
     standard_name: cloud_phase_distinction
 
+  colorized_ir_clouds:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: '10.4'
+    standard_name: colorized_ir_clouds
+
   water_vapors1:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -274,3 +280,40 @@ composites:
     compositor: !!python/name:satpy.composites.CloudCompositor
     prerequisites:
       - name: B14
+
+  true_color_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_ir
+    prerequisites:
+      - true_color
+      - night_ir_with_background
+
+  true_color_with_night_ir_hires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_ir_hires
+    prerequisites:
+      - true_color
+      - night_ir_with_background_hires
+
+  night_ir_alpha:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: night_ir_alpha
+    prerequisites:
+      - 3.85
+      - 10.4
+      - 12.35
+      - 10.4
+
+  night_ir_with_background:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - night_ir_alpha
+      - _night_background
+
+  night_ir_with_background_hires:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background_hires
+    prerequisites:
+      - night_ir_alpha
+      - _night_background_hires

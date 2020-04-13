@@ -134,6 +134,12 @@ composites:
     - C14
     standard_name: overview
 
+  colorized_ir_clouds:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: 'C13'
+    standard_name: colorized_ir_clouds
+
   airmass:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -236,3 +242,40 @@ composites:
       - name: cimss_green
       - name: C01
     standard_name: cimss_true_color
+
+  true_color_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_ir
+    prerequisites:
+      - true_color
+      - night_ir_with_background
+
+  true_color_with_night_ir_hires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_ir_hires
+    prerequisites:
+      - true_color
+      - night_ir_with_background_hires
+
+  night_ir_alpha:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: night_ir_alpha
+    prerequisites:
+      - 3.90
+      - 10.3
+      - 12.3
+      - 10.3
+
+  night_ir_with_background:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - night_ir_alpha
+      - _night_background
+
+  night_ir_with_background_hires:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background_hires
+    prerequisites:
+      - night_ir_alpha
+      - _night_background_hires
