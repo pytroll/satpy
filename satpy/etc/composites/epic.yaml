@@ -1,0 +1,11 @@
+---
+sensor_name: visir/epic
+
+composites:
+  true_color:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: 'Band680nm'
+    - name: 'Band551nm'
+    - name: 'Band443nm'
+    standard_name: true_color

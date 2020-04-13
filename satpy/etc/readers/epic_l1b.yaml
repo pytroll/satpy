@@ -1,0 +1,156 @@
+reader:
+  name: epic_l1b
+  description: EPIC L1B reader
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [epic]
+
+file_types:
+  epic_l1b_hdf5:
+    file_reader: !!python/name:satpy.readers.epic_l1b.EPICL1BReader
+    file_patterns: ["{sensor:4s}_{processing_level:2s}_{start_time:%Y%m%d%H%M%S}_{software_version:2s}.h5"]
+
+datasets:
+  longitude:
+    name: longitude
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    file_key: All_Data/{dataset_group}_All/Longitude
+    units: "degrees_east"
+    standard_name: longitude
+  latitude:
+    name: latitude
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    file_key: All_Data/{dataset_group}_All/Latitude
+    units: "degrees_north"
+    standard_name: latitude
+
+  Band317nm:
+    name: Band317nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  Band325nm:
+    name: Band325nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  Band340nm:
+    name: Band340nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  Band388nm:
+    name: Band388nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  Band443nm:
+    name: Band443nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  Band551nm:
+    name: Band551nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  Band680nm:
+    name: Band680nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  Band688nm:
+    name: Band688nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  Band764nm:
+    name: Band764nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
+
+  Band780nm:
+    name: Band780nm
+    resolution: 20000
+    file_type: epic_l1b_hdf5
+    coordinates: [longitude, latitude]
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: "1"
