@@ -489,7 +489,7 @@ class CFWriter(Writer):
             extra = False
         else:
             extra = True
-        for i,ds in enumerate(datasets):
+        for ds in datasets:
             ds_collection.update(get_extra_ds(ds, extra))
 
         datas = {}
