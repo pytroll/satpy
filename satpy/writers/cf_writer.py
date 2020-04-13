@@ -484,8 +484,9 @@ class CFWriter(Writer):
                           pretty=False, compression=None):
         """Collect and prepare datasets to be written."""
         ds_collection = {}
-        for ds in datasets:
-            ds_collection.update(get_extra_ds(ds))
+        if 'ancillary_variables' not in exclude_attrs:
+            for ds in datasets:
+                ds_collection.update(get_extra_ds(ds))
 
         datas = {}
         start_times = []
