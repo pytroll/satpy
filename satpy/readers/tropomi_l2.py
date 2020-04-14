@@ -224,9 +224,13 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
         data = data.where(good_mask, new_fill)
         data = self._rename_dims(data)
-        # drop x and y because the units are not meters
-        if all(coord in data.coords for coord in ['y', 'x']):
-            data = data.drop(['y', 'x'])
+
+        # drop coords whose units are not meters
+        drop_list = ['y', 'x', 'layer', 'vertices']
+        coords_exist = list(coord in data.coords for coord in drop_list)
+        if any(coords_exist):
+            data = data.drop(np.array(drop_list)[np.array(coords_exist)])
+
         if ds_id.name in ['assembled_lat_bounds', 'assembled_lon_bounds']:
             data = self.prepare_geo(data)
         return data
