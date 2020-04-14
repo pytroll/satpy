@@ -195,7 +195,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         # Convert to DataArray
         dask_dest = da.from_array(dest, chunks=CHUNK_SIZE)
         dest = xr.DataArray(dask_dest,
-                            dims=('y', 'x'),
+                            dims=('y_bounds', 'x_bounds'),
                             attrs=bounds_data.attrs
                             )
         return dest
