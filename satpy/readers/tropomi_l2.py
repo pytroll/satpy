@@ -213,10 +213,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         if np.issubdtype(data.dtype, np.integer):
             new_fill = fill_value
         else:
-            if np.issubdtype(data.dtype, np.datetime64):
-                new_fill = np.datetime64('NaT')
-            else:
-                new_fill = np.float32(np.nan)
+            new_fill = np.float32(np.nan)
             data.attrs.pop('_FillValue', None)
         good_mask = data != fill_value
 
@@ -227,6 +224,9 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
         data = data.where(good_mask, new_fill)
         data = self._rename_dims(data)
+        # drop x and y because the units are not meters
+        if all(coord in data.coords for coord in ['y', 'x']):
+            data = data.drop(['y', 'x'])
         if ds_id.name in ['assembled_lat_bounds', 'assembled_lon_bounds']:
             data = self.prepare_geo(data)
         return data
