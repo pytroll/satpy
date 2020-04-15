@@ -78,10 +78,10 @@ class Scene(MetadataObject):
         To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
         then the available readers will be searched for a Reader that can support the provided files. This can take
         a considerable amount of time so it is recommended that `reader` always be provided. Note without `filenames`
-        the Scene is created with no Readers available requiring Datasets to be added manually::
+        the Scene is created with no Readers available requiring DataArrays to be added manually::
 
             scn = Scene()
-            scn['my_dataset'] = Dataset(my_data_array, **my_info)
+            scn['my_dataset'] = xr.DataArray(my_data_array, **my_info)
 
         Args:
             filenames (iterable or dict): A sequence of files that will be used to load data from. A ``dict`` object
