@@ -10,26 +10,25 @@ file_types:
     file_patterns: ["{sensor:4s}_{processing_level:2s}_{start_time:%Y%m%d%H%M%S}_{software_version:2s}.h5"]
 
 datasets:
-  longitude:
-    name: longitude
+  Longitude:
+    name: Longitude
     resolution: 20000
     file_type: epic_l1b_hdf5
-    file_key: All_Data/{dataset_group}_All/Longitude
     units: "degrees_east"
     standard_name: longitude
-  latitude:
-    name: latitude
+  Latitude:
+    name: Latitude
     resolution: 20000
     file_type: epic_l1b_hdf5
-    file_key: All_Data/{dataset_group}_All/Latitude
     units: "degrees_north"
     standard_name: latitude
 
+  #SunAngleAzimuth
   Band317nm:
     name: Band317nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -42,7 +41,7 @@ datasets:
     name: Band325nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -55,7 +54,7 @@ datasets:
     name: Band340nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -68,7 +67,7 @@ datasets:
     name: Band388nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -81,7 +80,7 @@ datasets:
     name: Band443nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -94,7 +93,7 @@ datasets:
     name: Band551nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -107,7 +106,7 @@ datasets:
     name: Band680nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -120,7 +119,7 @@ datasets:
     name: Band688nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -133,7 +132,7 @@ datasets:
     name: Band764nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -146,7 +145,7 @@ datasets:
     name: Band780nm
     resolution: 20000
     file_type: epic_l1b_hdf5
-    coordinates: [longitude, latitude]
+    coordinates: [Longitude, Latitude]
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance

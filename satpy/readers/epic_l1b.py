@@ -26,18 +26,14 @@ import h5py
 import numpy as np
 import xarray as xr
 import dask.array as da
-import datetime as dt
+from datetime import datetime
 import logging
 
-from satpy.readers.hdf5_utils import HDF5FileHandler
+#from satpy.readers.hdf5_utils import HDF5FileHandler
+from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
 
 LOGGER = logging.getLogger(__name__)
-
-DSET_NAMES = {'Band317nm': 'Band'}
-
-GEO_NAMES = {'latitude': 'Latitude',
-             'longitude': 'Longitude'}
 
 REFLECTANCE_CALIBRATION_FACTORS_V02 = {'Band317nm': 1.216E-04,
                                        'Band325nm': 1.111E-04,
@@ -51,8 +47,7 @@ REFLECTANCE_CALIBRATION_FACTORS_V02 = {'Band317nm': 1.216E-04,
                                        'Band780nm': 1.435E-05}
 
 
-class EPICL1BReader(HDF5FileHandler):
-
+class EPICL1BReader(BaseFileHandler):
     """File handler for EPIC L1B HDF5 files."""
 
     def __init__(self, filename, filename_info, filetype_info, **kwargs):
@@ -71,46 +66,63 @@ class EPICL1BReader(HDF5FileHandler):
     def start_time(self):
         return self.finfo['start_time']
 
+    def get_metadata(self, fid, key):
+        info = getattr(self, 'attrs', {})
+        info.update({
+            "centroid_mean_latitude": fid['/'].attrs["centroid_mean_latitude"][0],
+            "centroid_mean_longitude": fid['/'].attrs["centroid_mean_longitude"][0]})
+        return info
+
     def get_dataset(self, key, info):
         """Load a dataset"""
         with h5py.File(self.filename, 'r') as fid:
             LOGGER.debug('Reading %s.', key.name)
-            if 'Band' in key.name:  # in DSET_NAMES:
-                m_data = read_dataset(fid, key)
+            if 'Band' in key.name:
+                m_data = self.read_dataset(fid, key)
+                m_data.attrs.update(self.get_metadata(fid, key))
             else:
-                m_data = read_geo(fid, key)
+                m_data = self.read_geo(fid, key)
         m_data.attrs.update(info)
         m_data.attrs['sensor'] = self.sensor
 
         return m_data
 
+    def mask_dataset(self, data, fid, key):
+        mask = xr.DataArray(da.from_array(fid["/" + key.name + '/Geolocation/Earth/Mask'][:],
+                                          chunks=CHUNK_SIZE),
+                            dims=['y', 'x']).astype(np.byte)
+        return xr.where(mask == 0, np.nan, data)
 
-def read_dataset(fid, key):
-    """Read dataset"""
-    dset = fid["/" + key.name + "/Image"]
-    dims = ['y', 'x']
-    data = xr.DataArray(da.from_array(dset.value, chunks=CHUNK_SIZE),
-                        name=key.name, dims=dims).astype(np.float32)
-    mask = xr.DataArray(da.from_array(fid["/" + key.name + "/Geolocation/Earth/Mask"].value,
-                                      chunks=CHUNK_SIZE),
-                        dims=dims).astype(np.byte)
-    data = xr.where(mask == 0, np.nan, data)
-    data = xr.where(data == 0, np.nan, data)
-    data *= REFLECTANCE_CALIBRATION_FACTORS_V02[key.name]
-    data *= 100.
+    def calibrate_dataset(self, data, fid, key):
+        data *= REFLECTANCE_CALIBRATION_FACTORS_V02[key.name]
+        # Want the data in percent
+        data *= 100.
+        return data
 
-    dset_attrs = dict(dset.attrs)
-    data.attrs.update(dset_attrs)
+    def read_dataset(self, fid, key):
+        """Read dataset"""
+        dset = fid["/" + key.name + "/Image"]
+        dims = ['y', 'x']
+        data = xr.DataArray(da.from_array(dset.value, chunks=CHUNK_SIZE),
+                            name=key.name, dims=dims).astype(np.float32)
+        data = self.mask_dataset(data, fid, key)
+        # Mask all data equal to 0, as this is space pixels
+        data = xr.where(data == 0, np.nan, data)
+        data = self.calibrate_dataset(data, fid, key)
+        dset_attrs = dict(dset.attrs)
+        data.attrs.update(dset_attrs)
 
-    return data
+        return data
 
+    def read_geo(self, fid, key):
+        """Read geolocation and related datasets."""
 
-def read_geo(fid, key):
-    """Read geolocation and related datasets."""
-    dsid = GEO_NAMES[key.name]
-    data = fid["/Band317nm/Geolocation/Earth/" + dsid].value
-    dtype = np.float32
-    data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
-                        name=key.name, dims=['y', 'x']).astype(dtype)
+        # The lat and lon values are equal for all channels
+        # Actually the this is hardlink in all bands so any
+        # would work.
+        data = fid['/Band317nm/Geolocation/Earth/' + key.name]
+        dtype = np.float32
+        data = xr.DataArray(da.from_array(data.value, chunks=CHUNK_SIZE),
+                            name=key.name, dims=['y', 'x']).astype(dtype)
 
-    return data
+        return data
