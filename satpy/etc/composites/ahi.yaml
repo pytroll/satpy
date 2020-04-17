@@ -28,6 +28,17 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
+  green_nocorr:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    # what happens if something requests more modifiers on top of this?
+    - wavelength: 0.51
+    - wavelength: 0.85
+    standard_name: toa_reflectance
+
   airmass:
     # PDF slides: https://www.eumetsat.int/website/home/News/ConferencesandEvents/DAT_2833302.html
     # Under session 2 by Akihiro Shimizu (JMA)
@@ -173,6 +184,24 @@ composites:
     - name: green
     - wavelength: 0.46
       modifiers: [sunz_corrected, rayleigh_corrected]
+    high_resolution_band: red
+    standard_name: true_color
+
+  natural_color_nocorr:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - wavelength: 1.63
+    - wavelength: 0.85
+    - wavelength: 0.635
+    high_resolution_band: blue
+    standard_name: natural_color
+
+  true_color_nocorr:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - wavelength: 0.65
+    - name: green_nocorr
+    - wavelength: 0.46
     high_resolution_band: red
     standard_name: true_color
 
