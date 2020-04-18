@@ -151,7 +151,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         metadata.update(ds_info)
         metadata.update({
             'platform_shortname': self.platform_shortname,
-            'sensor': self.sensor,
+            'sensor': self.sensor.lower(),
             'start_time': self.start_time,
             'end_time': self.end_time,
         })
