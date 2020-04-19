@@ -62,8 +62,13 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         """Get sensor."""
         res = self['/attr/sensor']
         if isinstance(res, np.ndarray):
-            return str(res.astype(str))
-        return res
+            return str(res.astype(str)).lower()
+        return res.lower()
+
+    @property
+    def sensor_names(self):
+        """Get sensor set."""
+        return {self.sensor}
 
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
@@ -151,7 +156,7 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         metadata.update(ds_info)
         metadata.update({
             'platform_shortname': self.platform_shortname,
-            'sensor': self.sensor.lower(),
+            'sensor': self.sensor,
             'start_time': self.start_time,
             'end_time': self.end_time,
         })
