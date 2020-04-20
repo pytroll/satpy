@@ -276,8 +276,6 @@ class Scene(MetadataObject):
 
         Args:
             dataset: A dataset whose area you wish to examine.
-        Returns:
-            diff: A numpy array of pixel sizes.
         """
         in_area = self[dataset].attrs.get('area')
         lons, lats = in_area.get_lonlats()
@@ -290,7 +288,12 @@ class Scene(MetadataObject):
         # Now compute the total difference, in degrees.
         diff = np.sqrt(lonoff*lonoff + latoff*latoff)
 
-        return diff
+        self['PixSize'] = self[dataset].copy()
+        self['PixSize'].attrs['units'] = 'Decimal degrees'
+        self['PixSize'].attrs['wavelength'] = None
+        self['PixSize'].attrs['calibration'] = None
+        self['PixSize'].attrs['standard_name'] = 'Pixel size'
+        self['PixSize'].values = diff
 
     def min_area(self, datasets=None):
         """Get lowest resolution area for the provided datasets.
