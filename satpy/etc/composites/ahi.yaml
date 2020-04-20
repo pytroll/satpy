@@ -179,10 +179,10 @@ composites:
   true_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
-    - wavelength: 0.65
+    - wavelength: B03
       modifiers: [sunz_corrected, rayleigh_corrected]
     - name: green
-    - wavelength: 0.46
+    - wavelength: B01
       modifiers: [sunz_corrected, rayleigh_corrected]
     high_resolution_band: red
     standard_name: true_color
@@ -190,18 +190,18 @@ composites:
   natural_color_nocorr:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
-    - wavelength: 1.63
-    - wavelength: 0.85
-    - wavelength: 0.635
+    - wavelength: B05
+    - wavelength: B04
+    - wavelength: B03
     high_resolution_band: blue
     standard_name: natural_color
 
   true_color_nocorr:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
-    - wavelength: 0.65
+    - wavelength: B03
     - name: green_nocorr
-    - wavelength: 0.46
+    - wavelength: B01
     high_resolution_band: red
     standard_name: true_color
 
@@ -328,10 +328,10 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     standard_name: night_ir_alpha
     prerequisites:
-      - 3.85
-      - 10.4
-      - 12.35
-      - 10.4
+      - B07
+      - B13
+      - B15
+      - B13
 
   night_ir_with_background:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
