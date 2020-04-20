@@ -316,6 +316,50 @@ class TestScene(unittest.TestCase):
                           DatasetID(name='1', modifiers=tuple()))
         self.assertEqual(len(list(scene.keys())), 2)
 
+    def test_get_pixsize_from_area(self):
+        """Test test_get_pixsize_from_area."""
+        from pyresample.geometry import AreaDefinition
+        from numpy import zeros, nan, allclose
+        from xarray import DataArray
+        from satpy import Scene
+        scene = Scene()
+        area_extent = (-50000., -50000., 50000.,
+                       50000.)
+        proj_dict = {'a': 6378169.0, 'b': 6356583.8, 'h': 35785831.0,
+                     'lon_0': 0.0, 'proj': 'geos', 'units': 'm'}
+        x_size = 5
+        y_size = 5
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj_dict,
+            x_size,
+            y_size,
+            area_extent,
+        )
+        scene["1"] = DataArray(zeros((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def})
+        scene.get_pixsize_from_area('1')   
+
+        # Compare the scene pixel sizes against default
+        out_pixs = zeros((5, 5))
+        out_pixs[0, :] = nan
+        out_pixs[1, :] = [nan, 0.25495191, 0.25494979, 0.25494992, nan]
+        out_pixs[2, :] = [nan, 0.25494916, 0.25494704, 0.25494717, nan]
+        out_pixs[3, :] = [nan, 0.2549499, 0.25494778, 0.25494791, nan]
+        out_pixs[4, :] = nan
+                                 
+        print("\n\n\n\n\n\n\n")
+        print(out_pixs)  
+        print("\n")
+        print(scene['PixSize'].values)  
+        print("\n\n\n\n\n\n\n")
+        self.assertTrue(allclose(out_pixs,
+                                 scene['PixSize'].values,
+                                 equal_nan=True))
+        
+
     def test_getitem_slices(self):
         """Test __getitem__ with slices."""
         from satpy import Scene
