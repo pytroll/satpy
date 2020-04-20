@@ -295,7 +295,7 @@ class Scene(MetadataObject):
         diff[:, -1] = np.nan
 
         self['PixSize'] = self[dataset].copy()
-        self['PixSize'].attrs['units'] = 'Decimal degrees'
+        self['PixSize'].attrs['units'] = 'degrees'
         self['PixSize'].attrs['wavelength'] = None
         self['PixSize'].attrs['calibration'] = None
         self['PixSize'].attrs['standard_name'] = 'Pixel size'
