@@ -190,18 +190,18 @@ composites:
   natural_color_nocorr:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
-    - wavelength: B05
-    - wavelength: B04
-    - wavelength: B03
+    - name: B05
+    - name: B04
+    - name: B03
     high_resolution_band: blue
     standard_name: natural_color
 
   true_color_nocorr:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
-    - wavelength: B03
+    - name: B03
     - name: green_nocorr
-    - wavelength: B01
+    - name: B01
     high_resolution_band: red
     standard_name: true_color
 
@@ -261,7 +261,7 @@ composites:
   colorized_ir_clouds:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
-      - name: '10.4'
+      - name: B13
     standard_name: colorized_ir_clouds
 
   water_vapors1:
@@ -328,10 +328,10 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     standard_name: night_ir_alpha
     prerequisites:
-      - B07
-      - B13
-      - B15
-      - B13
+      - name: B07
+      - name: B13
+      - name: B15
+      - name: B13
 
   night_ir_with_background:
     compositor: !!python/name:satpy.composites.BackgroundCompositor
