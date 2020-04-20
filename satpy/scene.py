@@ -271,6 +271,27 @@ class Scene(MetadataObject):
         """
         return self._compare_areas(datasets=datasets, compare_func=max)
 
+    def get_pixsize_from_area(self, dataset):
+        """Compute pixel size in degrees for each pixel in image.
+
+        Args:
+            dataset: A dataset whose area you wish to examine.
+        Returns:
+            diff: A numpy array of pixel sizes.
+        """
+        in_area = self[dataset].attrs.get('area')
+        lons, lats = in_area.get_lonlats()
+        # Compute the difference in lons and lats between neighbouring pixels.
+        # This does not account for differences in one direction or another, but
+        # is close enough for most purposes.
+        lonoff = lons - np.roll(lons, 1, axis=1)
+        latoff = lats - np.roll(lats, 1, axis=0)
+
+        # Now compute the total difference, in degrees.
+        diff = np.sqrt(lonoff*lonoff + latoff*latoff)
+
+        return diff
+
     def min_area(self, datasets=None):
         """Get lowest resolution area for the provided datasets.
 
