@@ -339,8 +339,8 @@ class TestScene(unittest.TestCase):
             area_extent,
         )
         scene["1"] = DataArray(zeros((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'area': area_def})
-        scene.get_pixsize_from_area('1')   
+                               attrs={'area': area_def})
+        scene.get_pixsize_from_area('1')
 
         # Compare the scene pixel sizes against default
         out_pixs = zeros((5, 5))
@@ -349,16 +349,10 @@ class TestScene(unittest.TestCase):
         out_pixs[2, :] = [nan, 0.25494916, 0.25494704, 0.25494717, nan]
         out_pixs[3, :] = [nan, 0.2549499, 0.25494778, 0.25494791, nan]
         out_pixs[4, :] = nan
-                                 
-        print("\n\n\n\n\n\n\n")
-        print(out_pixs)  
-        print("\n")
-        print(scene['PixSize'].values)  
-        print("\n\n\n\n\n\n\n")
+
         self.assertTrue(allclose(out_pixs,
                                  scene['PixSize'].values,
                                  equal_nan=True))
-        
 
     def test_getitem_slices(self):
         """Test __getitem__ with slices."""
