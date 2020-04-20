@@ -289,10 +289,10 @@ class Scene(MetadataObject):
         diff = np.sqrt(lonoff*lonoff + latoff*latoff)
 
         # First and last columns/rows are suspect
-        diff[0,:] = np.nan
-        diff[-1,:] = np.nan
-        diff[:,0] = np.nan
-        diff[:,-1] = np.nan
+        diff[0, :] = np.nan
+        diff[-1, :] = np.nan
+        diff[:, 0] = np.nan
+        diff[:, -1] = np.nan
 
         self['PixSize'] = self[dataset].copy()
         self['PixSize'].attrs['units'] = 'Decimal degrees'
