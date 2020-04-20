@@ -179,10 +179,10 @@ composites:
   true_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
-    - wavelength: B03
+    - name: B03
       modifiers: [sunz_corrected, rayleigh_corrected]
     - name: green
-    - wavelength: B01
+    - name: B01
       modifiers: [sunz_corrected, rayleigh_corrected]
     high_resolution_band: red
     standard_name: true_color
