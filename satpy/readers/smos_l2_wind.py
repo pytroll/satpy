@@ -84,16 +84,17 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         # Iterate over dataset contents
         for var_name, val in self.file_content.items():
             # Only evaluate variables
-            if isinstance(val, netCDF4.Variable):
-                if (var_name in handled_variables):
-                    logger.debug("Already handled, skipping: %s", var_name)
-                    continue
-                handled_variables.add(var_name)
-                new_info = {
-                    'name': var_name,
-                    'file_type': self.filetype_info['file_type'],
-                }
-                yield True, new_info
+            if not isinstance(val, netCDF4.Variable):
+                continue
+            if (var_name in handled_variables):
+                logger.debug("Already handled, skipping: %s", var_name)
+                continue
+            handled_variables.add(var_name)
+            new_info = {
+                'name': var_name,
+                'file_type': self.filetype_info['file_type'],
+            }
+            yield True, new_info
 
     def _mask_dataset(self, data):
         """Mask out fill values ( and remove the _FillValue from attributes)."""
