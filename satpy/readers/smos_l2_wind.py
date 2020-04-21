@@ -18,7 +18,10 @@
 
 """SMOS L2 wind Reader.
 
-Format documentation: SMOS_WIND_DS_PDD_20191107_signed.pdf
+Data can be found here after register:
+https://www.smosstorm.org/Data2/SMOS-NRT-wind-Products-access
+Format documentation at the same site after register:
+SMOS_WIND_DS_PDD_20191107_signed.pdf
 """
 
 import logging
@@ -102,15 +105,13 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
                 }
                 yield True, new_info
 
-    def get_dataset(self, ds_id, ds_info):
-        """Get dataset."""
-        data = self[ds_id.name]
-        data.attrs = self.get_metadata(data, ds_info)
-        # Remove dimension where size is 1, eg. time
-        data = data.squeeze()
-        # Remove if exists time as coordinate
-        if 'time' in data.coords:
-            data = data.drop_vars('time')
+    def _mask_dataset(self, data):
+        """Mask out fill values ( and remove the _FillValue from attributes)."""
+        fill = data.attrs.pop('_FillValue')
+        return data.where(data != fill)
+
+    def _rename_coords(self, data):
+        """Rename coords."""
         rename_dict = {}
         if 'lon' in data.dims:
             # Want lons range from -180 .. 180 ( not 0 .. 360)
@@ -119,37 +120,60 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         if 'lat' in data.dims:
             rename_dict['lat'] = 'y'
         # Rename the coordinates to x and y
-        data = data.rename(rename_dict)
-        # Reorganize the data to have it from -180 to 180
-        data = data.roll(x=720, roll_coords=True)
+        return data.rename(rename_dict)
 
-        # Mask out fill values ( and remove the _FillValue from attributes)
-        fill = data.attrs.pop('_FillValue')
-        data = data.where(data != fill)
+    def _remove_time_coordinate(self, data):
+        """Remove time coordinate."""
+        # Remove dimension where size is 1, eg. time
+        data = data.squeeze()
+        # Remove if exists time as coordinate
+        if 'time' in data.coords:
+            data = data.drop_vars('time')
         return data
 
-    def get_area_def(self, dsid):
-        """Define AreaDefintion."""
-        # flip_lat = np.flipud()
-        _lon = self['lon']
+    def get_dataset(self, ds_id, ds_info):
+        """Get dataset."""
+        data = self[ds_id.name]
+        data.attrs = self.get_metadata(data, ds_info)
+        data = self._remove_time_coordinate(data)
+        data = self._rename_coords(data)
+        # Reorganize the data to have it from -180 to 180
+        data = data.roll(x=720, roll_coords=True)
+        data = self._mask_dataset(data)
+        return data
+
+    def _adjust_lon_interval(self):
+        """Adjust lon interval"""
         # Fix coordinates values >= 180 to -180 to 0
+        _lon = self['lon']
         _lon = _lon.assign_coords(lon=(((_lon.lon + 180) % 360) - 180))
         # Fix the data
         _lon = _lon.where(_lon < 180., _lon - 360.)
         # Roll the data acordingly
-        _lon = _lon.roll(lon=720, roll_coords=True)
+        return _lon.roll(lon=720, roll_coords=True)
 
-        # Creating a meshgrid, not needed aqtually, but makes it easy to find extremes
-        latlon = np.meshgrid(_lon, self['lat'])
+    def _get_shape(self):
         width = self['lon/shape'][0]
         height = self['lat/shape'][0]
+        return width, height
+
+    def _create_area_extent(self, width, height):
+        """Create area extent"""
+        # Creating a meshgrid, not needed aqtually, but makes it easy to find extremes
+        _lon = self._adjust_lon_interval()
+        latlon = np.meshgrid(_lon, self['lat'])
 
         lower_left_x = latlon[0][height - 1][0]
         lower_left_y = latlon[1][height - 1][0]
 
         upper_right_y = latlon[1][0][width - 1]
         upper_right_x = latlon[0][0][width - 1]
-        area_extent = (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
+        return (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
+
+    def get_area_def(self, dsid):
+        """Define AreaDefintion."""
+        width, height = self._get_shape()
+        area_extent = self._create_area_extent(width, height)
         description = "SMOS L2 Wind Equirectangular Projection"
         area_id = 'smos_eqc'
         proj_id = 'equirectangular'
