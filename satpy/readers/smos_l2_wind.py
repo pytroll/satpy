@@ -56,16 +56,6 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         """Get platform."""
         return self['/attr/platform']
 
-    @property
-    def sensor(self):
-        """Get sensor."""
-        return self['/attr/instrument']
-
-    @property
-    def level(self):
-        """Get level."""
-        return self['/attr/processing_level']
-
     def get_metadata(self, data, ds_info):
         """Get metadata."""
         metadata = {}
@@ -74,10 +64,10 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         metadata.update({
             'platform_shortname': self.platform_shortname,
             'platform_name': self.platform_name,
-            'sensor': self.sensor,
+            'sensor': self['/attr/instrument'],
             'start_time': self.start_time,
             'end_time': self.end_time,
-            'level': self.level,
+            'level': self['/attr/processing_level'],
         })
 
         return metadata
