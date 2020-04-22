@@ -228,7 +228,7 @@ class TestNUCAPSReader(unittest.TestCase):
                            'SO2',
                            'SO2_MR',
                            ])
-        self.assertEqual(len(datasets), 18)
+        self.assertEqual(len(datasets), 19)
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
             self.assertEqual(v.ndim, 2)
