@@ -69,6 +69,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             ('Solar_Zenith', 'degrees', 'solar_zenith_angle'),
             ('Topography', 'meters', ''),
             ('Land_Fraction', '1', ''),
+            ('Effective_Pressure', 'mb', ''),
             ('Surface_Pressure', 'mb', ''),
             ('Skin_Temperature', 'Kelvin', 'surface_temperature'),
         ]:
@@ -188,6 +189,7 @@ class TestNUCAPSReader(unittest.TestCase):
         datasets = r.load(['Solar_Zenith',
                            'Topography',
                            'Land_Fraction',
+                           'Effective_Pressure',
                            'Surface_Pressure',
                            'Skin_Temperature',
                            'Quality_Flag',
@@ -372,6 +374,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         datasets = r.load(['Topography',
                            'Land_Fraction',
+                           'Effective_Pressure',
                            'Surface_Pressure',
                            'Skin_Temperature',
                            'Quality_Flag',
