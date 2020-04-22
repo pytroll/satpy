@@ -74,11 +74,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
 
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
-        logger.debug("Available_datasets begin...")
 
-        # This is where we dynamically add new datasets
-        # We will sift through all groups and variables, looking for data matching
-        # the geolocation bounds
         handled_variables = set()
 
         # Iterate over dataset contents
@@ -97,16 +93,21 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
             yield True, new_info
 
     def _mask_dataset(self, data):
-        """Mask out fill values ( and remove the _FillValue from attributes)."""
-        fill = data.attrs.pop('_FillValue')
+        """Mask out fill values."""
+        fill = data.attrs['_FillValue']
+        data.attrs['_FillValue'] = np.nan
         return data.where(data != fill)
+
+    def _adjust_lon_coord(self, data):
+        """Adjust lon coordinate to -180 .. 180 ( not 0 .. 360)"""
+        data = data.assign_coords(lon=(((data.lon + 180) % 360) - 180))
+        return data.where(data < 180., data - 360.)
 
     def _rename_coords(self, data):
         """Rename coords."""
         rename_dict = {}
         if 'lon' in data.dims:
-            # Want lons range from -180 .. 180 ( not 0 .. 360)
-            data = data.assign_coords(lon=(((data.lon + 180) % 360) - 180))
+            data = self._adjust_lon_coord(data)
             rename_dict['lon'] = 'x'
         if 'lat' in data.dims:
             rename_dict['lat'] = 'y'
@@ -122,36 +123,25 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
             data = data.drop_vars('time')
         return data
 
+    def _roll_dataset_lon_coord(self, data):
+        """Roll dataset along the lon coordinate"""
+        return data.roll(lon=720, roll_coords=True)
+
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
         data = self[ds_id.name]
         data.attrs = self.get_metadata(data, ds_info)
         data = self._remove_time_coordinate(data)
+        data = self._roll_dataset_lon_coord(data)
         data = self._rename_coords(data)
-        # Reorganize the data to have it from -180 to 180
-        data = data.roll(x=720, roll_coords=True)
         data = self._mask_dataset(data)
         return data
-
-    def _adjust_lon_interval(self):
-        """Adjust lon interval"""
-        # Fix coordinates values >= 180 to -180 to 0
-        _lon = self['lon']
-        _lon = _lon.assign_coords(lon=(((_lon.lon + 180) % 360) - 180))
-        # Fix the data
-        _lon = _lon.where(_lon < 180., _lon - 360.)
-        # Roll the data acordingly
-        return _lon.roll(lon=720, roll_coords=True)
-
-    def _get_shape(self):
-        width = self['lon/shape'][0]
-        height = self['lat/shape'][0]
-        return width, height
 
     def _create_area_extent(self, width, height):
         """Create area extent"""
         # Creating a meshgrid, not needed aqtually, but makes it easy to find extremes
-        _lon = self._adjust_lon_interval()
+        _lon = self._adjust_lon_coord(self['lon'])
+        _lon = self._roll_dataset_lon_coord(_lon)
         latlon = np.meshgrid(_lon, self['lat'])
 
         lower_left_x = latlon[0][height - 1][0]
@@ -163,7 +153,8 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
 
     def get_area_def(self, dsid):
         """Define AreaDefintion."""
-        width, height = self._get_shape()
+        width = self['lon/shape'][0]
+        height = self['lat/shape'][0]
         area_extent = self._create_area_extent(width, height)
         description = "SMOS L2 Wind Equirectangular Projection"
         area_id = 'smos_eqc'
