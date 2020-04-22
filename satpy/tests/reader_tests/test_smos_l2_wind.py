@@ -111,7 +111,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
                 'SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
             ])
             r.create_filehandlers(loadables)
-        ds = r.load(['wind_speed', 'wind_speed'])
+        ds = r.load(['wind_speed'])
         self.assertEqual(len(ds), 1)
         for d in ds.values():
             self.assertEqual(d.attrs['platform_shortname'], 'SM')
@@ -120,3 +120,28 @@ class TestSMOSL2WINDReader(unittest.TestCase):
             self.assertIsNotNone(d.attrs['area'])
             self.assertIn('y', d.dims)
             self.assertIn('x', d.dims)
+
+    def test_adjust_lon(self):
+        """Load adjust longitude dataset"""
+        from xarray import DataArray
+        from satpy.readers.smos_l2_wind import SMOSL2WINDFileHandler
+        smos_l2_wind_fh = SMOSL2WINDFileHandler('SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
+                                                {}, filetype_info={'file_type': 'smos_l2_wind'})
+        data = DataArray(np.arange(0., 360., 0.25), dims=('lon'))
+        adjusted = smos_l2_wind_fh._adjust_lon_coord(data)
+        expected = DataArray(np.concatenate((np.arange(0, 180., 0.25),
+                                             np.arange(-180.0, 0, 0.25))),
+                             dims=('lon'))
+        self.assertEqual(adjusted.data.tolist(), expected.data.tolist())
+
+    def test_roll_dataset(self):
+        """Load roll of dataset along the lon coordinate"""
+        from xarray import DataArray
+        from satpy.readers.smos_l2_wind import SMOSL2WINDFileHandler
+        smos_l2_wind_fh = SMOSL2WINDFileHandler('SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
+                                                {}, filetype_info={'file_type': 'smos_l2_wind'})
+        data = DataArray(np.arange(0., 360., 0.25), dims=('lon'))
+        data = smos_l2_wind_fh._adjust_lon_coord(data)
+        adjusted = smos_l2_wind_fh._roll_dataset_lon_coord(data)
+        expected = np.arange(-180., 180., 0.25)
+        self.assertEqual(adjusted.data.tolist(), expected.tolist())
