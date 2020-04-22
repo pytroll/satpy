@@ -189,7 +189,6 @@ class TestNUCAPSReader(unittest.TestCase):
         datasets = r.load(['Solar_Zenith',
                            'Topography',
                            'Land_Fraction',
-                           'Effective_Pressure',
                            'Surface_Pressure',
                            'Skin_Temperature',
                            'Quality_Flag',
@@ -210,6 +209,7 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(['Temperature',
+                           'Effective_Pressure',
                            'H2O',
                            'H2O_MR',
                            'O3',
@@ -374,7 +374,6 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         r.create_filehandlers(loadables)
         datasets = r.load(['Topography',
                            'Land_Fraction',
-                           'Effective_Pressure',
                            'Surface_Pressure',
                            'Skin_Temperature',
                            'Quality_Flag',
