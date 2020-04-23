@@ -69,7 +69,6 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
             ('Solar_Zenith', 'degrees', 'solar_zenith_angle'),
             ('Topography', 'meters', ''),
             ('Land_Fraction', '1', ''),
-            ('Effective_Pressure', 'mb', ''),
             ('Surface_Pressure', 'mb', ''),
             ('Skin_Temperature', 'Kelvin', 'surface_temperature'),
         ]:
@@ -82,6 +81,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 file_content[k + '/attr/standard_name'] = standard_name
         for k, units, standard_name in [
             ('Temperature', 'Kelvin', 'air_temperature'),
+            ('Effective_Pressure', 'mb', ''),
             ('H2O', '1', ''),
             ('H2O_MR', 'g/g', ''),
             ('O3', '1', ''),
