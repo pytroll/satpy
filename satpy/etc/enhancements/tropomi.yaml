@@ -11,7 +11,7 @@ enhancements:
             - {colors: ylgnbu, min_value: 0.0, max_value: 0.00005, reverse: true}
               # 50 to 90 10e-6 mol/m2
             - {colors: ylorrd, min_value: 0.00005, max_value: 0.00009}
-  
+
   no2_tropospheric_polluted:
     standard_name: no2_tropospheric_polluted
     operations:
