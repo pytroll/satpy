@@ -133,7 +133,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
         self.assertEqual(len(ds), 1)
         for d in ds.values():
             self.assertEqual(d.attrs['platform_shortname'], 'S5P')
-            self.assertEqual(d.attrs['sensor'], 'TROPOMI')
+            self.assertEqual(d.attrs['sensor'], 'tropomi')
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
             self.assertIn('y', d.dims)
