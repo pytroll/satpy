@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base classes and utilities for all readers configured by YAML files."""
-import glob
 import itertools
 import logging
 import os
@@ -29,6 +28,7 @@ from weakref import WeakValueDictionary
 import xarray as xr
 import yaml
 import numpy as np
+import fsspec.implementations.local
 
 try:
     from yaml import UnsafeLoader
@@ -179,16 +179,31 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         else:
             return True
 
-    def select_files_from_directory(self, directory=None):
+    def select_files_from_directory(
+            self, directory=None,
+            fs=fsspec.implementations.local.LocalFileSystem()):
         """Find files for this reader in *directory*.
 
         If directory is None or '', look in the current directory.
+
+        Searches the local file system by default.  Can search on a remote
+        filesystem by passing an instance of a suitable implementation of
+        ``fsspec.spec.AbstractFileSystem``.
+
+        Args:
+            directory (Optional[str]): Path to search.
+            fs (Optional[FileSystem]): fsspec FileSystem implementation to use.
+                                       Defaults to ``LocalFileSystem``.
+
+        Returns:
+            list of strings describing matching files
         """
         filenames = []
         if directory is None:
             directory = ''
         for pattern in self.file_patterns:
-            matching = glob.iglob(os.path.join(directory, globify(pattern)))
+            globified = globify(pattern)
+            matching = fs.glob(os.path.join(directory, globified))
             filenames.extend(matching)
         return filenames
 
