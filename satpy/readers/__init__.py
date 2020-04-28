@@ -23,6 +23,7 @@ import os
 from datetime import datetime, timedelta
 
 import yaml
+import fsspec.implementations.local
 
 try:
     from yaml import UnsafeLoader
@@ -578,8 +579,9 @@ def available_readers(as_dict=False):
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None, ppp_config_dir=None,
-                           filter_parameters=None, reader_kwargs=None):
-    """Find on-disk files matching the provided parameters.
+                           filter_parameters=None, reader_kwargs=None,
+                           fs=fsspec.implementations.local.LocalFileSystem()):
+    """Find files matching the provided parameters.
 
     Use `start_time` and/or `end_time` to limit found filenames by the times
     in the filenames (not the internal file metadata). Files are matched if
@@ -587,8 +589,17 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
 
     Searching is **NOT** recursive.
 
-    The returned dictionary can be passed directly to the `Scene` object
-    through the `filenames` keyword argument.
+    Files may be either on-disk or on a remote file system.  By default,
+    files are searched for locally.  Users can search on remote filesystems by
+    passing an instance of an implementation of
+    `fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class
+    implementing a ``glob`` method works).
+
+    If locating files on a local file system, the returned dictionary
+    can be passed directly to the `Scene` object through the `filenames`
+    keyword argument.  If it points to a remote file system, it is the
+    responsibility of the user to download the files first (directly
+    reading from cloud storage is not currently available in Satpy).
 
     The behaviour of time-based filtering depends on whether or not the filename
     contains information about the end time of the data or not:
@@ -611,6 +622,11 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                                   `reader_kwargs['filter_parameters']`.
         reader_kwargs (dict): Keyword arguments to pass to specific reader
                               instances to further configure file searching.
+        fs (FileSystem): Optional, instance of implementation of
+                         fsspec.spec.AbstractFileSystem (strictly speaking,
+                         any object of a class implementing ``.glob`` is
+                         enough).  Defaults to the fsspec ``LocalFileSystem``
+                         instance.
 
     Returns: Dictionary mapping reader name string to list of filenames
 
@@ -643,7 +659,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         elif sensor is not None:
             # sensor was specified and a reader supports it
             sensor_supported = True
-        loadables = reader_instance.select_files_from_directory(base_dir)
+        loadables = reader_instance.select_files_from_directory(base_dir, fs)
         if loadables:
             loadables = list(
                 reader_instance.filter_selected_filenames(loadables))
