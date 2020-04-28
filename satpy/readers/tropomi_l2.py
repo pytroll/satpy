@@ -227,9 +227,9 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
         # drop coords whose units are not meters
         drop_list = ['y', 'x', 'layer', 'vertices']
-        coords_exist = list(coord in data.coords for coord in drop_list)
-        if any(coords_exist):
-            data = data.drop(np.array(drop_list)[np.array(coords_exist)])
+        coords_exist = [coord for coord in drop_list if coord in data.coords]
+        if coords_exist:
+            data = data.drop_vars(coords_exist)
 
         if ds_id.name in ['assembled_lat_bounds', 'assembled_lon_bounds']:
             data = self.prepare_geo(data)
