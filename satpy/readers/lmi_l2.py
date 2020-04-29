@@ -56,7 +56,7 @@ class LMIL2FileHandler(NetCDF4FileHandler):
         # update previously configured datasets
         logger.debug("Starting previously configured variables loop...")
         for is_avail, ds_info in (configured_datasets or []):
-            if (ds_info['standard_name'] == 'latitude'):
+            if (ds_info['name'] == 'LAT'):
                 lat_shape = self[ds_info['name']+'/shape']
 
             # some other file handler knows how to load this
