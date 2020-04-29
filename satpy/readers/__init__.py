@@ -23,7 +23,6 @@ import os
 from datetime import datetime, timedelta
 
 import yaml
-import fsspec.implementations.local
 
 try:
     from yaml import UnsafeLoader
@@ -580,7 +579,7 @@ def available_readers(as_dict=False):
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None, ppp_config_dir=None,
                            filter_parameters=None, reader_kwargs=None,
-                           fs=fsspec.implementations.local.LocalFileSystem()):
+                           fs=None):
     """Find files matching the provided parameters.
 
     Use `start_time` and/or `end_time` to limit found filenames by the times
@@ -625,8 +624,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         fs (FileSystem): Optional, instance of implementation of
                          fsspec.spec.AbstractFileSystem (strictly speaking,
                          any object of a class implementing ``.glob`` is
-                         enough).  Defaults to the fsspec ``LocalFileSystem``
-                         instance.
+                         enough).  Defaults to searching the local filesystem.
 
     Returns: Dictionary mapping reader name string to list of filenames
 
