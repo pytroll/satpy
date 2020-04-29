@@ -607,6 +607,16 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         is used and has to fall between (inclusive) the requested start and end times
       - otherwise, the timespan of the filename has to overlap the requested timespan
 
+    Example usage for querying a s3 filesystem using the s3fs module:
+
+    >>> import s3fs, satpy.readers, datetime
+    >>> satpy.readers.find_files_and_readers(
+    ...     base_dir="s3://noaa-goes16/ABI-L1b-RadF/2019/321/14/",
+    ...     fs=s3fs.S3FileSystem(anon=True),
+    ...     reader="abi_l1b",
+    ...     start_time=datetime.datetime(2019, 11, 17, 14, 40))
+    {'abi_l1b': [...]}
+
     Args:
         start_time (datetime): Limit used files by starting time.
         end_time (datetime): Limit used files by ending time.
