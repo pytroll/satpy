@@ -531,7 +531,7 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # 'viirs' so we just pass it and hope that this works
         self.assertRaises(ValueError, find_files_and_readers, sensor='viirs')
         self.assertEqual(
-                find_files_and_readers(sensor='viirs', notfound_ok=True),
+                find_files_and_readers(sensor='viirs', missing_ok=True),
                 {})
 
     def test_reader_load_failed(self):
