@@ -28,7 +28,6 @@ from weakref import WeakValueDictionary
 import xarray as xr
 import yaml
 import numpy as np
-import fsspec.implementations.local
 
 try:
     from yaml import UnsafeLoader
@@ -180,8 +179,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             return True
 
     def select_files_from_directory(
-            self, directory=None,
-            fs=fsspec.implementations.local.LocalFileSystem()):
+            self, directory=None, fs=None):
         """Find files for this reader in *directory*.
 
         If directory is None or '', look in the current directory.
@@ -193,7 +191,8 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         Args:
             directory (Optional[str]): Path to search.
             fs (Optional[FileSystem]): fsspec FileSystem implementation to use.
-                                       Defaults to ``LocalFileSystem``.
+                                       Defaults to None, using local file
+                                       system.
 
         Returns:
             list of strings describing matching files
@@ -203,7 +202,10 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             directory = ''
         for pattern in self.file_patterns:
             globified = globify(pattern)
-            matching = fs.glob(os.path.join(directory, globified))
+            if fs is None:
+                matching = glob.iglob(os.path.join(directory, globified))
+            else:
+                matching = fs.glob(os.path.join(directory, globified))
             filenames.extend(matching)
         return filenames
 
