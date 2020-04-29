@@ -579,7 +579,7 @@ def available_readers(as_dict=False):
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None, ppp_config_dir=None,
                            filter_parameters=None, reader_kwargs=None,
-                           notfound_ok=False):
+                           missing_ok=False):
     """Find on-disk files matching the provided parameters.
 
     Use `start_time` and/or `end_time` to limit found filenames by the times
@@ -612,7 +612,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                                   `reader_kwargs['filter_parameters']`.
         reader_kwargs (dict): Keyword arguments to pass to specific reader
                               instances to further configure file searching.
-        notfound_ok (bool): If False (default), raise ValueError if no files
+        missing_ok (bool): If False (default), raise ValueError if no files
                             are found.  If True, return empty dictionary if no
                             files are found.
 
@@ -657,7 +657,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     if sensor and not sensor_supported:
         raise ValueError("Sensor '{}' not supported by any readers".format(sensor))
 
-    if not (reader_files or notfound_ok):
+    if not (reader_files or missing_ok):
         raise ValueError("No supported files found")
     return reader_files
 
