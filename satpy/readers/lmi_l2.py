@@ -115,6 +115,10 @@ class LMIL2FileHandler(NetCDF4FileHandler):
         """Get metadata."""
         metadata = {}
         metadata.update(data.attrs)
+        units = data.attrs['units']
+        # fix the wrong unit "uJ/m*m/ster"
+        if not units.isascii():
+            metadata['units'] = b'\xc2\xb5J/m*m/ster'
         metadata.update(ds_info)
         metadata.update({
             'platform_shortname': self.filename_info['platform_id'],
