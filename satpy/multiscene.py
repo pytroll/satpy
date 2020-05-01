@@ -59,8 +59,11 @@ def timeseries(datasets):
     """Expand dataset with and concatenate by time dimension."""
     expanded_ds = []
     for ds in datasets:
-        tmp = ds.expand_dims("time")
-        tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
+        if 'time' not in ds.dims:
+            tmp = ds.expand_dims("time")
+            tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
+        else:
+            tmp = ds
         expanded_ds.append(tmp)
 
     res = xr.concat(expanded_ds, dim="time")
