@@ -23,6 +23,7 @@ The files read by this reader are described in:
 
 """
 
+import numpy as np
 from satpy.readers.netcdf_utils import NetCDF4FileHandler, netCDF4
 import logging
 
@@ -51,12 +52,13 @@ class LMIL2FileHandler(NetCDF4FileHandler):
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
         logger.debug("Available_datasets begin...")
+
         handled_variables = set()
 
         # update previously configured datasets
         logger.debug("Starting previously configured variables loop...")
         for is_avail, ds_info in (configured_datasets or []):
-            if (ds_info['name'] == 'LAT'):
+            if ds_info['name'] == 'LAT':
                 lat_shape = self[ds_info['name']+'/shape']
 
             # some other file handler knows how to load this
@@ -103,6 +105,7 @@ class LMIL2FileHandler(NetCDF4FileHandler):
                     new_info = {
                         'name': var_name,
                         'file_key': var_name,
+                        'coordinates': ['LON', 'LAT'],
                         'file_type': self.filetype_info['file_type'],
                         'resolution': self.filename_info['resolution'].lower()
                     }
@@ -117,8 +120,6 @@ class LMIL2FileHandler(NetCDF4FileHandler):
             'platform_shortname': self.filename_info['platform_id'],
             'sensor': self.filename_info['instrument'].lower(),
             'start_time': self.start_time,
-            'standard_name': data.attrs['standard_name']
-                                 .replace(" ", "_").lower(),
             'end_time': self.end_time,
         })
 
@@ -130,6 +131,13 @@ class LMIL2FileHandler(NetCDF4FileHandler):
         file_key = ds_info.get('file_key', ds_id.name)
         data = self[file_key]
         data.attrs = self.get_metadata(data, ds_info)
+        # rename coords
+        data = data.rename({'x': 'y'})
+        # assign 'y' coords which is useful for multiscene,
+        # although the units isn't meters
+        len_data = data.coords['y'].shape[0]
+        data.coords['y'] = np.arange(len_data)
+        # check fill value
         fill = data.attrs.pop('FillValue')
         data = data.where(data != fill)
         # remove attributes that could be confusing later
