@@ -1679,3 +1679,59 @@ class MaskingCompositor(GenericCompositor):
         data.append(alpha)
         res = super(MaskingCompositor, self).__call__(data, **kwargs)
         return res
+
+
+class MaskCompositor(GenericCompositor):
+    """Modifier that applies masking to the given datasets."""
+
+    def __init__(self, name, conditions=None, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            conditions (list): list of three items determining the masking
+                               settings.
+
+        The each condition in *conditions* consists of of three items:
+        - operator: the Numpy-equivalent method name for <, >, <=, ==, >= or >
+        - threshold / value of the *mask* applied with the operator
+        - transparency from interval [0 ... 100] used for the
+          operator/threshold, where 100 is fully transparent
+        """
+        self.conditions = conditions or []
+        super(MaskCompositor, self).__init__(name, **kwargs)
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        data, mask_in = projectables
+        mask_data = mask_in.data
+
+        alpha_attrs = data.attrs.copy()
+        if 'bands' in data.dims:
+            data = [data.sel(bands=b) for b in data['bands'] if b != 'A']
+        else:
+            data = [data]
+
+        # Create alpha band, default to opaque
+        alpha = da.ones((data[0].sizes['y'],
+                         data[0].sizes['x']),
+                        chunks=data[0].chunks)
+
+        for cond in self.conditions:
+            oper, key, val = cond
+            try:
+                func = getattr(np, oper)
+            except AttributeError:
+                LOG.error("Operator '%s' not found.", oper)
+            mask = func(mask_data, key)
+            alpha_val = 1. - val / 100.
+            alpha = da.where(mask, alpha_val, alpha)
+
+        alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
+                             dims=data[0].dims, coords=data[0].coords)
+        data.append(alpha)
+        res = super(MaskCompositor, self).__call__(data, **kwargs)
+
+        LOG.debug("Masking applied.")
+
+        return res
