@@ -26,6 +26,8 @@ import xarray as xr
 import dask.array as da
 import unittest
 import numpy.testing
+import pytest
+import logging
 from unittest import mock
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
@@ -74,6 +76,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     "scale_factor": 5,
                     "add_offset": 10,
                     "units": "mW.m-2.sr-1.(cm-1)-1",
+                    "ancillary_variables": "pixel_quality",
                     }
                 )
         data[ch_path] = d
@@ -347,7 +350,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             self.assertEqual(res[ch].attrs["units"], "%")
             numpy.testing.assert_array_equal(res[ch], 15 / 50 * 100)
 
-    def test_load_bt(self):
+    def test_load_bt(self, caplog):
         """Test loading with bt
         """
         from satpy import DatasetID
@@ -362,9 +365,11 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader = load_reader(self.reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
-        res = reader.load(
-                [DatasetID(name=name, calibration="brightness_temperature") for
-                    name in self._chans["terran"]])
+        with caplog.at_level(logging.WARNING):
+            res = reader.load(
+                    [DatasetID(name=name, calibration="brightness_temperature") for
+                        name in self._chans["terran"]])
+            assert caplog.text == ""
         self.assertEqual(8, len(res))
         for ch in self._chans["terran"]:
             self.assertEqual(res[ch].shape, (200, 11136))
