@@ -66,7 +66,6 @@ from __future__ import (division, absolute_import, print_function,
 
 import logging
 import numpy as np
-import dask.array as da
 import xarray as xr
 
 from pyresample import geometry
@@ -330,13 +329,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                         v.attrs.get("long_name",
                                     "at least one necessary coefficient"),
                         root))
-                return xr.DataArray(
-                        da.full(shape=radiance.shape,
-                                chunks=radiance.chunks,
-                                fill_value=np.nan),
-                        dims=radiance.dims,
-                        coords=radiance.coords,
-                        attrs=radiance.attrs)
+                return radiance*np.nan
 
         nom = c2 * vc
         denom = a * np.log(1 + (c1 * vc**3) / radiance)
@@ -356,13 +349,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
-            return xr.DataArray(
-                da.full(shape=radiance.shape,
-                        chunks=radiance.chunks,
-                        fill_value=np.nan),
-                dims=radiance.dims,
-                coords=radiance.coords,
-                attrs=radiance.attrs)
+            return radiance*np.nan
 
         sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
 
