@@ -268,12 +268,13 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                 data = self._ir_calibrate(data, measured, root)
             elif key.calibration == 'reflectance':
                 data = self._vis_calibrate(data, measured)
-            else:
-                logger.warning(
-                    "Received unknown calibration key.  Expected "
-                    "'brightness_temperature' or 'reflectance', got "
-                    + key.calibration + ". Returning radiances.")
+            elif key.calibration == 'radiance':
                 data.attrs["units"] = original_radiance_units
+            else:
+                logger.error(
+                    "Received unknown calibration key.  Expected "
+                    "'brightness_temperature', 'reflectance' or 'radiance, got "
+                    + key.calibration + ".")
 
         return data
 
