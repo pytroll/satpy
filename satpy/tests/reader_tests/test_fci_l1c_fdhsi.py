@@ -175,6 +175,13 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
         return data
 
+    def _get_global_attributes(self):
+        data = {}
+        attrs = {"platform": "MTI1"}
+        for (k, v) in attrs.items():
+            data["/attr/" + k] = v
+        return data
+
     def get_test_content(self, filename, filename_info, filetype_info):
         """Get the content of the test data."""
         # mock global attributes
@@ -188,6 +195,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         D = {}
         D.update(self._get_test_content_all_channels())
         D.update(self._get_test_content_areadef())
+        D.update(self._get_global_attributes())
         return D
 
 
@@ -408,6 +416,26 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         (comps, mods) = cl.load_compositors(["fci"])
         self.assertGreater(len(comps["fci"]), 0)
         self.assertGreater(len(mods["fci"]), 0)
+
+    def test_platform_name(self):
+        """Test that platform name is exposed.
+
+        Test that the FCI reader exposes the platform name.  Corresponds
+        to GH issue 1014.
+        """
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(self.reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+        res = reader.load(["ir_123"])
+        self.assertEqual(res["ir_123"].attrs["platform_name"], "MTG-I1")
 
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
