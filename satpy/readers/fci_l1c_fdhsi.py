@@ -307,8 +307,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def _vis_calibrate(self, radiance, measured):
         """VIS channel calibration."""
-        cesilab = measured + "/channel_effective_solar_irradiance"
-        cesi = self[cesilab]
+        cesi = self[measured + "/channel_effective_solar_irradiance"]
 
         if cesi == cesi.attrs.get(
                 "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
