@@ -199,9 +199,11 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     def select_files_from_pathnames(self, filenames):
         """Select the files from *filenames* this reader can handle."""
         selected_filenames = []
+        filenames = set(filenames)  # make a copy of the inputs
 
         for pattern in self.file_patterns:
             matching = match_filenames(filenames, pattern)
+            filenames -= set(matching)
             for fname in matching:
                 if fname not in selected_filenames:
                     selected_filenames.append(fname)
@@ -398,11 +400,14 @@ class FileYAMLReader(AbstractYAMLReader):
     @staticmethod
     def filename_items_for_filetype(filenames, filetype_info):
         """Iterate over the filenames matching *filetype_info*."""
+        if not isinstance(filenames, set):
+            # we perform set operations later on to improve performance
+            filenames = set(filenames)
         matched_files = []
         for pattern in filetype_info['file_patterns']:
-            for filename in match_filenames(filenames, pattern):
-                if filename in matched_files:
-                    continue
+            matches = match_filenames(filenames, pattern)
+            filenames -= matches
+            for filename in matches:
                 try:
                     filename_info = parse(
                         pattern, get_filebase(filename, pattern))
@@ -500,6 +505,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def filter_selected_filenames(self, filenames):
         """Filter provided files based on metadata in the filename."""
+        if not isinstance(filenames, set):
+            # we perform set operations later on to improve performance
+            filenames = set(filenames)
         for _, filetype_info in self.sorted_filetype_items():
             filename_iter = self.filename_items_for_filetype(filenames,
                                                              filetype_info)
@@ -511,6 +519,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def new_filehandlers_for_filetype(self, filetype_info, filenames, fh_kwargs=None):
         """Create filehandlers for a given filetype."""
+        if not isinstance(filenames, set):
+            # we perform set operations later on to improve performance
+            filenames = set(filenames)
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
         if self.filter_filenames:
