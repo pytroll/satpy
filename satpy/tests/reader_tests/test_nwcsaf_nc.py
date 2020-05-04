@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2018 Satpy developers
+# Copyright (c) 2018, 2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -42,6 +42,36 @@ class TestNcNWCSAF(unittest.TestCase):
         xr_.return_value = mock.Mock(attrs={})
         unzip.return_value = ''
         self.scn = NcNWCSAF('filename', {}, {})
+
+    def test_sensor_name(self):
+        """Test that the correct sensor name is being set"""
+
+        self.scn.set_platform_and_sensor(platform_name='Metop-B')
+        self.assertTrue(self.scn.sensor, set(['avhrr-3']))
+        self.assertTrue(self.scn.sensor_names, set(['avhrr-3']))
+
+        self.scn.set_platform_and_sensor(platform_name='NOAA-20')
+        self.assertTrue(self.scn.sensor, set(['viirs']))
+        self.assertTrue(self.scn.sensor_names, set(['viirs']))
+
+        self.scn.set_platform_and_sensor(platform_name='Himawari-8')
+        self.assertTrue(self.scn.sensor, set(['ahi']))
+        self.assertTrue(self.scn.sensor_names, set(['ahi']))
+
+        self.scn.set_platform_and_sensor(sat_id='GOES16')
+        self.assertTrue(self.scn.sensor, set(['abi']))
+        self.assertTrue(self.scn.sensor_names, set(['abi']))
+
+        self.scn.set_platform_and_sensor(platform_name='GOES-17')
+        self.assertTrue(self.scn.sensor, set(['abi']))
+        self.assertTrue(self.scn.sensor_names, set(['abi']))
+
+        self.scn.set_platform_and_sensor(sat_id='MSG4')
+        self.assertTrue(self.scn.sensor, set(['seviri']))
+
+        self.scn.set_platform_and_sensor(platform_name='Meteosat-11')
+        self.assertTrue(self.scn.sensor, set(['seviri']))
+        self.assertTrue(self.scn.sensor_names, set(['seviri']))
 
     def test_get_projection(self):
         """Test generation of the navigation info."""
@@ -119,3 +149,15 @@ class TestNcNWCSAF(unittest.TestCase):
         np.testing.assert_allclose(var, [np.nan, 5.5, np.nan])
         self.assertNotIn('scale_factor', var.attrs)
         self.assertNotIn('add_offset', var.attrs)
+
+        # CTTH NWCSAF/Geo v2016/v2018:
+        attrs = {'scale_factor': np.array(1.),
+                 'add_offset': np.array(-2000.),
+                 'valid_range': (0., 27000.)}
+        var = xr.DataArray([1, 2, 3], attrs=attrs)
+        var = self.scn.scale_dataset('dummy', var, 'dummy')
+        np.testing.assert_allclose(var, [-1999., -1998., -1997.])
+        self.assertNotIn('scale_factor', var.attrs)
+        self.assertNotIn('add_offset', var.attrs)
+        self.assertEqual(var.attrs['valid_range'][0], -2000.)
+        self.assertEqual(var.attrs['valid_range'][1], 25000.)

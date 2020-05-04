@@ -17,13 +17,15 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for compositors in composites/__init__.py."""
 
-import xarray as xr
-import dask.array as da
-import dask
-import numpy as np
+import unittest
 from datetime import datetime
 from unittest import mock
-import unittest
+
+import dask
+import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
 
 
 class TestMatchDataArrays(unittest.TestCase):
@@ -233,6 +235,9 @@ class TestSunZenithCorrector(unittest.TestCase):
         area = AreaDefinition('test', 'test', 'test',
                               {'proj': 'merc'}, 2, 2,
                               (-2000, -2000, 2000, 2000))
+        bigger_area = AreaDefinition('test', 'test', 'test',
+                                     {'proj': 'merc'}, 4, 4,
+                                     (-2000, -2000, 2000, 2000))
         attrs = {'area': area,
                  'start_time': datetime(2018, 1, 1, 18),
                  'modifiers': tuple(),
@@ -241,6 +246,11 @@ class TestSunZenithCorrector(unittest.TestCase):
                            attrs=attrs, dims=('y', 'x'),
                            coords={'y': [0, 1], 'x': [0, 1]})
         self.ds1 = ds1
+        ds2 = xr.DataArray(da.ones((4, 4), chunks=2, dtype=np.float64),
+                           attrs=attrs, dims=('y', 'x'),
+                           coords={'y': [0, 0.5, 1, 1.5], 'x': [0, 0.5, 1, 1.5]})
+        ds2.attrs['area'] = bigger_area
+        self.ds2 = ds2
         self.sza = xr.DataArray(
             np.rad2deg(np.arccos(da.from_array([[0.0149581333, 0.0146694376], [0.0150812684, 0.0147925727]],
                                                chunks=2))),
@@ -283,6 +293,13 @@ class TestSunZenithCorrector(unittest.TestCase):
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         res = comp((self.ds1, self.sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
+
+    def test_imcompatible_areas(self):
+        """Test sunz correction on incompatible areas."""
+        from satpy.composites import SunZenithCorrector, IncompatibleAreas
+        comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
+        with pytest.raises(IncompatibleAreas):
+            comp((self.ds2, self.sza), test_attr='test')
 
 
 class TestDifferenceCompositor(unittest.TestCase):
@@ -542,14 +559,17 @@ class TestNIRReflectance(unittest.TestCase):
         get_lonlats = mock.MagicMock()
         lons, lats = 1, 2
         get_lonlats.return_value = (lons, lats)
-        nir.attrs['area'] = mock.MagicMock(get_lonlats=get_lonlats)
+        area = mock.MagicMock(get_lonlats=get_lonlats)
+        nir.attrs['area'] = area
         start_time = 1
         nir.attrs['start_time'] = start_time
         ir_arr = 100 * np.random.random((2, 2))
         ir_ = xr.DataArray(da.from_array(ir_arr), dims=['y', 'x'])
+        ir_.attrs['area'] = area
         sunz_arr = 100 * np.random.random((2, 2))
         sunz = xr.DataArray(da.from_array(sunz_arr), dims=['y', 'x'])
         sunz.attrs['standard_name'] = 'solar_zenith_angle'
+        sunz.attrs['area'] = area
         sunz2 = da.from_array(sunz_arr)
         sza.return_value = sunz2
 
@@ -1247,3 +1267,41 @@ class TestMaskingCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
         # The compositor should drop the original alpha band
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+
+class TestNaturalEnhCompositor(unittest.TestCase):
+    """Test NaturalEnh compositor."""
+
+    def setUp(self):
+        """Create channel data and set channel weights."""
+        self.ch1 = xr.DataArray([1.0])
+        self.ch2 = xr.DataArray([2.0])
+        self.ch3 = xr.DataArray([3.0])
+        self.ch16_w = 2.0
+        self.ch08_w = 3.0
+        self.ch06_w = 4.0
+
+    @mock.patch('satpy.composites.NaturalEnh.__repr__')
+    @mock.patch('satpy.composites.NaturalEnh.match_data_arrays')
+    def test_natural_enh(self, match_data_arrays, repr_):
+        """Test NaturalEnh compositor."""
+        from satpy.composites import NaturalEnh
+        repr_.return_value = ''
+        projectables = [self.ch1, self.ch2, self.ch3]
+
+        def temp_func(*args):
+            return args[0]
+        match_data_arrays.side_effect = temp_func
+        comp = NaturalEnh("foo", ch16_w=self.ch16_w, ch08_w=self.ch08_w,
+                          ch06_w=self.ch06_w)
+        self.assertEqual(comp.ch16_w, self.ch16_w)
+        self.assertEqual(comp.ch08_w, self.ch08_w)
+        self.assertEqual(comp.ch06_w, self.ch06_w)
+        res = comp(projectables)
+        assert mock.call(projectables) in match_data_arrays.mock_calls
+        correct = (self.ch16_w * projectables[0] +
+                   self.ch08_w * projectables[1] +
+                   self.ch06_w * projectables[2])
+        self.assertEqual(res[0], correct)
+        self.assertEqual(res[1], projectables[1])
+        self.assertEqual(res[2], projectables[2])

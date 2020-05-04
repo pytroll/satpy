@@ -132,6 +132,7 @@ class TestGEOSProjectionUtil(unittest.TestCase):
 
     def test_get_area_definition(self):
         """Test the retrieval of the area definition."""
+        from pyresample.utils import proj4_radius_parameters
         pdict, extent = self.make_pdict_ext(1, 'N2S')
         good_res = (-3000.4032785810186, -3000.4032785810186)
 
@@ -140,6 +141,7 @@ class TestGEOSProjectionUtil(unittest.TestCase):
         self.assertEqual(a_def.resolution, good_res)
         self.assertEqual(a_def.proj_dict['proj'], 'geos')
         self.assertEqual(a_def.proj_dict['units'], 'm')
-        self.assertEqual(a_def.proj_dict['a'], 6378169)
-        self.assertEqual(a_def.proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(a_def.proj_dict)
+        self.assertEqual(a, 6378169)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(a_def.proj_dict['h'], 35785831)
