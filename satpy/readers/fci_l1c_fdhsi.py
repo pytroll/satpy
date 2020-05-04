@@ -148,7 +148,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         data = data.where(data >= vr[0], nfv)
         data = data.where(data <= vr[1], nfv)
 
-        res = self.calibrate(data, key, measured, root)
+        res = self.calibrate(data, key)
 
         # pre-calibration units no longer apply
         info.pop("units")
@@ -261,10 +261,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         self._cache[key.resolution] = area
         return area
 
-    def calibrate_counts(self, data, key, measured, root):
-        """Calibrate counts."""
-        # counts to radiance scaling
-        original_radiance_units = data.attrs.get("units")
+    def calibrate_to_radiances(self, data, key):
+        """Calibrate counts to radiances."""
+        radiance_units = data.attrs["units"]
         if key.name == 'ir_38':
             data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
                             (data * data.attrs.get("warm_scale_factor", 1) +
@@ -276,23 +275,31 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             data = (data * data.attrs.get("scale_factor", 1) +
                     data.attrs.get("add_offset", 0))
 
-        data.attrs["units"] = original_radiance_units
-
-        if key.calibration == 'brightness_temperature':
-            data = self._ir_calibrate(data, measured, root)
-        elif key.calibration == 'reflectance':
-            data = self._vis_calibrate(data, measured)
+        data.attrs["units"] = radiance_units
 
         return data
 
-    def calibrate(self, data, key, measured, root):
+    def calibrate_counts(self, data, key):
+        """Calibrate counts to radiances, brightness temperatures, or reflectances."""
+        # counts to radiance scaling
+
+        data = self.calibrate_to_radiances(data, key)
+
+        if key.calibration == 'brightness_temperature':
+            data = self._ir_calibrate(data, key)
+        elif key.calibration == 'reflectance':
+            data = self._vis_calibrate(data, key)
+
+        return data
+
+    def calibrate(self, data, key):
         """Calibrate data."""
         if key.calibration == "counts":
             # from package description, this just means not applying add_offset
             # and scale_factor
             data.attrs["units"] = "1"
         elif key.calibration in ['brightness_temperature', 'reflectance', 'radiance']:
-            data = self.calibrate_counts(data, key, measured, root)
+            data = self.calibrate_counts(data, key)
         else:
             logger.error(
                 "Received unknown calibration key.  Expected "
@@ -301,8 +308,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return data
 
-    def _ir_calibrate(self, radiance, measured, root):
+    def _ir_calibrate(self, radiance, key):
         """IR channel calibration."""
+        measured, root = self.get_channel_dataset(key.name)
+
         # using the method from RADTOBR and PUG
         vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
 
@@ -336,8 +345,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         res.attrs["units"] = "K"
         return res
 
-    def _vis_calibrate(self, radiance, measured):
+    def _vis_calibrate(self, radiance, key):
         """VIS channel calibration."""
+        measured, _ = self.get_channel_dataset(key.name)
+
         cesi = self[measured + "/channel_effective_solar_irradiance"]
 
         if cesi == cesi.attrs.get(
