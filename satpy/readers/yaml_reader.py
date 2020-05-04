@@ -77,8 +77,9 @@ def match_filenames(filenames, pattern):
     """Get the filenames matching *pattern*."""
     matching = []
 
+    glob_pat = globify(pattern)
     for filename in filenames:
-        if fnmatch(get_filebase(filename, pattern), globify(pattern)):
+        if fnmatch(get_filebase(filename, pattern), glob_pat):
             matching.append(filename)
 
     return matching
@@ -184,12 +185,12 @@ class AbstractYAMLReader(metaclass=ABCMeta):
 
         If directory is None or '', look in the current directory.
         """
-        filenames = []
+        filenames = set()
         if directory is None:
             directory = ''
         for pattern in self.file_patterns:
             matching = glob.iglob(os.path.join(directory, globify(pattern)))
-            filenames.extend(matching)
+            filenames.update(matching)
         return filenames
 
     def select_files_from_pathnames(self, filenames):
