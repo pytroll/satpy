@@ -302,7 +302,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         else:
             logger.error(
                 "Received unknown calibration key.  Expected "
-                "'brightness_temperature', 'reflectance' or 'radiance, got "
+                "'brightness_temperature', 'reflectance' or 'radiance', got "
                 + key.calibration + ".")
 
         return data
