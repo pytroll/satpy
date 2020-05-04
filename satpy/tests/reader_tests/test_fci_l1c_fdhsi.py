@@ -81,6 +81,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     "add_offset": 10,
                     "warm_scale_factor": 2,
                     "warm_add_offset": -300,
+                    "long_name": "Effective Radiance",
                     "units": "mW.m-2.sr-1.(cm-1)-1",
                 }
             )
@@ -92,6 +93,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     "valid_range": [0, 4095],
                     "scale_factor": 5,
                     "add_offset": 10,
+                    "warm_scale_factor": 1,
+                    "warm_add_offset": 0,
+                    "long_name": "Effective Radiance",
                     "units": "mW.m-2.sr-1.(cm-1)-1",
                 }
             )
