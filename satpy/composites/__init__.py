@@ -1717,14 +1717,17 @@ class MaskCompositor(GenericCompositor):
                          data[0].sizes['x']),
                         chunks=data[0].chunks)
 
-        for cond in self.conditions:
-            oper, key, val = cond
+        for condition in self.conditions:
+            method = condition['method']
+            value = condition['value']
+            transparency = condition['transparency']
             try:
-                func = getattr(np, oper)
+                func = getattr(np, method)
             except AttributeError:
-                LOG.error("Operator '%s' not found.", oper)
-            mask = func(mask_data, key)
-            alpha_val = 1. - val / 100.
+                LOG.error("Method '%s' not found.", method)
+                raise
+            mask = func(mask_data, value)
+            alpha_val = 1. - transparency / 100.
             alpha = da.where(mask, alpha_val, alpha)
 
         alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
