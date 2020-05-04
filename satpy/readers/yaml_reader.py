@@ -188,9 +188,12 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         filenames = set()
         if directory is None:
             directory = ''
-        for pattern in self.file_patterns:
-            matching = glob.iglob(os.path.join(directory, globify(pattern)))
-            filenames.update(matching)
+        # all the glob patterns that we are going to look at
+        all_globs = set(os.path.join(directory, globify(pattern))
+                        for pattern in self.file_patterns)
+        # get all files matching these patterns
+        for glob_pat in all_globs:
+            filenames.update(glob.iglob(glob_pat))
         return filenames
 
     def select_files_from_pathnames(self, filenames):
