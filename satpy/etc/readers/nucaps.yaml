@@ -36,6 +36,11 @@ datasets:
     name: Land_Fraction
     coordinates: [longitude, latitude]
     file_type: nucaps
+  Effective_Pressure:
+    name: Effective_Pressure
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
   Surface_Pressure:
     name: Surface_Pressure
     coordinates: [longitude, latitude]
