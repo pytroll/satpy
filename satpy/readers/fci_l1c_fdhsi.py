@@ -123,9 +123,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         info = info.copy()
 
         fv = attrs.pop(
-                "FillValue",
-                default_fillvals.get(data.dtype.str[1:], np.nan))
-        vr = attrs.pop("valid_range", [-np.inf, np.inf])
+            "FillValue",
+            default_fillvals.get(data.dtype.str[1:], np.nan))
+        vr = attrs.get("valid_range", [-np.inf, np.inf])
         if key.calibration == "counts":
             attrs["_FillValue"] = fv
             nfv = fv
@@ -134,31 +134,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         data = data.where(data >= vr[0], nfv)
         data = data.where(data <= vr[1], nfv)
 
-        if key.calibration == "counts":
-            # from package description, this just means not applying add_offset
-            # and scale_factor
-            attrs.pop("scale_factor")
-            attrs.pop("add_offset")
-            data.attrs["units"] = "1"
-            res = data
-        else:
-            # counts to radiance scaling
-            if key.name == 'ir_38':
-                data = xr.where(((2**12-1 < data) & (data <= 2**13-1)),
-                                (data * attrs.pop("warm_scale_factor", 1) +
-                                 attrs.pop("warm_add_offset", 0)),
-                                (data * attrs.pop("scale_factor", 1) +
-                                 attrs.pop("add_offset", 0))
-                                )
-            else:
-                data = (data * attrs.pop("scale_factor", 1) +
-                        attrs.pop("add_offset", 0))
+        res = self.calibrate(data, key, measured, root)
 
-            if key.calibration in ("brightness_temperature", "reflectance"):
-                res = self.calibrate(data, key, measured, root)
-            else:
-                res = data
-                data.attrs["units"] = attrs["units"]
         # pre-calibration units no longer apply
         info.pop("units")
         attrs.pop("units")
@@ -166,6 +143,17 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         res.attrs.update(key.to_dict())
         res.attrs.update(info)
         res.attrs.update(attrs)
+
+        # remove unpacking parameters for calibrated data
+        if key.calibration in ['brightness_temperature', 'reflectance']:
+            res.attrs.pop("add_offset")
+            res.attrs.pop("warm_add_offset")
+            res.attrs.pop("scale_factor")
+            res.attrs.pop("warm_scale_factor")
+
+        # remove attributes from original file which don't apply anymore
+        res.attrs.pop('long_name')
+
         return res
 
     def get_channel_dataset(self, channel):
@@ -258,15 +246,34 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calibrate(self, data, key, measured, root):
         """Calibrate data."""
-        if key.calibration == 'brightness_temperature':
-            data = self._ir_calibrate(data, measured, root)
-        elif key.calibration == 'reflectance':
-            data = self._vis_calibrate(data, measured)
+        if key.calibration == "counts":
+            # from package description, this just means not applying add_offset
+            # and scale_factor
+            data.attrs["units"] = "1"
         else:
-            raise ValueError(
+            original_radiance_units = data.attrs.get("units")
+            # counts to radiance scaling
+            if key.name == 'ir_38':
+                data = xr.where(((2**12-1 < data) & (data <= 2**13-1)),
+                                (data * data.attrs.get("warm_scale_factor", 1) +
+                                 data.attrs.get("warm_add_offset", 0)),
+                                (data * data.attrs.get("scale_factor", 1) +
+                                 data.attrs.get("add_offset", 0))
+                                )
+            else:
+                data = (data * data.attrs.get("scale_factor", 1) +
+                        data.attrs.get("add_offset", 0))
+
+            if key.calibration == 'brightness_temperature':
+                data = self._ir_calibrate(data, measured, root)
+            elif key.calibration == 'reflectance':
+                data = self._vis_calibrate(data, measured)
+            else:
+                logger.warning(
                     "Received unknown calibration key.  Expected "
                     "'brightness_temperature' or 'reflectance', got "
-                    + key.calibration)
+                    + key.calibration + ". Returning radiances.")
+                data.attrs["units"] = original_radiance_units
 
         return data
 
