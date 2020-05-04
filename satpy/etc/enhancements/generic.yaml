@@ -783,6 +783,16 @@ enhancements:
           min_stretch: [0, 0, 0]
           max_stretch: [1, 1, 1]
 
+  natural_enh:
+   standard_name: natural_enh
+   operations:
+     - name: stretch
+       method: *stretchfun
+       kwargs:
+         stretch: crude
+         min_stretch: [0, 0, 0]
+         max_stretch: [589, 95, 95]
+
   hrv_clouds:
     operations:
       - name: stretch

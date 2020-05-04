@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Satpy developers
+# Copyright (c) 2009-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -58,6 +58,7 @@ extras_require = {
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
     'seviri_l2_bufr': ['eccodes-python'],
+    'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],

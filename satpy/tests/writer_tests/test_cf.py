@@ -534,26 +534,18 @@ class TestCFWriter(unittest.TestCase):
         self.assertDictWithArraysEqual(res_flat.attrs, attrs_expected_flat)
 
     @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
-    @mock.patch('satpy.writers.cf_writer.area2cf')
-    @mock.patch('satpy.writers.cf_writer.CFWriter.da2cf')
-    @mock.patch('satpy.writers.cf_writer.make_alt_coords_unique')
-    @mock.patch('satpy.writers.cf_writer.assert_xy_unique')
-    @mock.patch('satpy.writers.cf_writer.link_coords')
-    def test_collect_datasets(self, link_coords, assert_xy_unique, make_alt_coords_unique, da2cf, area2cf, *mocks):
+    def test_collect_datasets(self, *mocks):
         """Test collecting CF datasets from a DataArray objects."""
         from satpy.writers.cf_writer import CFWriter
         import xarray as xr
-
-        # Patch methods
-        def identity(arg, **kwargs):
-            return arg
-
-        def raise_key_error(arg, **kwargs):
-            raise KeyError
-
-        da2cf.side_effect = identity
-        area2cf.side_effect = raise_key_error
-        make_alt_coords_unique.return_value = 'unique_coords'
+        import pyresample.geometry
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
 
         # Define test datasets
         data = [[1, 2], [3, 4]]
@@ -563,32 +555,29 @@ class TestCFWriter(unittest.TestCase):
         tstart = datetime(2019, 4, 1, 12, 0)
         tend = datetime(2019, 4, 1, 12, 15)
         datasets = [xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                 attrs={'name': 'var1', 'start_time': tstart, 'end_time': tend}),
+                                 attrs={'name': 'var1', 'start_time': tstart, 'end_time': tend, 'area': geos}),
                     xr.DataArray(data=data, dims=('y', 'x'), coords={'y': y, 'x': x, 'acq_time': ('y', time)},
-                                 attrs={'name': 'var2'})]
-        expected = {'var1': datasets[0], 'var2': datasets[1]}
+                                 attrs={'name': 'var2', 'long_name': 'variable 2'})]
 
         # Collect datasets
         writer = CFWriter()
         datas, start_times, end_times = writer._collect_datasets(datasets, include_lonlats=True)
 
         # Test results
-        self.assertEqual(datas, 'unique_coords')
-        self.assertListEqual(start_times, [tstart, None])
-        self.assertListEqual(end_times, [tend, None])
-
-        # Test method calls
-        self.assertEqual(len(area2cf.call_args_list), 2)
-        for call_args, ds in zip(area2cf.call_args_list, datasets):
-            self.assertEqual(call_args, mock.call(ds, strict=True))
-
-        for func in (assert_xy_unique, link_coords, make_alt_coords_unique):
-            func.assert_called()
-            call_arg = func.call_args[0][0]
-            self.assertIsInstance(call_arg, dict)
-            self.assertSetEqual(set(call_arg.keys()), {'var1', 'var2'})
-            for key, ds in expected.items():
-                self.assertTrue(call_arg[key].identical(ds))
+        self.assertEqual(len(datas), 3)
+        self.assertEqual(set(datas.keys()), {'var1', 'var2', 'geos'})
+        self.assertListEqual(start_times, [None, tstart, None])
+        self.assertListEqual(end_times, [None, tend, None])
+        var1 = datas['var1']
+        var2 = datas['var2']
+        self.assertEqual(var1.name, 'var1')
+        self.assertEqual(var1.attrs['grid_mapping'], 'geos')
+        self.assertEqual(var1.attrs['start_time'], '2019-04-01 12:00:00')
+        self.assertEqual(var1.attrs['end_time'], '2019-04-01 12:15:00')
+        self.assertEqual(var1.attrs['long_name'], 'var1')
+        # variable 2
+        self.assertNotIn('grid_mapping', var2.attrs)
+        self.assertEqual(var2.attrs['long_name'], 'variable 2')
 
     def test_assert_xy_unique(self):
         """Test that the x and y coordinates are unique."""
@@ -680,16 +669,12 @@ class TestCFWriter(unittest.TestCase):
         self.assertNotIn('var1_acq_time', res['var1'].coords)
         self.assertNotIn('var2_acq_time', res['var2'].coords)
 
-    @mock.patch('satpy.writers.cf_writer.area2lonlat')
-    @mock.patch('satpy.writers.cf_writer.area2gridmapping')
-    def test_area2cf(self, area2gridmapping, area2lonlat):
+    def test_area2cf(self):
         """Test the conversion of an area to CF standards."""
         import xarray as xr
         import pyresample.geometry
         from satpy.writers.cf_writer import area2cf
 
-        area2gridmapping.side_effect = lambda x: [1, 2, 3]
-        area2lonlat.side_effect = lambda x: [4, 5, 6]
         ds_base = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), coords={'y': [1, 2], 'x': [3, 4]},
                                attrs={'name': 'var1'})
 
@@ -705,13 +690,21 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = geos
 
         res = area2cf(ds)
-        self.assertEqual(len(res), 4)
-        self.assertListEqual(res[0:3], [1, 2, 3])
-        self.assertTrue(ds.identical(res[3]))
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[0].size, 1)  # grid mapping variable
+        self.assertEqual(res[0].name, res[1].attrs['grid_mapping'])
 
         # b) Area Definition and strict=False
-        area2cf(ds, strict=True)
-        area2lonlat.assert_called()
+        ds = ds_base.copy(deep=True)
+        ds.attrs['area'] = geos
+        res = area2cf(ds, strict=True)
+        # same as above
+        self.assertEqual(len(res), 2)
+        self.assertEqual(res[0].size, 1)  # grid mapping variable
+        self.assertEqual(res[0].name, res[1].attrs['grid_mapping'])
+        # but now also have the lon/lats
+        self.assertIn('longitude', res[1].coords)
+        self.assertIn('latitude', res[1].coords)
 
         # c) Swath Definition
         swath = pyresample.geometry.SwathDefinition(lons=[[1, 1], [2, 2]], lats=[[1, 2], [1, 2]])
@@ -719,9 +712,10 @@ class TestCFWriter(unittest.TestCase):
         ds.attrs['area'] = swath
 
         res = area2cf(ds)
-        self.assertEqual(len(res), 4)
-        self.assertListEqual(res[0:3], [4, 5, 6])
-        self.assertTrue(ds.identical(res[3]))
+        self.assertEqual(len(res), 1)
+        self.assertIn('longitude', res[0].coords)
+        self.assertIn('latitude', res[0].coords)
+        self.assertNotIn('grid_mapping', res[0].attrs)
 
     def test_area2gridmapping(self):
         """Test the conversion from pyresample area object to CF grid mapping."""
@@ -749,7 +743,8 @@ class TestCFWriter(unittest.TestCase):
             area_id='geos',
             description='geos',
             proj_id='geos',
-            projection={'proj': 'geos', 'h': h, 'a': a, 'b': b},
+            projection={'proj': 'geos', 'h': h, 'a': a, 'b': b,
+                        'lat_0': 0, 'lon_0': 0},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
         geos_expected = xr.DataArray(data=0,
@@ -759,15 +754,20 @@ class TestCFWriter(unittest.TestCase):
                                             'grid_mapping_name': 'geostationary',
                                             'semi_major_axis': a,
                                             'semi_minor_axis': b,
-                                            'sweep_axis': None,
-                                            'name': 'geos'})
+                                            # 'sweep_angle_axis': None,
+                                            })
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        res, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
+        if 'sweep_angle_axis' in grid_mapping.attrs:
+            # older versions of pyproj might not include this
+            self.assertEqual(grid_mapping.attrs['sweep_angle_axis'], 'y')
 
-        self.assertEqual(res.attrs['grid_mapping'], 'geos')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
+        # should not have been modified
+        self.assertNotIn('grid_mapping', ds.attrs)
 
         # b) Projection does not have a corresponding CF representation (COSMO)
         cosmo7 = pyresample.geometry.AreaDefinition(
@@ -783,18 +783,15 @@ class TestCFWriter(unittest.TestCase):
         ds = ds_base.copy()
         ds.attrs['area'] = cosmo7
 
-        with mock.patch('satpy.writers.cf_writer.warnings.warn') as warn:
-            res, grid_mapping = area2gridmapping(ds)
-            warn.assert_called()
-            proj_dict = pyresample.geometry.proj4_str_to_dict(res.attrs['grid_proj4'])
-            self.assertEqual(proj_dict['lon_0'], 4.535)
-            self.assertEqual(proj_dict['lat_0'], 46.0)
-            self.assertEqual(proj_dict['o_lon_p'], -5.465)
-            self.assertEqual(proj_dict['o_lat_p'], 90.0)
-            self.assertEqual(proj_dict['proj'], 'ob_tran')
-            self.assertEqual(proj_dict['o_proj'], 'stere')
-            self.assertEqual(proj_dict['ellps'], 'WGS84')
-            self.assertEqual(grid_mapping.attrs['name'], 'proj4')
+        new_ds, grid_mapping = area2gridmapping(ds)
+        self.assertIn('crs_wkt', grid_mapping.attrs)
+        wkt = grid_mapping.attrs['crs_wkt']
+        self.assertIn('ELLIPSOID["WGS 84"', wkt)
+        self.assertIn('PARAMETER["lat_0",46', wkt)
+        self.assertIn('PARAMETER["lon_0",4.535', wkt)
+        self.assertIn('PARAMETER["o_lat_p",90', wkt)
+        self.assertIn('PARAMETER["o_lon_p",-5.465', wkt)
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'cosmo7')
 
         # c) Projection Transverse Mercator
         lat_0 = 36.5
@@ -812,15 +809,15 @@ class TestCFWriter(unittest.TestCase):
                                       attrs={'latitude_of_projection_origin': lat_0,
                                              'longitude_of_central_meridian': lon_0,
                                              'grid_mapping_name': 'transverse_mercator',
-                                             'reference_ellipsoid_name': 'WGS84',
+                                             'reference_ellipsoid_name': 'WGS 84',
                                              'false_easting': 0.,
                                              'false_northing': 0.,
-                                             'name': 'tmerc'})
+                                             })
 
         ds = ds_base.copy()
         ds.attrs['area'] = tmerc
-        res, grid_mapping = area2gridmapping(ds)
-        self.assertEqual(res.attrs['grid_mapping'], 'tmerc')
+        new_ds, grid_mapping = area2gridmapping(ds)
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'tmerc')
         _gm_matches(grid_mapping, tmerc_expected)
 
         # d) Projection that has a representation but no explicit a/b
@@ -829,7 +826,8 @@ class TestCFWriter(unittest.TestCase):
             area_id='geos',
             description='geos',
             proj_id='geos',
-            projection={'proj': 'geos', 'h': h, 'datum': 'WGS84', 'ellps': 'GRS80'},
+            projection={'proj': 'geos', 'h': h, 'datum': 'WGS84', 'ellps': 'GRS80',
+                        'lat_0': 0, 'lon_0': 0},
             width=2, height=2,
             area_extent=[-1, -1, 1, 1])
         geos_expected = xr.DataArray(data=0,
@@ -837,16 +835,16 @@ class TestCFWriter(unittest.TestCase):
                                             'latitude_of_projection_origin': 0,
                                             'longitude_of_projection_origin': 0,
                                             'grid_mapping_name': 'geostationary',
-                                            'semi_major_axis': 6378137.0,
-                                            'semi_minor_axis': 6356752.314,
-                                            'sweep_axis': None,
-                                            'name': 'geos'})
+                                            # 'semi_major_axis': 6378137.0,
+                                            # 'semi_minor_axis': 6356752.314,
+                                            # 'sweep_angle_axis': None,
+                                            })
 
         ds = ds_base.copy()
         ds.attrs['area'] = geos
-        res, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
 
-        self.assertEqual(res.attrs['grid_mapping'], 'geos')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
         _gm_matches(grid_mapping, geos_expected)
 
         # e) oblique Mercator
@@ -862,26 +860,48 @@ class TestCFWriter(unittest.TestCase):
             area_extent=[-1460463.0893, 3455291.3877, 1538407.1158, 9615788.8787]
         )
 
-        omerc_dict = {'name': 'omerc',
-                      'azimuth_of_central_line': 9.02638777018478,
+        omerc_dict = {'azimuth_of_central_line': 9.02638777018478,
                       'false_easting': 0.,
                       'false_northing': 0.,
-                      'gamma': 0,
-                      'geographic_crs_name': "unknown",
+                      # 'gamma': 0,  # this is not CF compliant
                       'grid_mapping_name': "oblique_mercator",
-                      'horizontal_datum_name': "unknown",
                       'latitude_of_projection_origin': -0.256794486098476,
                       'longitude_of_projection_origin': 13.7888658224205,
-                      'prime_meridian_name': "Greenwich",
-                      'reference_ellipsoid_name': "WGS84"}
+                      # 'prime_meridian_name': "Greenwich",
+                      'reference_ellipsoid_name': "WGS 84"}
         omerc_expected = xr.DataArray(data=0, attrs=omerc_dict)
 
         ds = ds_base.copy()
         ds.attrs['area'] = area
-        res, grid_mapping = area2gridmapping(ds)
+        new_ds, grid_mapping = area2gridmapping(ds)
 
-        self.assertEqual(res.attrs['grid_mapping'], 'omerc')
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'omerc_otf')
         _gm_matches(grid_mapping, omerc_expected)
+
+        # f) Projection that has a representation but no explicit a/b
+        h = 35785831.
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': h, 'datum': 'WGS84', 'ellps': 'GRS80',
+                        'lat_0': 0, 'lon_0': 0},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
+        geos_expected = xr.DataArray(data=0,
+                                     attrs={'perspective_point_height': h,
+                                            'latitude_of_projection_origin': 0,
+                                            'longitude_of_projection_origin': 0,
+                                            'grid_mapping_name': 'geostationary',
+                                            'reference_ellipsoid_name': 'WGS 84',
+                                            })
+
+        ds = ds_base.copy()
+        ds.attrs['area'] = geos
+        new_ds, grid_mapping = area2gridmapping(ds)
+
+        self.assertEqual(new_ds.attrs['grid_mapping'], 'geos')
+        _gm_matches(grid_mapping, geos_expected)
 
     def test_area2lonlat(self):
         """Test the conversion from areas to lon/lat."""
@@ -902,10 +922,11 @@ class TestCFWriter(unittest.TestCase):
 
         res = area2lonlat(dataarray)
 
-        self.assertEqual(len(res), 1)
-        self.assertEqual(set(res[0].coords), {'longitude', 'latitude'})
-        lat = res[0]['latitude']
-        lon = res[0]['longitude']
+        # original should be unmodified
+        self.assertNotIn('longitude', dataarray.coords)
+        self.assertEqual(set(res.coords), {'longitude', 'latitude'})
+        lat = res['latitude']
+        lon = res['longitude']
         self.assertTrue(np.all(lat.data == lats_ref))
         self.assertTrue(np.all(lon.data == lons_ref))
         self.assertDictContainsSubset({'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'},

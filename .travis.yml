@@ -6,7 +6,7 @@ env:
         - NUMPY_VERSION=stable
         - MAIN_CMD='python setup.py'
         - CONDA_DEPENDENCIES='xarray dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml
-          pyproj=2.4.1 pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf
+          pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf
           mock libtiff geoviews zarr python-eccodes geoviews pytest pytest-cov'
         - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
@@ -41,6 +41,8 @@ matrix:
 install:
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
+    # See https://github.com/travis-ci/travis-ci/issues/8920
+    - python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
     - if [ "$UNSTABLE_DEPS" == "True" ]; then
         python -m pip install
         -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com

@@ -34,7 +34,7 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
-from satpy.config import get_environ_ancpath
+from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
@@ -83,9 +83,11 @@ class CompositorLoader(object):
         """Load all compositor configs for the provided sensor."""
         config_filename = sensor_name + ".yaml"
         LOG.debug("Looking for composites config file %s", config_filename)
+        paths = get_entry_points_config_dirs('satpy.composites')
+        paths.append(self.ppp_config_dir)
         composite_configs = config_search_paths(
             os.path.join("composites", config_filename),
-            self.ppp_config_dir, check_exists=True)
+            *paths, check_exists=True)
         if not composite_configs:
             LOG.debug("No composite config found called {}".format(
                 config_filename))
@@ -374,7 +376,7 @@ class SunZenithCorrectorBase(CompositeBase):
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
-        projectables = self.match_data_arrays(projectables)
+        projectables = self.match_data_arrays(list(projectables) + list(info.get('optional_datasets', [])))
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
@@ -385,7 +387,7 @@ class SunZenithCorrectorBase(CompositeBase):
         tic = time.time()
         LOG.debug("Applying sun zen correction")
         coszen = self.coszen.get(key)
-        if coszen is None and len(projectables) == 1:
+        if coszen is None and not info.get('optional_datasets'):
             # we were not given SZA, generate SZA then calculate cos(SZA)
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
@@ -595,6 +597,8 @@ class NIRReflectance(CompositeBase):
         """
         self._init_refl3x(projectables)
         _nir, _ = projectables
+        projectables = self.match_data_arrays(projectables)
+
         refl = self._get_reflectance(projectables, optional_datasets) * 100
         proj = xr.DataArray(refl, dims=_nir.dims,
                             coords=_nir.coords, attrs=_nir.attrs)
@@ -649,6 +653,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         Not supposed to be used for wavelength outside [3, 4] µm.
 
         """
+        projectables = self.match_data_arrays(projectables)
         self._init_refl3x(projectables)
         # Derive the sun-zenith angles, and use the nir and thermal ir
         # brightness tempertures and derive the reflectance using
@@ -1443,6 +1448,40 @@ class SandwichCompositor(GenericCompositor):
         rgb_img = enhance2dataset(projectables[1])
         rgb_img *= luminance
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
+
+
+class NaturalEnh(GenericCompositor):
+    """Enhanced version of natural color composite by Simon Proud.
+
+    Args:
+        ch16_w (float): weight for red channel (1.6 um). Default: 1.3
+        ch08_w (float): weight for green channel (0.8 um). Default: 2.5
+        ch06_w (float): weight for blue channel (0.6 um). Default: 2.2
+
+    """
+
+    def __init__(self, name, ch16_w=1.3, ch08_w=2.5, ch06_w=2.2,
+                 *args, **kwargs):
+        """Initialize the class."""
+        self.ch06_w = ch06_w
+        self.ch08_w = ch08_w
+        self.ch16_w = ch16_w
+        super(NaturalEnh, self).__init__(name, *args, **kwargs)
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        ch16 = projectables[0]
+        ch08 = projectables[1]
+        ch06 = projectables[2]
+
+        ch1 = self.ch16_w * ch16 + self.ch08_w * ch08 + self.ch06_w * ch06
+        ch1.attrs = ch16.attrs
+        ch2 = ch08
+        ch3 = ch06
+
+        return super(NaturalEnh, self).__call__((ch1, ch2, ch3),
+                                                *args, **kwargs)
 
 
 class StaticImageCompositor(GenericCompositor):

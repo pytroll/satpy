@@ -17,20 +17,22 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Satpy Configuration directory and file handling."""
 from __future__ import print_function
+
+import configparser
 import glob
 import logging
 import os
-import configparser
-from collections.abc import Mapping
 from collections import OrderedDict
+from collections.abc import Mapping
 
+import pkg_resources
 import yaml
+from yaml import BaseLoader
 
 try:
     from yaml import UnsafeLoader
 except ImportError:
     from yaml import Loader as UnsafeLoader
-from yaml import BaseLoader
 
 LOG = logging.getLogger(__name__)
 
@@ -60,6 +62,17 @@ def runtime_import(object_path):
     obj_module, obj_element = object_path.rsplit(".", 1)
     loader = __import__(obj_module, globals(), locals(), [str(obj_element)])
     return getattr(loader, obj_element)
+
+
+def get_entry_points_config_dirs(name):
+    """Get the config directories for all entry points of given name."""
+    dirs = []
+    for entry_point in pkg_resources.iter_entry_points(name):
+        package_name = entry_point.module_name.split('.', 1)[0]
+        new_dir = os.path.join(entry_point.dist.module_path, package_name, 'etc')
+        if not dirs or dirs[-1] != new_dir:
+            dirs.append(new_dir)
+    return dirs
 
 
 def config_search_paths(filename, *search_dirs, **kwargs):

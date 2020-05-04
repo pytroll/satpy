@@ -61,10 +61,12 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         rad = meas + "/effective_radiance"
         pos = meas + "/{:s}_position_{:s}"
         shp = rad + "/shape"
+        x = meas + "/x"
+        y = meas + "/y"
         data = {}
         ch_str = pat.format(ch)
         ch_path = rad.format(ch_str)
-        d = xr.DataArray(
+        d = xrda(
                 da.ones((nrows, ncols), dtype="uint16", chunks=1024),
                 dims=("y", "x"),
                 attrs={
@@ -75,6 +77,23 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     }
                 )
         data[ch_path] = d
+        data[x.format(ch_str)] = xrda(
+                da.arange(1, ncols+1, dtype="uint16"),
+                dims=("x",),
+                attrs={
+                    "scale_factor": -5.58877772833e-05,
+                    "add_offset": 0.155619515845,
+                    }
+                )
+        data[y.format(ch_str)] = xrda(
+                da.arange(1, nrows+1, dtype="uint16"),
+                dims=("y",),
+                attrs={
+                    "scale_factor": -5.58877772833e-05,
+                    "add_offset": 0.155619515845,
+                    }
+                )
+
         data[pos.format(ch_str, "start", "row")] = xrda(0)
         data[pos.format(ch_str, "start", "column")] = xrda(0)
         data[pos.format(ch_str, "end", "row")] = xrda(nrows)
@@ -110,6 +129,26 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 ("reference_altitude", 35786000),
                 ("projection_origin_longitude", 0)):
             data[proc + "/" + lb] = xr.DataArray(no)
+        proj = "data/mtg_geos_projection"
+
+        attrs = {
+                "sweep_angle_axis": "x",
+                "perspective_point_height": "35786400",
+                "semi_major_axis": "6378137",
+                "semi_minor_axis": "6356752",
+                "longitude_of_projection_origin": "0",
+                "inverse_flattening": "298.257223563",
+                "units": "m"}
+        data[proj] = xr.DataArray(
+                0,
+                dims=(),
+                attrs=attrs)
+
+        # also set attributes cached, as this may be how they are accessed with
+        # the NetCDF4FileHandler
+        for (k, v) in attrs.items():
+            data[proj + "/attr/" + k] = v
+
         return data
 
     def get_test_content(self, filename, filename_info, filetype_info):
