@@ -403,10 +403,9 @@ class FileYAMLReader(AbstractYAMLReader):
         if not isinstance(filenames, set):
             # we perform set operations later on to improve performance
             filenames = set(filenames)
-        matched_files = []
         for pattern in filetype_info['file_patterns']:
+            matched_files = []
             matches = match_filenames(filenames, pattern)
-            filenames -= set(matches)
             for filename in matches:
                 try:
                     filename_info = parse(
@@ -416,6 +415,7 @@ class FileYAMLReader(AbstractYAMLReader):
                     continue
                 matched_files.append(filename)
                 yield filename, filename_info
+            filenames -= set(matched_files)
 
     def new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
         """Generate new filehandler instances."""
@@ -548,7 +548,6 @@ class FileYAMLReader(AbstractYAMLReader):
                                                               filename_set,
                                                               fh_kwargs=fh_kwargs)
 
-            filename_set -= set([fhd.filename for fhd in filehandlers])
             if filehandlers:
                 created_fhs[filetype] = filehandlers
                 self.file_handlers[filetype] = sorted(
