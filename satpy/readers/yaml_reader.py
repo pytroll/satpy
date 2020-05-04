@@ -406,7 +406,7 @@ class FileYAMLReader(AbstractYAMLReader):
         matched_files = []
         for pattern in filetype_info['file_patterns']:
             matches = match_filenames(filenames, pattern)
-            filenames -= matches
+            filenames -= set(matches)
             for filename in matches:
                 try:
                     filename_info = parse(
