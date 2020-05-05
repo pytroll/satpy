@@ -1682,7 +1682,7 @@ class MaskingCompositor(GenericCompositor):
             method = condition['method']
             value = condition['value']
             if isinstance(value, str):
-                value = self._get_flag_value(mask_in, value)
+                value = _get_flag_value(mask_in, value)
             transparency = condition['transparency']
             try:
                 func = getattr(np, method)
@@ -1705,13 +1705,19 @@ class MaskingCompositor(GenericCompositor):
         res = super(MaskingCompositor, self).__call__(data, **kwargs)
         return res
 
-    def _get_flag_value(self, mask, val):
-        # Modify alpha based on transparency per class from yaml
-        flag_meanings = mask.attrs['flag_meanings']
-        flag_values = mask.attrs['flag_values']
-        if isinstance(flag_meanings, str):
-            flag_meanings = flag_meanings.split()
 
-        index = flag_meanings.index(val)
+def _get_flag_value(mask, val):
+    """Get a numerical value of the named flag.
 
-        return flag_values[index]
+    This function assumes the naming used in product generated with
+    NWC SAF GEO/PPS softwares.
+
+    """
+    flag_meanings = mask.attrs['flag_meanings']
+    flag_values = mask.attrs['flag_values']
+    if isinstance(flag_meanings, str):
+        flag_meanings = flag_meanings.split()
+
+    index = flag_meanings.index(val)
+
+    return flag_values[index]
