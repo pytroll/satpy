@@ -102,7 +102,8 @@ class GeoTIFFWriter(ImageWriter):
 
     def save_image(self, img, filename=None, dtype=None, fill_value=None,
                    compute=True, keep_palette=False, cmap=None, tags=None,
-                   include_scale_offset=False,
+                   overviews=None, overviews_resampling=None,
+                   overviews_minsize=256, include_scale_offset=False,
                    **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
@@ -147,6 +148,25 @@ class GeoTIFFWriter(ImageWriter):
                 the index range of the palette
                 (ex. `cmap.set_range(0, len(colors))`).
             tags (dict): Extra metadata to store in geotiff.
+            overviews (list): The reduction factors of the overviews to include
+                in the image, eg::
+
+                    scn.save_datasets(overviews=[2, 4, 8, 16])
+
+                If provided as an empty list, then levels will be
+                computed as powers of two until the last level has less
+                pixels than `overviews_minsize`.
+                Default is to not add overviews.
+            overviews_minsize (int): Minimum number of pixels for the smallest
+                overview size generated when `overviews` is auto-generated.
+                Defaults to 256.
+            overviews_resampling (str): Resampling method
+                to use when generating overviews. This must be the name of an
+                enum value from :class:`rasterio.enums.Resampling` and
+                only takes effect if the `overviews` keyword argument is
+                provided. Common values include `nearest` (default),
+                `bilinear`, `average`, and many others. See the rasterio
+                documentation for more information.
             include_scale_offset (bool): Activate inclusion of scale and offset
                 factors in the geotiff to allow retrieving original values from
                 the pixel values. ``False`` by default.
@@ -193,4 +213,7 @@ class GeoTIFFWriter(ImageWriter):
                         dtype=dtype, compute=compute,
                         keep_palette=keep_palette, cmap=cmap,
                         tags=tags, include_scale_offset_tags=include_scale_offset,
+                        overviews=overviews,
+                        overviews_resampling=overviews_resampling,
+                        overviews_minsize=overviews_minsize,
                         **gdal_options)
