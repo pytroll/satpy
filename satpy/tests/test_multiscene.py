@@ -92,10 +92,6 @@ class TestMultiScene(unittest.TestCase):
         scenes = _create_test_scenes()
         MultiScene(scenes)
 
-        with mock.patch('satpy.multiscene.add_aliases') as add_aliases:
-            MultiScene([], groups='groups')
-            add_aliases.assert_called_with(mock.ANY, 'groups')
-
     def test_properties(self):
         """Test basic properties/attributes of the MultiScene."""
         from satpy import MultiScene, DatasetID
@@ -142,13 +138,34 @@ class TestMultiScene(unittest.TestCase):
             calls = [mock.call(filenames={'abi_l1b': [in_file]}) for in_file in input_files]
             scn_mock.assert_has_calls(calls)
 
-    def test_add_aliases(self):
-        """Test adding dataset aliases."""
+    def test_group(self):
+        from satpy import Scene, MultiScene, DatasetID
+
+        ds1 = _create_test_dataset(name='ds1')
+        ds2 = _create_test_dataset(name='ds2')
+        ds3 = _create_test_dataset(name='ds3')
+        ds4 = _create_test_dataset(name='ds4')
+        scene1 = Scene()
+        scene1['ds1'] = ds1
+        scene1['ds2'] = ds2
+        scene2 = Scene()
+        scene2['ds3'] = ds3
+        scene2['ds4'] = ds4
+
+        multi_scene = MultiScene([scene1, scene2])
+        groups = {DatasetID(name='odd', wavelength=(1, 2, 3)): ['ds1', 'ds3'],
+                  DatasetID(name='even', wavelength=(2, 3, 4)): ['ds2', 'ds4']}
+        multi_scene.group(groups)
+        
+        self.assertSetEqual(multi_scene.shared_dataset_ids, set(groups.keys()))
+
+    def test_add_group_aliases(self):
+        """Test adding group aliases."""
         import xarray as xr
         import numpy as np
         import types
 
-        from satpy.multiscene import add_aliases
+        from satpy.multiscene import add_group_aliases
         from satpy import DatasetID
         from satpy import Scene
 
@@ -173,7 +190,7 @@ class TestMultiScene(unittest.TestCase):
         groups = {g1: ['ds1', 'ds3'], g2: ['ds2']}
 
         # Test adding aliases
-        with_aliases = add_aliases(iter(scenes), groups)
+        with_aliases = add_group_aliases(iter(scenes), groups)
         self.assertIsInstance(with_aliases, types.GeneratorType)
         with_aliases = list(with_aliases)
         self.assertSetEqual(set(with_aliases[0].keys()), {g1, ds_id1})
@@ -192,7 +209,7 @@ class TestMultiScene(unittest.TestCase):
         self.assertNotIn(g1, scene1)
 
         # Adding an alias for multiple datasets in one scene should fail
-        gen = add_aliases([scene3], {g1: ['ds3', 'ds31']})
+        gen = add_group_aliases([scene3], {g1: ['ds3', 'ds31']})
         self.assertRaises(ValueError, list, gen)
 
 
