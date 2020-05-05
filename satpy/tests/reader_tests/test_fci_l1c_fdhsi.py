@@ -17,15 +17,12 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'fci_l1c_fdhsi' reader."""
 
-from __future__ import (division, absolute_import, print_function,
-                        unicode_literals)
-
 import os
 import numpy as np
 import xarray as xr
 import dask.array as da
-import unittest
 import numpy.testing
+import pytest
 from unittest import mock
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
@@ -214,32 +211,34 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
         return data
 
 
-class TestFCIL1CFDHSIReader(unittest.TestCase):
+@pytest.fixture
+def reader_configs():
+    """Return reader configs for FCI."""
+
+    from satpy.config import config_search_paths
+    return config_search_paths(
+        os.path.join("readers", "fci_l1c_fdhsi.yaml"))
+
+
+class TestFCIL1CFDHSIReader:
     """Initialize the unittest TestCase for the FCI L1C FDHSI Reader."""
 
     yaml_file = "fci_l1c_fdhsi.yaml"
 
     _alt_handler = FakeNetCDF4FileHandler2
 
-    def setUp(self):
+    @pytest.fixture(autouse=True, scope="class")
+    def fake_handler(self):
         """Wrap NetCDF4 FileHandler with our own fake handler."""
         # implementation strongly inspired by test_viirs_l1b.py
-        from satpy.config import config_search_paths
         from satpy.readers.fci_l1c_fdhsi import FCIFDHSIFileHandler
-
-        self.reader_configs = config_search_paths(
-                os.path.join("readers", self.yaml_file))
-        self.p = mock.patch.object(
+        p = mock.patch.object(
                 FCIFDHSIFileHandler,
                 "__bases__",
                 (self._alt_handler,))
-        self.fake_handler = self.p.start()
-        self.p.is_local = True
-
-    def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler."""
-        # implementation strongly inspired by test_viirs_l1b.py
-        self.p.stop()
+        with p:
+            p.is_local = True
+            yield p
 
 
 class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
@@ -250,7 +249,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     _alt_handler = FakeNetCDF4FileHandler2
 
-    def test_file_pattern(self):
+    def test_file_pattern(self, reader_configs):
         """Test file pattern matching."""
         from satpy.readers import load_reader
 
@@ -267,25 +266,22 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114500_GTT_DEV_"
             "20170410113951_20170410114000_N__C_0070_0070.nc",
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_19700101000000_GTT_DEV_"
-            "19700000000000_19700000000000_N__C_0042_0070.nc",
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-TRAIL--L2P-NC4E_C_EUMT_20170410114600_GTT_DEV_"
             "20170410113000_20170410114000_N__C_0070_0071.nc",
         ]
 
-        reader = load_reader(self.reader_configs)
+        reader = load_reader(reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        # only 4 out of 6 above should match
-        self.assertTrue(4, len(files))
+        # only 4 out of 5 above should match
+        assert len(files) == 4
 
     _chans = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
                         "nir_13", "nir_16", "nir_22"],
               "terran": ["ir_38", "wv_63", "wv_73", "ir_87", "ir_97", "ir_105",
                          "ir_123", "ir_133"]}
 
-    def test_load_counts(self):
+    def test_load_counts(self, reader_configs):
         """Test loading with counts."""
         from satpy import DatasetID
         from satpy.readers import load_reader
@@ -300,26 +296,25 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "20170410113934_20170410113942_N__C_0070_0068.nc",
         ]
 
-        reader = load_reader(self.reader_configs)
+        reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
                 [DatasetID(name=name, calibration="counts") for name in
                     self._chans["solar"] + self._chans["terran"]])
-        self.assertEqual(16, len(res))
+        assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
-            self.assertEqual(res[ch].shape, (200*2, 11136))
-            self.assertEqual(res[ch].dtype, np.uint16)
-            self.assertEqual(res[ch].attrs["calibration"], "counts")
-            self.assertEqual(res[ch].attrs["units"], "1")
-
+            assert res[ch].shape == (200*2, 11136)
+            assert res[ch].dtype == np.uint16
+            assert res[ch].attrs["calibration"] == "counts"
+            assert res[ch].attrs["units"] == "1"
             if ch == 'ir_38':
                 numpy.testing.assert_array_equal(res[ch][~0], 1)
                 numpy.testing.assert_array_equal(res[ch][0], 5000)
             else:
                 numpy.testing.assert_array_equal(res[ch], 1)
 
-    def test_load_radiance(self):
+    def test_load_radiance(self, reader_configs):
         """Test loading with radiance."""
         from satpy import DatasetID
         from satpy.readers import load_reader
@@ -330,26 +325,25 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(self.reader_configs)
+        reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
                 [DatasetID(name=name, calibration="radiance") for name in
                     self._chans["solar"] + self._chans["terran"]])
-        self.assertEqual(16, len(res))
+        assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
-            self.assertEqual(res[ch].shape, (200, 11136))
-            self.assertEqual(res[ch].dtype, np.float64)
-            self.assertEqual(res[ch].attrs["calibration"], "radiance")
-            self.assertEqual(res[ch].attrs["units"], 'mW.m-2.sr-1.(cm-1)-1')
-
+            assert res[ch].shape == (200, 11136)
+            assert res[ch].dtype == np.float64
+            assert res[ch].attrs["calibration"] == "radiance"
+            assert res[ch].attrs["units"] == 'mW.m-2.sr-1.(cm-1)-1'
             if ch == 'ir_38':
                 numpy.testing.assert_array_equal(res[ch][~0], 15)
                 numpy.testing.assert_array_equal(res[ch][0], 9700)
             else:
                 numpy.testing.assert_array_equal(res[ch], 15)
 
-    def test_load_reflectance(self):
+    def test_load_reflectance(self, reader_configs):
         """Test loading with reflectance."""
         from satpy import DatasetID
         from satpy.readers import load_reader
@@ -360,44 +354,42 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(self.reader_configs)
+        reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
                 [DatasetID(name=name, calibration="reflectance") for name in
                     self._chans["solar"]])
-        self.assertEqual(8, len(res))
+        assert 8 == len(res)
         for ch in self._chans["solar"]:
-            self.assertEqual(res[ch].shape, (200, 11136))
-            self.assertEqual(res[ch].dtype, np.float64)
-            self.assertEqual(res[ch].attrs["calibration"], "reflectance")
-            self.assertEqual(res[ch].attrs["units"], "%")
+            assert res[ch].shape == (200, 11136)
+            assert res[ch].dtype == np.float64
+            assert res[ch].attrs["calibration"] == "reflectance"
+            assert res[ch].attrs["units"] == "%"
             numpy.testing.assert_array_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
 
-    def test_load_bt(self):
+    def test_load_bt(self, reader_configs):
         """Test loading with bt."""
         from satpy import DatasetID
         from satpy.readers import load_reader
-
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(self.reader_configs)
+        reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
                 [DatasetID(name=name, calibration="brightness_temperature") for
                     name in self._chans["terran"]])
-        self.assertEqual(8, len(res))
+        assert 8 == len(res)
         for ch in self._chans["terran"]:
-            self.assertEqual(res[ch].shape, (200, 11136))
-            self.assertEqual(res[ch].dtype, np.float64)
-            self.assertEqual(res[ch].attrs["calibration"],
-                             "brightness_temperature")
-            self.assertEqual(res[ch].attrs["units"], "K")
+            assert res[ch].shape == (200, 11136)
+            assert res[ch].dtype == np.float64
+            assert res[ch].attrs["calibration"] == "brightness_temperature"
+            assert res[ch].attrs["units"] == "K"
 
             if ch == 'ir_38':
                 numpy.testing.assert_array_almost_equal(res[ch][~0], 209.68274099)
@@ -414,10 +406,10 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         from satpy.composites import CompositorLoader
         cl = CompositorLoader()
         (comps, mods) = cl.load_compositors(["fci"])
-        self.assertGreater(len(comps["fci"]), 0)
-        self.assertGreater(len(mods["fci"]), 0)
+        assert len(comps["fci"]) > 0
+        assert len(mods["fci"]) > 0
 
-    def test_platform_name(self):
+    def test_platform_name(self, reader_configs):
         """Test that platform name is exposed.
 
         Test that the FCI reader exposes the platform name.  Corresponds
@@ -431,11 +423,11 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(self.reader_configs)
+        reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(["ir_123"])
-        self.assertEqual(res["ir_123"].attrs["platform_name"], "MTG-I1")
+        assert res["ir_123"].attrs["platform_name"] == "MTG-I1"
 
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
@@ -443,7 +435,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
 
     _alt_handler = FakeNetCDF4FileHandler3
 
-    def test_handling_bad_data_ir(self):
+    def test_handling_bad_data_ir(self, reader_configs, caplog):
         """Test handling of bad data."""
         from satpy import DatasetID
         from satpy.readers import load_reader
@@ -454,13 +446,11 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
             "20170410113925_20170410113934_N__C_0070_0067.nc",
         ]
 
-        reader = load_reader(self.reader_configs)
+        reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
-        with self.assertLogs(
-                'satpy.readers.fci_l1c_fdhsi',
-                level="ERROR") as cm:
+        with caplog.at_level("ERROR"):
             reader.load([DatasetID(
                     name="ir_123",
                     calibration="brightness_temperature")])
-        self.assertRegex(cm.output[0], "cannot produce brightness temperature")
+            assert "cannot produce brightness temperature" in caplog.text
