@@ -426,4 +426,4 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
             reader.load([DatasetID(
                     name="ir_123",
                     calibration="brightness_temperature")])
-            assert "cannot produce brightness temperatur" in caplog.text
+            assert "cannot produce brightness temperature" in caplog.text
