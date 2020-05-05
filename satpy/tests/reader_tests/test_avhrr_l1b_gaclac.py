@@ -18,7 +18,7 @@
 """Pygac interface."""
 
 from datetime import datetime
-from unittest import TestCase, main, TestLoader, TestSuite
+from unittest import TestCase
 import numpy as np
 from unittest import mock
 

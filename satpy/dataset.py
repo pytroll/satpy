@@ -17,7 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Dataset objects."""
 
-import sys
 import logging
 import numbers
 from collections import namedtuple
