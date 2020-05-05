@@ -1716,6 +1716,7 @@ class MaskCompositor(GenericCompositor):
         alpha = da.ones((data[0].sizes['y'],
                          data[0].sizes['x']),
                         chunks=data[0].chunks)
+        alpha = da.where(np.isnan(data[0]), np.nan, alpha)
 
         for condition in self.conditions:
             method = condition['method']
@@ -1727,8 +1728,13 @@ class MaskCompositor(GenericCompositor):
                 LOG.error("Method '%s' not found.", method)
                 raise
             mask = func(mask_data, value)
-            alpha_val = 1. - transparency / 100.
-            alpha = da.where(mask, alpha_val, alpha)
+            if transparency == 100.0:
+                for i in range(len(data)):
+                    data[i] = xr.where(mask, np.nan, data[i])
+                    data[i].attrs = alpha_attrs
+            else:
+                alpha_val = 1. - transparency / 100.
+                alpha = da.where(mask, alpha_val, alpha)
 
         alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
                              dims=data[0].dims, coords=data[0].coords)
