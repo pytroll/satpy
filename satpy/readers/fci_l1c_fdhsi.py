@@ -128,7 +128,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         logger.debug('Reading {} from {}'.format(key.name, self.filename))
         # Get the dataset
         # Get metadata for given dataset
-        measured = self.get_channel_group_path(key.name)
+        measured = self.get_channel_measured_group_path(key.name)
         data = self[measured + "/effective_radiance"]
 
         attrs = data.attrs.copy()
@@ -171,16 +171,16 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return res
 
-    def get_channel_group_path(self, channel):
-        """Get channel group path."""
-        group_path = 'data/{}/measured'.format(channel)
+    def get_channel_measured_group_path(self, channel):
+        """Get the channel's measured group path."""
+        measured_group_path = 'data/{}/measured'.format(channel)
 
-        return group_path
+        return measured_group_path
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
         # Get metadata for given dataset
-        measured = self.get_channel_group_path(key.name)
+        measured = self.get_channel_measured_group_path(key.name)
         # Get start/end line and column of loaded swath.
         nlines, ncols = self[measured + "/effective_radiance/shape"]
 
@@ -307,7 +307,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calibrate_rad_to_bt(self, radiance, key):
         """IR channel calibration."""
-        measured = self.get_channel_group_path(key.name)
+        measured = self.get_channel_measured_group_path(key.name)
 
         # using the method from RADTOBR and PUG
         vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
@@ -338,7 +338,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calibrate_rad_to_refl(self, radiance, key):
         """VIS channel calibration."""
-        measured = self.get_channel_group_path(key.name)
+        measured = self.get_channel_measured_group_path(key.name)
 
         cesi = self[measured + "/channel_effective_solar_irradiance"]
 
