@@ -18,20 +18,11 @@
 """Unit tests for multiscene.py."""
 
 import os
-import sys
 import tempfile
 import shutil
 from datetime import datetime
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 DEFAULT_SHAPE = (5, 10)
 
@@ -514,18 +505,3 @@ class TestBlendFuncs(unittest.TestCase):
         res = timeseries([self.ds1, self.ds2])
         self.assertIsInstance(res, xr.DataArray)
         self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
-
-
-def suite():
-    """Create the test suite for test_multiscene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMultiScene))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMultiSceneSave))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBlendFuncs))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

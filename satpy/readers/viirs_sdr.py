@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to VIIRS SDR format
-**********************************
+"""Interface to VIIRS SDR format.
 
 This reader implements the support of VIIRS SDR files as produced by CSPP and CLASS.
 It is comprised of two parts:
@@ -48,17 +47,15 @@ LOG = logging.getLogger(__name__)
 
 def _get_invalid_info(granule_data):
     """Get a detailed report of the missing data.
-        N/A: not applicable
-        MISS: required value missing at time of processing
-        OBPT: onboard pixel trim (overlapping/bow-tie pixel removed during
-            SDR processing)
-        OGPT: on-ground pixel trim (overlapping/bow-tie pixel removed
-            during EDR processing)
-        ERR: error occurred during processing / non-convergence
-        ELINT: ellipsoid intersect failed / instrument line-of-sight does
-            not intersect the Earth’s surface
-        VDNE: value does not exist / processing algorithm did not execute
-        SOUB: scaled out-of-bounds / solution not within allowed range
+
+    N/A: not applicable
+    MISS: required value missing at time of processing
+    OBPT: onboard pixel trim (overlapping/bow-tie pixel removed during SDR processing)
+    OGPT: on-ground pixel trim (overlapping/bow-tie pixel removed during EDR processing)
+    ERR: error occurred during processing / non-convergence
+    ELINT: ellipsoid intersect failed / instrument line-of-sight does not intersect the Earth’s surface
+    VDNE: value does not exist / processing algorithm did not execute
+    SOUB: scaled out-of-bounds / solution not within allowed range
     """
     if issubclass(granule_data.dtype.type, np.integer):
         msg = ("na:" + str((granule_data == 65535).sum()) +
@@ -116,11 +113,13 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
     """VIIRS HDF5 File Reader."""
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None, **kwargs):
+        """Initialize file handler."""
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
         super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info)
 
     def __getitem__(self, item):
+        """Get item."""
         if '*' in item:
             # this is an aggregated field that can't easily be loaded, need to
             # join things together
@@ -156,6 +155,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     @property
     def start_time(self):
+        """Get start time."""
         dataset_group = DATASET_KEYS[self.datasets[0]]
         default_start_date = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningDate'
         default_start_time = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningTime'
@@ -165,6 +165,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     @property
     def end_time(self):
+        """Get end time."""
         dataset_group = DATASET_KEYS[self.datasets[0]]
         default_end_date = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingDate'
         default_end_time = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingTime'
@@ -174,6 +175,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     @property
     def start_orbit_number(self):
+        """Get start orbit number."""
         dataset_group = DATASET_KEYS[self.datasets[0]]
         default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateBeginningOrbitNumber'
         start_orbit_path = self.filetype_info.get('start_orbit', default).format(dataset_group=dataset_group)
@@ -181,6 +183,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     @property
     def end_orbit_number(self):
+        """Get end orbit number."""
         dataset_group = DATASET_KEYS[self.datasets[0]]
         default = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateEndingOrbitNumber'
         end_orbit_path = self.filetype_info.get('end_orbit', default).format(dataset_group=dataset_group)
@@ -188,6 +191,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     @property
     def platform_name(self):
+        """Get platform name."""
         default = '/attr/Platform_Short_Name'
         platform_path = self.filetype_info.get(
             'platform_name', default).format(**self.filetype_info)
@@ -200,6 +204,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
     @property
     def sensor_name(self):
+        """Get sensor name."""
         dataset_group = DATASET_KEYS[self.datasets[0]]
         default = 'Data_Products/{dataset_group}/attr/Instrument_Short_Name'
         sensor_path = self.filetype_info.get(
@@ -207,6 +212,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         return self[sensor_path].lower()
 
     def get_file_units(self, dataset_id, ds_info):
+        """Get file units."""
         file_units = ds_info.get("file_units")
 
         # Guess the file units if we need to (normally we would get this from
@@ -234,7 +240,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         """
         num_grans = len(scaling_factors) // 2
         gran_size = data.shape[0] // num_grans
-        factors = scaling_factors.where(scaling_factors > -999)
+        factors = scaling_factors.where(scaling_factors > -999, np.float32(np.nan))
         factors = factors.data.reshape((-1, 2))
         factors = xr.DataArray(da.repeat(factors, gran_size, axis=0),
                                dims=(data.dims[0], 'factors'))
@@ -242,12 +248,13 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         return data
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
+        """Adjust scaling factors."""
         if file_units == output_units:
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
         if factors is None:
-            factors = xr.DataArray(da.from_array([1, 0], chunks=1))
-        factors = factors.where(factors != -999.)
+            return None
+        factors = factors.where(factors != -999., np.float32(np.nan))
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
@@ -287,6 +294,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             return expanded
 
     def concatenate_dataset(self, dataset_group, var_path):
+        """Concatenate dataset."""
         if 'I' in dataset_group:
             scan_size = 32
         else:
@@ -313,16 +321,17 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             return self.expand_single_values(variable, scans)
 
     def mask_fill_values(self, data, ds_info):
+        """Mask fill values."""
         is_floating = np.issubdtype(data.dtype, np.floating)
 
         if is_floating:
             # If the data is a float then we mask everything <= -999.0
-            fill_max = float(ds_info.pop("fill_max_float", -999.0))
-            return data.where(data > fill_max)
+            fill_max = np.float32(ds_info.pop("fill_max_float", -999.0))
+            return data.where(data > fill_max, np.float32(np.nan))
         else:
             # If the data is an integer then we mask everything >= fill_min_int
             fill_min = int(ds_info.pop("fill_min_int", 65528))
-            return data.where(data < fill_min)
+            return data.where(data < fill_min, np.float32(np.nan))
 
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset corresponding to *dataset_id*.
@@ -481,7 +490,7 @@ class VIIRSSDRReader(FileYAMLReader):
                 if not fdict[to_del]['datasets']:
                     del fdict[to_del]
             filename_items = fdict.items()
-        for filename, filename_info in filename_items:
+        for _filename, filename_info in filename_items:
             filename_info['datasets'] = '-'.join(filename_info['datasets'])
         return super(VIIRSSDRReader, self).filter_filenames_by_info(filename_items)
 

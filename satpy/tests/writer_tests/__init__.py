@@ -16,32 +16,3 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The writer tests package."""
-
-import sys
-
-from satpy.tests.writer_tests import (test_cf,
-                                      test_geotiff,
-                                      test_simple_image,
-                                      test_scmi,
-                                      test_mitiff,
-                                      test_utils,
-                                      test_ninjotiff,
-                                      )
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-
-def suite():
-    """Test suite for all writer tests."""
-    mysuite = unittest.TestSuite()
-    mysuite.addTests(test_cf.suite())
-    mysuite.addTests(test_geotiff.suite())
-    mysuite.addTests(test_ninjotiff.suite())
-    mysuite.addTests(test_simple_image.suite())
-    mysuite.addTests(test_scmi.suite())
-    mysuite.addTests(test_mitiff.suite())
-    mysuite.addTests(test_utils.suite())
-    return mysuite

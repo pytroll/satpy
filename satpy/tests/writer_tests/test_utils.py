@@ -17,7 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for writer utilities"""
 
-
 import unittest
 import satpy.writers.utils as wutils
 
@@ -30,16 +29,3 @@ class WriterUtilsTest(unittest.TestCase):
                     'b_d_e': 1,
                     'b_d_f_g': [1, 2]}
         self.assertDictEqual(wutils.flatten_dict(d), expected)
-
-
-def suite():
-    """The test suite for writer utilities.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(WriterUtilsTest))
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

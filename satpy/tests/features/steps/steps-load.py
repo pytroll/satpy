@@ -19,13 +19,8 @@
 """
 
 import os
-import sys
 from behave import use_step_matcher, given, when, then
-
-if sys.version_info < (3, 0):
-    from urllib2 import urlopen
-else:
-    from urllib.request import urlopen
+from urllib.request import urlopen
 
 use_step_matcher("re")
 

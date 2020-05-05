@@ -17,16 +17,9 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test objects and functions in the satpy.config module."""
 
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import os
+import unittest
+from unittest import mock
 
 
 class TestCheckSatpy(unittest.TestCase):
@@ -119,11 +112,18 @@ class TestBuiltinAreas(unittest.TestCase):
             _ = CRS.from_dict(proj_dict)
 
 
-def suite():
-    """Test suite for test_config."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestCheckSatpy))
-    my_suite.addTest(loader.loadTestsFromTestCase(TestBuiltinAreas))
+class TestPluginsConfigs(unittest.TestCase):
+    """Test that plugins are working."""
 
-    return my_suite
+    @mock.patch('satpy.config.pkg_resources.iter_entry_points')
+    def test_get_plugin_configs(self, iter_entry_points):
+        """Check that the plugin configs are looked for."""
+        import pkg_resources
+        ep = pkg_resources.EntryPoint.parse('example_composites = satpy_cpe')
+        ep.dist = pkg_resources.Distribution.from_filename('satpy_cpe-0.0.0-py3.8.egg')
+        ep.dist.module_path = os.path.join(os.path.sep + 'bla', 'bla')
+        iter_entry_points.return_value = [ep]
+
+        from satpy.config import get_entry_points_config_dirs
+        dirs = get_entry_points_config_dirs('satpy.composites')
+        self.assertListEqual(dirs, [os.path.join(ep.dist.module_path, 'satpy_cpe', 'etc')])

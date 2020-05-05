@@ -17,20 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The hrit ahi reader tests package."""
 
-import sys
 import numpy as np
 import dask.array as da
 from xarray import DataArray
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 
 class TestHRITJMAFileHandler(unittest.TestCase):
@@ -137,7 +128,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting an AreaDefinition."""
-        from satpy.readers.hrit_jma import FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS
+        from satpy.readers.hrit_jma import (FULL_DISK, NORTH_HEMIS, SOUTH_HEMIS,
+                                            AREA_NAMES)
 
         cases = [
             # Non-segmented, full disk
@@ -182,9 +174,9 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                 segno=case['segno'], numseg=case['numseg'])
             reader = self._get_reader(mda=mda,
                                       filename_info={'area': case['area']})
-
-            self.assertTupleEqual(reader._get_area_def().area_extent,
-                                  case['extent'])
+            area = reader.get_area_def('some_id')
+            self.assertTupleEqual(area.area_extent, case['extent'])
+            self.assertEqual(area.description, AREA_NAMES[case['area']]['long'])
 
     def test_calibrate(self):
         """Test calibration."""
@@ -279,15 +271,3 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         with mock.patch('logging.Logger.error') as log_mock:
             reader.get_dataset(key, {'units': '%', 'sensor': 'jami'})
             log_mock.assert_called()
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHRITJMAFileHandler))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

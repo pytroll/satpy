@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The agri_l1 reader tests package.
-"""
+"""The agri_l1 reader tests package."""
 
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 import numpy as np
@@ -24,11 +23,7 @@ import dask.array as da
 import xarray as xr
 import os
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -481,6 +476,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
                     }
 
         for index, band_name in enumerate(band_names):
+            self.assertEqual(1, res[band_name].attrs['sensor'].islower())
             self.assertEqual((2, 5), res[band_name].shape)
             self.assertEqual('reflectance', res[band_name].attrs['calibration'])
             self.assertEqual('%', res[band_name].attrs['units'])
@@ -527,17 +523,3 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
             self.assertEqual('reflectance', res[band_name].attrs['calibration'])
             self.assertEqual('%', res[band_name].attrs['units'])
             self.assertTrue(np.allclose(res[band_name].values, expected, equal_nan=True))
-
-
-def suite():
-    """The test suite for test_agri_l1."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(Test_HDF_AGRI_L1_cal))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    # So you can run tests from this module individually.
-    unittest.main()
