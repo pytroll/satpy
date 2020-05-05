@@ -1691,8 +1691,8 @@ class MaskingCompositor(GenericCompositor):
                 raise
             mask = func(mask_data, value)
             if transparency == 100.0:
-                for i in range(len(data)):
-                    data[i] = xr.where(mask, np.nan, data[i])
+                for i, dat in enumerate(data):
+                    data[i] = xr.where(mask, np.nan, dat)
                     data[i].attrs = alpha_attrs
             else:
                 alpha_val = 1. - transparency / 100.
