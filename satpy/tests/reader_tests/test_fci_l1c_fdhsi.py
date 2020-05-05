@@ -67,12 +67,12 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         ch_str = pat.format(ch)
         ch_path = rad.format(ch_str)
 
-        common_attrs ={
-                    "scale_factor": 5,
-                    "add_offset": 10,
-                    "long_name": "Effective Radiance",
-                    "units": "mW.m-2.sr-1.(cm-1)-1",
-                    "ancillary_variables": "pixel_quality",
+        common_attrs = {
+                "scale_factor": 5,
+                "add_offset": 10,
+                "long_name": "Effective Radiance",
+                "units": "mW.m-2.sr-1.(cm-1)-1",
+                "ancillary_variables": "pixel_quality"
                 }
         if ch == 38:
             fire_line = da.ones((1, ncols), dtype="uint16", chunks=1024) * 5000
