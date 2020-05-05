@@ -471,7 +471,7 @@ class Scene(MetadataObject):
             crs = src_area.crs if hasattr(src_area, 'crs') else src_area.proj_dict
             dst_area = AreaDefinition(
                 'crop_area', 'crop_area', 'crop_xy',
-                crs, src_area.x_size, src_area.y_size,
+                crs, src_area.width, src_area.height,
                 xy_bbox)
         x_slice, y_slice = src_area.get_area_slices(dst_area)
         return src_area[y_slice, x_slice], y_slice, x_slice
@@ -989,8 +989,8 @@ class Scene(MetadataObject):
         """Slice the data to reduce it."""
         slice_x, slice_y = slices
         dataset = dataset.isel(x=slice_x, y=slice_y)
-        assert ('x', source_area.x_size) in dataset.sizes.items()
-        assert ('y', source_area.y_size) in dataset.sizes.items()
+        assert ('x', source_area.width) in dataset.sizes.items()
+        assert ('y', source_area.height) in dataset.sizes.items()
         dataset.attrs['area'] = source_area
 
         return dataset
