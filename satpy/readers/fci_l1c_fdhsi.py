@@ -162,6 +162,23 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         info.pop("units")
         attrs.pop("units")
 
+        # For each channel, the effective_radiance contains in the
+        # "ancillary_variables" attribute the value "pixel_quality".  In
+        # FileYAMLReader._load_ancillary_variables, satpy will try to load
+        # "pixel_quality" but is lacking the context from what group to load
+        # it.  Until we can have multiple pixel_quality variables defined (for
+        # example, with https://github.com/pytroll/satpy/pull/1088), rewrite
+        # the ancillary variable to include the channel.  See also
+        # https://github.com/pytroll/satpy/issues/1171.
+        if attrs["ancillary_variables"] == "pixel_quality":
+            attrs["ancillary_variables"] = key.name + "_pixel_quality"
+        else:
+            raise ValueError(
+            "Unexpected value for attribute ancillary_variables, "
+            "which I intend to rewrite (see "
+            "https://github.com/pytroll/satpy/issues/1171 for why). "
+            f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
+
         res.attrs.update(key.to_dict())
         res.attrs.update(info)
         res.attrs.update(attrs)
