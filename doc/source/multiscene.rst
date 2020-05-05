@@ -30,7 +30,7 @@ providing the scene objects,
 or by using the :meth:`MultiScene.from_files <satpy.multiscene.MultiScene.from_files>`
 class method to create a ``MultiScene`` from a series of files. This uses the
 :func:`~satpy.readers.group_files` utility function to group files by start
-time.
+time or other filenames parameters.
 
    >>> from satpy import MultiScene
    >>> from glob import glob
