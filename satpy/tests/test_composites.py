@@ -1199,17 +1199,47 @@ class TestMaskingCompositor(unittest.TestCase):
         comp = MaskingCompositor("name", conditions=conditions.copy())
         assert comp.conditions == conditions
 
+    def test_get_flag_value(self):
+        """Test reading flag value from attributes based on a name."""
+        from satpy.composites import _get_flag_value
+
+        flag_values = da.array([1, 2])
+        mask = da.array([[1, 2, 2],
+                         [2, 1, 2],
+                         [2, 2, 1]])
+        mask = xr.DataArray(mask, dims=['y', 'x'])
+        flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
+        mask.attrs['flag_meanings'] = flag_meanings
+        mask.attrs['flag_values'] = flag_values
+
+        assert _get_flag_value(mask, 'Cloud-free_land') == 1
+        assert _get_flag_value(mask, 'Cloud-free_sea') == 2
+
+        flag_meanings_str = 'Cloud-free_land Cloud-free_sea'
+        mask.attrs['flag_meanings'] = flag_meanings_str
+        assert _get_flag_value(mask, 'Cloud-free_land') == 1
+        assert _get_flag_value(mask, 'Cloud-free_sea') == 2
+
     def test_call(self):
         """Test call the compositor."""
         from satpy.composites import MaskingCompositor
         from satpy.tests.utils import CustomScheduler
 
         flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
+        flag_meanings_str = 'Cloud-free_land Cloud-free_sea'
         flag_values = da.array([1, 2])
-        transparency_data_v1 = {'Cloud-free_land': 100,
-                                'Cloud-free_sea': 50}
-        transparency_data_v2 = {1: 100,
-                                2: 50}
+        conditions_v1 = [{'method': 'equal',
+                          'value': 'Cloud-free_land',
+                          'transparency': 100},
+                         {'method': 'equal',
+                          'value': 'Cloud-free_sea',
+                          'transparency': 50}]
+        conditions_v2 = [{'method': 'equal',
+                          'value': 1,
+                          'transparency': 100},
+                         {'method': 'equal',
+                          'value': 2,
+                          'transparency': 50}]
 
         # 2D data array
         data = xr.DataArray(da.random.random((3, 3)), dims=['y', 'x'])
@@ -1232,7 +1262,7 @@ class TestMaskingCompositor(unittest.TestCase):
 
         # Test with numerical transparency data
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = MaskingCompositor("name", transparency=transparency_data_v1)
+            comp = MaskingCompositor("name", conditions=conditions_v1)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'LA')
         np.testing.assert_allclose(res.sel(bands='L'), reference_data)
@@ -1240,7 +1270,16 @@ class TestMaskingCompositor(unittest.TestCase):
 
         # Test with named fields
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = MaskingCompositor("name", transparency=transparency_data_v2)
+            comp = MaskingCompositor("name", conditions=conditions_v2)
+            res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'LA')
+        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # Test with named fields which are as a string in the mask attributes
+        ct_data.attrs['flag_meanings'] = flag_meanings_str
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'LA')
         np.testing.assert_allclose(res.sel(bands='L'), reference_data)
@@ -1255,7 +1294,7 @@ class TestMaskingCompositor(unittest.TestCase):
                                     'x': np.arange(3)})
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = MaskingCompositor("name", transparency=transparency_data_v1)
+            comp = MaskingCompositor("name", conditions=conditions_v1)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'RGBA')
         np.testing.assert_allclose(res.sel(bands='R'),
@@ -1274,7 +1313,7 @@ class TestMaskingCompositor(unittest.TestCase):
                                     'x': np.arange(3)})
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = MaskingCompositor("name", transparency=transparency_data_v2)
+            comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'RGBA')
         np.testing.assert_allclose(res.sel(bands='R'),
@@ -1285,6 +1324,16 @@ class TestMaskingCompositor(unittest.TestCase):
                                    data.sel(bands='B').where(ct_data > 1))
         # The compositor should drop the original alpha band
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # incorrect method
+        conditions = [{'method': 'foo', 'value': 0, 'transparency': 100}]
+        comp = MaskingCompositor("name", conditions=conditions)
+        with self.assertRaises(AttributeError):
+            res = comp([data, ct_data])
+
+        # too few projectables
+        with self.assertRaises(ValueError):
+            res = comp([data])
 
 
 class TestNaturalEnhCompositor(unittest.TestCase):
