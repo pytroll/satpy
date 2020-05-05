@@ -28,6 +28,12 @@ datasets:
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
 
+  vis_04_pixel_quality:
+    name: vis_04_pixel_quality
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
   vis_05:
     name: vis_05
     sensor: fci
