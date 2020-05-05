@@ -28,6 +28,8 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
+    """Class for faking the NetCDF4 Filehandler."""
+
     def _get_test_calib_for_channel_ir(self, chroot, meas):
         from pyspectral.blackbody import (
                 H_PLANCK as h,
@@ -35,17 +37,17 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 C_SPEED as c)
         xrda = xr.DataArray
         data = {}
-        data[meas + "/radiance_unit_conversion_coefficient"] = xrda(1)
-        data[chroot + "/central_wavelength_actual"] = xrda(10)
-        data[meas + "/radiance_to_bt_conversion_coefficient_a"] = xrda(1000)
-        data[meas + "/radiance_to_bt_conversion_coefficient_b"] = xrda(1)
-        data[meas + "/radiance_to_bt_conversion_constant_c1"] = xrda(2*h*c**2)
-        data[meas + "/radiance_to_bt_conversion_constant_c2"] = xrda(h*c/k)
+        data[meas + "/radiance_to_bt_conversion_coefficient_wavenumber"] = xrda(955)
+        data[meas + "/radiance_to_bt_conversion_coefficient_a"] = xrda(1)
+        data[meas + "/radiance_to_bt_conversion_coefficient_b"] = xrda(0.4)
+        data[meas + "/radiance_to_bt_conversion_constant_c1"] = xrda(1e11*2*h*c**2)
+        data[meas + "/radiance_to_bt_conversion_constant_c2"] = xrda(1e2*h*c/k)
         return data
 
     def _get_test_calib_for_channel_vis(self, chroot, meas):
         xrda = xr.DataArray
         data = {}
+        data["state/celestial/earth_sun_distance"] = xrda(149597870.7)
         data[meas + "/channel_effective_solar_irradiance"] = xrda(50)
         return data
 
@@ -63,16 +65,38 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         data = {}
         ch_str = pat.format(ch)
         ch_path = rad.format(ch_str)
-        d = xrda(
+
+        if ch == 38:
+            fire_line = da.ones((1, ncols), dtype="uint16", chunks=1024) * 5000
+            data_without_fires = da.ones((nrows-1, ncols), dtype="uint16", chunks=1024)
+            d = xrda(
+                da.concatenate([fire_line, data_without_fires], axis=0),
+                dims=("y", "x"),
+                attrs={
+                    "valid_range": [0, 8191],
+                    "scale_factor": 5,
+                    "add_offset": 10,
+                    "warm_scale_factor": 2,
+                    "warm_add_offset": -300,
+                    "long_name": "Effective Radiance",
+                    "units": "mW.m-2.sr-1.(cm-1)-1",
+                }
+            )
+        else:
+            d = xrda(
                 da.ones((nrows, ncols), dtype="uint16", chunks=1024),
                 dims=("y", "x"),
                 attrs={
                     "valid_range": [0, 4095],
                     "scale_factor": 5,
                     "add_offset": 10,
+                    "warm_scale_factor": 1,
+                    "warm_add_offset": 0,
+                    "long_name": "Effective Radiance",
                     "units": "mW.m-2.sr-1.(cm-1)-1",
-                    }
-                )
+                }
+            )
+
         data[ch_path] = d
         data[x.format(ch_str)] = xrda(
                 da.arange(1, ncols+1, dtype="uint16"),
@@ -156,6 +180,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         return data
 
     def get_test_content(self, filename, filename_info, filetype_info):
+        """Get the content of the test data."""
         # mock global attributes
         # - root groups global
         # - other groups global
@@ -172,14 +197,13 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
 
 class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
-    """Mock bad data
-    """
+    """Mock bad data."""
+
     def _get_test_calib_for_channel_ir(self, chroot, meas):
         from netCDF4 import default_fillvals
         v = xr.DataArray(default_fillvals["f4"])
         data = {}
-        data[meas + "/radiance_unit_conversion_coefficient"] = v
-        data[chroot + "/central_wavelength_actual"] = v
+        data[meas + "/radiance_to_bt_conversion_coefficient_wavenumber"] = v
         data[meas + "/radiance_to_bt_conversion_coefficient_a"] = v
         data[meas + "/radiance_to_bt_conversion_coefficient_b"] = v
         data[meas + "/radiance_to_bt_conversion_constant_c1"] = v
@@ -189,8 +213,7 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
 
 @pytest.fixture
 def reader_configs():
-    """Return reader configs for FCI.
-    """
+    """Return reader configs for FCI."""
 
     from satpy.config import config_search_paths
     return config_search_paths(
@@ -198,12 +221,16 @@ def reader_configs():
 
 
 class TestFCIL1CFDHSIReader:
+    """Initialize the unittest TestCase for the FCI L1C FDHSI Reader."""
+
     yaml_file = "fci_l1c_fdhsi.yaml"
 
     _alt_handler = FakeNetCDF4FileHandler2
 
     @pytest.fixture(autouse=True, scope="class")
     def fake_handler(self):
+        """Wrap NetCDF4 FileHandler with our own fake handler."""
+        # implementation strongly inspired by test_viirs_l1b.py
         from satpy.readers.fci_l1c_fdhsi import FCIFDHSIFileHandler
         p = mock.patch.object(
                 FCIFDHSIFileHandler,
@@ -215,18 +242,15 @@ class TestFCIL1CFDHSIReader:
 
 
 class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
-    """Test FCI L1C FDHSI reader
-    """
+    """Test FCI L1C FDHSI reader."""
 
     # TODO:
-    # - test special case for extended range IR38
     # - test geolocation
 
     _alt_handler = FakeNetCDF4FileHandler2
 
     def test_file_pattern(self, reader_configs):
-        """Test file pattern matching
-        """
+        """Test file pattern matching."""
         from satpy.readers import load_reader
 
         filenames = [
@@ -258,8 +282,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
                          "ir_123", "ir_133"]}
 
     def test_load_counts(self, reader_configs):
-        """Test loading with counts
-        """
+        """Test loading with counts."""
         from satpy import DatasetID
         from satpy.readers import load_reader
 
@@ -285,11 +308,14 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             assert res[ch].dtype == np.uint16
             assert res[ch].attrs["calibration"] == "counts"
             assert res[ch].attrs["units"] == "1"
-            numpy.testing.assert_array_equal(res[ch], 1)
+            if ch == 'ir_38':
+                numpy.testing.assert_array_equal(res[ch][~0], 1)
+                numpy.testing.assert_array_equal(res[ch][0], 5000)
+            else:
+                numpy.testing.assert_array_equal(res[ch], 1)
 
     def test_load_radiance(self, reader_configs):
-        """Test loading with radiance
-        """
+        """Test loading with radiance."""
         from satpy import DatasetID
         from satpy.readers import load_reader
 
@@ -311,11 +337,14 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             assert res[ch].dtype == np.float64
             assert res[ch].attrs["calibration"] == "radiance"
             assert res[ch].attrs["units"] == 'mW.m-2.sr-1.(cm-1)-1'
-            numpy.testing.assert_array_equal(res[ch], 15)
+            if ch == 'ir_38':
+                numpy.testing.assert_array_equal(res[ch][~0], 15)
+                numpy.testing.assert_array_equal(res[ch][0], 9700)
+            else:
+                numpy.testing.assert_array_equal(res[ch], 15)
 
     def test_load_reflectance(self, reader_configs):
-        """Test loading with reflectance
-        """
+        """Test loading with reflectance."""
         from satpy import DatasetID
         from satpy.readers import load_reader
 
@@ -337,11 +366,10 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             assert res[ch].dtype == np.float64
             assert res[ch].attrs["calibration"] == "reflectance"
             assert res[ch].attrs["units"] == "%"
-            numpy.testing.assert_array_equal(res[ch], 15 / 50 * 100)
+            numpy.testing.assert_array_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
 
     def test_load_bt(self, reader_configs):
-        """Test loading with bt
-        """
+        """Test loading with bt."""
         from satpy import DatasetID
         from satpy.readers import load_reader
         filenames = [
@@ -362,14 +390,15 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             assert res[ch].dtype == np.float64
             assert res[ch].attrs["calibration"] == "brightness_temperature"
             assert res[ch].attrs["units"] == "K"
-            numpy.testing.assert_array_almost_equal(
-                    res[ch],
-                    181.917084)
+
+            if ch == 'ir_38':
+                numpy.testing.assert_array_almost_equal(res[ch][~0], 209.68274099)
+                numpy.testing.assert_array_almost_equal(res[ch][0], 1888.851296)
+            else:
+                numpy.testing.assert_array_almost_equal(res[ch], 209.68274099)
 
     def test_load_composite(self):
-        """Test that composites are loadable
-        """
-
+        """Test that composites are loadable."""
         # when dedicated composites for FCI FDHSI are implemented in satpy,
         # this method should probably move to a dedicated class and module
         # in the tests.compositor_tests package
@@ -402,11 +431,12 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
+    """Test the FCI L1C FDHSI Reader for bad data input."""
+
     _alt_handler = FakeNetCDF4FileHandler3
 
     def test_handling_bad_data_ir(self, reader_configs, caplog):
-        """Test handling of bad data
-        """
+        """Test handling of bad data."""
         from satpy import DatasetID
         from satpy.readers import load_reader
 
