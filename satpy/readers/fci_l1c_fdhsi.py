@@ -164,10 +164,10 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             attrs["ancillary_variables"] = key.name + "_pixel_quality"
         else:
             raise ValueError(
-            "Unexpected value for attribute ancillary_variables, "
-            "which I intend to rewrite (see "
-            "https://github.com/pytroll/satpy/issues/1171 for why). "
-            f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
+                "Unexpected value for attribute ancillary_variables, "
+                "which I intend to rewrite (see "
+                "https://github.com/pytroll/satpy/issues/1171 for why). "
+                f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
 
         res.attrs.update(key.to_dict())
         res.attrs.update(info)
