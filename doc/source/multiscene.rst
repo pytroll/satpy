@@ -40,6 +40,46 @@ iteratively overlays the remaining datasets on top.
     >>> blended_scene = new_mscn.blend()
     >>> blended_scene.save_datasets()
 
+Grouping Datasets
+^^^^^^^^^^^^^^^^^
+
+By default, ``MultiScene`` only operates on datasets shared by all scenes.
+Use the :meth:`~satpy.multiscene.MultiScene.group` method to specify groups
+of datasets that shall be treated equally by ``MultiScene``, even if their
+names or wavelengths are different.
+
+Example: Stacking scenes from multiple geostationary satellites acquired at
+roughly the same time. First, create scenes and load datasets individually:
+
+    >>> from satpy import Scene
+    >>> from glob import glob
+    >>> h8_scene = satpy.Scene(filenames=glob('/data/HS_H08_20200101_1200*'),
+    ...                        reader='ahi_hsd')
+    >>> h8_scene.load(['B13'])
+    >>> g16_scene = satpy.Scene(filenames=glob('/data/OR_ABI*s20200011200*.nc'),
+    ...                         reader='abi_l1b')
+    >>> g16_scene.load(['C13'])
+    >>> met10_scene = satpy.Scene(filenames=glob('/data/H-000-MSG4*-202001011200-__'),
+    ...                           reader='seviri_l1b_hrit')
+    >>> met10_scene.load(['IR_108'])
+
+Now create a ``MultiScene`` and group the three similar IR channels together:
+
+    >>> from satpy import MultiScene, DatasetID
+    >>> multi_scene = MultiScene([h8_scene, g16_scene, met10_scene])
+    >>> groups = {DatasetID('IR_group', wavelength=(10, 11, 12)): ['B13', 'C13', 'IR_108']}
+    >>> multi_scene.group(groups)
+
+Finally, resample the datasets to a common grid and blend them together:
+
+    >>> from pyresample.geometry import AreaDefinition
+    >>> my_area = AreaDefinition(...)
+    >>> resampled = multi_scene.resample(my_area, reduce_data=False)
+    >>> blended = resampled.blend()  # you can also use a custom blend function
+
+You can access the results via ``blended['IR_group']``.
+
+
 Timeseries
 **********
 
