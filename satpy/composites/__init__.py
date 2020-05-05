@@ -1596,30 +1596,34 @@ class BackgroundCompositor(GenericCompositor):
 class MaskingCompositor(GenericCompositor):
     """A compositor that masks e.g. IR 10.8 channel data using cloud products from NWC SAF."""
 
-    def __init__(self, name, transparency=None, **kwargs):
+    def __init__(self, name, transparency=None, conditions=None, **kwargs):
         """Collect custom configuration values.
 
-        Args:
-            transparency: transparency for each cloud type as key-value pairs
-                          in a dictionary
+        Kwargs:
+            transparency (dict): transparency for each cloud type as
+                                 key-value pairs in a dictionary.
+                                 Will be converted to `conditions`.
+                                 DEPRECATED.
+            conditions (list): list of three items determining the masking
+                               settings.
 
-        The `transparencies` can be either the numerical values in the
-        data used as a mask with the corresponding transparency
-        (0...100 %) as the value, or, for NWC SAF products, the flag
-        names in the dataset `flag_meanings` attribute.
-
-        Transparency value of `0` means that the composite being
-        masked will be fully visible, and `100` means it will be
-        completely transparent and not visible in the resulting image.
-
-        For the mask values not listed in `transparencies`, the data will
-        be completely opaque (transparency = 0).
+        Each condition in *conditions* consists of of three items:
+        - `method`: the Numpy-equivalent method name for <, >, <=, ==, >= or >
+        - `value`: threshold value of the *mask* applied with the
+          operator. Can be a string, in which case the corresponding
+          value will be determined from `flag_meanings` and
+          `flag_values` attributes of the mask.
+        - `transparency`: transparency from interval [0 ... 100] used
+          for the method/threshold. Value of 100 is fully transparent.
 
         Example::
 
-          >>> transparency = {0: 100,
-                              1: 80,
-                              2: 0}
+          >>> conditions = [{'method': 'greater_equal', 'value': 0,
+                             'transparency': 100},
+                            {'method': 'greater_equal', 'value': 1,
+                             'transparency': 80},
+                            {'method': 'greater_equal', 'value': 2,
+                             'transparency': 0}]
           >>> compositor = MaskingCompositor("masking compositor",
                                              transparency=transparency)
           >>> result = compositor([data, mask])
@@ -1632,13 +1636,25 @@ class MaskingCompositor(GenericCompositor):
         visible.
 
         The transparency is implemented by adding an alpha layer to
-        the composite.  If the input `data` contains an alpha channel,
-        it will be discarded.
+        the composite.  The locations with transparency of `100` will
+        be set to NaN in the data.  If the input `data` contains an
+        alpha channel, it will be discarded.
 
         """
-        if transparency is None:
-            raise ValueError("No transparency configured for simple masking compositor")
-        self.transparency = transparency
+        if transparency:
+            LOG.warning("Using 'transparency' is deprecated in "
+                        "MaskingCompositor, use 'conditions' instead.")
+            self.conditions = []
+            for key, transp in transparency.items():
+                self.conditions.append({'method': 'equal',
+                                        'value': key,
+                                        'transparency': transp})
+            LOG.info("Converted 'transparency' to 'conditions': %s",
+                     str(self.conditions))
+        else:
+            self.conditions = conditions
+        if self.conditions is None:
+            raise ValueError("Masking conditions not defined.")
 
         super(MaskingCompositor, self).__init__(name, **kwargs)
 
@@ -1647,80 +1663,26 @@ class MaskingCompositor(GenericCompositor):
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
         projectables = self.match_data_arrays(projectables)
-        cloud_mask = projectables[1]
-        cloud_mask_data = cloud_mask.data
-        data = projectables[0]
-        alpha_attrs = data.attrs.copy()
-        if 'bands' in data.dims:
-            data = [data.sel(bands=b) for b in data['bands'] if b != 'A']
+        data_in = projectables[0]
+        mask_in = projectables[1]
+        mask_data = mask_in.data
+
+        alpha_attrs = data_in.attrs.copy()
+        if 'bands' in data_in.dims:
+            data = [data_in.sel(bands=b) for b in data_in['bands'] if b != 'A']
         else:
-            data = [data]
+            data = [data_in]
 
         # Create alpha band
         alpha = da.ones((data[0].sizes['y'],
                          data[0].sizes['x']),
                         chunks=data[0].chunks)
 
-        # Modify alpha based on transparency per class from yaml
-        flag_meanings = cloud_mask.attrs['flag_meanings']
-        flag_values = cloud_mask.attrs['flag_values']
-
-        if isinstance(flag_meanings, str):
-            flag_meanings = flag_meanings.split()
-
-        for key, val in self.transparency.items():
-            if isinstance(key, str):
-                key_index = flag_meanings.index(key)
-                key = flag_values[key_index]
-            alpha_val = 1. - val / 100.
-            alpha = da.where(cloud_mask_data == key, alpha_val, alpha)
-        alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
-                             dims=data[0].dims, coords=data[0].coords)
-        data.append(alpha)
-        res = super(MaskingCompositor, self).__call__(data, **kwargs)
-        return res
-
-
-class MaskCompositor(GenericCompositor):
-    """Modifier that applies masking to the given datasets."""
-
-    def __init__(self, name, conditions=None, **kwargs):
-        """Collect custom configuration values.
-
-        Args:
-            conditions (list): list of three items determining the masking
-                               settings.
-
-        The each condition in *conditions* consists of of three items:
-        - operator: the Numpy-equivalent method name for <, >, <=, ==, >= or >
-        - threshold / value of the *mask* applied with the operator
-        - transparency from interval [0 ... 100] used for the
-          operator/threshold, where 100 is fully transparent
-        """
-        self.conditions = conditions or []
-        super(MaskCompositor, self).__init__(name, **kwargs)
-
-    def __call__(self, projectables, *args, **kwargs):
-        """Generate the composite."""
-        projectables = self.match_data_arrays(projectables)
-        data, mask_in = projectables
-        mask_data = mask_in.data
-
-        alpha_attrs = data.attrs.copy()
-        if 'bands' in data.dims:
-            data = [data.sel(bands=b) for b in data['bands'] if b != 'A']
-        else:
-            data = [data]
-
-        # Create alpha band, default to opaque
-        alpha = da.ones((data[0].sizes['y'],
-                         data[0].sizes['x']),
-                        chunks=data[0].chunks)
-        alpha = da.where(np.isnan(data[0]), np.nan, alpha)
-
         for condition in self.conditions:
             method = condition['method']
             value = condition['value']
+            if isinstance(value, str):
+                value = self._get_flag_value(mask_in, value)
             transparency = condition['transparency']
             try:
                 func = getattr(np, method)
@@ -1738,9 +1700,18 @@ class MaskCompositor(GenericCompositor):
 
         alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
                              dims=data[0].dims, coords=data[0].coords)
+
         data.append(alpha)
-        res = super(MaskCompositor, self).__call__(data, **kwargs)
-
-        LOG.debug("Masking applied.")
-
+        res = super(MaskingCompositor, self).__call__(data, **kwargs)
         return res
+
+    def _get_flag_value(self, mask, val):
+        # Modify alpha based on transparency per class from yaml
+        flag_meanings = mask.attrs['flag_meanings']
+        flag_values = mask.attrs['flag_values']
+        if isinstance(flag_meanings, str):
+            flag_meanings = flag_meanings.split()
+
+        index = flag_meanings.index(val)
+
+        return flag_values[index]
