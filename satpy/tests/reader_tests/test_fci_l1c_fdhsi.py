@@ -242,9 +242,6 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-BODY--L2P-NC4E_C_EUMT_20170410114500_GTT_DEV_"
             "20170410113951_20170410114000_N__C_0070_0070.nc",
-            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-HRFI-FD--"
-            "CHK-BODY--L2P-NC4E_C_EUMT_19700101000000_GTT_DEV_"
-            "19700000000000_19700000000000_N__C_0042_0070.nc",
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
             "CHK-TRAIL--L2P-NC4E_C_EUMT_20170410114600_GTT_DEV_"
             "20170410113000_20170410114000_N__C_0070_0071.nc",
@@ -252,7 +249,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
         reader = load_reader(reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        # only 4 out of 6 above should match
+        # only 4 out of 5 above should match
         assert len(files) == 4
 
     _chans = {"solar": ["vis_04", "vis_05", "vis_06", "vis_08", "vis_09",
