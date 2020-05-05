@@ -1182,13 +1182,22 @@ class TestMaskingCompositor(unittest.TestCase):
         """Test the initializiation of compositor."""
         from satpy.composites import MaskingCompositor
 
-        # No transparency given raises ValueError
+        # No transparency or conditions given raises ValueError
         with self.assertRaises(ValueError):
             comp = MaskingCompositor("name")
 
         # transparency defined
-        comp = MaskingCompositor("name", transparency=0)
-        self.assertEqual(comp.transparency, 0)
+        transparency = {0: 100, 1: 50}
+        conditions = [{'method': 'equal', 'value': 0, 'transparency': 100},
+                      {'method': 'equal', 'value': 1, 'transparency': 50}]
+        comp = MaskingCompositor("name", transparency=transparency.copy())
+        assert not hasattr(comp, 'transparency')
+        # Transparency should be converted to conditions
+        assert comp.conditions == conditions
+
+        # conditions defined
+        comp = MaskingCompositor("name", conditions=conditions.copy())
+        assert comp.conditions == conditions
 
     def test_call(self):
         """Test call the compositor."""
@@ -1213,17 +1222,20 @@ class TestMaskingCompositor(unittest.TestCase):
         ct_data.attrs['flag_meanings'] = flag_meanings
         ct_data.attrs['flag_values'] = flag_values
 
-        reference_alpha = da.array([[0, 0.5, 0.5],
-                                    [0.5, 0, 0.5],
-                                    [0.5, 0.5, 0]])
+        reference_alpha = da.array([[1, 0.5, 0.5],
+                                    [0.5, 1, 0.5],
+                                    [0.5, 0.5, 1]])
         reference_alpha = xr.DataArray(reference_alpha, dims=['y', 'x'])
+
+        # The data are set to NaN where ct is `1`
+        reference_data = data.where(ct_data > 1)
 
         # Test with numerical transparency data
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
             comp = MaskingCompositor("name", transparency=transparency_data_v1)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'LA')
-        np.testing.assert_allclose(res.sel(bands='L'), data)
+        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
         # Test with named fields
@@ -1231,7 +1243,7 @@ class TestMaskingCompositor(unittest.TestCase):
             comp = MaskingCompositor("name", transparency=transparency_data_v2)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'LA')
-        np.testing.assert_allclose(res.sel(bands='L'), data)
+        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
         # Test RGB dataset
@@ -1246,9 +1258,12 @@ class TestMaskingCompositor(unittest.TestCase):
             comp = MaskingCompositor("name", transparency=transparency_data_v1)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'RGBA')
-        np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
-        np.testing.assert_allclose(res.sel(bands='G'), data.sel(bands='G'))
-        np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
+        np.testing.assert_allclose(res.sel(bands='R'),
+                                   data.sel(bands='R').where(ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands='G'),
+                                   data.sel(bands='G').where(ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands='B'),
+                                   data.sel(bands='B').where(ct_data > 1))
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
         # Test RGBA dataset
@@ -1262,9 +1277,12 @@ class TestMaskingCompositor(unittest.TestCase):
             comp = MaskingCompositor("name", transparency=transparency_data_v2)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'RGBA')
-        np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
-        np.testing.assert_allclose(res.sel(bands='G'), data.sel(bands='G'))
-        np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
+        np.testing.assert_allclose(res.sel(bands='R'),
+                                   data.sel(bands='R').where(ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands='G'),
+                                   data.sel(bands='G').where(ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands='B'),
+                                   data.sel(bands='B').where(ct_data > 1))
         # The compositor should drop the original alpha band
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
