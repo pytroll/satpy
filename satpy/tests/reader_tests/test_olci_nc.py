@@ -16,17 +16,8 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Module for testing the satpy.readers.olci_nc module."""
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    import unittest.mock as mock
-except ImportError:
-    import mock
+import unittest
+import unittest.mock as mock
 
 
 class TestOLCIReader(unittest.TestCase):
@@ -41,12 +32,12 @@ class TestOLCIReader(unittest.TestCase):
         import xarray as xr
 
         cal_data = xr.Dataset(
-                   {
-                       'solar_flux': (('bands'), [0, 1, 2]),
-                       'detector_index': (('bands'), [0, 1, 2]),
-                   },
-                   {'bands': [0, 1, 2], },
-                   )
+            {
+                'solar_flux': (('bands'), [0, 1, 2]),
+                'detector_index': (('bands'), [0, 1, 2]),
+            },
+            {'bands': [0, 1, 2], },
+        )
 
         ds_id = DatasetID(name='Oa01', calibration='reflectance')
         ds_id2 = DatasetID(name='wsqf', calibration='reflectance')
@@ -114,7 +105,7 @@ class TestOLCIReader(unittest.TestCase):
             'al_subsampling_factor': 2,
         }
         mocked_dataset.return_value = xr.Dataset({'SAA': (['tie_rows', 'tie_columns'],
-                                                  np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                                                          np.array([1 << x for x in range(30)]).reshape(5, 6)),
                                                   'SZA': (['tie_rows', 'tie_columns'],
                                                           np.array([1 << x for x in range(30)]).reshape(5, 6)),
                                                   'OAA': (['tie_rows', 'tie_columns'],
@@ -134,6 +125,39 @@ class TestOLCIReader(unittest.TestCase):
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
+    @mock.patch('xarray.open_dataset')
+    def test_olci_meteo(self, mocked_dataset):
+        """Test reading datasets."""
+        from satpy.readers.olci_nc import NCOLCIMeteo
+        from satpy import DatasetID
+        import numpy as np
+        import xarray as xr
+        attr_dict = {
+            'ac_subsampling_factor': 1,
+            'al_subsampling_factor': 2,
+        }
+        data = {'humidity': (['tie_rows', 'tie_columns'],
+                             np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                'total_ozone': (['tie_rows', 'tie_columns'],
+                                np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                'sea_level_pressure': (['tie_rows', 'tie_columns'],
+                                       np.array([1 << x for x in range(30)]).reshape(5, 6)),
+                'total_columnar_water_vapour': (['tie_rows', 'tie_columns'],
+                                                np.array([1 << x for x in range(30)]).reshape(5, 6))}
+        mocked_dataset.return_value = xr.Dataset(data,
+                                                 coords={'rows': np.arange(5),
+                                                         'columns': np.arange(6)},
+                                                 attrs=attr_dict)
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'humidity', 'start_time': 0, 'end_time': 0}
+
+        ds_id = DatasetID(name='humidity')
+        ds_id2 = DatasetID(name='total_ozone')
+        test = NCOLCIMeteo('somedir/somefile.nc', filename_info, 'c')
+        test.get_dataset(ds_id, filename_info)
+        test.get_dataset(ds_id2, filename_info)
+        mocked_dataset.assert_called()
+        mocked_dataset.reset_mock()
+
 
 class TestBitFlags(unittest.TestCase):
     """Test the bitflag reading."""
@@ -141,7 +165,7 @@ class TestBitFlags(unittest.TestCase):
     def test_bitflags(self):
         """Test the BitFlags class."""
         import numpy as np
-        from six.moves import reduce
+        from functools import reduce
         from satpy.readers.olci_nc import BitFlags
         flag_list = ['INVALID', 'WATER', 'LAND', 'CLOUD', 'SNOW_ICE',
                      'INLAND_WATER', 'TIDAL', 'COSMETIC', 'SUSPECT', 'HISOLZEN',
@@ -166,16 +190,3 @@ class TestBitFlags(unittest.TestCase):
                              False, False,  True,  True, False, False, True,
                              False])
         self.assertTrue(all(mask == expected))
-
-
-def suite():
-    """Test suite for test_nc_slstr."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBitFlags))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestOLCIReader))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

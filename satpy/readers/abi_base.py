@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
 # Copyright (c) 2016-2018 Satpy developers
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Advance Baseline Imager reader base class for the Level 1b and l2+ reader."""
 
 import logging
@@ -46,17 +46,17 @@ class NC_ABI_BASE(BaseFileHandler):
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=False,
-                                      chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE},)
+                                      chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE}, )
         except ValueError:
             self.nc = xr.open_dataset(self.filename,
                                       decode_cf=True,
                                       mask_and_scale=False,
-                                      chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE},)
+                                      chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
 
-        self.nc = self.nc.rename({'t': 'time'})
+        if 't' in self.nc.dims or 't' in self.nc.coords:
+            self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
-        self.sensor = 'abi'
 
         if 'goes_imager_projection' in self.nc:
             self.nlines = self.nc['y'].size
@@ -68,13 +68,17 @@ class NC_ABI_BASE(BaseFileHandler):
 
         self.coords = {}
 
+    @property
+    def sensor(self):
+        """Get sensor name for current file handler."""
+        return 'abi'
+
     def __getitem__(self, item):
         """Wrap `self.nc[item]` for better floating point precision.
 
         Some datasets use a 32-bit float scaling factor like the 'x' and 'y'
         variables which causes inaccurate unscaled data values. This method
         forces the scale factor to a 64-bit float first.
-
         """
         def is_int(val):
             return np.issubdtype(val.dtype, np.integer) if hasattr(val, 'dtype') else isinstance(val, int)
@@ -123,7 +127,7 @@ class NC_ABI_BASE(BaseFileHandler):
         # 'x' and 'y' will be overwritten by base class AreaDefinition
         for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
             if coord_name in data.coords:
-                del data.coords[coord_name]
+                data = data.drop_vars(coord_name)
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():
@@ -245,6 +249,17 @@ class NC_ABI_BASE(BaseFileHandler):
     def end_time(self):
         """End time of the current file's observations."""
         return datetime.strptime(self.nc.attrs['time_coverage_end'], '%Y-%m-%dT%H:%M:%S.%fZ')
+
+    def spatial_resolution_to_number(self):
+        """Convert the 'spatial_resolution' global attribute to meters."""
+        res = self.nc.attrs['spatial_resolution'].split(' ')[0]
+        if res.endswith('km'):
+            res = int(float(res[:-2]) * 1000)
+        elif res.endswith('m'):
+            res = int(res[:-1])
+        else:
+            raise ValueError("Unexpected 'spatial_resolution' attribute '{}'".format(res))
+        return res
 
     def __del__(self):
         """Close the NetCDF file that may still be open."""

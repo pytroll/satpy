@@ -1,20 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#
 # Copyright (c) 2019 Satpy developers
 #
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Advanced Meteorological Imager reader for the Level 1b NetCDF4 format."""
 
 import logging
@@ -25,7 +25,7 @@ import xarray as xr
 import dask.array as da
 import pyproj
 
-from satpy.readers._geos_area import make_ext, get_area_definition
+from satpy.readers._geos_area import get_area_definition, get_area_extent
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
@@ -85,26 +85,19 @@ class AMIL1bNetCDF(BaseFileHandler):
         obs_mode = self.nc.attrs['observation_mode']
         resolution = self.nc.attrs['channel_spatial_resolution']
 
+        # Example offset: 11000.5
+        # the 'get_area_extent' will handle this half pixel for us
         pdict['cfac'] = self.nc.attrs['cfac']
         pdict['coff'] = self.nc.attrs['coff']
-        pdict['lfac'] = self.nc.attrs['lfac']
+        pdict['lfac'] = -self.nc.attrs['lfac']
         pdict['loff'] = self.nc.attrs['loff']
-
-        # AMI grid appears offset, we can not use the standard get_area_extent
-        bit_shift = 2**16
-        ll_x = (0 - pdict['coff'] - 0.5) * bit_shift / pdict['cfac']
-        ll_y = -(0 - pdict['loff'] - 0.5) * bit_shift / pdict['lfac']
-        ur_x = (pdict['ncols'] - pdict['coff'] + 0.5) * bit_shift / pdict['cfac']
-        ur_y = -(pdict['nlines'] - pdict['loff'] + 0.5) * bit_shift / pdict['lfac']
-
-        area_extent = make_ext(ll_x, ur_x, ll_y, ur_y, pdict['h'])
-
+        pdict['scandir'] = 'N2S'
         pdict['a_name'] = 'ami_geos_{}'.format(obs_mode.lower())
         pdict['a_desc'] = 'AMI {} Area at {} resolution'.format(obs_mode, resolution)
         pdict['p_id'] = 'ami_fixed_grid'
 
+        area_extent = get_area_extent(pdict)
         fg_area_def = get_area_definition(pdict, area_extent)
-
         return fg_area_def
 
     def get_orbital_parameters(self):

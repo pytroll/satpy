@@ -35,8 +35,8 @@ def get_xy_from_linecol(line, col, offsets, factors):
     """
     loff, coff = offsets
     lfac, cfac = factors
-    x__ = float(col - coff) / (float(cfac) / 2**16)
-    y__ = float(line - loff) / (float(lfac) / 2**16)
+    x__ = float(col - coff) / (float(cfac) / 2 ** 16)
+    y__ = float(line - loff) / (float(lfac) / 2 ** 16)
 
     return x__, y__
 
@@ -79,7 +79,7 @@ def get_area_extent(pdict):
     # count starts at 1
     cols = 1 - 0.5
 
-    if (pdict['scandir'] == 'S2N'):
+    if pdict['scandir'] == 'S2N':
         lines = 0.5 - 1
         scanmult = -1
     else:
@@ -126,6 +126,7 @@ def get_area_definition(pdict, a_ext):
                for the scene in radians
     Returns:
         a_def: An area definition for the scene
+
     """
     proj_dict = {'a': float(pdict['a']),
                  'b': float(pdict['b']),

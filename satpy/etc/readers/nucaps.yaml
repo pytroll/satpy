@@ -7,7 +7,9 @@ reader:
 file_types:
   nucaps:
     file_reader: !!python/name:satpy.readers.nucaps.NUCAPSFileHandler
-    file_patterns: ['NUCAPS-EDR_{nucaps_version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc']
+    file_patterns:
+    - 'NUCAPS-EDR_{nucaps_version}_{platform_shortname}_s{start_time:%Y%m%d%H%M%S%f}_e{end_time:%Y%m%d%H%M%S%f}_c{creation_time:%Y%m%d%H%M%S%f}.nc'
+    - 'NUCAPS-sciEDR_{am_pm:2s}_{platform_shortname:3s}_s{start_time:%Y%m%d%H%M%S}_e{end_time:%Y%m%d%H%M%S}_STC_fsr.nc'
 
 datasets:
   longitude:
@@ -34,6 +36,11 @@ datasets:
     name: Land_Fraction
     coordinates: [longitude, latitude]
     file_type: nucaps
+  Effective_Pressure:
+    name: Effective_Pressure
+    coordinates: [longitude, latitude]
+    file_type: nucaps
+    pressure_based: True
   Surface_Pressure:
     name: Surface_Pressure
     coordinates: [longitude, latitude]

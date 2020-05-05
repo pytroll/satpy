@@ -20,21 +20,14 @@
 from __future__ import (division, absolute_import, print_function,
                         unicode_literals)
 
-import sys
 import os
-
 import numpy as np
 import xarray as xr
 import dask.array as da
 import unittest
 import numpy.testing
-
+from unittest import mock
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
-
-try:
-    from unittest import mock  # Python 3.3 or newer
-except ImportError:
-    import mock  # Python 2.7
 
 
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
@@ -68,10 +61,12 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         rad = meas + "/effective_radiance"
         pos = meas + "/{:s}_position_{:s}"
         shp = rad + "/shape"
+        x = meas + "/x"
+        y = meas + "/y"
         data = {}
         ch_str = pat.format(ch)
         ch_path = rad.format(ch_str)
-        d = xr.DataArray(
+        d = xrda(
                 da.ones((nrows, ncols), dtype="uint16", chunks=1024),
                 dims=("y", "x"),
                 attrs={
@@ -82,6 +77,23 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     }
                 )
         data[ch_path] = d
+        data[x.format(ch_str)] = xrda(
+                da.arange(1, ncols+1, dtype="uint16"),
+                dims=("x",),
+                attrs={
+                    "scale_factor": -5.58877772833e-05,
+                    "add_offset": 0.155619515845,
+                    }
+                )
+        data[y.format(ch_str)] = xrda(
+                da.arange(1, nrows+1, dtype="uint16"),
+                dims=("y",),
+                attrs={
+                    "scale_factor": -5.58877772833e-05,
+                    "add_offset": 0.155619515845,
+                    }
+                )
+
         data[pos.format(ch_str, "start", "row")] = xrda(0)
         data[pos.format(ch_str, "start", "column")] = xrda(0)
         data[pos.format(ch_str, "end", "row")] = xrda(nrows)
@@ -117,6 +129,33 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 ("reference_altitude", 35786000),
                 ("projection_origin_longitude", 0)):
             data[proc + "/" + lb] = xr.DataArray(no)
+        proj = "data/mtg_geos_projection"
+
+        attrs = {
+                "sweep_angle_axis": "x",
+                "perspective_point_height": "35786400",
+                "semi_major_axis": "6378137",
+                "semi_minor_axis": "6356752",
+                "longitude_of_projection_origin": "0",
+                "inverse_flattening": "298.257223563",
+                "units": "m"}
+        data[proj] = xr.DataArray(
+                0,
+                dims=(),
+                attrs=attrs)
+
+        # also set attributes cached, as this may be how they are accessed with
+        # the NetCDF4FileHandler
+        for (k, v) in attrs.items():
+            data[proj + "/attr/" + k] = v
+
+        return data
+
+    def _get_global_attributes(self):
+        data = {}
+        attrs = {"platform": "MTI1"}
+        for (k, v) in attrs.items():
+            data["/attr/" + k] = v
         return data
 
     def get_test_content(self, filename, filename_info, filetype_info):
@@ -131,6 +170,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         D = {}
         D.update(self._get_test_content_all_channels())
         D.update(self._get_test_content_areadef())
+        D.update(self._get_global_attributes())
         return D
 
 
@@ -350,14 +390,30 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         self.assertGreater(len(comps["fci"]), 0)
         self.assertGreater(len(mods["fci"]), 0)
 
+    def test_platform_name(self):
+        """Test that platform name is exposed.
+
+        Test that the FCI reader exposes the platform name.  Corresponds
+        to GH issue 1014.
+        """
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(self.reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+        res = reader.load(["ir_123"])
+        self.assertEqual(res["ir_123"].attrs["platform_name"], "MTG-I1")
+
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     _alt_handler = FakeNetCDF4FileHandler3
 
-    @unittest.skipIf(
-            sys.version_info < (3, 4),
-            "skipping log message testing on old Python version "
-            "that doesn't have TestCase.assertLogs")
     def test_handling_bad_data_ir(self):
         """Test handling of bad data
         """
@@ -380,13 +436,3 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
                     name="ir_123",
                     calibration="brightness_temperature")])
         self.assertRegex(cm.output[0], "cannot produce brightness temperatur")
-
-
-def suite():
-    """The test suite
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFCIL1CFDHSIReaderGoodData))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFCIL1CFDHSIReaderBadData))
-    return mysuite

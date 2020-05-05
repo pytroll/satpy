@@ -15,36 +15,55 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Pygac interface."""
 
 from datetime import datetime
 from unittest import TestCase, main, TestLoader, TestSuite
 import numpy as np
-try:
-    from unittest import mock
-except ImportError:  # python 2
-    import mock
+from unittest import mock
 
-GAC_PATTERN = 'NSS.GHRR.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'  # noqa
+GAC_PATTERN = '{creation_site:3s}.{transfer_mode:4s}.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'  # noqa
 
-POD_FILENAMES = ['NSS.GHRR.NA.D79184.S1150.E1337.B0008384.WI',
-                 'NSS.GHRR.NA.D79184.S2350.E0137.B0008384.WI',
-                 'NSS.GHRR.NA.D80021.S0927.E1121.B0295354.WI',
-                 'NSS.GHRR.NA.D80021.S1120.E1301.B0295455.WI',
-                 'NSS.GHRR.NA.D80021.S1256.E1450.B0295556.GC',
-                 'NSS.GHRR.NE.D83208.S1219.E1404.B0171819.WI',
-                 'NSS.GHRR.NG.D88002.S0614.E0807.B0670506.WI',
-                 'NSS.GHRR.TN.D79183.S1258.E1444.B0369697.GC',
-                 'NSS.GHRR.TN.D80003.S1147.E1332.B0630506.GC',
-                 'NSS.GHRR.TN.D80003.S1328.E1513.B0630507.GC',
-                 'NSS.GHRR.TN.D80003.S1509.E1654.B0630608.GC']
+GAC_POD_FILENAMES = ['NSS.GHRR.NA.D79184.S1150.E1337.B0008384.WI',
+                     'NSS.GHRR.NA.D79184.S2350.E0137.B0008384.WI',
+                     'NSS.GHRR.NA.D80021.S0927.E1121.B0295354.WI',
+                     'NSS.GHRR.NA.D80021.S1120.E1301.B0295455.WI',
+                     'NSS.GHRR.NA.D80021.S1256.E1450.B0295556.GC',
+                     'NSS.GHRR.NE.D83208.S1219.E1404.B0171819.WI',
+                     'NSS.GHRR.NG.D88002.S0614.E0807.B0670506.WI',
+                     'NSS.GHRR.TN.D79183.S1258.E1444.B0369697.GC',
+                     'NSS.GHRR.TN.D80003.S1147.E1332.B0630506.GC',
+                     'NSS.GHRR.TN.D80003.S1328.E1513.B0630507.GC',
+                     'NSS.GHRR.TN.D80003.S1509.E1654.B0630608.GC']
 
-KLM_FILENAMES = ['NSS.GHRR.NK.D01235.S0252.E0446.B1703233.GC',
-                 'NSS.GHRR.NL.D01288.S2315.E0104.B0549495.GC',
-                 'NSS.GHRR.NM.D04111.S2305.E0050.B0947778.GC',
-                 'NSS.GHRR.NN.D13011.S0559.E0741.B3939192.WI',
-                 'NSS.GHRR.NP.D15361.S0121.E0315.B3547172.SV',
-                 'NSS.GHRR.M1.D15362.S0031.E0129.B1699697.SV',
-                 'NSS.GHRR.M2.D10178.S2359.E0142.B1914142.SV']
+GAC_KLM_FILENAMES = ['NSS.GHRR.NK.D01235.S0252.E0446.B1703233.GC',
+                     'NSS.GHRR.NL.D01288.S2315.E0104.B0549495.GC',
+                     'NSS.GHRR.NM.D04111.S2305.E0050.B0947778.GC',
+                     'NSS.GHRR.NN.D13011.S0559.E0741.B3939192.WI',
+                     'NSS.GHRR.NP.D15361.S0121.E0315.B3547172.SV',
+                     'NSS.GHRR.M1.D15362.S0031.E0129.B1699697.SV',
+                     'NSS.GHRR.M2.D10178.S2359.E0142.B1914142.SV']
+
+LAC_POD_FILENAMES = ['BRN.HRPT.ND.D95152.S1730.E1715.B2102323.UB',
+                     'BRN.HRPT.ND.D95152.S1910.E1857.B2102424.UB',
+                     'BRN.HRPT.NF.D85152.S1345.E1330.B0241414.UB',
+                     'BRN.HRPT.NJ.D95152.S1233.E1217.B0216060.UB']
+
+LAC_KLM_FILENAMES = ['BRN.HRPT.M1.D14152.S0958.E1012.B0883232.UB',
+                     'BRN.HRPT.M1.D14152.S1943.E1958.B0883838.UB',
+                     'BRN.HRPT.M2.D12153.S0912.E0922.B2914747.UB',
+                     'BRN.HRPT.NN.D12153.S0138.E0152.B3622828.UB',
+                     'BRN.HRPT.NN.D12153.S0139.E0153.B3622828.UB',
+                     'BRN.HRPT.NN.D12153.S1309.E1324.B3623535.UB',
+                     'BRN.HRPT.NP.D12153.S0003.E0016.B1707272.UB',
+                     'BRN.HRPT.NP.D12153.S1134.E1148.B1707979.UB',
+                     'BRN.HRPT.NP.D16184.S1256.E1311.B3813131.UB',
+                     'BRN.HRPT.NP.D16184.S1438.E1451.B3813232.UB',
+                     'BRN.HRPT.NP.D16184.S1439.E1451.B3813232.UB',
+                     'BRN.HRPT.NP.D16185.S1245.E1259.B3814545.UB',
+                     'BRN.HRPT.NP.D16185.S1427.E1440.B3814646.UB',
+                     'NSS.FRAC.M2.D12153.S1729.E1910.B2915354.SV',
+                     'NSS.LHRR.NP.D16306.S1803.E1814.B3985555.WI']
 
 
 class TestGACLACFile(TestCase):
@@ -58,6 +77,8 @@ class TestGACLACFile(TestCase):
             'pygac': self.pygac,
             'pygac.gac_klm': self.pygac.gac_klm,
             'pygac.gac_pod': self.pygac.gac_pod,
+            'pygac.lac_klm': self.pygac.lac_klm,
+            'pygac.lac_pod': self.pygac.lac_pod,
             'pygac.utils': self.pygac.utils
         }
 
@@ -82,16 +103,17 @@ class TestGACLACFile(TestCase):
 
     def test_init(self):
         """Test GACLACFile initialization."""
-
         from pygac.gac_klm import GACKLMReader
         from pygac.gac_pod import GACPODReader
+        from pygac.lac_klm import LACKLMReader
+        from pygac.lac_pod import LACPODReader
 
-        for filenames, reader_cls in zip([POD_FILENAMES, KLM_FILENAMES],
-                                         [GACPODReader, GACKLMReader]):
+        for filenames, reader_cls in zip([GAC_POD_FILENAMES, GAC_KLM_FILENAMES, LAC_POD_FILENAMES, LAC_KLM_FILENAMES],
+                                         [GACPODReader, GACKLMReader, LACPODReader, LACKLMReader]):
             for filename in filenames:
                 fh = self._get_fh(filename)
                 self.assertLess(fh.start_time, fh.end_time,
-                                "Start time must preceed end time.")
+                                "Start time must precede end time.")
                 self.assertIs(fh.reader_class, reader_cls,
                               'Wrong reader class assigned to {}'.format(filename))
 
@@ -121,6 +143,9 @@ class TestGACLACFile(TestCase):
         GACPODReader.return_value.get_miss_lines.return_value = miss_lines
         GACPODReader.return_value.get_midnight_scanline.return_value = 'midn_line'
         GACPODReader.return_value.mask = [0]
+
+        GACPODReader.return_value.meta_data = {'missing_scanlines': miss_lines,
+                                               'midnight_scanline': 'midn_line'}
 
         res = fh.get_dataset(key, info)
         np.testing.assert_allclose(res.data, ch_ones)
@@ -343,16 +368,3 @@ class TestGACLACFile(TestCase):
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,
             first_valid_lat=3, last_valid_lat=4, along_track=2)
-
-
-def suite():
-    """The test suite."""
-    loader = TestLoader()
-    mysuite = TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGACLACFile))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    main()

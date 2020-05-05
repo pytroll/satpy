@@ -69,7 +69,10 @@ MOCK_MODULES = ['h5py']
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = Mock()
 
-autodoc_mock_imports = ['h5netcdf', 'pyninjotiff', 'pygac', 'cf', 'glymur', 'pyhdf', 'osgeo', 'mipp']
+autodoc_mock_imports = ['cf', 'glymur', 'h5netcdf', 'imageio', 'mipp', 'netCDF4',
+                        'pygac', 'pygrib', 'pyhdf', 'pyninjotiff',
+                        'pyorbital', 'pyspectral', 'rasterio', 'trollimage',
+                        'zarr']
 autoclass_content = 'both'  # append class __init__ docstring to the class docstring
 
 # -- General configuration -----------------------------------------------------
@@ -257,6 +260,7 @@ intersphinx_mapping = {
     'pyorbital': ('https://pyorbital.readthedocs.io/en/stable', None),
     'pyproj': ('https://pyproj4.github.io/pyproj/dev', None),
     'pyresample': ('https://pyresample.readthedocs.io/en/stable', None),
+    'pytest': ('https://docs.pytest.org/en/stable/', None),
     'python': ('https://docs.python.org/3', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
