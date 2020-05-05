@@ -18,7 +18,6 @@
 """Test classes and functions in the readers/__init__.py module."""
 
 import os
-import sys
 import unittest
 from unittest import mock
 
