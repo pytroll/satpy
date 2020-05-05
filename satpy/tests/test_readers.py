@@ -657,6 +657,17 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(6, len(groups))
         self.assertEqual(2, len(groups[0]['abi_l1b']))
 
+    def test_default_behavior_set(self):
+        """Test the default behavior with the 'abi_l1b' reader."""
+        from satpy.readers import group_files
+        files = set(self.g16_files)
+        num_files = len(files)
+        groups = group_files(files, reader='abi_l1b')
+        # we didn't modify it
+        self.assertEqual(len(files), num_files)
+        self.assertEqual(6, len(groups))
+        self.assertEqual(2, len(groups[0]['abi_l1b']))
+
     def test_non_datetime_group_key(self):
         """Test what happens when the start_time isn't used for grouping."""
         from satpy.readers import group_files
