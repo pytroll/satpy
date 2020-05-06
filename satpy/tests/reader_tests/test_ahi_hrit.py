@@ -40,10 +40,10 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         """Get sample header entry for scanline acquisition times.
 
         Lines: 1, 21, 41, 61, ..., nlines
-        Times: 1970-01-01 00:00 + (1, 21, 41, 61, ..., nlines) hours
+        Times: 1970-01-01 00:00 + (1, 21, 41, 61, ..., nlines) seconds
 
         So the interpolated times are expected to be 1970-01-01 +
-        (1, 2, 3, 4, ..., nlines) hours. Note that there will be some
+        (1, 2, 3, 4, ..., nlines) seconds. Note that there will be some
         floating point inaccuracies, because timestamps are stored
         with only 6 decimals precision.
         """
