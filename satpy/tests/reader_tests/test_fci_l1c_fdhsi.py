@@ -216,6 +216,13 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
         data[meas + "/radiance_to_bt_conversion_constant_c2"] = v
         return data
 
+    def _get_test_calib_for_channel_vis(self, chroot, meas):
+        data = super()._get_test_calib_for_channel_vis(chroot, meas)
+        from netCDF4 import default_fillvals
+        v = xr.DataArray(default_fillvals["f4"])
+        data[meas + "/channel_effective_solar_irradiance"] = v
+        return data
+
 
 @pytest.fixture
 def reader_configs():
@@ -304,7 +311,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
         reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
+        fhs = reader.create_filehandlers(loadables)
         res = reader.load(
                 [DatasetID(name=name, calibration="counts") for name in
                     self._chans["solar"] + self._chans["terran"]])
@@ -436,6 +443,31 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         res = reader.load(["ir_123"])
         assert res["ir_123"].attrs["platform_name"] == "MTG-I1"
 
+    def test_excs(self, reader_configs, caplog):
+        """Test that exceptions are raised where expected."""
+        from satpy import DatasetID
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        fhs = reader.create_filehandlers(loadables)
+
+        with pytest.raises(ValueError):
+            fhs["fci_l1c_fdhsi"][0].get_dataset(DatasetID(name="invalid"), {})
+        with pytest.raises(ValueError):
+            fhs["fci_l1c_fdhsi"][0]._get_dataset_quality(DatasetID(name="invalid"),
+                    {})
+        with caplog.at_level(logging.ERROR):
+            fhs["fci_l1c_fdhsi"][0].get_dataset(DatasetID(name="ir_123",
+                calibration="unknown"), {"units": "unknown"})
+            assert "unknown calibration key" in caplog.text
+
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     """Test the FCI L1C FDHSI Reader for bad data input."""
@@ -443,7 +475,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     _alt_handler = FakeNetCDF4FileHandler3
 
     def test_handling_bad_data_ir(self, reader_configs, caplog):
-        """Test handling of bad data."""
+        """Test handling of bad IR data."""
         from satpy import DatasetID
         from satpy.readers import load_reader
 
@@ -461,3 +493,24 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
                     name="ir_123",
                     calibration="brightness_temperature")])
             assert "cannot produce brightness temperature" in caplog.text
+
+    def test_handling_bad_data_vis(self, reader_configs, caplog):
+        """Test handling of bad VIS data."""
+        from satpy import DatasetID
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+        with caplog.at_level("ERROR"):
+            reader.load([DatasetID(
+                    name="vis_04",
+                    calibration="reflectance")])
+            assert "cannot produce reflectance" in caplog.text
+
