@@ -304,7 +304,7 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         self.assertEqual(mjd2datetime64(np.array([0])),
                          np.datetime64('1858-11-17', 'us'))
         self.assertEqual(mjd2datetime64(np.array([40587.5])),
-                                        np.datetime64('1970-01-01 12:00', 'us'))
+                         np.datetime64('1970-01-01 12:00', 'us'))
 
     def test_get_acq_time(self):
         """Test computation of scanline acquisition times."""
