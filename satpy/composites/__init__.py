@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -589,6 +589,17 @@ class PSPRayleighReflectance(CompositeBase):
 class NIRReflectance(CompositeBase):
     """Get the reflective part of NIR bands."""
 
+    def __init__(self, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 95.0.
+
+        """
+        self.sunz_threshold = kwargs.get('sunz_threshold')
+        super(NIRReflectance, self).__init__(**kwargs)
+
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the reflectance part of an NIR channel.
 
@@ -604,8 +615,8 @@ class NIRReflectance(CompositeBase):
                             coords=_nir.coords, attrs=_nir.attrs)
 
         proj.attrs['units'] = '%'
+        proj.attrs['sunz_threshold'] = self.sunz_threshold
         self.apply_modifier_info(_nir, proj)
-
         return proj
 
     def _init_refl3x(self, projectables):
@@ -614,7 +625,8 @@ class NIRReflectance(CompositeBase):
             LOG.info("Couldn't load pyspectral")
             raise ImportError("No module named pyspectral.near_infrared_reflectance")
         _nir, _tb11 = projectables
-        self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'])
+        self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'],
+                                  sunz_threshold=self.sunz_threshold)
 
     def _get_reflectance(self, projectables, optional_datasets):
         """Calculate 3.x reflectance with pyspectral."""
@@ -647,6 +659,17 @@ class NIRReflectance(CompositeBase):
 class NIREmissivePartFromReflectance(NIRReflectance):
     """Get the emissive par of NIR bands."""
 
+    def __init__(self, **kwargs):
+        """Collect custom configuration values.
+
+        Args:
+            max_sza (float): Maximum solar zenith angle in degrees that is
+                considered valid and correctable. Default 95.0.
+
+        """
+        self.sunz_threshold = kwargs.get('sunz_threshold')
+        super(NIREmissivePartFromReflectance, self).__init__(**kwargs)
+
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the emissive part an NIR channel after having derived the reflectance.
 
@@ -665,8 +688,8 @@ class NIREmissivePartFromReflectance(NIRReflectance):
                             dims=_nir.dims, coords=_nir.coords)
 
         proj.attrs['units'] = 'K'
+        proj.attrs['sunz_threshold'] = self.sunz_threshold
         self.apply_modifier_info(_nir, proj)
-
         return proj
 
 
