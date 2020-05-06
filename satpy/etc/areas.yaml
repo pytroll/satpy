@@ -482,10 +482,10 @@ fci_0deg_2km:
   area_extent:
     lower_left_xy:
     - -5567999.994206558
-    - 5567999.994206558
-    upper_right_xy:
-    - 5567999.994200589
     - -5567999.994200589
+    upper_right_xy:
+    - 5567999.994206558
+    - 5567999.994200589
     units: m
 spain:
   description: Spain
