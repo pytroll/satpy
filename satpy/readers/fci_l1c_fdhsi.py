@@ -192,7 +192,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         else:
             raise ValueError(
                 "Unexpected value for attribute ancillary_variables, "
-                "which I intend to rewrite (see "
+                "which the FCI file handler intends to rewrite (see "
                 "https://github.com/pytroll/satpy/issues/1171 for why). "
                 f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
 
@@ -224,11 +224,11 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         variables (see also Satpy issue 1171), so some special treatment in
         necessary.
         """
-        # FIXME: replace by .removesuffix once we drop support for Python < 3.9
+        # FIXME: replace by .removesuffix after we drop support for Python < 3.9
         if key.name.endswith("_pixel_quality"):
             chan_lab = key.name[:-len("_pixel_quality")]
         else:
-            raise ValueError("quality label must end with pixel_quality, got "
+            raise ValueError("Quality label must end with pixel_quality, got "
                              f"{key.name:s}")
         grp_path = self.get_channel_measured_group_path(chan_lab)
         dv_path = grp_path + "/pixel_quality"
