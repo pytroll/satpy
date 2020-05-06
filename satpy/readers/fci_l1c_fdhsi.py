@@ -56,6 +56,18 @@ geolocation calculations.
 The brightness temperature calculation is based on the formulas indicated in
 `PUG`_ and `RADTOBR`_.
 
+The reading routine supports channel data in counts, radiances, and (depending
+on channel) brightness temperatures or reflectances.  For each channel, it also
+supports the pixel quality, obtained by prepending the channel name such as
+``"vis_04_pixel_quality"``.
+
+.. warning::
+    The API for the direct reading of pixel quality is temporary and likely to
+    change.  Currently, for each channel, the pixel quality is available by
+    ``<chan>_pixel_quality``.  In the future, they will likely all be called
+    ``pixel_quality`` and disambiguated by a to-be-decided property in the
+    `DatasetID`.
+
 .. _RADTOBR: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_EFFECT_RAD_TO_BRIGHTNESS&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _PUG: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_DMT_719113&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci  # noqa: E501
