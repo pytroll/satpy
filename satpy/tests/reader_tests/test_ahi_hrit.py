@@ -272,7 +272,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         key.calibration = 'reflectance'
 
         base_get_dataset.return_value = DataArray(da.ones((275, 1375),
-                                                          chunks=1024))
+                                                          chunks=1024),
+                                                  dims=('y', 'x'))
 
         # Check attributes
         res = reader.get_dataset(key, {'units': '%', 'sensor': 'ahi'})
@@ -300,8 +301,10 @@ class TestHRITJMAFileHandler(unittest.TestCase):
     def test_mjd2datetime64(self):
         """Test conversion from modified julian day to datetime64"""
         from satpy.readers.hrit_jma import mjd2datetime64
-        self.assertEqual(mjd2datetime64(0), np.datetime64('1858-11-17', 'us'))
-        self.assertEqual(mjd2datetime64(40587.5), np.datetime64('1970-01-01 12:00', 'us'))
+        self.assertEqual(mjd2datetime64(np.array([0])),
+                         np.datetime64('1858-11-17', 'us'))
+        self.assertEqual(mjd2datetime64(np.array([40587.5])),
+                                        np.datetime64('1970-01-01 12:00', 'us'))
 
     def test_get_acq_time(self):
         """Test computation of scanline acquisition times."""
