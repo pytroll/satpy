@@ -59,6 +59,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         chroot = "data/{:s}"
         meas = chroot + "/measured"
         rad = meas + "/effective_radiance"
+        qual = meas + "/pixel_quality"
         pos = meas + "/{:s}_position_{:s}"
         shp = rad + "/shape"
         x = meas + "/x"
@@ -116,6 +117,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     "add_offset": 0.155619515845,
                     }
                 )
+        data[qual.format(ch_str)] = xrda(
+                da.arange(nrows*ncols, dtype="uint8").reshape(nrows, ncols) % 128,
+                dims=("y", "x"))
 
         data[pos.format(ch_str, "start", "row")] = xrda(0)
         data[pos.format(ch_str, "start", "column")] = xrda(0)

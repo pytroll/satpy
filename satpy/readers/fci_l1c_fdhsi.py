@@ -126,6 +126,21 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def get_dataset(self, key, info=None):
         """Load a dataset."""
         logger.debug('Reading {} from {}'.format(key.name, self.filename))
+        if "pixel_quality" in key.name:
+            return self._get_dataset_quality(key, info=info)
+        elif any(lb in key.name for lb in {"vis_", "ir_", "nir_", "wv_"}):
+            return self._get_dataset_measurand(key, info=info)
+        else:
+            raise ValueError("Unknown dataset key, not a channel or quality: "
+                             f"{key.name:s}")
+
+    def _get_dataset_measurand(self, key, info=None):
+        """Load dataset corresponding to channel measurement.
+
+        Load a dataset when the key refers to a measurand, whether uncalibrated
+        (counts) or calibrated in terms of brightness temperature, radiance, or
+        reflectance.
+        """
         # Get the dataset
         # Get metadata for given dataset
         measured = self.get_channel_measured_group_path(key.name)
@@ -187,6 +202,26 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         res.attrs.pop('long_name')
 
         return res
+
+    def _get_dataset_quality(self, key, info=None):
+        """Load quality for channel.
+
+        Load a quality field for an FCI channel.  This is a bit involved in
+        case of FCI because each channel group (data/<channel>/measured) has
+        its own data variable 'pixel_quality', referred to in ancillary
+        variables (see also Satpy issue 1171), so some special treatment in
+        necessary.
+        """
+        # FIXME: replace by .removesuffix once we drop support for Python < 3.9
+        if key.name.endswith("_pixel_quality"):
+            chan_lab = key.name[:-len("_pixel_quality")]
+        else:
+            raise ValueError("quality label must end with pixel_quality, got "
+                             f"{key.name:s}")
+        grp_path = self.get_channel_measured_group_path(chan_lab)
+        dv_path = grp_path + "/pixel_quality"
+        data = self[dv_path]
+        return data
 
     def get_channel_measured_group_path(self, channel):
         """Get the channel's measured group path."""
