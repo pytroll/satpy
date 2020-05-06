@@ -311,7 +311,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
         reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
-        fhs = reader.create_filehandlers(loadables)
+        reader.create_filehandlers(loadables)
         res = reader.load(
                 [DatasetID(name=name, calibration="counts") for name in
                     self._chans["solar"] + self._chans["terran"]])
@@ -462,10 +462,11 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             fhs["fci_l1c_fdhsi"][0].get_dataset(DatasetID(name="invalid"), {})
         with pytest.raises(ValueError):
             fhs["fci_l1c_fdhsi"][0]._get_dataset_quality(DatasetID(name="invalid"),
-                    {})
+                                                         {})
         with caplog.at_level(logging.ERROR):
-            fhs["fci_l1c_fdhsi"][0].get_dataset(DatasetID(name="ir_123",
-                calibration="unknown"), {"units": "unknown"})
+            fhs["fci_l1c_fdhsi"][0].get_dataset(
+                    DatasetID(name="ir_123", calibration="unknown"),
+                    {"units": "unknown"})
             assert "unknown calibration key" in caplog.text
 
 
@@ -513,4 +514,3 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
                     name="vis_04",
                     calibration="reflectance")])
             assert "cannot produce reflectance" in caplog.text
-
