@@ -319,8 +319,8 @@ class HRITJMAFileHandler(HRITFileHandler):
         times_sparse = [float(s.split(':=')[1]) for s in splits[1::2]]
 
         if self.platform == HIMAWARI8:
-            # Only 3 timestamps, and only the first and last are usable
-            # (the second equals the third).
+            # Only a couple of timestamps in the header, and only the first
+            # and last are usable (duplicates inbetween).
             lines_sparse = [lines_sparse[0], lines_sparse[-1]]
             times_sparse = [times_sparse[0], times_sparse[-1]]
 
