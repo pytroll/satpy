@@ -102,8 +102,8 @@ class GeoTIFFWriter(ImageWriter):
 
     def save_image(self, img, filename=None, dtype=None, fill_value=None,
                    compute=True, keep_palette=False, cmap=None, tags=None,
-                   overviews=None, overviews_resampling=None,
-                   overviews_minsize=256, include_scale_offset=False,
+                   overviews=None, overviews_minsize=256,
+                   overviews_resampling=None, include_scale_offset=False,
                    **kwargs):
         """Save the image to the given ``filename`` in geotiff_ format.
 
