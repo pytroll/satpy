@@ -107,6 +107,15 @@ SENSORS = {
 }
 
 
+def mjd2datetime64(mjd):
+    """Convert Modified Julian Day (MJD) to datetime64."""
+
+    epoch = np.datetime64('1858-11-17 00:00')
+    day2usec = 24 * 3600 * 1E6
+    mjd_usec = (mjd * day2usec).astype(int).astype('timedelta64[us]')
+    return epoch + mjd_usec
+
+
 class HRITJMAFileHandler(HRITFileHandler):
     """JMA HRIT format reader."""
 
@@ -149,6 +158,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         if self.area_id not in AREA_NAMES:
             self.area_id = UNKNOWN_AREA
         self.area = self._get_area_def()
+        self.acq_time = self._get_acq_time()
 
     def _get_platform(self):
         """Get the platform name.
@@ -265,6 +275,10 @@ class HRITJMAFileHandler(HRITFileHandler):
         # Calibrate and mask space pixels
         res = self._mask_space(self.calibrate(res, key.calibration))
 
+        # Add scanline acquisition time
+        res['acq_time'] = ('y', self.acq_time)
+        res['acq_time'].attrs['long_name'] = 'Scanline acquisition time'
+
         # Update attributes
         res.attrs.update(info)
         res.attrs['platform_name'] = self.platform
@@ -282,6 +296,42 @@ class HRITJMAFileHandler(HRITFileHandler):
         """Mask space pixels."""
         geomask = get_geostationary_mask(area=self.area)
         return data.where(geomask)
+
+    def _get_acq_time(self):
+        """
+        Acquisition times for a subset of scanlines are stored in the header
+        as follows:
+
+        b'LINE:=1\rTIME:=54365.022558\rLINE:=21\rTIME:=54365.022664\r...'
+
+        Missing timestamps in between are computed using linear interpolation.
+        """
+        buf_b = np.frombuffer(self.mda['image_observation_time'],
+                              dtype=image_observation_time)
+
+        # Replace \r by \n before encoding, otherwise encoding will drop all
+        # elements except the last one
+        buf_s = b''.join(buf_b['times']).replace(b'\r', b'\n').decode()
+
+        # Split into key:=value pairs; then extract line number and timestamp
+        splits = buf_s.strip().split('\n')
+        lines_sparse = [int(s.split(':=')[1]) for s in splits[0::2]]
+        times_sparse = [float(s.split(':=')[1]) for s in splits[1::2]]
+
+        if self.platform == HIMAWARI8:
+            # Only 3 timestamps, and only the first and last are usable
+            # (the second equals the third).
+            lines_sparse = [lines_sparse[0], lines_sparse[-1]]
+            times_sparse = [times_sparse[0], times_sparse[-1]]
+
+        # Compute missing timestamps using linear interpolation.
+        lines = np.arange(lines_sparse[0], lines_sparse[-1]+1)
+        times = np.interp(lines, lines_sparse, times_sparse)
+
+        # Convert to np.datetime64
+        times64 = mjd2datetime64(times)
+
+        return times64
 
     @staticmethod
     def _interp(arr, cal):
@@ -304,3 +354,13 @@ class HRITJMAFileHandler(HRITFileHandler):
         res = res.where(data < 65535)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
+
+    @property
+    def start_time(self):
+        """Get start time of the scan."""
+        return self.acq_time[0].astype(datetime)
+
+    @property
+    def end_time(self):
+        """Get end time of the scan."""
+        return self.acq_time[-1].astype(datetime)
