@@ -445,6 +445,48 @@ met07globe:
   area_extent:
     lower_left_xy: [-5621225.237846375, -5621225.237846375]
     upper_right_xy: [5621225.237846375, 5621225.237846375]
+fci_0deg_1km:
+  description: Full disk FCI view, 1 km
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 11136
+    width: 11136
+  area_extent:
+    lower_left_xy:
+    - -5567999.998527619
+    - 5567999.998527619
+    upper_right_xy:
+    - 5567999.998577303
+    - -5567999.998577303
+    units: m
+fci_0deg_2km:
+  description: Full disk FCI view, 2 km
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 5568
+    width: 5568
+  area_extent:
+    lower_left_xy:
+    - -5567999.994206558
+    - 5567999.994206558
+    upper_right_xy:
+    - 5567999.994200589
+    - -5567999.994200589
+    units: m
 spain:
   description: Spain
   projection:
