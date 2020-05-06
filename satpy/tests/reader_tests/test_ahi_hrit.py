@@ -287,6 +287,9 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                                                'projection_latitude': 0.,
                                                                'projection_altitude': 35785831.0})
 
+        # Check if acquisition time is a coordinate
+        self.assertIn('acq_time', res.coords)
+
         # Check called methods
         with mock.patch.object(reader, '_mask_space') as mask_space:
             with mock.patch.object(reader, 'calibrate') as calibrate:

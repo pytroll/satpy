@@ -276,8 +276,8 @@ class HRITJMAFileHandler(HRITFileHandler):
         res = self._mask_space(self.calibrate(res, key.calibration))
 
         # Add scanline acquisition time
-        res['acq_time'] = ('y', self.acq_time)
-        res['acq_time'].attrs['long_name'] = 'Scanline acquisition time'
+        res.coords['acq_time'] = ('y', self.acq_time)
+        res.coords['acq_time'].attrs['long_name'] = 'Scanline acquisition time'
 
         # Update attributes
         res.attrs.update(info)

@@ -695,8 +695,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
         res.attrs['raw_metadata'] = self._get_raw_mda()
 
         # Add scanline timestamps as additional y-coordinate
-        res['acq_time'] = ('y', self._get_timestamps())
-        res['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
+        res.coords['acq_time'] = ('y', self._get_timestamps())
+        res.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
 
         return res
 
