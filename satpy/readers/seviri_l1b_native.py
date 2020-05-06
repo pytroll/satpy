@@ -95,7 +95,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     @staticmethod
     def _calculate_area_extent(center_point, north, east, south, west,
                                we_offset, ns_offset, column_step, line_step):
-        # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be 1856.5 .
+        # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be -1856.5 .
         # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
 
         ll_c = (center_point - east + 0.5 + we_offset) * column_step
