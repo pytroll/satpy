@@ -1,15 +1,14 @@
 reader:
   description: >
-    Reader for official data products from the Climate Monitoring
-    Satellite Application Facility (CMSAF).  At present, this is developed
-    as a reader for the instantaneous non-statistical Meteosat Third
-    Generation MSG SEVIRI cloud products in NetCDF4 format, but it may
-    work for other products with little or perhaps no modification.
-    Information on CMSAF and its products can be found at
-    https://www.cmsat.eu/.
-  name: cmsaf-geo
-  long_name: EUMETSAT SEVIRI Level 2 CMSAF NetCDF4 cloud products
+    Reader for Spinning Enhanced Visible and Infrared Imager (SEVIRI) L2 data as produced by
+    the Climate Monitoring
+    Satellite Application Facility (CMSAF) in its CLoud property dAtAset using SEVIRI (CLAAS) dataset,
+    doi:10.5676/EUM_SAF_CM/CLAAS/V002.
+    Information on CMSAF and its products can be found at https://www.cmsaf.eu/.
+  name: cmsaf-claas-v2
+  long_name: CMSAF CLAAS V2 data for SEVIRI-derived cloud products
   sensors: [seviri]
+  doi: doi:10.5676/EUM_SAF_CM/CLAAS/V002.
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
