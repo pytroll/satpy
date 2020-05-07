@@ -248,3 +248,32 @@ class TestUtils(unittest.TestCase):
         dataset.attrs.pop('orbital_parameters')
         lon, lat, alt = get_satpos(dataset)
         self.assertTupleEqual((lon, lat, alt), (-1, -2, -3))
+
+
+def test_check_slice_orientation():
+    """Test that slicing fix is doing what it should."""
+    from satpy.utils import check_slice_orientation
+
+    # Forward slicing should not be changed
+    start, stop, step = 0, 10, None
+    slice_in = slice(start, stop, step)
+    res = check_slice_orientation(slice_in)
+    assert res is slice_in
+
+    # Reverse slicing should not be changed if the step is negative
+    start, stop, step = 10, 0, -1
+    slice_in = slice(start, stop, step)
+    res = check_slice_orientation(slice_in)
+    assert res is slice_in
+
+    # Reverse slicing should be fixed if step is positive
+    start, stop, step = 10, 0, 2
+    slice_in = slice(start, stop, step)
+    res = check_slice_orientation(slice_in)
+    assert res == slice(start, stop, -step)
+
+    # Reverse slicing should be fixed if step is None
+    start, stop, step = 10, 0, None
+    slice_in = slice(start, stop, step)
+    res = check_slice_orientation(slice_in)
+    assert res == slice(start, stop, -1)

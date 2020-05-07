@@ -325,3 +325,13 @@ def get_satpos(dataset):
         alt = dataset.attrs['satellite_altitude']
 
     return lon, lat, alt
+
+
+def check_slice_orientation(sli):
+    """Check that the slice is slicing the right way."""
+    if sli.start > sli.stop:
+        if sli.step is None or sli.step > 0:
+            step = -(sli.step or 1)
+            sli = slice(sli.start, sli.stop, step)
+
+    return sli

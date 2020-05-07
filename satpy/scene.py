@@ -30,6 +30,7 @@ from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
 from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
+from satpy.utils import check_slice_orientation
 
 import xarray as xr
 from xarray import DataArray
@@ -1054,12 +1055,8 @@ class Scene(MetadataObject):
                                 destination_area)
 
                         # Fix slicing for flipped areas
-                        if slice_x.start > slice_x.stop:
-                            step = -(slice_x.step or 1)
-                            slice_x = slice(slice_x.start, slice_x.stop, step)
-                        if slice_y.start > slice_y.stop:
-                            step = -(slice_y.step or 1)
-                            slice_y = slice(slice_y.start, slice_y.stop, step)
+                        slice_x = check_slice_orientation(slice_x)
+                        slice_y = check_slice_orientation(slice_y)
 
                         source_area = source_area[slice_y, slice_x]
                         # If the slices were descending (start > stop), fix
