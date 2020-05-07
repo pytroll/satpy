@@ -49,7 +49,7 @@ provided through the `Scene` instantiation, eg::
   Scene(reader="seviri_l1b_hrit", filenames=fnames, reader_kwargs={'fill_hrv': False})
 
 To see the full list of arguments that can be provided, look into the documentation
-of `:class:HRITMSGFileHandler`.
+of :class:`HRITMSGFileHandler`.
 
 Example
 -------

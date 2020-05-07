@@ -17,9 +17,76 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """HRIT format reader for JMA data.
 
-References:
-    JMA HRIT - Mission Specific Implementation
-    http://www.jma.go.jp/jma/jma-eng/satellite/introduction/4_2HRIT.pdf
+Introduction
+------------
+
+The JMA HRIT format is described in the `JMA HRIT - Mission Specific
+Implementation`_. Sample data is available `here <https://www.data.jma.go.jp/
+mscweb/en/himawari89/space_segment/sample_hrit.html>`_. There are three
+readers for this format in Satpy:
+
+- ``jami_hrit``: For data from the `JAMI` instrument on MTSAT-1R
+- ``mtsat2-imager_hrit``: For data from the `Imager` instrument on MTSAT-2
+- ``ahi_hrit``: For data from the `AHI` instrument on Himawari-8/9
+
+Although the data format is identical, the instruments have different
+characteristics, which is why there is a dedicated reader for each of them.
+
+
+Example
+-------
+
+Here is an example how to read Himwari-8 HRIT data with Satpy:
+
+.. code-block:: python
+
+    from satpy import Scene
+    import glob
+
+    filenames = glob.glob('data/IMG_DK01B14_2018011109*')
+    scn = Scene(filenames=filenames, reader='ahi_hrit')
+    scn.load(['B14'])
+    print(scn['B14'])
+
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray (y: 5500, x: 5500)>
+    dask.array<concatenate, shape=(5500, 5500), dtype=float64, chunksize=(550, 4096), chunktype=numpy.ndarray>
+    Coordinates:
+        acq_time  (y) datetime64[ns] 2018-01-11T09:00:20.995200 ... 2018-01-11T09:09:40.348800
+        crs       object +proj=geos +lon_0=140.7 +h=35785831 +x_0=0 +y_0=0 +a=6378169 +b=6356583.8 +units=m +no_defs +type=crs
+      * y         (y) float64 5.5e+06 5.498e+06 5.496e+06 ... -5.496e+06 -5.498e+06
+      * x         (x) float64 -5.498e+06 -5.496e+06 -5.494e+06 ... 5.498e+06 5.5e+06
+    Attributes:
+        satellite_longitude:  140.7
+        satellite_latitude:   0.0
+        satellite_altitude:   35785831.0
+        orbital_parameters:   {'projection_longitude': 140.7, 'projection_latitud...
+        standard_name:        toa_brightness_temperature
+        level:                None
+        wavelength:           (11.0, 11.2, 11.4)
+        units:                K
+        calibration:          brightness_temperature
+        file_type:            ['hrit_b14_seg', 'hrit_b14_fd']
+        modifiers:            ()
+        polarization:         None
+        sensor:               ahi
+        name:                 B14
+        platform_name:        Himawari-8
+        resolution:           4000
+        start_time:           2018-01-11 09:00:20.995200
+        end_time:             2018-01-11 09:09:40.348800
+        area:                 Area ID: FLDK, Description: Full Disk, Projection I...
+        ancillary_variables:  []
+
+JMA HRIT data contain the scanline acquisition time for only a subset of scanlines. Timestamps of
+the remaining scanlines are computed using linear interpolation. This is what you'll find in the
+``acq_time`` coordinate of the dataset.
+
+.. _JMA HRIT - Mission Specific Implementation: http://www.jma.go.jp/jma/jma-eng/satellite/introduction/4_2HRIT.pdf
 
 """
 
