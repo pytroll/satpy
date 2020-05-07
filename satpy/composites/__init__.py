@@ -25,7 +25,6 @@ from weakref import WeakValueDictionary
 
 import dask.array as da
 import numpy as np
-import six
 import xarray as xr
 import yaml
 
@@ -35,12 +34,11 @@ except ImportError:
     from yaml import Loader as UnsafeLoader
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
-from satpy.config import get_environ_ancpath
+from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
 from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
-from satpy import CHUNK_SIZE
 
 try:
     from pyspectral.near_infrared_reflectance import Calculator
@@ -85,9 +83,11 @@ class CompositorLoader(object):
         """Load all compositor configs for the provided sensor."""
         config_filename = sensor_name + ".yaml"
         LOG.debug("Looking for composites config file %s", config_filename)
+        paths = get_entry_points_config_dirs('satpy.composites')
+        paths.append(self.ppp_config_dir)
         composite_configs = config_search_paths(
             os.path.join("composites", config_filename),
-            self.ppp_config_dir, check_exists=True)
+            *paths, check_exists=True)
         if not composite_configs:
             LOG.debug("No composite config found called {}".format(
                 config_filename))
@@ -376,7 +376,7 @@ class SunZenithCorrectorBase(CompositeBase):
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
-        projectables = self.match_data_arrays(projectables)
+        projectables = self.match_data_arrays(list(projectables) + list(info.get('optional_datasets', [])))
         vis = projectables[0]
         if vis.attrs.get("sunz_corrected"):
             LOG.debug("Sun zen correction already applied")
@@ -387,11 +387,11 @@ class SunZenithCorrectorBase(CompositeBase):
         tic = time.time()
         LOG.debug("Applying sun zen correction")
         coszen = self.coszen.get(key)
-        if coszen is None and len(projectables) == 1:
+        if coszen is None and not info.get('optional_datasets'):
             # we were not given SZA, generate SZA then calculate cos(SZA)
             from pyorbital.astronomy import cos_zen
             LOG.debug("Computing sun zenith angles.")
-            lons, lats = vis.attrs["area"].get_lonlats(chunks=CHUNK_SIZE)
+            lons, lats = vis.attrs["area"].get_lonlats(chunks=vis.data.chunks)
 
             coords = {}
             if 'y' in vis.coords and 'x' in vis.coords:
@@ -597,6 +597,8 @@ class NIRReflectance(CompositeBase):
         """
         self._init_refl3x(projectables)
         _nir, _ = projectables
+        projectables = self.match_data_arrays(projectables)
+
         refl = self._get_reflectance(projectables, optional_datasets) * 100
         proj = xr.DataArray(refl, dims=_nir.dims,
                             coords=_nir.coords, attrs=_nir.attrs)
@@ -618,7 +620,8 @@ class NIRReflectance(CompositeBase):
         """Calculate 3.x reflectance with pyspectral."""
         _nir, _tb11 = projectables
         LOG.info('Getting reflective part of %s', _nir.attrs['name'])
-
+        da_nir = _nir.data
+        da_tb11 = _tb11.data
         sun_zenith = None
         tb13_4 = None
 
@@ -626,19 +629,19 @@ class NIRReflectance(CompositeBase):
             wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
             if (dataset.attrs.get('units') == 'K' and
                     wavelengths[0] <= 13.4 <= wavelengths[2]):
-                tb13_4 = dataset
+                tb13_4 = dataset.data
             elif ("standard_name" in dataset.attrs and
                   dataset.attrs["standard_name"] == "solar_zenith_angle"):
-                sun_zenith = dataset
+                sun_zenith = dataset.data
 
         # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             if sun_zenith_angle is None:
                 raise ImportError("No module named pyorbital.astronomy")
-            lons, lats = _nir.attrs["area"].get_lonlats(chunks=CHUNK_SIZE)
+            lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
             sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
 
-        return self._refl3x.reflectance_from_tbs(sun_zenith, _nir, _tb11, tb_ir_co2=tb13_4)
+        return self._refl3x.reflectance_from_tbs(sun_zenith, da_nir, da_tb11, tb_ir_co2=tb13_4)
 
 
 class NIREmissivePartFromReflectance(NIRReflectance):
@@ -650,6 +653,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         Not supposed to be used for wavelength outside [3, 4] µm.
 
         """
+        projectables = self.match_data_arrays(projectables)
         self._init_refl3x(projectables)
         # Derive the sun-zenith angles, and use the nir and thermal ir
         # brightness tempertures and derive the reflectance using
@@ -682,7 +686,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
             satz = optional_datasets[0]
         else:
             from pyorbital.orbital import get_observer_look
-            lons, lats = band.attrs['area'].get_lonlats(chunks=CHUNK_SIZE)
+            lons, lats = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
             sat_lon, sat_lat, sat_alt = get_satpos(band)
             try:
                 dummy, satel = get_observer_look(sat_lon,
@@ -818,7 +822,7 @@ class GenericCompositor(CompositeBase):
         for projectable in projectables:
             current_sensor = projectable.attrs.get("sensor", None)
             if current_sensor:
-                if isinstance(current_sensor, (str, bytes, six.text_type)):
+                if isinstance(current_sensor, (str, bytes)):
                     sensor.add(current_sensor)
                 else:
                     sensor |= current_sensor
@@ -911,10 +915,23 @@ class ColormapCompositor(GenericCompositor):
 
     @staticmethod
     def build_colormap(palette, dtype, info):
-        """Create the colormap from the `raw_palette` and the valid_range."""
+        """Create the colormap from the `raw_palette` and the valid_range.
+
+        Colormaps come in different forms, but they are all supposed to have
+        color values between 0 and 255. The following cases are considered:
+        - Palettes comprised of only a list on colors. If *dtype* is uint8,
+          the values of the colormap are the enumaration of the colors.
+          Otherwise, the colormap values will be spread evenly from the min
+          to the max of the valid_range provided in `info`.
+        - Palettes that have a palette_meanings attribute. The palette meanings
+          will be used as values of the colormap.
+
+        """
         from trollimage.colormap import Colormap
         sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        set_range = True
         if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
+            set_range = False
             meanings = palette.attrs['palette_meanings']
             iterator = zip(meanings, sqpalette)
         else:
@@ -930,9 +947,11 @@ class ColormapCompositor(GenericCompositor):
                     for (val, tup) in iterator]
             colormap = Colormap(*tups)
 
-            sf = info.get('scale_factor', np.array(1))
-            colormap.set_range(
-                *info['valid_range'] * sf + info.get('add_offset', 0))
+            if set_range:
+                sf = info.get('scale_factor', np.array(1))
+                colormap.set_range(
+                    *(np.array(info['valid_range']) * sf
+                      + info.get('add_offset', 0)))
         else:
             raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
                                  " in order to be displayable with an attached color-palette!")
@@ -978,7 +997,6 @@ class PaletteCompositor(ColormapCompositor):
 
         # TODO: support datasets with palette to delegate this to the image
         # writer.
-
         data, palette = projectables
         colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
@@ -1007,7 +1025,7 @@ class PaletteCompositor(ColormapCompositor):
 class DayNightCompositor(GenericCompositor):
     """A compositor that blends a day data with night data."""
 
-    def __init__(self, name, lim_low=85., lim_high=95., **kwargs):
+    def __init__(self, name, lim_low=85., lim_high=88., **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -1430,6 +1448,40 @@ class SandwichCompositor(GenericCompositor):
         rgb_img = enhance2dataset(projectables[1])
         rgb_img *= luminance
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
+
+
+class NaturalEnh(GenericCompositor):
+    """Enhanced version of natural color composite by Simon Proud.
+
+    Args:
+        ch16_w (float): weight for red channel (1.6 um). Default: 1.3
+        ch08_w (float): weight for green channel (0.8 um). Default: 2.5
+        ch06_w (float): weight for blue channel (0.6 um). Default: 2.2
+
+    """
+
+    def __init__(self, name, ch16_w=1.3, ch08_w=2.5, ch06_w=2.2,
+                 *args, **kwargs):
+        """Initialize the class."""
+        self.ch06_w = ch06_w
+        self.ch08_w = ch08_w
+        self.ch16_w = ch16_w
+        super(NaturalEnh, self).__init__(name, *args, **kwargs)
+
+    def __call__(self, projectables, *args, **kwargs):
+        """Generate the composite."""
+        projectables = self.match_data_arrays(projectables)
+        ch16 = projectables[0]
+        ch08 = projectables[1]
+        ch06 = projectables[2]
+
+        ch1 = self.ch16_w * ch16 + self.ch08_w * ch08 + self.ch06_w * ch06
+        ch1.attrs = ch16.attrs
+        ch2 = ch08
+        ch3 = ch06
+
+        return super(NaturalEnh, self).__call__((ch1, ch2, ch3),
+                                                *args, **kwargs)
 
 
 class StaticImageCompositor(GenericCompositor):

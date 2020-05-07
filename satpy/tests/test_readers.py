@@ -19,15 +19,8 @@
 
 import os
 import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -238,7 +231,6 @@ class TestReaderLoader(unittest.TestCase):
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             ])
 
-    @unittest.skipIf(sys.version_info < (3, 4), "pathlib added in Python 3.4")
     def test_filenames_as_path(self):
         """Test with filenames specified as pathlib.Path."""
         from pathlib import Path
@@ -665,6 +657,17 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(6, len(groups))
         self.assertEqual(2, len(groups[0]['abi_l1b']))
 
+    def test_default_behavior_set(self):
+        """Test the default behavior with the 'abi_l1b' reader."""
+        from satpy.readers import group_files
+        files = set(self.g16_files)
+        num_files = len(files)
+        groups = group_files(files, reader='abi_l1b')
+        # we didn't modify it
+        self.assertEqual(len(files), num_files)
+        self.assertEqual(6, len(groups))
+        self.assertEqual(2, len(groups[0]['abi_l1b']))
+
     def test_non_datetime_group_key(self):
         """Test what happens when the start_time isn't used for grouping."""
         from satpy.readers import group_files
@@ -747,20 +750,3 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(6, len(groups[0]['viirs_sdr']))
         # 5 granules * 3 file types
         self.assertEqual(5 * 3, len(groups[1]['viirs_sdr']))
-
-
-def suite():
-    """Create test suite for test_readers."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestReaderLoader))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFindFilesAndReaders))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGroupFiles))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

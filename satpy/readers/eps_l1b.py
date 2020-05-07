@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -32,7 +32,7 @@ from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.xmlformat import XMLFormat
 from satpy import CHUNK_SIZE
 
-LOG = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 C1 = 1.191062e-05  # mW/(m2*sr*cm-4)
 C2 = 1.4387863  # K/cm-1
@@ -53,7 +53,7 @@ record_class = ["Reserved", "mphr", "sphr",
                 "veadr", "viadr", "mdr"]
 
 
-def read_raw(filename):
+def read_records(filename):
     """Read *filename* without scaling it afterwards."""
     form = XMLFormat(os.path.join(CONFIG_PATH, "eps_avhrrl1b_6.5.xml"))
 
@@ -65,12 +65,17 @@ def read_raw(filename):
                           ("RECORD_START_TIME", "S6"),
                           ("RECORD_STOP_TIME", "S6")])
 
+    max_lines = np.floor((CHUNK_SIZE ** 2) / 2048)
+
     dtypes = []
     cnt = 0
+    counts = []
+    classes = []
+    prev = None
     with open(filename, "rb") as fdes:
         while True:
             grh = np.fromfile(fdes, grh_dtype, 1)
-            if not grh:
+            if grh.size == 0:
                 break
             rec_class = record_class[int(grh["record_class"])]
             sub_class = grh["RECORD_SUBCLASS"][0]
@@ -79,7 +84,7 @@ def read_raw(filename):
             bare_size = expected_size - grh_dtype.itemsize
             try:
                 the_type = form.dtype((rec_class, sub_class))
-                the_descr = grh_dtype.descr + the_type.descr
+                # the_descr = grh_dtype.descr + the_type.descr
             except KeyError:
                 the_type = np.dtype([('unknown', 'V%d' % bare_size)])
             the_descr = grh_dtype.descr + the_type.descr
@@ -88,13 +93,34 @@ def read_raw(filename):
                 padding = [('unknown%d' % cnt, 'V%d' % (expected_size - the_type.itemsize))]
                 cnt += 1
                 the_descr += padding
-            dtypes.append(np.dtype(the_descr))
+            new_dtype = np.dtype(the_descr)
+            key = (rec_class, sub_class)
+            if key == prev:
+                counts[-1] += 1
+            else:
+                dtypes.append(new_dtype)
+                counts.append(1)
+                classes.append(key)
+                prev = key
             fdes.seek(expected_size - grh_dtype.itemsize, 1)
 
-        file_dtype = np.dtype([(str(num), the_dtype) for num, the_dtype in enumerate(dtypes)])
-        records = np.memmap(fdes, mode='r', dtype=file_dtype, shape=1)[0]
+        sections = {}
+        offset = 0
+        for dtype, count, rec_class in zip(dtypes, counts, classes):
+            fdes.seek(offset)
+            if rec_class == ('mdr', 2):
+                record = da.from_array(np.memmap(fdes, mode='r', dtype=dtype, shape=count, offset=offset),
+                                       chunks=(max_lines,))
+            else:
+                record = np.fromfile(fdes, dtype=dtype, count=count)
+            offset += dtype.itemsize * count
+            if rec_class in sections:
+                logger.debug('Multiple records for ', str(rec_class))
+                sections[rec_class] = np.hstack((sections[rec_class], record))
+            else:
+                sections[rec_class] = record
 
-    return records, form
+    return sections, form
 
 
 def create_xarray(arr):
@@ -124,34 +150,17 @@ class EPSAVHRRFile(BaseFileHandler):
         self.three_a_mask, self.three_b_mask = None, None
         self._start_time = filename_info['start_time']
         self._end_time = filename_info['end_time']
-        self.records = None
         self.form = None
-        self.mdrs = None
         self.scanlines = None
         self.pixels = None
         self.sections = None
 
-    def _read_all(self, filename):
-        LOG.debug("Reading %s", filename)
-        self.records, self.form = read_raw(filename)
-        self.mdrs = [record
-                     for record in self.records
-                     if record_class[record['record_class']] == "mdr"]
-        self.iprs = [record
-                     for record in self.records
-                     if record_class[record['record_class']] == "ipr"]
-        self.scanlines = len(self.mdrs)
-        self.sections = {("mdr", 2): np.hstack(self.mdrs)}
-        self.sections[("ipr", 0)] = np.hstack(self.iprs)
-        for record in self.records:
-            rec_class = record_class[record['record_class']]
-            sub_class = record["RECORD_SUBCLASS"]
-            if rec_class in ["mdr", "ipr"]:
-                continue
-            if (rec_class, sub_class) in self.sections:
-                raise ValueError("Too many " + str((rec_class, sub_class)))
-            else:
-                self.sections[(rec_class, sub_class)] = record
+    def _read_all(self):
+        logger.debug("Reading %s", self.filename)
+        self.sections, self.form = read_records(self.filename)
+        self.scanlines = self['TOTAL_MDR']
+        if self.scanlines != len(self.sections[('mdr', 2)]):
+            logger.warning("Number of declared records doesn't match number of scanlines in the file.")
         self.pixels = self["EARTH_VIEWS_PER_SCANLINE"]
 
     def __getitem__(self, key):
@@ -159,12 +168,11 @@ class EPSAVHRRFile(BaseFileHandler):
         for altkey in self.form.scales.keys():
             try:
                 try:
-                    return (da.from_array(self.sections[altkey][key], chunks=CHUNK_SIZE)
-                            * self.form.scales[altkey][key])
+                    return self.sections[altkey][key] * self.form.scales[altkey][key]
                 except TypeError:
-                    val = self.sections[altkey][key].decode().split("=")[1]
+                    val = self.sections[altkey][key].item().decode().split("=")[1]
                     try:
-                        return float(val) * self.form.scales[altkey][key]
+                        return float(val) * self.form.scales[altkey][key].item()
                     except ValueError:
                         return val.strip()
             except (KeyError, ValueError):
@@ -179,32 +187,30 @@ class EPSAVHRRFile(BaseFileHandler):
         return keys
 
     @delayed(nout=2, pure=True)
-    def _get_full_lonlats(self):
-        lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
-                          self["EARTH_LOCATIONS"][:, :, 0],
-                          self["EARTH_LOCATION_LAST"][:, [0]]))
-
-        lons = np.hstack((self["EARTH_LOCATION_FIRST"][:, [1]],
-                          self["EARTH_LOCATIONS"][:, :, 1],
-                          self["EARTH_LOCATION_LAST"][:, [1]]))
-
+    def _get_full_lonlats(self, lons, lats):
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
-        earth_views_per_scanline = self["EARTH_VIEWS_PER_SCANLINE"]
-        if nav_sample_rate == 20 and earth_views_per_scanline == 2048:
+        if nav_sample_rate == 20 and self.pixels == 2048:
             from geotiepoints import metop20kmto1km
             return metop20kmto1km(lons, lats)
         else:
             raise NotImplementedError("Lon/lat expansion not implemented for " +
                                       "sample rate = " + str(nav_sample_rate) +
                                       " and earth views = " +
-                                      str(earth_views_per_scanline))
+                                      str(self.pixels))
 
     def get_full_lonlats(self):
         """Get the interpolated lons/lats."""
         if self.lons is not None and self.lats is not None:
             return self.lons, self.lats
 
-        self.lons, self.lats = self._get_full_lonlats()
+        raw_lats = np.hstack((self["EARTH_LOCATION_FIRST"][:, [0]],
+                              self["EARTH_LOCATIONS"][:, :, 0],
+                              self["EARTH_LOCATION_LAST"][:, [0]]))
+
+        raw_lons = np.hstack((self["EARTH_LOCATION_FIRST"][:, [1]],
+                              self["EARTH_LOCATIONS"][:, :, 1],
+                              self["EARTH_LOCATION_LAST"][:, [1]]))
+        self.lons, self.lats = self._get_full_lonlats(raw_lons, raw_lats)
         self.lons = da.from_delayed(self.lons, dtype=self["EARTH_LOCATIONS"].dtype,
                                     shape=(self.scanlines, self.pixels))
         self.lats = da.from_delayed(self.lats, dtype=self["EARTH_LOCATIONS"].dtype,
@@ -212,7 +218,31 @@ class EPSAVHRRFile(BaseFileHandler):
         return self.lons, self.lats
 
     @delayed(nout=4, pure=True)
-    def _get_full_angles(self):
+    def _get_full_angles(self, solar_zenith, sat_zenith, solar_azimuth, sat_azimuth):
+
+        nav_sample_rate = self["NAV_SAMPLE_RATE"]
+        if nav_sample_rate == 20 and self.pixels == 2048:
+            from geotiepoints import metop20kmto1km
+            # Note: interpolation asumes lat values values between -90 and 90
+            # Solar and satellite zenith is between 0 and 180.
+            # Note: delayed will cast input dask-arrays to numpy arrays (needed by metop20kmto1km).
+            sun_azi, sun_zen = metop20kmto1km(solar_azimuth, solar_zenith - 90)
+            sun_zen += 90
+            sat_azi, sat_zen = metop20kmto1km(sat_azimuth, sat_zenith - 90)
+            sat_zen += 90
+            return sun_azi, sun_zen, sat_azi, sat_zen
+        else:
+            raise NotImplementedError("Angles expansion not implemented for " +
+                                      "sample rate = " + str(nav_sample_rate) +
+                                      " and earth views = " +
+                                      str(self.pixels))
+
+    def get_full_angles(self):
+        """Get the interpolated lons/lats."""
+        if (self.sun_azi is not None and self.sun_zen is not None and
+                self.sat_azi is not None and self.sat_zen is not None):
+            return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
+
         solar_zenith = np.hstack((self["ANGULAR_RELATIONS_FIRST"][:, [0]],
                                   self["ANGULAR_RELATIONS"][:, :, 0],
                                   self["ANGULAR_RELATIONS_LAST"][:, [0]]))
@@ -228,34 +258,10 @@ class EPSAVHRRFile(BaseFileHandler):
                                  self["ANGULAR_RELATIONS"][:, :, 3],
                                  self["ANGULAR_RELATIONS_LAST"][:, [3]]))
 
-        nav_sample_rate = self["NAV_SAMPLE_RATE"]
-        earth_views_per_scanline = self["EARTH_VIEWS_PER_SCANLINE"]
-        if nav_sample_rate == 20 and earth_views_per_scanline == 2048:
-            from geotiepoints import metop20kmto1km
-            # Note: interpolation asumes lat values values between -90 and 90
-            # Solar and satellite zenith is between 0 and 180.
-            solar_zenith -= 90
-            sun_azi, sun_zen = metop20kmto1km(
-                solar_azimuth, solar_zenith)
-            sun_zen += 90
-            sat_zenith -= 90
-            sat_azi, sat_zen = metop20kmto1km(
-                sat_azimuth, sat_zenith)
-            sat_zen += 90
-            return sun_azi, sun_zen, sat_azi, sat_zen
-        else:
-            raise NotImplementedError("Angles expansion not implemented for " +
-                                      "sample rate = " + str(nav_sample_rate) +
-                                      " and earth views = " +
-                                      str(earth_views_per_scanline))
-
-    def get_full_angles(self):
-        """Get the interpolated lons/lats."""
-        if (self.sun_azi is not None and self.sun_zen is not None and
-                self.sat_azi is not None and self.sat_zen is not None):
-            return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
-
-        self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen = self._get_full_angles()
+        self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen = self._get_full_angles(solar_zenith,
+                                                                                       sat_zenith,
+                                                                                       solar_azimuth,
+                                                                                       sat_azimuth)
         self.sun_azi = da.from_delayed(self.sun_azi, dtype=self["ANGULAR_RELATIONS"].dtype,
                                        shape=(self.scanlines, self.pixels))
         self.sun_zen = da.from_delayed(self.sun_zen, dtype=self["ANGULAR_RELATIONS"].dtype,
@@ -268,8 +274,8 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def get_bounding_box(self):
         """Get bounding box."""
-        if self.mdrs is None:
-            self._read_all(self.filename)
+        if self.sections is None:
+            self._read_all()
         lats = np.hstack([self["EARTH_LOCATION_FIRST"][0, [0]],
                           self["EARTH_LOCATION_LAST"][0, [0]],
                           self["EARTH_LOCATION_LAST"][-1, [0]],
@@ -282,8 +288,8 @@ class EPSAVHRRFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get calibrated channel data."""
-        if self.mdrs is None:
-            self._read_all(self.filename)
+        if self.sections is None:
+            self._read_all()
 
         if key.name in ['longitude', 'latitude']:
             lons, lats = self.get_full_lonlats()
@@ -319,7 +325,7 @@ class EPSAVHRRFile(BaseFileHandler):
                 self.three_b_mask = ((self["FRAME_INDICATOR"] & 2 ** 16) != 0)
 
             if key.name not in ["1", "2", "3a", "3A", "3b", "3B", "4", "5"]:
-                LOG.info("Can't load channel in eps_l1b: " + str(key.name))
+                logger.info("Can't load channel in eps_l1b: " + str(key.name))
                 return
 
             if key.name == "1":
@@ -416,19 +422,3 @@ class EPSAVHRRFile(BaseFileHandler):
         """Get end time."""
         # return datetime.strptime(self["SENSING_END"], "%Y%m%d%H%M%SZ")
         return self._end_time
-
-
-if __name__ == '__main__':
-    def norm255(a__):
-        """Normalize array to uint8."""
-        arr = a__ * 1.0
-        arr = (arr - arr.min()) * 255.0 / (arr.max() - arr.min())
-        return arr.astype(np.uint8)
-
-    def show(a__):
-        """Show array."""
-        from PIL import Image
-        Image.fromarray(norm255(a__), "L").show()
-
-    import sys
-    res = read_raw(sys.argv[1])

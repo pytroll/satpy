@@ -8,6 +8,7 @@ The following people have made contributions to this project:
 <!--- See https://gist.github.com/djhoese/52220272ec73b12eb8f4a29709be110d for auto-generating parts of this list --->
 
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
+- [Talfan Barnie (TalfanBarnie)](https://github.com/TalfanBarnie)
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
@@ -20,14 +21,15 @@ The following people have made contributions to this project:
 - [Ulrik Egede (egede)](https://github.com/egede)
 - [Joleen Feltz (joleenf)](https://github.com/joleenf)
 - [Stephan Finkensieper (sfinkens)](https://github.com/sfinkens)
+- [Andrea Grillini (AppLEaDaY)](https://github.com/AppLEaDaY)
 - [Nina Håkansson (ninahakansson)](https://github.com/ninahakansson)
 - [Ulrich Hamann](https://github.com/)
 - [Gerrit Holl (gerritholl)](https://github.com/gerritholl)
 - [David Hoese (djhoese)](https://github.com/djhoese)
 - [Marc Honnorat (honnorat)](https://github.com/honnorat)
 - [Mikhail Itkin (mitkin)](https://github.com/mitkin)
-- [JohannesSMHI (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Tommy Jasmin (tommyjasmin)](https://github.com/tommyjasmin)
+- [Johannes Johansson (JohannesSMHI)](https://github.com/JohannesSMHI)
 - [Sauli Joro (sjoro)](https://github.com/sjoro)
 - [Janne Kotro (jkotro)](https://github.com/jkotro)
 - [Ralph Kuehn (ralphk11)](https://github.com/ralphk11)
@@ -39,6 +41,7 @@ The following people have made contributions to this project:
 - [Esben S. Nielsen (storpipfugl)](https://github.com/storpipfugl)
 - [Tom Parker (tparker-usgs)](https://github.com/tparker-usgs)
 - [Christian Peters (peters77)](https://github.com/peters77)
+- [Ghislain Picard (ghislainp)](https://github.com/ghislainp)
 - [Simon R. Proud (simonrp84)](https://github.com/simonrp84)
 - [Lars Ørum Rasmussen (loerum)](https://github.com/loerum)
 - [Martin Raspaud (mraspaud)](https://github.com/mraspaud)
@@ -58,4 +61,3 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
-

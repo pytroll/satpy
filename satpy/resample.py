@@ -41,6 +41,7 @@ Resampling algorithms
     "bucket_sum", "Sum Bucket Resampling", :class:`~satpy.resample.BucketSum`
     "bucket_count", "Count Bucket Resampling", :class:`~satpy.resample.BucketCount`
     "bucket_fraction", "Fraction Bucket Resampling", :class:`~satpy.resample.BucketFraction`
+    "gradient_search", "Gradient Search Resampling", :class:`~pyresample.gradient.GradientSearchResampler`
 
 The resampling algorithm used can be specified with the ``resampler`` keyword
 argument and defaults to ``nearest``:
@@ -133,22 +134,25 @@ import json
 import os
 from logging import getLogger
 from weakref import WeakValueDictionary
-
+import warnings
 import numpy as np
 import xarray as xr
 import dask
 import dask.array as da
 import zarr
-import six
 
 from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
+try:
+    from pyresample.resampler import BaseResampler as PRBaseResampler
+    from pyresample.gradient import GradientSearchResampler
+except ImportError:
+    warnings.warn('Gradient search resampler not available, upgrade Pyresample.')
+    PRBaseResampler = None
+    GradientSearchResampler = None
+
 from satpy import CHUNK_SIZE
 from satpy.config import config_search_paths, get_config_path
-
-# In Python3 os.mkdir raises FileExistsError, in Python2 OSError
-if six.PY2:
-    FileExistsError = OSError
 
 
 LOG = getLogger(__name__)
@@ -414,6 +418,7 @@ class BaseResampler(object):
             else:
                 kwargs['mask'] = data.isnull()
             kwargs['mask'] = kwargs['mask'].all(dim=flat_dims)
+
         cache_id = self.precompute(cache_dir=cache_dir, **kwargs)
         return self.compute(data, cache_id=cache_id, **kwargs)
 
@@ -464,30 +469,28 @@ class KDTreeResampler(BaseResampler):
 
         """
         from pyresample.kd_tree import XArrayResamplerNN
-
         del kwargs
-        source_geo_def = self.source_geo_def
-
         if mask is not None and cache_dir is not None:
             LOG.warning("Mask and cache_dir both provided to nearest "
                         "resampler. Cached parameters are affected by "
                         "masked pixels. Will not cache results.")
             cache_dir = None
-        # TODO: move this to pyresample
-        if radius_of_influence is None:
+
+        if radius_of_influence is None and not hasattr(self.source_geo_def, 'geocentric_resolution'):
+            warnings.warn("Upgrade 'pyresample' for a more accurate default 'radius_of_influence'.")
             try:
-                radius_of_influence = source_geo_def.lons.resolution * 3
+                radius_of_influence = self.source_geo_def.lons.resolution * 3
             except AttributeError:
                 try:
-                    radius_of_influence = max(abs(source_geo_def.pixel_size_x),
-                                              abs(source_geo_def.pixel_size_y)) * 3
+                    radius_of_influence = max(abs(self.source_geo_def.pixel_size_x),
+                                              abs(self.source_geo_def.pixel_size_y)) * 3
                 except AttributeError:
                     radius_of_influence = 1000
 
             except TypeError:
                 radius_of_influence = 10000
 
-        kwargs = dict(source_geo_def=source_geo_def,
+        kwargs = dict(source_geo_def=self.source_geo_def,
                       target_geo_def=self.target_geo_def,
                       radius_of_influence=radius_of_influence,
                       neighbours=1,
@@ -833,8 +836,7 @@ class BilinearResampler(BaseResampler):
                           target_geo_def=self.target_geo_def,
                           radius_of_influence=radius_of_influence,
                           neighbours=32,
-                          epsilon=epsilon,
-                          reduce_data=reduce_data)
+                          epsilon=epsilon)
 
             self.resampler = XArrayResamplerBilinear(**kwargs)
             try:
@@ -1214,11 +1216,13 @@ class BucketFraction(BucketResamplerBase):
         return result
 
 
+# TODO: move this to pyresample.resampler
 RESAMPLERS = {"kd_tree": KDTreeResampler,
               "nearest": KDTreeResampler,
               "ewa": EWAResampler,
               "bilinear": BilinearResampler,
               "native": NativeResampler,
+              "gradient_search": GradientSearchResampler,
               "bucket_avg": BucketAvg,
               "bucket_sum": BucketSum,
               "bucket_count": BucketCount,
@@ -1226,17 +1230,24 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               }
 
 
+if PRBaseResampler is None:
+    PRBaseResampler = BaseResampler
+
+
+# TODO: move this to pyresample
 def prepare_resampler(source_area, destination_area, resampler=None, **resample_kwargs):
     """Instantiate and return a resampler."""
     if resampler is None:
         LOG.info("Using default KDTree resampler")
         resampler = 'kd_tree'
 
-    if isinstance(resampler, BaseResampler):
+    if isinstance(resampler, (BaseResampler, PRBaseResampler)):
         raise ValueError("Trying to create a resampler when one already "
                          "exists.")
     elif isinstance(resampler, str):
-        resampler_class = RESAMPLERS[resampler]
+        resampler_class = RESAMPLERS.get(resampler, None)
+        if resampler_class is None:
+            raise KeyError("Resampler '%s' not available" % resampler)
     else:
         resampler_class = resampler
 
@@ -1251,10 +1262,11 @@ def prepare_resampler(source_area, destination_area, resampler=None, **resample_
     return key, resampler_instance
 
 
+# TODO: move this to pyresample
 def resample(source_area, data, destination_area,
              resampler=None, **kwargs):
     """Do the resampling."""
-    if not isinstance(resampler, BaseResampler):
+    if not isinstance(resampler, (BaseResampler, PRBaseResampler)):
         # we don't use the first argument (cache key)
         _, resampler_instance = prepare_resampler(source_area,
                                                   destination_area,

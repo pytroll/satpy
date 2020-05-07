@@ -20,7 +20,7 @@ file_types:
   glm_l2_imagery:
     file_reader: !!python/name:satpy.readers.glm_l2.NCGriddedGLML2
     file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-GLM{scene_abbr:s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
-# glm_l2_lcfa — add this with glmtools
+# glm_l2_lcfa - add this with glmtools
 
 datasets:
   flash_extent_density:

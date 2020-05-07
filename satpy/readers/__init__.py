@@ -22,7 +22,6 @@ import numbers
 import os
 from datetime import datetime, timedelta
 
-import six
 import yaml
 
 try:
@@ -34,11 +33,6 @@ from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy import CALIBRATION_ORDER
-
-try:
-    import configparser  # noqa
-except ImportError:
-    from six.moves import configparser  # noqa
 
 LOG = logging.getLogger(__name__)
 
@@ -209,7 +203,7 @@ def get_key(key, key_container, num_results=1, best=True,
         # we want this ID to act as a query so we set modifiers to None
         # meaning "we don't care how many modifiers it has".
         key = DatasetID(wavelength=key, modifiers=None)
-    elif isinstance(key, (str, six.text_type)):
+    elif isinstance(key, str):
         # ID should act as a query (see wl comment above)
         key = DatasetID(name=key, modifiers=None)
     elif not isinstance(key, DatasetID):
@@ -331,7 +325,7 @@ class DatasetDict(dict):
             try:
                 key = self.get_key(key)
             except KeyError:
-                if isinstance(old_key, (str, six.text_type)):
+                if isinstance(old_key, str):
                     new_name = old_key
                 else:
                     new_name = d.get("name")
@@ -399,7 +393,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     Args:
         files_to_sort (iterable): File paths to sort in to group
         reader (str): Reader whose file patterns should be used to sort files.
-            This
+            This is currently a required keyword argument, but may be optional
+            in the future (see inline code comments for details).
         time_threshold (int): Number of seconds used to consider time elements
             in a group as being equal. For example, if the 'start_time' item
             is used to group files then any time within `time_threshold`
@@ -448,6 +443,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     if group_keys is None:
         group_keys = reader_instance.info.get('group_keys', ('start_time',))
     file_keys = []
+    # make a copy because filename_items_for_filetype will modify inplace
+    files_to_sort = set(files_to_sort)
     for _, filetype_info in reader_instance.sorted_filetype_items():
         for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
             group_key = tuple(file_info.get(k) for k in group_keys)

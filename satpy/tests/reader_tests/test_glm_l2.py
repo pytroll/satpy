@@ -21,40 +21,7 @@ import os
 import numpy as np
 import xarray as xr
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
-
-class FakeDataset(object):
-    """Act like an xarray Dataset object for testing."""
-
-    def __init__(self, info, attrs, dims=None):
-        """Set properties to mimic a Dataset object."""
-        for var_name, var_data in list(info.items()):
-            if isinstance(var_data, np.ndarray):
-                info[var_name] = xr.DataArray(var_data)
-        self.info = info
-        self.attrs = attrs
-        self.dims = dims or tuple()
-
-    def __getitem__(self, key):
-        """Get the info for the fake data."""
-        return self.info[key]
-
-    def __contains__(self, key):
-        """Check if key is in the fake data."""
-        return key in self.info
-
-    def rename(self, *args, **kwargs):
-        """Allow for dimension renaming."""
-        return self
-
-    def close(self):
-        """Pretend to close."""
-        return
+from unittest import mock
 
 
 def setup_fake_dataset():
@@ -79,10 +46,12 @@ def setup_fake_dataset():
     x__ = xr.DataArray(
         range(5),
         attrs={'scale_factor': 2., 'add_offset': -1.},
+        dims=('x',),
     )
     y__ = xr.DataArray(
         range(2),
         attrs={'scale_factor': -2., 'add_offset': 1.},
+        dims=('y',),
     )
     proj = xr.DataArray(
         [],
@@ -95,20 +64,22 @@ def setup_fake_dataset():
             'sweep_angle_axis': u'x'
         }
     )
-    fake_dataset = FakeDataset({
-        'flash_extent_density': fed,
-        'x': x__,
-        'y': y__,
-        'goes_imager_projection': proj,
-        "nominal_satellite_subpoint_lat": np.array(0.0),
-        "nominal_satellite_subpoint_lon": np.array(-89.5),
-        "nominal_satellite_height": np.array(35786.02)
-    },
-        {
+    fake_dataset = xr.Dataset(
+        data_vars={
+            'flash_extent_density': fed,
+            'x': x__,
+            'y': y__,
+            'goes_imager_projection': proj,
+            "nominal_satellite_subpoint_lat": np.array(0.0),
+            "nominal_satellite_subpoint_lon": np.array(-89.5),
+            "nominal_satellite_height": np.array(35786.02)
+        },
+        attrs={
             "time_coverage_start": "2017-09-20T17:30:40Z",
             "time_coverage_end": "2017-09-20T17:41:17Z",
             "spatial_resolution": "2km at nadir",
-        }, dims=('y', 'x'))
+        }
+    )
     return fake_dataset
 
 
@@ -195,16 +166,3 @@ class TestGLML2Reader(unittest.TestCase):
         self.assertEqual(len(available_datasets), 1)
         for ds_id in available_datasets:
             self.assertEqual(ds_id.resolution, 2000)
-
-
-def suite():
-    """Create test suite for this module."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGLML2FileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGLML2Reader))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

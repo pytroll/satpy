@@ -20,11 +20,7 @@ import unittest
 import tempfile
 import shutil
 import os
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 try:
     from pyproj import CRS
@@ -960,25 +956,3 @@ class TestBucketFraction(unittest.TestCase):
         self.assertTrue('categories' in res.coords)
         self.assertTrue('categories' in res.dims)
         self.assertTrue(np.all(res.coords['categories'] == np.array([0, 1, 2])))
-
-
-def suite():
-    """Create test suite for test_resampler."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeResampler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestKDTreeResampler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestEWAResampler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHLResample))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBilinearResampler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketAvg))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketSum))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketCount))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBucketFraction))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCoordinateHelpers))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

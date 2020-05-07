@@ -22,15 +22,11 @@ import random
 import unittest
 from datetime import datetime
 from tempfile import mkdtemp
+from unittest.mock import MagicMock, patch
 
 import satpy.readers.yaml_reader as yr
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.dataset import DatasetID
-
-try:
-    from unittest.mock import MagicMock, patch
-except ImportError:
-    from mock import MagicMock, patch
 
 
 class FakeFH(BaseFileHandler):
@@ -76,7 +72,7 @@ class TestUtils(unittest.TestCase):
         pattern = os.path.join(*pattern.split('/'))
         filename = os.path.join(base_dir, 'Oa05_radiance.nc')
         expected = os.path.join(base_data, 'Oa05_radiance.nc')
-        self.assertEqual(yr.get_filebase(filename, pattern), expected)
+        self.assertEqual(yr._get_filebase(filename, pattern), expected)
 
     def test_match_filenames(self):
         """Check that matching filenames works."""
@@ -95,7 +91,30 @@ class TestUtils(unittest.TestCase):
         filenames = [os.path.join(base_dir, 'Oa05_radiance.nc'),
                      os.path.join(base_dir, 'geo_coordinates.nc')]
         expected = os.path.join(base_dir, 'geo_coordinates.nc')
-        self.assertEqual(yr.match_filenames(filenames, pattern), [expected])
+        self.assertEqual(yr._match_filenames(filenames, pattern), {expected})
+
+    def test_match_filenames_windows_forward_slash(self):
+        """Check that matching filenames works on Windows with forward slashes.
+
+        This is common from Qt5 which internally uses forward slashes everywhere.
+
+        """
+        # just a fake path for testing that doesn't have to exist
+        base_dir = os.path.join(os.path.expanduser('~'), 'data',
+                                'satellite', 'Sentinel-3')
+        base_data = ('S3A_OL_1_EFR____20161020T081224_20161020T081524_'
+                     '20161020T102406_0179_010_078_2340_SVL_O_NR_002.SEN3')
+        base_dir = os.path.join(base_dir, base_data)
+        pattern = ('{mission_id:3s}_OL_{processing_level:1s}_{datatype_id:_<6s'
+                   '}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{cre'
+                   'ation_time:%Y%m%dT%H%M%S}_{duration:4d}_{cycle:3d}_{relati'
+                   've_orbit:3d}_{frame:4d}_{centre:3s}_{mode:1s}_{timeliness:'
+                   '2s}_{collection:3s}.SEN3/geo_coordinates.nc')
+        pattern = os.path.join(*pattern.split('/'))
+        filenames = [os.path.join(base_dir, 'Oa05_radiance.nc').replace(os.sep, '/'),
+                     os.path.join(base_dir, 'geo_coordinates.nc').replace(os.sep, '/')]
+        expected = os.path.join(base_dir, 'geo_coordinates.nc').replace(os.sep, '/')
+        self.assertEqual(yr._match_filenames(filenames, pattern), {expected})
 
     def test_listify_string(self):
         """Check listify_string."""
@@ -607,6 +626,48 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         GEOSegmentYAMLReader.__bases__ = (MagicMock, )
         self.reader = GEOSegmentYAMLReader()
 
+    def test_get_expected_segments(self):
+        """Test that expected segments can come from the filename."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        cfh = MagicMock()
+        # Hacky: This is setting an attribute on the MagicMock *class*
+        #        not on a MagicMock instance
+        GEOSegmentYAMLReader.__bases__[0].create_filehandlers = cfh
+
+        fake_fh = MagicMock()
+        fake_fh.filename_info = {}
+        fake_fh.filetype_info = {}
+        cfh.return_value = {'ft1': [fake_fh]}
+        reader = GEOSegmentYAMLReader()
+        # default (1)
+        created_fhs = reader.create_filehandlers(['fake.nc'])
+        es = created_fhs['ft1'][0].filetype_info['expected_segments']
+        self.assertEqual(es, 1)
+
+        # YAML defined for each file type
+        fake_fh.filetype_info['expected_segments'] = 2
+        created_fhs = reader.create_filehandlers(['fake.nc'])
+        es = created_fhs['ft1'][0].filetype_info['expected_segments']
+        self.assertEqual(es, 2)
+
+        # defined both in the filename and the YAML metadata
+        # YAML has priority
+        fake_fh.filename_info = {'total_segments': 3}
+        fake_fh.filetype_info = {'expected_segments': 2}
+        created_fhs = reader.create_filehandlers(['fake.nc'])
+        es = created_fhs['ft1'][0].filetype_info['expected_segments']
+        self.assertEqual(es, 2)
+
+        # defined in the filename
+        fake_fh.filename_info = {'total_segments': 3}
+        fake_fh.filetype_info = {}
+        created_fhs = reader.create_filehandlers(['fake.nc'])
+        es = created_fhs['ft1'][0].filetype_info['expected_segments']
+        self.assertEqual(es, 3)
+
+        # undo the hacky-ness
+        del GEOSegmentYAMLReader.__bases__[0].create_filehandlers
+
     @patch('satpy.readers.yaml_reader.FileYAMLReader._load_dataset')
     @patch('satpy.readers.yaml_reader.xr')
     @patch('satpy.readers.yaml_reader._find_missing_segments')
@@ -807,22 +868,3 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         self.assertEqual(slice_list, [None, projectable, None])
         self.assertFalse(failure)
         self.assertTrue(proj is projectable)
-
-
-def suite():
-    """Create test suite for the yaml reader module."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestUtils))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFileFileYAMLReader))
-    mysuite.addTest(loader.loadTestsFromTestCase(
-        TestFileFileYAMLReaderMultiplePatterns))
-    mysuite.addTest(loader.loadTestsFromTestCase(
-        TestFileFileYAMLReaderMultipleFileTypes))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGEOSegmentYAMLReader))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

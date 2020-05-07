@@ -20,7 +20,6 @@
 import logging
 import h5py
 import numpy as np
-import six
 import xarray as xr
 import dask.array as da
 
@@ -52,7 +51,7 @@ class HDF5FileHandler(BaseFileHandler):
         file_handle.close()
 
     def _collect_attrs(self, name, attrs):
-        for key, value in six.iteritems(attrs):
+        for key, value in attrs.items():
             value = np.squeeze(value)
             fc_key = "{}/attr/{}".format(name, key)
             try:
@@ -70,8 +69,14 @@ class HDF5FileHandler(BaseFileHandler):
     def get_reference(self, name, key):
         """Get reference."""
         with h5py.File(self.filename, 'r') as hf:
-            if isinstance(hf[name].attrs[key], h5py.h5r.Reference):
-                ref_name = h5py.h5r.get_name(hf[name].attrs[key], hf.id)
+            return self._get_reference(hf, hf[name].attrs[key])
+
+    def _get_reference(self, hf, ref):
+        try:
+            return [self._get_reference(hf, elt) for elt in ref]
+        except TypeError:
+            if isinstance(ref, h5py.h5r.Reference):
+                ref_name = h5py.h5r.get_name(ref, hf.id)
                 return hf[ref_name][()]
 
     def collect_metadata(self, name, obj):

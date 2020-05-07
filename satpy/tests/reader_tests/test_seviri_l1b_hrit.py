@@ -17,7 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT msg reader tests package."""
 
-import sys
+import unittest
+from unittest import mock
 from datetime import datetime
 
 import numpy as np
@@ -27,16 +28,6 @@ from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFi
                                            NoValidOrbitParams, pad_data)
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
 from satpy.dataset import DatasetID
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 def new_get_hd(instance, hdr_info):
@@ -249,12 +240,14 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting the area def."""
+        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(DatasetID('HRV'))
         self.assertEqual(area.area_extent,
                          (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356))
         proj_dict = area.proj_dict
-        self.assertEqual(proj_dict['a'], 6378169.0)
-        self.assertEqual(proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(proj_dict)
+        self.assertEqual(a, 6378169.0)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(proj_dict['h'], 35785831.0)
         self.assertEqual(proj_dict['lon_0'], 44.0)
         self.assertEqual(proj_dict['proj'], 'geos')
@@ -332,10 +325,12 @@ class TestHRITMSGFileHandler(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting the area def."""
+        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(DatasetID('VIS006'))
         proj_dict = area.proj_dict
-        self.assertEqual(proj_dict['a'], 6378169.0)
-        self.assertEqual(proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(proj_dict)
+        self.assertEqual(a, 6378169.0)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(proj_dict['h'], 35785831.0)
         self.assertEqual(proj_dict['lon_0'], 44.0)
         self.assertEqual(proj_dict['proj'], 'geos')
@@ -749,18 +744,3 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
         self.reader._reduced = 'red'
         self.assertEqual(self.reader.reduce(123), 'red')
         reduce_mda.assert_not_called()
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    tests = [TestHRITMSGFileHandler, TestHRITMSGPrologueFileHandler, TestHRITMSGEpilogueFileHandler,
-             TestHRITMSGFileHandlerHRV]
-    for test in tests:
-        mysuite.addTest(loader.loadTestsFromTestCase(test))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
