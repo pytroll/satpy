@@ -54,10 +54,10 @@ Output:
 .. code-block:: none
 
     <xarray.DataArray (y: 5500, x: 5500)>
-    dask.array<concatenate, shape=(5500, 5500), dtype=float64, chunksize=(550, 4096), chunktype=numpy.ndarray>
+    dask.array<concatenate, shape=(5500, 5500), dtype=float64, chunksize=(550, 4096), ...
     Coordinates:
         acq_time  (y) datetime64[ns] 2018-01-11T09:00:20.995200 ... 2018-01-11T09:09:40.348800
-        crs       object +proj=geos +lon_0=140.7 +h=35785831 +x_0=0 +y_0=0 +a=6378169 +b=6356583.8 +units=m +no_defs +type=crs
+        crs       object +proj=geos +lon_0=140.7 +h=35785831 +x_0=0 +y_0=0 +a=6378169 ...
       * y         (y) float64 5.5e+06 5.498e+06 5.496e+06 ... -5.496e+06 -5.498e+06
       * x         (x) float64 -5.498e+06 -5.496e+06 -5.494e+06 ... 5.498e+06 5.5e+06
     Attributes:
