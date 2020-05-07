@@ -73,17 +73,6 @@ class NC_ABI_L2(NC_ABI_BASE):
 
         return variable
 
-    def spatial_resolution_to_number(self):
-        """Convert the 'spatial_resolution' global attribute to meters."""
-        res = self.nc.attrs['spatial_resolution'].split(' ')[0]
-        if res.endswith('km'):
-            res = int(float(res[:-2]) * 1000)
-        elif res.endswith('m'):
-            res = int(res[:-1])
-        else:
-            raise ValueError("Unexpected 'spatial_resolution' attribute '{}'".format(res))
-        return res
-
     def available_datasets(self, configured_datasets=None):
         """Add resolution to configured datasets."""
         for is_avail, ds_info in (configured_datasets or []):

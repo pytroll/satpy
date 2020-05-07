@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unittesting the Vaisala GLD360 reader.
-"""
+"""Unittesting the Vaisala GLD360 reader."""
 
 from io import StringIO
 
@@ -29,10 +28,10 @@ import unittest
 
 
 class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
-
     """Test the VaisalaGLD360TextFileHandler."""
 
     def test_vaisala_gld360(self):
+        """Test basic functionality for vaisala file handler."""
 
         expected = np.array([12.3,  13.2, -31.])
 
@@ -54,16 +53,3 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
         result = self.handler.get_dataset(dataset_id, dataset_info).values
 
         np.testing.assert_allclose(result, expected, rtol=1e-05)
-
-
-def suite():
-    """The test suite for test_vaisala_gld360."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVaisalaGLD360TextFileHandler))
-    return mysuite
-
-
-if __name__ == "__main__":
-    # So you can run tests from this module individually.
-    unittest.main()

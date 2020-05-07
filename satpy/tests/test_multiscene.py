@@ -15,24 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit tests for multiscene.py.
-"""
+"""Unit tests for multiscene.py."""
 
 import os
-import sys
 import tempfile
 import shutil
 from datetime import datetime
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 DEFAULT_SHAPE = (5, 10)
 
@@ -75,12 +65,12 @@ def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None):
 
 
 def _create_test_scenes(num_scenes=2, shape=DEFAULT_SHAPE, area=None):
-    """Helper to create some test scenes."""
+    """Create some test scenes for various test cases."""
     from satpy import Scene
     ds1 = _create_test_dataset('ds1', shape=shape, area=area)
     ds2 = _create_test_dataset('ds2', shape=shape, area=area)
     scenes = []
-    for scn_idx in range(num_scenes):
+    for _ in range(num_scenes):
         scn = Scene()
         scn['ds1'] = ds1.copy()
         scn['ds2'] = ds2.copy()
@@ -153,11 +143,11 @@ class TestMultiSceneSave(unittest.TestCase):
     """Test saving a MultiScene to various formats."""
 
     def setUp(self):
-        """Create temporary directory to save files to"""
+        """Create temporary directory to save files to."""
         self.base_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             shutil.rmtree(self.base_dir, ignore_errors=True)
         except OSError:
@@ -458,18 +448,3 @@ class TestBlendFuncs(unittest.TestCase):
         res = timeseries([self.ds1, self.ds2])
         self.assertIsInstance(res, xr.DataArray)
         self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
-
-
-def suite():
-    """The test suite for test_multiscene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMultiScene))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMultiSceneSave))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBlendFuncs))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

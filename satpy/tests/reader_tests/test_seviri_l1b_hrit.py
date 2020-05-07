@@ -17,7 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The HRIT msg reader tests package."""
 
-import sys
+import unittest
+from unittest import mock
 from datetime import datetime
 
 import numpy as np
@@ -27,16 +28,6 @@ from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFi
                                            NoValidOrbitParams, pad_data)
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
 from satpy.dataset import DatasetID
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 def new_get_hd(instance, hdr_info):
@@ -73,7 +64,8 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
                                                                                 'NorthPolarRadius': 10,
                                                                                 'SouthPolarRadius': 10,
                                                                                 'EquatorialRadius': 10}},
-                                         'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0}}}
+                                         'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0},
+                                                              'Level15ImageProduction': {'ImageProcDirection': 1}}}
                     prologue.get_satpos.return_value = None, None, None
                     prologue.get_earth_radii.return_value = None, None
                     epilogue = mock.MagicMock()
@@ -248,12 +240,14 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
 
     def test_get_area_def(self):
         """Test getting the area def."""
+        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(DatasetID('HRV'))
         self.assertEqual(area.area_extent,
                          (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356))
         proj_dict = area.proj_dict
-        self.assertEqual(proj_dict['a'], 6378169.0)
-        self.assertEqual(proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(proj_dict)
+        self.assertEqual(a, 6378169.0)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(proj_dict['h'], 35785831.0)
         self.assertEqual(proj_dict['lon_0'], 44.0)
         self.assertEqual(proj_dict['proj'], 'geos')
@@ -287,7 +281,8 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                                                                                 'NorthPolarRadius': 10,
                                                                                 'SouthPolarRadius': 10,
                                                                                 'EquatorialRadius': 10}},
-                                         'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0}}}
+                                         'ImageDescription': {'ProjectionDescription': {'LongitudeOfSSP': 0.0},
+                                                              'Level15ImageProduction': {'ImageProcDirection': 1}}}
                     prologue.get_satpos.return_value = None, None, None
                     prologue.get_earth_radii.return_value = None, None
 
@@ -328,31 +323,14 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                     tline['milliseconds'][1:-1] = np.arange(nlines-2)
                     self.reader.mda['image_segment_line_quality'] = {'line_mean_acquisition': tline}
 
-    def test_get_xy_from_linecol(self):
-        """Test get_xy_from_linecol."""
-        x__, y__ = self.reader.get_xy_from_linecol(0, 0, (10, 10), (5, 5))
-        self.assertEqual(-131072, x__)
-        self.assertEqual(131072, y__)
-        x__, y__ = self.reader.get_xy_from_linecol(10, 10, (10, 10), (5, 5))
-        self.assertEqual(0, x__)
-        self.assertEqual(0, y__)
-        x__, y__ = self.reader.get_xy_from_linecol(20, 20, (10, 10), (5, 5))
-        self.assertEqual(131072, x__)
-        self.assertEqual(-131072, y__)
-
-    def test_get_area_extent(self):
-        """Test getting the area_extent."""
-        res = self.reader.get_area_extent((20, 20), (10, 10), (5, 5), 33)
-        exp = (-71717.44995740513, -79266.655216079365,
-               79266.655216079365, 71717.44995740513)
-        self.assertTupleEqual(res, exp)
-
     def test_get_area_def(self):
         """Test getting the area def."""
+        from pyresample.utils import proj4_radius_parameters
         area = self.reader.get_area_def(DatasetID('VIS006'))
         proj_dict = area.proj_dict
-        self.assertEqual(proj_dict['a'], 6378169.0)
-        self.assertEqual(proj_dict['b'], 6356583.8)
+        a, b = proj4_radius_parameters(proj_dict)
+        self.assertEqual(a, 6378169.0)
+        self.assertEqual(b, 6356583.8)
         self.assertEqual(proj_dict['h'], 35785831.0)
         self.assertEqual(proj_dict['lon_0'], 44.0)
         self.assertEqual(proj_dict['proj'], 'geos')
@@ -766,18 +744,3 @@ class TestHRITMSGEpilogueFileHandler(unittest.TestCase):
         self.reader._reduced = 'red'
         self.assertEqual(self.reader.reduce(123), 'red')
         reduce_mda.assert_not_called()
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    tests = [TestHRITMSGFileHandler, TestHRITMSGPrologueFileHandler, TestHRITMSGEpilogueFileHandler,
-             TestHRITMSGFileHandlerHRV]
-    for test in tests:
-        mysuite.addTest(loader.loadTestsFromTestCase(test))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

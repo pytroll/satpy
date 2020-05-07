@@ -15,11 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.netcdf_utils module.
-"""
+"""Module for testing the satpy.readers.netcdf_utils module."""
 
 import os
-import sys
+import unittest
 import numpy as np
 
 try:
@@ -27,11 +26,6 @@ try:
 except ImportError:
     # fake the import so we can at least run the tests in this file
     NetCDF4FileHandler = object
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -93,6 +87,11 @@ class TestNetCDF4FileHandler(unittest.TestCase):
             ds2_i = nc.createVariable('ds2_i', np.int32,
                                       dimensions=('rows', 'cols'))
             ds2_i[:] = np.arange(10 * 100).reshape((10, 100))
+            ds2_s = nc.createVariable("ds2_s", np.int8,
+                                      dimensions=("rows",))
+            ds2_s[:] = np.arange(10)
+            ds2_sc = nc.createVariable("ds2_sc", np.int8, dimensions=())
+            ds2_sc[:] = 42
 
             # Add attributes
             nc.test_attr_str = 'test_string'
@@ -138,12 +137,31 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
         self.assertTrue('ds2_f' in file_handler)
         self.assertFalse('fake_ds' in file_handler)
+        self.assertIsNone(file_handler.file_handle)
+        self.assertEqual(file_handler["ds2_sc"], 42)
 
+    def test_caching(self):
+        """Test that caching works as intended.
+        """
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+        h = NetCDF4FileHandler("test.nc", {}, {}, cache_var_size=1000,
+                               cache_handle=True)
+        self.assertIsNotNone(h.file_handle)
+        self.assertTrue(h.file_handle.isopen())
 
-def suite():
-    """The test suite for test_netcdf_utils."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNetCDF4FileHandler))
+        self.assertEqual(sorted(h.cached_file_content.keys()),
+                         ["ds2_s", "ds2_sc"])
+        # with caching, these tests access different lines than without
+        np.testing.assert_array_equal(h["ds2_s"], np.arange(10))
+        np.testing.assert_array_equal(h["test_group/ds1_i"],
+                                      np.arange(10 * 100).reshape((10, 100)))
+        h.__del__()
+        self.assertFalse(h.file_handle.isopen())
 
-    return mysuite
+    def test_filenotfound(self):
+        """Test that error is raised when file not found
+        """
+        from satpy.readers.netcdf_utils import NetCDF4FileHandler
+
+        with self.assertRaises(IOError):
+            NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018 Satpy developers
+# Copyright (c) 2018-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -16,14 +16,11 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the mitiff writer.
-Based on the test for geotiff writer
-"""
-import sys
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
+Based on the test for geotiff writer
+
+"""
+import unittest
 
 
 class TestMITIFFWriter(unittest.TestCase):
@@ -108,6 +105,72 @@ class TestMITIFFWriter(unittest.TestCase):
         )
         return [ds1, ds2]
 
+    def _get_test_datasets_sensor_set(self):
+        """Helper function to create a datasets list."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': '1',
+                   'start_time': datetime.utcnow(),
+                   'platform_name': "TEST_PLATFORM_NAME",
+                   'sensor': set('TEST_SENSOR_NAME'),
+                   'area': area_def,
+                   'prerequisites': ['1'],
+                   'calibration': 'reflectance',
+                   'metadata_requirements': {
+                       'order': ['1'],
+                       'config': {
+                           '1': {'alias': '1-VIS0.63',
+                                 'calibration': 'reflectance',
+                                 'min-val': '0',
+                                 'max-val': '100'},
+                       },
+                       'translate': {'1': '1',
+                                     },
+                       'file_pattern': '1_{start_time:%Y%m%d_%H%M%S}.mitiff'
+                   }}
+        )
+        ds2 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': '4',
+                   'start_time': datetime.utcnow(),
+                   'platform_name': "TEST_PLATFORM_NAME",
+                   'sensor': set('TEST_SENSOR_NAME'),
+                   'area': area_def,
+                   'prerequisites': ['4'],
+                   'calibration': 'brightness_temperature',
+                   'metadata_requirements': {
+                       'order': ['4'],
+                       'config': {
+                           '4': {'alias': '4-IR10.8',
+                                 'calibration': 'brightness_temperature',
+                                 'min-val': '-150',
+                                 'max-val': '50'},
+                       },
+                       'translate': {'4': '4',
+                                     },
+                       'file_pattern': '4_{start_time:%Y%m%d_%H%M%S}.mitiff'}
+                   }
+        )
+        return [ds1, ds2]
+
     def _get_test_dataset(self, bands=3):
         """Helper function to create a single test dataset."""
         import xarray as xr
@@ -163,6 +226,36 @@ class TestMITIFFWriter(unittest.TestCase):
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
                    'sensor': 'avhrr',
+                   'area': area_def,
+                   'prerequisites': [10.8]}
+        )
+        return ds1
+
+    def _get_test_one_dataset_sensor_set(self):
+        """Helper function to create a single test dataset."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=geos +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. h=36000. +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        ds1 = xr.DataArray(
+            da.zeros((100, 200), chunks=50),
+            dims=('y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow(),
+                   'platform_name': "TEST_PLATFORM_NAME",
+                   'sensor': set('avhrr'),
                    'area': area_def,
                    'prerequisites': [10.8]}
         )
@@ -358,6 +451,39 @@ class TestMITIFFWriter(unittest.TestCase):
                            dims=data.dims, coords=data.coords)
         return ds1
 
+    def _get_test_dataset_three_bands_two_prereq(self, bands=3):
+        """Helper function to create a single test dataset."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        from satpy import DatasetID
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        ds1 = xr.DataArray(
+            da.zeros((bands, 100, 200), chunks=50),
+            coords=[['R', 'G', 'B'], list(range(100)), list(range(200))],
+            dims=('bands', 'y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow(),
+                   'platform_name': "TEST_PLATFORM_NAME",
+                   'sensor': 'TEST_SENSOR_NAME',
+                   'area': area_def,
+                   'prerequisites': [DatasetID(name='1', calibration='reflectance'),
+                                     DatasetID(name='2', calibration='reflectance')]}
+        )
+        return ds1
+
     def test_init(self):
         """Test creating the writer with no arguments."""
         from satpy.writers.mitiff import MITIFFWriter
@@ -386,12 +512,43 @@ class TestMITIFFWriter(unittest.TestCase):
         for image in tif.iter_images():
             np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
+    def test_save_datasets_sensor_set(self):
+        """Test basic writer operation save_datasets."""
+        import os
+        import numpy as np
+        from libtiff import TIFF
+        from satpy.writers.mitiff import MITIFFWriter
+        expected = np.full((100, 200), 0)
+        dataset = self._get_test_datasets_sensor_set()
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_datasets(dataset)
+        filename = (dataset[0].attrs['metadata_requirements']['file_pattern']).format(
+            start_time=dataset[0].attrs['start_time'])
+        tif = TIFF.open(os.path.join(self.base_dir, filename))
+        for image in tif.iter_images():
+            np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
+
     def test_save_one_dataset(self):
         """Test basic writer operation with one dataset ie. no bands."""
         import os
         from libtiff import TIFF
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_one_dataset()
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_dataset(dataset)
+        tif = TIFF.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
+        IMAGEDESCRIPTION = 270
+        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        for key in imgdesc:
+            if 'In this file' in key:
+                self.assertEqual(key, ' Channels: 1 In this file: 1')
+
+    def test_save_one_dataset_sesnor_set(self):
+        """Test basic writer operation with one dataset ie. no bands."""
+        import os
+        from libtiff import TIFF
+        from satpy.writers.mitiff import MITIFFWriter
+        dataset = self._get_test_one_dataset_sensor_set()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
         tif = TIFF.open(os.path.join(self.base_dir, os.listdir(self.base_dir)[0]))
@@ -691,15 +848,96 @@ class TestMITIFFWriter(unittest.TestCase):
             proj4_string = w._add_proj4_string(ds1, ds1)
             self.assertEqual(proj4_string, check['proj4'])
 
+    def test_save_dataset_palette(self):
+        """Test writer operation as palette."""
+        import os
+        import numpy as np
+        from libtiff import TIFF
+        from satpy.writers.mitiff import MITIFFWriter
 
-def suite():
-    """The test suite for this writer's tests.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMITIFFWriter))
-    return mysuite
+        expected = np.full((100, 200), 0)
 
+        exp_c = ([0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                 [1, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                 [2, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-if __name__ == '__main__':
-    unittest.main()
+        color_map = [[0, 3], [1, 4], [2, 5]]
+        pal_desc = ['test', 'test2']
+        unit = "Test"
+
+        dataset = self._get_test_one_dataset()
+        palette = {'palette': True,
+                   'palette_color_map': color_map,
+                   'palette_description': pal_desc,
+                   'palette_unit': unit,
+                   'palette_channel_name': dataset.attrs['name']}
+
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_dataset(dataset, **palette)
+        filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
+                                                         dataset.attrs['start_time'])
+        tif = TIFF.open(os.path.join(self.base_dir, filename))
+        # Need to check PHOTOMETRIC is 3, ie palette
+        self.assertEqual(tif.GetField('PHOTOMETRIC'), 3)
+        colormap = tif.GetField('COLORMAP')
+        # Check the colormap of the palette image
+        self.assertEqual(colormap, exp_c)
+        IMAGEDESCRIPTION = 270
+        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        found_color_info = False
+        unit_name_found = False
+        name_length_found = False
+        name_length = 0
+        names = []
+        unit_name = None
+        for key in imgdesc:
+            if name_length_found and name_length > len(names):
+                names.append(key)
+                continue
+            elif unit_name_found:
+                name_length = int(key)
+                name_length_found = True
+                unit_name_found = False
+            elif found_color_info:
+                unit_name = key
+                unit_name_found = True
+                found_color_info = False
+            elif 'COLOR INFO:' in key:
+                found_color_info = True
+        # Check the name of the palette description
+        self.assertEqual(name_length, 2)
+        # Check the name and unit name of the palette
+        self.assertEqual(unit_name, ' Test')
+        # Check the palette description of the palette
+        self.assertEqual(names, [' test', ' test2'])
+        for image in tif.iter_images():
+            np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
+
+    def test_simple_write_two_bands(self):
+        """Test basic writer operation with 3 bands from 2 prerequisites"""
+        from satpy.writers.mitiff import MITIFFWriter
+        dataset = self._get_test_dataset_three_bands_two_prereq()
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_dataset(dataset)

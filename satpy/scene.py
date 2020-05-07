@@ -34,12 +34,6 @@ from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 import xarray as xr
 from xarray import DataArray
 import numpy as np
-import six
-
-try:
-    import configparser
-except ImportError:
-    from six.moves import configparser  # noqa: F401
 
 LOG = logging.getLogger(__name__)
 
@@ -474,9 +468,10 @@ class Scene(MetadataObject):
                 'crop_area', 'crop_area', 'crop_latlong',
                 {'proj': 'latlong'}, 100, 100, ll_bbox)
         elif xy_bbox is not None:
+            crs = src_area.crs if hasattr(src_area, 'crs') else src_area.proj_dict
             dst_area = AreaDefinition(
                 'crop_area', 'crop_area', 'crop_xy',
-                src_area.proj_dict, src_area.x_size, src_area.y_size,
+                crs, src_area.x_size, src_area.y_size,
                 xy_bbox)
         x_slice, y_slice = src_area.get_area_slices(dst_area)
         return src_area[y_slice, x_slice], y_slice, x_slice
@@ -660,9 +655,12 @@ class Scene(MetadataObject):
             if boundary != 'exact':
                 raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
             target_area = src_area.aggregate(**dim_kwargs)
-            resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            try:
+                resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
+            except AttributeError:
+                resolution = max(target_area.lats.resolution, target_area.lons.resolution)
             for ds_id in ds_ids:
-                res = self[ds_id].coarsen(boundary=boundary, side=side, func=func, **dim_kwargs)
+                res = self[ds_id].coarsen(boundary=boundary, side=side, **dim_kwargs)
 
                 new_scn.datasets[ds_id] = getattr(res, func)()
                 new_scn.datasets[ds_id].attrs['area'] = target_area
@@ -931,14 +929,14 @@ class Scene(MetadataObject):
         Loaded `DataArray` objects are created and stored in the Scene object.
 
         Args:
-            wishlist (iterable): Names (str), wavelengths (float), or
+            wishlist (iterable): List of names (str), wavelengths (float), or
                                  DatasetID objects of the requested datasets
                                  to load. See `available_dataset_ids()` for
                                  what datasets are available.
             calibration (list, str): Calibration levels to limit available
-                                      datasets. This is a shortcut to
-                                      having to list each DatasetID in
-                                      `wishlist`.
+                                     datasets. This is a shortcut to
+                                     having to list each DatasetID in
+                                     `wishlist`.
             resolution (list | float): Resolution to limit available datasets.
                                        This is a shortcut similar to
                                        calibration.
@@ -957,6 +955,8 @@ class Scene(MetadataObject):
                            but are no longer needed.
 
         """
+        if isinstance(wishlist, str):
+            raise TypeError("'load' expects a list of datasets, got a string.")
         dataset_keys = set(wishlist)
         needed_datasets = (self.wishlist | dataset_keys) - \
             set(self.datasets.keys())
@@ -1023,7 +1023,7 @@ class Scene(MetadataObject):
         """
         new_datasets = {}
         datasets = list(new_scn.datasets.values())
-        if isinstance(destination_area, (str, six.text_type)):
+        if isinstance(destination_area, str):
             destination_area = get_area_def(destination_area)
         if hasattr(destination_area, 'freeze'):
             try:
@@ -1059,7 +1059,16 @@ class Scene(MetadataObject):
                     try:
                         (slice_x, slice_y), source_area = reductions[key]
                     except KeyError:
-                        slice_x, slice_y = source_area.get_area_slices(destination_area)
+                        if resample_kwargs.get('resampler') == 'gradient_search':
+                            factor = resample_kwargs.get('shape_divisible_by', 2)
+                        else:
+                            factor = None
+                        try:
+                            slice_x, slice_y = source_area.get_area_slices(
+                                destination_area, shape_divisible_by=factor)
+                        except TypeError:
+                            slice_x, slice_y = source_area.get_area_slices(
+                                destination_area)
                         source_area = source_area[slice_y, slice_x]
                         # If the slices were descending (start > stop), fix
                         # the width and height

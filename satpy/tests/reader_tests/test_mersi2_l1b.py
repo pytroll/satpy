@@ -16,22 +16,14 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the 'mersi2_l1b' reader."""
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-import sys
+import os
+import unittest
+from unittest import mock
+
 import numpy as np
 import dask.array as da
 import xarray as xr
-import os
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -532,11 +524,3 @@ class TestMERSI2L1BReader(unittest.TestCase):
         self.assertEqual((2 * 40, 2048 * 2), res['25'].shape)
         self.assertEqual('brightness_temperature', res['25'].attrs['calibration'])
         self.assertEqual('K', res['25'].attrs['units'])
-
-
-def suite():
-    """The test suite for test_virr_l1b."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestMERSI2L1BReader))
-    return mysuite

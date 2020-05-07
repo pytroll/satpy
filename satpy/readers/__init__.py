@@ -22,7 +22,6 @@ import numbers
 import os
 from datetime import datetime, timedelta
 
-import six
 import yaml
 
 try:
@@ -35,11 +34,6 @@ from satpy.config import (config_search_paths, get_environ_config_dir,
 from satpy.dataset import DATASET_KEYS, DatasetID
 from satpy import CALIBRATION_ORDER
 
-try:
-    import configparser  # noqa
-except ImportError:
-    from six.moves import configparser  # noqa
-
 LOG = logging.getLogger(__name__)
 
 
@@ -49,6 +43,8 @@ OLD_READER_NAMES = {
 
 
 class TooManyResults(KeyError):
+    """Special exception when one key maps to multiple items in the container."""
+
     pass
 
 
@@ -207,7 +203,7 @@ def get_key(key, key_container, num_results=1, best=True,
         # we want this ID to act as a query so we set modifiers to None
         # meaning "we don't care how many modifiers it has".
         key = DatasetID(wavelength=key, modifiers=None)
-    elif isinstance(key, (str, six.text_type)):
+    elif isinstance(key, str):
         # ID should act as a query (see wl comment above)
         key = DatasetID(name=key, modifiers=None)
     elif not isinstance(key, DatasetID):
@@ -258,17 +254,14 @@ def get_key(key, key_container, num_results=1, best=True,
 
 
 class DatasetDict(dict):
-
-    """Special dictionary object that can handle dict operations based on
-    dataset name, wavelength, or DatasetID.
+    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DatasetID.
 
     Note: Internal dictionary keys are `DatasetID` objects.
+
     """
 
-    def __init__(self, *args, **kwargs):
-        super(DatasetDict, self).__init__(*args, **kwargs)
-
     def keys(self, names=False, wavelengths=False):
+        """Give currently contained keys."""
         # sort keys so things are a little more deterministic (.keys() is not)
         keys = sorted(super(DatasetDict, self).keys())
         if names:
@@ -302,6 +295,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__getitem__(item)
 
     def __getitem__(self, item):
+        """Get item from container."""
         try:
             # short circuit - try to get the object without more work
             return super(DatasetDict, self).__getitem__(item)
@@ -318,8 +312,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).get(key, default)
 
     def __setitem__(self, key, value):
-        """Support assigning 'Dataset' objects or dictionaries of metadata.
-        """
+        """Support assigning 'Dataset' objects or dictionaries of metadata."""
         d = value
         if hasattr(value, 'attrs'):
             # xarray.DataArray objects
@@ -332,7 +325,7 @@ class DatasetDict(dict):
             try:
                 key = self.get_key(key)
             except KeyError:
-                if isinstance(old_key, (str, six.text_type)):
+                if isinstance(old_key, str):
                     new_name = old_key
                 else:
                     new_name = d.get("name")
@@ -369,6 +362,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__contains__(item)
 
     def __contains__(self, item):
+        """Check if item exists in container."""
         try:
             key = self.get_key(item)
         except KeyError:
@@ -376,6 +370,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__contains__(key)
 
     def __delitem__(self, key):
+        """Delete item from container."""
         try:
             # short circuit - try to get the object without more work
             return super(DatasetDict, self).__delitem__(key)
@@ -398,7 +393,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     Args:
         files_to_sort (iterable): File paths to sort in to group
         reader (str): Reader whose file patterns should be used to sort files.
-            This
+            This is currently a required keyword argument, but may be optional
+            in the future (see inline code comments for details).
         time_threshold (int): Number of seconds used to consider time elements
             in a group as being equal. For example, if the 'start_time' item
             is used to group files then any time within `time_threshold`
@@ -447,7 +443,9 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     if group_keys is None:
         group_keys = reader_instance.info.get('group_keys', ('start_time',))
     file_keys = []
-    for filetype, filetype_info in reader_instance.sorted_filetype_items():
+    # make a copy because filename_items_for_filetype will modify inplace
+    files_to_sort = set(files_to_sort)
+    for _, filetype_info in reader_instance.sorted_filetype_items():
         for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
             group_key = tuple(file_info.get(k) for k in group_keys)
             file_keys.append((group_key, f))
@@ -484,7 +482,6 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
 def read_reader_config(config_files, loader=UnsafeLoader):
     """Read the reader `config_files` and return the info extracted."""
-
     conf = {}
     LOG.debug('Reading %s', str(config_files))
     for config_file in config_files:
@@ -509,7 +506,7 @@ def load_reader(reader_configs, **reader_kwargs):
 
 
 def configs_for_reader(reader=None, ppp_config_dir=None):
-    """Generator of reader configuration files for one or more readers
+    """Generate reader configuration files for one or more readers.
 
     Args:
         reader (Optional[str]): Yield configs only for this reader
@@ -719,8 +716,10 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             LOG.debug(str(err))
             continue
 
-        if readers_files:
-            loadables = reader_instance.select_files_from_pathnames(readers_files)
+        if not readers_files:
+            # we weren't given any files for this reader
+            continue
+        loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
             reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
             reader_instances[reader_instance.name] = reader_instance
