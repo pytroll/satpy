@@ -990,24 +990,7 @@ class Scene(MetadataObject):
     def _slice_data(self, source_area, slices, dataset):
         """Slice the data to reduce it."""
         slice_x, slice_y = slices
-        flip_x, flip_y = False, False
-        if slice_x.start > slice_x.stop:
-            slice_x = slice(slice_x.stop, slice_x.start, slice_x.step)
-            flip_x = True
-        if slice_y.start > slice_y.stop:
-            slice_y = slice(slice_y.stop, slice_y.start, slice_y.step)
-            flip_y = True
         dataset = dataset.isel(x=slice_x, y=slice_y)
-        if flip_x:
-            try:
-                dataset = dataset[:, :, ::-1]
-            except IndexError:
-                dataset = dataset[:, ::-1]
-        if flip_y:
-            try:
-                dataset = dataset[:, ::-1, :]
-            except IndexError:
-                dataset = dataset[::-1, :]
         assert ('x', source_area.x_size) in dataset.sizes.items()
         assert ('y', source_area.y_size) in dataset.sizes.items()
         dataset.attrs['area'] = source_area
@@ -1069,6 +1052,15 @@ class Scene(MetadataObject):
                         except TypeError:
                             slice_x, slice_y = source_area.get_area_slices(
                                 destination_area)
+
+                        # Fix slicing for flipped areas
+                        if slice_x.start > slice_x.stop:
+                            step = -(slice_x.step or 1)
+                            slice_x = slice(slice_x.start, slice_x.stop, step)
+                        if slice_y.start > slice_y.stop:
+                            step = -(slice_y.step or 1)
+                            slice_y = slice(slice_y.start, slice_y.stop, step)
+
                         source_area = source_area[slice_y, slice_x]
                         # If the slices were descending (start > stop), fix
                         # the width and height
