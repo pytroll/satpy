@@ -446,7 +446,7 @@ met07globe:
     lower_left_xy: [-5621225.237846375, -5621225.237846375]
     upper_right_xy: [5621225.237846375, 5621225.237846375]
 fci_0deg_1km:
-  description: Full disk FCI view, 1 km
+  description: Full disk FCI view, 1 km (based on pre-launch test data)
   projection:
     proj: geos
     lon_0: 0
@@ -467,7 +467,7 @@ fci_0deg_1km:
     - -5567999.998577303
     units: m
 fci_0deg_2km:
-  description: Full disk FCI view, 2 km
+  description: Full disk FCI view, 2 km (based on pre-launch test data)
   projection:
     proj: geos
     lon_0: 0
