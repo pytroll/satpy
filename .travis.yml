@@ -5,22 +5,21 @@ env:
         - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
         - NUMPY_VERSION=stable
         - MAIN_CMD='python setup.py'
-        - CONDA_DEPENDENCIES='xarray!=0.13.0 dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf mock libtiff geoviews zarr six python-eccodes'
+        - CONDA_DEPENDENCIES='xarray dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml
+          pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf
+          mock libtiff geoviews zarr python-eccodes geoviews pytest pytest-cov'
         - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
         - SETUP_CMD='test'
         - CONDA_CHANNELS='conda-forge'
         - CONDA_CHANNEL_PRIORITY='strict'
+        - UNSTABLE_DEPS=False
 matrix:
   include:
-  - env:
-    - PYTHON_VERSION=2.7
-    - NUMPY_VERSION=1.16
+  - env: PYTHON_VERSION=3.8
     os: linux
-  - env:
-    - PYTHON_VERSION=2.7
-    - NUMPY_VERSION=1.16
+  - env: PYTHON_VERSION=3.8
     os: osx
     language: generic
   - env: PYTHON_VERSION=3.7
@@ -28,14 +27,46 @@ matrix:
   - env: PYTHON_VERSION=3.7
     os: osx
     language: generic
+  # allowed to fail:
+  - os: linux
+    env:
+      - PYTHON_VERSION=3.8
+      - UNSTABLE_DEPS=True
+
+  allow_failures:
+  - os: linux
+    env:
+      - PYTHON_VERSION=3.8
+      - UNSTABLE_DEPS=True
 install:
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
+    # See https://github.com/travis-ci/travis-ci/issues/8920
+    - python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
+    - if [ "$UNSTABLE_DEPS" == "True" ]; then
+        python -m pip install
+        -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com
+        --no-deps --pre --upgrade
+        matplotlib
+        numpy
+        pandas
+        scipy;
+        python -m pip install
+        --no-deps --upgrade
+        git+https://github.com/dask/dask
+        git+https://github.com/dask/distributed
+        git+https://github.com/zarr-developers/zarr
+        git+https://github.com/Unidata/cftime
+        git+https://github.com/mapbox/rasterio
+        git+https://github.com/pydata/bottleneck
+        git+https://github.com/pydata/xarray;
+      fi
+    - pip install --no-deps -e .
 script:
-- coverage run --source=satpy setup.py test
+- pytest --cov=satpy satpy/tests
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
 after_success:
-- if [[ $PYTHON_VERSION == 3.7 ]]; then coveralls; codecov; fi
+- if [[ $PYTHON_VERSION == 3.8 ]]; then coveralls; codecov; fi
 deploy:
   - provider: pypi
     user: dhoese

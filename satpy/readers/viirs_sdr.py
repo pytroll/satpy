@@ -240,7 +240,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         """
         num_grans = len(scaling_factors) // 2
         gran_size = data.shape[0] // num_grans
-        factors = scaling_factors.where(scaling_factors > -999)
+        factors = scaling_factors.where(scaling_factors > -999, np.float32(np.nan))
         factors = factors.data.reshape((-1, 2))
         factors = xr.DataArray(da.repeat(factors, gran_size, axis=0),
                                dims=(data.dims[0], 'factors'))
@@ -253,8 +253,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
         if factors is None:
-            factors = xr.DataArray(da.from_array([1, 0], chunks=1))
-        factors = factors.where(factors != -999.)
+            return None
+        factors = factors.where(factors != -999., np.float32(np.nan))
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
@@ -326,12 +326,12 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         if is_floating:
             # If the data is a float then we mask everything <= -999.0
-            fill_max = float(ds_info.pop("fill_max_float", -999.0))
-            return data.where(data > fill_max)
+            fill_max = np.float32(ds_info.pop("fill_max_float", -999.0))
+            return data.where(data > fill_max, np.float32(np.nan))
         else:
             # If the data is an integer then we mask everything >= fill_min_int
             fill_min = int(ds_info.pop("fill_min_int", 65528))
-            return data.where(data < fill_min)
+            return data.where(data < fill_min, np.float32(np.nan))
 
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset corresponding to *dataset_id*.

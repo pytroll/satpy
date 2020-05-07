@@ -17,8 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unittesting the Native SEVIRI reader."""
 
-import sys
-
+import unittest
+from unittest import mock
 import numpy as np
 import xarray as xr
 
@@ -27,16 +27,6 @@ from satpy.readers.seviri_l1b_native import (
     get_available_channels,
 )
 from satpy.dataset import DatasetID
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
@@ -72,7 +62,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 3712,
         'Number of rows': 3712,
-        'Area extent': (-5568748.2758, -5568748.2758, 5568748.2758, 5568748.2758)
+        'Area extent': (5568748.2758, 5568748.2758, -5568748.2758, -5568748.2758)
     }
 }
 
@@ -89,7 +79,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 2516,
         'Number of rows': 1829,
-        'Area extent': (-2205296.3269, -333044.7514, 5337717.232, 5154692.6389)
+        'Area extent': (5337717.232, 5154692.6389, -2205296.3269, -333044.7514)
     }
 }
 
@@ -106,8 +96,8 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 5568,
         'Number of rows': 11136,
-        'Area extent 0': (-1964263.8611793518, 2623352.397084236, 3604484.1933250427, 5567747.920155525),
-        'Area extent 1': (1000.1343488693237, -5569748.188853264, 5569748.188853264, 2623352.397084236)
+        'Area extent 0': (5569748.188853264, 2623352.397084236, 1000.1343488693237, -5569748.188853264),
+        'Area extent 1': (3604484.1933250427, 5567747.920155525, -1964263.8611793518, 2623352.397084236)
     }
 }
 
@@ -124,7 +114,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 11136,
         'Number of rows': 11136,
-        'Area extent': (-2204296.1049, -332044.6038, 5336716.8856, 5153692.2997)
+        'Area extent': (5336716.8856, 5153692.2997, -2204296.1049, -332044.6038)
     }
 }
 
@@ -141,7 +131,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 3712,
         'Number of rows': 3712,
-        'Area extent': (-5570248.4773, -5567248.0742, 5567248.0742, 5570248.4773)
+        'Area extent': (5567248.0742, 5570248.4773, -5570248.4773, -5567248.0742)
     }
 }
 
@@ -158,8 +148,9 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 5568,
         'Number of rows': 11136,
-        'Area extent 0': (-1965764.0627026558, 2624852.59860754, 3602983.9918017387, 5569248.121678829),
-        'Area extent 1': (-500.06717443466187, -5568247.98732996, 5568247.98732996, 2624852.59860754)
+        'Area extent 0': (5568247.98732996, 2624852.59860754, -500.06717443466187, -5568247.98732996),
+        'Area extent 1': (3602983.9918017387, 5569248.121678829, -1965764.0627026558, 2624852.59860754)
+
     }
 }
 
@@ -176,7 +167,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 2516,
         'Number of rows': 1829,
-        'Area extent': (-2206796.5285, -331544.5498, 5336217.0304, 5156192.8405)
+        'Area extent': (5336217.0304, 5156192.8405, -2206796.5285, -331544.5498)
     }
 }
 
@@ -193,7 +184,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
                        'type': 'crs', 'units': 'm', 'x_0': '0', 'y_0': '0'},
         'Number of columns': 11136,
         'Number of rows': 11136,
-        'Area extent': (-2205796.3064, -330544.4023, 5335216.684, 5155192.5012)
+        'Area extent': (5335216.684, 5155192.5012, -2205796.3064, -330544.4023)
     }
 }
 
@@ -635,18 +626,3 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
                           TEST_CALIBRATION_MODE,
                           'dummy',
                           )
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGArea))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeMSGCalibrationMode))
-    return mysuite
-
-
-if __name__ == "__main__":
-    # So you can run tests from this module individually.
-    unittest.main()

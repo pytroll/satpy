@@ -95,13 +95,13 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     @staticmethod
     def _calculate_area_extent(center_point, north, east, south, west,
                                we_offset, ns_offset, column_step, line_step):
-        # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be 1856.5 .
+        # For Earth model 2 and full disk VISIR, (center_point - west - 0.5 + we_offset) must be -1856.5 .
         # See MSG Level 1.5 Image Data Format Description Figure 7 - Alignment and numbering of the non-HRV pixels.
 
-        ll_c = (center_point - west - 0.5 + we_offset) * column_step
-        ll_l = (south - center_point - 0.5 + ns_offset) * line_step
-        ur_c = (center_point - east + 0.5 + we_offset) * column_step
-        ur_l = (north - center_point + 0.5 + ns_offset) * line_step
+        ll_c = (center_point - east + 0.5 + we_offset) * column_step
+        ll_l = (north - center_point + 0.5 + ns_offset) * line_step
+        ur_c = (center_point - west - 0.5 + we_offset) * column_step
+        ur_l = (south - center_point - 0.5 + ns_offset) * line_step
 
         return (ll_c, ll_l, ur_c, ur_l)
 
@@ -277,8 +277,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 pdict['ncols'] = lower_ncols
                 lower_area = get_area_definition(pdict, lower_area_extent)
 
-                # order of areas is flipped w.r.t. the hrit reader due to the flipping of the data in get_dataset
-                area = geometry.StackedAreaDefinition(upper_area, lower_area)
+                area = geometry.StackedAreaDefinition(lower_area, upper_area)
                 area = area.squeeze()
             else:
                 # if the HRV data is in a ROI, the HRV channel is delivered in one area
@@ -424,7 +423,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 raw = self.dask_array['visir']['line_data'][:, i, :]
 
             data = dec10216(raw.flatten())
-            data = da.flipud(da.fliplr((data.reshape(shape))))
+            data = data.reshape(shape)
 
         else:
             shape = (self.mda['hrv_number_of_lines'], self.mda['hrv_number_of_columns'])
@@ -435,19 +434,19 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
             shape_layer = (self.mda['number_of_lines'], self.mda['hrv_number_of_columns'])
             data2 = dec10216(raw2.flatten())
-            data2 = da.flipud(da.fliplr((data2.reshape(shape_layer))))
+            data2 = data2.reshape(shape_layer)
             data1 = dec10216(raw1.flatten())
-            data1 = da.flipud(da.fliplr((data1.reshape(shape_layer))))
+            data1 = data1.reshape(shape_layer)
             data0 = dec10216(raw0.flatten())
-            data0 = da.flipud(da.fliplr((data0.reshape(shape_layer))))
+            data0 = data0.reshape(shape_layer)
 
             data = np.zeros(shape)
             idx = range(0, shape[0], 3)
-            data[idx, :] = data2
+            data[idx, :] = data0
             idx = range(1, shape[0], 3)
             data[idx, :] = data1
             idx = range(2, shape[0], 3)
-            data[idx, :] = data0
+            data[idx, :] = data2
 
         xarr = xr.DataArray(data, dims=['y', 'x']).where(data != 0).astype(np.float32)
 

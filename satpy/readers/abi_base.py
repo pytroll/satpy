@@ -53,7 +53,7 @@ class NC_ABI_BASE(BaseFileHandler):
                                       mask_and_scale=False,
                                       chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
 
-        if 't' in self.nc.dims:
+        if 't' in self.nc.dims or 't' in self.nc.coords:
             self.nc = self.nc.rename({'t': 'time'})
         platform_shortname = filename_info['platform_shortname']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
@@ -127,7 +127,7 @@ class NC_ABI_BASE(BaseFileHandler):
         # 'x' and 'y' will be overwritten by base class AreaDefinition
         for coord_name in ('x_image', 'y_image', 'time', 'x', 'y'):
             if coord_name in data.coords:
-                del data.coords[coord_name]
+                data = data.drop_vars(coord_name)
         if item in data.coords:
             self.coords[item] = data
         for coord_name in data.coords.keys():
