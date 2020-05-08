@@ -5,7 +5,7 @@ reader:
     Satellite Application Facility (CMSAF) in its CLoud property dAtAset using SEVIRI (CLAAS) dataset,
     doi:10.5676/EUM_SAF_CM/CLAAS/V002.
     Information on CMSAF and its products can be found at https://www.cmsaf.eu/.
-  name: cmsaf-claas-v2
+  name: cmsaf-claas2_l2_nc
   long_name: CMSAF CLAAS V2 data for SEVIRI-derived cloud products
   sensors: [seviri]
   doi: doi:10.5676/EUM_SAF_CM/CLAAS/V002.
@@ -17,5 +17,5 @@ reader:
 
 file_types:
     cmsaf-claas-v2:
-        file_reader: !!python/name:satpy.readers.cmsaf_nc.Claasv2
+        file_reader: !!python/name:satpy.readers.cmsaf_claas_v2.Claasv2
         file_patterns: ['{product:3s}in{start_time:%Y%m%d%H%M}{version:>03d}05SVMSG01MD.nc']
