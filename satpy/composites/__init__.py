@@ -600,7 +600,7 @@ class NIRReflectance(CompositeBase):
 
         """
         self.sunz_threshold = sunz_threshold
-        super(NIRReflectance, self).__init__(**kwargs)
+        super(NIRReflectance, self).__init__(sunz_threshold=sunz_threshold, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the reflectance part of an NIR channel.
@@ -671,7 +671,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
                 case the default threshold defined in Pyspectral will be used.
         """
         self.sunz_threshold = sunz_threshold
-        super(NIREmissivePartFromReflectance, self).__init__(**kwargs)
+        super(NIREmissivePartFromReflectance, self).__init__(sunz_threshold=sunz_threshold, **kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the emissive part an NIR channel after having derived the reflectance.
