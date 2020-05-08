@@ -1135,19 +1135,6 @@ class Scene(MetadataObject):
 
         return new_scn
 
-    def _change_area_extent_of_areadef(self, areadef, new_extent):
-        """Change the area extent of an area definition and regenerate it."""
-        new_area_def = AreaDefinition(
-            areadef.area_id,
-            areadef.description,
-            areadef.proj_id,
-            areadef.proj_dict,
-            areadef.width,
-            areadef.height,
-            new_extent
-        )
-        return new_area_def
-
     def set_orientation(self, datasets=None, upper_right_corner='native'):
         """Set the orientation of datasets.
 
@@ -1163,6 +1150,19 @@ class Scene(MetadataObject):
                                     Defaults to 'native' (no flipping is applied).
 
         """
+        def _change_area_extent_of_areadef(areadef, new_extent):
+            """Change the area extent of an area definition and regenerate it."""
+            # does this need to be moved somewhere else?
+            return AreaDefinition(
+                areadef.area_id,
+                areadef.description,
+                areadef.proj_id,
+                areadef.proj_dict,
+                areadef.width,
+                areadef.height,
+                new_extent
+            )
+
         if isinstance(datasets, str):
             raise TypeError("'set_orientation' expects a list of datasets, got a string.")
 
@@ -1227,12 +1227,12 @@ class Scene(MetadataObject):
             # update the dataset area extent
             # keeping the same id, description and proj_id, but should probably be changed to reflect the flipping
             if len(ds_area_extents) == 1:
-                new_area_def = self._change_area_extent_of_areadef(
+                new_area_def = _change_area_extent_of_areadef(
                     self[dataset_id].attrs['area'], ds_area_extents[0])
             else:
                 new_area_defs_to_stack = []
                 for n_area_def, area_def in enumerate(self[dataset_id].attrs['area'].defs):
-                    new_area_defs_to_stack.append(self._change_area_extent_of_areadef(
+                    new_area_defs_to_stack.append(_change_area_extent_of_areadef(
                         area_def, ds_area_extents[n_area_def]))
 
                 # flip the order of stacking if the area is upside down
