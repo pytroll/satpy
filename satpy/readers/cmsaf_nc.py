@@ -7,10 +7,10 @@ from .netcdf_utils import NetCDF4FileHandler
 
 class Claasv2(NetCDF4FileHandler):
     def __init__(self, *args, **kwargs):
-        if "cache_handle" in kwargs.keys():
+        if "cache_handle" in kwargs:
             raise TypeError(
                 f"Do not pass cache_handle to {self.__class__.__name__:s} "
-                 "constructor please.  It must always be True.")
+                "constructor please.  It must always be True.")
         super().__init__(*args, **kwargs, cache_handle=True)
 
     def available_datasets(self, configured_datasets=None):
@@ -23,10 +23,10 @@ class Claasv2(NetCDF4FileHandler):
         yield from super().available_datasets(configured_datasets)
         it = self.file_handle.variables.items()
         for (k, v) in it:
-            if not "y" in v.dimensions:
+            if "y" not in v.dimensions:
                 continue
             ds_info = {"name": k,
-                    "file_type": self.filetype_info["file_type"]}
+                       "file_type": self.filetype_info["file_type"]}
             attrs = v.__dict__.copy()
             # we don't need "special" attributes in our metadata here
             for unkey in {"_FillValue", "add_offset", "scale_factor"}:
