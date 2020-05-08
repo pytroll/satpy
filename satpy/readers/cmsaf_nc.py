@@ -3,14 +3,40 @@
 
 import pyresample.geometry
 from .netcdf_utils import NetCDF4FileHandler
-from . import _geos_area
 
 
-class NcCMSAF(NetCDF4FileHandler):
+class Claasv2(NetCDF4FileHandler):
+    def __init__(self, *args, **kwargs):
+        if "cache_handle" in kwargs.keys():
+            raise TypeError(
+                f"Do not pass cache_handle to {self.__class__.__name__:s} "
+                 "constructor please.  It must always be True.")
+        super().__init__(*args, **kwargs, cache_handle=True)
+
+    def available_datasets(self, configured_datasets=None):
+        # see
+        # https://satpy.readthedocs.io/en/latest/api/satpy.readers.html#satpy.readers.file_handlers.BaseFileHandler.available_datasets
+
+        # this method should work for any NetCDF file, should it be somewhere
+        # more generically available?  Perhaps in the `NetCDF4FileHandler`?
+
+        yield from super().available_datasets(configured_datasets)
+        it = self.file_handle.items()
+        for (k, v) in it:
+            ds_info = {"name": k}
+            attrs = v.__dict__.copy()
+            # we don't need "special" attributes in our metadata here
+            for unkey in {"_FillValue", "add_offset", "scale_factor"}:
+                attrs.pop(unkey, None)
+            ds_info.update(attrs)
+            yield (True, ds_info)
+
     def get_dataset(self, dataset_id, info):
         return self[dataset_id.name]
 
     def get_area_def(self, dataset_id):
+        # FIXME: use `from_cf` in
+        # https://github.com/pytroll/pyresample/pull/271 ?
         return pyresample.geometry.AreaDefinition(
                 "some_area_name",
                 "on-the-fly area",
