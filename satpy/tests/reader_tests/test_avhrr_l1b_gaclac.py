@@ -369,7 +369,8 @@ class TestGACLACFile(TestCase):
 
         reader.get_calibrated_channels.reset_mock()
         for calib in ['reflectance', 'brightness_temperature']:
-            fh._get_channel(name='1', calibration=calib)
+            key = DatasetID('1', calibration=calib)
+            fh._get_channel(key)
             reader.get_calibrated_channels.assert_not_called()
 
     def test_get_angle(self):
