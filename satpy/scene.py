@@ -1135,30 +1135,29 @@ class Scene(MetadataObject):
 
         return new_scn
 
-    def set_orientation(self, dataset_id_list, upper_right_corner='native'):
+    def set_orientation(self, datasets=None, upper_right_corner='native'):
         """Set the orientation of datasets.
 
-        Allows to flip datasets without having to resample.
+        Allows to flip geostationary datasets without having to resample.
 
         Args:
-            dataset_id_list (iterable): List of names (str), wavelengths (float), or
-                                DatasetID objects of the requested datasets
-                                to load. See `available_dataset_ids()` for
-                                what datasets are available.
-            upper_right_corner (str): Orientation of the upper right corner of the image.
+            datasets (iterable): Limit the flipping to this list of names (str), wavelengths (float), or
+                                DatasetID objects.
+                                By default all currently loaded datasets are flipped.
+            upper_right_corner (str): Direction of the upper right corner of the image.
                                     Possible options are 'NW', 'NE', 'SW', 'SE', or 'native'.
                                     The common upright image orientation corresponds to 'NW'.
                                     Defaults to 'native' (no flipping is applied).
 
         """
-        if isinstance(dataset_id_list, str):
+        if isinstance(datasets, str):
             raise TypeError("'set_orientation' expects a list of datasets, got a string.")
 
         if upper_right_corner not in ['NW', 'NE', 'SE', 'SW', 'native']:
             raise ValueError("Origin corner not recognized. Should be 'NW', 'NE', 'SW', 'SE' or 'native.")
 
         if upper_right_corner == 'native':
-            LOG.debug("Requested Datasets orientation is 'native'. No flipping is applied.")
+            LOG.debug("Requested Datasets orientation is 'native'. No orientation is applied.")
             return
 
         # get the target orientation
@@ -1169,11 +1168,19 @@ class Scene(MetadataObject):
         if upper_right_corner in ['NW', 'SW']:
             target_eastright = True
 
-        for dataset_id in dataset_id_list:
+        datasets_to_orientate = [dsid for (dsid, dataset) in self.datasets.items()
+                                 if (not datasets) or dsid in datasets]
+
+        for dataset_id in datasets_to_orientate:
+
+            if 'area' not in self[dataset_id].attrs:
+                LOG.info("Dataset {} is not a geographical dataset and cannot be flipped."
+                         "Looking for other Datasets.".format(self[dataset_id].attrs['name']))
+                continue
 
             if self[dataset_id].attrs['area'].proj_dict['proj'] != 'geos':
-                LOG.info("Dataset {} is not in geos projection and cannot be flipped.".format(
-                    self[dataset_id].attrs['name']))
+                LOG.info("Dataset {} is not in geos projection and cannot be flipped."
+                         "Looking for other Datasets.".format(self[dataset_id].attrs['name']))
                 continue
 
             # get the current dataset orientation
