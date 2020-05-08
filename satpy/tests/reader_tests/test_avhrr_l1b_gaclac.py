@@ -179,13 +179,13 @@ class TestGACLACFile(TestCase):
                                   'standard_name': 'my_standard_name'})
         exp.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
         xr.testing.assert_identical(res, exp)
-        get_channel.assert_called_with(name='1', calibration='reflectance')
+        get_channel.assert_called_with(key)
 
         # Counts & brightness temperature: Similar, just check _get_channel() call
         for key in [DatasetID('1', calibration='counts'),
                     DatasetID('5', calibration='brightness_temperature')]:
             fh.get_dataset(key=key, info={'name': 1})
-            get_channel.assert_called_with(name=key.name, calibration=key.calibration)
+            get_channel.assert_called_with(key)
 
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.slice')
