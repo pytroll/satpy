@@ -23,6 +23,8 @@ class Claasv2(NetCDF4FileHandler):
         yield from super().available_datasets(configured_datasets)
         it = self.file_handle.variables.items()
         for (k, v) in it:
+            if not "y" in v.dimensions:
+                continue
             ds_info = {"name": k,
                     "file_type": self.filetype_info["file_type"]}
             attrs = v.__dict__.copy()
@@ -30,9 +32,14 @@ class Claasv2(NetCDF4FileHandler):
             for unkey in {"_FillValue", "add_offset", "scale_factor"}:
                 attrs.pop(unkey, None)
             ds_info.update(attrs)
+            # FIXME: This needs to avoid tiny datasets that don't have a
+            # y-coordinate
             yield (True, ds_info)
 
     def get_dataset(self, dataset_id, info):
+        # FIXME: This needs dimensions (x, y)
+        #
+        # FIXME: set start_time, end_time
         return self[dataset_id.name]
 
     def get_area_def(self, dataset_id):
