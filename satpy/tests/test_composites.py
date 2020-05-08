@@ -607,6 +607,71 @@ class TestNIRReflectance(unittest.TestCase):
         calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039', sunz_threshold=84.0)
 
 
+class TestNIREmissivePartFromReflectance(unittest.TestCase):
+    """Test the NIR Emissive part from reflectance compositor."""
+
+    @mock.patch('satpy.composites.sun_zenith_angle')
+    @mock.patch('satpy.composites.NIREmissivePartFromReflectance.apply_modifier_info')
+    @mock.patch('satpy.composites.Calculator')
+    def test_compositor(self, calculator, apply_modifier_info, sza):
+        """Test the NIR emissive part from reflectance compositor."""
+        import numpy as np
+        import xarray as xr
+        import dask.array as da
+
+        refl_arr = np.random.random((2, 2))
+        refl = da.from_array(refl_arr)
+
+        refl_from_tbs = mock.MagicMock()
+        refl_from_tbs.return_value = refl
+        calculator.return_value = mock.MagicMock(reflectance_from_tbs=refl_from_tbs)
+
+        emissive_arr = np.random.random((2, 2))
+        emissive = da.from_array(emissive_arr)
+        emissive_part = mock.MagicMock()
+        emissive_part.return_value = emissive
+        calculator.return_value = mock.MagicMock(emissive_part_3x=emissive_part)
+
+        from satpy.composites import NIREmissivePartFromReflectance
+
+        comp = NIREmissivePartFromReflectance(name='test', sunz_threshold=86.0)
+        info = {'modifiers': None}
+
+        platform = 'NOAA-20'
+        sensor = 'viirs'
+        chan_name = 'M12'
+
+        get_lonlats = mock.MagicMock()
+        lons, lats = 1, 2
+        get_lonlats.return_value = (lons, lats)
+        area = mock.MagicMock(get_lonlats=get_lonlats)
+
+        nir_arr = np.random.random((2, 2))
+        nir = xr.DataArray(da.from_array(nir_arr), dims=['y', 'x'])
+        nir.attrs['platform_name'] = platform
+        nir.attrs['sensor'] = sensor
+        nir.attrs['name'] = chan_name
+        nir.attrs['area'] = area
+        ir_arr = np.random.random((2, 2))
+        ir_ = xr.DataArray(da.from_array(ir_arr), dims=['y', 'x'])
+        ir_.attrs['area'] = area
+
+        sunz_arr = 100 * np.random.random((2, 2))
+        sunz = xr.DataArray(da.from_array(sunz_arr), dims=['y', 'x'])
+        sunz.attrs['standard_name'] = 'solar_zenith_angle'
+        sunz.attrs['area'] = area
+        sunz2 = da.from_array(sunz_arr)
+        sza.return_value = sunz2
+
+        res = comp([nir, ir_], optional_datasets=[sunz], **info)
+        self.assertEqual(res.attrs['sunz_threshold'], 86.0)
+        self.assertEqual(res.attrs['units'], 'K')
+        self.assertEqual(res.attrs['platform_name'], platform)
+        self.assertEqual(res.attrs['sensor'], sensor)
+        self.assertEqual(res.attrs['name'], chan_name)
+        calculator.assert_called_with('NOAA-20', 'viirs', 'M12', sunz_threshold=86.0)
+
+
 class TestColormapCompositor(unittest.TestCase):
     """Test the ColormapCompositor."""
 

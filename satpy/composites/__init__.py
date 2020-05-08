@@ -684,8 +684,9 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         # needs to be derived first in order to get the emissive part.
         _ = self._get_reflectance(projectables, optional_datasets)
         _nir, _ = projectables
-        proj = xr.DataArray(self._refl3x.emissive_part_3x(), attrs=_nir.attrs,
-                            dims=_nir.dims, coords=_nir.coords)
+
+        emis = self._refl3x.emissive_part_3x()
+        proj = xr.DataArray(emis, attrs=_nir.attrs, dims=_nir.dims, coords=_nir.coords)
 
         proj.attrs['units'] = 'K'
         proj.attrs['sunz_threshold'] = self.sunz_threshold
