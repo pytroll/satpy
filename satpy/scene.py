@@ -883,7 +883,8 @@ class Scene(MetadataObject):
         """Compute all the composites contained in `requirements`."""
         if nodes is None:
             required_nodes = self.wishlist - set(self.datasets.keys())
-            nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - set(self.datasets.keys())
+            nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - \
+                set(self.datasets.keys())
         return self._read_composites(nodes)
 
     def _remove_failed_datasets(self, keepables):
@@ -957,7 +958,8 @@ class Scene(MetadataObject):
         if isinstance(wishlist, str):
             raise TypeError("'load' expects a list of datasets, got a string.")
         dataset_keys = set(wishlist)
-        needed_datasets = (self.wishlist | dataset_keys) - set(self.datasets.keys())
+        needed_datasets = (self.wishlist | dataset_keys) - \
+            set(self.datasets.keys())
         unknown = self.dep_tree.find_dependencies(needed_datasets,
                                                   calibration=calibration,
                                                   polarization=polarization,
