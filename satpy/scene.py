@@ -1217,12 +1217,12 @@ class Scene(MetadataObject):
             if target_northup != current_northup:
                 LOG.info("Flipping Dataset {} upside-down.".format(self[dataset_id].attrs['name']))
                 self[dataset_id].data = self[dataset_id].data[::-1, :]
-                ds_area_extents[:, 1], ds_area_extents[:, 3] = ds_area_extents[:, 3], ds_area_extents[:, 1]
+                ds_area_extents[:, [1, 3]] = ds_area_extents[:, [3, 1]]
 
             if target_eastright != current_eastright:
                 LOG.info("Flipping Dataset {} left-to-right.".format(self[dataset_id].attrs['name']))
                 self[dataset_id].data = self[dataset_id].data[:, ::-1]
-                ds_area_extents[:, 0], ds_area_extents[:, 2] = ds_area_extents[:, 2], ds_area_extents[:, 0]
+                ds_area_extents[:, [0, 2]] = ds_area_extents[:, [2, 0]]
 
             # update the dataset area extent
             # keeping the same id, description and proj_id, but should probably be changed to reflect the flipping
