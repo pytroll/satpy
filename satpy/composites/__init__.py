@@ -589,15 +589,17 @@ class PSPRayleighReflectance(CompositeBase):
 class NIRReflectance(CompositeBase):
     """Get the reflective part of NIR bands."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, sunz_threshold=None, **kwargs):
         """Collect custom configuration values.
 
         Args:
-            max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 95.0.
+            sunz_threshold: The threshold sun zenith angle used when deriving
+                the near infrared reflectance. Above this angle the derivation
+                will assume this sun-zenith everywhere. Default None, in which
+                case the default threshold defined in Pyspectral will be used.
 
         """
-        self.sunz_threshold = kwargs.get('sunz_threshold')
+        self.sunz_threshold = sunz_threshold
         super(NIRReflectance, self).__init__(**kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -657,17 +659,18 @@ class NIRReflectance(CompositeBase):
 
 
 class NIREmissivePartFromReflectance(NIRReflectance):
-    """Get the emissive par of NIR bands."""
+    """Get the emissive part of NIR bands."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, sunz_threshold=None, **kwargs):
         """Collect custom configuration values.
 
         Args:
-            max_sza (float): Maximum solar zenith angle in degrees that is
-                considered valid and correctable. Default 95.0.
-
+            sunz_threshold: The threshold sun zenith angle used when deriving
+                the near infrared reflectance. Above this angle the derivation
+                will assume this sun-zenith everywhere. Default None, in which
+                case the default threshold defined in Pyspectral will be used.
         """
-        self.sunz_threshold = kwargs.get('sunz_threshold')
+        self.sunz_threshold = sunz_threshold
         super(NIREmissivePartFromReflectance, self).__init__(**kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **info):
