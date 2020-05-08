@@ -333,7 +333,7 @@ class TestGACLACFile(TestCase):
     def test_get_channel(self):
         from satpy.dataset import DatasetID
 
-	    counts = np.moveaxis(np.array([[[1, 2, 3],
+        counts = np.moveaxis(np.array([[[1, 2, 3],
                                         [4, 5, 6]]]), 0, 2)
         calib_channels = 2 * counts
         reader = self._get_reader_mocked()
@@ -342,7 +342,7 @@ class TestGACLACFile(TestCase):
         fh = self._get_fh_mocked(reader=reader, counts=None, calib_channels=None,
                                  chn_dict={'1': 0})
 
-	    key = DatasetID('1', calibration='counts')
+        key = DatasetID('1', calibration='counts')
         # Counts
         res = fh._get_channel(key=key)
         np.testing.assert_array_equal(res, [[1, 2, 3],
@@ -351,19 +351,19 @@ class TestGACLACFile(TestCase):
 
         # Reflectance and Brightness Temperature
         for calib in ['reflectance', 'brightness_temperature']:
-	    key = DatasetID('1', calibration=calib)
+            key = DatasetID('1', calibration=calib)
             res = fh._get_channel(key=key)
             np.testing.assert_array_equal(res, [[2, 4, 6],
                                                 [8, 10, 12]])
             np.testing.assert_array_equal(fh.calib_channels, calib_channels)
 
         # Invalid
-	    key = DatasetID('7', calibration='coffee')
+        key = DatasetID('7', calibration='coffee')
         self.assertRaises(ValueError, fh._get_channel, key=key)
 
         # Buffering
         reader.get_counts.reset_mock()
-	    key = DatasetID('1', calibration='counts')
+        key = DatasetID('1', calibration='counts')
         fh._get_channel(key=key)
         reader.get_counts.assert_not_called()
 
