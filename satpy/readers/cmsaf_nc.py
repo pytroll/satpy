@@ -21,9 +21,10 @@ class Claasv2(NetCDF4FileHandler):
         # more generically available?  Perhaps in the `NetCDF4FileHandler`?
 
         yield from super().available_datasets(configured_datasets)
-        it = self.file_handle.items()
+        it = self.file_handle.variables.items()
         for (k, v) in it:
-            ds_info = {"name": k}
+            ds_info = {"name": k,
+                    "file_type": self.filetype_info["file_type"]}
             attrs = v.__dict__.copy()
             # we don't need "special" attributes in our metadata here
             for unkey in {"_FillValue", "add_offset", "scale_factor"}:
