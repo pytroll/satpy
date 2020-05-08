@@ -883,8 +883,7 @@ class Scene(MetadataObject):
         """Compute all the composites contained in `requirements`."""
         if nodes is None:
             required_nodes = self.wishlist - set(self.datasets.keys())
-            nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - \
-                set(self.datasets.keys())
+            nodes = set(self.dep_tree.trunk(nodes=required_nodes)) - set(self.datasets.keys())
         return self._read_composites(nodes)
 
     def _remove_failed_datasets(self, keepables):
@@ -958,8 +957,7 @@ class Scene(MetadataObject):
         if isinstance(wishlist, str):
             raise TypeError("'load' expects a list of datasets, got a string.")
         dataset_keys = set(wishlist)
-        needed_datasets = (self.wishlist | dataset_keys) - \
-            set(self.datasets.keys())
+        needed_datasets = (self.wishlist | dataset_keys) - set(self.datasets.keys())
         unknown = self.dep_tree.find_dependencies(needed_datasets,
                                                   calibration=calibration,
                                                   polarization=polarization,
@@ -1135,6 +1133,81 @@ class Scene(MetadataObject):
             new_scn.unload(keepables)
 
         return new_scn
+
+    def set_orientation(self, dataset_id_list, upper_right_corner='native'):
+        """Set the orientation of datasets.
+
+        Allows to flip datasets without having to resample.
+
+        Args:
+            dataset_id_list (iterable): List of names (str), wavelengths (float), or
+                                DatasetID objects of the requested datasets
+                                to load. See `available_dataset_ids()` for
+                                what datasets are available.
+            upper_right_corner (str): Orientation of the upper right corner of the image.
+                                    Possible options are 'NW', 'NE', 'SW', 'SE', or 'native'.
+                                    The common upright image orientation corresponds to 'NW'.
+                                    Defaults to 'native' (no flipping is applied).
+
+        """
+        if isinstance(dataset_id_list, str):
+            raise TypeError("'set_orientation' expects a list of datasets, got a string.")
+
+        if upper_right_corner not in ['NW', 'NE', 'SE', 'SW', 'native']:
+            raise ValueError("Origin corner not recognized. Should be 'NW', 'NE', 'SW', 'SE' or 'native.")
+
+        if upper_right_corner == 'native':
+            LOG.debug("Requested Datasets orientation is 'native'. No flipping is applied.")
+            return
+
+        # get the target orientation
+        target_northup = False
+        target_eastright = False
+        if upper_right_corner in ['NW', 'NE']:
+            target_northup = True
+        if upper_right_corner in ['NW', 'SW']:
+            target_eastright = True
+
+        for dataset_id in dataset_id_list:
+
+            if self[dataset_id].attrs['area'].proj_dict['proj'] != 'geos':
+                LOG.info("Dataset {} is not in geos projection and cannot be flipped.".format(
+                    self[dataset_id].attrs['name']))
+                continue
+
+            # get the current dataset orientation
+            ds_area_extent = list(self[dataset_id].attrs['area'].area_extent)
+            current_northup = ds_area_extent[3] - ds_area_extent[1] > 0
+            current_eastright = ds_area_extent[2] - ds_area_extent[0] > 0
+
+            # if current and target orientations mismatch, then flip data and switch area extent elements
+            if target_northup != current_northup or target_eastright != current_eastright:
+
+                if target_northup != current_northup:
+                    LOG.info("Flipping Dataset {} upside-down.".format(self[dataset_id].attrs['name']))
+                    self[dataset_id].data = self[dataset_id].data[::-1, :]
+                    ds_area_extent[1], ds_area_extent[3] = ds_area_extent[3], ds_area_extent[1]
+
+                if target_eastright != current_eastright:
+                    LOG.info("Flipping Dataset {} left-to-right.".format(self[dataset_id].attrs['name']))
+                    self[dataset_id].data = self[dataset_id].data[:, ::-1]
+                    ds_area_extent[0], ds_area_extent[2] = ds_area_extent[2], ds_area_extent[0]
+
+                # update the dataset area extent
+                # keeping the same id, description and proj_id, but should probably be changed to reflect the flipping
+                new_area_def = AreaDefinition(
+                    self[dataset_id].attrs['area'].area_id,
+                    self[dataset_id].attrs['area'].description,
+                    self[dataset_id].attrs['area'].proj_id,
+                    self[dataset_id].attrs['area'].proj_dict,
+                    self[dataset_id].attrs['area'].width,
+                    self[dataset_id].attrs['area'].height,
+                    ds_area_extent
+                )
+                self[dataset_id].attrs['area'] = new_area_def
+
+            else:
+                LOG.info("Dataset {} is already in the target orientation.".format(self[dataset_id].attrs['name']))
 
     def show(self, dataset_id, overlay=None):
         """Show the *dataset* on screen as an image.
