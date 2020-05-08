@@ -331,7 +331,9 @@ class TestGACLACFile(TestCase):
         xr.testing.assert_equal(res, exp)
 
     def test_get_channel(self):
-        counts = np.moveaxis(np.array([[[1, 2, 3],
+        from satpy.dataset import DatasetID
+
+	    counts = np.moveaxis(np.array([[[1, 2, 3],
                                         [4, 5, 6]]]), 0, 2)
         calib_channels = 2 * counts
         reader = self._get_reader_mocked()
@@ -340,25 +342,29 @@ class TestGACLACFile(TestCase):
         fh = self._get_fh_mocked(reader=reader, counts=None, calib_channels=None,
                                  chn_dict={'1': 0})
 
+	    key = DatasetID('1', calibration='counts')
         # Counts
-        res = fh._get_channel(name='1', calibration='counts')
+        res = fh._get_channel(key=key)
         np.testing.assert_array_equal(res, [[1, 2, 3],
                                             [4, 5, 6]])
         np.testing.assert_array_equal(fh.counts, counts)
 
         # Reflectance and Brightness Temperature
         for calib in ['reflectance', 'brightness_temperature']:
-            res = fh._get_channel(name='1', calibration=calib)
+	    key = DatasetID('1', calibration=calib)
+            res = fh._get_channel(key=key)
             np.testing.assert_array_equal(res, [[2, 4, 6],
                                                 [8, 10, 12]])
             np.testing.assert_array_equal(fh.calib_channels, calib_channels)
 
         # Invalid
-        self.assertRaises(ValueError, fh._get_channel, name='1', calibration='turtles')
+	    key = DatasetID('7', calibration='coffee')
+        self.assertRaises(ValueError, fh._get_channel, key=key)
 
         # Buffering
         reader.get_counts.reset_mock()
-        fh._get_channel(name='1', calibration='counts')
+	    key = DatasetID('1', calibration='counts')
+        fh._get_channel(key=key)
         reader.get_counts.assert_not_called()
 
         reader.get_calibrated_channels.reset_mock()
@@ -368,12 +374,15 @@ class TestGACLACFile(TestCase):
 
     def test_get_angle(self):
         """Test getting the angle."""
+        from satpy.dataset import DatasetID
+
         reader = mock.MagicMock()
         reader.get_angles.return_value = 1, 2, 3, 4, 5
         fh = self._get_fh_mocked(reader=reader, angles=None)
 
         # Test angle readout
-        res = fh._get_angle('sensor_zenith_angle')
+        key = DatasetID('sensor_zenith_angle')
+        res = fh._get_angle(key)
         self.assertEqual(res, 2)
         self.assertDictEqual(fh.angles, {'sensor_zenith_angle': 2,
                                          'sensor_azimuth_angle': 1,
@@ -382,7 +391,8 @@ class TestGACLACFile(TestCase):
                                          'sun_sensor_azimuth_difference_angle': 5})
 
         # Test buffering
-        fh._get_angle('sensor_azimuth_angle')
+        key = DatasetID('sensor_azimuth_angle')
+        fh._get_angle(key)
         reader.get_angles.assert_called_once()
 
     def test_strip_invalid_lat(self):
