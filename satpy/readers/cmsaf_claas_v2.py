@@ -21,6 +21,8 @@ class Claasv2(NetCDF4FileHandler):
         # more generically available?  Perhaps in the `NetCDF4FileHandler`?
 
         yield from super().available_datasets(configured_datasets)
+        # FIXME: instead of accessing self.file_handle, this should probably
+        # use # self.file_content or something similar
         it = self.file_handle.variables.items()
         for (k, v) in it:
             if "y" not in v.dimensions:
@@ -32,8 +34,6 @@ class Claasv2(NetCDF4FileHandler):
             for unkey in {"_FillValue", "add_offset", "scale_factor"}:
                 attrs.pop(unkey, None)
             ds_info.update(attrs)
-            # FIXME: This needs to avoid tiny datasets that don't have a
-            # y-coordinate
             yield (True, ds_info)
 
     def get_dataset(self, dataset_id, info):
