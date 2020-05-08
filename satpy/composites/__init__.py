@@ -659,7 +659,7 @@ class NIRReflectance(CompositeBase):
 class NIREmissivePartFromReflectance(NIRReflectance):
     """Get the emissive par of NIR bands."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, max_sza=None, **kwargs):
         """Collect custom configuration values.
 
         Args:
