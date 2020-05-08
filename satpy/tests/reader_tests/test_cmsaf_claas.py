@@ -29,6 +29,8 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     """Class for faking the NetCDF4 Filehandler."""
 
+    _nrows = 30
+    _ncols = 40
     def _get_global_attributes(self):
         data = {}
         attrs = {
@@ -85,7 +87,7 @@ def reader_configs():
 
     from satpy.config import config_search_paths
     return config_search_paths(
-        os.path.join("readers", "cmsaf_claas_v2.yaml"))
+        os.path.join("readers", "cmsaf-claas2_l2_nc.yaml"))
 
 
 class TestClaasv2Readerr:
