@@ -31,6 +31,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
     _nrows = 30
     _ncols = 40
+
     def _get_global_attributes(self):
         data = {}
         attrs = {
