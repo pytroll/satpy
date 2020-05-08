@@ -580,8 +580,9 @@ class TestNIRReflectance(unittest.TestCase):
         self.assertEqual(res.attrs['platform_name'], platform)
         self.assertEqual(res.attrs['sensor'], sensor)
         self.assertEqual(res.attrs['name'], chan_name)
+        self.assertEqual(res.attrs['sunz_threshold'], None)
         calculator.assert_called()
-        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039')
+        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039', sunz_threshold=None)
         self.assertTrue(apply_modifier_info.call_args[0][0] is nir)
         self.assertTrue(comp._refl3x is calculator.return_value)
         refl_from_tbs.reset_mock()
@@ -598,6 +599,12 @@ class TestNIRReflectance(unittest.TestCase):
         co2.attrs['units'] = 'K'
         res = comp([nir, ir_], optional_datasets=[co2], **info)
         refl_from_tbs.assert_called_with(sunz2, nir.data, ir_.data, tb_ir_co2=co2.data)
+
+        comp = NIRReflectance(name='test', sunz_threshold=84.0)
+        info = {'modifiers': None}
+        res = comp([nir, ir_], optional_datasets=[sunz], **info)
+        self.assertEqual(res.attrs['sunz_threshold'], 84.0)
+        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039', sunz_threshold=84.0)
 
 
 class TestColormapCompositor(unittest.TestCase):
