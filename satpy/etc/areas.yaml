@@ -461,10 +461,10 @@ fci_0deg_1km:
   area_extent:
     lower_left_xy:
     - -5567999.998527619
-    - 5567999.998527619
+    - -5568999.998577043
     upper_right_xy:
     - 5567999.998577303
-    - -5567999.998577303
+    - 5566999.998527878
     units: m
 fci_0deg_2km:
   description: Full disk FCI view, 2 km (based on pre-launch test data)
@@ -482,10 +482,10 @@ fci_0deg_2km:
   area_extent:
     lower_left_xy:
     - -5567999.994206558
-    - -5567999.994200589
+    - -5569999.994198508
     upper_right_xy:
-    - 5567999.994206558
-    - 5567999.994200589
+    - 5567999.994200588
+    - 5565999.9942086395
     units: m
 spain:
   description: Spain
