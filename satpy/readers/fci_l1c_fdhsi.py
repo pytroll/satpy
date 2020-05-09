@@ -37,7 +37,7 @@ Geolocation is based on information from the data files.  It uses:
       radius
     * From the attribute ``perspective_point_height`` on the same data
       variable, the geostationary altitude in the normalised geostationary
-      projection (see PUG §5.2)
+      projection (see `PUG`_ §5.2)
     * From the attribute ``longitude_of_projection_origin`` on the same
       data variable, the longitude of the projection origin
     * From the attribute ``inverse_flattening`` on the same data variable, the
@@ -53,6 +53,10 @@ geostationary altitude, and longitude of projection origin, are passed on to
 ``pyresample.geometry.AreaDefinition``, which then uses proj4 for the actual
 geolocation calculations.
 
+The brightness temperature calculation is based on the formulas indicated in
+`PUG`_ and `RADTOBR`_.
+
+.. _RADTOBR: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_EFFECT_RAD_TO_BRIGHTNESS&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _PUG: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_DMT_719113&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci  # noqa: E501
 """
@@ -62,7 +66,6 @@ from __future__ import (division, absolute_import, print_function,
 
 import logging
 import numpy as np
-import dask.array as da
 import xarray as xr
 
 from pyresample import geometry
@@ -83,6 +86,20 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     ``"fci_l1c_fdhsi"``.
 
     """
+
+    # Platform names according to the MTG FCI L1 Product User Guide,
+    # EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
+    # MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
+    # MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
+    #
+    # After launch: translate to METEOSAT-xx instead?  Not sure how the
+    # numbering will be considering MTG-S1 and MTG-S2 will be launched
+    # in-between.
+    _platform_name_translate = {
+            "MTI1": "MTG-I1",
+            "MTI2": "MTG-I2",
+            "MTI3": "MTG-I3",
+            "MTI4": "MTG-I4"}
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize file handler."""
@@ -111,16 +128,16 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         logger.debug('Reading {} from {}'.format(key.name, self.filename))
         # Get the dataset
         # Get metadata for given dataset
-        measured, root = self.get_channel_dataset(key.name)
-        radlab = measured + "/effective_radiance"
-        data = self[radlab]
+        measured = self.get_channel_measured_group_path(key.name)
+        data = self[measured + "/effective_radiance"]
 
         attrs = data.attrs.copy()
         info = info.copy()
+
         fv = attrs.pop(
-                "FillValue",
-                default_fillvals.get(data.dtype.str[1:], np.nan))
-        vr = attrs.pop("valid_range", [-np.inf, np.inf])
+            "FillValue",
+            default_fillvals.get(data.dtype.str[1:], np.nan))
+        vr = attrs.get("valid_range", [-np.inf, np.inf])
         if key.calibration == "counts":
             attrs["_FillValue"] = fv
             nfv = fv
@@ -128,22 +145,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             nfv = np.nan
         data = data.where(data >= vr[0], nfv)
         data = data.where(data <= vr[1], nfv)
-        if key.calibration == "counts":
-            # from package description, this just means not applying add_offset
-            # and scale_factor
-            attrs.pop("scale_factor")
-            attrs.pop("add_offset")
-            data.attrs["units"] = "1"
-            res = data
-        else:
-            data = (data * attrs.pop("scale_factor", 1) +
-                    attrs.pop("add_offset", 0))
 
-            if key.calibration in ("brightness_temperature", "reflectance"):
-                res = self.calibrate(data, key, measured, root)
-            else:
-                res = data
-                data.attrs["units"] = attrs["units"]
+        res = self.calibrate(data, key)
+
         # pre-calibration units no longer apply
         info.pop("units")
         attrs.pop("units")
@@ -151,19 +155,32 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         res.attrs.update(key.to_dict())
         res.attrs.update(info)
         res.attrs.update(attrs)
+
+        res.attrs["platform_name"] = self._platform_name_translate.get(
+                self["/attr/platform"], self["/attr/platform"])
+
+        # remove unpacking parameters for calibrated data
+        if key.calibration in ['brightness_temperature', 'reflectance']:
+            res.attrs.pop("add_offset")
+            res.attrs.pop("warm_add_offset")
+            res.attrs.pop("scale_factor")
+            res.attrs.pop("warm_scale_factor")
+
+        # remove attributes from original file which don't apply anymore
+        res.attrs.pop('long_name')
+
         return res
 
-    def get_channel_dataset(self, channel):
-        """Get channel dataset."""
-        root_group = 'data/{}'.format(channel)
-        group = 'data/{}/measured'.format(channel)
+    def get_channel_measured_group_path(self, channel):
+        """Get the channel's measured group path."""
+        measured_group_path = 'data/{}/measured'.format(channel)
 
-        return group, root_group
+        return measured_group_path
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
         # Get metadata for given dataset
-        measured, root = self.get_channel_dataset(key.name)
+        measured = self.get_channel_measured_group_path(key.name)
         # Get start/end line and column of loaded swath.
         nlines, ncols = self[measured + "/effective_radiance/shape"]
 
@@ -200,7 +217,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             ext[c] = (min_c.item(), max_c.item())
 
         area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
-        return (area_extent, nlines, ncols)
+        return area_extent, nlines, ncols
 
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
@@ -216,7 +233,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
         sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
         # Channel dependent swath resolution
-        (area_extent, nlines, ncols) = self.calc_area_extent(key)
+        area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
 
@@ -241,24 +258,59 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         self._cache[key.resolution] = area
         return area
 
-    def calibrate(self, data, key, measured, root):
+    def calibrate(self, data, key):
         """Calibrate data."""
-        if key.calibration == 'brightness_temperature':
-            data = self._ir_calibrate(data, measured, root)
-        elif key.calibration == 'reflectance':
-            data = self._vis_calibrate(data, measured)
+        if key.calibration == "counts":
+            # from package description, this just means not applying add_offset
+            # and scale_factor
+            data.attrs["units"] = "1"
+        elif key.calibration in ['brightness_temperature', 'reflectance', 'radiance']:
+            data = self.calibrate_counts_to_physical_quantity(data, key)
         else:
-            raise ValueError(
-                    "Received unknown calibration key.  Expected "
-                    "'brightness_temperature' or 'reflectance', got "
-                    + key.calibration)
+            logger.error(
+                "Received unknown calibration key.  Expected "
+                "'brightness_temperature', 'reflectance' or 'radiance', got "
+                + key.calibration + ".")
 
         return data
 
-    def _ir_calibrate(self, radiance, measured, root):
+    def calibrate_counts_to_physical_quantity(self, data, key):
+        """Calibrate counts to radiances, brightness temperatures, or reflectances."""
+        # counts to radiance scaling
+
+        data = self.calibrate_counts_to_rad(data, key)
+
+        if key.calibration == 'brightness_temperature':
+            data = self.calibrate_rad_to_bt(data, key)
+        elif key.calibration == 'reflectance':
+            data = self.calibrate_rad_to_refl(data, key)
+
+        return data
+
+    def calibrate_counts_to_rad(self, data, key):
+        """Calibrate counts to radiances."""
+        radiance_units = data.attrs["units"]
+        if key.name == 'ir_38':
+            data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
+                            (data * data.attrs.get("warm_scale_factor", 1) +
+                             data.attrs.get("warm_add_offset", 0)),
+                            (data * data.attrs.get("scale_factor", 1) +
+                             data.attrs.get("add_offset", 0))
+                            )
+        else:
+            data = (data * data.attrs.get("scale_factor", 1) +
+                    data.attrs.get("add_offset", 0))
+
+        data.attrs["units"] = radiance_units
+
+        return data
+
+    def calibrate_rad_to_bt(self, radiance, key):
         """IR channel calibration."""
-        coef = self[measured + "/radiance_unit_conversion_coefficient"]
-        wl_c = self[root + "/central_wavelength_actual"]
+        measured = self.get_channel_measured_group_path(key.name)
+
+        # using the method from RADTOBR and PUG
+        vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
 
         a = self[measured + "/radiance_to_bt_conversion_coefficient_a"]
         b = self[measured + "/radiance_to_bt_conversion_coefficient_b"]
@@ -266,7 +318,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         c1 = self[measured + "/radiance_to_bt_conversion_constant_c1"]
         c2 = self[measured + "/radiance_to_bt_conversion_constant_c2"]
 
-        for v in (coef, wl_c, a, b, c1, c2):
+        for v in (vc, a, b, c1, c2):
             if v == v.attrs.get("FillValue",
                                 default_fillvals.get(v.dtype.str[1:])):
                 logger.error(
@@ -274,45 +326,31 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                     "brightness temperatures for {:s}.".format(
                         v.attrs.get("long_name",
                                     "at least one necessary coefficient"),
-                        root))
-                return xr.DataArray(
-                        da.full(shape=radiance.shape,
-                                chunks=radiance.chunks,
-                                fill_value=np.nan),
-                        dims=radiance.dims,
-                        coords=radiance.coords,
-                        attrs=radiance.attrs)
+                        measured))
+                return radiance*np.nan
 
-        Lv = radiance * coef
-        vc = 1e6/wl_c  # from wl in um to wn in m^-1
         nom = c2 * vc
-        denom = a * np.log(1 + (c1 * vc**3) / Lv)
+        denom = a * np.log(1 + (c1 * vc**3) / radiance)
 
         res = nom / denom - b / a
         res.attrs["units"] = "K"
         return res
 
-    def _vis_calibrate(self, radiance, measured):
+    def calibrate_rad_to_refl(self, radiance, key):
         """VIS channel calibration."""
-        # radiance to reflectance taken as in mipp/xrit/MSG.py
-        # again FCI User Guide is not clear on how to do this
+        measured = self.get_channel_measured_group_path(key.name)
 
-        cesilab = measured + "/channel_effective_solar_irradiance"
-        cesi = self[cesilab]
+        cesi = self[measured + "/channel_effective_solar_irradiance"]
+
         if cesi == cesi.attrs.get(
                 "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
-            return xr.DataArray(
-                    da.full(shape=radiance.shape,
-                            chunks=radiance.chunks,
-                            fill_value=np.nan),
-                    dims=radiance.dims,
-                    coords=radiance.coords,
-                    attrs=radiance.attrs)
+            return radiance*np.nan
 
-        sirr = float(cesi)
-        res = radiance / sirr * 100
+        sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
+
+        res = 100 * radiance * np.pi * sun_earth_distance**2 / cesi
         res.attrs["units"] = "%"
         return res
