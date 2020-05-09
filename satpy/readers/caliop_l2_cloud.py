@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # Copyright (c) 2016 Satpy developers
 #
 # This file is part of satpy.
@@ -13,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Interface to CALIOP L2 HDF4 cloud products."""
 
 import logging
 import os.path
@@ -31,6 +34,7 @@ class HDF4BandReader(BaseFileHandler):
     """CALIOP v3 HDF4 reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialze file handler."""
         super(HDF4BandReader, self).__init__(filename,
                                              filename_info,
                                              filetype_info)
@@ -102,8 +106,10 @@ class HDF4BandReader(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get end time."""
         return self._end_time

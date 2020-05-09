@@ -15,22 +15,12 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The scmi_abi_l1b reader tests package.
-"""
+"""The scmi_abi_l1b reader tests package."""
 
-import sys
+import unittest
+from unittest import mock
 import numpy as np
 import xarray as xr
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class FakeDataset(object):
@@ -161,7 +151,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
                                {'platform_shortname': 'G16'},
                                {'filetype': 'info'})
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_geos(self, adef):
         """Test the area generation for geos projection."""
         reader = self.create_reader(
@@ -186,7 +176,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         self.assertEqual(call_args[5], reader.nlines)
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_lcc(self, adef):
         """Test the area generation for lcc projection."""
         reader = self.create_reader(
@@ -211,7 +201,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         self.assertEqual(call_args[5], reader.nlines)
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_stere(self, adef):
         """Test the area generation for stere projection."""
         reader = self.create_reader(
@@ -236,7 +226,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         self.assertEqual(call_args[5], reader.nlines)
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_merc(self, adef):
         """Test the area generation for merc projection."""
         reader = self.create_reader(
@@ -260,7 +250,7 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
         self.assertEqual(call_args[5], reader.nlines)
         np.testing.assert_allclose(call_args[6], (-2., -2., 2, 2.))
 
-    @mock.patch('satpy.readers.abi_l1b.geometry.AreaDefinition')
+    @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def_bad(self, adef):
         """Test the area generation for bad projection."""
         reader = self.create_reader(
@@ -274,13 +264,3 @@ class TestSCMIFileHandlerArea(unittest.TestCase):
             }
         )
         self.assertRaises(ValueError, reader.get_area_def, None)
-
-
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSCMIFileHandler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSCMIFileHandlerArea))
-    return mysuite

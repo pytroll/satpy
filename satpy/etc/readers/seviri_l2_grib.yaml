@@ -1,0 +1,129 @@
+reader:
+  name: seviri_l2_grib
+  short_name: SEVIRI L2 GRIB
+  long_name: MSG SEVIRI L2 (GRIB)
+  description: Reader for EUMETSAT MSG SEVIRI L2 files in GRIB format.
+  sensors: [seviri]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  # EUMETSAT MSG SEVIRI L2 Cloud Mask files in GRIB format
+  grib_seviri_clm:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+        - 'CLMEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+        - '{spacecraft:4s}-SEVI-MSGCLMK-0100-0100-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+        - '{spacecraft:4s}-SEVI-MSGCLMK-0100-0100-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+
+  # EUMETSAT MSG SEVIRI L2 Optimal Cloud Analysis files in GRIB format
+  grib_seviri_oca:
+    file_reader: !!python/name:satpy.readers.seviri_l2_grib.SeviriL2GribFileHandler
+    file_patterns:
+        - 'OCAEncProd_{start_time:%Y%m%d%H%M%S}Z_00_{server:8s}_{spacecraft:5s}_{scan_mode:3s}_{sub_sat:5s}'
+        - '{spacecraft:4s}-SEVI-MSGOCAE-0100-0100-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}'
+        - '{spacecraft:4s}-SEVI-MSGOCAE-0100-0100-{start_time:%Y%m%d%H%M%S}.000000000Z-{product_creation_time:%Y%m%d%H%M%S}-{ord_num:7s}.grb'
+datasets:
+
+  cloud_mask:
+    name: cloud_mask
+    resolution: 3000
+    file_type: grib_seviri_clm
+    parameter_number: 7
+    units: ""
+    long_name: cloud_mask_classification
+
+  pixel_scene_type:
+    name: pixel_scene_type
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 8
+    units: ""
+    long_name: scene_classification
+
+  measurement_cost:
+    name: measurement_cost
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 30
+    units: ""
+    long_name: cost_function
+
+  upper_layer_cloud_optical_depth:
+    name: upper_layer_cloud_optical_depth
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 31
+    units: ""
+    long_name: cloud_optical_depth
+
+  upper_layer_cloud_top_pressure:
+    name: upper_layer_cloud_top_pressure
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 32
+    units: Pa
+    standard_name: air_pressure_at_cloud_top
+
+  upper_layer_cloud_effective_radius:
+    name: upper_layer_cloud_effective_radius
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 33
+    units: m
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+
+  error_in_upper_layer_cloud_optical_depth:
+    name: error_in_upper_layer_cloud_optical_depth
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 34
+    units: ""
+    long_name: cloud_optical_depth
+
+  error_in_upper_layer_cloud_top_pressure:
+    name: error_in_upper_layer_cloud_top_pressure
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 35
+    units: Pa
+    standard_name: air_pressure_at_cloud_top_standard_error
+
+  error_in_upper_layer_cloud_effective_radius:
+    name: error_in_upper_layer_cloud_effective_radius
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 36
+    units: m
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top_standard_error
+
+  lower_layer_cloud_optical_depth:
+    name: lower_layer_cloud_optical_depth
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 37
+    units: ""
+    long_name: cloud_optical_depth
+
+  lower_layer_cloud_top_pressure:
+    name: lower_layer_cloud_top_pressure
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 38
+    units: Pa
+    standard_name: air_pressure_at_cloud_top
+
+  error_in_lower_layer_cloud_optical_depth:
+    name: error_in_lower_layer_cloud_optical_depth
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 39
+    units: ""
+    long_name: cloud_optical_depth_standard_error
+
+  error_in_lower_layer_cloud_top_pressure:
+    name: error_in_lower_layer_cloud_top_pressure
+    resolution: 3000
+    file_type: grib_seviri_oca
+    parameter_number: 40
+    units: Pa
+    standard_name: air_pressure_at_cloud_top_standard_error

@@ -18,17 +18,8 @@
 """Unit tests for scene.py."""
 
 import os
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -466,6 +457,35 @@ class TestScene(unittest.TestCase):
         self.assertTupleEqual(new_scn1['3'].shape, (36, 70))
         self.assertTupleEqual(new_scn1['4'].shape, (18, 35))
 
+    def test_crop_epsg_crs(self):
+        """Test the crop method when source area uses an EPSG code."""
+        from satpy import Scene
+        from xarray import DataArray
+        from pyresample.geometry import AreaDefinition
+        import numpy as np
+        try:
+            from pyproj import CRS  # noqa
+        except ImportError:
+            self.skipTest("Test requires pyproj 2.0+")
+
+        scene1 = Scene()
+        area_extent = (699960.0, 5390220.0, 809760.0, 5500020.0)
+        x_size = 3712
+        y_size = 3712
+        area_def = AreaDefinition(
+            'test', 'test', 'test',
+            "EPSG:32630",
+            x_size,
+            y_size,
+            area_extent,
+        )
+        scene1["1"] = DataArray(np.zeros((y_size, x_size)), dims=('y', 'x'),
+                                attrs={'area': area_def})
+        # by x/y bbox
+        new_scn1 = scene1.crop(xy_bbox=(719695.7781587119, 5427887.407618969, 725068.1609052602, 5433708.364368956))
+        self.assertIn('1', new_scn1)
+        self.assertTupleEqual(new_scn1['1'].shape, (198, 182))
+
     def test_crop_rgb(self):
         """Test the crop method on multi-dimensional data."""
         from satpy import Scene
@@ -512,8 +532,6 @@ class TestScene(unittest.TestCase):
 
     def test_aggregate(self):
         """Test the aggregate method."""
-        if (sys.version_info < (3, 0)):
-            self.skipTest("Not implemented in python 2 (xarray).")
         from satpy import Scene
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
@@ -664,16 +682,6 @@ class TestScene(unittest.TestCase):
         name_list = scene.available_dataset_names(composites=True)
         self.assertListEqual(name_list, [])
 
-    def test_available_composites_no_datasets(self):
-        """Test the available composites with no datasets."""
-        from satpy import Scene
-        scene = Scene()
-        id_list = scene.available_composite_ids(available_datasets=[])
-        self.assertListEqual(id_list, [])
-        # no sensors are loaded so we shouldn't get any comps either
-        id_list = scene.available_composite_names(available_datasets=[])
-        self.assertListEqual(id_list, [])
-
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_all_datasets_one_reader(self, cri, cl):
@@ -694,7 +702,7 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list), len(r.all_ids))
         id_list = scene.all_dataset_ids(composites=True)
         self.assertEqual(len(id_list),
-                         len(r.all_ids) + len(scene.cpl.compositors['fake_sensor'].keys()))
+                         len(r.all_ids) + 28)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -717,8 +725,9 @@ class TestScene(unittest.TestCase):
         id_list = scene.all_dataset_ids()
         self.assertEqual(len(id_list), 2)
         id_list = scene.all_dataset_ids(composites=True)
-        self.assertEqual(len(id_list),
-                         2 + len(scene.cpl.compositors['fake_sensor'].keys()))
+        # ds1 and ds2 => 2
+        # composites that use these two datasets => 10
+        self.assertEqual(len(id_list), 2 + 10)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -742,23 +751,45 @@ class TestScene(unittest.TestCase):
         # ds1, comp1, comp14, comp16, static_image
         self.assertEqual(len(id_list), 5)
 
-    def test_available_composite_ids_bad_available(self):
-        """Test the available composite ids."""
-        from satpy import Scene
-        scn = Scene()
-        self.assertRaises(ValueError, scn.available_composite_ids,
-                          available_datasets=['bad'])
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_available_composite_ids_missing_available(self, cri, cl):
+        """Test available_composite_ids when a composites dep is missing."""
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
 
-    def test_available_composite_names_bad_available(self):
-        """Test the available composite names."""
-        from satpy import Scene
-        scn = Scene()
-        self.assertRaises(
-            ValueError, scn.available_composite_names, available_datasets=['bad'])
+        # only the 500m is available
+        available_datasets = ['ds1']
+        cri.return_value = {
+            'fake_reader': FakeReader(
+                'fake_reader', 'fake_sensor',
+                available_datasets=available_datasets),
+        }
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        self.assertNotIn('comp2', scene.available_composite_names())
 
 
 class TestSceneLoading(unittest.TestCase):
     """Test the Scene objects `.load` method."""
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_str(self, cri, cl):
+        """Test passing a string to Scene.load."""
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        self.assertRaises(TypeError, scene.load, 'ds1')
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1779,7 +1810,8 @@ class TestSceneLoading(unittest.TestCase):
         scene = satpy.scene.Scene(filenames=['bla'], base_dir='bli', reader='fake_reader')
         # mock the available comps/mods in the compositor loader
         avail_comps = scene.available_composite_ids()
-        self.assertEqual(len(avail_comps), 0)
+        # static image => 1
+        self.assertEqual(len(avail_comps), 1)
         self.assertRaises(KeyError, scene.load, [0.21])
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)
@@ -2239,20 +2271,3 @@ class TestSceneConversions(unittest.TestCase):
         gv_obj = scn.to_geoviews()
         # we assume that if we got something back, geoviews can use it
         self.assertIsNotNone(gv_obj)
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestScene))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneLoading))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneResampling))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneSaving))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSceneConversions))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

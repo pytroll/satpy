@@ -11,7 +11,8 @@ reader:
 file_types:
   native_msg:
     file_reader: !!python/name:satpy.readers.seviri_l1b_native.NativeMSGFileHandler ''
-    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z-{order_id:s}.nat']
+    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z-{order_id:s}.nat',
+                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z']
 
 datasets:
   HRV:

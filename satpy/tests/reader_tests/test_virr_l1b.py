@@ -16,22 +16,14 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test for readers/virr_l1b.py."""
+import os
+import unittest
+from unittest import mock
+
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-import sys
 import numpy as np
 import dask.array as da
 import xarray as xr
-import os
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -191,11 +183,3 @@ class TestVIRRL1BReader(unittest.TestCase):
         # Make sure we have some files
         self.assertTrue(FY3C_reader.file_handlers)
         self._fy3_helper('FY3C', FY3C_reader, '1')
-
-
-def suite():
-    """Create test suite for test_virr_l1b."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIRRL1BReader))
-    return mysuite

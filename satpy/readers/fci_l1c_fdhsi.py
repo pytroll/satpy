@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,30 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-# Copyright (c) 2016--2019.
-
-# Author(s):
-
-#
-#   Thomas Leppelt <thomas.leppelt@gmail.com>
-#   Sauli Joro <sauli.joro@icloud.com>
-#   Gerrit Holl <gerrit.holl@dwd.de>
-
-# This file is part of satpy.
-
-# satpy is free software: you can redistribute it and/or modify it under the
-# terms of the GNU General Public License as published by the Free Software
-# Foundation, either version 3 of the License, or (at your option) any later
-# version.
-
-# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
-# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
-# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License along with
-# satpy.  If not, see <http://www.gnu.org/licenses/>.
-
-"""Interface to MTG-FCI-FDHSI L1C NetCDF files
+"""Interface to MTG-FCI-FDHSI L1C NetCDF files.
 
 This module defines the :class:`FCIFDHSIFileHandler` file handler, to
 be used for reading Meteosat Third Generation (MTG) Flexible Combined
@@ -46,6 +23,41 @@ Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.  FCI will fly
 on the MTG Imager (MTG-I) series of satellites, scheduled to be launched
 in 2021 by the earliest.  For more information about FCI, see `EUMETSAT`_.
 
+Geolocation is based on information from the data files.  It uses:
+
+    * From the shape of the data variable ``data/<channel>/measured/effective_radiance``,
+      start and end line columns of current swath.
+    * From the data variable ``data/<channel>/measured/x``, the x-coordinates
+      for the grid, in radians
+    * From the data variable ``data/<channel>/measured/y``, the y-coordinates
+      for the grid, in radians
+    * From the attribute ``semi_major_axis`` on the data variable
+      ``data/mtg_geos_projection``, the Earth equatorial radius
+    * From the attribute ``semi_minor_axis`` on the same, the Earth polar
+      radius
+    * From the attribute ``perspective_point_height`` on the same data
+      variable, the geostationary altitude in the normalised geostationary
+      projection (see `PUG`_ §5.2)
+    * From the attribute ``longitude_of_projection_origin`` on the same
+      data variable, the longitude of the projection origin
+    * From the attribute ``inverse_flattening`` on the same data variable, the
+      (inverse) flattening of the ellipsoid
+    * From the attribute ``sweep_angle_axis`` on the same, the sweep angle
+      axis, see https://proj.org/operations/projections/geos.html
+
+From the pixel centre angles in radians and the geostationary altitude, the
+extremities of the lower left and upper right corners are calculated in units
+of arc length in m.  This extent along with the number of columns and rows, the
+sweep angle axis, and a dictionary with equatorial radius, polar radius,
+geostationary altitude, and longitude of projection origin, are passed on to
+``pyresample.geometry.AreaDefinition``, which then uses proj4 for the actual
+geolocation calculations.
+
+The brightness temperature calculation is based on the formulas indicated in
+`PUG`_ and `RADTOBR`_.
+
+.. _RADTOBR: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_EFFECT_RAD_TO_BRIGHTNESS&RevisionSelectionMethod=LatestReleased&Rendition=Web
+.. _PUG: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_DMT_719113&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci  # noqa: E501
 """
 
@@ -54,7 +66,6 @@ from __future__ import (division, absolute_import, print_function,
 
 import logging
 import numpy as np
-import dask.array as da
 import xarray as xr
 
 from pyresample import geometry
@@ -66,7 +77,7 @@ logger = logging.getLogger(__name__)
 
 
 class FCIFDHSIFileHandler(NetCDF4FileHandler):
-    """Class implementing the MTG FCI FDHSI File Reader
+    """Class implementing the MTG FCI FDHSI File .
 
     This class implements the Meteosat Third Generation (MTG) Flexible
     Combined Imager (FCI) Full Disk High Spectral Imagery (FDHSI) reader.
@@ -76,39 +87,57 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     """
 
+    # Platform names according to the MTG FCI L1 Product User Guide,
+    # EUM/MTG/USR/13/719113 from 2019-06-27, pages 32 and 124, are MTI1, MTI2,
+    # MTI3, and MTI4, but we want to use names such as described in WMO OSCAR
+    # MTG-I1, MTG-I2, MTG-I3, and MTG-I4.
+    #
+    # After launch: translate to METEOSAT-xx instead?  Not sure how the
+    # numbering will be considering MTG-S1 and MTG-S2 will be launched
+    # in-between.
+    _platform_name_translate = {
+            "MTI1": "MTG-I1",
+            "MTI2": "MTG-I2",
+            "MTI3": "MTG-I3",
+            "MTI4": "MTG-I4"}
+
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize file handler."""
         super(FCIFDHSIFileHandler, self).__init__(filename, filename_info,
-                                                  filetype_info)
+                                                  filetype_info,
+                                                  cache_var_size=10000,
+                                                  cache_handle=True)
         logger.debug('Reading: {}'.format(self.filename))
         logger.debug('Start: {}'.format(self.start_time))
         logger.debug('End: {}'.format(self.end_time))
 
-        self.cache = {}
+        self._cache = {}
 
     @property
     def start_time(self):
+        """Get start time."""
         return self.filename_info['start_time']
 
     @property
     def end_time(self):
+        """Get end time."""
         return self.filename_info['end_time']
 
     def get_dataset(self, key, info=None):
         """Load a dataset."""
-
         logger.debug('Reading {} from {}'.format(key.name, self.filename))
         # Get the dataset
         # Get metadata for given dataset
-        measured, root = self.get_channel_dataset(key.name)
-        radlab = measured + "/effective_radiance"
-        data = self[radlab]
+        measured = self.get_channel_measured_group_path(key.name)
+        data = self[measured + "/effective_radiance"]
 
         attrs = data.attrs.copy()
         info = info.copy()
+
         fv = attrs.pop(
-                "FillValue",
-                default_fillvals.get(data.dtype.str[1:], np.nan))
-        vr = attrs.pop("valid_range", [-np.inf, np.inf])
+            "FillValue",
+            default_fillvals.get(data.dtype.str[1:], np.nan))
+        vr = attrs.get("valid_range", [-np.inf, np.inf])
         if key.calibration == "counts":
             attrs["_FillValue"] = fv
             nfv = fv
@@ -116,141 +145,172 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             nfv = np.nan
         data = data.where(data >= vr[0], nfv)
         data = data.where(data <= vr[1], nfv)
-        if key.calibration == "counts":
-            # from package description, this just means not applying add_offset
-            # and scale_factor
-            attrs.pop("scale_factor")
-            attrs.pop("add_offset")
-            data.attrs["units"] = "1"
-            res = data
-        else:
-            data = (data * attrs.pop("scale_factor", 1) +
-                    attrs.pop("add_offset", 0))
 
-            if key.calibration in ("brightness_temperature", "reflectance"):
-                res = self.calibrate(data, key, measured, root)
-            else:
-                res = data
-                data.attrs["units"] = attrs["units"]
+        res = self.calibrate(data, key)
+
         # pre-calibration units no longer apply
         info.pop("units")
         attrs.pop("units")
 
-        self.nlines, self.ncols = res.shape
         res.attrs.update(key.to_dict())
         res.attrs.update(info)
         res.attrs.update(attrs)
+
+        res.attrs["platform_name"] = self._platform_name_translate.get(
+                self["/attr/platform"], self["/attr/platform"])
+
+        # remove unpacking parameters for calibrated data
+        if key.calibration in ['brightness_temperature', 'reflectance']:
+            res.attrs.pop("add_offset")
+            res.attrs.pop("warm_add_offset")
+            res.attrs.pop("scale_factor")
+            res.attrs.pop("warm_scale_factor")
+
+        # remove attributes from original file which don't apply anymore
+        res.attrs.pop('long_name')
+
         return res
 
-    def get_channel_dataset(self, channel):
-        root_group = 'data/{}'.format(channel)
-        group = 'data/{}/measured'.format(channel)
+    def get_channel_measured_group_path(self, channel):
+        """Get the channel's measured group path."""
+        measured_group_path = 'data/{}/measured'.format(channel)
 
-        return group, root_group
+        return measured_group_path
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
-        # Calculate the area extent of the swath based on start line and column
-        # information, total number of segments and channel resolution
-        # numbers from Package Description, Table 8
-        xyres = {500: 22272, 1000: 11136, 2000: 5568}
-        chkres = xyres[key.resolution]
-
         # Get metadata for given dataset
-        measured, root = self.get_channel_dataset(key.name)
+        measured = self.get_channel_measured_group_path(key.name)
         # Get start/end line and column of loaded swath.
-        self.startline = int(self[measured + "/start_position_row"])
-        self.endline = int(self[measured + "/end_position_row"])
-        self.startcol = int(self[measured + "/start_position_column"])
-        self.endcol = int(self[measured + "/end_position_column"])
-        self.nlines, self.ncols = self[measured + "/effective_radiance/shape"]
+        nlines, ncols = self[measured + "/effective_radiance/shape"]
 
-        logger.debug('Channel {} resolution: {}'.format(key.name, chkres))
-        logger.debug('Row/Cols: {} / {}'.format(self.nlines, self.ncols))
-        logger.debug('Start/End row: {} / {}'.format(self.startline, self.endline))
-        logger.debug('Start/End col: {} / {}'.format(self.startcol, self.endcol))
-        # total_segments = 70
+        logger.debug('Channel {} resolution: {}'.format(key.name, ncols))
+        logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
 
         # Calculate full globe line extent
-        max_y = 5432229.9317116784
-        min_y = -5429229.5285458621
-        full_y = max_y + abs(min_y)
-        # Single swath line extent
-        res_y = full_y / chkres  # Extent per pixel resolution
-        startl = min_y + res_y * self.startline - 0.5 * (res_y)
-        endl = min_y + res_y * self.endline + 0.5 * (res_y)
-        logger.debug('Start / end extent: {} / {}'.format(startl, endl))
+        h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
 
-        chk_extent = (-5432229.9317116784, endl,
-                      5429229.5285458621, startl)
-        return(chk_extent)
+        ext = {}
+        for c in "xy":
+            c_radian = self["data/{:s}/measured/{:s}".format(key.name, c)]
+            c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
 
-    _fallback_area_def = {
-            "reference_altitude": 35786400,  # metre
-            }
+            # FCI defines pixels by centroids (Example Products for Pytroll
+            # Workshop, §B.4.2)
+            #
+            # pyresample defines corners as lower left corner of lower left pixel,
+            # upper right corner of upper right pixel (Martin Raspaud, personal
+            # communication).
+
+            # the .item() call is needed with the h5netcdf backend, see
+            # https://github.com/pytroll/satpy/issues/972#issuecomment-558191583
+            # but we need to compute it first if this is dask
+            min_c_radian = c_radian_num[0] - c_radian.scale_factor/2
+            max_c_radian = c_radian_num[-1] + c_radian.scale_factor/2
+            min_c = min_c_radian * h  # arc length in m
+            max_c = max_c_radian * h
+            try:
+                min_c = min_c.compute()
+                max_c = max_c.compute()
+            except AttributeError:  # not a dask.array
+                pass
+            ext[c] = (min_c.item(), max_c.item())
+
+        area_extent = (ext["x"][1], ext["y"][1], ext["x"][0], ext["y"][0])
+        return area_extent, nlines, ncols
 
     def get_area_def(self, key, info=None):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
-        # TODO Projection information are hard coded for 0 degree geos projection
-        # Test dataset doen't provide the values in the file container.
-        # Only fill values are inserted
+        # assumption: channels with same resolution should have same area
+        # cache results to improve performance
+        if key.resolution in self._cache.keys():
+            return self._cache[key.resolution]
 
-        a = float(self["state/processor/earth_equatorial_radius"])
-        b = float(self["state/processor/earth_polar_radius"])
-        h = float(self["state/processor/reference_altitude"])
-        lon_0 = float(self["state/processor/projection_origin_longitude"])
-        if h == default_fillvals[
-                self["state/processor/reference_altitude"].dtype.str[1:]]:
-            logger.warning(
-                    "Reference altitude in {:s} set to "
-                    "fill value, using {:d}".format(
-                        self.filename,
-                        self._fallback_area_def["reference_altitude"]))
-            h = self._fallback_area_def["reference_altitude"]
-        # Channel dependent swath resoultion
-        area_extent = self.calc_area_extent(key)
+        a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
+        b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
+        h = float(self["data/mtg_geos_projection/attr/perspective_point_height"])
+        if_ = float(self["data/mtg_geos_projection/attr/inverse_flattening"])
+        lon_0 = float(self["data/mtg_geos_projection/attr/longitude_of_projection_origin"])
+        sweep = str(self["data/mtg_geos_projection"].sweep_angle_axis)
+        # Channel dependent swath resolution
+        area_extent, nlines, ncols = self.calc_area_extent(key)
         logger.debug('Calculated area extent: {}'
                      .format(''.join(str(area_extent))))
 
-        proj_dict = {'a': float(a),
-                     'b': float(b),
-                     'lon_0': float(lon_0),
-                     'h': float(h),
+        proj_dict = {'a': a,
+                     'b': b,
+                     'lon_0': lon_0,
+                     'h': h,
+                     "fi": float(if_),
                      'proj': 'geos',
-                     'units': 'm'}
+                     'units': 'm',
+                     "sweep": sweep}
 
         area = geometry.AreaDefinition(
             'some_area_name',
             "On-the-fly area",
             'geosfci',
             proj_dict,
-            self.ncols,
-            self.nlines,
+            ncols,
+            nlines,
             area_extent)
 
-        self.area = area
+        self._cache[key.resolution] = area
         return area
 
-    def calibrate(self, data, key, measured, root):
-        """Data calibration."""
-
-        if key.calibration == 'brightness_temperature':
-            data = self._ir_calibrate(data, measured, root)
-        elif key.calibration == 'reflectance':
-            data = self._vis_calibrate(data, measured)
+    def calibrate(self, data, key):
+        """Calibrate data."""
+        if key.calibration == "counts":
+            # from package description, this just means not applying add_offset
+            # and scale_factor
+            data.attrs["units"] = "1"
+        elif key.calibration in ['brightness_temperature', 'reflectance', 'radiance']:
+            data = self.calibrate_counts_to_physical_quantity(data, key)
         else:
-            raise RuntimeError(
-                    "Received unknown calibration key.  Expected "
-                    "'brightness_temperature' or 'reflectance', got "
-                    + key.calibration)
+            logger.error(
+                "Received unknown calibration key.  Expected "
+                "'brightness_temperature', 'reflectance' or 'radiance', got "
+                + key.calibration + ".")
 
         return data
 
-    def _ir_calibrate(self, radiance, measured, root):
-        """IR channel calibration."""
+    def calibrate_counts_to_physical_quantity(self, data, key):
+        """Calibrate counts to radiances, brightness temperatures, or reflectances."""
+        # counts to radiance scaling
 
-        coef = self[measured + "/radiance_unit_conversion_coefficient"]
-        wl_c = self[root + "/central_wavelength_actual"]
+        data = self.calibrate_counts_to_rad(data, key)
+
+        if key.calibration == 'brightness_temperature':
+            data = self.calibrate_rad_to_bt(data, key)
+        elif key.calibration == 'reflectance':
+            data = self.calibrate_rad_to_refl(data, key)
+
+        return data
+
+    def calibrate_counts_to_rad(self, data, key):
+        """Calibrate counts to radiances."""
+        radiance_units = data.attrs["units"]
+        if key.name == 'ir_38':
+            data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
+                            (data * data.attrs.get("warm_scale_factor", 1) +
+                             data.attrs.get("warm_add_offset", 0)),
+                            (data * data.attrs.get("scale_factor", 1) +
+                             data.attrs.get("add_offset", 0))
+                            )
+        else:
+            data = (data * data.attrs.get("scale_factor", 1) +
+                    data.attrs.get("add_offset", 0))
+
+        data.attrs["units"] = radiance_units
+
+        return data
+
+    def calibrate_rad_to_bt(self, radiance, key):
+        """IR channel calibration."""
+        measured = self.get_channel_measured_group_path(key.name)
+
+        # using the method from RADTOBR and PUG
+        vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
 
         a = self[measured + "/radiance_to_bt_conversion_coefficient_a"]
         b = self[measured + "/radiance_to_bt_conversion_coefficient_b"]
@@ -258,7 +318,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         c1 = self[measured + "/radiance_to_bt_conversion_constant_c1"]
         c2 = self[measured + "/radiance_to_bt_conversion_constant_c2"]
 
-        for v in (coef, wl_c, a, b, c1, c2):
+        for v in (vc, a, b, c1, c2):
             if v == v.attrs.get("FillValue",
                                 default_fillvals.get(v.dtype.str[1:])):
                 logger.error(
@@ -266,45 +326,31 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                     "brightness temperatures for {:s}.".format(
                         v.attrs.get("long_name",
                                     "at least one necessary coefficient"),
-                        root))
-                return xr.DataArray(
-                        da.full(shape=radiance.shape,
-                                chunks=radiance.chunks,
-                                fill_value=np.nan),
-                        dims=radiance.dims,
-                        coords=radiance.coords,
-                        attrs=radiance.attrs)
+                        measured))
+                return radiance*np.nan
 
-        Lv = radiance * coef
-        vc = 1e6/wl_c  # from wl in um to wn in m^-1
         nom = c2 * vc
-        denom = a * np.log(1 + (c1 * vc**3) / Lv)
+        denom = a * np.log(1 + (c1 * vc**3) / radiance)
 
         res = nom / denom - b / a
         res.attrs["units"] = "K"
         return res
 
-    def _vis_calibrate(self, radiance, measured):
+    def calibrate_rad_to_refl(self, radiance, key):
         """VIS channel calibration."""
-        # radiance to reflectance taken as in mipp/xrit/MSG.py
-        # again FCI User Guide is not clear on how to do this
+        measured = self.get_channel_measured_group_path(key.name)
 
-        cesilab = measured + "/channel_effective_solar_irradiance"
-        cesi = self[cesilab]
+        cesi = self[measured + "/channel_effective_solar_irradiance"]
+
         if cesi == cesi.attrs.get(
                 "FillValue", default_fillvals.get(cesi.dtype.str[1:])):
             logger.error(
                 "channel effective solar irradiance set to fill value, "
                 "cannot produce reflectance for {:s}.".format(measured))
-            return xr.DataArray(
-                    da.full(shape=radiance.shape,
-                            chunks=radiance.chunks,
-                            fill_value=np.nan),
-                    dims=radiance.dims,
-                    coords=radiance.coords,
-                    attrs=radiance.attrs)
+            return radiance*np.nan
 
-        sirr = float(cesi)
-        res = radiance / sirr * 100
+        sun_earth_distance = np.mean(self["state/celestial/earth_sun_distance"]) / 149597870.7  # [AU]
+
+        res = 100 * radiance * np.pi * sun_earth_distance**2 / cesi
         res.attrs["units"] = "%"
         return res

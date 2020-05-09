@@ -14,18 +14,13 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""
-"""
+"""Unittests for resamplers."""
 
 import unittest
 import tempfile
 import shutil
 import os
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 try:
     from pyproj import CRS
@@ -136,24 +131,28 @@ class TestHLResample(unittest.TestCase):
 class TestKDTreeResampler(unittest.TestCase):
     """Test the kd-tree resampler."""
 
-    @mock.patch('satpy.resample.np.savez')
-    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample.KDTreeResampler._check_numpy_cache')
+    @mock.patch('satpy.resample.xr.Dataset')
+    @mock.patch('satpy.resample.zarr.open')
     @mock.patch('satpy.resample.KDTreeResampler._create_cache_filename')
-    @mock.patch('satpy.resample.XArrayResamplerNN')
-    def test_kd_resampling(self, resampler, create_filename, load, savez):
+    @mock.patch('pyresample.kd_tree.XArrayResamplerNN')
+    def test_kd_resampling(self, resampler, create_filename, zarr_open,
+                           xr_dset, cnc):
         """Test the kd resampler."""
         import numpy as np
         import dask.array as da
         from satpy.resample import KDTreeResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
-
+        mock_dset = mock.MagicMock()
+        xr_dset.return_value = mock_dset
         resampler = KDTreeResampler(source_swath, target_area)
         resampler.precompute(
             mask=da.arange(5, chunks=5).astype(np.bool), cache_dir='.')
         resampler.resampler.get_neighbour_info.assert_called()
         # swath definitions should not be cached
-        self.assertFalse(len(savez.mock_calls), 0)
+        self.assertFalse(len(mock_dset.to_zarr.mock_calls), 0)
         resampler.resampler.reset_mock()
+        cnc.assert_called_once()
 
         resampler = KDTreeResampler(source_area, target_area)
         resampler.precompute()
@@ -162,32 +161,36 @@ class TestKDTreeResampler(unittest.TestCase):
         try:
             the_dir = tempfile.mkdtemp()
             resampler = KDTreeResampler(source_area, target_area)
-            create_filename.return_value = os.path.join(the_dir, 'test_cache.npz')
-            load.side_effect = IOError()
+            create_filename.return_value = os.path.join(the_dir, 'test_cache.zarr')
+            zarr_open.side_effect = ValueError()
             resampler.precompute(cache_dir=the_dir)
             # assert data was saved to the on-disk cache
-            self.assertEqual(len(savez.mock_calls), 1)
-            # assert that load was called to try to load something from disk
-            self.assertEqual(len(load.mock_calls), 1)
+            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
+            # assert that zarr_open was called to try to zarr_open something from disk
+            self.assertEqual(len(zarr_open.mock_calls), 1)
             # we should have cached things in-memory
             self.assertEqual(len(resampler._index_caches), 1)
             nbcalls = len(resampler.resampler.get_neighbour_info.mock_calls)
             # test reusing the resampler
-            load.side_effect = None
+            zarr_open.side_effect = None
 
-            class FakeNPZ(dict):
+            class FakeZarr(dict):
+
                 def close(self):
                     pass
 
-            load.return_value = FakeNPZ(valid_input_index=1,
-                                        valid_output_index=2,
-                                        index_array=3,
-                                        distance_array=4)
+                def astype(self, dtype):
+                    pass
+
+            zarr_open.return_value = FakeZarr(valid_input_index=1,
+                                              valid_output_index=2,
+                                              index_array=3,
+                                              distance_array=4)
             resampler.precompute(cache_dir=the_dir)
             # we already have things cached in-memory, no need to save again
-            self.assertEqual(len(savez.mock_calls), 1)
+            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
             # we already have things cached in-memory, don't need to load
-            self.assertEqual(len(load.mock_calls), 1)
+            self.assertEqual(len(zarr_open.mock_calls), 1)
             # we should have cached things in-memory
             self.assertEqual(len(resampler._index_caches), 1)
             self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
@@ -195,7 +198,7 @@ class TestKDTreeResampler(unittest.TestCase):
             # test loading saved resampler
             resampler = KDTreeResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
-            self.assertEqual(len(load.mock_calls), 2)
+            self.assertEqual(len(zarr_open.mock_calls), 4)
             self.assertEqual(len(resampler.resampler.get_neighbour_info.mock_calls), nbcalls)
             # we should have cached things in-memory now
             self.assertEqual(len(resampler._index_caches), 1)
@@ -205,6 +208,42 @@ class TestKDTreeResampler(unittest.TestCase):
         fill_value = 8
         resampler.compute(data, fill_value=fill_value)
         resampler.resampler.get_sample_from_neighbour_info.assert_called_with(data, fill_value)
+
+    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample.xr.Dataset')
+    def test_check_numpy_cache(self, xr_Dataset, np_load):
+        """Test that cache stored in .npz is converted to zarr."""
+        from satpy.resample import KDTreeResampler
+
+        data, source_area, swath_data, source_swath, target_area = get_test_data()
+        resampler = KDTreeResampler(source_area, target_area)
+
+        zarr_out = mock.MagicMock()
+        xr_Dataset.return_value = zarr_out
+
+        try:
+            the_dir = tempfile.mkdtemp()
+            kwargs = {}
+            np_path = resampler._create_cache_filename(the_dir,
+                                                       prefix='resample_lut-',
+                                                       fmt='.npz',
+                                                       mask=None,
+                                                       **kwargs)
+            zarr_path = resampler._create_cache_filename(the_dir,
+                                                         prefix='nn_lut-',
+                                                         fmt='.zarr',
+                                                         mask=None,
+                                                         **kwargs)
+            resampler._check_numpy_cache(the_dir)
+            np_load.assert_not_called()
+            zarr_out.to_zarr.assert_not_called()
+            with open(np_path, 'w') as fid:
+                fid.write("42")
+            resampler._check_numpy_cache(the_dir)
+            np_load.assert_called_once_with(np_path, 'r')
+            zarr_out.to_zarr.assert_called_once_with(zarr_path)
+        finally:
+            shutil.rmtree(the_dir)
 
 
 class TestEWAResampler(unittest.TestCase):
@@ -257,6 +296,8 @@ class TestEWAResampler(unittest.TestCase):
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
             self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
     @mock.patch('satpy.resample.fornav')
     @mock.patch('satpy.resample.ll2cr')
@@ -309,6 +350,8 @@ class TestEWAResampler(unittest.TestCase):
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
             np.testing.assert_equal(new_data.coords['bands'].values,
                                     ['R', 'G', 'B'])
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
 
 class TestNativeResampler(unittest.TestCase):
@@ -357,6 +400,8 @@ class TestNativeResampler(unittest.TestCase):
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
             self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_dims_3d(self):
         """Test expanding native resampling with 3D data."""
@@ -381,6 +426,8 @@ class TestNativeResampler(unittest.TestCase):
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
             self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_without_dims(self):
         """Test expanding native resampling with no dimensions specified."""
@@ -397,6 +444,8 @@ class TestNativeResampler(unittest.TestCase):
             self.assertIn('crs', new_data.coords)
             self.assertIsInstance(new_data.coords['crs'].item(), CRS)
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
     def test_expand_without_dims_4D(self):
         """Test expanding native resampling with 4D data with no dimensions specified."""
@@ -411,11 +460,13 @@ class TestNativeResampler(unittest.TestCase):
 class TestBilinearResampler(unittest.TestCase):
     """Test the bilinear resampler."""
 
-    @mock.patch('satpy.resample.np.savez')
-    @mock.patch('satpy.resample.np.load')
+    @mock.patch('satpy.resample._move_existing_caches')
+    @mock.patch('satpy.resample.xr.Dataset')
+    @mock.patch('satpy.resample.zarr.open')
     @mock.patch('satpy.resample.BilinearResampler._create_cache_filename')
-    @mock.patch('satpy.resample.XArrayResamplerBilinear')
-    def test_bil_resampling(self, resampler, create_filename, load, savez):
+    @mock.patch('pyresample.bilinear.xarr.XArrayResamplerBilinear')
+    def test_bil_resampling(self, resampler, create_filename, zarr_open,
+                            xr_dset, move_existing_caches):
         """Test the bilinear resampler."""
         import numpy as np
         import dask.array as da
@@ -423,18 +474,21 @@ class TestBilinearResampler(unittest.TestCase):
         from satpy.resample import BilinearResampler
         data, source_area, swath_data, source_swath, target_area = get_test_data()
 
+        mock_dset = mock.MagicMock()
+        xr_dset.return_value = mock_dset
+
         # Test that bilinear resampling info calculation is called,
         # and the info is saved
-        load.side_effect = IOError()
+        zarr_open.side_effect = IOError()
         resampler = BilinearResampler(source_swath, target_area)
         resampler.precompute(
             mask=da.arange(5, chunks=5).astype(np.bool))
         resampler.resampler.get_bil_info.assert_called()
         resampler.resampler.get_bil_info.assert_called_with()
-        self.assertFalse(len(savez.mock_calls), 1)
+        self.assertFalse(len(mock_dset.to_zarr.mock_calls), 1)
         resampler.resampler.reset_mock()
-        load.reset_mock()
-        load.side_effect = None
+        zarr_open.reset_mock()
+        zarr_open.side_effect = None
 
         # Test that get_sample_from_bil_info is called properly
         fill_value = 8
@@ -451,53 +505,98 @@ class TestBilinearResampler(unittest.TestCase):
             self.assertIn('lcc', new_data.coords['crs'].item().to_proj4())
             self.assertEqual(new_data.coords['y'].attrs['units'], 'meter')
             self.assertEqual(new_data.coords['x'].attrs['units'], 'meter')
+            if hasattr(target_area, 'crs'):
+                self.assertIs(target_area.crs, new_data.coords['crs'].item())
 
         # Test that the resampling info is tried to read from the disk
         resampler = BilinearResampler(source_swath, target_area)
         resampler.precompute(cache_dir='.')
-        load.assert_called()
+        zarr_open.assert_called()
 
         # Test caching the resampling info
         try:
             the_dir = tempfile.mkdtemp()
             resampler = BilinearResampler(source_area, target_area)
-            create_filename.return_value = os.path.join(the_dir, 'test_cache.npz')
-            load.reset_mock()
-            load.side_effect = IOError()
+            create_filename.return_value = os.path.join(the_dir, 'test_cache.zarr')
+            zarr_open.reset_mock()
+            zarr_open.side_effect = IOError()
 
             resampler.precompute(cache_dir=the_dir)
-            savez.assert_called()
+            xr_dset.assert_called()
             # assert data was saved to the on-disk cache
-            self.assertEqual(len(savez.mock_calls), 1)
-            # assert that load was called to try to load something from disk
-            self.assertEqual(len(load.mock_calls), 1)
+            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
+            # assert that zarr.open was called to try to load
+            # something from disk
+            self.assertEqual(len(zarr_open.mock_calls), 1)
 
             nbcalls = len(resampler.resampler.get_bil_info.mock_calls)
             # test reusing the resampler
-            load.side_effect = None
+            zarr_open.side_effect = None
 
-            class FakeNPZ(dict):
+            class FakeZarr(dict):
+
                 def close(self):
                     pass
 
-            load.return_value = FakeNPZ(bilinear_s=1,
-                                        bilinear_t=2,
-                                        valid_input_index=3,
-                                        index_array=4)
+                def astype(self, dtype):
+                    return self
+
+                def compute(self):
+                    return self
+
+            zarr_open.return_value = FakeZarr(bilinear_s=1,
+                                              bilinear_t=2,
+                                              slices_x=3,
+                                              slices_y=4,
+                                              mask_slices=5,
+                                              out_coords_x=6,
+                                              out_coords_y=7)
             resampler.precompute(cache_dir=the_dir)
             # we already have things cached in-memory, no need to save again
-            self.assertEqual(len(savez.mock_calls), 1)
+            self.assertEqual(len(mock_dset.to_zarr.mock_calls), 1)
             # we already have things cached in-memory, don't need to load
-            # self.assertEqual(len(load.mock_calls), 1)
+            # self.assertEqual(len(zarr_open.mock_calls), 1)
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
 
             # test loading saved resampler
             resampler = BilinearResampler(source_area, target_area)
             resampler.precompute(cache_dir=the_dir)
-            self.assertEqual(len(load.mock_calls), 2)
+            self.assertEqual(len(zarr_open.mock_calls), 2)
             self.assertEqual(len(resampler.resampler.get_bil_info.mock_calls), nbcalls)
             # we should have cached things in-memory now
             # self.assertEqual(len(resampler._index_caches), 1)
+
+            resampler = BilinearResampler(source_area, target_area)
+            resampler.precompute(cache_dir=the_dir)
+            resampler.save_bil_info(cache_dir=the_dir)
+            zarr_file = os.path.join(the_dir, 'test_cache.zarr')
+            # Save again faking the cache file already exists
+            with mock.patch('os.path.exists') as exists:
+                exists.return_value = True
+                resampler.save_bil_info(cache_dir=the_dir)
+            move_existing_caches.assert_called_once_with(the_dir, zarr_file)
+
+        finally:
+            shutil.rmtree(the_dir)
+
+    def test_move_existing_caches(self):
+        """Test that existing caches are moved to a subdirectory."""
+        try:
+            the_dir = tempfile.mkdtemp()
+            # Test that existing cache file is moved away
+            zarr_file = os.path.join(the_dir, 'test.zarr')
+            with open(zarr_file, 'w') as fid:
+                fid.write('42')
+            from satpy.resample import _move_existing_caches
+            _move_existing_caches(the_dir, zarr_file)
+            self.assertFalse(os.path.exists(zarr_file))
+            self.assertTrue(os.path.exists(
+                os.path.join(the_dir, 'moved_by_satpy',
+                             'test.zarr')))
+            # Run again to see that the existing dir doesn't matter
+            with open(zarr_file, 'w') as fid:
+                fid.write('42')
+            _move_existing_caches(the_dir, zarr_file)
         finally:
             shutil.rmtree(the_dir)
 
@@ -534,6 +633,8 @@ class TestCoordinateHelpers(unittest.TestCase):
                 new_data_arr.coords['x'].attrs['units'], 'meter')
             self.assertIn('crs', new_data_arr.coords)
             self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+            if hasattr(area_def, 'crs'):
+                self.assertIs(area_def.crs, new_data_arr.coords['crs'].item())
 
         # already has coords
         data_arr = xr.DataArray(
@@ -552,6 +653,8 @@ class TestCoordinateHelpers(unittest.TestCase):
         if CRS is not None:
             self.assertIn('crs', new_data_arr.coords)
             self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+            if hasattr(area_def, 'crs'):
+                self.assertIs(area_def.crs, new_data_arr.coords['crs'].item())
 
         # lat/lon area
         area_def = AreaDefinition(
@@ -576,6 +679,8 @@ class TestCoordinateHelpers(unittest.TestCase):
                 new_data_arr.coords['x'].attrs['units'], 'degrees_east')
             self.assertIn('crs', new_data_arr.coords)
             self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
+            if hasattr(area_def, 'crs'):
+                self.assertIs(area_def.crs, new_data_arr.coords['crs'].item())
 
     def test_swath_def_coordinates(self):
         """Test coordinates being added with an SwathDefinition."""
@@ -616,20 +721,238 @@ class TestCoordinateHelpers(unittest.TestCase):
             self.assertIsInstance(new_data_arr.coords['crs'].item(), CRS)
 
 
-def suite():
-    """The test suite for test_scene.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNativeResampler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestKDTreeResampler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestEWAResampler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestHLResample))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestBilinearResampler))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCoordinateHelpers))
+class TestBucketAvg(unittest.TestCase):
+    """Test the bucket resampler."""
 
-    return mysuite
+    def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
+        from satpy.resample import BucketAvg
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketAvg(self.source_geo_def, self.target_geo_def)
+
+    def test_init(self):
+        """Test bucket resampler initialization."""
+        self.assertIsNone(self.bucket.resampler)
+        self.assertTrue(self.bucket.source_geo_def == self.source_geo_def)
+        self.assertTrue(self.bucket.target_geo_def == self.target_geo_def)
+
+    @mock.patch('pyresample.bucket.BucketResampler')
+    def test_precompute(self, bucket):
+        """Test bucket resampler precomputation."""
+        bucket.return_value = True
+        self.bucket.precompute()
+        self.assertTrue(self.bucket.resampler)
+        bucket.assert_called_once_with(self.target_geo_def, 1, 2)
+
+    def test_compute(self):
+        """Test bucket resampler computation."""
+        import dask.array as da
+        # 1D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5,))
+        self.bucket.resampler.get_average.return_value = data
+        res = self.bucket.compute(data, fill_value=2)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
+        self.assertEqual(res.shape, (1, 5))
+        # 2D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5, 5))
+        self.bucket.resampler.get_average.return_value = data
+        res = self.bucket.compute(data, fill_value=2)
+        self.bucket.resampler.get_average.assert_called_once_with(
+            data,
+            fill_value=2,
+            mask_all_nan=False)
+        self.assertEqual(res.shape, (1, 5, 5))
+        # 3D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((3, 5, 5))
+        self.bucket.resampler.get_average.return_value = data[0, :, :]
+        res = self.bucket.compute(data, fill_value=2)
+        self.assertEqual(res.shape, (3, 5, 5))
+
+    @mock.patch('pyresample.bucket.BucketResampler')
+    def test_resample(self, pyresample_bucket):
+        """Test bucket resamplers resample method."""
+        import xarray as xr
+        import dask.array as da
+        self.bucket.resampler = mock.MagicMock()
+        self.bucket.precompute = mock.MagicMock()
+        self.bucket.compute = mock.MagicMock()
+
+        # 1D input data
+        data = xr.DataArray(da.ones((5,)), dims=('foo'), attrs={'bar': 'baz'})
+        self.bucket.compute.return_value = da.ones((5, 5))
+        res = self.bucket.resample(data)
+        self.bucket.precompute.assert_called_once()
+        self.bucket.compute.assert_called_once()
+        self.assertEqual(res.shape, (5, 5))
+        self.assertEqual(res.dims, ('y', 'x'))
+        self.assertTrue('bar' in res.attrs)
+        self.assertEqual(res.attrs['bar'], 'baz')
+
+        # 2D input data
+        data = xr.DataArray(da.ones((5, 5)), dims=('foo', 'bar'))
+        self.bucket.compute.return_value = da.ones((5, 5))
+        res = self.bucket.resample(data)
+        self.assertEqual(res.shape, (5, 5))
+        self.assertEqual(res.dims, ('y', 'x'))
+
+        # 3D input data with 'bands' dim
+        data = xr.DataArray(da.ones((1, 5, 5)), dims=('bands', 'foo', 'bar'),
+                            coords={'bands': ['L']})
+        self.bucket.compute.return_value = da.ones((1, 5, 5))
+        res = self.bucket.resample(data)
+        self.assertEqual(res.shape, (1, 5, 5))
+        self.assertEqual(res.dims, ('bands', 'y', 'x'))
+        self.assertEqual(res.coords['bands'], ['L'])
+
+        # 3D input data with misc dim names
+        data = xr.DataArray(da.ones((3, 5, 5)), dims=('foo', 'bar', 'baz'))
+        self.bucket.compute.return_value = da.ones((3, 5, 5))
+        res = self.bucket.resample(data)
+        self.assertEqual(res.shape, (3, 5, 5))
+        self.assertEqual(res.dims, ('foo', 'bar', 'baz'))
 
 
-if __name__ == '__main__':
-    unittest.main()
+class TestBucketSum(unittest.TestCase):
+    """Test the sum bucket resampler."""
+
+    def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
+        from satpy.resample import BucketSum
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketSum(self.source_geo_def, self.target_geo_def)
+
+    def test_compute(self):
+        """Test sum bucket resampler computation."""
+        import dask.array as da
+        # 1D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5,))
+        self.bucket.resampler.get_sum.return_value = data
+        res = self.bucket.compute(data)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            mask_all_nan=False)
+        self.assertEqual(res.shape, (1, 5))
+        # 2D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5, 5))
+        self.bucket.resampler.get_sum.return_value = data
+        res = self.bucket.compute(data)
+        self.bucket.resampler.get_sum.assert_called_once_with(
+            data,
+            mask_all_nan=False)
+        self.assertEqual(res.shape, (1, 5, 5))
+        # 3D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((3, 5, 5))
+        self.bucket.resampler.get_sum.return_value = data[0, :, :]
+        res = self.bucket.compute(data)
+        self.assertEqual(res.shape, (3, 5, 5))
+
+
+class TestBucketCount(unittest.TestCase):
+    """Test the count bucket resampler."""
+
+    def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
+        from satpy.resample import BucketCount
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketCount(self.source_geo_def, self.target_geo_def)
+
+    def test_compute(self):
+        """Test count bucket resampler computation."""
+        import dask.array as da
+        # 1D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5,))
+        self.bucket.resampler.get_count.return_value = data
+        res = self.bucket.compute(data)
+        self.bucket.resampler.get_count.assert_called_once_with()
+        self.assertEqual(res.shape, (1, 5))
+        # 2D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((5, 5))
+        self.bucket.resampler.get_count.return_value = data
+        res = self.bucket.compute(data)
+        self.bucket.resampler.get_count.assert_called_once_with()
+        self.assertEqual(res.shape, (1, 5, 5))
+        # 3D data
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((3, 5, 5))
+        self.bucket.resampler.get_count.return_value = data[0, :, :]
+        res = self.bucket.compute(data)
+        self.assertEqual(res.shape, (3, 5, 5))
+
+
+class TestBucketFraction(unittest.TestCase):
+    """Test the fraction bucket resampler."""
+
+    def setUp(self):
+        """Create fake area definitions and resampler to be tested."""
+        from satpy.resample import BucketFraction
+        get_lonlats = mock.MagicMock()
+        get_lonlats.return_value = (1, 2)
+        self.source_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.target_geo_def = mock.MagicMock(get_lonlats=get_lonlats)
+        self.bucket = BucketFraction(self.source_geo_def, self.target_geo_def)
+
+    def test_compute(self):
+        """Test fraction bucket resampler computation."""
+        import dask.array as da
+        import numpy as np
+
+        self.bucket.resampler = mock.MagicMock()
+        data = da.ones((3, 3))
+
+        # No kwargs given
+        _ = self.bucket.compute(data)
+        self.bucket.resampler.get_fractions.assert_called_with(
+            data,
+            categories=None,
+            fill_value=np.nan)
+        # Custom kwargs
+        _ = self.bucket.compute(data, categories=[1, 2], fill_value=0)
+        self.bucket.resampler.get_fractions.assert_called_with(
+            data,
+            categories=[1, 2],
+            fill_value=0)
+
+        # Too many dimensions
+        data = da.ones((3, 5, 5))
+        with self.assertRaises(ValueError):
+            _ = self.bucket.compute(data)
+
+    @mock.patch('pyresample.bucket.BucketResampler')
+    def test_resample(self, pyresample_bucket):
+        """Test fraction bucket resamplers resample method."""
+        import xarray as xr
+        import dask.array as da
+        import numpy as np
+
+        self.bucket.resampler = mock.MagicMock()
+        self.bucket.precompute = mock.MagicMock()
+        self.bucket.compute = mock.MagicMock()
+
+        # Fractions return a dict
+        data = xr.DataArray(da.ones((1, 5, 5)), dims=('bands', 'y', 'x'))
+        arr = da.ones((5, 5))
+        self.bucket.compute.return_value = {0: arr, 1: arr, 2: arr}
+        res = self.bucket.resample(data)
+        self.assertTrue('categories' in res.coords)
+        self.assertTrue('categories' in res.dims)
+        self.assertTrue(np.all(res.coords['categories'] == np.array([0, 1, 2])))

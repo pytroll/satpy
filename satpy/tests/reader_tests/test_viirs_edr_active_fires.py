@@ -22,8 +22,9 @@ readers.
 
 """
 
-import sys
 import os
+import unittest
+from unittest import mock
 import numpy as np
 import io
 import dask.dataframe as dd
@@ -32,16 +33,6 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 
 DEFAULT_FILE_SHAPE = (1, 100)
 
@@ -49,7 +40,7 @@ DEFAULT_LATLON_FILE_DTYPE = np.float32
 DEFAULT_LATLON_FILE_DATA = np.arange(start=43, stop=45, step=0.02,
                                      dtype=DEFAULT_LATLON_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
-DEFAULT_DETECTION_FILE_DTYPE = np.ubyte
+DEFAULT_DETECTION_FILE_DTYPE = np.uint8
 DEFAULT_DETECTION_FILE_DATA = np.arange(start=60, stop=100, step=0.4,
                                         dtype=DEFAULT_DETECTION_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
@@ -203,6 +194,8 @@ class TestModVIIRSActiveFiresNetCDF4(unittest.TestCase):
         self.assertEqual(len(datasets), 1)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], '%')
+            self.assertEqual(v.attrs['_FillValue'], 255)
+            self.assertTrue(np.issubdtype(v.dtype, DEFAULT_DETECTION_FILE_DTYPE))
 
         datasets = r.load(['T13'])
         self.assertEqual(len(datasets), 1)
@@ -386,15 +379,3 @@ class TestImgVIIRSActiveFiresText(unittest.TestCase):
             self.assertEqual(v.attrs['units'], 'MW')
             self.assertEqual(v.attrs['platform_name'], 'Suomi-NPP')
             self.assertEqual(v.attrs['sensor'], 'VIIRS')
-
-
-def suite():
-    """Create test suite for testing viirs active fires."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestModVIIRSActiveFiresNetCDF4))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestModVIIRSActiveFiresText))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestImgVIIRSActiveFiresNetCDF4))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestImgVIIRSActiveFiresText))
-
-    return mysuite

@@ -116,3 +116,27 @@ in poor performance during computation. Another solution is to increase
 
 For more information see
 `GDAL's documentation <https://trac.osgeo.org/gdal/wiki/ConfigOptions#GDAL_CACHEMAX>`_.
+
+How do I use multi-threaded compression when writing GeoTIFFs?
+--------------------------------------------------------------
+
+The GDAL library's GeoTIFF driver has a lot of options for changing how your
+GeoTIFF is formatted and written. One of the most important ones when it comes
+to writing GeoTIFFs is using multiple threads to compress your data. By
+default Satpy will use DEFLATE compression which can be slower to compress
+than other options out there, but faster to read. GDAL gives us the option to
+control the number of threads used during compression by specifying the
+``num_threads`` option. This option defaults to ``1``, but it is recommended
+to set this to at least the same number of dask workers you use. Do this by
+adding ``num_threads`` to your `save_dataset` or `save_datasets` call::
+
+    scn.save_datasets(base_dir='/tmp', tiled=True, num_threads=8)
+
+Here we're also using the `tiled` option to store our data as "tiles" instead
+of "stripes" which is another way to get more efficient compression of our
+GeoTIFF image.
+
+See the
+`GDAL GeoTIFF documentation <https://gdal.org/drivers/raster/gtiff.html#creation-options>`_
+for more information on the creation options available including other
+compression choices.
