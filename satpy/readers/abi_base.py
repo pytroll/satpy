@@ -34,13 +34,46 @@ PLATFORM_NAMES = {
     'G17': 'GOES-17',
 }
 
+SUB_AREAS = {
+    'French Guiana': [2397, 2596, 3800, 3951],
+    'Jamaica':       [1716, 1759, 2536, 2646],
+    'Suriname':      [2383, 2611, 3624, 3836],
+    'Belize':        [1723, 1856, 1982, 2042],
+    'Honduras':      [1828, 2006, 1965, 2275],
+    'Bolivia':       [3239, 3914, 3003, 3570],
+    'Republica Dominicana':[1645, 1765, 2866, 3059],
+    'Brazil':        [2420, 4357, 2766, 4305],
+    'Nicaragua':     [1900, 2127, 2044, 2270],
+    'Ecuador':       [2632, 2986, 1807, 2699],
+    'Uruguay':       [3993, 4785, 3134, 3994,],
+    'Chile':         [3625, 5128, 1064, 2955],
+    'Colombia':      [2025, 2944, 2350, 3158],
+    'Guatemala':     [1759, 1968, 1829, 2011],
+    'El Salvador':   [1932, 1998, 1918, 2036],
+    'Venezuela':     [2045, 2676, 2799, 3539],
+    'Costa Rica':    [2100, 2272, 2125, 2297],
+    'Argentina':     [3867, 5095, 2783, 3319],
+    'Paraguay':      [3739, 4130, 3344, 3677],
+    'Guyana':        [2244, 2647, 3447, 3711],
+    'Cuba':          [1487, 1651, 2215, 2755],
+    'Peru':          [2712, 3695, 2360, 3039],
+    'Haiti':         [1637, 1743, 2739, 2887],
+    'Panama':        [2185, 2316, 2275, 2590],
+    'Antillas Menores':[1660, 2196, 2956, 3596],
+    'Haiti & Rep. Dominicana':[1637, 1765, 2739, 3059],
+    'Mexico':        [1109, 1932, 1028, 2097],
+    'Continental US':[454, 1928, 1581, 3845],
+    'Centro America':[1704, 2351, 1790, 2641],
+    'Sur America':   [1979, 5126, 2095, 3754],
+}
 
 class NC_ABI_BASE(BaseFileHandler):
     """Base reader for ABI L1B  L2+ NetCDF4 files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, sub_area=None):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
+        self.sub_area = sub_area
         # xarray's default netcdf4 engine
         try:
             self.nc = xr.open_dataset(self.filename,
@@ -138,6 +171,19 @@ class NC_ABI_BASE(BaseFileHandler):
 
         return data
 
+    def _get_fctr(self, nbnd):
+        if nbnd in ['C02', ]:
+            mult = 4
+        elif nbnd in ['C01', 'C03', 'C05', ]:
+            mult = 2
+        else:
+            mult = 1
+        xi = SUB_AREAS[self.sub_area][2]*mult
+        xe = SUB_AREAS[self.sub_area][3]*mult
+        yi = SUB_AREAS[self.sub_area][0]*mult
+        ye = SUB_AREAS[self.sub_area][1]*mult
+        return xi, xe, yi, ye
+
     def get_dataset(self, key, info):
         """Load a dataset."""
         raise NotImplementedError("Reader {} has not implemented get_dataset".format(self.name))
@@ -210,8 +256,16 @@ class NC_ABI_BASE(BaseFileHandler):
 
         # compute x and y extents in m
         h = np.float64(h)
-        x = self['x']
-        y = self['y']
+        if not self.sub_area:
+            x = self['x']
+            y = self['y']
+        else:
+            xi, xe, yi, ye = self._get_fctr(key.name)
+            x = self['x'][xi:xe]
+            y = self['y'][yi:ye]
+            self.nlines = y.shape[0]
+            self.ncols = x.shape[0]
+
         x_l = x[0].values
         x_r = x[-1].values
         y_l = y[-1].values

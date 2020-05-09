@@ -36,10 +36,16 @@ class NC_ABI_L2(NC_ABI_BASE):
     def get_dataset(self, key, info):
         """Load a dataset."""
         var = info['file_key']
-        LOG.debug('Reading in get_dataset %s.', var)
-        variable = self[var]
-
+        LOG.debug('Reading in get_dataset %s.', var)        
+        if not self.sub_area:
+            variable = self[var]
+        else:
+            xi, xe, yi, ye = self._get_fctr(key.name)
+            variable = self[var][yi:ye,xi:xe]
         _units = variable.attrs['units'] if 'units' in variable.attrs else None
+
+        if _units == '1':
+            variable *= 100
 
         variable.attrs.update({'platform_name': self.platform_name,
                                'sensor': self.sensor,
