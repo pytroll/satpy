@@ -393,7 +393,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     Args:
         files_to_sort (iterable): File paths to sort in to group
         reader (str): Reader whose file patterns should be used to sort files.
-            This
+            This is currently a required keyword argument, but may be optional
+            in the future (see inline code comments for details).
         time_threshold (int): Number of seconds used to consider time elements
             in a group as being equal. For example, if the 'start_time' item
             is used to group files then any time within `time_threshold`
@@ -442,6 +443,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     if group_keys is None:
         group_keys = reader_instance.info.get('group_keys', ('start_time',))
     file_keys = []
+    # make a copy because filename_items_for_filetype will modify inplace
+    files_to_sort = set(files_to_sort)
     for _, filetype_info in reader_instance.sorted_filetype_items():
         for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
             group_key = tuple(file_info.get(k) for k in group_keys)
