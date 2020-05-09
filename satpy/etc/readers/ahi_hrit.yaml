@@ -225,7 +225,7 @@ datasets:
     name: B02
     sensor: ahi
     wavelength: [0.49,0.51,0.53]
-    resolution: 1000
+    resolution: 500
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -239,7 +239,7 @@ datasets:
     name: B03
     sensor: ahi
     wavelength: [0.62,0.64,0.66]
-    resolution: 1000
+    resolution: 500
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -253,7 +253,7 @@ datasets:
     name: B04
     sensor: ahi
     wavelength: [0.83, 0.85, 0.87]
-    resolution: 4000
+    resolution: 1000
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -267,7 +267,7 @@ datasets:
     name: B05
     sensor: ahi
     wavelength: [1.5, 1.6, 1.7]
-    resolution: 4000
+    resolution: 2000
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -281,7 +281,7 @@ datasets:
     name: B06
     sensor: ahi
     wavelength: [2.2, 2.3, 2.4]
-    resolution: 4000
+    resolution: 2000
     calibration:
       reflectance:
         standard_name: toa_bidirectional_reflectance
@@ -325,7 +325,7 @@ datasets:
     name: B08
     sensor: ahi
     wavelength: [6.0, 6.2, 6.4]
-    resolution: 4000
+    resolution: 2000
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -339,7 +339,7 @@ datasets:
     name: B09
     sensor: ahi
     wavelength: [6.7, 6.9, 7.1]
-    resolution: 4000
+    resolution: 2000
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -353,7 +353,7 @@ datasets:
     name: B10
     sensor: ahi
     wavelength: [7.1, 7.3, 7.5]
-    resolution: 4000
+    resolution: 2000
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -367,7 +367,7 @@ datasets:
     name: B11
     sensor: ahi
     wavelength: [8.4, 8.6, 8.8]
-    resolution: 4000
+    resolution: 2000
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -381,7 +381,7 @@ datasets:
     name: B12
     sensor: ahi
     wavelength: [9.4, 9.6, 9.8]
-    resolution: 4000
+    resolution: 2000
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -395,7 +395,7 @@ datasets:
     name: B13
     sensor: ahi
     wavelength: [10.2, 10.4, 10.6]
-    resolution: 4000
+    resolution: 2000
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -409,7 +409,7 @@ datasets:
     name: B14
     sensor: ahi
     wavelength: [11.0, 11.2, 11.4]
-    resolution: 4000
+    resolution: 2000
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -423,7 +423,7 @@ datasets:
     name: B15
     sensor: ahi
     wavelength: [12.2, 12.4, 12.6]
-    resolution: 4000
+    resolution: 2000
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
@@ -437,7 +437,7 @@ datasets:
     name: B16
     sensor: ahi
     wavelength: [13.1, 13.3, 13.5]
-    resolution: 4000
+    resolution: 2000
     calibration:
       brightness_temperature:
         standard_name: toa_brightness_temperature
