@@ -91,54 +91,51 @@ def reader_configs():
         os.path.join("readers", "cmsaf-claas2_l2_nc.yaml"))
 
 
-class TestClaasv2Readerr:
-    """Test for the CLAAS v2 reader."""
-
     yaml_file = "cmsaf_claas_v2.yaml"
 
     _alt_handler = FakeNetCDF4FileHandler2
 
-    @pytest.fixture(autouse=True, scope="class")
-    def fake_handler(self):
-        """Wrap NetCDF4 FileHandler with our own fake handler."""
-        # implementation strongly inspired by test_viirs_l1b.py
-        from satpy.readers.cmsaf_claas_v2 import Claasv2
-        p = mock.patch.object(
-                Claasv2,
-                "__bases__",
-                (self._alt_handler,))
-        with p:
-            p.is_local = True
-            yield p
+@pytest.fixture(autouse=True, scope="class")
+def fake_handler():
+    """Wrap NetCDF4 FileHandler with our own fake handler."""
+    # implementation strongly inspired by test_viirs_l1b.py
+    from satpy.readers.cmsaf_claas_v2 import Claasv2
+    p = mock.patch.object(
+            Claasv2,
+            "__bases__",
+            (FakeNetCDF4FileHandler2,))
+    with p:
+        p.is_local = True
+        yield p
 
-    def test_file_pattern(self, reader_configs):
-        """Test file pattern matching."""
-        from satpy.readers import load_reader
+def test_file_pattern(reader_configs):
+    """Test file pattern matching."""
+    from satpy.readers import load_reader
 
-        filenames = [
-                "CTXin20040120091500305SVMSG01MD.nc",
-                "CTXin20040120093000305SVMSG01MD.nc",
-                "CTXin20040120094500305SVMSG01MD.nc",
-                "abcde52034294023489248MVSSG03DD.nc"]
-
-        reader = load_reader(reader_configs)
-        files = reader.select_files_from_pathnames(filenames)
-        # only 3 out of 4 above should match
-        assert len(files) == 3
-
-    def test_load(self, reader_configs):
-        """Test loading."""
-        from satpy import DatasetID
-        from satpy.readers import load_reader
-
-        # testing two filenames to test correctly combined
-        filenames = [
+    filenames = [
             "CTXin20040120091500305SVMSG01MD.nc",
-            "CTXin20040120093000305SVMSG01MD.nc"]
+            "CTXin20040120093000305SVMSG01MD.nc",
+            "CTXin20040120094500305SVMSG01MD.nc",
+            "abcde52034294023489248MVSSG03DD.nc"]
 
-        reader = load_reader(reader_configs)
-        loadables = reader.select_files_from_pathnames(filenames)
-        reader.create_filehandlers(loadables)
-        res = reader.load(
-                [DatasetID(name=name) for name in ["cph", "ctt"]])
-        assert 2 == len(res)
+    reader = load_reader(reader_configs)
+    files = reader.select_files_from_pathnames(filenames)
+    # only 3 out of 4 above should match
+    assert len(files) == 3
+
+def test_load(reader_configs):
+    """Test loading."""
+    from satpy import DatasetID
+    from satpy.readers import load_reader
+
+    # testing two filenames to test correctly combined
+    filenames = [
+        "CTXin20040120091500305SVMSG01MD.nc",
+        "CTXin20040120093000305SVMSG01MD.nc"]
+
+    reader = load_reader(reader_configs)
+    loadables = reader.select_files_from_pathnames(filenames)
+    reader.create_filehandlers(loadables)
+    res = reader.load(
+            [DatasetID(name=name) for name in ["cph", "ctt"]])
+    assert 2 == len(res)
