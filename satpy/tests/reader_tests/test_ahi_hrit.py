@@ -319,6 +319,6 @@ class TestHRITJMAFileHandler(unittest.TestCase):
             # the header with only 6 decimals precision (max diff here: 45 msec).
             mda = self._get_mda(platform=platform)
             reader = self._get_reader(mda=mda)
-            np.testing.assert_allclose(reader.acq_time.astype(int),
-                                       acq_time_exp.astype(int),
+            np.testing.assert_allclose(reader.acq_time.astype(np.int64),
+                                       acq_time_exp.astype(np.int64),
                                        atol=45000)
