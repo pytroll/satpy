@@ -216,7 +216,10 @@ class NetCDF4FileHandler(BaseFileHandler):
     def _get_var_from_filehandle(self, group, key):
         # Not getting coordinates as this is more work, therefore more
         # overhead, and those are not used downstream.
-        g = self.file_handle[group]
+        if group is None:
+            g = self.file_handle
+        else:
+            g = self.file_handle[group]
         v = g[key]
         x = xr.DataArray(
                 da.from_array(v), dims=v.dimensions, attrs=v.__dict__,
