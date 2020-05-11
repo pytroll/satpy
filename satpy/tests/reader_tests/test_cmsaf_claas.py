@@ -54,6 +54,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 "time_bnds": xr.DataArray(
                     [[12436.91666667, 12436.92534722]],
                     dims=("time", "time_bnds"))}
+        for k in set(data.keys()):
+            data[f"{k:s}/dimensions"] = data[k].dims
+            data[f"{k:s}/attr/fruit"] = "apple"
         return data
 
     def _get_dimensions(self):
@@ -91,10 +94,6 @@ def reader_configs():
         os.path.join("readers", "cmsaf-claas2_l2_nc.yaml"))
 
 
-    yaml_file = "cmsaf_claas_v2.yaml"
-
-    _alt_handler = FakeNetCDF4FileHandler2
-
 @pytest.fixture(autouse=True, scope="class")
 def fake_handler():
     """Wrap NetCDF4 FileHandler with our own fake handler."""
@@ -107,6 +106,7 @@ def fake_handler():
     with p:
         p.is_local = True
         yield p
+
 
 def test_file_pattern(reader_configs):
     """Test file pattern matching."""
@@ -122,6 +122,7 @@ def test_file_pattern(reader_configs):
     files = reader.select_files_from_pathnames(filenames)
     # only 3 out of 4 above should match
     assert len(files) == 3
+
 
 def test_load(reader_configs):
     """Test loading."""

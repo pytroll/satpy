@@ -21,15 +21,16 @@ class Claasv2(NetCDF4FileHandler):
         # more generically available?  Perhaps in the `NetCDF4FileHandler`?
 
         yield from super().available_datasets(configured_datasets)
-        for (k, v) in self.file_content.items():
-            # if it doesn't have a y-dimension, it's either not a variable
-            # (when it has no dimensions at all), or it's a variable satpy
-            # can't handle
-            if not "y" in getattr(v, "dimensions", ()):
+        data_vars = [k for k in self.file_content
+                     if k + "/dimensions" in self.file_content]
+        for k in data_vars:
+            # if it doesn't have a y-dimension we're not interested
+            if "y" not in self.file_content[k + "/dimensions"]:
                 continue
             ds_info = {"name": k,
                        "file_type": self.filetype_info["file_type"]}
-            attrs = v.__dict__.copy()
+            # attributes for this data variable
+            attrs = {x[len(s)+1]: v for (x, v) in self.file_content.items() if x.startswith(s := f"{k:s}/attr")}
             # we don't need "special" attributes in our metadata here
             for unkey in {"_FillValue", "add_offset", "scale_factor"}:
                 attrs.pop(unkey, None)
