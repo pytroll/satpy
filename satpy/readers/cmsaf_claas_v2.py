@@ -1,24 +1,40 @@
-"""Module containing CMSAF FileHandler
-"""
+"""Module containing CMSAF CLAAS v2 FileHandler."""
 
+import datetime
 import pyresample.geometry
 from .netcdf_utils import NetCDF4FileHandler
 
 
 class Claasv2(NetCDF4FileHandler):
+    """Handle CMSAF CLAAS v2 files."""
     def __init__(self, *args, **kwargs):
-        if "cache_handle" in kwargs:
-            raise TypeError(
-                f"Do not pass cache_handle to {self.__class__.__name__:s} "
-                "constructor please.  It must always be True.")
+        """Initialise class."""
         super().__init__(*args, **kwargs, cache_handle=True)
 
-    def available_datasets(self, configured_datasets=None):
-        # see
-        # https://satpy.readthedocs.io/en/latest/api/satpy.readers.html#satpy.readers.file_handlers.BaseFileHandler.available_datasets
+    @property
+    def start_time(self):
+        """Get start time from file."""
 
-        # this method should work for any NetCDF file, should it be somewhere
-        # more generically available?  Perhaps in the `NetCDF4FileHandler`?
+        # datetime module can't handle timezone identifier
+        return datetime.datetime.fromisoformat(
+                self["/attr/time_coverage_start"].rstrip("Z"))
+
+    @property
+    def end_time(self):
+        """Get end time from file."""
+        return datetime.datetime.fromisoformat(
+                self["/attr/time_coverage_end"].rstrip("Z"))
+
+    def available_datasets(self, configured_datasets=None):
+        """Yield a collection of available datasets.
+
+        Return a generator that will yield the datasets available in the loaded
+        files.  See docstring in parent class for specification details.
+        """
+
+        # this method should work for any (CM-conform) NetCDF file, should it
+        # be somewhere # more generically available?  Perhaps in the
+        # `NetCDF4FileHandler`?
 
         yield from super().available_datasets(configured_datasets)
         data_vars = [k for k in self.file_content
@@ -27,20 +43,26 @@ class Claasv2(NetCDF4FileHandler):
             # if it doesn't have a y-dimension we're not interested
             if "y" not in self.file_content[k + "/dimensions"]:
                 continue
-            ds_info = {"name": k,
-                       "file_type": self.filetype_info["file_type"]}
-            # attributes for this data variable
-            attrs = {x[len(s)+1]: v for (x, v) in self.file_content.items() if x.startswith(s := f"{k:s}/attr")}
-            # we don't need "special" attributes in our metadata here
-            for unkey in {"_FillValue", "add_offset", "scale_factor"}:
-                attrs.pop(unkey, None)
-            ds_info.update(attrs)
+            ds_info = self._get_dsinfo(k)
             yield (True, ds_info)
 
+    def _get_dsinfo(self, var):
+        """Get metadata for variable.
+
+        Return metadata dictionary for variable ``var``.
+        """
+        ds_info = {"name": var,
+                   "file_type": self.filetype_info["file_type"]}
+        # attributes for this data variable
+        attrs = {k[len(f"{k:s}/attr")+1]: v
+                 for (k, v) in self.file_content.items()
+                 if k.startswith(f"{k:s}/attr")}
+        # we don't need "special" attributes in our metadata here
+        for unkey in {"_FillValue", "add_offset", "scale_factor"}:
+            attrs.pop(unkey, None)
+        return ds_info
+
     def get_dataset(self, dataset_id, info):
-        # FIXME: This needs to ensure dimensions (x, y)
-        #
-        # FIXME: set start_time, end_time
         return self[dataset_id.name]
 
     def get_area_def(self, dataset_id):
