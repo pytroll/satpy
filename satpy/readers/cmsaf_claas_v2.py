@@ -21,11 +21,11 @@ class Claasv2(NetCDF4FileHandler):
         # more generically available?  Perhaps in the `NetCDF4FileHandler`?
 
         yield from super().available_datasets(configured_datasets)
-        # FIXME: instead of accessing self.file_handle, this should probably
-        # use # self.file_content or something similar
-        it = self.file_handle.variables.items()
-        for (k, v) in it:
-            if "y" not in v.dimensions:
+        for (k, v) in self.file_content.items():
+            # if it doesn't have a y-dimension, it's either not a variable
+            # (when it has no dimensions at all), or it's a variable satpy
+            # can't handle
+            if not "y" in getattr(v, "dimensions", ()):
                 continue
             ds_info = {"name": k,
                        "file_type": self.filetype_info["file_type"]}
@@ -37,14 +37,14 @@ class Claasv2(NetCDF4FileHandler):
             yield (True, ds_info)
 
     def get_dataset(self, dataset_id, info):
-        # FIXME: This needs dimensions (x, y)
+        # FIXME: This needs to ensure dimensions (x, y)
         #
         # FIXME: set start_time, end_time
         return self[dataset_id.name]
 
     def get_area_def(self, dataset_id):
         # FIXME: use `from_cf` in
-        # https://github.com/pytroll/pyresample/pull/271 ?
+        # https://github.com/pytroll/pyresample/pull/271
         return pyresample.geometry.AreaDefinition(
                 "some_area_name",
                 "on-the-fly area",
