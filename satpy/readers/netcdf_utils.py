@@ -149,6 +149,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.file_content[var_name] = var_obj
             self.file_content[var_name + "/dtype"] = var_obj.dtype
             self.file_content[var_name + "/shape"] = var_obj.shape
+            self.file_content[var_name + "/dimensions"] = var_obj.dimensions
             self._collect_attrs(var_name, var_obj)
         self._collect_attrs(name, obj)
 
