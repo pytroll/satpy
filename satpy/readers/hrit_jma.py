@@ -179,7 +179,7 @@ def mjd2datetime64(mjd):
 
     epoch = np.datetime64('1858-11-17 00:00')
     day2usec = 24 * 3600 * 1E6
-    mjd_usec = (mjd * day2usec).astype(int).astype('timedelta64[us]')
+    mjd_usec = (mjd * day2usec).astype(np.int64).astype('timedelta64[us]')
     return epoch + mjd_usec
 
 
