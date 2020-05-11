@@ -18,6 +18,7 @@
 """Tests for the 'claasv2' reader."""
 
 import os
+import datetime
 import numpy as np
 import xarray as xr
 import numpy.testing
@@ -39,7 +40,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                                       "+b=6356583.8 +lon_0=0 +proj=geos",
                 "CMSAF_area_extent": np.array(
                     [-5456233.41938636, -5453233.01608472,
-                     5453233.01608472, 5456233.41938636])
+                     5453233.01608472, 5456233.41938636]),
+                "time_coverage_start": "1985-08-13T13:15:00Z",
+                "time_coverage_end": "2085-08-13T13:15:00Z",
                 }
         for (k, v) in attrs.items():
             data["/attr/" + k] = v
@@ -86,12 +89,15 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
 
 @pytest.fixture
-def reader_configs():
-    """Return reader configs for FCI."""
-
+def reader():
+    """Return reader for CMSAF CLAAS v2."""
     from satpy.config import config_search_paths
-    return config_search_paths(
+    from satpy.readers import load_reader
+
+    reader_configs = config_search_paths(
         os.path.join("readers", "cmsaf-claas2_l2_nc.yaml"))
+    reader = load_reader(reader_configs)
+    return reader
 
 
 @pytest.fixture(autouse=True, scope="class")
@@ -108,9 +114,8 @@ def fake_handler():
         yield p
 
 
-def test_file_pattern(reader_configs):
+def test_file_pattern(reader):
     """Test file pattern matching."""
-    from satpy.readers import load_reader
 
     filenames = [
             "CTXin20040120091500305SVMSG01MD.nc",
@@ -118,25 +123,24 @@ def test_file_pattern(reader_configs):
             "CTXin20040120094500305SVMSG01MD.nc",
             "abcde52034294023489248MVSSG03DD.nc"]
 
-    reader = load_reader(reader_configs)
     files = reader.select_files_from_pathnames(filenames)
     # only 3 out of 4 above should match
     assert len(files) == 3
 
 
-def test_load(reader_configs):
+def test_load(reader):
     """Test loading."""
     from satpy import DatasetID
-    from satpy.readers import load_reader
 
     # testing two filenames to test correctly combined
     filenames = [
         "CTXin20040120091500305SVMSG01MD.nc",
         "CTXin20040120093000305SVMSG01MD.nc"]
 
-    reader = load_reader(reader_configs)
     loadables = reader.select_files_from_pathnames(filenames)
     reader.create_filehandlers(loadables)
     res = reader.load(
             [DatasetID(name=name) for name in ["cph", "ctt"]])
     assert 2 == len(res)
+    assert reader.start_time == datetime.datetime(1985, 8, 13, 13, 15)
+    assert reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
