@@ -18,7 +18,6 @@
 """Test classes and functions in the readers/__init__.py module."""
 
 import os
-import sys
 import unittest
 from unittest import mock
 
@@ -256,7 +255,9 @@ class TestReaderLoader(unittest.TestCase):
             'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
             '__fake__': ['fake.txt'],
         }
-        self.assertRaisesRegex(ValueError, r'(?=.*__fake__)(?!.*viirs)(^No reader.+)', load_readers, filenames=filenames)
+        self.assertRaisesRegex(ValueError,
+                               r'(?=.*__fake__)(?!.*viirs)(^No reader.+)',
+                               load_readers, filenames=filenames)
 
     def test_filenames_as_dict_with_reader(self):
         """Test loading from a filenames dict with a single reader specified.
