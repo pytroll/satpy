@@ -587,7 +587,7 @@ datasets:
 
   cloud_effective_radius:
     name: cloud_effective_radius
-    long_name: Cloud Particle Effective Radius two-channel retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Cloud Particle Effective Radius two-channel retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
     units: micron
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
@@ -607,7 +607,7 @@ datasets:
 
   cloud_effective_radius_16:
     name: cloud_effective_radius_16
-    long_name: Cloud Particle Effective Radius two-channel retrieval using band 6 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Cloud Particle Effective Radius two-channel retrieval using band 6 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
     units: micron
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
@@ -627,7 +627,7 @@ datasets:
 
   cloud_effective_radius_37:
     name: cloud_effective_radius_37
-    long_name: Cloud Particle Effective Radius two-channel retrieval using band 20 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Cloud Particle Effective Radius two-channel retrieval using band 20 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
     units: micron
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
@@ -647,7 +647,7 @@ datasets:
 
   cloud_optical_thickness:
     name: cloud_optical_thickness
-    long_name: Cloud Optical Thickness two-channel retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Cloud Optical Thickness two-channel retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
     units: None
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
@@ -667,7 +667,7 @@ datasets:
 
   cloud_effective_radius_1621:
     name: cloud_effective_radius_1621
-    long_name: Cloud Particle Effective Radius two-channel retrieval using band 7 and band 6from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Cloud Particle Effective Radius two-channel retrieval using band 7 and band 6from best points: not failed in any way, not marked for clear sky restoral"
     units: None
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
@@ -687,7 +687,7 @@ datasets:
 
   cloud_optical_thickness_1621:
     name: cloud_optical_thickness_1621
-    long_name: Cloud Optical Thickness two-channel retrieval using band 7 and band 6 from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Cloud Optical Thickness two-channel retrieval using band 7 and band 6 from best points: not failed in any way, not marked for clear sky restoral"
     units: None
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
@@ -707,7 +707,7 @@ datasets:
 
   cloud_water_path:
     name: cloud_water_path
-    long_name: Column Water Path two-band retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Column Water Path two-band retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
     units: g/m^2
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
@@ -727,7 +727,7 @@ datasets:
 
   cloud_water_path_1621:
     name: cloud_water_path_1621
-    long_name: Column Water Path two-band retrieval using band 7 and band 6from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Column Water Path two-band retrieval using band 7 and band 6from best points: not failed in any way, not marked for clear sky restoral"
     units: g/m^2
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
@@ -747,7 +747,7 @@ datasets:
         
   cloud_water_path_16:
     name: cloud_water_path_16
-    long_name: Column Water Path two-band retrieval using band 6 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Column Water Path two-band retrieval using band 6 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
     units: g/m^2
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
@@ -767,7 +767,7 @@ datasets:
         
   cloud_water_path_37:
     name: cloud_water_path_37
-    long_name: Column Water Path two-band retrieval using band 20 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral
+    long_name: "Column Water Path two-band retrieval using band 20 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
     units: g/m^2
     file_type: mod06_hdf
     coordinates: [longitude, latitude]
