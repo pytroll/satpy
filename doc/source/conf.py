@@ -265,5 +265,6 @@ intersphinx_mapping = {
     'scipy': ('https://docs.scipy.org/doc/scipy/reference', None),
     'trollimage': ('https://trollimage.readthedocs.io/en/stable', None),
     'trollsift': ('https://trollsift.readthedocs.io/en/stable', None),
-    'xarray': ('https://xarray.pydata.org/en/stable', None)
+    'xarray': ('https://xarray.pydata.org/en/stable', None),
+    'rasterio': ('https://rasterio.readthedocs.io/en/latest', None),
 }

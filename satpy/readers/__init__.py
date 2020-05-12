@@ -443,6 +443,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     if group_keys is None:
         group_keys = reader_instance.info.get('group_keys', ('start_time',))
     file_keys = []
+    # make a copy because filename_items_for_filetype will modify inplace
+    files_to_sort = set(files_to_sort)
     for _, filetype_info in reader_instance.sorted_filetype_items():
         for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
             group_key = tuple(file_info.get(k) for k in group_keys)
