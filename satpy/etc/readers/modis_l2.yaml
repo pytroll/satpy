@@ -10,6 +10,10 @@ file_types:
     file_patterns:
     - 'M{platform_indicator:1s}D35_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
     file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
+  mod06_hdf:
+    file_patterns:
+    - 'M{platform_indicator:1s}D06_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
   hdf_eos_geo:
     file_patterns:
       - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
@@ -47,9 +51,9 @@ datasets:
     name: longitude
     resolution:
       5000:
-        file_type: mod35_hdf
+        file_type: [mod35_hdf, mod06_hdf]
       1000:
-        file_type: [hdf_eos_geo, mod35_hdf]
+        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf]
       500:
         file_type: hdf_eos_geo
       250:
@@ -62,9 +66,9 @@ datasets:
     resolution:
       5000:
         # For EUM reduced (thinned) files
-        file_type: mod35_hdf
+        file_type: [mod35_hdf, mod06_hdf]
       1000:
-        file_type: [hdf_eos_geo, mod35_hdf]
+        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf]
       500:
         file_type: hdf_eos_geo
       250:
@@ -84,5 +88,131 @@ datasets:
     bit_count: 1
     file_key: Quality_Assurance
     file_type: mod35_hdf
+    coordinates: [longitude, latitude]
+
+  Cirrus_Reflectance:
+    name: Cirrus_Reflectance
+    resolution: 1000
+    file_key: Cirrus_Reflectance
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Brightness_Temperature:
+    name: Brightness_Temperature
+    resolution: 5000
+    file_key: Brightness_Temperature
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Cloud_Top_Pressure:
+    name: Cloud_Top_Pressure
+    resolution: 5000
+    file_key: Cloud_Top_Pressure
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Cloud_Top_Temperature:
+    name: Cloud_Top_Temperature
+    resolution: 5000
+    file_key: Cloud_Top_Temperature
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Cloud_Top_Height:
+    name: Cloud_Top_Height
+    resolution: 5000
+    file_key: Cloud_Top_Height
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Cloud_Phase_Infrared:
+    name: Cloud_Phase_Infrared
+    resolution: 5000
+    file_key: Cloud_Phase_Infrared
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Cloud_Optical_Thickness:
+    name: Cloud_Optical_Thickness
+    resolution: 1000
+    file_key: Cloud_Optical_Thickness
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Cloud_Water_Path:
+    name: Cloud_Water_Path
+    resolution: 1000
+    file_key: Cloud_Water_Path
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Cloud_Effective_Emissivity:
+    name: Cloud_Effective_Emissivity
+    resolution: 5000
+    file_key: Cloud_Effective_Emissivity
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Cloud_Effective_Radius:
+    name: Cloud_Effective_Radius
+    resolution: 1000
+    file_key: Cloud_Effective_Radius
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Cloud_Water_Path:
+    name: Cloud_Water_Path
+    resolution: 5000
+    file_key: Cloud_Water_Path
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  cloud_top_pressure_1km:
+    name: cloud_top_pressure_1km
+    resolution: 1000
+    file_key: cloud_top_pressure_1km
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  cloud_top_temperature_1km:
+    name: cloud_top_temperature_1km
+    resolution: 1000
+    file_key: cloud_top_temperature_1km
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  cloud_top_height_1km:
+    name: cloud_top_height_1km
+    resolution: 1000
+    file_key: cloud_top_height_1km
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Solar_Azimuth:
+    name: Solar_Azimuth
+    resolution: 5000
+    file_key: Solar_Azimuth
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Solar_Zenith:
+    name: Solar_Zenith
+    resolution: 5000
+    file_key: Solar_Zenith
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Sensor_Azimuth:
+    name: Sensor_Azimuth
+    resolution: 5000
+    file_key: Sensor_Azimuth
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+
+  Sensor_Zenith:
+    name: Sensor_Zenith
+    resolution: 5000
+    file_key: Sensor_Zenith
+    file_type: mod06_hdf
     coordinates: [longitude, latitude]
 
