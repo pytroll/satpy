@@ -100,7 +100,7 @@ datasets:
 # file contents: https://atmosphere-imager.gsfc.nasa.gov/sites/default/files/ModAtmo/MOD06_L2_CDL_fs.txt
 
   brightness_temperature:
-    name: brightness_bemperature
+    name: brightness_temperature
     long_name: Observed Brightness Temperature from Averaged Radiances in a 5x5 1-km Pixel Region
     units: K
     file_type: mod06_hdf
