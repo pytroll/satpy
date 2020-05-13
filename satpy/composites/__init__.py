@@ -1608,11 +1608,14 @@ class MaskingCompositor(GenericCompositor):
                                settings.
 
         Each condition in *conditions* consists of of three items:
-        - `method`: the Numpy-equivalent method name for <, >, <=, ==, >= or >
+        - `method`: the Numpy-equivalent method name for the following
+          opertions: <, >, <=, ==, >=, >, `isnan`, `isinf`
         - `value`: threshold value of the *mask* applied with the
           operator. Can be a string, in which case the corresponding
           value will be determined from `flag_meanings` and
           `flag_values` attributes of the mask.
+          NOTE: the `value` should not be given to 'isnan` or `isfinite`
+          methods.
         - `transparency`: transparency from interval [0 ... 100] used
           for the method/threshold. Value of 100 is fully transparent.
 
@@ -1623,7 +1626,9 @@ class MaskingCompositor(GenericCompositor):
                             {'method': 'greater_equal', 'value': 1,
                              'transparency': 80},
                             {'method': 'greater_equal', 'value': 2,
-                             'transparency': 0}]
+                             'transparency': 0},
+                            {'method': 'isnan',
+                             'transparency': 100}]
           >>> compositor = MaskingCompositor("masking compositor",
                                              transparency=transparency)
           >>> result = compositor([data, mask])
@@ -1632,7 +1637,8 @@ class MaskingCompositor(GenericCompositor):
         the `mask` dataset.  Locations where `mask` has values of `0`
         will be fully transparent, locations with `1` will be
         semi-transparent and locations with `2` will be fully visible
-        in the resulting image.  All the unlisted locations will be
+        in the resulting image.  In the end all `NaN` areas in the mask are
+        set to full transparency.  All the unlisted locations will be
         visible.
 
         The transparency is implemented by adding an alpha layer to
@@ -1680,7 +1686,7 @@ class MaskingCompositor(GenericCompositor):
 
         for condition in self.conditions:
             method = condition['method']
-            value = condition['value']
+            value = condition.get('value', None)
             if isinstance(value, str):
                 value = _get_flag_value(mask_in, value)
             transparency = condition['transparency']
@@ -1689,7 +1695,11 @@ class MaskingCompositor(GenericCompositor):
             except AttributeError:
                 LOG.error("Method '%s' not found.", method)
                 raise
-            mask = func(mask_data, value)
+            if value is None:
+                mask = func(mask_data)
+            else:
+                mask = func(mask_data, value)
+
             if transparency == 100.0:
                 for i, dat in enumerate(data):
                     data[i] = xr.where(mask, np.nan, dat)
