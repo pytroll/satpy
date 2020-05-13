@@ -32,8 +32,8 @@ class Claasv2(NetCDF4FileHandler):
         files.  See docstring in parent class for specification details.
         """
 
-        # this method should work for any (CM-conform) NetCDF file, should it
-        # be somewhere # more generically available?  Perhaps in the
+        # this method should work for any (CF-conform) NetCDF file, should it
+        # be somewhere more generically available?  Perhaps in the
         # `NetCDF4FileHandler`?
 
         yield from super().available_datasets(configured_datasets)
@@ -63,11 +63,13 @@ class Claasv2(NetCDF4FileHandler):
         return ds_info
 
     def get_dataset(self, dataset_id, info):
-        return self[dataset_id.name]
+        ds = self[dataset_id.name]
+        if "time" in ds.dims:
+            return ds.squeeze(["time"])
+        else:
+            return ds
 
     def get_area_def(self, dataset_id):
-        # FIXME: use `from_cf` in
-        # https://github.com/pytroll/pyresample/pull/271
         return pyresample.geometry.AreaDefinition(
                 "some_area_name",
                 "on-the-fly area",
