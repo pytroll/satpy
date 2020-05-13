@@ -51,9 +51,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     def _get_data(self):
         data = {
                 "cph": xr.DataArray(
-                    np.empty((self._nrows, self._ncols)), dims=("y", "x")),
+                    np.zeros((1, self._nrows, self._ncols)), dims=("time", "y", "x")),
                 "ctt": xr.DataArray(
-                    np.empty((self._nrows, self._ncols)), dims=("y", "x")),
+                    np.zeros((self._nrows, self._ncols)), dims=("y", "x")),
                 "time_bnds": xr.DataArray(
                     [[12436.91666667, 12436.92534722]],
                     dims=("time", "time_bnds"))}
@@ -144,3 +144,5 @@ def test_load(reader):
     assert 2 == len(res)
     assert reader.start_time == datetime.datetime(1985, 8, 13, 13, 15)
     assert reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
+    np.testing.assert_array_equal(res["cph"], np.zeros((60, 40)))
+    np.testing.assert_array_equal(res["ctt"], np.zeros((60, 40)))
