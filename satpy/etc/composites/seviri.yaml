@@ -424,6 +424,39 @@ composites:
       - name: HRV
         modifiers: [sunz_corrected]
 
+  hrv_severe_storms:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: HRV
+      modifiers: [sunz_corrected]
+    - name: HRV
+      modifiers: [sunz_corrected]
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 10.8
+      - wavelength: 3.9
+    standard_name: hrv_severe_storms
+
+  hrv_severe_storms_masked:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    conditions:
+    # Data will be masked where SZA corrected HRV data is less than 70 %, or NaN
+    - method: less
+      value: 70
+      transparency: 100
+    - method: isnan
+      transparency: 100
+    - method: less
+      value: 75
+      transparency: 70
+    prerequisites:
+    # Composite
+    - name: hrv_severe_storms
+    # Data used in masking
+    - name: HRV
+      modifiers: [sunz_corrected]
+    standard_name: hrv_severe_storms_masked
+
   natural_with_night_fog:
     compositor: !!python/name:satpy.composites.DayNightCompositor
     standard_name: natural_with_night_fog
