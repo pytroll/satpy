@@ -1240,6 +1240,8 @@ class TestMaskingCompositor(unittest.TestCase):
                          {'method': 'equal',
                           'value': 2,
                           'transparency': 50}]
+        conditions_v3 = [{'method': 'isnan',
+                          'transparency': 100}]
 
         # 2D data array
         data = xr.DataArray(da.random.random((3, 3)), dims=['y', 'x'])
@@ -1256,9 +1258,15 @@ class TestMaskingCompositor(unittest.TestCase):
                                     [0.5, 0, 0.5],
                                     [0.5, 0.5, 0]])
         reference_alpha = xr.DataArray(reference_alpha, dims=['y', 'x'])
-
         # The data are set to NaN where ct is `1`
         reference_data = data.where(ct_data > 1)
+
+        reference_alpha_v3 = da.array([[1., 0., 0.],
+                                       [0., 1., 0.],
+                                       [0., 0., 1.]])
+        reference_alpha_v3 = xr.DataArray(reference_alpha_v3, dims=['y', 'x'])
+        # The data are set to NaN where ct is NaN
+        reference_data_v3 = data.where(ct_data == 1)
 
         # Test with numerical transparency data
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
@@ -1284,6 +1292,16 @@ class TestMaskingCompositor(unittest.TestCase):
         self.assertTrue(res.mode == 'LA')
         np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # Test "isnan" as method
+        # Set ct data to NaN where it originally is 1
+        ct_data_v3 = ct_data.where(ct_data == 1)
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", conditions=conditions_v3)
+            res = comp([data, ct_data_v3])
+        self.assertTrue(res.mode == 'LA')
+        np.testing.assert_allclose(res.sel(bands='L'), reference_data_v3)
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha_v3)
 
         # Test RGB dataset
         # 3D data array
