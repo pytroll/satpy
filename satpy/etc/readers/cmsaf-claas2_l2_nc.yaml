@@ -18,4 +18,4 @@ reader:
 file_types:
     cmsaf-claas-v2:
         file_reader: !!python/name:satpy.readers.cmsaf_claas_v2.Claasv2
-        file_patterns: ['{product:3s}in{start_time:%Y%m%d%H%M}{version:>03d}05SVMSG01MD.nc']
+        file_patterns: ['{product:3s}in{start_time:%Y%m%d%H%M}{version:>03d}05SVMSG{proc_level:2s}MD.nc']
