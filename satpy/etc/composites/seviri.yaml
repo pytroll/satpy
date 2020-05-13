@@ -442,13 +442,13 @@ composites:
     conditions:
     # Data will be masked where SZA corrected HRV data is less than 70 %, or NaN
     - method: less
+      value: 75
+      transparency: 70
+    - method: less
       value: 70
       transparency: 100
     - method: isnan
       transparency: 100
-    - method: less
-      value: 75
-      transparency: 70
     prerequisites:
     # Composite
     - name: hrv_severe_storms
