@@ -187,8 +187,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # example, with https://github.com/pytroll/satpy/pull/1088), rewrite
         # the ancillary variable to include the channel.  See also
         # https://github.com/pytroll/satpy/issues/1171.
-        if attrs["ancillary_variables"] == "pixel_quality":
-            attrs["ancillary_variables"] = key.name + "_pixel_quality"
+        if "pixel_quality" in attrs["ancillary_variables"]:
+            attrs["ancillary_variables"] = attrs["ancillary_variables"].replace(
+                    "pixel_quality", key.name + "_pixel_quality")
         else:
             raise ValueError(
                 "Unexpected value for attribute ancillary_variables, "
