@@ -543,13 +543,14 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
+        reader_name = os.path.splitext(config_basename)[0]
         reader_configs = config_search_paths(
             os.path.join("readers", config_basename), *search_paths)
 
         if not reader_configs:
             # either the reader they asked for does not exist
             # or satpy is improperly configured and can't find its own readers
-            raise ValueError("No reader(s) named: {}".format(reader))
+            raise ValueError("No reader named: {}".format(reader_name))
 
         yield reader_configs
 
