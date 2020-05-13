@@ -1240,6 +1240,8 @@ class TestMaskingCompositor(unittest.TestCase):
                          {'method': 'equal',
                           'value': 2,
                           'transparency': 50}]
+        conditions_v3 = [{'method': 'isnan',
+                          'transparency': 100}]
 
         # 2D data array
         data = xr.DataArray(da.random.random((3, 3)), dims=['y', 'x'])
@@ -1323,6 +1325,19 @@ class TestMaskingCompositor(unittest.TestCase):
         np.testing.assert_allclose(res.sel(bands='B'),
                                    data.sel(bands='B').where(ct_data > 1))
         # The compositor should drop the original alpha band
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # Test "isnan" as method
+        arr = np.reshape(np.arange(0, 9), (3, 3))
+        arr[0, 0] = np.nan
+        arr[1, 1] = np.nan
+        arr[2, 2] = np.nan
+        data = xr.DataArray(da.from_array(arr), dims=['y', 'x'])
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", conditions=conditions_v3)
+            res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'LA')
+        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
         # incorrect method
