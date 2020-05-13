@@ -1252,9 +1252,9 @@ class TestMaskingCompositor(unittest.TestCase):
         ct_data.attrs['flag_meanings'] = flag_meanings
         ct_data.attrs['flag_values'] = flag_values
 
-        reference_alpha = da.array([[1, 0.5, 0.5],
-                                    [0.5, 1, 0.5],
-                                    [0.5, 0.5, 1]])
+        reference_alpha = da.array([[0, 0.5, 0.5],
+                                    [0.5, 0, 0.5],
+                                    [0.5, 0.5, 0]])
         reference_alpha = xr.DataArray(reference_alpha, dims=['y', 'x'])
 
         # The data are set to NaN where ct is `1`
