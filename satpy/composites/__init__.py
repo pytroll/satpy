@@ -1694,14 +1694,14 @@ class MaskingCompositor(GenericCompositor):
                 for i, dat in enumerate(data):
                     data[i] = xr.where(mask, np.nan, dat)
                     data[i].attrs = alpha_attrs
-            else:
-                alpha_val = 1. - transparency / 100.
-                alpha = da.where(mask, alpha_val, alpha)
+
+            alpha_val = 1. - transparency / 100.
+            alpha = da.where(mask, alpha_val, alpha)
 
         alpha = xr.DataArray(data=alpha, attrs=alpha_attrs,
                              dims=data[0].dims, coords=data[0].coords)
-
         data.append(alpha)
+
         res = super(MaskingCompositor, self).__call__(data, **kwargs)
         return res
 
