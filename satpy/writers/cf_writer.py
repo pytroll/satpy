@@ -610,8 +610,12 @@ class CFWriter(Writer):
             if flatten_attrs:
                 header_attrs = flatten_dict(header_attrs)
             root.attrs = encode_attrs_nc(header_attrs)
-        if 'history' not in root.attrs:
-            root.attrs['history'] = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
+        _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
+        if 'history' in root.attrs:
+            root.attrs['history'] += '\n' + _history_create
+        else:
+            root.attrs['history'] = _history_create
+
         if groups is None:
             # Groups are not CF-1.7 compliant
             if 'Conventions' not in root.attrs:
