@@ -33,9 +33,6 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     _nrows = 30
     _ncols = 40
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def _get_global_attributes(self):
         data = {}
         attrs = {
@@ -152,7 +149,9 @@ def test_load(reader):
     assert 2 == len(res)
     assert reader.start_time == datetime.datetime(1985, 8, 13, 13, 15)
     assert reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
-    np.testing.assert_array_almost_equal(res["cph"],
+    np.testing.assert_array_almost_equal(
+            res["cph"],
             np.arange(0.0, 24.0, 0.01).reshape((60, 40)))
-    np.testing.assert_array_equal(res["ctt"],
+    np.testing.assert_array_equal(
+            res["ctt"],
             np.arange(24.0, 0.0, -0.01).reshape((60, 40)))
