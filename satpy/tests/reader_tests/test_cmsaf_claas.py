@@ -33,6 +33,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     _nrows = 30
     _ncols = 40
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     def _get_global_attributes(self):
         data = {}
         attrs = {
@@ -51,15 +54,20 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     def _get_data(self):
         data = {
                 "cph": xr.DataArray(
-                    np.zeros((1, self._nrows, self._ncols)), dims=("time", "y", "x")),
+                    np.arange(self._nrows*self._ncols, dtype="i4").reshape(
+                        (1, self._nrows, self._ncols)),
+                    dims=("time", "y", "x")),
                 "ctt": xr.DataArray(
-                    np.zeros((self._nrows, self._ncols)), dims=("y", "x")),
+                    np.arange(self._nrows*self._ncols, 0, -1,
+                              dtype="i4").reshape((self._nrows, self._ncols)),
+                    dims=("y", "x")),
                 "time_bnds": xr.DataArray(
                     [[12436.91666667, 12436.92534722]],
                     dims=("time", "time_bnds"))}
         for k in set(data.keys()):
             data[f"{k:s}/dimensions"] = data[k].dims
             data[f"{k:s}/attr/fruit"] = "apple"
+            data[f"{k:s}/attr/scale_factor"] = np.float32(0.01)
         return data
 
     def _get_dimensions(self):
@@ -144,5 +152,7 @@ def test_load(reader):
     assert 2 == len(res)
     assert reader.start_time == datetime.datetime(1985, 8, 13, 13, 15)
     assert reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
-    np.testing.assert_array_equal(res["cph"], np.zeros((60, 40)))
-    np.testing.assert_array_equal(res["ctt"], np.zeros((60, 40)))
+    np.testing.assert_array_almost_equal(res["cph"],
+            np.arange(0.0, 24.0, 0.01).reshape((60, 40)))
+    np.testing.assert_array_equal(res["ctt"],
+            np.arange(24.0, 0.0, -0.01).reshape((60, 40)))
