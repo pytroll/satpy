@@ -9,7 +9,8 @@ class Claasv2(NetCDF4FileHandler):
     """Handle CMSAF CLAAS v2 files."""
     def __init__(self, *args, **kwargs):
         """Initialise class."""
-        super().__init__(*args, **kwargs, cache_handle=False)
+        super().__init__(*args, **kwargs, cache_handle=False,
+                         auto_maskandscale=True)
 
     @property
     def start_time(self):
