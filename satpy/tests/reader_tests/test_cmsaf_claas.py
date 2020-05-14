@@ -33,6 +33,12 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     _nrows = 30
     _ncols = 40
 
+    def __init__(self, *args, auto_maskandscale, **kwargs):
+        # make sure that CLAAS2 reader asks NetCDF4FileHandler for having
+        # auto_maskandscale enabled
+        assert auto_maskandscale
+        super().__init__(*args, **kwargs)
+
     def _get_global_attributes(self):
         data = {}
         attrs = {
@@ -52,11 +58,12 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         data = {
                 "cph": xr.DataArray(
                     np.arange(self._nrows*self._ncols, dtype="i4").reshape(
-                        (1, self._nrows, self._ncols)),
+                        (1, self._nrows, self._ncols))/100,
                     dims=("time", "y", "x")),
                 "ctt": xr.DataArray(
                     np.arange(self._nrows*self._ncols, 0, -1,
-                              dtype="i4").reshape((self._nrows, self._ncols)),
+                              dtype="i4").reshape(
+                                  (self._nrows, self._ncols))/100,
                     dims=("y", "x")),
                 "time_bnds": xr.DataArray(
                     [[12436.91666667, 12436.92534722]],
@@ -150,8 +157,8 @@ def test_load(reader):
     assert reader.start_time == datetime.datetime(1985, 8, 13, 13, 15)
     assert reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
     np.testing.assert_array_almost_equal(
-            res["cph"],
-            np.arange(0.0, 24.0, 0.01).reshape((60, 40)))
-    np.testing.assert_array_equal(
-            res["ctt"],
-            np.arange(24.0, 0.0, -0.01).reshape((60, 40)))
+            res["cph"].data,
+            np.tile(np.arange(0.0, 12.0, 0.01).reshape((30, 40)), [2, 1]))
+    np.testing.assert_array_almost_equal(
+            res["ctt"].data,
+            np.tile(np.arange(12.0, 0.0, -0.01).reshape((30, 40)), [2, 1]))
