@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Tests for the 'claasv2' reader."""
+"""Tests for the 'cmsaf-claas2_l2_nc' reader."""
 
 import os
 import datetime
@@ -102,7 +102,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
 
 @pytest.fixture
 def reader():
-    """Return reader for CMSAF CLAAS v2."""
+    """Return reader for CMSAF CLAAS-2."""
     from satpy.config import config_search_paths
     from satpy.readers import load_reader
 
@@ -116,9 +116,9 @@ def reader():
 def fake_handler():
     """Wrap NetCDF4 FileHandler with our own fake handler."""
     # implementation strongly inspired by test_viirs_l1b.py
-    from satpy.readers.cmsaf_claas_v2 import Claasv2
+    from satpy.readers.cmsaf_claas2 import CLAAS2
     p = mock.patch.object(
-            Claasv2,
+            CLAAS2,
             "__bases__",
             (FakeNetCDF4FileHandler2,))
     with p:
