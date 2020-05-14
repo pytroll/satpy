@@ -5,8 +5,8 @@ import pyresample.geometry
 from .netcdf_utils import NetCDF4FileHandler
 
 
-class Claasv2(NetCDF4FileHandler):
-    """Handle CMSAF CLAAS v2 files."""
+class CLAAS2(NetCDF4FileHandler):
+    """Handle CMSAF CLAAS-2 files."""
     def __init__(self, *args, **kwargs):
         """Initialise class."""
         super().__init__(*args, **kwargs, cache_handle=False,
