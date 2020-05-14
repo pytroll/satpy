@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -95,7 +95,7 @@ class SatpyCFFileHandler(BaseFileHandler):
                              chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
         file_key = ds_info.get('file_key', ds_id.name)
         data = nc[file_key]
-        if file_key in nc.coords.keys():
+        if file_key in nc.coords:
             data = data.drop_vars(list(nc.coords.keys()))
         try:
             data.attrs['wavelength'] = tuple(data.attrs['wavelength'])
