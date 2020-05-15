@@ -26,7 +26,7 @@ from unittest.mock import MagicMock, patch
 
 import satpy.readers.yaml_reader as yr
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.dataset import DatasetID
+from satpy.dataset import DatasetID, DatasetQuery
 
 
 class FakeFH(BaseFileHandler):
@@ -247,31 +247,13 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_all_dataset_ids(self):
         """Check that all datasets ids are returned."""
-        self.assertSetEqual(set(self.reader.all_dataset_ids),
-                            {DatasetID(name='ch02',
-                                       wavelength=(0.7, 0.75, 0.8),
-                                       resolution=None,
-                                       polarization=None,
-                                       calibration='counts',
-                                       modifiers=()),
-                             DatasetID(name='ch01',
-                                       wavelength=(0.5, 0.6, 0.7),
-                                       resolution=None,
-                                       polarization=None,
-                                       calibration='reflectance',
-                                       modifiers=()),
-                             DatasetID(name='lons',
-                                       wavelength=None,
-                                       resolution=None,
-                                       polarization=None,
-                                       calibration=None,
-                                       modifiers=()),
-                             DatasetID(name='lats',
-                                       wavelength=None,
-                                       resolution=None,
-                                       polarization=None,
-                                       calibration=None,
-                                       modifiers=())})
+        for dsid in self.reader.all_dataset_ids:
+            name = dsid.name.replace('0', '')
+            assert self.config['datasets'][name]['name'] == dsid.name
+            if 'wavelength' in self.config['datasets'][name]:
+                assert self.config['datasets'][name]['wavelength'] == list(dsid.wavelength)
+            if 'calibration' in self.config['datasets'][name]:
+                assert self.config['datasets'][name]['calibration'] == dsid.calibration
 
     def test_all_dataset_names(self):
         """Get all dataset names."""
@@ -285,14 +267,10 @@ class TestFileFileYAMLReader(unittest.TestCase):
         self.assertSetEqual(set(self.reader.available_dataset_ids),
                             {DatasetID(name='ch02',
                                        wavelength=(0.7, 0.75, 0.8),
-                                       resolution=None,
-                                       polarization=None,
                                        calibration='counts',
                                        modifiers=()),
                              DatasetID(name='ch01',
                                        wavelength=(0.5, 0.6, 0.7),
-                                       resolution=None,
-                                       polarization=None,
                                        calibration='reflectance',
                                        modifiers=())})
 
@@ -441,21 +419,14 @@ class TestFileFileYAMLReader(unittest.TestCase):
     def test_get_coordinates_for_dataset_key(self):
         """Test getting coordinates for a key."""
         ds_id = DatasetID(name='ch01', wavelength=(0.5, 0.6, 0.7),
-                          resolution=None, polarization=None,
-                          calibration='reflectance', modifiers=())
-        res = self.reader._get_coordinates_for_dataset_key(ds_id)
+                             calibration='reflectance', modifiers=())
+        ds_q = DatasetQuery(name='ch01', wavelength=(0.5, 0.6, 0.7),
+                             calibration='reflectance', modifiers=())
+        res = self.reader._get_coordinates_for_dataset_key(ds_q)
         self.assertListEqual(res,
                              [DatasetID(name='lons',
-                                        wavelength=None,
-                                        resolution=None,
-                                        polarization=None,
-                                        calibration=None,
                                         modifiers=()),
                               DatasetID(name='lats',
-                                        wavelength=None,
-                                        resolution=None,
-                                        polarization=None,
-                                        calibration=None,
                                         modifiers=())])
 
     def test_get_coordinates_for_dataset_key_without(self):

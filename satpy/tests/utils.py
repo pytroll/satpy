@@ -329,7 +329,7 @@ class FakeReader(FileYAMLReader):
         dataset_ids = self.all_ids.keys()
         loaded_datasets = DatasetDict()
         for k in dataset_keys:
-            if k == 'ds9_fail_load':
+            if k.name == 'ds9_fail_load':
                 continue
             for ds in dataset_ids:
                 if ds == k:

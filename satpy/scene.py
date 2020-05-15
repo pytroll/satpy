@@ -22,7 +22,7 @@ import os
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
-from satpy.dataset import (DatasetID, MetadataObject, dataset_walker,
+from satpy.dataset import (DatasetQuery, DataArrayID, MetadataObject, dataset_walker,
                            replace_anc, combine_metadata)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
@@ -409,6 +409,7 @@ class Scene(MetadataObject):
         datasets_by_area = {}
         for ds in self:
             a = ds.attrs.get('area')
+            # FIXME_DID
             datasets_by_area.setdefault(a, []).append(
                 DatasetID.from_dict(ds.attrs))
 
@@ -674,7 +675,7 @@ class Scene(MetadataObject):
 
     def __getitem__(self, key):
         """Get a dataset or create a new 'slice' of the Scene."""
-        if isinstance(key, tuple) and not isinstance(key, DatasetID):
+        if isinstance(key, tuple) and not isinstance(key, DataArrayID):
             return self.slice(key)
         return self.datasets[key]
 
@@ -837,7 +838,7 @@ class Scene(MetadataObject):
                                    optional_datasets=optional_datasets,
                                    **self.attrs)
 
-            cid = DatasetID.from_dict(composite.attrs)
+            cid = compositor.attrs['_id_class'].from_dict(composite.attrs)
 
             self.datasets[cid] = composite
             # update the node with the computed DatasetID
@@ -914,8 +915,8 @@ class Scene(MetadataObject):
             LOG.debug("Unloading dataset: %r", ds_id)
             del self.datasets[ds_id]
 
-    def load(self, wishlist, calibration=None, resolution=None,
-             polarization=None, level=None, generate=True, unload=True,
+    def load(self, wishlist, calibration='*', resolution='*',
+             polarization='*', level='*', generate=True, unload=True,
              **kwargs):
         """Read and generate requested datasets.
 
@@ -958,11 +959,12 @@ class Scene(MetadataObject):
         dataset_keys = set(wishlist)
         needed_datasets = (self.wishlist | dataset_keys) - \
             set(self.datasets.keys())
+        query = DatasetQuery(calibration=calibration,
+                             polarization=polarization,
+                             resolution=resolution,
+                             level=level)
         unknown = self.dep_tree.find_dependencies(needed_datasets,
-                                                  calibration=calibration,
-                                                  polarization=polarization,
-                                                  resolution=resolution,
-                                                  level=level)
+                                                  query)
         self.wishlist |= needed_datasets
         if unknown:
             unknown_str = ", ".join(map(str, unknown))
