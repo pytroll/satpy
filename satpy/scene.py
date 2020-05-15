@@ -930,14 +930,14 @@ class Scene(MetadataObject):
         Loaded `DataArray` objects are created and stored in the Scene object.
 
         Args:
-            wishlist (iterable): Names (str), wavelengths (float), or
+            wishlist (iterable): List of names (str), wavelengths (float), or
                                  DatasetID objects of the requested datasets
                                  to load. See `available_dataset_ids()` for
                                  what datasets are available.
             calibration (list, str): Calibration levels to limit available
-                                      datasets. This is a shortcut to
-                                      having to list each DatasetID in
-                                      `wishlist`.
+                                     datasets. This is a shortcut to
+                                     having to list each DatasetID in
+                                     `wishlist`.
             resolution (list | float): Resolution to limit available datasets.
                                        This is a shortcut similar to
                                        calibration.
@@ -956,6 +956,8 @@ class Scene(MetadataObject):
                            but are no longer needed.
 
         """
+        if isinstance(wishlist, str):
+            raise TypeError("'load' expects a list of datasets, got a string.")
         dataset_keys = set(wishlist)
         needed_datasets = (self.wishlist | dataset_keys) - \
             set(self.datasets.keys())
