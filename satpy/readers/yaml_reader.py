@@ -40,7 +40,7 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DatasetID, new_dataset_id_from_keys, get_keys_from_config, default_id_keys_config
+from satpy.dataset import DatasetID, new_dataset_id_class_from_keys, get_keys_from_config, default_id_keys_config
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
@@ -100,7 +100,6 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         for config_file in config_files:
             with open(config_file) as fd:
                 self.config = recursive_dict_update(self.config, yaml.load(fd, Loader=UnsafeLoader))
-
         self.info = self.config['reader']
         self.name = self.info['name']
         self.file_patterns = []
@@ -207,13 +206,13 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             logger.warning("No filenames found for reader: %s", self.name)
         return selected_filenames
 
-    def get_dataset_key(self, key, **kwargs):
+    def get_dataset_key(self, key, query, **kwargs):
         """Get the fully qualified `DatasetID` matching `key`.
 
         See `satpy.readers.get_key` for more information about kwargs.
 
         """
-        return get_key(key, self.all_ids.keys(), **kwargs)
+        return get_key(key, self.all_ids.keys(), query=query, **kwargs)
 
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
@@ -247,7 +246,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                     # this key only has one choice so make it a one
                     # item iterable
                     id_kwargs.append((val, ))
-            dsid_klass = new_dataset_id_from_keys(id_keys)
+            dsid_klass = new_dataset_id_class_from_keys(id_keys)
             for id_params in itertools.product(*id_kwargs):
                 dsid = dsid_klass(*id_params)
                 ids.append(dsid)
@@ -596,7 +595,11 @@ class FileYAMLReader(AbstractYAMLReader):
                 ds_info['coordinates'] = tuple(ds_info['coordinates'])
 
             ds_info.setdefault('modifiers', tuple())  # default to no mods
-            ds_id = DatasetID.from_dict(ds_info)
+
+            # Create DatasetID class for this dataset
+            id_keys = get_keys_from_config(self._id_keys, ds_info)
+            dsid_klass = new_dataset_id_class_from_keys(id_keys)
+            ds_id = dsid_klass.from_dict(ds_info)
             # all datasets
             new_ids[ds_id] = ds_info
             # available datasets
@@ -793,7 +796,7 @@ class FileYAMLReader(AbstractYAMLReader):
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
 
-    def get_dataset_key(self, key, available_only=False, **kwargs):
+    def get_dataset_key(self, key, query=None, available_only=False, **kwargs):
         """Get the fully qualified `DatasetID` matching `key`.
 
         This will first search through available DatasetIDs, datasets that
@@ -819,11 +822,11 @@ class FileYAMLReader(AbstractYAMLReader):
 
         """
         try:
-            return get_key(key, self.available_ids.keys(), **kwargs)
+            return get_key(key, self.available_ids.keys(), query=query, **kwargs)
         except KeyError:
             if available_only:
                 raise
-            return get_key(key, self.all_ids.keys(), **kwargs)
+            return get_key(key, self.all_ids.keys(), query=query, **kwargs)
 
     def load(self, dataset_keys, previous_datasets=None, **kwargs):
         """Load `dataset_keys`.

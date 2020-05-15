@@ -35,7 +35,7 @@ except ImportError:
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
-from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
+from satpy.dataset import DATASET_KEYS, DatasetQuery, MetadataObject, combine_metadata, new_dataset_id_class_from_keys
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
@@ -78,6 +78,7 @@ class CompositorLoader(object):
         self.modifiers = {}
         self.compositors = {}
         self.ppp_config_dir = ppp_config_dir
+        self.ds_id_classes = {}
 
     def load_sensor_composites(self, sensor_name):
         """Load all compositor configs for the provided sensor."""
@@ -145,8 +146,12 @@ class CompositorLoader(object):
         return comps, mods
 
     def _process_composite_config(self, composite_name, conf,
-                                  composite_type, sensor_id, composite_config, **kwargs):
-
+                                  composite_type, sensor_id, sensor_deps, composite_config, **kwargs):
+        try:
+            composite_id_class = new_dataset_id_class_from_keys(conf['identification_keys'])
+        except KeyError:
+            composite_id_class = self.ds_id_classes[sensor_deps[-1]]
+        self.ds_id_classes[sensor_id] = composite_id_class
         compositors = self.compositors[sensor_id]
         modifiers = self.modifiers[sensor_id]
         try:
@@ -170,16 +175,22 @@ class CompositorLoader(object):
                         sub_comp_name = '_' + composite_name + '_dep_{}'.format(dep_num)
                         dep_num += 1
                         # Minimal composite config
-                        sub_conf = {composite_type: {sub_comp_name: item}}
+                        sub_conf = {composite_type: {sub_comp_name: item},
+                                    'identification_keys': {
+                                        'name': {
+                                            'required': True
+                                        }
+                                    }
+                                    }
                         self._process_composite_config(
                             sub_comp_name, sub_conf, composite_type, sensor_id,
-                            composite_config, **kwargs)
+                            sensor_deps, composite_config, **kwargs)
                     else:
                         # we want this prerequisite to act as a query with
                         # 'modifiers' being None otherwise it will be an empty
                         # tuple
                         item.setdefault('modifiers', None)
-                    key = DatasetID.from_dict(item)
+                    key = DatasetQuery.from_dict(item)
                     prereqs.append(key)
                 else:
                     prereqs.append(item)
@@ -187,8 +198,8 @@ class CompositorLoader(object):
 
         if composite_type == 'composites':
             options.update(**kwargs)
-            key = DatasetID.from_dict(options)
-            comp = loader(**options)
+            key = composite_id_class.from_dict(options)
+            comp = loader(_id_class=composite_id_class, **options)
             compositors[key] = comp
         elif composite_type == 'modifiers':
             modifiers[composite_name] = loader, options
@@ -227,7 +238,8 @@ class CompositorLoader(object):
                 continue
             for composite_name in conf[composite_type]:
                 self._process_composite_config(composite_name, conf,
-                                               composite_type, sensor_id, composite_config, **kwargs)
+                                               composite_type, sensor_id,
+                                               sensor_deps, composite_config, **kwargs)
 
 
 def check_times(projectables):

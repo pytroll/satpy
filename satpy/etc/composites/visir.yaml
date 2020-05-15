@@ -1,4 +1,7 @@
 sensor_name: visir
+identification_keys:  # for composites only
+  name:
+    required: true
 
 modifiers:
   sunz_corrected:

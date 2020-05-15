@@ -1677,14 +1677,14 @@ class TestSceneLoading(unittest.TestCase):
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp10'], generate=False)
-        self.assertTrue(any(ds_id == 'comp10' for ds_id in scene.wishlist))
+        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in scene.wishlist))
         self.assertNotIn('comp10', scene.datasets)
         # two dependencies should have been loaded
         self.assertEqual(len(scene.datasets), 2)
         self.assertEqual(len(scene.missing_datasets), 1)
 
         scene.generate_composites()
-        self.assertTrue(any(ds_id == 'comp10' for ds_id in scene.wishlist))
+        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in scene.wishlist))
         self.assertIn('comp10', scene.datasets)
         self.assertEqual(len(scene.missing_datasets), 0)
 
@@ -2085,7 +2085,7 @@ class TestSceneResampling(unittest.TestCase):
 
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp10'], generate=False)
-        self.assertTrue(any(ds_id == 'comp10' for ds_id in scene.wishlist))
+        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in scene.wishlist))
         self.assertNotIn('comp10', scene.datasets)
         # two dependencies should have been loaded
         self.assertEqual(len(scene.datasets), 2)
@@ -2098,13 +2098,13 @@ class TestSceneResampling(unittest.TestCase):
         self.assertEqual(len(scene.missing_datasets), 1)
 
         new_scn.generate_composites()
-        self.assertTrue(any(ds_id == 'comp10' for ds_id in new_scn.wishlist))
+        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in new_scn.wishlist))
         self.assertIn('comp10', new_scn.datasets)
         self.assertEqual(len(new_scn.missing_datasets), 0)
 
         # try generating them right away
         new_scn = scene.resample(area_def)
-        self.assertTrue(any(ds_id == 'comp10' for ds_id in new_scn.wishlist))
+        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in new_scn.wishlist))
         self.assertIn('comp10', new_scn.datasets)
         self.assertEqual(len(new_scn.missing_datasets), 0)
 

@@ -21,6 +21,7 @@ import logging
 import numbers
 import os
 from datetime import datetime, timedelta
+import numpy as np
 
 import yaml
 
@@ -31,7 +32,7 @@ except ImportError:
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
-from satpy.dataset import DatasetID, wavelength_match
+from satpy.dataset import DatasetQuery, DataArrayID
 from satpy import CALIBRATION_ORDER
 
 LOG = logging.getLogger(__name__)
@@ -87,29 +88,37 @@ def get_best_dataset_key(key, choices):
              available datasets.
 
     """
+    sorted_choices, distances = key.sort_dsids(choices)
+    if len(sorted_choices) == 0 or distances[0] is np.inf:
+        import ipdb; ipdb.set_trace()
+        return []
+    else:
+        return sorted_choices[0:1]
+
+    return key.sort_dsids(choices)[0:1]
     # Choose the wavelength closest to the choice
-    if key.wavelength is not None and choices:
+    if key.get('wavelength', '*') != '*' and choices:
         # find the dataset with a central wavelength nearest to the
         # requested wavelength
-        nearest_wl = min([_wl_dist(key.wavelength, x.wavelength)
+        nearest_wl = min([_wl_dist(key['wavelength'], x.wavelength)
                           for x in choices if x.wavelength is not None])
         choices = [c for c in choices
-                   if _wl_dist(key.wavelength, c.wavelength) == nearest_wl]
-    if key.modifiers is None and choices:
+                   if _wl_dist(key['wavelength'], c.wavelength) == nearest_wl]
+    if key.get('modifiers', '*') == '*' and choices:
         num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
         choices = [c for c in choices if len(
             c.modifiers or tuple()) == num_modifiers]
-    if key.calibration is None and choices:
+    if key.get('calibration', '*') == '*' and choices:
         best_cal = [x.calibration for x in choices if x.calibration]
         if best_cal:
             best_cal = min(best_cal, key=lambda x: CALIBRATION_ORDER[x])
             choices = [c for c in choices if c.calibration == best_cal]
-    if key.resolution is None and choices:
+    if key.get('resolution', '*') == '*' and choices:
         low_res = [x.resolution for x in choices if x.resolution]
         if low_res:
             low_res = min(low_res)
             choices = [c for c in choices if c.resolution == low_res]
-    if key.level is None and choices:
+    if key.get('level', '*') == '*' and choices:
         low_level = [x.level for x in choices if x.level]
         if low_level:
             low_level = max(low_level)
@@ -118,14 +127,14 @@ def get_best_dataset_key(key, choices):
     return choices
 
 
-def filter_keys_by_dataset_id(did, key_container):
-    """Filer provided key iterable by the provided `DatasetID`.
+def filter_keys_by_dataset_query(dquery, key_container):
+    """Filer provided key iterable by the provided `DatasetQuery`.
 
     Note: The `modifiers` attribute of `did` should be `None` to allow for
           **any** modifier in the results.
 
     Args:
-        did (DatasetID): Query parameters to match in the `key_container`.
+        dquery (DatasetQuery): Query parameters to match in the `key_container`.
         key_container (iterable): Set, list, tuple, or dict of `DatasetID`
                                   keys.
 
@@ -133,26 +142,13 @@ def filter_keys_by_dataset_id(did, key_container):
                     specific order.
 
     """
-    keys = iter(key_container)
-
-    for key in DatasetID._fields:
-        if getattr(did, key) is not None:
-            if key == "wavelength":
-                keys = [k for k in keys
-                        if (getattr(k, key) is not None and
-                            wavelength_match(getattr(k, key),
-                                             getattr(did, key)))]
-            else:
-                keys = [k for k in keys
-                        if getattr(k, key) is not None and getattr(k, key)
-                        == getattr(did, key)]
-
-    return keys
+    return dquery.filter_dsids(key_container)
 
 
-def get_key(key, key_container, num_results=1, best=True,
-            resolution=None, calibration=None, polarization=None,
-            level=None, modifiers=None):
+def get_key(key, key_container, num_results=1, best=True, query=None,
+            **kwargs):
+            # resolution=None, calibration=None, polarization=None,
+            # level=None, modifiers=None):
     """Get the fully-specified key best matching the provided key.
 
     Only the best match is returned if `best` is `True` (default). See
@@ -200,43 +196,48 @@ def get_key(key, key_container, num_results=1, best=True,
 
     """
     if isinstance(key, numbers.Number):
-        # we want this ID to act as a query so we set modifiers to None
-        # meaning "we don't care how many modifiers it has".
-        key = DatasetID(wavelength=key, modifiers=None)
+        key = DatasetQuery(wavelength=key)
     elif isinstance(key, str):
-        # ID should act as a query (see wl comment above)
-        key = DatasetID(name=key, modifiers=None)
-    elif not isinstance(key, DatasetID):
-        raise ValueError("Expected 'DatasetID', str, or number dict key, "
+        key = DatasetQuery(name=key)
+    elif isinstance(key, DataArrayID):
+        key = DatasetQuery(**key.to_dict())
+    elif not isinstance(key, DatasetQuery):
+        raise ValueError("Expected 'DatasetQuery', str, or number dict key, "
                          "not {}".format(str(type(key))))
 
-    res = filter_keys_by_dataset_id(key, key_container)
-
+    res = filter_keys_by_dataset_query(key, key_container)
+    if not res:
+        raise(KeyError)
     # further filter by other parameters
-    if resolution is not None:
-        if not isinstance(resolution, (list, tuple)):
-            resolution = (resolution, )
-        res = [k for k in res
-               if k.resolution is not None and k.resolution in resolution]
-    if polarization is not None:
-        if not isinstance(polarization, (list, tuple)):
-            polarization = (polarization, )
-        res = [k for k in res
-               if k.polarization is not None and k.polarization in
-               polarization]
-    if calibration is not None:
-        if not isinstance(calibration, (list, tuple)):
-            calibration = (calibration, )
-        res = [k for k in res
-               if k.calibration is not None and k.calibration in calibration]
-    if level is not None:
-        if not isinstance(level, (list, tuple)):
-            level = (level, )
-        res = [k for k in res
-               if k.level is not None and k.level in level]
-    if modifiers is not None:
-        res = [k for k in res
-               if k.modifiers is not None and k.modifiers == modifiers]
+    # for filter_key, filter_val in filter_args.items():
+    #     if not isinstance(filter_val, (list, tuple)):
+    #         filter_val = (filter_val, )
+    #     res = [k for k in res
+    #            if getattr(k, filter_key) is not None and getattr(k, filter_key) in filter_val]
+    # if resolution is not None:
+    #     if not isinstance(resolution, (list, tuple)):
+    #         resolution = (resolution, )
+    #     res = [k for k in res
+    #            if k.resolution is not None and getattr(k, 'resolution') in resolution]
+    # if polarization is not None:
+    #     if not isinstance(polarization, (list, tuple)):
+    #         polarization = (polarization, )
+    #     res = [k for k in res
+    #            if k.polarization is not None and k.polarization in
+    #            polarization]
+    # if calibration is not None:
+    #     if not isinstance(calibration, (list, tuple)):
+    #         calibration = (calibration, )
+    #     res = [k for k in res
+    #            if k.calibration is not None and k.calibration in calibration]
+    # if level is not None:
+    #     if not isinstance(level, (list, tuple)):
+    #         level = (level, )
+    #     res = [k for k in res
+    #            if k.level is not None and k.level in level]
+    # if modifiers is not None:
+    #     res = [k for k in res
+    #            if k.modifiers is not None and k.modifiers == modifiers]
 
     if best:
         res = get_best_dataset_key(key, res)
@@ -318,7 +319,10 @@ class DatasetDict(dict):
             # xarray.DataArray objects
             d = value.attrs
         # use value information to make a more complete DatasetID
-        if not isinstance(key, DatasetID):
+        #import ipdb; ipdb.set_trace()
+        if not isinstance(key, DataArrayID):
+            import ipdb; ipdb.set_trace()
+        # if not isinstance(key, DatasetID):
             if not isinstance(d, dict):
                 raise ValueError("Key must be a DatasetID when value is not an xarray DataArray or dict")
             old_key = key
@@ -330,6 +334,7 @@ class DatasetDict(dict):
                 else:
                     new_name = d.get("name")
                 # this is a new key and it's not a full DatasetID tuple
+                import ipdb; ipdb.set_trace()
                 key = DatasetID(name=new_name,
                                 resolution=d.get("resolution"),
                                 wavelength=d.get("wavelength"),
@@ -342,18 +347,10 @@ class DatasetDict(dict):
                                      "values should be set.")
 
         # update the 'value' with the information contained in the key
+
         if isinstance(d, dict):
-            d["name"] = key.name
-            # XXX: What should users be allowed to modify?
-            d["resolution"] = key.resolution
-            d["calibration"] = key.calibration
-            d["polarization"] = key.polarization
-            d["level"] = key.level
-            d["modifiers"] = key.modifiers
-            # you can't change the wavelength of a dataset, that doesn't make
-            # sense
-            if "wavelength" in d and d["wavelength"] != key.wavelength:
-                raise TypeError("Can't change the wavelength of a dataset")
+            for field in key._fields:
+                d[field] = getattr(key, field)
 
         return super(DatasetDict, self).__setitem__(key, value)
 

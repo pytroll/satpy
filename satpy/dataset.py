@@ -21,6 +21,7 @@ import logging
 import numbers
 from collections import namedtuple
 from datetime import datetime
+from enum import IntEnum
 
 import numpy as np
 
@@ -37,7 +38,7 @@ class MetadataObject(object):
     @property
     def id(self):
         """Return the DatasetID of the object."""
-        return DatasetID.from_dict(self.attrs)
+        return self.attrs['_id_class'].from_dict(self.attrs)
 
 
 def average_datetimes(dt_list):
@@ -115,14 +116,35 @@ def get_keys_from_config(common_id_keys, config):
     for key, val in common_id_keys.items():
         if key in config:
             id_keys[key] = val
-        elif val is not None and val.get('compulsory') is True:
+        elif val is not None and val.get('required') is True:
             id_keys[key] = val
     if not id_keys:
         raise ValueError('Metada does not contain enough information to create a DatasetID.')
     return id_keys
 
 
-def new_dataset_id_from_keys(id_keys):
+class ValueList(IntEnum):
+    """A static value list."""
+
+    @classmethod
+    def convert(cls, value):
+        """Convert value to an instance of this class."""
+        try:
+            return cls[value]
+        except KeyError:
+            raise KeyError('{} invalid value for {}'.format(value, cls))
+
+    def __eq__(self, other):
+        return self.name == other
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __repr__(self):
+        return '<' + str(self) + '>'
+
+
+def new_dataset_id_class_from_keys(id_keys):
     """Create a new DatasetID from a configuration."""
     types = {}
     defaults = []
@@ -133,6 +155,8 @@ def new_dataset_id_from_keys(id_keys):
             defaults.append(val.get('default'))
             if 'type' in val:
                 types[key] = val['type']
+            elif 'enum' in val:
+                types[key] = ValueList(key, ' '.join(val['enum']))
     klass = make_dsid_class(types, **dict(zip(id_keys.keys(), defaults)))
     return klass
 
@@ -200,6 +224,15 @@ class WavelengthRange(wlklass):
         """Hash this tuple."""
         return tuple.__hash__(self)
 
+    def distance(self, value):
+        if self == value:
+            try:
+                return abs(value.central - self.central)
+            except AttributeError:
+                return abs(value - self.central)
+        else:
+            return np.inf
+
     @classmethod
     def convert(cls, wl):
         """Convert `wl` to this type if possible."""
@@ -215,11 +248,29 @@ class ModifierTuple(tuple):
     def convert(cls, modifiers):
         """Convert `modifiers` to this type if possible."""
         if modifiers is None:
-            return cls()
+            return None
         elif not isinstance(modifiers, (cls, tuple, list)):
             raise TypeError("'DatasetID' modifiers must be a tuple or None, "
                             "not {}".format(type(modifiers)))
         return cls(modifiers)
+
+    def __eq__(self, other):
+        if isinstance(other, list):
+            other = tuple(other)
+        return super().__eq__(other)
+
+    def __ne__(self, other):
+        if isinstance(other, list):
+            other = tuple(other)
+        return super().__ne__(other)
+
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
+
+
+class DataArrayID:
+    pass
 
 
 def make_dsid_class(types=None, **kwargs):
@@ -231,7 +282,7 @@ def make_dsid_class(types=None, **kwargs):
         types = {}
 
     # TODO: put this documentation somewhere sphinx can find it.
-    class DatasetID(klass):
+    class DatasetID(klass, DataArrayID):
         """Identifier for all `Dataset` objects.
 
         DatasetID is a namedtuple that holds identifying and classifying
@@ -285,7 +336,8 @@ def make_dsid_class(types=None, **kwargs):
             for key, val in zip(cls._fields, args):
                 if key in types:
                     val = types[key].convert(val)
-                newargs.append(val)
+                if val is not None:
+                    newargs.append(val)
 
             return super(DatasetID, cls).__new__(cls, *newargs, **kwargs)
 
@@ -295,6 +347,8 @@ def make_dsid_class(types=None, **kwargs):
 
         def __eq__(self, other):
             """Compare the DatasetIDs."""
+            if isinstance(other, DatasetQuery):
+                return other.__eq__(self)
             sdict = self._asdict()
             odict = other._asdict()
             for key, val in sdict.items():
@@ -326,6 +380,110 @@ def make_dsid_class(types=None, **kwargs):
     return DatasetID
 
 
+class DatasetQuery:
+    """The dataset query object."""
+
+    def __init__(self, **kwargs):
+        """Initialize the query."""
+        self._dict = kwargs.copy()
+        self._fields = tuple(self._dict.keys())
+        self._values = tuple(self._dict.values())
+
+    def __getitem__(self, key):
+        """Get an item."""
+        return self._dict[key]
+
+    def __eq__(self, other):
+        """Compare the DatasetIDs."""
+        sdict = self._asdict()
+        try:
+            odict = other._asdict()
+        except AttributeError:
+            return False
+        for key, val in sdict.items():
+            if key in odict and odict[key] != val and val is not None:
+                return False
+        return True
+
+    def __hash__(self):
+        """Hash."""
+        fields = []
+        values = []
+        for field, value in self._dict.items():
+            if value != '*':
+                fields.append(field)
+                if isinstance(value, (list, set)):
+                    value = tuple(value)
+                values.append(value)
+        return hash((tuple(fields), hash(tuple(values))))
+
+    def get(self, key, default=None):
+        return self._dict.get(key, default)
+
+    @classmethod
+    def from_dict(cls, the_dict):
+        """Convert a dict to an ID."""
+        return cls(**the_dict)
+
+    def _asdict(self):
+        return dict(zip(self._fields, self._values))
+
+    def to_dict(self, trim=True):
+        """Convert the ID to a dict."""
+        if trim:
+            return self._to_trimmed_dict()
+        else:
+            return self._asdict()
+
+    def _to_trimmed_dict(self):
+        return {key: val for key, val in self._dict.items()
+                if val != '*'}
+
+    def __repr__(self):
+        """Represent the query."""
+        items = ("{}={}".format(key, val) for key, val in zip(self._fields, self._values))
+        return self.__class__.__name__ + "(" + ", ".join(items) + ")"
+
+    def filter_dsids(self, dsid_container):
+        """Filter datasetids based on this query."""
+        keys = iter(dsid_container)
+        for key, val in self._dict.items():
+            if val != '*':
+                keys = [k for k in keys
+                        if getattr(k, key) == val]
+        return keys
+
+    def sort_dsids(self, dsids):
+        """Sort the datasetids based on this query.
+
+        Returns the sorted dsids and the list of distances.
+        """
+        distances = []
+        for dsid in sorted(dsids):
+            distance = 0
+            for key, val in self._dict.items():
+                if val == '*':
+                    try:
+                        distance += getattr(dsid, key).value
+                    except AttributeError:
+                        pass
+                else:
+                    try:
+                        dsid_val = getattr(dsid, key)
+                    except AttributeError:
+                        distance = np.inf
+                        break
+                    try:
+                        distance += dsid_val.distance(val)
+                    except AttributeError:
+                        if dsid_val != val:
+                            distance = np.inf
+                            break
+            distances.append(distance)
+        distances, dsids = zip(*sorted(zip(distances, dsids)))
+        return dsids, distances
+
+
 # TODO: remove this static list
 DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
                 "calibration", "level", "modifiers")
@@ -333,7 +491,7 @@ DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
 """
   identification_keys:
     name:
-      compulsory: true
+      required: true
     wavelength:
       type: !!python/name:satpy.dataset.WavelengthRange
     resolution:
@@ -341,42 +499,70 @@ DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
       default: nadir
     calibration:
     modifiers:
-      compulsory: true
+      required: true
       default: []
       type: !!python/name:satpy.dataset.ModifierTuple
 """
 
 default_id_keys_config = {'name': {
-                              'compulsory': True
+                              'required': True
                           },
                           'wavelength': {
                               'type': WavelengthRange,
                           },
                           'resolution': None,
-                          'polarization': None,
-                          'calibration': None,
+                          # 'polarization': None,
+                          'calibration': {
+                              'enum': [
+                                  'reflectance',
+                                  'brightness_temperature',
+                                  'radiance',
+                                  'counts'
+                                  ]
+                          },
                           'level': None,
                           'modifiers': {
-                              'compulsory': True,
+                              'required': True,
                               'default': tuple(),
                               'type': ModifierTuple,
                           },
                           }
 
-default_types = {'wavelength': WavelengthRange,
-                 'modifiers': ModifierTuple}
-default_id_keys = {'name': None, 'wavelength': None, 'resolution': None,
-                   'polarization': None, 'calibration': None, 'level': None,
-                   'modifiers': ModifierTuple()}
-default_DatasetID = make_dsid_class(default_types, **default_id_keys)
+# default_types = {'wavelength': WavelengthRange,
+#                  'modifiers': ModifierTuple}
+# default_id_keys = {'name': None, 'wavelength': None, 'resolution': None,
+#                    # 'polarization': None,
+#                    'calibration': None, 'level': None,
+#                    'modifiers': ModifierTuple()}
+#default_DatasetID = make_dsid_class(default_types, **default_id_keys)
+default_DatasetID = new_dataset_id_class_from_keys(default_id_keys_config)
 
-DatasetID = default_DatasetID
+def test_new_did():
+    did = default_DatasetID.from_dict({'name': 'bla', 'calibration': 'counts'})
 
 
-def create_filtered_dsid(dataset_key, **dfilter):
+test_new_did()
+
+# DatasetID = default_DatasetID
+
+
+class DatasetID:
+    """Fake datasetid."""
+
+    def __init__(self, *args, **kwargs):
+        """Fake init."""
+        raise TypeError("DatasetID should not be used directly")
+
+    def from_dict(self, *args, **kwargs):
+        """Fake fun."""
+        raise TypeError("DatasetID should not be used directly")
+
+
+
+def create_filtered_dsid(dataset_key, query):
     """Create a DatasetID matching *dataset_key* and *dfilter*.
 
-    If a proprety is specified in both *dataset_key* and *dfilter*, the former
+    If a proprety is specified in both *dataset_key* and *query*, the former
     has priority.
 
     """
@@ -387,10 +573,18 @@ def create_filtered_dsid(dataset_key, **dfilter):
             ds_dict = {'name': dataset_key}
         elif isinstance(dataset_key, numbers.Number):
             ds_dict = {'wavelength': dataset_key}
-    for key, value in dfilter.items():
-        if value is not None:
+        else:
+            import ipdb; ipdb.set_trace()
+    for key, value in query._dict.items():
+        if value != '*':
             ds_dict.setdefault(key, value)
-    return DatasetID.from_dict(ds_dict)
+    try:
+        # FIXME_DID: this is fishy!
+        if ds_dict == dataset_key.to_dict():
+            return dataset_key
+    except AttributeError:
+        pass
+    return DatasetQuery.from_dict(ds_dict)
 
 
 def dataset_walker(datasets):
