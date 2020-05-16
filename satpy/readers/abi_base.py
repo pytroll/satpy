@@ -65,6 +65,7 @@ SUB_AREAS = {
     'Continental US':[454, 1928, 1581, 3845],
     'Centro America':[1704, 2351, 1790, 2641],
     'Sur America':   [1979, 5126, 2095, 3754],
+    'MexicoC':        [670, 1500, 70 , 1300],
 }
 
 class NC_ABI_BASE(BaseFileHandler):
