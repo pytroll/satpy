@@ -540,6 +540,9 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
         self.assertRaises(ValueError, find_files_and_readers, sensor='viirs')
+        self.assertEqual(
+                find_files_and_readers(sensor='viirs', missing_ok=True),
+                {})
 
     def test_reader_load_failed(self):
         """Test that an exception is raised when a reader can't be loaded."""
