@@ -420,7 +420,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
         res = self.reader.select_files_from_directory(dpath, fs=Silly())
         self.assertEqual(
                 res,
-                ["/grocery/apricot.nc", "/grocery/aubergine.nc"])
+                {"/grocery/apricot.nc", "/grocery/aubergine.nc"})
 
     def test_supports_sensor(self):
         """Check supports_sensor."""
