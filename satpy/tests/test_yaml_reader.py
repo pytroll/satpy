@@ -72,7 +72,7 @@ class TestUtils(unittest.TestCase):
         pattern = os.path.join(*pattern.split('/'))
         filename = os.path.join(base_dir, 'Oa05_radiance.nc')
         expected = os.path.join(base_data, 'Oa05_radiance.nc')
-        self.assertEqual(yr.get_filebase(filename, pattern), expected)
+        self.assertEqual(yr._get_filebase(filename, pattern), expected)
 
     def test_match_filenames(self):
         """Check that matching filenames works."""
@@ -91,7 +91,7 @@ class TestUtils(unittest.TestCase):
         filenames = [os.path.join(base_dir, 'Oa05_radiance.nc'),
                      os.path.join(base_dir, 'geo_coordinates.nc')]
         expected = os.path.join(base_dir, 'geo_coordinates.nc')
-        self.assertEqual(yr.match_filenames(filenames, pattern), [expected])
+        self.assertEqual(yr._match_filenames(filenames, pattern), {expected})
 
     def test_match_filenames_windows_forward_slash(self):
         """Check that matching filenames works on Windows with forward slashes.
@@ -114,7 +114,7 @@ class TestUtils(unittest.TestCase):
         filenames = [os.path.join(base_dir, 'Oa05_radiance.nc').replace(os.sep, '/'),
                      os.path.join(base_dir, 'geo_coordinates.nc').replace(os.sep, '/')]
         expected = os.path.join(base_dir, 'geo_coordinates.nc').replace(os.sep, '/')
-        self.assertEqual(yr.match_filenames(filenames, pattern), [expected])
+        self.assertEqual(yr._match_filenames(filenames, pattern), {expected})
 
     def test_listify_string(self):
         """Check listify_string."""
