@@ -584,7 +584,6 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            filter_parameters=None, reader_kwargs=None,
                            missing_ok=False, fs=None):
     """Find files matching the provided parameters.
-    
     Use `start_time` and/or `end_time` to limit found filenames by the times
     in the filenames (not the internal file metadata). Files are matched if
     they fall anywhere within the range specified by these parameters.
