@@ -64,15 +64,16 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler"""
+    """Swap-in HDF5 File Handler."""
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None):
+        """Create fake file handler."""
         super(FakeHDF5FileHandler2, self).__init__(filename, filename_info, filetype_info)
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
 
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         start_time = filename_info['start_time']
         end_time = filename_info['end_time'].replace(year=start_time.year,
                                                      month=start_time.month,
@@ -163,11 +164,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 
 class TestVIIRSSDRReader(unittest.TestCase):
-    """Test VIIRS SDR Reader"""
+    """Test VIIRS SDR Reader."""
+
     yaml_file = "viirs_sdr.yaml"
 
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
+        """Wrap HDF5 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -177,7 +179,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF5 file handler"""
+        """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -236,7 +238,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_all_m_reflectances_no_geo(self):
-        """Load all M band reflectances with no geo files provided"""
+        """Load all M band reflectances with no geo files provided."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -273,7 +275,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertNotIn('area', d.attrs)
 
     def test_load_all_m_reflectances_find_geo(self):
-        """Load all M band reflectances with geo files not specified but existing"""
+        """Load all M band reflectances with geo files not specified but existing."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -319,7 +321,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIsNotNone(d.attrs['area'])
 
     def test_load_all_m_reflectances_provided_geo(self):
-        """Load all M band reflectances with geo files provided"""
+        """Load all M band reflectances with geo files provided."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -362,7 +364,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(d.attrs['area'].lats.attrs['rows_per_scan'], 16)
 
     def test_load_all_m_reflectances_use_nontc(self):
-        """Load all M band reflectances but use non-TC geolocation"""
+        """Load all M band reflectances but use non-TC geolocation."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs, use_tc=False)
         loadables = r.select_files_from_pathnames([
@@ -449,7 +451,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(d.attrs['area'].lats.attrs['rows_per_scan'], 16)
 
     def test_load_all_m_bts(self):
-        """Load all M band brightness temperatures"""
+        """Load all M band brightness temperatures."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -476,7 +478,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIsNotNone(d.attrs['area'])
 
     def test_load_all_m_radiances(self):
-        """Load all M band radiances"""
+        """Load all M band radiances."""
         from satpy.readers import load_reader
         from satpy import DatasetID
         r = load_reader(self.reader_configs)
@@ -527,7 +529,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIsNotNone(d.attrs['area'])
 
     def test_load_dnb(self):
-        """Load DNB dataset"""
+        """Load DNB dataset."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -545,7 +547,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIsNotNone(d.attrs['area'])
 
     def test_load_i_no_files(self):
-        """Load I01 when only DNB files are provided"""
+        """Load I01 when only DNB files are provided."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -558,7 +560,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         self.assertEqual(len(ds), 0)
 
     def test_load_all_i_reflectances_provided_geo(self):
-        """Load all I band reflectances with geo files provided"""
+        """Load all I band reflectances with geo files provided."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -585,7 +587,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertEqual(d.attrs['area'].lats.attrs['rows_per_scan'], 32)
 
     def test_load_all_i_bts(self):
-        """Load all I band brightness temperatures"""
+        """Load all I band brightness temperatures."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -606,7 +608,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIsNotNone(d.attrs['area'])
 
     def test_load_all_i_radiances(self):
-        """Load all I band radiances"""
+        """Load all I band radiances."""
         from satpy.readers import load_reader
         from satpy import DatasetID
         r = load_reader(self.reader_configs)
@@ -636,15 +638,16 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
 
 class FakeHDF5FileHandlerAggr(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler"""
+    """Swap-in HDF5 File Handler."""
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None):
+        """Create fake aggregated file handler."""
         super(FakeHDF5FileHandlerAggr, self).__init__(filename, filename_info, filetype_info)
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
 
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         start_time = filename_info['start_time']
         end_time = filename_info['end_time'].replace(year=start_time.year,
                                                      month=start_time.month,
@@ -793,11 +796,12 @@ class FakeHDF5FileHandlerAggr(FakeHDF5FileHandler):
 
 
 class TestAggrVIIRSSDRReader(unittest.TestCase):
-    """Test VIIRS SDR Reader"""
+    """Test VIIRS SDR Reader."""
+
     yaml_file = "viirs_sdr.yaml"
 
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
+        """Wrap HDF5 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -807,7 +811,7 @@ class TestAggrVIIRSSDRReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF5 file handler"""
+        """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
     def test_bounding_box(self):
