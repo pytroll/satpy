@@ -17,6 +17,9 @@ file_types:
      # S-OSI_-NOR_-MULT-AHLDLI_FIELD-201805011200Z.grb.gz
      - '{stem}.grb'
      - '{stem}.grb2'
+     # NWCSAF input file name format:
+     # S_NWC_NWP_2017-03-14T00:00:00Z_002.grib
+     - 'S_NWC_NWP_{start_time:%Y-%m-%dT%H:%M:%S}Z_{forecast_time:3d}.grib'
 #  grib_ncep:
 #    file_reader: !!python/name:satpy.readers.grib.GRIBFileHandler
 #    file_patterns:
