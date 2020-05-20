@@ -78,6 +78,8 @@ class NC_ABI_L1B(NC_ABI_BASE):
         res.attrs.pop('add_offset', None)
         res.attrs.pop('_Unsigned', None)
         res.attrs.pop('ancillary_variables', None)  # Can't currently load DQF
+        # although we could compute these, we'd have to update in calibration
+        res.attrs.pop('valid_range', None)
         # add in information from the filename that may be useful to the user
         for attr in ('observation_type', 'scene_abbr', 'scan_mode', 'platform_shortname'):
             res.attrs[attr] = self.filename_info[attr]
