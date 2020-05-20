@@ -183,7 +183,7 @@ class TestGRIBReader(unittest.TestCase):
         from satpy.readers import load_reader
 
         filenames = [
-                "quinoia.grb",
+                "quinoa.grb",
                 "tempeh.grb2",
                 "tofu.grib2",
                 "falafel.grib",
