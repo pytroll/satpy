@@ -155,6 +155,7 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         else:
             m_data = self.read_geo(key, info)
         m_data.attrs.update(info)
+        m_data.attrs['rows_per_scan'] = self.scan_size
         return m_data
 
     def get_bounding_box(self):
