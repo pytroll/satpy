@@ -45,7 +45,8 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
                     'scale_factor': 0.5,
                     'add_offset': -1.,
                     '_FillValue': 1002,
-                    'units': 'W m-2 um-1 sr-1'
+                    'units': 'W m-2 um-1 sr-1',
+                    'valid_range': (0, 4095),
                 }
             )
         rad.coords['t'] = time
