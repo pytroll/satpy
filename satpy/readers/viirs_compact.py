@@ -42,11 +42,6 @@ from satpy.readers.utils import np2str
 from satpy.utils import angle2xyz, lonlat2xyz, xyz2angle, xyz2lonlat
 from satpy import CHUNK_SIZE
 
-try:
-    import tables
-except ImportError:
-    tables = None
-
 chans_dict = {"M01": "M1",
               "M02": "M2",
               "M03": "M3",
@@ -146,6 +141,13 @@ class VIIRSCompactFileHandler(BaseFileHandler):
         short_name = np2str(self.h5f.attrs['Platform_Short_Name'])
         self.mda['platform_name'] = short_names.get(short_name, short_name)
         self.mda['sensor'] = 'viirs'
+
+    def __del__(self):
+        """Close file handlers when we are done."""
+        try:
+            self.h5f.close()
+        except OSError:
+            pass
 
     def get_dataset(self, key, info):
         """Load a dataset."""
