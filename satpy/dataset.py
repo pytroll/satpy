@@ -17,10 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Dataset objects."""
 
-import sys
 import logging
 import numbers
 from collections import namedtuple
+from collections.abc import Collection
 from datetime import datetime
 
 import numpy as np
@@ -99,8 +99,18 @@ def combine_metadata(*metadata_objects, **kwargs):
     for k in shared_keys:
         values = [nfo[k] for nfo in info_dicts]
         any_arrays = any([hasattr(val, "__array__") for val in values])
+        # in the real world, the `ancillary_variables` attribute may be
+        # List[xarray.DataArray], this means our values are now
+        # List[List[xarray.DataArray]].
+        any_list_of_arrays = any(
+                [isinstance(val, Collection) and all([hasattr(subval, "__array__")
+                 for subval in val])
+                 for val in values])
         if any_arrays:
             if all(np.all(val == values[0]) for val in values[1:]):
+                shared_info[k] = values[0]
+        elif any_list_of_arrays:
+            if all(np.array_equal(val, values[0]) for val in values[1]):
                 shared_info[k] = values[0]
         elif 'time' in k and isinstance(values[0], datetime) and average_times:
             shared_info[k] = average_datetimes(values)
