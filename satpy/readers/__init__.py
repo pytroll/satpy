@@ -90,7 +90,6 @@ def get_best_dataset_key(key, choices):
     """
     sorted_choices, distances = key.sort_dsids(choices)
     if len(sorted_choices) == 0 or distances[0] is np.inf:
-        import ipdb; ipdb.set_trace()
         return []
     else:
         return sorted_choices[0:1]
@@ -320,11 +319,9 @@ class DatasetDict(dict):
             d = value.attrs
         # use value information to make a more complete DatasetID
         #import ipdb; ipdb.set_trace()
-        if not isinstance(key, DataArrayID):
-            import ipdb; ipdb.set_trace()
-        # if not isinstance(key, DatasetID):
+        if not isinstance(key, (DataArrayID, DatasetQuery)):
             if not isinstance(d, dict):
-                raise ValueError("Key must be a DatasetID when value is not an xarray DataArray or dict")
+                raise ValueError("Key must be a DatasetID or DataQuery when value is not an xarray DataArray or dict")
             old_key = key
             try:
                 key = self.get_key(key)

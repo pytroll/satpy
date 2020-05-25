@@ -450,7 +450,7 @@ class DatasetQuery:
         for key, val in self._dict.items():
             if val != '*':
                 keys = [k for k in keys
-                        if getattr(k, key) == val]
+                        if getattr(k, key, None) == val]
         return keys
 
     def sort_dsids(self, dsids):
@@ -520,7 +520,7 @@ default_id_keys_config = {'name': {
                                   'counts'
                                   ]
                           },
-                          'level': None,
+                          # 'level': None,
                           'modifiers': {
                               'required': True,
                               'default': tuple(),
@@ -558,11 +558,10 @@ class DatasetID:
         raise TypeError("DatasetID should not be used directly")
 
 
+def create_filtered_query(dataset_key, filter_query):
+    """Create a DatasetQuery matching *dataset_key* and *filter_query*.
 
-def create_filtered_dsid(dataset_key, query):
-    """Create a DatasetID matching *dataset_key* and *dfilter*.
-
-    If a proprety is specified in both *dataset_key* and *query*, the former
+    If a proprety is specified in both *dataset_key* and *filter_query*, the former
     has priority.
 
     """
@@ -574,17 +573,29 @@ def create_filtered_dsid(dataset_key, query):
         elif isinstance(dataset_key, numbers.Number):
             ds_dict = {'wavelength': dataset_key}
         else:
-            import ipdb; ipdb.set_trace()
-    for key, value in query._dict.items():
+            raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
+    for key, value in filter_query._dict.items():
         if value != '*':
             ds_dict.setdefault(key, value)
-    try:
-        # FIXME_DID: this is fishy!
-        if ds_dict == dataset_key.to_dict():
-            return dataset_key
-    except AttributeError:
-        pass
+
     return DatasetQuery.from_dict(ds_dict)
+
+
+def create_filtered_id(dataset_key, filter_query):
+    """Create a DatasetID matching *dataset_key* and *filter_query*.
+
+    If a proprety is specified in both *dataset_key* and *filter_query*, the former
+    has priority.
+
+    """
+    additional_info = {}
+    for key, val in filter_query._dict.items():
+        if val != '*':
+            additional_info[key] = val
+    if not additional_info:
+        return dataset_key
+    else:
+        raise NotImplementedError("Missmatch {} vs {}".format(str(dataset_key), str(filter_query)))
 
 
 def dataset_walker(datasets):

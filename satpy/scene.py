@@ -443,8 +443,7 @@ class Scene(MetadataObject):
         if not datasets:
             new_scn.wishlist = self.wishlist.copy()
         else:
-            new_scn.wishlist = set([DatasetID.from_dict(ds.attrs)
-                                    for ds in new_scn])
+            new_scn.wishlist = set(ds_id for ds_id in new_scn.keys())
         return new_scn
 
     @property
@@ -1021,10 +1020,10 @@ class Scene(MetadataObject):
         resamplers = {}
         reductions = {}
         for dataset, parent_dataset in dataset_walker(datasets):
-            ds_id = DatasetID.from_dict(dataset.attrs)
+            ds_id = dataset.attrs['_id_class'].from_dict(dataset.attrs)
             pres = None
             if parent_dataset is not None:
-                pres = new_datasets[DatasetID.from_dict(parent_dataset.attrs)]
+                pres = new_datasets[parent_dataset.attrs['_id_class'].from_dict(parent_dataset.attrs)]
             if ds_id in new_datasets:
                 replace_anc(new_datasets[ds_id], pres)
                 if ds_id in new_scn.datasets:

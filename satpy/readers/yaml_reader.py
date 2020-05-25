@@ -40,7 +40,7 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DatasetID, new_dataset_id_class_from_keys, get_keys_from_config, default_id_keys_config
+from satpy.dataset import DatasetQuery, new_dataset_id_class_from_keys, get_keys_from_config, default_id_keys_config
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
@@ -687,7 +687,7 @@ class FileYAMLReader(AbstractYAMLReader):
             cinfo['resolution'] = ds_info['resolution']
             if 'polarization' in ds_info:
                 cinfo['polarization'] = ds_info['polarization']
-            cid = DatasetID(**cinfo)
+            cid = DatasetQuery.from_dict(cinfo)
             cids.append(self.get_dataset_key(cid))
 
         return cids
@@ -800,6 +800,7 @@ class FileYAMLReader(AbstractYAMLReader):
         for dataset in datasets.values():
             new_vars = []
             for av_id in dataset.attrs.get('ancillary_variables', []):
+                import ipdb; ipdb.set_trace()
                 if isinstance(av_id, DatasetID):
                     new_vars.append(datasets[av_id])
                 else:
