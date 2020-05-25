@@ -10,6 +10,10 @@ reader:
     polarization:
     resolution:
     calibration:
+      enum:
+        - gamma
+        - sigma_nought
+        - beta_nought
     modifiers:
       required: true
       default: []
