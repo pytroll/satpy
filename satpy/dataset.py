@@ -532,6 +532,7 @@ default_id_keys_config = {'name': {
                           }
 
 
+default_DatasetID = new_dataset_id_class_from_keys(default_id_keys_config)
 
 
 class DatasetID:

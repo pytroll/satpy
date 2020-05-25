@@ -32,8 +32,7 @@ except ImportError:
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
-from satpy.dataset import DatasetQuery, DataArrayID
-from satpy import CALIBRATION_ORDER
+from satpy.dataset import DatasetQuery, DataArrayID, default_DatasetID
 
 LOG = logging.getLogger(__name__)
 
@@ -95,33 +94,6 @@ def get_best_dataset_key(key, choices):
         return sorted_choices[0:1]
 
     return key.sort_dsids(choices)[0:1]
-    # Choose the wavelength closest to the choice
-    if key.get('wavelength', '*') != '*' and choices:
-        # find the dataset with a central wavelength nearest to the
-        # requested wavelength
-        nearest_wl = min([_wl_dist(key['wavelength'], x.wavelength)
-                          for x in choices if x.wavelength is not None])
-        choices = [c for c in choices
-                   if _wl_dist(key['wavelength'], c.wavelength) == nearest_wl]
-    if key.get('modifiers', '*') == '*' and choices:
-        num_modifiers = min(len(x.modifiers or tuple()) for x in choices)
-        choices = [c for c in choices if len(
-            c.modifiers or tuple()) == num_modifiers]
-    if key.get('calibration', '*') == '*' and choices:
-        best_cal = [x.calibration for x in choices if x.calibration]
-        if best_cal:
-            best_cal = min(best_cal, key=lambda x: CALIBRATION_ORDER[x])
-            choices = [c for c in choices if c.calibration == best_cal]
-    if key.get('resolution', '*') == '*' and choices:
-        low_res = [x.resolution for x in choices if x.resolution]
-        if low_res:
-            low_res = min(low_res)
-            choices = [c for c in choices if c.resolution == low_res]
-    if key.get('level', '*') == '*' and choices:
-        low_level = [x.level for x in choices if x.level]
-        if low_level:
-            low_level = max(low_level)
-            choices = [c for c in choices if c.level == low_level]
 
     return choices
 
@@ -207,36 +179,6 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
     res = filter_keys_by_dataset_query(key, key_container)
     if not res:
         raise(KeyError)
-    # further filter by other parameters
-    # for filter_key, filter_val in filter_args.items():
-    #     if not isinstance(filter_val, (list, tuple)):
-    #         filter_val = (filter_val, )
-    #     res = [k for k in res
-    #            if getattr(k, filter_key) is not None and getattr(k, filter_key) in filter_val]
-    # if resolution is not None:
-    #     if not isinstance(resolution, (list, tuple)):
-    #         resolution = (resolution, )
-    #     res = [k for k in res
-    #            if k.resolution is not None and getattr(k, 'resolution') in resolution]
-    # if polarization is not None:
-    #     if not isinstance(polarization, (list, tuple)):
-    #         polarization = (polarization, )
-    #     res = [k for k in res
-    #            if k.polarization is not None and k.polarization in
-    #            polarization]
-    # if calibration is not None:
-    #     if not isinstance(calibration, (list, tuple)):
-    #         calibration = (calibration, )
-    #     res = [k for k in res
-    #            if k.calibration is not None and k.calibration in calibration]
-    # if level is not None:
-    #     if not isinstance(level, (list, tuple)):
-    #         level = (level, )
-    #     res = [k for k in res
-    #            if k.level is not None and k.level in level]
-    # if modifiers is not None:
-    #     res = [k for k in res
-    #            if k.modifiers is not None and k.modifiers == modifiers]
 
     if best:
         res = get_best_dataset_key(key, res)
@@ -318,7 +260,6 @@ class DatasetDict(dict):
             # xarray.DataArray objects
             d = value.attrs
         # use value information to make a more complete DatasetID
-        #import ipdb; ipdb.set_trace()
         if not isinstance(key, (DataArrayID, DatasetQuery)):
             if not isinstance(d, dict):
                 raise ValueError("Key must be a DatasetID or DataQuery when value is not an xarray DataArray or dict")
@@ -331,17 +272,13 @@ class DatasetDict(dict):
                 else:
                     new_name = d.get("name")
                 # this is a new key and it's not a full DatasetID tuple
-                import ipdb; ipdb.set_trace()
-                key = DatasetID(name=new_name,
-                                resolution=d.get("resolution"),
-                                wavelength=d.get("wavelength"),
-                                polarization=d.get("polarization"),
-                                calibration=d.get("calibration"),
-                                level=d.get("level"),
-                                modifiers=d.get("modifiers", tuple()))
-                if key.name is None and key.wavelength is None:
+                if new_name is None and d.get('wavelength') is None:
                     raise ValueError("One of 'name' or 'wavelength' attrs "
                                      "values should be set.")
+                d = d.copy()
+                d['name'] = new_name
+                dsid_class = d.get('_id_class', default_DatasetID)
+                key = dsid_class.from_dict(d)
 
         # update the 'value' with the information contained in the key
 
