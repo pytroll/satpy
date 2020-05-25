@@ -105,7 +105,7 @@ def combine_metadata(*metadata_objects, **kwargs):
         any_list_of_arrays = any(
                 [isinstance(val, Collection) and len(val) > 0 and
                  all([hasattr(subval, "__array__")
-                 for subval in val])
+                     for subval in val])
                  for val in values])
         if any_arrays:
             if all(np.all(val == values[0]) for val in values[1:]):
