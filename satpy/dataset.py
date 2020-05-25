@@ -132,10 +132,13 @@ class ValueList(IntEnum):
         try:
             return cls[value]
         except KeyError:
-            raise KeyError('{} invalid value for {}'.format(value, cls))
+            raise ValueError('{} invalid value for {}'.format(value, cls))
 
     def __eq__(self, other):
         return self.name == other
+
+    def __ne__(self, other):
+        return self.name != other
 
     def __hash__(self):
         return hash(self.name)
@@ -528,22 +531,7 @@ default_id_keys_config = {'name': {
                           },
                           }
 
-# default_types = {'wavelength': WavelengthRange,
-#                  'modifiers': ModifierTuple}
-# default_id_keys = {'name': None, 'wavelength': None, 'resolution': None,
-#                    # 'polarization': None,
-#                    'calibration': None, 'level': None,
-#                    'modifiers': ModifierTuple()}
-#default_DatasetID = make_dsid_class(default_types, **default_id_keys)
-default_DatasetID = new_dataset_id_class_from_keys(default_id_keys_config)
 
-def test_new_did():
-    did = default_DatasetID.from_dict({'name': 'bla', 'calibration': 'counts'})
-
-
-test_new_did()
-
-# DatasetID = default_DatasetID
 
 
 class DatasetID:
