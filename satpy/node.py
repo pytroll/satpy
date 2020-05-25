@@ -21,7 +21,7 @@ from satpy import DatasetDict
 from satpy.dataset import DataArrayID, DatasetQuery, ModifierTuple
 from satpy.readers import TooManyResults
 from satpy.utils import get_logger
-from satpy.dataset import create_filtered_dsid
+from satpy.dataset import create_filtered_query, create_filtered_id
 
 LOG = get_logger(__name__)
 # Empty leaf used for marking composites with no prerequisites
@@ -281,7 +281,6 @@ class DependencyTree(Node):
                 return self.compositors[sensor_name][key]
             except KeyError:
                 continue
-        #import ipdb; ipdb.set_trace()
         if isinstance(key, DataArrayID) and key.modifiers:
             # we must be generating a modifier composite
             return self.get_modifier(key)
@@ -364,7 +363,6 @@ class DependencyTree(Node):
         if not prereq_names and not skip:
             # this composite has no required prerequisites
             prereq_names = [None]
-        import ipdb; ipdb.set_trace()
         for prereq in prereq_names:
             n, u = self._find_dependencies(prereq, query=query)
             if u:
@@ -408,10 +406,6 @@ class DependencyTree(Node):
         # one or more modifications if it has modifiers see if we can find
         # the unmodified version first
         src_node = None
-        # if not isinstance(dataset_key, str):
-        #     import ipdb; ipdb.set_trace()
-        # else:
-        #     dataset_key = DatasetQuery(name=dataset_key)
         if isinstance(dataset_key, DatasetQuery) and dataset_key['modifiers']:
             new_dict = dataset_key.to_dict()
             new_dict['modifiers'] = new_dict['modifiers'][:-1]
@@ -426,12 +420,10 @@ class DependencyTree(Node):
         elif isinstance(dataset_key, str):
             dataset_key = DatasetQuery(name=dataset_key)
         try:
-            #import ipdb; ipdb.set_trace()
             compositor = self.get_compositor(dataset_key)
         except KeyError:
             raise KeyError("Can't find anything called {}".format(str(dataset_key)))
-        #import ipdb; ipdb.set_trace()
-        dataset_key = create_filtered_dsid(compositor.id, query)
+        dataset_key = create_filtered_id(compositor.id, query)
         root = Node(dataset_key, data=(compositor, [], []))
         if src_node is not None:
             self.add_child(root, src_node)
@@ -446,6 +438,7 @@ class DependencyTree(Node):
             return None, unknowns
         root.data[1].extend(prereqs)
 
+        # Get the optionals
         LOG.trace("Looking for optional prerequisites for: {}".format(dataset_key))
         optional_prereqs, _ = self._get_compositor_prereqs(
             root, compositor.attrs['optional_prerequisites'], skip=True, query=query)
@@ -455,7 +448,7 @@ class DependencyTree(Node):
 
     def get_filtered_item(self, dataset_key, query):
         """Get the item matching *dataset_key* and *query*."""
-        dsid = create_filtered_dsid(dataset_key, query)
+        dsid = create_filtered_query(dataset_key, query)
         return self[dsid]
 
     def _find_dependencies(self, dataset_key, query):
@@ -475,7 +468,7 @@ class DependencyTree(Node):
 
         # 0 check if the *exact* dataset is already loaded
         try:
-            dsq = create_filtered_dsid(dataset_key, query)
+            dsq = create_filtered_query(dataset_key, query)
             node = self.getitem(dsq)
             LOG.trace("Found exact dataset already loaded: {}".format(node.name))
             return node, set()

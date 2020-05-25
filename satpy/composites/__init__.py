@@ -185,11 +185,6 @@ class CompositorLoader(object):
                         self._process_composite_config(
                             sub_comp_name, sub_conf, composite_type, sensor_id,
                             sensor_deps, composite_config, **kwargs)
-                    else:
-                        # we want this prerequisite to act as a query with
-                        # 'modifiers' being None otherwise it will be an empty
-                        # tuple
-                        item.setdefault('modifiers', None)
                     key = DatasetQuery.from_dict(item)
                     prereqs.append(key)
                 else:
