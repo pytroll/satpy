@@ -98,3 +98,6 @@ class TestCombineMetadata(unittest.TestCase):
         combine_metadata(*dts)
         dts2 = [{"quality": DataArray(d["quality"])} for d in dts]
         combine_metadata(*dts2)
+        # the ancillary_variables attribute is actually a list of data arrays
+        dts3 = [{"quality": [d["quality"]]} for d in dts]
+        combine_metadata(*dts3)
