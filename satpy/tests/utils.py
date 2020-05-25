@@ -20,6 +20,10 @@ from datetime import datetime
 from satpy.readers.yaml_reader import FileYAMLReader
 from unittest import mock
 
+from satpy.dataset import default_id_keys_config, new_dataset_id_class_from_keys
+
+DatasetID = new_dataset_id_class_from_keys(default_id_keys_config)
+
 
 def spy_decorator(method_to_decorate):
     """Fancy decorate to wrap an object while still calling it.
@@ -87,7 +91,6 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
 
 def test_datasets():
     """Get list of various test datasets."""
-    from satpy import DatasetID
     d = [
         DatasetID(name='ds1'),
         DatasetID(name='ds2'),
@@ -144,7 +147,6 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
     import numpy as np
     from xarray import DataArray
     from satpy.composites import CompositeBase, IncompatibleAreas
-    from satpy import DatasetID
 
     attrs = {
         'name': name,
@@ -189,7 +191,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
 
 def test_composites(sensor_name):
     """Create some test composites."""
-    from satpy import DatasetID, DatasetDict
+    from satpy import DatasetDict
     # Composite ID -> (prereqs, optional_prereqs)
     comps = {
         DatasetID(name='comp1'): (['ds1'], []),
