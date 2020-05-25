@@ -98,7 +98,7 @@ def combine_metadata(*metadata_objects, **kwargs):
     shared_info = {}
     for k in shared_keys:
         values = [nfo[k] for nfo in info_dicts]
-        any_arrays = any([isinstance(val, np.ndarray) for val in values])
+        any_arrays = any([hasattr(val, "__array__") for val in values])
         if any_arrays:
             if all(np.all(val == values[0]) for val in values[1:]):
                 shared_info[k] = values[0]
