@@ -55,6 +55,10 @@ LOG = logging.getLogger(__name__)
 NEGLIBLE_COORDS = ['time']
 """Keywords identifying non-dimensional coordinates to be ignored during composite generation."""
 
+MASKING_COMPOSITOR_METHODS = ['less', 'less_equal', 'equal', 'greater_equal',
+                              'greater', 'not_equal', 'isnan', 'isfinite',
+                              'isneginf', 'isposinf']
+
 
 class IncompatibleAreas(Exception):
     """Error raised upon compositing things of different shapes."""
@@ -1608,14 +1612,15 @@ class MaskingCompositor(GenericCompositor):
                                settings.
 
         Each condition in *conditions* consists of of three items:
-        - `method`: the Numpy-equivalent method name for the following
-          opertions: <, >, <=, ==, >=, >, `isnan`, `isinf`
+        - `method`: Numpy method name.  The following are supported
+           operations: `less`, `less_equal`, `equal`, `greater_equal`,
+           `greater`, `not_equal`, `isnan`, `isfinite`, `isinf`,
+          `isneginf`, `isposinf`
         - `value`: threshold value of the *mask* applied with the
-          operator. Can be a string, in which case the corresponding
+          operator.  Can be a string, in which case the corresponding
           value will be determined from `flag_meanings` and
           `flag_values` attributes of the mask.
-          NOTE: the `value` should not be given to 'isnan` or `isfinite`
-          methods.
+          NOTE: the `value` should not be given to 'is*` methods.
         - `transparency`: transparency from interval [0 ... 100] used
           for the method/threshold. Value of 100 is fully transparent.
 
@@ -1710,11 +1715,12 @@ class MaskingCompositor(GenericCompositor):
         The *method* is the name of a numpy function.
 
         """
-        try:
-            func = getattr(np, method)
-        except AttributeError:
-            LOG.error("Method '%s' not found.", method)
-            raise
+        if method not in MASKING_COMPOSITOR_METHODS:
+            raise AttributeError("Unsupported Numpy method %s, use one of %s",
+                                 method, str(MASKING_COMPOSITOR_METHODS))
+
+        func = getattr(np, method)
+
         if value is None:
             return func(mask_data)
         return func(mask_data, value)
