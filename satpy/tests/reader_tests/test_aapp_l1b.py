@@ -22,7 +22,7 @@ import numpy as np
 from satpy.readers.aapp_l1b import _HEADERTYPE, _SCANTYPE, AVHRRAAPPL1BFile
 import tempfile
 import datetime
-from satpy import DatasetID
+from satpy.tests.utils import DatasetID
 
 
 class TestAAPPL1B(unittest.TestCase):
