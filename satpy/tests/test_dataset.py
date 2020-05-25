@@ -20,6 +20,7 @@
 from datetime import datetime
 
 import unittest
+import pytest
 
 
 class TestDatasetID(unittest.TestCase):
@@ -80,6 +81,12 @@ class TestDatasetID(unittest.TestCase):
         # this happens when sorting IDs during dependency checks
         self.assertFalse(d1 < d2)
         self.assertTrue(d2 < d1)
+
+    def test_bad_calibration(self):
+        """Test that asking for a bad calibration fails."""
+        from satpy.tests.utils import DatasetID
+        with pytest.raises(ValueError):
+            DatasetID(name='C05', calibration='_bad_')
 
 
 class TestCombineMetadata(unittest.TestCase):
