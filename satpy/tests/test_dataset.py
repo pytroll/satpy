@@ -84,3 +84,17 @@ class TestCombineMetadata(unittest.TestCase):
         ret = combine_metadata(*dts, average_times=False)
         # times are not equal so don't include it in the final result
         self.assertNotIn('start_time', ret)
+
+    def test_combine_arrays(self):
+        """Test the combine_metadata with arrays."""
+        from satpy.dataset import combine_metadata
+        from numpy import arange, ones
+        from xarray import DataArray
+        dts = [
+                {"quality": (arange(25) % 2).reshape(5, 5).astype("?")},
+                {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
+                {"quality": ones((5, 5,), "?")},
+        ]
+        combine_metadata(*dts)
+        dts2 = [{"quality": DataArray(d["quality"])} for d in dts]
+        combine_metadata(*dts2)
