@@ -103,7 +103,8 @@ def combine_metadata(*metadata_objects, **kwargs):
         # List[xarray.DataArray], this means our values are now
         # List[List[xarray.DataArray]].
         any_list_of_arrays = any(
-                [isinstance(val, Collection) and all([hasattr(subval, "__array__")
+                [isinstance(val, Collection) and len(val) > 0 and
+                 all([hasattr(subval, "__array__")
                  for subval in val])
                  for val in values])
         if any_arrays:
