@@ -1690,21 +1690,10 @@ class MaskingCompositor(GenericCompositor):
             if isinstance(value, str):
                 value = _get_flag_value(mask_in, value)
             transparency = condition['transparency']
-            try:
-                func = getattr(np, method)
-            except AttributeError:
-                LOG.error("Method '%s' not found.", method)
-                raise
-            if value is None:
-                mask = func(mask_data)
-            else:
-                mask = func(mask_data, value)
+            mask = self._get_mask(method, value, mask_data)
 
             if transparency == 100.0:
-                for i, dat in enumerate(data):
-                    data[i] = xr.where(mask, np.nan, dat)
-                    data[i].attrs = alpha_attrs
-
+                data = self._set_data_nans(data, mask, alpha_attrs)
             alpha_val = 1. - transparency / 100.
             alpha = da.where(mask, alpha_val, alpha)
 
@@ -1714,6 +1703,33 @@ class MaskingCompositor(GenericCompositor):
 
         res = super(MaskingCompositor, self).__call__(data, **kwargs)
         return res
+
+    def _get_mask(self, method, value, mask_data):
+        """Get mask array from *mask_data* using *method* and threshold *value*.
+
+        The *method* is the name of a numpy function.
+
+        """
+        try:
+            func = getattr(np, method)
+        except AttributeError:
+            LOG.error("Method '%s' not found.", method)
+            raise
+        if value is None:
+            return func(mask_data)
+        return func(mask_data, value)
+
+    def _set_data_nans(self, data, mask, attrs):
+        """Set *data* to nans where *mask* is True.
+
+        The attributes *attrs** will be written to each band in *data*.
+
+        """
+        for i, dat in enumerate(data):
+            data[i] = xr.where(mask, np.nan, dat)
+            data[i].attrs = attrs
+
+        return data
 
 
 def _get_flag_value(mask, val):
