@@ -26,7 +26,7 @@ from satpy.readers.seviri_l1b_native import (
     NativeMSGFileHandler,
     get_available_channels,
 )
-from satpy.dataset import DatasetID
+from satpy.tests.utils import DatasetID
 
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
