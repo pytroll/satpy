@@ -124,7 +124,7 @@ class FciL2NCFileHandler(BaseFileHandler):
         # TODO in some of the test files, invalid pixels contain the value defined as "fill_value" in the YAML file
         # instead of being masked directly in the netCDF variable.
         # therefore NaN is applied where such value is found or (0 if the array contains integer values)
-        # the next 9 lines have to be removed once the product files are correctly configured
+        # the next 11 lines have to be removed once the product files are correctly configured
         try:
             mask_value = dataset_info['mask_value']
         except KeyError:
@@ -133,7 +133,9 @@ class FciL2NCFileHandler(BaseFileHandler):
             fill_value = dataset_info['fill_value']
         except KeyError:
             fill_value = np.NaN
-        variable = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
+        float_variable = variable.where(variable != fill_value, mask_value).astype('float32', copy=False)
+        float_variable.attrs = variable.attrs
+        variable = float_variable
 
         # If the variable has 3 dimensions, select the required layer
         if variable.ndim == 3:

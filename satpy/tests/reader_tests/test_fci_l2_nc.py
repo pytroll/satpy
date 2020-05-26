@@ -22,6 +22,7 @@ import os
 import numpy as np
 import datetime
 from netCDF4 import Dataset
+import uuid
 
 from satpy.readers.fci_l2_nc import FciL2NCFileHandler, PRODUCT_DATA_DURATION_MINUTES
 
@@ -42,7 +43,10 @@ class TestFciL2NCFileHandler(unittest.TestCase):
     def setUp(self):
         """Set up the test by creating a test file and opening it with the reader."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-        with Dataset(TEST_FILE, 'w') as nc:
+        # uses a UUID to avoid permission conflicts during execution of tests in parallel
+        self.test_file_name = TEST_FILE + str(uuid.uuid1())
+
+        with Dataset(self.test_file_name, 'w') as nc:
             # Create dimensions
             nc.createDimension('number_of_columns', 10)
             nc.createDimension('number_of_rows', 100)
@@ -83,7 +87,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
             mtg_geos_projection.perspective_point_height = 35786400.
 
         self.reader = FciL2NCFileHandler(
-            filename=TEST_FILE,
+            filename=self.test_file_name,
             filename_info={
                 'creation_time':  datetime.datetime(year=2017, month=9, day=20,
                                                     hour=12, minute=30, second=30)
@@ -93,7 +97,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
     def tearDown(self):
         """Remove the previously created test file."""
-        os.remove(TEST_FILE)
+        os.remove(self.test_file_name)
 
     def test_all_basic(self):
         """Test all basic functionalities."""
@@ -113,7 +117,7 @@ class TestFciL2NCFileHandler(unittest.TestCase):
 
         global_attributes = self.reader._get_global_attributes()
         expected_global_attributes = {
-            'filename': TEST_FILE,
+            'filename': self.test_file_name,
             'start_time': datetime.datetime(year=2017, month=9, day=20,
                                             hour=17, minute=30, second=40),
             'end_time': datetime.datetime(year=2017, month=9, day=20,
