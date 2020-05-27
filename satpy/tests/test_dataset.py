@@ -119,5 +119,4 @@ class TestCombineMetadata(unittest.TestCase):
                 DataArray(arange(5), attrs=dts[1]),
                 object()
               ]
-        #breakpoint()
         assert "quality" not in combine_metadata(*dts6)

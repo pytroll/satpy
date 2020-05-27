@@ -23,8 +23,6 @@ from collections import namedtuple
 from collections.abc import Collection
 from datetime import datetime
 
-import numpy as np
-
 logger = logging.getLogger(__name__)
 
 
