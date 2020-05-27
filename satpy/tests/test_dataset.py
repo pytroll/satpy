@@ -95,9 +95,29 @@ class TestCombineMetadata(unittest.TestCase):
                 {"quality": (arange(1, 26) % 3).reshape(5, 5).astype("?")},
                 {"quality": ones((5, 5,), "?")},
         ]
-        combine_metadata(*dts)
+        assert "quality" not in combine_metadata(*dts)
         dts2 = [{"quality": DataArray(d["quality"])} for d in dts]
-        combine_metadata(*dts2)
+        assert "quality" not in combine_metadata(*dts2)
         # the ancillary_variables attribute is actually a list of data arrays
         dts3 = [{"quality": [d["quality"]]} for d in dts]
-        combine_metadata(*dts3)
+        assert "quality" not in combine_metadata(*dts3)
+        # check cases with repeated arrays
+        dts4 = [
+                {"quality": dts[0]["quality"]},
+                {"quality": dts[0]["quality"]},
+                ]
+        assert "quality" in combine_metadata(*dts4)
+        dts5 = [
+                {"quality": dts3[0]["quality"]},
+                {"quality": dts3[0]["quality"]},
+                ]
+        assert "quality" in combine_metadata(*dts5)
+        # check with other types
+        dts6 = [
+                DataArray(arange(5), attrs=dts[0]),
+                DataArray(arange(5), attrs=dts[0]),
+                DataArray(arange(5), attrs=dts[1]),
+                object()
+              ]
+        #breakpoint()
+        assert "quality" not in combine_metadata(*dts6)
