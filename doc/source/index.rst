@@ -243,6 +243,9 @@ the base Satpy installation.
     * - OMPS EDR data in HDF5 format
       - `omps_edr`
       - Beta
+    * - MTG FCI Level 2 in NetCDF4 format
+      - `fci_l2_nc`
+      - Beta
 
 Indices and tables
 ==================
