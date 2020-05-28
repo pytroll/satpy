@@ -243,6 +243,9 @@ the base Satpy installation.
     * - OMPS EDR data in HDF5 format
       - `omps_edr`
       - Beta
+    * - EPS-SG VII Level 1b in NetCDF4 format
+      - `vii_l1b_nc`
+      - Beta
 
 Indices and tables
 ==================
