@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The abi_l1b reader tests package."""
+"""The ahi_hsd reader tests package."""
 
 import unittest
 from unittest import mock
@@ -184,10 +184,12 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             'number_of_lines': 1100,
                             'spare': ''}
             fh.basic_info = {
+                'observation_area': np.array(['FLDK']),
                 'observation_start_time': np.array([58413.12523839]),
                 'observation_end_time': np.array([58413.12562439]),
                 'observation_timeline': np.array([300]),
             }
+            fh.observation_area = np2str(fh.basic_info['observation_area'])
 
             self.fh = fh
 
