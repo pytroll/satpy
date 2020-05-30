@@ -62,3 +62,4 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
+- [Taiga Tsukada (tsukada-cs)](https://github.com/tsukada-cs)
