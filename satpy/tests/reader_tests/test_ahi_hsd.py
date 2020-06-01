@@ -199,6 +199,18 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         self.assertEqual(self.fh.end_time, datetime(2018, 10, 22, 3, 0, 53, 947296))
         self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
 
+    def test_scanning_frequencies(self):
+        self.fh.observation_area = 'JP04'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R304'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R420'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'R520'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'FLDK'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
+
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.__init__',
                 return_value=None)
     def test_calibrate(self, *mocks):
