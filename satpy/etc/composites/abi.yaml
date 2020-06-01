@@ -165,7 +165,7 @@ composites:
   colorized_ir_clouds:
     compositor: !!python/name:satpy.composites.SingleBandCompositor
     prerequisites:
-      - name: 'C13'
+      - name: C13
     standard_name: colorized_ir_clouds
 
   airmass:
