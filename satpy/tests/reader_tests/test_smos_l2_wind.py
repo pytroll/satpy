@@ -120,6 +120,43 @@ class TestSMOSL2WINDReader(unittest.TestCase):
             self.assertIsNotNone(d.attrs['area'])
             self.assertIn('y', d.dims)
             self.assertIn('x', d.dims)
+            self.assertEqual(d.shape, (719, 1440))
+            self.assertEqual(d.y[0].data, -89.75)
+            self.assertEqual(d.y[d.shape[0] - 1].data, 89.75)
+
+    def test_load_lat(self):
+        """Load lat dataset"""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        with mock.patch('satpy.readers.smos_l2_wind.netCDF4.Variable', xr.DataArray):
+            loadables = r.select_files_from_pathnames([
+                'SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
+            ])
+            r.create_filehandlers(loadables)
+        ds = r.load(['lat'])
+        self.assertEqual(len(ds), 1)
+        for d in ds.values():
+            self.assertIn('y', d.dims)
+            self.assertEqual(d.shape, (719,))
+            self.assertEqual(d.data[0], -89.75)
+            self.assertEqual(d.data[d.shape[0] - 1], 89.75)
+
+    def test_load_lon(self):
+        """Load lon dataset"""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        with mock.patch('satpy.readers.smos_l2_wind.netCDF4.Variable', xr.DataArray):
+            loadables = r.select_files_from_pathnames([
+                'SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
+            ])
+            r.create_filehandlers(loadables)
+        ds = r.load(['lon'])
+        self.assertEqual(len(ds), 1)
+        for d in ds.values():
+            self.assertIn('x', d.dims)
+            self.assertEqual(d.shape, (1440,))
+            self.assertEqual(d.data[0], -180.0)
+            self.assertEqual(d.data[d.shape[0] - 1], 179.75)
 
     def test_adjust_lon(self):
         """Load adjust longitude dataset"""
