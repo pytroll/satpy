@@ -155,6 +155,11 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         np.testing.assert_array_equal(h["ds2_s"], np.arange(10))
         np.testing.assert_array_equal(h["test_group/ds1_i"],
                                       np.arange(10 * 100).reshape((10, 100)))
+        # check that root variables can still be read from cached file object,
+        # even if not cached themselves
+        np.testing.assert_array_equal(
+                h["ds2_f"],
+                np.arange(10. * 100).reshape((10, 100)))
         h.__del__()
         self.assertFalse(h.file_handle.isopen())
 

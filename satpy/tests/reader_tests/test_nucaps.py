@@ -81,6 +81,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 file_content[k + '/attr/standard_name'] = standard_name
         for k, units, standard_name in [
             ('Temperature', 'Kelvin', 'air_temperature'),
+            ('Effective_Pressure', 'mb', ''),
             ('H2O', '1', ''),
             ('H2O_MR', 'g/g', ''),
             ('O3', '1', ''),
@@ -208,6 +209,7 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(['Temperature',
+                           'Effective_Pressure',
                            'H2O',
                            'H2O_MR',
                            'O3',
@@ -226,7 +228,7 @@ class TestNUCAPSReader(unittest.TestCase):
                            'SO2',
                            'SO2_MR',
                            ])
-        self.assertEqual(len(datasets), 18)
+        self.assertEqual(len(datasets), 19)
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
             self.assertEqual(v.ndim, 2)
