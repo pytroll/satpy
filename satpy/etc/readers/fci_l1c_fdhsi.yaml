@@ -283,6 +283,101 @@ datasets:
         units: W m-2 um-1 sr-1
     file_type: fci_l1c_fdhsi
 
+  vis_04_pixel_quality:
+    name: vis_04_pixel_quality
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_05_pixel_quality:
+    name: vis_05_pixel_quality
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_06_pixel_quality:
+    name: vis_06_pixel_quality
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_08_pixel_quality:
+    name: vis_08_pixel_quality
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  vis_09_pixel_quality:
+    name: vis_09_pixel_quality
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_13_pixel_quality:
+    name: nir_13_pixel_quality
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_16_pixel_quality:
+    name: nir_16_pixel_quality
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  nir_22_pixel_quality:
+    name: nir_22_pixel_quality
+    sensor: fci
+    resolution: 1000
+    file_type: fci_l1c_fdhsi
+
+  ir_38_pixel_quality:
+    name: ir_38_pixel_quality
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_63_pixel_quality:
+    name: wv_63_pixel_quality
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  wv_73_pixel_quality:
+    name: wv_73_pixel_quality
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_87_pixel_quality:
+    name: ir_87_pixel_quality
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_97_pixel_quality:
+    name: ir_97_pixel_quality
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_105_pixel_quality:
+    name: ir_105_pixel_quality
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_123_pixel_quality:
+    name: ir_123_pixel_quality
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
+
+  ir_133_pixel_quality:
+    name: ir_133_pixel_quality
+    sensor: fci
+    resolution: 2000
+    file_type: fci_l1c_fdhsi
 
 # Source: FCI L1 Dataset User Guide [FCIL1DUG]
 # ftp://ftp.eumetsat.int/pub/OPS/out/test-data/FCI_L1C_Format_Familiarisation/FCI_L1_Dataset_User_Guide_[FCIL1DUG].pdf
