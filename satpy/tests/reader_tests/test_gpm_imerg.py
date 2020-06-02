@@ -113,7 +113,6 @@ class TestHdf5IMERG(unittest.TestCase):
                  'type': 'crs'}
 
         reader = load_reader(self.reader_configs)
-        print("reader", reader)
         files = reader.select_files_from_pathnames(filenames)
         self.assertTrue(1, len(files))
         reader.create_filehandlers(files)
