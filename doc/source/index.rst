@@ -246,6 +246,9 @@ the base Satpy installation.
     * - AMSR2 level 2 wind data in HDF5 format
       - `amsr_l2`
       - Beta
+    * - GPM IMERG level 3 precipitation data in HDF5 format
+      - `gpm_imerg`
+      - Nominal
 
 Indices and tables
 ==================
