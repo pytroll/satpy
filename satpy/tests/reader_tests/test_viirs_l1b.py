@@ -15,26 +15,15 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.viirs_l1b module.
-"""
+"""Module for testing the satpy.readers.viirs_l1b module."""
 
 import os
-import sys
+import unittest
+from unittest import mock
 from datetime import datetime, timedelta
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -189,6 +178,9 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'brightness_temperature')
             self.assertEqual(v.attrs['units'], 'K')
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
 
     def test_load_every_m_band_refl(self):
         """Test loading all M band reflectances"""
@@ -214,6 +206,9 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'reflectance')
             self.assertEqual(v.attrs['units'], '%')
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
 
     def test_load_every_m_band_rad(self):
         """Test loading all M bands as radiances"""
@@ -245,6 +240,9 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'radiance')
             self.assertEqual(v.attrs['units'], 'W m-2 um-1 sr-1')
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
 
     def test_load_dnb_radiance(self):
         """Test loading the main DNB dataset"""
@@ -260,13 +258,6 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'radiance')
             self.assertEqual(v.attrs['units'], 'W m-2 sr-1')
-
-
-def suite():
-    """The test suite for test_viirs_l1b.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestVIIRSL1BReader))
-
-    return mysuite
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)

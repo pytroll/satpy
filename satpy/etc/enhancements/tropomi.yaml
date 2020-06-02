@@ -1,0 +1,25 @@
+enhancements:
+
+  no2_tropospheric_clean:
+    standard_name: no2_tropospheric_clean
+    operations:
+      - name: colorize_no2_tropospheric_clean
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+              # 0 to 50 10e-6 mol/m2
+            - {colors: ylgnbu, min_value: 0.0, max_value: 0.00005, reverse: true}
+              # 50 to 90 10e-6 mol/m2
+            - {colors: ylorrd, min_value: 0.00005, max_value: 0.00009}
+
+  no2_tropospheric_polluted:
+    standard_name: no2_tropospheric_polluted
+    operations:
+      - name: colorize_no2_tropospheric_poulluted
+        method: !!python/name:satpy.enhancements.colorize
+        kwargs:
+          palettes:
+               # 0 to 120 10e-6 mol/m2
+            - {colors: ylgnbu, min_value: 0.0, max_value: 0.00012, reverse: true}
+               # 120 to 600 10e-6 mol/m2
+            - {colors: ylorrd, min_value: 0.00012, max_value: 0.0006}

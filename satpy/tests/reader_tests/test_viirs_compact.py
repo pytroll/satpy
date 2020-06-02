@@ -2447,12 +2447,14 @@ class TestCompact(unittest.TestCase):
         ds = test.get_dataset(dsid, {})
         self.assertEqual(ds.shape, (752, 4064))
         self.assertEqual(ds.dtype, np.float32)
+        self.assertEqual(ds.attrs['rows_per_scan'], 16)
 
-        dsid = DatasetID(name='longitude')
+        dsid = DatasetID(name='longitude_dnb')
         ds = test.get_dataset(dsid, {'standard_name': 'longitude'})
         self.assertEqual(ds.shape, (752, 4064))
         self.assertEqual(ds.dtype, np.float32)
         self.assertEqual(ds.compute().shape, (752, 4064))
+        self.assertEqual(ds.attrs['rows_per_scan'], 16)
 
     def tearDown(self):
         """Destroy."""
@@ -2460,16 +2462,3 @@ class TestCompact(unittest.TestCase):
             os.remove(self.filename)
         except OSError:
             pass
-
-
-def suite():
-    """Test suite for test_viirs_compact."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCompact))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

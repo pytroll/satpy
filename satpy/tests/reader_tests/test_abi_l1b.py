@@ -20,11 +20,7 @@
 import numpy as np
 import xarray as xr
 import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+from unittest import mock
 
 
 class Test_NC_ABI_L1B_Base(unittest.TestCase):
@@ -49,7 +45,8 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
                     'scale_factor': 0.5,
                     'add_offset': -1.,
                     '_FillValue': 1002,
-                    'units': 'W m-2 um-1 sr-1'
+                    'units': 'W m-2 um-1 sr-1',
+                    'valid_range': (0, 4095),
                 }
             )
         rad.coords['t'] = time
@@ -250,17 +247,3 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
                          'toa_bidirectional_reflectance')
         self.assertEqual(res.attrs['long_name'],
                          'Bidirectional Reflectance')
-
-
-def suite():
-    """Create test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B))
-    mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_ir_cal))
-    mysuite.addTest(loader.loadTestsFromTestCase(Test_NC_ABI_L1B_vis_cal))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

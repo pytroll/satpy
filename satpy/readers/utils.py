@@ -22,15 +22,13 @@ import logging
 from contextlib import closing
 import tempfile
 import bz2
-import sys
 import os
 import shutil
 import numpy as np
 import pyproj
-from six import BytesIO
+from io import BytesIO
 from subprocess import Popen, PIPE
 from pyresample.geometry import AreaDefinition
-from pyresample.boundary import AreaDefBoundary, Boundary
 
 from satpy import CHUNK_SIZE
 
@@ -72,8 +70,21 @@ def get_geostationary_angle_extent(geos_area):
     # TODO: take into account sweep_axis_angle parameter
 
     # get some projection parameters
-    req = float(geos_area.proj_dict['a']) / 1000
-    rp = float(geos_area.proj_dict['b']) / 1000
+    try:
+        crs = geos_area.crs
+        a = crs.ellipsoid.semi_major_metre
+        b = crs.ellipsoid.semi_minor_metre
+        if np.isnan(b):
+            # see https://github.com/pyproj4/pyproj/issues/457
+            raise AttributeError("'semi_minor_metre' attribute is not valid "
+                                 "in older versions of pyproj.")
+    except AttributeError:
+        # older versions of pyproj don't have CRS objects
+        from pyresample.utils import proj4_radius_parameters
+        a, b = proj4_radius_parameters(geos_area.proj_dict)
+
+    req = float(a) / 1000
+    rp = float(b) / 1000
     h = float(geos_area.proj_dict['h']) / 1000 + req
 
     # compute some constants
@@ -157,33 +168,6 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     return _lonlat_from_geos_angle(x, y, geos_area)
 
 
-def get_area_slices(data_area, area_to_cover):
-    """Compute the slice to read from an *area* based on an *area_to_cover*."""
-    if data_area.proj_dict['proj'] != 'geos':
-        raise NotImplementedError('Only geos supported')
-
-    # Intersection only required for two different projections
-    if area_to_cover.proj_dict['proj'] == data_area.proj_dict['proj']:
-        LOGGER.debug('Projections for data and slice areas are'
-                     ' identical: {}'.format(area_to_cover.proj_dict['proj']))
-        # Get xy coordinates
-        llx, lly, urx, ury = area_to_cover.area_extent
-        x, y = data_area.get_xy_from_proj_coords([llx, urx], [lly, ury])
-
-        return slice(x[0], x[1] + 1), slice(y[1], y[0] + 1)
-
-    data_boundary = Boundary(*get_geostationary_bounding_box(data_area))
-
-    area_boundary = AreaDefBoundary(area_to_cover, 100)
-    intersection = data_boundary.contour_poly.intersection(
-        area_boundary.contour_poly)
-
-    x, y = data_area.get_xy_from_lonlat(np.rad2deg(intersection.lon),
-                                        np.rad2deg(intersection.lat))
-
-    return slice(min(x), max(x) + 1), slice(min(y), max(y) + 1)
-
-
 def get_sub_area(area, xslice, yslice):
     """Apply slices to the area_extent and size of the area."""
     new_area_extent = ((area.pixel_upper_left[0] +
@@ -207,39 +191,39 @@ def unzip_file(filename):
     if filename.endswith('bz2'):
         fdn, tmpfilepath = tempfile.mkstemp()
         LOGGER.info("Using temp file for BZ2 decompression: %s", tmpfilepath)
-        # If in python 3, try pbzip2
-        if sys.version_info.major >= 3:
-            pbzip = which('pbzip2')
-            # Run external pbzip2
-            if pbzip is not None:
-                n_thr = os.environ.get('OMP_NUM_THREADS')
-                if n_thr:
-                    runner = [pbzip,
-                              '-dc',
-                              '-p'+str(n_thr),
-                              filename]
-                else:
-                    runner = [pbzip,
-                              '-dc',
-                              filename]
-                p = Popen(runner, stdout=PIPE, stderr=PIPE)
-                stdout = BytesIO(p.communicate()[0])
-                status = p.returncode
-                if status != 0:
-                    raise IOError("pbzip2 error '%s', failed, status=%d"
-                                  % (filename, status))
-                with closing(os.fdopen(fdn, 'wb')) as ofpt:
-                    try:
-                        stdout.seek(0)
-                        shutil.copyfileobj(stdout, ofpt)
-                    except IOError:
-                        import traceback
-                        traceback.print_exc()
-                        LOGGER.info("Failed to read bzipped file %s",
-                                    str(filename))
-                        os.remove(tmpfilepath)
-                        raise
-                return tmpfilepath
+        # try pbzip2
+        pbzip = which('pbzip2')
+        # Run external pbzip2
+        if pbzip is not None:
+            n_thr = os.environ.get('OMP_NUM_THREADS')
+            if n_thr:
+                runner = [pbzip,
+                          '-dc',
+                          '-p'+str(n_thr),
+                          filename]
+            else:
+                runner = [pbzip,
+                          '-dc',
+                          filename]
+            p = Popen(runner, stdout=PIPE, stderr=PIPE)
+            stdout = BytesIO(p.communicate()[0])
+            status = p.returncode
+            if status != 0:
+                raise IOError("pbzip2 error '%s', failed, status=%d"
+                              % (filename, status))
+            with closing(os.fdopen(fdn, 'wb')) as ofpt:
+                try:
+                    stdout.seek(0)
+                    shutil.copyfileobj(stdout, ofpt)
+                except IOError:
+                    import traceback
+                    traceback.print_exc()
+                    LOGGER.info("Failed to read bzipped file %s",
+                                str(filename))
+                    os.remove(tmpfilepath)
+                    raise
+            return tmpfilepath
+
         # Otherwise, fall back to the original method
         bz2file = bz2.BZ2File(filename)
         with closing(os.fdopen(fdn, 'wb')) as ofpt:

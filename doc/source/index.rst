@@ -52,7 +52,7 @@ the base Satpy installation.
     overview
     install
     data_download
-    examples
+    examples/index
     quickstart
     readers
     composites
@@ -89,7 +89,10 @@ the base Satpy installation.
         | in the files. EUMETSAT has been notified.
     * - MSG (Meteosat 8 to 11) L2 products in BUFR format
       - `seviri_l2_bufr`
-      - AMV Bufr products not available yet.
+      - AMV BUFR products not supported yet.
+    * - MSG (Meteosat 8 to 11) L2 products in GRIB2 format
+      - `seviri_l2_grib`
+      - In development, CLM and OCA products supported  
     * - Himawari 8 and 9 AHI data in HSD format
       - `ahi_hsd`
       - Nominal
@@ -233,6 +236,15 @@ the base Satpy installation.
       - Beta
     * - IASI level 2 SO2 in BUFR format
       - `iasi_l2_so2_bufr`
+      - Beta
+    * - HY-2B Scatterometer level 2b data in HDF5 format
+      - `hy2_scat_l2b_h5`
+      - Beta
+    * - OMPS EDR data in HDF5 format
+      - `omps_edr`
+      - Beta
+    * - AMSR2 level 2 wind data in HDF5 format
+      - `amsr_l2`
       - Beta
 
 Indices and tables

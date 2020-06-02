@@ -24,6 +24,7 @@ modifiers:
     optional_prerequisites:
     - solar_zenith_angle
     - 13.4
+    sunz_threshold: 85.0
 
   nir_emissive:
     compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
@@ -32,7 +33,7 @@ modifiers:
     optional_prerequisites:
     - solar_zenith_angle
     - 13.4
-
+    sunz_threshold: 85.0
   atm_correction:
     compositor: !!python/name:satpy.composites.PSPAtmosphericalCorrection
     optional_prerequisites:
@@ -292,6 +293,13 @@ composites:
     - cma_extended_pal
     standard_name: cloudmask
 
+  cloudmask_probability:
+    compositor: !!python/name:satpy.composites.PaletteCompositor
+    prerequisites:
+    - cmaprob
+    - cmaprob_pal
+    standard_name: cloudmask_probability
+
   cloudtype:
     compositor: !!python/name:satpy.composites.PaletteCompositor
     prerequisites:
@@ -391,6 +399,17 @@ composites:
     transition_min: 258.15
     transition_max: 298.15
     transition_gamma: 3.0
+
+  natural_enh:
+    compositor: !!python/name:satpy.composites.NaturalEnh
+    standard_name: natural_enh
+    prerequisites:
+    - wavelength: 1.6
+      modifiers: [sunz_corrected]
+    - wavelength: 0.8
+      modifiers: [sunz_corrected]
+    - wavelength: 0.6
+      modifiers: [sunz_corrected]
 
   _night_background:
     compositor: !!python/name:satpy.composites.StaticImageCompositor

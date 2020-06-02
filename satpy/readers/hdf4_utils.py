@@ -23,7 +23,6 @@ from pyhdf.SD import SD, SDC, SDS
 import dask.array as da
 import xarray as xr
 import numpy as np
-import six
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
@@ -67,7 +66,7 @@ class HDF4FileHandler(BaseFileHandler):
         del file_handle
 
     def _collect_attrs(self, name, attrs):
-        for key, value in six.iteritems(attrs):
+        for key, value in attrs.items():
             value = np.squeeze(value)
             if issubclass(value.dtype.type, (np.string_, np.unicode_)) and not value.shape:
                 value = value.item()  # convert to scalar

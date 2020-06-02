@@ -15,23 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.grib module.
-"""
+"""Module for testing the satpy.readers.grib module."""
 
 import os
 import sys
 import numpy as np
 import xarray as xr
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 
 class FakeMessage(object):
@@ -187,6 +178,21 @@ class TestGRIBReader(unittest.TestCase):
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
+    def test_file_pattern(self):
+        """Test matching of file patterns."""
+        from satpy.readers import load_reader
+
+        filenames = [
+                "quinoa.grb",
+                "tempeh.grb2",
+                "tofu.grib2",
+                "falafel.grib",
+                "S_NWC_NWP_1900-01-01T00:00:00Z_999.grib"]
+
+        r = load_reader(self.reader_configs)
+        files = r.select_files_from_pathnames(filenames)
+        self.assertEqual(len(files), 4)
+
     @mock.patch('satpy.readers.grib.pygrib')
     def test_load_all(self, pg):
         """Test loading all test datasets"""
@@ -243,12 +249,3 @@ class TestGRIBReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
             self.assertIsInstance(v, xr.DataArray)
-
-
-def suite():
-    """The test suite for test_grib."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGRIBReader))
-
-    return mysuite

@@ -318,16 +318,3 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.04)
         # make sure the attributes from the file are in the data array
         self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
-
-
-def suite():
-    """Create the test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAMIL1bNetCDF))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAMIL1bNetCDFIRCal))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

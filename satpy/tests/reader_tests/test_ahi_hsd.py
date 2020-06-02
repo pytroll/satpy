@@ -15,14 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The abi_l1b reader tests package."""
+"""The ahi_hsd reader tests package."""
 
 import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
-
+from unittest import mock
 import warnings
 import numpy as np
 import dask.array as da
@@ -39,6 +35,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
     def test_region(self, fromfile, np2str):
         """Test region navigation."""
+        from pyresample.utils import proj4_radius_parameters
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
@@ -71,8 +68,9 @@ class TestAHIHSDNavigation(unittest.TestCase):
 
             area_def = fh.get_area_def(None)
             proj_dict = area_def.proj_dict
-            self.assertEqual(proj_dict['a'], 6378137.0)
-            self.assertEqual(proj_dict['b'], 6356752.3)
+            a, b = proj4_radius_parameters(proj_dict)
+            self.assertEqual(a, 6378137.0)
+            self.assertEqual(b, 6356752.3)
             self.assertEqual(proj_dict['h'], 35785863.0)
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
@@ -84,6 +82,7 @@ class TestAHIHSDNavigation(unittest.TestCase):
     @mock.patch('satpy.readers.ahi_hsd.np.fromfile')
     def test_segment(self, fromfile, np2str):
         """Test segment navigation."""
+        from pyresample.utils import proj4_radius_parameters
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
@@ -116,8 +115,9 @@ class TestAHIHSDNavigation(unittest.TestCase):
 
             area_def = fh.get_area_def(None)
             proj_dict = area_def.proj_dict
-            self.assertEqual(proj_dict['a'], 6378137.0)
-            self.assertEqual(proj_dict['b'], 6356752.3)
+            a, b = proj4_radius_parameters(proj_dict)
+            self.assertEqual(a, 6378137.0)
+            self.assertEqual(b, 6356752.3)
             self.assertEqual(proj_dict['h'], 35785863.0)
             self.assertEqual(proj_dict['lon_0'], 140.7)
             self.assertEqual(proj_dict['proj'], 'geos')
@@ -184,10 +184,12 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             'number_of_lines': 1100,
                             'spare': ''}
             fh.basic_info = {
+                'observation_area': np.array(['FLDK']),
                 'observation_start_time': np.array([58413.12523839]),
                 'observation_end_time': np.array([58413.12562439]),
                 'observation_timeline': np.array([300]),
             }
+            fh.observation_area = np2str(fh.basic_info['observation_area'])
 
             self.fh = fh
 
@@ -195,6 +197,18 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         """Test start/end/scheduled time properties."""
         self.assertEqual(self.fh.start_time, datetime(2018, 10, 22, 3, 0, 20, 596896))
         self.assertEqual(self.fh.end_time, datetime(2018, 10, 22, 3, 0, 53, 947296))
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
+
+    def test_scanning_frequencies(self):
+        self.fh.observation_area = 'JP04'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R304'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R420'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'R520'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'FLDK'
         self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.__init__',
@@ -355,16 +369,3 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             {'blocklength': 0}]
         with mock.patch('numpy.fromfile', side_effect=nhdr):
             self.fh._read_header(mock.MagicMock())
-
-
-def suite():
-    """Test suite for test_scene."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDNavigation))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAHIHSDFileHandler))
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()
