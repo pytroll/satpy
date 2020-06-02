@@ -94,9 +94,12 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
 
     def _mask_dataset(self, data):
         """Mask out fill values."""
-        fill = data.attrs['_FillValue']
-        data.attrs['_FillValue'] = np.nan
-        return data.where(data != fill)
+        try:
+            fill = data.attrs['_FillValue']
+            data.attrs['_FillValue'] = np.nan
+            return data.where(data != fill)
+        except KeyError:
+            return data
 
     def _adjust_lon_coord(self, data):
         """Adjust lon coordinate to -180 .. 180 ( not 0 .. 360)"""
@@ -125,7 +128,10 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
 
     def _roll_dataset_lon_coord(self, data):
         """Roll dataset along the lon coordinate"""
-        return data.roll(lon=720, roll_coords=True)
+        if 'lon' in data.dims:
+            return data.roll(lon=720, roll_coords=True)
+        else:
+            return data
 
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
@@ -135,26 +141,30 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         data = self._roll_dataset_lon_coord(data)
         data = self._rename_coords(data)
         data = self._mask_dataset(data)
+        if 'y' in data.dims:
+            # Remove the first and last row as these values extends beyond +-90 latitude
+            # if the dataset contains the y dimmension.
+            # As this is data over open sea these has no values.
+            data = data.where((data.y > -90.0) & (data.y < 90.0), drop=True)
         return data
 
     def _create_area_extent(self, width, height):
         """Create area extent"""
-        # Creating a meshgrid, not needed aqtually, but makes it easy to find extremes
+        # Creating a meshgrid, not needed actually, but makes it easy to find extremes
         _lon = self._adjust_lon_coord(self['lon'])
         _lon = self._roll_dataset_lon_coord(_lon)
-        latlon = np.meshgrid(_lon, self['lat'])
-
-        lower_left_x = latlon[0][height - 1][0]
-        lower_left_y = latlon[1][height - 1][0]
-
-        upper_right_y = latlon[1][0][width - 1]
-        upper_right_x = latlon[0][0][width - 1]
+        latlon = np.meshgrid(_lon, self['lat'][1:self['lat/shape'][0] - 1])
+        print(latlon[1].shape)
+        lower_left_x = latlon[0][height - 1][0] - 0.125
+        lower_left_y = latlon[1][height - 1][0] + 0.125
+        upper_right_y = latlon[1][1][width - 1] - 0.125
+        upper_right_x = latlon[0][1][width - 1] + 0.125
         return (lower_left_x, lower_left_y, upper_right_x, upper_right_y)
 
     def get_area_def(self, dsid):
         """Define AreaDefintion."""
         width = self['lon/shape'][0]
-        height = self['lat/shape'][0]
+        height = self['lat/shape'][0] - 2
         area_extent = self._create_area_extent(width, height)
         description = "SMOS L2 Wind Equirectangular Projection"
         area_id = 'smos_eqc'
