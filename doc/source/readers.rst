@@ -199,22 +199,43 @@ This is described in the developer guide, see :doc:`dev_guide/custom_reader`.
 Implemented readers
 ===================
 
+
 xRIT-based readers
 ------------------
 
 .. automodule:: satpy.readers.hrit_base
+    :noindex:
+
+SEVIRI HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.seviri_l1b_hrit
+    :noindex:
+
+JMA HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^
+
 
 .. automodule:: satpy.readers.hrit_jma
+    :noindex:
+
+GOES HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.goes_imager_hrit
+    :noindex:
+
+Electro-L HRIT format reader
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. automodule:: satpy.readers.electrol_hrit
+    :noindex:
 
 hdf-eos based readers
 ---------------------
 
 .. automodule:: satpy.readers.modis_l1b
+    :noindex:
 
 .. automodule:: satpy.readers.modis_l2
+    :noindex:

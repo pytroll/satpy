@@ -580,8 +580,9 @@ class TestNIRReflectance(unittest.TestCase):
         self.assertEqual(res.attrs['platform_name'], platform)
         self.assertEqual(res.attrs['sensor'], sensor)
         self.assertEqual(res.attrs['name'], chan_name)
+        self.assertEqual(res.attrs['sunz_threshold'], None)
         calculator.assert_called()
-        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039')
+        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039', sunz_threshold=None)
         self.assertTrue(apply_modifier_info.call_args[0][0] is nir)
         self.assertTrue(comp._refl3x is calculator.return_value)
         refl_from_tbs.reset_mock()
@@ -598,6 +599,77 @@ class TestNIRReflectance(unittest.TestCase):
         co2.attrs['units'] = 'K'
         res = comp([nir, ir_], optional_datasets=[co2], **info)
         refl_from_tbs.assert_called_with(sunz2, nir.data, ir_.data, tb_ir_co2=co2.data)
+
+        comp = NIRReflectance(name='test', sunz_threshold=84.0)
+        info = {'modifiers': None}
+        res = comp([nir, ir_], optional_datasets=[sunz], **info)
+        self.assertEqual(res.attrs['sunz_threshold'], 84.0)
+        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039', sunz_threshold=84.0)
+
+
+class TestNIREmissivePartFromReflectance(unittest.TestCase):
+    """Test the NIR Emissive part from reflectance compositor."""
+
+    @mock.patch('satpy.composites.sun_zenith_angle')
+    @mock.patch('satpy.composites.NIREmissivePartFromReflectance.apply_modifier_info')
+    @mock.patch('satpy.composites.Calculator')
+    def test_compositor(self, calculator, apply_modifier_info, sza):
+        """Test the NIR emissive part from reflectance compositor."""
+        import numpy as np
+        import xarray as xr
+        import dask.array as da
+
+        refl_arr = np.random.random((2, 2))
+        refl = da.from_array(refl_arr)
+
+        refl_from_tbs = mock.MagicMock()
+        refl_from_tbs.return_value = refl
+        calculator.return_value = mock.MagicMock(reflectance_from_tbs=refl_from_tbs)
+
+        emissive_arr = np.random.random((2, 2))
+        emissive = da.from_array(emissive_arr)
+        emissive_part = mock.MagicMock()
+        emissive_part.return_value = emissive
+        calculator.return_value = mock.MagicMock(emissive_part_3x=emissive_part)
+
+        from satpy.composites import NIREmissivePartFromReflectance
+
+        comp = NIREmissivePartFromReflectance(name='test', sunz_threshold=86.0)
+        info = {'modifiers': None}
+
+        platform = 'NOAA-20'
+        sensor = 'viirs'
+        chan_name = 'M12'
+
+        get_lonlats = mock.MagicMock()
+        lons, lats = 1, 2
+        get_lonlats.return_value = (lons, lats)
+        area = mock.MagicMock(get_lonlats=get_lonlats)
+
+        nir_arr = np.random.random((2, 2))
+        nir = xr.DataArray(da.from_array(nir_arr), dims=['y', 'x'])
+        nir.attrs['platform_name'] = platform
+        nir.attrs['sensor'] = sensor
+        nir.attrs['name'] = chan_name
+        nir.attrs['area'] = area
+        ir_arr = np.random.random((2, 2))
+        ir_ = xr.DataArray(da.from_array(ir_arr), dims=['y', 'x'])
+        ir_.attrs['area'] = area
+
+        sunz_arr = 100 * np.random.random((2, 2))
+        sunz = xr.DataArray(da.from_array(sunz_arr), dims=['y', 'x'])
+        sunz.attrs['standard_name'] = 'solar_zenith_angle'
+        sunz.attrs['area'] = area
+        sunz2 = da.from_array(sunz_arr)
+        sza.return_value = sunz2
+
+        res = comp([nir, ir_], optional_datasets=[sunz], **info)
+        self.assertEqual(res.attrs['sunz_threshold'], 86.0)
+        self.assertEqual(res.attrs['units'], 'K')
+        self.assertEqual(res.attrs['platform_name'], platform)
+        self.assertEqual(res.attrs['sensor'], sensor)
+        self.assertEqual(res.attrs['name'], chan_name)
+        calculator.assert_called_with('NOAA-20', 'viirs', 'M12', sunz_threshold=86.0)
 
 
 class TestColormapCompositor(unittest.TestCase):
@@ -1182,13 +1254,43 @@ class TestMaskingCompositor(unittest.TestCase):
         """Test the initializiation of compositor."""
         from satpy.composites import MaskingCompositor
 
-        # No transparency given raises ValueError
+        # No transparency or conditions given raises ValueError
         with self.assertRaises(ValueError):
             comp = MaskingCompositor("name")
 
         # transparency defined
-        comp = MaskingCompositor("name", transparency=0)
-        self.assertEqual(comp.transparency, 0)
+        transparency = {0: 100, 1: 50}
+        conditions = [{'method': 'equal', 'value': 0, 'transparency': 100},
+                      {'method': 'equal', 'value': 1, 'transparency': 50}]
+        comp = MaskingCompositor("name", transparency=transparency.copy())
+        assert not hasattr(comp, 'transparency')
+        # Transparency should be converted to conditions
+        assert comp.conditions == conditions
+
+        # conditions defined
+        comp = MaskingCompositor("name", conditions=conditions.copy())
+        assert comp.conditions == conditions
+
+    def test_get_flag_value(self):
+        """Test reading flag value from attributes based on a name."""
+        from satpy.composites import _get_flag_value
+
+        flag_values = da.array([1, 2])
+        mask = da.array([[1, 2, 2],
+                         [2, 1, 2],
+                         [2, 2, 1]])
+        mask = xr.DataArray(mask, dims=['y', 'x'])
+        flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
+        mask.attrs['flag_meanings'] = flag_meanings
+        mask.attrs['flag_values'] = flag_values
+
+        assert _get_flag_value(mask, 'Cloud-free_land') == 1
+        assert _get_flag_value(mask, 'Cloud-free_sea') == 2
+
+        flag_meanings_str = 'Cloud-free_land Cloud-free_sea'
+        mask.attrs['flag_meanings'] = flag_meanings_str
+        assert _get_flag_value(mask, 'Cloud-free_land') == 1
+        assert _get_flag_value(mask, 'Cloud-free_sea') == 2
 
     def test_call(self):
         """Test call the compositor."""
@@ -1196,11 +1298,24 @@ class TestMaskingCompositor(unittest.TestCase):
         from satpy.tests.utils import CustomScheduler
 
         flag_meanings = ['Cloud-free_land', 'Cloud-free_sea']
+        flag_meanings_str = 'Cloud-free_land Cloud-free_sea'
         flag_values = da.array([1, 2])
-        transparency_data_v1 = {'Cloud-free_land': 100,
-                                'Cloud-free_sea': 50}
-        transparency_data_v2 = {1: 100,
-                                2: 50}
+        conditions_v1 = [{'method': 'equal',
+                          'value': 'Cloud-free_land',
+                          'transparency': 100},
+                         {'method': 'equal',
+                          'value': 'Cloud-free_sea',
+                          'transparency': 50}]
+        conditions_v2 = [{'method': 'equal',
+                          'value': 1,
+                          'transparency': 100},
+                         {'method': 'equal',
+                          'value': 2,
+                          'transparency': 50}]
+        conditions_v3 = [{'method': 'isnan',
+                          'transparency': 100}]
+        conditions_v4 = [{'method': 'absolute_import',
+                          'transparency': 'satpy.resample'}]
 
         # 2D data array
         data = xr.DataArray(da.random.random((3, 3)), dims=['y', 'x'])
@@ -1217,22 +1332,60 @@ class TestMaskingCompositor(unittest.TestCase):
                                     [0.5, 0, 0.5],
                                     [0.5, 0.5, 0]])
         reference_alpha = xr.DataArray(reference_alpha, dims=['y', 'x'])
+        # The data are set to NaN where ct is `1`
+        reference_data = data.where(ct_data > 1)
+
+        reference_alpha_v3 = da.array([[1., 0., 0.],
+                                       [0., 1., 0.],
+                                       [0., 0., 1.]])
+        reference_alpha_v3 = xr.DataArray(reference_alpha_v3, dims=['y', 'x'])
+        # The data are set to NaN where ct is NaN
+        reference_data_v3 = data.where(ct_data == 1)
 
         # Test with numerical transparency data
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = MaskingCompositor("name", transparency=transparency_data_v1)
+            comp = MaskingCompositor("name", conditions=conditions_v1)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'LA')
-        np.testing.assert_allclose(res.sel(bands='L'), data)
+        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
         # Test with named fields
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = MaskingCompositor("name", transparency=transparency_data_v2)
+            comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'LA')
-        np.testing.assert_allclose(res.sel(bands='L'), data)
+        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # Test with named fields which are as a string in the mask attributes
+        ct_data.attrs['flag_meanings'] = flag_meanings_str
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", conditions=conditions_v2)
+            res = comp([data, ct_data])
+        self.assertTrue(res.mode == 'LA')
+        np.testing.assert_allclose(res.sel(bands='L'), reference_data)
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # Test "isnan" as method
+        # Set ct data to NaN where it originally is 1
+        ct_data_v3 = ct_data.where(ct_data == 1)
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", conditions=conditions_v3)
+            res = comp([data, ct_data_v3])
+        self.assertTrue(res.mode == 'LA')
+        np.testing.assert_allclose(res.sel(bands='L'), reference_data_v3)
+        np.testing.assert_allclose(res.sel(bands='A'), reference_alpha_v3)
+
+        # Test "absolute_import" as method
+        # This should raise AttributeError
+        with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
+            comp = MaskingCompositor("name", conditions=conditions_v4)
+            try:
+                res = comp([data, ct_data_v3])
+                raise ValueError("Tried to use 'np.absolute_import'")
+            except AttributeError:
+                pass
 
         # Test RGB dataset
         # 3D data array
@@ -1243,12 +1396,15 @@ class TestMaskingCompositor(unittest.TestCase):
                                     'x': np.arange(3)})
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = MaskingCompositor("name", transparency=transparency_data_v1)
+            comp = MaskingCompositor("name", conditions=conditions_v1)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'RGBA')
-        np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
-        np.testing.assert_allclose(res.sel(bands='G'), data.sel(bands='G'))
-        np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
+        np.testing.assert_allclose(res.sel(bands='R'),
+                                   data.sel(bands='R').where(ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands='G'),
+                                   data.sel(bands='G').where(ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands='B'),
+                                   data.sel(bands='B').where(ct_data > 1))
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
 
         # Test RGBA dataset
@@ -1259,14 +1415,27 @@ class TestMaskingCompositor(unittest.TestCase):
                                     'x': np.arange(3)})
 
         with dask.config.set(scheduler=CustomScheduler(max_computes=0)):
-            comp = MaskingCompositor("name", transparency=transparency_data_v2)
+            comp = MaskingCompositor("name", conditions=conditions_v2)
             res = comp([data, ct_data])
         self.assertTrue(res.mode == 'RGBA')
-        np.testing.assert_allclose(res.sel(bands='R'), data.sel(bands='R'))
-        np.testing.assert_allclose(res.sel(bands='G'), data.sel(bands='G'))
-        np.testing.assert_allclose(res.sel(bands='B'), data.sel(bands='B'))
+        np.testing.assert_allclose(res.sel(bands='R'),
+                                   data.sel(bands='R').where(ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands='G'),
+                                   data.sel(bands='G').where(ct_data > 1))
+        np.testing.assert_allclose(res.sel(bands='B'),
+                                   data.sel(bands='B').where(ct_data > 1))
         # The compositor should drop the original alpha band
         np.testing.assert_allclose(res.sel(bands='A'), reference_alpha)
+
+        # incorrect method
+        conditions = [{'method': 'foo', 'value': 0, 'transparency': 100}]
+        comp = MaskingCompositor("name", conditions=conditions)
+        with self.assertRaises(AttributeError):
+            res = comp([data, ct_data])
+
+        # too few projectables
+        with self.assertRaises(ValueError):
+            res = comp([data])
 
 
 class TestNaturalEnhCompositor(unittest.TestCase):

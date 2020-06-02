@@ -907,6 +907,7 @@ class TestCFWriter(unittest.TestCase):
         """Test the conversion from areas to lon/lat."""
         import pyresample.geometry
         import xarray as xr
+        import dask.array as da
         from satpy.writers.cf_writer import area2lonlat
 
         area = pyresample.geometry.AreaDefinition(
@@ -920,6 +921,31 @@ class TestCFWriter(unittest.TestCase):
         lons_ref, lats_ref = area.get_lonlats()
         dataarray = xr.DataArray(data=[[1, 2], [3, 4]], dims=('y', 'x'), attrs={'area': area})
 
+        res = area2lonlat(dataarray)
+
+        # original should be unmodified
+        self.assertNotIn('longitude', dataarray.coords)
+        self.assertEqual(set(res.coords), {'longitude', 'latitude'})
+        lat = res['latitude']
+        lon = res['longitude']
+        self.assertTrue(np.all(lat.data == lats_ref))
+        self.assertTrue(np.all(lon.data == lons_ref))
+        self.assertDictContainsSubset({'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'},
+                                      lat.attrs)
+        self.assertDictContainsSubset({'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'},
+                                      lon.attrs)
+
+        area = pyresample.geometry.AreaDefinition(
+            'seviri',
+            'Native SEVIRI grid',
+            'geos',
+            "+a=6378169.0 +h=35785831.0 +b=6356583.8 +lon_0=0 +proj=geos",
+            10, 10,
+            [-5570248.686685662, -5567248.28340708, 5567248.28340708, 5570248.686685662]
+        )
+        lons_ref, lats_ref = area.get_lonlats()
+        dataarray = xr.DataArray(data=da.from_array(np.arange(3*10*10).reshape(3, 10, 10), chunks=(1, 5, 5)),
+                                 dims=('bands', 'y', 'x'), attrs={'area': area})
         res = area2lonlat(dataarray)
 
         # original should be unmodified

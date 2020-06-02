@@ -64,7 +64,7 @@ def listify_string(something):
         return list()
 
 
-def get_filebase(path, pattern):
+def _get_filebase(path, pattern):
     """Get the end of *path* of same length as *pattern*."""
     # convert any `/` on Windows to `\\`
     path = os.path.normpath(path)
@@ -73,13 +73,13 @@ def get_filebase(path, pattern):
     return os.path.join(*str(path).split(os.path.sep)[-tail_len:])
 
 
-def match_filenames(filenames, pattern):
+def _match_filenames(filenames, pattern):
     """Get the filenames matching *pattern*."""
-    matching = []
-
+    matching = set()
+    glob_pat = globify(pattern)
     for filename in filenames:
-        if fnmatch(get_filebase(filename, pattern), globify(pattern)):
-            matching.append(filename)
+        if fnmatch(_get_filebase(filename, pattern), glob_pat):
+            matching.add(filename)
 
     return matching
 
@@ -179,25 +179,49 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         else:
             return True
 
-    def select_files_from_directory(self, directory=None):
+    def select_files_from_directory(
+            self, directory=None, fs=None):
         """Find files for this reader in *directory*.
 
         If directory is None or '', look in the current directory.
+
+        Searches the local file system by default.  Can search on a remote
+        filesystem by passing an instance of a suitable implementation of
+        ``fsspec.spec.AbstractFileSystem``.
+
+        Args:
+            directory (Optional[str]): Path to search.
+            fs (Optional[FileSystem]): fsspec FileSystem implementation to use.
+                                       Defaults to None, using local file
+                                       system.
+
+        Returns:
+            list of strings describing matching files
         """
-        filenames = []
+        filenames = set()
         if directory is None:
             directory = ''
-        for pattern in self.file_patterns:
-            matching = glob.iglob(os.path.join(directory, globify(pattern)))
-            filenames.extend(matching)
+        # all the glob patterns that we are going to look at
+        all_globs = {os.path.join(directory, globify(pattern))
+                     for pattern in self.file_patterns}
+        # custom filesystem or not
+        if fs is None:
+            matcher = glob.iglob
+        else:
+            matcher = fs.glob
+        # get all files matching these patterns
+        for glob_pat in all_globs:
+            filenames.update(matcher(glob_pat))
         return filenames
 
     def select_files_from_pathnames(self, filenames):
         """Select the files from *filenames* this reader can handle."""
         selected_filenames = []
+        filenames = set(filenames)  # make a copy of the inputs
 
         for pattern in self.file_patterns:
-            matching = match_filenames(filenames, pattern)
+            matching = _match_filenames(filenames, pattern)
+            filenames -= matching
             for fname in matching:
                 if fname not in selected_filenames:
                     selected_filenames.append(fname)
@@ -394,21 +418,24 @@ class FileYAMLReader(AbstractYAMLReader):
     @staticmethod
     def filename_items_for_filetype(filenames, filetype_info):
         """Iterate over the filenames matching *filetype_info*."""
-        matched_files = []
+        if not isinstance(filenames, set):
+            # we perform set operations later on to improve performance
+            filenames = set(filenames)
         for pattern in filetype_info['file_patterns']:
-            for filename in match_filenames(filenames, pattern):
-                if filename in matched_files:
-                    continue
+            matched_files = set()
+            matches = _match_filenames(filenames, pattern)
+            for filename in matches:
                 try:
                     filename_info = parse(
-                        pattern, get_filebase(filename, pattern))
+                        pattern, _get_filebase(filename, pattern))
                 except ValueError:
                     logger.debug("Can't parse %s with %s.", filename, pattern)
                     continue
-                matched_files.append(filename)
+                matched_files.add(filename)
                 yield filename, filename_info
+            filenames -= matched_files
 
-    def new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
+    def _new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
         """Generate new filehandler instances."""
         requirements = filetype_info.get('requires')
         filetype_cls = filetype_info['file_reader']
@@ -496,6 +523,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
     def filter_selected_filenames(self, filenames):
         """Filter provided files based on metadata in the filename."""
+        if not isinstance(filenames, set):
+            # we perform set operations later on to improve performance
+            filenames = set(filenames)
         for _, filetype_info in self.sorted_filetype_items():
             filename_iter = self.filename_items_for_filetype(filenames,
                                                              filetype_info)
@@ -505,7 +535,7 @@ class FileYAMLReader(AbstractYAMLReader):
             for fn, _ in filename_iter:
                 yield fn
 
-    def new_filehandlers_for_filetype(self, filetype_info, filenames, fh_kwargs=None):
+    def _new_filehandlers_for_filetype(self, filetype_info, filenames, fh_kwargs=None):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
@@ -513,9 +543,9 @@ class FileYAMLReader(AbstractYAMLReader):
             # preliminary filter of filenames based on start/end time
             # to reduce the number of files to open
             filename_iter = self.filter_filenames_by_info(filename_iter)
-        filehandler_iter = self.new_filehandler_instances(filetype_info,
-                                                          filename_iter,
-                                                          fh_kwargs=fh_kwargs)
+        filehandler_iter = self._new_filehandler_instances(filetype_info,
+                                                           filename_iter,
+                                                           fh_kwargs=fh_kwargs)
         filtered_iter = self.filter_fh_by_metadata(filehandler_iter)
         return list(filtered_iter)
 
@@ -529,11 +559,10 @@ class FileYAMLReader(AbstractYAMLReader):
         created_fhs = {}
         # load files that we know about by creating the file handlers
         for filetype, filetype_info in self.sorted_filetype_items():
-            filehandlers = self.new_filehandlers_for_filetype(filetype_info,
-                                                              filename_set,
-                                                              fh_kwargs=fh_kwargs)
+            filehandlers = self._new_filehandlers_for_filetype(filetype_info,
+                                                               filename_set,
+                                                               fh_kwargs=fh_kwargs)
 
-            filename_set -= set([fhd.filename for fhd in filehandlers])
             if filehandlers:
                 created_fhs[filetype] = filehandlers
                 self.file_handlers[filetype] = sorted(
