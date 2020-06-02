@@ -16,20 +16,12 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for the SEVIRI L1b HDF4 from ICARE reader."""
-import sys
 import os
+import unittest
+from unittest import mock
 import numpy as np
 from satpy.tests.reader_tests.test_hdf4_utils import FakeHDF4FileHandler
 from satpy.readers import load_reader
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
 
 
 DEFAULT_FILE_DTYPE = np.uint16
@@ -166,16 +158,3 @@ class TestSEVIRIICAREReader(unittest.TestCase):
             self.assertEqual(v.attrs['area'].height, test_area['height'])
             np.testing.assert_almost_equal(v.attrs['area'].area_extent,
                                            test_area['area_extent'])
-
-
-def suite():
-    """Create the test suite for test_viirs_edr_flood."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestSEVIRIICAREReader))
-
-    return mysuite
-
-
-if __name__ == '__main__':
-    unittest.main()

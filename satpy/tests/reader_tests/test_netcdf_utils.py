@@ -15,11 +15,10 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.netcdf_utils module.
-"""
+"""Module for testing the satpy.readers.netcdf_utils module."""
 
 import os
-import sys
+import unittest
 import numpy as np
 
 try:
@@ -27,11 +26,6 @@ try:
 except ImportError:
     # fake the import so we can at least run the tests in this file
     NetCDF4FileHandler = object
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
 
 
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
@@ -60,6 +54,7 @@ class FakeNetCDF4FileHandler(NetCDF4FileHandler):
             - '/attr/global_attr'
             - 'dataset/attr/global_attr'
             - 'dataset/shape'
+            - 'dataset/dimensions'
             - '/dimension/my_dim'
 
         """
@@ -128,6 +123,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         for ds in ('test_group/ds1_f', 'test_group/ds1_i', 'ds2_f', 'ds2_i'):
             self.assertEqual(file_handler[ds].dtype, np.float32 if ds.endswith('f') else np.int32)
             self.assertTupleEqual(file_handler[ds + '/shape'], (10, 100))
+            self.assertEqual(file_handler[ds + '/dimensions'], ("rows", "cols"))
             self.assertEqual(file_handler[ds + '/attr/test_attr_str'], 'test_string')
             self.assertEqual(file_handler[ds + '/attr/test_attr_int'], 0)
             self.assertEqual(file_handler[ds + '/attr/test_attr_float'], 1.2)
@@ -161,6 +157,11 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         np.testing.assert_array_equal(h["ds2_s"], np.arange(10))
         np.testing.assert_array_equal(h["test_group/ds1_i"],
                                       np.arange(10 * 100).reshape((10, 100)))
+        # check that root variables can still be read from cached file object,
+        # even if not cached themselves
+        np.testing.assert_array_equal(
+                h["ds2_f"],
+                np.arange(10. * 100).reshape((10, 100)))
         h.__del__()
         self.assertFalse(h.file_handle.isopen())
 
@@ -171,12 +172,3 @@ class TestNetCDF4FileHandler(unittest.TestCase):
 
         with self.assertRaises(IOError):
             NetCDF4FileHandler("/thisfiledoesnotexist.nc", {}, {})
-
-
-def suite():
-    """The test suite for test_netcdf_utils."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNetCDF4FileHandler))
-
-    return mysuite

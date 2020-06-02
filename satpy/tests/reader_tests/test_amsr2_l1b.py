@@ -19,20 +19,12 @@
 """
 
 import os
-import sys
 import numpy as np
 from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
 
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 DEFAULT_FILE_DTYPE = np.uint16
 DEFAULT_FILE_SHAPE = (10, 300)
@@ -194,13 +186,3 @@ class TestAMSR2L1BReader(unittest.TestCase):
                                   DEFAULT_FILE_SHAPE)
             self.assertTupleEqual(d.attrs['area'].lats.shape,
                                   DEFAULT_FILE_SHAPE)
-
-
-def suite():
-    """The test suite for test_amsr2_l1b.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestAMSR2L1BReader))
-
-    return mysuite

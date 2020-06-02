@@ -323,7 +323,13 @@ class AHIHSDFileHandler(BaseFileHandler):
     def scheduled_time(self):
         """Time this band was scheduled to be recorded."""
         timeline = "{:04d}".format(self.basic_info['observation_timeline'][0])
-        return self.start_time.replace(hour=int(timeline[:2]), minute=int(timeline[2:4]), second=0, microsecond=0)
+        if self.observation_area == 'FLDK':
+            dt = 0
+        else:
+            observation_freq = {'JP': 150, 'R3': 150, 'R4': 30, 'R5': 30}[self.observation_area[:2]]
+            dt = observation_freq * (int(self.observation_area[2:]) - 1)
+        return self.start_time.replace(hour=int(timeline[:2]), minute=int(timeline[2:4]) + dt//60,
+                                       second=dt % 60, microsecond=0)
 
     def get_dataset(self, key, info):
         return self.read_band(key, info)

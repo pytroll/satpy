@@ -18,16 +18,8 @@
 """Test classes and functions in the readers/__init__.py module."""
 
 import os
-import sys
-
-if sys.version_info < (2, 7):
-    import unittest2 as unittest
-else:
-    import unittest
-try:
-    from unittest import mock
-except ImportError:
-    import mock
+import unittest
+from unittest import mock
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -238,7 +230,6 @@ class TestReaderLoader(unittest.TestCase):
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             ])
 
-    @unittest.skipIf(sys.version_info < (3, 4), "pathlib added in Python 3.4")
     def test_filenames_as_path(self):
         """Test with filenames specified as pathlib.Path."""
         from pathlib import Path
@@ -256,6 +247,17 @@ class TestReaderLoader(unittest.TestCase):
         }
         ri = load_readers(filenames=filenames)
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
+    def test_filenames_as_dict_bad_reader(self):
+        """Test loading with filenames dict but one of the readers is bad."""
+        from satpy.readers import load_readers
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+            '__fake__': ['fake.txt'],
+        }
+        self.assertRaisesRegex(ValueError,
+                               r'(?=.*__fake__)(?!.*viirs)(^No reader.+)',
+                               load_readers, filenames=filenames)
 
     def test_filenames_as_dict_with_reader(self):
         """Test loading from a filenames dict with a single reader specified.
@@ -538,6 +540,9 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
         self.assertRaises(ValueError, find_files_and_readers, sensor='viirs')
+        self.assertEqual(
+                find_files_and_readers(sensor='viirs', missing_ok=True),
+                {})
 
     def test_reader_load_failed(self):
         """Test that an exception is raised when a reader can't be loaded."""
@@ -665,6 +670,17 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(6, len(groups))
         self.assertEqual(2, len(groups[0]['abi_l1b']))
 
+    def test_default_behavior_set(self):
+        """Test the default behavior with the 'abi_l1b' reader."""
+        from satpy.readers import group_files
+        files = set(self.g16_files)
+        num_files = len(files)
+        groups = group_files(files, reader='abi_l1b')
+        # we didn't modify it
+        self.assertEqual(len(files), num_files)
+        self.assertEqual(6, len(groups))
+        self.assertEqual(2, len(groups[0]['abi_l1b']))
+
     def test_non_datetime_group_key(self):
         """Test what happens when the start_time isn't used for grouping."""
         from satpy.readers import group_files
@@ -747,20 +763,3 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(6, len(groups[0]['viirs_sdr']))
         # 5 granules * 3 file types
         self.assertEqual(5 * 3, len(groups[1]['viirs_sdr']))
-
-
-def suite():
-    """Create test suite for test_readers."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestDatasetDict))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestReaderLoader))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestFindFilesAndReaders))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestYAMLFiles))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestGroupFiles))
-
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2009-2019 Satpy developers
+# Copyright (c) 2009-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -31,11 +31,11 @@ except ImportError:
     pass
 
 requires = ['numpy >=1.13', 'pillow', 'pyresample >=1.11.0', 'trollsift',
-            'trollimage >1.10.1', 'pykdtree', 'six', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
+            'trollimage >1.10.1', 'pykdtree', 'pyyaml', 'xarray >=0.10.1, !=0.13.0',
             'dask[array] >=0.17.1', 'pyproj', 'zarr']
 
 test_requires = ['behave', 'h5py', 'netCDF4', 'pyhdf', 'imageio', 'libtiff',
-                 'rasterio', 'geoviews', 'trollimage']
+                 'rasterio', 'geoviews', 'trollimage', 'fsspec']
 
 extras_require = {
     # Readers:
@@ -58,6 +58,7 @@ extras_require = {
     'sar_c': ['python-geotiepoints >= 1.1.7', 'gdal'],
     'abi_l1b': ['h5netcdf'],
     'seviri_l2_bufr': ['eccodes-python'],
+    'seviri_l2_grib': ['eccodes-python'],
     'hsaf_grib': ['pygrib'],
     # Writers:
     'cf': ['h5netcdf >= 0.7.3'],
@@ -117,7 +118,6 @@ setup(name=NAME,
                    "Programming Language :: Python",
                    "Topic :: Scientific/Engineering"],
       url="https://github.com/pytroll/satpy",
-      test_suite='satpy.tests.suite',
       packages=find_packages(),
       package_data={'satpy': [os.path.join('etc', 'geo_image.cfg'),
                               os.path.join('etc', 'areas.yaml'),

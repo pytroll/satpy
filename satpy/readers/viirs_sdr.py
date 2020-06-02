@@ -240,7 +240,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         """
         num_grans = len(scaling_factors) // 2
         gran_size = data.shape[0] // num_grans
-        factors = scaling_factors.where(scaling_factors > -999)
+        factors = scaling_factors.where(scaling_factors > -999, np.float32(np.nan))
         factors = factors.data.reshape((-1, 2))
         factors = xr.DataArray(da.repeat(factors, gran_size, axis=0),
                                dims=(data.dims[0], 'factors'))
@@ -253,8 +253,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
         if factors is None:
-            factors = xr.DataArray(da.from_array([1, 0], chunks=1))
-        factors = factors.where(factors != -999.)
+            return None
+        factors = factors.where(factors != -999., np.float32(np.nan))
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
             LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
@@ -293,13 +293,17 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             expanded.rename({expanded.dims[0]: 'y'})
             return expanded
 
-    def concatenate_dataset(self, dataset_group, var_path):
-        """Concatenate dataset."""
-        if 'I' in dataset_group:
+    def _scan_size(self, dataset_group_name):
+        """Get how many rows of data constitute one scanline."""
+        if 'I' in dataset_group_name:
             scan_size = 32
         else:
             scan_size = 16
-        scans_path = 'All_Data/{dataset_group}_All/NumberOfScans'
+        return scan_size
+
+    def concatenate_dataset(self, dataset_group, var_path):
+        """Concatenate dataset."""
+        scan_size = self._scan_size(dataset_group)
         number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
         nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
         scans = []
@@ -326,12 +330,12 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         if is_floating:
             # If the data is a float then we mask everything <= -999.0
-            fill_max = float(ds_info.pop("fill_max_float", -999.0))
-            return data.where(data > fill_max)
+            fill_max = np.float32(ds_info.pop("fill_max_float", -999.0))
+            return data.where(data > fill_max, np.float32(np.nan))
         else:
             # If the data is an integer then we mask everything >= fill_min_int
             fill_min = int(ds_info.pop("fill_min_int", 65528))
-            return data.where(data < fill_min)
+            return data.where(data < fill_min, np.float32(np.nan))
 
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset corresponding to *dataset_id*.
@@ -372,6 +376,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
+            "rows_per_scan": self._scan_size(dataset_group),
         })
         i.update(dataset_id.to_dict())
         data.attrs.update(i)

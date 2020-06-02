@@ -56,6 +56,8 @@ The following people have made contributions to this project:
 - [Eysteinn Sigurðsson (eysteinn)](https://github.com/eysteinn)
 - [Dario Stelitano (bornagain1981)](https://github.com/bornagain1981)
 - [Matias Takala (elfsprite)](https://github.com/elfsprite)
+- [Taiga Tsukada (tsukada-cs)](https://github.com/tsukada-cs)
+- [Helga Weber (helgaweb)](https://github.com/helgaweb)
 - [hazbottles (hazbottles)](https://github.com/hazbottles)
 - [oananicola (oananicola)](https://github.com/oananicola)
 - [praerien (praerien)](https://github.com/praerien)

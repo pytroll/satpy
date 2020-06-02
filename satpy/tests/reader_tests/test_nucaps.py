@@ -15,17 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Module for testing the satpy.readers.nucaps module.
-"""
+"""Module for testing the satpy.readers.nucaps module."""
 
 import os
-import sys
+import unittest
+from unittest import mock
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 from satpy.tests.utils import convert_file_content_to_data_array
-
-import unittest
-from unittest import mock
 
 
 DEFAULT_FILE_DTYPE = np.float32
@@ -84,6 +81,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 file_content[k + '/attr/standard_name'] = standard_name
         for k, units, standard_name in [
             ('Temperature', 'Kelvin', 'air_temperature'),
+            ('Effective_Pressure', 'mb', ''),
             ('H2O', '1', ''),
             ('H2O_MR', 'g/g', ''),
             ('O3', '1', ''),
@@ -211,6 +209,7 @@ class TestNUCAPSReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(['Temperature',
+                           'Effective_Pressure',
                            'H2O',
                            'H2O_MR',
                            'O3',
@@ -229,7 +228,7 @@ class TestNUCAPSReader(unittest.TestCase):
                            'SO2',
                            'SO2_MR',
                            ])
-        self.assertEqual(len(datasets), 18)
+        self.assertEqual(len(datasets), 19)
         for v in datasets.values():
             # self.assertNotEqual(v.info['resolution'], 0)
             self.assertEqual(v.ndim, 2)
@@ -513,14 +512,3 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
                               (DEFAULT_PRES_FILE_SHAPE[0], 1))
         pl_ds = datasets['Pressure_Levels']
         self.assertTupleEqual(pl_ds.shape, (1,))
-
-
-def suite():
-    """The test suite for test_nucaps.
-    """
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNUCAPSReader))
-    mysuite.addTest(loader.loadTestsFromTestCase(TestNUCAPSScienceEDRReader))
-
-    return mysuite
