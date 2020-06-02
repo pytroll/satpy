@@ -66,6 +66,17 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
+  green_nocorr:
+    compositor: !!python/name:satpy.composites.abi.SimulatedGreen
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    - name: C01
+    - name: C02
+    - name: C03
+    standard_name: toa_reflectance
+
   true_color_crefl:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
@@ -96,6 +107,14 @@ composites:
       modifiers: [sunz_corrected, rayleigh_corrected]
     standard_name: true_color
 
+  true_color_nocorr:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C02
+    - name: green_nocorr
+    - name: C01
+    standard_name: true_color
+
   natural_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
@@ -105,6 +124,15 @@ composites:
       modifiers: [sunz_corrected]
     - name: C02
       modifiers: [sunz_corrected]
+    high_resolution_band: blue
+    standard_name: natural_color
+
+  natural_color_nocorr:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: C05
+    - name: C03
+    - name: C02
     high_resolution_band: blue
     standard_name: natural_color
 
@@ -133,6 +161,12 @@ composites:
     - C03
     - C14
     standard_name: overview
+
+  colorized_ir_clouds:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: C13
+    standard_name: colorized_ir_clouds
 
   airmass:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -236,3 +270,44 @@ composites:
       - name: cimss_green
       - name: C01
     standard_name: cimss_true_color
+
+  true_color_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_ir
+    lim_low: 90.0
+    lim_high: 100.0
+    prerequisites:
+      - true_color
+      - night_ir_with_background
+
+  true_color_with_night_ir_hires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_ir_hires
+    lim_low: 90.0
+    lim_high: 100.0
+    prerequisites:
+      - true_color
+      - night_ir_with_background_hires
+
+  night_ir_alpha:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: night_ir_alpha
+    prerequisites:
+      - 3.90
+      - 10.3
+      - 12.3
+      - 10.3
+
+  night_ir_with_background:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - night_ir_alpha
+      - _night_background
+
+  night_ir_with_background_hires:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background_hires
+    prerequisites:
+      - night_ir_alpha
+      - _night_background_hires

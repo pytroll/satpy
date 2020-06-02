@@ -248,6 +248,17 @@ class TestReaderLoader(unittest.TestCase):
         ri = load_readers(filenames=filenames)
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
 
+    def test_filenames_as_dict_bad_reader(self):
+        """Test loading with filenames dict but one of the readers is bad."""
+        from satpy.readers import load_readers
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+            '__fake__': ['fake.txt'],
+        }
+        self.assertRaisesRegex(ValueError,
+                               r'(?=.*__fake__)(?!.*viirs)(^No reader.+)',
+                               load_readers, filenames=filenames)
+
     def test_filenames_as_dict_with_reader(self):
         """Test loading from a filenames dict with a single reader specified.
 
@@ -529,6 +540,9 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
         self.assertRaises(ValueError, find_files_and_readers, sensor='viirs')
+        self.assertEqual(
+                find_files_and_readers(sensor='viirs', missing_ok=True),
+                {})
 
     def test_reader_load_failed(self):
         """Test that an exception is raised when a reader can't be loaded."""
@@ -653,6 +667,17 @@ class TestGroupFiles(unittest.TestCase):
         """Test the default behavior with the 'abi_l1b' reader."""
         from satpy.readers import group_files
         groups = group_files(self.g16_files, reader='abi_l1b')
+        self.assertEqual(6, len(groups))
+        self.assertEqual(2, len(groups[0]['abi_l1b']))
+
+    def test_default_behavior_set(self):
+        """Test the default behavior with the 'abi_l1b' reader."""
+        from satpy.readers import group_files
+        files = set(self.g16_files)
+        num_files = len(files)
+        groups = group_files(files, reader='abi_l1b')
+        # we didn't modify it
+        self.assertEqual(len(files), num_files)
         self.assertEqual(6, len(groups))
         self.assertEqual(2, len(groups[0]['abi_l1b']))
 

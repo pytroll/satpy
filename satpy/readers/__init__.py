@@ -443,6 +443,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     if group_keys is None:
         group_keys = reader_instance.info.get('group_keys', ('start_time',))
     file_keys = []
+    # make a copy because filename_items_for_filetype will modify inplace
+    files_to_sort = set(files_to_sort)
     for _, filetype_info in reader_instance.sorted_filetype_items():
         for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
             group_key = tuple(file_info.get(k) for k in group_keys)
@@ -541,13 +543,14 @@ def configs_for_reader(reader=None, ppp_config_dir=None):
 
     for config_file in config_files:
         config_basename = os.path.basename(config_file)
+        reader_name = os.path.splitext(config_basename)[0]
         reader_configs = config_search_paths(
             os.path.join("readers", config_basename), *search_paths)
 
         if not reader_configs:
             # either the reader they asked for does not exist
             # or satpy is improperly configured and can't find its own readers
-            raise ValueError("No reader(s) named: {}".format(reader))
+            raise ValueError("No reader named: {}".format(reader_name))
 
         yield reader_configs
 
@@ -578,17 +581,26 @@ def available_readers(as_dict=False):
 
 def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            reader=None, sensor=None, ppp_config_dir=None,
-                           filter_parameters=None, reader_kwargs=None):
-    """Find on-disk files matching the provided parameters.
-
+                           filter_parameters=None, reader_kwargs=None,
+                           missing_ok=False, fs=None):
+    """Find files matching the provided parameters.
     Use `start_time` and/or `end_time` to limit found filenames by the times
     in the filenames (not the internal file metadata). Files are matched if
     they fall anywhere within the range specified by these parameters.
 
     Searching is **NOT** recursive.
 
-    The returned dictionary can be passed directly to the `Scene` object
-    through the `filenames` keyword argument.
+    Files may be either on-disk or on a remote file system.  By default,
+    files are searched for locally.  Users can search on remote filesystems by
+    passing an instance of an implementation of
+    `fsspec.spec.AbstractFileSystem` (strictly speaking, any object of a class
+    implementing a ``glob`` method works).
+
+    If locating files on a local file system, the returned dictionary
+    can be passed directly to the `Scene` object through the `filenames`
+    keyword argument.  If it points to a remote file system, it is the
+    responsibility of the user to download the files first (directly
+    reading from cloud storage is not currently available in Satpy).
 
     The behaviour of time-based filtering depends on whether or not the filename
     contains information about the end time of the data or not:
@@ -596,6 +608,16 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
       - if the end time is not present in the filename, the start time of the filename
         is used and has to fall between (inclusive) the requested start and end times
       - otherwise, the timespan of the filename has to overlap the requested timespan
+
+    Example usage for querying a s3 filesystem using the s3fs module:
+
+    >>> import s3fs, satpy.readers, datetime
+    >>> satpy.readers.find_files_and_readers(
+    ...     base_dir="s3://noaa-goes16/ABI-L1b-RadF/2019/321/14/",
+    ...     fs=s3fs.S3FileSystem(anon=True),
+    ...     reader="abi_l1b",
+    ...     start_time=datetime.datetime(2019, 11, 17, 14, 40))
+    {'abi_l1b': [...]}
 
     Args:
         start_time (datetime): Limit used files by starting time.
@@ -611,6 +633,13 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                                   `reader_kwargs['filter_parameters']`.
         reader_kwargs (dict): Keyword arguments to pass to specific reader
                               instances to further configure file searching.
+        missing_ok (bool): If False (default), raise ValueError if no files
+                            are found.  If True, return empty dictionary if no
+                            files are found.
+        fs (FileSystem): Optional, instance of implementation of
+                         fsspec.spec.AbstractFileSystem (strictly speaking,
+                         any object of a class implementing ``.glob`` is
+                         enough).  Defaults to searching the local filesystem.
 
     Returns: Dictionary mapping reader name string to list of filenames
 
@@ -643,7 +672,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
         elif sensor is not None:
             # sensor was specified and a reader supports it
             sensor_supported = True
-        loadables = reader_instance.select_files_from_directory(base_dir)
+        loadables = reader_instance.select_files_from_directory(base_dir, fs)
         if loadables:
             loadables = list(
                 reader_instance.filter_selected_filenames(loadables))
@@ -653,7 +682,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
     if sensor and not sensor_supported:
         raise ValueError("Sensor '{}' not supported by any readers".format(sensor))
 
-    if not reader_files:
+    if not (reader_files or missing_ok):
         raise ValueError("No supported files found")
     return reader_files
 

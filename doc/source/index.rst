@@ -52,7 +52,7 @@ the base Satpy installation.
     overview
     install
     data_download
-    examples
+    examples/index
     quickstart
     readers
     composites
@@ -242,6 +242,9 @@ the base Satpy installation.
       - Beta
     * - OMPS EDR data in HDF5 format
       - `omps_edr`
+      - Beta
+    * - AMSR2 level 2 wind data in HDF5 format
+      - `amsr_l2`
       - Beta
 
 Indices and tables
