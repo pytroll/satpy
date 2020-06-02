@@ -100,5 +100,5 @@ class Hdf5IMERG(HDF5FileHandler):
         area_id = 'imerg'
         proj_id = 'equirectangular'
         proj_dict = {'proj': 'longlat', 'datum': 'WGS84', 'ellps': 'WGS84', }
-        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, height, width, area_extent, )
+        area_def = AreaDefinition(area_id, description, proj_id, proj_dict, width, height, area_extent, )
         return area_def

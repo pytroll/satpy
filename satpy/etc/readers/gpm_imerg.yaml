@@ -1,6 +1,6 @@
 reader:
   description: HDF5 reader for the GPM/IMERG data
-  name: gpm-imerg
+  name: gpm_imerg
   sensors: [multiple]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
