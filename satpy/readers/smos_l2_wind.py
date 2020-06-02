@@ -141,11 +141,13 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         data = self._roll_dataset_lon_coord(data)
         data = self._rename_coords(data)
         data = self._mask_dataset(data)
-        if 'y' in data.dims:
+        if len(data.dims) >= 2 and all([dim in data.dims for dim in ['x', 'y']]):
             # Remove the first and last row as these values extends beyond +-90 latitude
             # if the dataset contains the y dimmension.
             # As this is data over open sea these has no values.
             data = data.where((data.y > -90.0) & (data.y < 90.0), drop=True)
+        elif len(data.dims) == 1 and 'y' in data.dims:
+            data = data.where((data.y > 0) & (data.y < len(data.y) - 1), drop=True)
         return data
 
     def _create_area_extent(self, width, height):
@@ -154,7 +156,6 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         _lon = self._adjust_lon_coord(self['lon'])
         _lon = self._roll_dataset_lon_coord(_lon)
         latlon = np.meshgrid(_lon, self['lat'][1:self['lat/shape'][0] - 1])
-        print(latlon[1].shape)
         lower_left_x = latlon[0][height - 1][0] - 0.125
         lower_left_y = latlon[1][height - 1][0] + 0.125
         upper_right_y = latlon[1][1][width - 1] - 0.125
