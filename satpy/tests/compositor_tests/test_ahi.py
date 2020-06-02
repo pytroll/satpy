@@ -17,7 +17,6 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for AHI compositors."""
 
-import sys
 import unittest
 
 

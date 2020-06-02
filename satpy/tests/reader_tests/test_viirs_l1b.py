@@ -178,6 +178,9 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'brightness_temperature')
             self.assertEqual(v.attrs['units'], 'K')
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
 
     def test_load_every_m_band_refl(self):
         """Test loading all M band reflectances"""
@@ -203,6 +206,9 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'reflectance')
             self.assertEqual(v.attrs['units'], '%')
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
 
     def test_load_every_m_band_rad(self):
         """Test loading all M bands as radiances"""
@@ -234,6 +240,9 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'radiance')
             self.assertEqual(v.attrs['units'], 'W m-2 um-1 sr-1')
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
 
     def test_load_dnb_radiance(self):
         """Test loading the main DNB dataset"""
@@ -249,3 +258,6 @@ class TestVIIRSL1BReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'radiance')
             self.assertEqual(v.attrs['units'], 'W m-2 sr-1')
+            self.assertEqual(v.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lons.attrs['rows_per_scan'], 2)
+            self.assertEqual(v.attrs['area'].lats.attrs['rows_per_scan'], 2)
