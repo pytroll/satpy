@@ -8,7 +8,9 @@ reader:
 file_types:
     gpm_imerg_h5:
         file_reader: !!python/name:satpy.readers.gpm_imerg.Hdf5IMERG
-        file_patterns: ['3B-HHR.MS.MRG.3IMERG.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence:4s}.{version_id:4s}.HDF5']
+        file_patterns: ['3B-HHR.MS.MRG.3IMERG.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence:4s}.{version_id:4s}.HDF5',
+                        '3B-HHR-E.MS.MRG.3IMERG.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence:4s}.{version_id:4s}.RT-H5',
+                        '3B-HHR-L.MS.MRG.3IMERG.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence:4s}.{version_id:4s}.RT-H5']
 datasets:
   HQobservationTime:
     name: HQobservationTime
