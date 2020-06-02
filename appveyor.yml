@@ -6,6 +6,7 @@ environment:
     CONDA_DEPENDENCIES: "xarray dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml pyproj pyresample coverage netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf libtiff geoviews zarr pytest pytest-cov"
     PIP_DEPENDENCIES: "trollsift trollimage pyspectral pyorbital libtiff"
     CONDA_CHANNELS: "conda-forge"
+    CONDA_CHANNEL_PRIORITY: "strict"
 
   matrix:
     - PYTHON: "C:\\Python38_64"
