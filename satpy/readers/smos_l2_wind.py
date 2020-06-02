@@ -129,9 +129,8 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
     def _roll_dataset_lon_coord(self, data):
         """Roll dataset along the lon coordinate"""
         if 'lon' in data.dims:
-            return data.roll(lon=720, roll_coords=True)
-        else:
-            return data
+            data = data.roll(lon=720, roll_coords=True)
+        return data
 
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
