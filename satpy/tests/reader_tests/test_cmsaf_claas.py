@@ -142,7 +142,7 @@ def test_file_pattern(reader):
 
 def test_load(reader):
     """Test loading."""
-    from satpy import DatasetID
+    from satpy.tests.utils import make_dsid
 
     # testing two filenames to test correctly combined
     filenames = [
@@ -152,7 +152,7 @@ def test_load(reader):
     loadables = reader.select_files_from_pathnames(filenames)
     reader.create_filehandlers(loadables)
     res = reader.load(
-            [DatasetID(name=name) for name in ["cph", "ctt"]])
+            [make_dsid(name=name) for name in ["cph", "ctt"]])
     assert 2 == len(res)
     assert reader.start_time == datetime.datetime(1985, 8, 13, 13, 15)
     assert reader.end_time == datetime.datetime(2085, 8, 13, 13, 15)
