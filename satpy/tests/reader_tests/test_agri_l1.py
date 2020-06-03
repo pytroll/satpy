@@ -17,13 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """The agri_l1 reader tests package."""
 
-from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
-import numpy as np
-import dask.array as da
-import xarray as xr
 import os
 import unittest
 from unittest import mock
+
+import dask.array as da
+import numpy as np
+import pytest
+import xarray as xr
+
+from satpy.tests.reader_tests.test_hdf5_utils import FakeHDF5FileHandler
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
@@ -230,7 +233,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
     def test_fy4a_all_resolutions(self):
         """Test loading data when all resolutions are available."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader, get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_0500M_V0001.HDF',
@@ -250,22 +253,22 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         # 500m
         band_names = ['C' + '%02d' % ch for ch in np.linspace(2, 2, 1)]
         for band_name in band_names:
-            ds_id = DatasetID(name=band_name, resolution=500)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
+            ds_q = make_dsq(name=band_name, resolution=500)
+            res = get_key(ds_q, available_datasets, num_results=0, best=False)
             self.assertEqual(2, len(res))
 
         # 1km
         band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 3, 3)]
         for band_name in band_names:
-            ds_id = DatasetID(name=band_name, resolution=1000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
+            ds_q = make_dsq(name=band_name, resolution=1000)
+            res = get_key(ds_q, available_datasets, num_results=0, best=False)
             self.assertEqual(2, len(res))
 
         # 2km
         band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 7, 7)]
         for band_name in band_names:
-            ds_id = DatasetID(name=band_name, resolution=2000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
+            ds_q = make_dsq(name=band_name, resolution=2000)
+            res = get_key(ds_q, available_datasets, num_results=0, best=False)
             if band_name < 'C07':
                 self.assertEqual(2, len(res))
             else:
@@ -288,7 +291,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
     def test_fy4a_counts_calib(self):
         """Test loading data at counts calibration."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_0500M_V0001.HDF',
@@ -306,7 +309,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         ds_ids = []
         band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 14, 14)]
         for band_name in band_names:
-            ds_ids.append(DatasetID(name=band_name, calibration='counts'))
+            ds_ids.append(make_dsq(name=band_name, calibration='counts'))
         res = reader.load(ds_ids)
         self.assertEqual(14, len(res))
 
@@ -318,7 +321,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
     def test_fy4a_4km_resolutions(self):
         """Test loading data when only 4km resolutions are available."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader, get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_4000M_V0001.HDF',
@@ -333,19 +336,14 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         # Verify that the resolution is only 4km
         available_datasets = reader.available_dataset_ids
         band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 14, 14)]
-
         for band_name in band_names:
-            ds_id = DatasetID(name=band_name, resolution=500)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=2000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=4000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
+            for resolution in [500, 1000, 2000]:
+                ds_q = make_dsq(name=band_name, resolution=resolution)
+                with pytest.raises(KeyError):
+                    res = get_key(ds_q, available_datasets, num_results=0, best=False)
+
+            ds_q = make_dsq(name=band_name, resolution=4000)
+            res = get_key(ds_q, available_datasets, num_results=0, best=False)
             if band_name < 'C07':
                 self.assertEqual(2, len(res))
             else:
@@ -378,7 +376,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
     def test_fy4a_2km_resolutions(self):
         """Test loading data when only 2km resolutions are available."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader, get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_2000M_V0001.HDF',
@@ -395,21 +393,18 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 7, 7)]
 
         for band_name in band_names:
-            ds_id = DatasetID(name=band_name, resolution=500)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=2000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
+            for resolution in [500, 1000, 4000]:
+                ds_q = make_dsq(name=band_name, resolution=resolution)
+                with pytest.raises(KeyError):
+                    res = get_key(ds_q, available_datasets, num_results=0, best=False)
+
+            ds_q = make_dsq(name=band_name, resolution=2000)
+            res = get_key(ds_q, available_datasets, num_results=0, best=False)
             if band_name < 'C07':
                 self.assertEqual(2, len(res))
             else:
                 self.assertEqual(3, len(res))
-            ds_id = DatasetID(name=band_name, resolution=4000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
+
 
         res = reader.load(band_names)
         self.assertEqual(7, len(res))
@@ -437,7 +432,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
     def test_fy4a_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader, get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_1000M_V0001.HDF',
@@ -454,18 +449,14 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         band_names = ['C' + '%02d' % ch for ch in np.linspace(1, 3, 3)]
 
         for band_name in band_names:
-            ds_id = DatasetID(name=band_name, resolution=500)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
+            for resolution in [500, 2000, 4000]:
+                ds_q = make_dsq(name=band_name, resolution=resolution)
+                with pytest.raises(KeyError):
+                    res = get_key(ds_q, available_datasets, num_results=0, best=False)
+
+            ds_q = make_dsq(name=band_name, resolution=1000)
+            res = get_key(ds_q, available_datasets, num_results=0, best=False)
             self.assertEqual(2, len(res))
-            ds_id = DatasetID(name=band_name, resolution=2000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=4000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
 
         res = reader.load(band_names)
         self.assertEqual(3, len(res))
@@ -484,7 +475,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
     def test_fy4a_500m_resolutions(self):
         """Test loading data when only 500m resolutions are available."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader, get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_0500M_V0001.HDF',
@@ -501,18 +492,14 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         band_names = ['C' + '%02d' % ch for ch in np.linspace(2, 2, 1)]
 
         for band_name in band_names:
-            ds_id = DatasetID(name=band_name, resolution=500)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
+            for resolution in [1000, 2000, 4000]:
+                ds_q = make_dsq(name=band_name, resolution=resolution)
+                with pytest.raises(KeyError):
+                    res = get_key(ds_q, available_datasets, num_results=0, best=False)
+
+            ds_q = make_dsq(name=band_name, resolution=500)
+            res = get_key(ds_q, available_datasets, num_results=0, best=False)
             self.assertEqual(2, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=2000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=4000)
-            res = get_key(ds_id, available_datasets, num_results=0, best=False)
-            self.assertEqual(0, len(res))
 
         res = reader.load(band_names)
         self.assertEqual(1, len(res))
