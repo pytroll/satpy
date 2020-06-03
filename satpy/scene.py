@@ -22,8 +22,8 @@ import os
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
-from satpy.dataset import (DatasetQuery, DataArrayID, MetadataObject, dataset_walker,
-                           replace_anc, combine_metadata)
+from satpy.dataset import (DatasetQuery, DataID, MetadataObject, dataset_walker,
+                           replace_anc, combine_metadata, minimal_default_keys_config)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
@@ -409,9 +409,8 @@ class Scene(MetadataObject):
         datasets_by_area = {}
         for ds in self:
             a = ds.attrs.get('area')
-            # FIXME_DID
-            datasets_by_area.setdefault(a, []).append(
-                DatasetID.from_dict(ds.attrs))
+            dsid = DataID.from_dataarray(ds)
+            datasets_by_area.setdefault(a, []).append(dsid)
 
         return datasets_by_area.items()
 
@@ -481,11 +480,12 @@ class Scene(MetadataObject):
         new_datasets = {}
         datasets = (self[ds_id] for ds_id in dataset_ids)
         for ds, parent_ds in dataset_walker(datasets):
-            ds_id = DatasetID.from_dict(ds.attrs)
+            ds_id = DataID.from_dataarray(ds)
             # handle ancillary variables
             pres = None
             if parent_ds is not None:
-                pres = new_datasets[DatasetID.from_dict(parent_ds.attrs)]
+                parent_dsid = DataID.from_dataarray(parent_ds)
+                pres = new_datasets[parent_dsid]
             if ds_id in new_datasets:
                 replace_anc(ds, pres)
                 continue
@@ -674,7 +674,7 @@ class Scene(MetadataObject):
 
     def __getitem__(self, key):
         """Get a dataset or create a new 'slice' of the Scene."""
-        if isinstance(key, tuple) and not isinstance(key, DataArrayID):
+        if isinstance(key, tuple) and not isinstance(key, DataID):
             return self.slice(key)
         return self.datasets[key]
 
@@ -837,7 +837,7 @@ class Scene(MetadataObject):
                                    optional_datasets=optional_datasets,
                                    **self.attrs)
 
-            cid = compositor.attrs['_id_class'].from_dict(composite.attrs)
+            cid = DataID(compositor.attrs.get('_id_keys', minimal_default_keys_config), **composite.attrs)
 
             self.datasets[cid] = composite
             # update the node with the computed DatasetID
@@ -1020,10 +1020,10 @@ class Scene(MetadataObject):
         resamplers = {}
         reductions = {}
         for dataset, parent_dataset in dataset_walker(datasets):
-            ds_id = dataset.attrs['_id_class'].from_dict(dataset.attrs)
+            ds_id = DataID.from_dataarray(dataset)
             pres = None
             if parent_dataset is not None:
-                pres = new_datasets[parent_dataset.attrs['_id_class'].from_dict(parent_dataset.attrs)]
+                pres = new_datasets[DataID.from_dataarray(parent_dataset)]
             if ds_id in new_datasets:
                 replace_anc(new_datasets[ds_id], pres)
                 if ds_id in new_scn.datasets:

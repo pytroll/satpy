@@ -17,12 +17,29 @@
 """Utilities for various satpy tests."""
 
 from datetime import datetime
-from satpy.readers.yaml_reader import FileYAMLReader
 from unittest import mock
 
-from satpy.dataset import default_id_keys_config, new_dataset_id_class_from_keys
+from satpy.dataset import (DatasetQuery, minimal_default_keys_config,
+                           default_id_keys_config, make_trimmed_dsid_from_keys,
+                           new_dataset_id_class_from_keys, DataID)
+from satpy.readers.yaml_reader import FileYAMLReader
 
-DatasetID = new_dataset_id_class_from_keys(default_id_keys_config)
+#DatasetID = new_dataset_id_class_from_keys(default_id_keys_config)
+#make_dsid = make_trimmed_dsid_from_keys
+
+def make_dsid(**items):
+    """Make a data id."""
+    return DataID(default_id_keys_config, **items)
+
+
+def make_cid(**items):
+    """Make a composite ID."""
+    return DataID(minimal_default_keys_config, **items)
+
+
+def make_dsq(**items):
+    """Make a dataset query."""
+    return DatasetQuery(**items)
 
 
 def spy_decorator(method_to_decorate):
@@ -92,23 +109,23 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
 def test_datasets():
     """Get list of various test datasets."""
     d = [
-        DatasetID(name='ds1'),
-        DatasetID(name='ds2'),
-        DatasetID(name='ds3'),
-        DatasetID(name='ds4', calibration='reflectance'),
-        DatasetID(name='ds4', calibration='radiance'),
-        DatasetID(name='ds5', resolution=250),
-        DatasetID(name='ds5', resolution=500),
-        DatasetID(name='ds5', resolution=1000),
-        DatasetID(name='ds6', wavelength=(0.1, 0.2, 0.3)),
-        DatasetID(name='ds7', wavelength=(0.4, 0.5, 0.6)),
-        DatasetID(name='ds8', wavelength=(0.7, 0.8, 0.9)),
-        DatasetID(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
-        DatasetID(name='ds10', wavelength=(0.75, 0.85, 0.95)),
-        DatasetID(name='ds11', resolution=500),
-        DatasetID(name='ds11', resolution=1000),
-        DatasetID(name='ds12', resolution=500),
-        DatasetID(name='ds12', resolution=1000),
+        make_dsid(name='ds1'),
+        make_dsid(name='ds2'),
+        make_dsid(name='ds3'),
+        make_dsid(name='ds4', calibration='reflectance'),
+        make_dsid(name='ds4', calibration='radiance'),
+        make_dsid(name='ds5', resolution=250),
+        make_dsid(name='ds5', resolution=500),
+        make_dsid(name='ds5', resolution=1000),
+        make_dsid(name='ds6', wavelength=(0.1, 0.2, 0.3)),
+        make_dsid(name='ds7', wavelength=(0.4, 0.5, 0.6)),
+        make_dsid(name='ds8', wavelength=(0.7, 0.8, 0.9)),
+        make_dsid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
+        make_dsid(name='ds10', wavelength=(0.75, 0.85, 0.95)),
+        make_dsid(name='ds11', resolution=500),
+        make_dsid(name='ds11', resolution=1000),
+        make_dsid(name='ds12', resolution=500),
+        make_dsid(name='ds12', resolution=1000),
     ]
     return d
 
@@ -131,7 +148,7 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
         if ds_id.name == 'comp14':
             # used as a test when composites update the dataset id with
             # information from prereqs
-            ds_id = ds_id._replace(resolution=555)
+            ds_id = DataID(ds_id.id_keys, resolution=555, **ds_id)
         if len(datasets) != len(prereqs):
             raise ValueError("Not enough prerequisite datasets passed")
         return DataArray(data=np.arange(75).reshape(5, 5, 3),
@@ -167,7 +184,7 @@ def _create_fake_modifiers(name, prereqs, opt_prereqs):
                             continue
                         assert optional_datasets is not None and \
                             len(optional_datasets)
-                resolution = DatasetID.from_dict(datasets[0].attrs).resolution
+                resolution = datasets[0].attrs.get('resolution')
                 if name == 'res_change' and resolution is not None:
                     i = datasets[0].attrs.copy()
                     i['resolution'] *= 5
@@ -194,45 +211,45 @@ def test_composites(sensor_name):
     from satpy import DatasetDict
     # Composite ID -> (prereqs, optional_prereqs)
     comps = {
-        DatasetID(name='comp1'): (['ds1'], []),
-        DatasetID(name='comp2'): (['ds1', 'ds2'], []),
-        DatasetID(name='comp3'): (['ds1', 'ds2', 'ds3'], []),
-        DatasetID(name='comp4'): (['comp2', 'ds3'], []),
-        DatasetID(name='comp5'): (['ds1', 'ds2'], ['ds3']),
-        DatasetID(name='comp6'): (['ds1', 'ds2'], ['comp2']),
-        DatasetID(name='comp7'): (['ds1', 'comp2'], ['ds2']),
-        DatasetID(name='comp8'): (['ds_NOPE', 'comp2'], []),
-        DatasetID(name='comp9'): (['ds1', 'comp2'], ['ds_NOPE']),
-        DatasetID(name='comp10'): ([DatasetID('ds1', modifiers=('mod1',)), 'comp2'], []),
-        DatasetID(name='comp11'): ([0.22, 0.48, 0.85], []),
-        DatasetID(name='comp12'): ([DatasetID(wavelength=0.22, modifiers=('mod1',)),
-                                    DatasetID(wavelength=0.48, modifiers=('mod1',)),
-                                    DatasetID(wavelength=0.85, modifiers=('mod1',))], []),
-        DatasetID(name='comp13'): ([DatasetID(name='ds5', modifiers=('res_change',))], []),
-        DatasetID(name='comp14'): (['ds1'], []),
-        DatasetID(name='comp15'): (['ds1', 'ds9_fail_load'], []),
-        DatasetID(name='comp16'): (['ds1'], ['ds9_fail_load']),
-        DatasetID(name='comp17'): (['ds1', 'comp15'], []),
-        DatasetID(name='comp18'): (['ds3',
-                                    DatasetID(name='ds4', modifiers=('mod1', 'mod3',)),
-                                    DatasetID(name='ds5', modifiers=('mod1', 'incomp_areas'))], []),
-        DatasetID(name='comp18_2'): (['ds3',
-                                      DatasetID(name='ds4', modifiers=('mod1', 'mod3',)),
-                                      DatasetID(name='ds5', modifiers=('mod1', 'incomp_areas_opt'))], []),
-        DatasetID(name='comp19'): ([DatasetID('ds5', modifiers=('res_change',)), 'comp13', 'ds2'], []),
-        DatasetID(name='comp20'): ([DatasetID(name='ds5', modifiers=('mod_opt_prereq',))], []),
-        DatasetID(name='comp21'): ([DatasetID(name='ds5', modifiers=('mod_bad_opt',))], []),
-        DatasetID(name='comp22'): ([DatasetID(name='ds5', modifiers=('mod_opt_only',))], []),
-        DatasetID(name='comp23'): ([0.8], []),
-        DatasetID(name='static_image'): ([], []),
-        DatasetID(name='comp24', resolution=500): ([DatasetID(name='ds11', resolution=500),
-                                                    DatasetID(name='ds12', resolution=500)], []),
-        DatasetID(name='comp24', resolution=1000): ([DatasetID(name='ds11', resolution=1000),
-                                                     DatasetID(name='ds12', resolution=1000)], []),
-        DatasetID(name='comp25', resolution=500): ([DatasetID(name='comp24', resolution=500),
-                                                    DatasetID(name='ds5', resolution=500)], []),
-        DatasetID(name='comp25', resolution=1000): ([DatasetID(name='comp24', resolution=1000),
-                                                     DatasetID(name='ds5', resolution=1000)], []),
+        make_cid(name='comp1'): (['ds1'], []),
+        make_cid(name='comp2'): (['ds1', 'ds2'], []),
+        make_cid(name='comp3'): (['ds1', 'ds2', 'ds3'], []),
+        make_cid(name='comp4'): (['comp2', 'ds3'], []),
+        make_cid(name='comp5'): (['ds1', 'ds2'], ['ds3']),
+        make_cid(name='comp6'): (['ds1', 'ds2'], ['comp2']),
+        make_cid(name='comp7'): (['ds1', 'comp2'], ['ds2']),
+        make_cid(name='comp8'): (['ds_NOPE', 'comp2'], []),
+        make_cid(name='comp9'): (['ds1', 'comp2'], ['ds_NOPE']),
+        make_cid(name='comp10'): ([make_dsq(name='ds1', modifiers=('mod1',)), 'comp2'], []),
+        make_cid(name='comp11'): ([0.22, 0.48, 0.85], []),
+        make_cid(name='comp12'): ([make_dsq(wavelength=0.22, modifiers=('mod1',)),
+                                   make_dsq(wavelength=0.48, modifiers=('mod1',)),
+                                   make_dsq(wavelength=0.85, modifiers=('mod1',))], []),
+        make_cid(name='comp13'): ([make_dsq(name='ds5', modifiers=('res_change',))], []),
+        make_cid(name='comp14'): (['ds1'], []),
+        make_cid(name='comp15'): (['ds1', 'ds9_fail_load'], []),
+        make_cid(name='comp16'): (['ds1'], ['ds9_fail_load']),
+        make_cid(name='comp17'): (['ds1', 'comp15'], []),
+        make_cid(name='comp18'): (['ds3',
+                                   make_dsq(name='ds4', modifiers=('mod1', 'mod3',)),
+                                   make_dsq(name='ds5', modifiers=('mod1', 'incomp_areas'))], []),
+        make_cid(name='comp18_2'): (['ds3',
+                                     make_dsq(name='ds4', modifiers=('mod1', 'mod3',)),
+                                     make_dsq(name='ds5', modifiers=('mod1', 'incomp_areas_opt'))], []),
+        make_cid(name='comp19'): ([make_dsq(name='ds5', modifiers=('res_change',)), 'comp13', 'ds2'], []),
+        make_cid(name='comp20'): ([make_dsq(name='ds5', modifiers=('mod_opt_prereq',))], []),
+        make_cid(name='comp21'): ([make_dsq(name='ds5', modifiers=('mod_bad_opt',))], []),
+        make_cid(name='comp22'): ([make_dsq(name='ds5', modifiers=('mod_opt_only',))], []),
+        make_cid(name='comp23'): ([0.8], []),
+        make_cid(name='static_image'): ([], []),
+        make_cid(name='comp24', resolution=500): ([make_dsq(name='ds11', resolution=500),
+                                                   make_dsq(name='ds12', resolution=500)], []),
+        make_cid(name='comp24', resolution=1000): ([make_dsq(name='ds11', resolution=1000),
+                                                    make_dsq(name='ds12', resolution=1000)], []),
+        make_cid(name='comp25', resolution=500): ([make_dsq(name='comp24', resolution=500),
+                                                   make_dsq(name='ds5', resolution=500)], []),
+        make_cid(name='comp25', resolution=1000): ([make_dsq(name='comp24', resolution=1000),
+                                                    make_dsq(name='ds5', resolution=1000)], []),
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -241,13 +258,12 @@ def test_composites(sensor_name):
         'mod3': (['ds2'], []),
         'res_change': ([], []),
         'incomp_areas': (['ds1'], []),
-        'incomp_areas_opt': ([DatasetID(name='ds1', modifiers=('incomp_areas',))], ['ds2']),
+        'incomp_areas_opt': ([make_dsid(name='ds1', modifiers=('incomp_areas',))], ['ds2']),
         'mod_opt_prereq': (['ds1'], ['ds2']),
         'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
         'mod_opt_only': ([], ['ds2']),
-        'mod_wl': ([DatasetID(wavelength=0.2, modifiers=('mod1',))], []),
+        'mod_wl': ([make_dsid(name='wl_modifier', wavelength=0.2, modifiers=('mod1',))], []),
     }
-
     comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
     mods = {sensor_name: dict((k, _create_fake_modifiers(k, *v)) for k, v in mods.items())}
 
