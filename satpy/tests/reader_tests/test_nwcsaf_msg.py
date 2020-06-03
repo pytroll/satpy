@@ -482,11 +482,11 @@ class TestH5NWCSAF(unittest.TestCase):
     def test_get_area_def(self):
         """Get the area definition."""
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsid
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ct")
+        dsid = make_dsid(name="ct")
         test = Hdf5NWCSAF(self.filename_ct, filename_info, filetype_info)
 
         area_def = test.get_area_def(dsid)
@@ -509,11 +509,11 @@ class TestH5NWCSAF(unittest.TestCase):
     def test_get_dataset(self):
         """Retrieve datasets from a NWCSAF msgv2013 hdf5 file."""
         from satpy.readers.nwcsaf_msg2013_hdf5 import Hdf5NWCSAF
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsid
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ct")
+        dsid = make_dsid(name="ct")
         test = Hdf5NWCSAF(self.filename_ct, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CT"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -522,7 +522,7 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ctth_alti")
+        dsid = make_dsid(name="ctth_alti")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_HEIGHT"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -531,7 +531,7 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ctth_pres")
+        dsid = make_dsid(name="ctth_pres")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_PRESS"})
         self.assertEqual(ds.shape, (1856, 3712))
@@ -540,7 +540,7 @@ class TestH5NWCSAF(unittest.TestCase):
 
         filename_info = {}
         filetype_info = {}
-        dsid = DatasetID(name="ctth_tempe")
+        dsid = make_dsid(name="ctth_tempe")
         test = Hdf5NWCSAF(self.filename_ctth, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {"file_key": "CTTH_TEMPER"})
         self.assertEqual(ds.shape, (1856, 3712))
