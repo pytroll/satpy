@@ -18,7 +18,6 @@
 """Shared objects of the various reader classes."""
 
 import logging
-import numbers
 import os
 from datetime import datetime, timedelta
 import numpy as np
@@ -32,7 +31,7 @@ except ImportError:
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
-from satpy.dataset import DatasetQuery, DataID, minimal_default_keys_config
+from satpy.dataset import DatasetQuery, DataID, minimal_default_keys_config, create_filtered_query
 
 LOG = logging.getLogger(__name__)
 
@@ -138,22 +137,23 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
                            (default: 1)
         best (bool): Sort results to get "best" result first
                      (default: True). See `get_best_dataset_key` for details.
-        resolution (float, int, or list): Resolution of the dataset in
-                                          dataset units (typically
-                                          meters). This can also be a
-                                          list of these numbers.
-        calibration (str or list): Dataset calibration
-                                   (ex.'reflectance'). This can also be a
-                                   list of these strings.
-        polarization (str or list): Dataset polarization
-                                    (ex.'V'). This can also be a
+        query (DatasetQuery): filter for the key which can contain:
+            resolution (float, int, or list): Resolution of the dataset in
+                                            dataset units (typically
+                                            meters). This can also be a
+                                            list of these numbers.
+            calibration (str or list): Dataset calibration
+                                    (ex.'reflectance'). This can also be a
                                     list of these strings.
-        level (number or list): Dataset level (ex. 100). This can also be a
-                                list of these numbers.
-        modifiers (list): Modifiers applied to the dataset. Unlike
-                          resolution and calibration this is the exact
-                          desired list of modifiers for one dataset, not
-                          a list of possible modifiers.
+            polarization (str or list): Dataset polarization
+                                        (ex.'V'). This can also be a
+                                        list of these strings.
+            level (number or list): Dataset level (ex. 100). This can also be a
+                                    list of these numbers.
+            modifiers (list): Modifiers applied to the dataset. Unlike
+                            resolution and calibration this is the exact
+                            desired list of modifiers for one dataset, not
+                            a list of possible modifiers.
 
 
     Returns (list or DatasetID): Matching key(s)
@@ -162,15 +162,7 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
             found when `num_results` is `1`.
 
     """
-    if isinstance(key, numbers.Number):
-        key = DatasetQuery(wavelength=key)
-    elif isinstance(key, str):
-        key = DatasetQuery(name=key)
-    elif isinstance(key, DataID):
-        key = DatasetQuery(**key.to_dict())
-    elif not isinstance(key, DatasetQuery):
-        raise ValueError("Expected 'DatasetQuery', str, or number dict key, "
-                         "not {}".format(str(type(key))))
+    key = create_filtered_query(key, query)
 
     res = filter_keys_by_dataset_query(key, key_container)
     if not res:
@@ -203,9 +195,9 @@ class DatasetDict(dict):
         # sort keys so things are a little more deterministic (.keys() is not)
         keys = sorted(super(DatasetDict, self).keys())
         if names:
-            return (k.name for k in keys)
+            return (k.get('name') for k in keys)
         elif wavelengths:
-            return (k.wavelength for k in keys)
+            return (k.get('wavelength') for k in keys)
         else:
             return keys
 
