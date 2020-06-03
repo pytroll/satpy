@@ -54,12 +54,10 @@ class NCSLSTRGeo(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if not info['view'].startswith(self.filename_info['view']):
-            return
         logger.debug('Reading %s.', key.name)
 
         try:
-            variable = self.nc[info['file_key'].format(**self.filename_info)]
+            variable = self.nc[info['file_key']]
         except KeyError:
             return
 
@@ -123,8 +121,6 @@ class NCSLSTR1B(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         if self.channel not in key.name:
-            return
-        if not info['view'].startswith(self.filename_info['view']):
             return
 
         logger.debug('Reading %s.', key.name)
@@ -214,8 +210,7 @@ class NCSLSTRAngles(BaseFileHandler):
         # Check if file_key is specified in the yaml
         file_key = info.get('file_key', key.name)
 
-        variable = self.nc[file_key.format(**self.filename_info)]
-
+        variable = self.nc[file_key]
         l_step = self.nc.attrs.get('al_subsampling_factor', 1)
         c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
 
