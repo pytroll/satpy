@@ -20,7 +20,7 @@ import unittest
 import unittest.mock as mock
 import numpy as np
 import xarray as xr
-from satpy import DatasetID
+from satpy.tests.utils import make_dsid
 
 
 class TestSAFENC(unittest.TestCase):
@@ -72,7 +72,7 @@ class TestSAFENC(unittest.TestCase):
     def test_get_dataset(self):
         for ch in self.channels:
             dt = self.reader.get_dataset(
-                key=DatasetID(name=ch), info={})
+                key=make_dsid(name=ch), info={})
             # ... this only compares the valid (unmasked) elements
             self.assertTrue(np.all(self.nc[ch] == dt.to_masked_array()),
                             msg='get_dataset() returns invalid data for '
@@ -82,10 +82,10 @@ class TestSAFENC(unittest.TestCase):
 #    def test_init(self, mocked_dataset):
 #        """Test basic init with no extra parameters."""
 #        from satpy.readers.safe_sar_l2_ocn import SAFENC
-#        from satpy import DatasetID
+#        from satpy.tests.utils import make_dsid
 #
 #        print(mocked_dataset)
-#        ds_id = DatasetID(name='foo')
+#        ds_id = make_dsid(name='foo')
 #        filename_info = {'mission_id': 'S3A', 'product_type': 'foo',
 #                         'start_time': 0, 'end_time': 0,
 #                         'fstart_time': 0, 'fend_time': 0,
