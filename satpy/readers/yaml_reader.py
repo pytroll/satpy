@@ -818,8 +818,7 @@ class FileYAMLReader(AbstractYAMLReader):
         for dataset in datasets.values():
             new_vars = []
             for av_id in dataset.attrs.get('ancillary_variables', []):
-                import ipdb; ipdb.set_trace()
-                if isinstance(av_id, DatasetID):
+                if isinstance(av_id, DataID):
                     new_vars.append(datasets[av_id])
                 else:
                     new_vars.append(av_id)
