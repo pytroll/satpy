@@ -119,7 +119,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             if file_units == "none":
                 file_units = "1"
 
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.get('calibration') == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             rad_units_path = var_path + '/attr/radiance_units'
             if rad_units_path in self:
                 if file_units is None:
@@ -134,7 +134,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         return file_units
 
     def _get_dataset_valid_range(self, dataset_id, ds_info, var_path):
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.get('calibration') == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             rad_units_path = var_path + '/attr/radiance_units'
             if rad_units_path in self:
                 # we are getting a reflectance band but we want the radiance values
@@ -203,7 +203,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         shape = metadata['shape']
 
         valid_min, valid_max, scale_factor, scale_offset = self._get_dataset_valid_range(dataset_id, ds_info, var_path)
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.get('calibration') == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             data = self[var_path]
         elif ds_info.get('units') == '%':
             data = self[var_path]

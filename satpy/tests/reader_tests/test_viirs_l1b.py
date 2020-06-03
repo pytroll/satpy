@@ -213,29 +213,29 @@ class TestVIIRSL1BReader(unittest.TestCase):
     def test_load_every_m_band_rad(self):
         """Test loading all M bands as radiances"""
         from satpy.readers import load_reader
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsid
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'VL1BM_snpp_d20161130_t012400_c20161130054822.nc',
             'VGEOM_snpp_d20161130_t012400_c20161130054822.nc',
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load([DatasetID('M01', calibration='radiance'),
-                           DatasetID('M02', calibration='radiance'),
-                           DatasetID('M03', calibration='radiance'),
-                           DatasetID('M04', calibration='radiance'),
-                           DatasetID('M05', calibration='radiance'),
-                           DatasetID('M06', calibration='radiance'),
-                           DatasetID('M07', calibration='radiance'),
-                           DatasetID('M08', calibration='radiance'),
-                           DatasetID('M09', calibration='radiance'),
-                           DatasetID('M10', calibration='radiance'),
-                           DatasetID('M11', calibration='radiance'),
-                           DatasetID('M12', calibration='radiance'),
-                           DatasetID('M13', calibration='radiance'),
-                           DatasetID('M14', calibration='radiance'),
-                           DatasetID('M15', calibration='radiance'),
-                           DatasetID('M16', calibration='radiance')])
+        datasets = r.load([make_dsid(name='M01', calibration='radiance'),
+                           make_dsid(name='M02', calibration='radiance'),
+                           make_dsid(name='M03', calibration='radiance'),
+                           make_dsid(name='M04', calibration='radiance'),
+                           make_dsid(name='M05', calibration='radiance'),
+                           make_dsid(name='M06', calibration='radiance'),
+                           make_dsid(name='M07', calibration='radiance'),
+                           make_dsid(name='M08', calibration='radiance'),
+                           make_dsid(name='M09', calibration='radiance'),
+                           make_dsid(name='M10', calibration='radiance'),
+                           make_dsid(name='M11', calibration='radiance'),
+                           make_dsid(name='M12', calibration='radiance'),
+                           make_dsid(name='M13', calibration='radiance'),
+                           make_dsid(name='M14', calibration='radiance'),
+                           make_dsid(name='M15', calibration='radiance'),
+                           make_dsid(name='M16', calibration='radiance')])
         self.assertEqual(len(datasets), 16)
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'radiance')
