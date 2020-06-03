@@ -95,19 +95,19 @@ class TestSCMIFileHandler(unittest.TestCase):
     def test_basic_attributes(self):
         """Test getting basic file attributes."""
         from datetime import datetime
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsid
         self.assertEqual(self.reader.start_time,
                          datetime(2017, 7, 29, 12, 0, 0, 0))
         self.assertEqual(self.reader.end_time,
                          datetime(2017, 7, 29, 12, 0, 0, 0))
-        self.assertEqual(self.reader.get_shape(DatasetID(name='C05'), {}),
+        self.assertEqual(self.reader.get_shape(make_dsid(name='C05'), {}),
                          (2, 5))
 
     def test_data_load(self):
         """Test data loading."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsid
         res = self.reader.get_dataset(
-            DatasetID(name='C05', calibration='reflectance'), {})
+            make_dsid(name='C05', calibration='reflectance'), {})
 
         np.testing.assert_allclose(res.data, self.expected_rad, equal_nan=True)
         self.assertNotIn('scale_factor', res.attrs)
