@@ -18,10 +18,11 @@
 """The glm_l2 reader tests package."""
 
 import os
-import numpy as np
-import xarray as xr
 import unittest
 from unittest import mock
+
+import numpy as np
+import xarray as xr
 
 
 def setup_fake_dataset():
@@ -107,8 +108,8 @@ class TestGLML2FileHandler(unittest.TestCase):
 
     def test_get_dataset(self):
         """Test the get_dataset method."""
-        from satpy import DatasetID
-        key = DatasetID(name='flash_extent_density')
+        from satpy.tests.utils import make_dsid
+        key = make_dsid(name='flash_extent_density')
         res = self.reader.get_dataset(key, {'info': 'info'})
         exp = {'instrument_ID': None,
                'modifiers': (),
