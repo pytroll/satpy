@@ -26,7 +26,7 @@ from unittest import mock
 import numpy as np
 import xarray as xr
 import satpy
-from satpy import DatasetID
+from satpy.tests.utils import make_dsid
 from satpy.readers import eps_l1b as eps
 grh_dtype = np.dtype([("record_class", "|i1"),
                       ("INSTRUMENT_GROUP", "|i1"),
@@ -93,7 +93,7 @@ class TestEPSL1B(TestCase):
 
     def test_dataset(self):
         """Test getting a dataset."""
-        did = DatasetID('1', calibration='reflectance')
+        did = make_dsid(name='1', calibration='reflectance')
         res = self.fh.get_dataset(did, {})
         assert(isinstance(res, xr.DataArray))
         assert(res.attrs['platform_name'] == 'Metop-C')
@@ -101,7 +101,7 @@ class TestEPSL1B(TestCase):
         assert(res.attrs['name'] == '1')
         assert(res.attrs['calibration'] == 'reflectance')
 
-        did = DatasetID('4', calibration='brightness_temperature')
+        did = make_dsid(name='4', calibration='brightness_temperature')
         res = self.fh.get_dataset(did, {})
         assert(isinstance(res, xr.DataArray))
         assert(res.attrs['platform_name'] == 'Metop-C')
@@ -111,7 +111,7 @@ class TestEPSL1B(TestCase):
 
     def test_navigation(self):
         """Test the navigation."""
-        did = DatasetID('longitude')
+        did = make_dsid(name='longitude')
         res = self.fh.get_dataset(did, {})
         assert(isinstance(res, xr.DataArray))
         assert(res.attrs['platform_name'] == 'Metop-C')
@@ -120,7 +120,7 @@ class TestEPSL1B(TestCase):
 
     def test_angles(self):
         """Test the navigation."""
-        did = DatasetID('solar_zenith_angle')
+        did = make_dsid(name='solar_zenith_angle')
         res = self.fh.get_dataset(did, {})
         assert(isinstance(res, xr.DataArray))
         assert(res.attrs['platform_name'] == 'Metop-C')
