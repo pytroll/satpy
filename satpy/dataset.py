@@ -22,105 +22,12 @@ import numbers
 from collections import namedtuple
 from datetime import datetime
 from enum import IntEnum
+from copy import copy, deepcopy
+import warnings
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
-
-
-class MetadataObject(object):
-    """A general metadata object."""
-
-    def __init__(self, **attributes):
-        """Initialize the class with *attributes*."""
-        self.attrs = attributes
-
-    @property
-    def id(self):
-        """Return the DatasetID of the object."""
-        return self.attrs['_id_class'].from_dict(self.attrs)
-
-
-def average_datetimes(dt_list):
-    """Average a series of datetime objects.
-
-    .. note::
-
-        This function assumes all datetime objects are naive and in the same
-        time zone (UTC).
-
-    Args:
-        dt_list (iterable): Datetime objects to average
-
-    Returns: Average datetime as a datetime object
-
-    """
-    total = [datetime.timestamp(dt) for dt in dt_list]
-    return datetime.fromtimestamp(sum(total) / len(total))
-
-
-def combine_metadata(*metadata_objects, **kwargs):
-    """Combine the metadata of two or more Datasets.
-
-    If any keys are not equal or do not exist in all provided dictionaries
-    then they are not included in the returned dictionary.
-    By default any keys with the word 'time' in them and consisting
-    of datetime objects will be averaged. This is to handle cases where
-    data were observed at almost the same time but not exactly.
-
-    Args:
-        *metadata_objects: MetadataObject or dict objects to combine
-        average_times (bool): Average any keys with 'time' in the name
-
-    Returns:
-        dict: the combined metadata
-
-    """
-    average_times = kwargs.get('average_times', True)  # python 2 compatibility (no kwarg after *args)
-    shared_keys = None
-    info_dicts = []
-    # grab all of the dictionary objects provided and make a set of the shared keys
-    for metadata_object in metadata_objects:
-        if isinstance(metadata_object, dict):
-            metadata_dict = metadata_object
-        elif hasattr(metadata_object, "attrs"):
-            metadata_dict = metadata_object.attrs
-        else:
-            continue
-        info_dicts.append(metadata_dict)
-
-        if shared_keys is None:
-            shared_keys = set(metadata_dict.keys())
-        else:
-            shared_keys &= set(metadata_dict.keys())
-
-    # combine all of the dictionaries
-    shared_info = {}
-    for k in shared_keys:
-        values = [nfo[k] for nfo in info_dicts]
-        any_arrays = any([isinstance(val, np.ndarray) for val in values])
-        if any_arrays:
-            if all(np.all(val == values[0]) for val in values[1:]):
-                shared_info[k] = values[0]
-        elif 'time' in k and isinstance(values[0], datetime) and average_times:
-            shared_info[k] = average_datetimes(values)
-        elif all(val == values[0] for val in values[1:]):
-            shared_info[k] = values[0]
-
-    return shared_info
-
-
-def get_keys_from_config(common_id_keys, config):
-    """Gather keys for a new DatasetID then ones available in configured dataset."""
-    id_keys = {}
-    for key, val in common_id_keys.items():
-        if key in config:
-            id_keys[key] = val
-        elif val is not None and val.get('required') is True:
-            id_keys[key] = val
-    if not id_keys:
-        raise ValueError('Metada does not contain enough information to create a DatasetID.')
-    return id_keys
 
 
 class ValueList(IntEnum):
@@ -145,44 +52,6 @@ class ValueList(IntEnum):
 
     def __repr__(self):
         return '<' + str(self) + '>'
-
-
-def new_dataset_id_class_from_keys(id_keys):
-    """Create a new DatasetID from a configuration."""
-    types = {}
-    defaults = []
-    for key, val in id_keys.items():
-        if val is None:
-            defaults.append(None)
-        else:
-            defaults.append(val.get('default'))
-            if 'type' in val:
-                types[key] = val['type']
-            elif 'enum' in val:
-                types[key] = ValueList(key, ' '.join(val['enum']))
-    klass = make_dsid_class(types, **dict(zip(id_keys.keys(), defaults)))
-    return klass
-
-
-def wavelength_match(a, b):
-    """Return if two wavelengths are equal.
-
-    Args:
-        a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
-        b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
-    """
-    if ((type(a) == type(b)) or
-        (isinstance(a, numbers.Number) and
-            isinstance(b, numbers.Number))):
-        return a == b
-    elif a is None or b is None:
-        return False
-    elif isinstance(a, (list, tuple)) and len(a) == 3:
-        return a[0] <= b <= a[2]
-    elif isinstance(b, (list, tuple)) and len(b) == 3:
-        return b[0] <= a <= b[2]
-    else:
-        raise ValueError("Can only compare wavelengths of length 1 or 3")
 
 
 wlklass = namedtuple("WavelengthRange", "min central max")
@@ -272,12 +141,315 @@ class ModifierTuple(tuple):
         return tuple.__hash__(self)
 
 
+
+
+default_id_keys_config = {'name': {
+                              'required': True,
+                          },
+                          'wavelength': {
+                              'type': WavelengthRange,
+                          },
+                          'resolution': None,
+                          'calibration': {
+                              'enum': [
+                                  'reflectance',
+                                  'brightness_temperature',
+                                  'radiance',
+                                  'counts'
+                                  ]
+                          },
+                          'modifiers': {
+                              'required': True,
+                              'default': ModifierTuple(),
+                              'type': ModifierTuple,
+                          },
+                          }
+
+minimal_default_keys_config = {'name': {
+                                  'required': True,
+                              },
+                               'resolution': None
+                              }
+
+
+class MetadataObject(object):
+    """A general metadata object."""
+
+    def __init__(self, **attributes):
+        """Initialize the class with *attributes*."""
+        self.attrs = attributes
+
+    @property
+    def id(self):
+        """Return the DatasetID of the object."""
+        #print(self.attrs)
+        # if self.attrs['name'] is None:
+        #     import ipdb; ipdb.set_trace()
+        id_keys = self.attrs.get('_id_keys', minimal_default_keys_config)
+        return DataID(id_keys, **self.attrs)
+
+
+def average_datetimes(dt_list):
+    """Average a series of datetime objects.
+
+    .. note::
+
+        This function assumes all datetime objects are naive and in the same
+        time zone (UTC).
+
+    Args:
+        dt_list (iterable): Datetime objects to average
+
+    Returns: Average datetime as a datetime object
+
+    """
+    total = [datetime.timestamp(dt) for dt in dt_list]
+    return datetime.fromtimestamp(sum(total) / len(total))
+
+
+def combine_metadata(*metadata_objects, **kwargs):
+    """Combine the metadata of two or more Datasets.
+
+    If any keys are not equal or do not exist in all provided dictionaries
+    then they are not included in the returned dictionary.
+    By default any keys with the word 'time' in them and consisting
+    of datetime objects will be averaged. This is to handle cases where
+    data were observed at almost the same time but not exactly.
+
+    Args:
+        *metadata_objects: MetadataObject or dict objects to combine
+        average_times (bool): Average any keys with 'time' in the name
+
+    Returns:
+        dict: the combined metadata
+
+    """
+    average_times = kwargs.get('average_times', True)  # python 2 compatibility (no kwarg after *args)
+    shared_keys = None
+    info_dicts = []
+    # grab all of the dictionary objects provided and make a set of the shared keys
+    for metadata_object in metadata_objects:
+        if isinstance(metadata_object, dict):
+            metadata_dict = metadata_object
+        elif hasattr(metadata_object, "attrs"):
+            metadata_dict = metadata_object.attrs
+        else:
+            continue
+        info_dicts.append(metadata_dict)
+
+        if shared_keys is None:
+            shared_keys = set(metadata_dict.keys())
+        else:
+            shared_keys &= set(metadata_dict.keys())
+
+    # combine all of the dictionaries
+    shared_info = {}
+    for k in shared_keys:
+        values = [nfo[k] for nfo in info_dicts]
+        any_arrays = any([isinstance(val, np.ndarray) for val in values])
+        if any_arrays:
+            if all(np.all(val == values[0]) for val in values[1:]):
+                shared_info[k] = values[0]
+        elif 'time' in k and isinstance(values[0], datetime) and average_times:
+            shared_info[k] = average_datetimes(values)
+        elif all(val == values[0] for val in values[1:]):
+            shared_info[k] = values[0]
+
+    return shared_info
+
+
+def get_keys_from_config(common_id_keys, config):
+    """Gather keys for a new DatasetID from the ones available in configured dataset."""
+    id_keys = {}
+    for key, val in common_id_keys.items():
+        if key in config:
+            id_keys[key] = val
+        elif val is not None and val.get('required') is True:
+            id_keys[key] = val
+    if not id_keys:
+        raise ValueError('Metada does not contain enough information to create a DatasetID.')
+    return id_keys
+
+
+
+def new_dataset_id_class_from_keys(id_keys):
+    """Create a new DatasetID from a configuration."""
+    types = {}
+    defaults = []
+    for key, val in id_keys.items():
+        if val is None:
+            defaults.append(None)
+        else:
+            defaults.append(val.get('default'))
+            if 'type' in val:
+                types[key] = val['type']
+            elif 'enum' in val:
+                types[key] = ValueList(key, ' '.join(val['enum']))
+    klass = make_dsid_class(types, **dict(zip(id_keys.keys(), defaults)))
+    return klass
+
+
+def wavelength_match(a, b):
+    """Return if two wavelengths are equal.
+
+    Args:
+        a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+        b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+    """
+    if ((type(a) == type(b)) or
+        (isinstance(a, numbers.Number) and
+            isinstance(b, numbers.Number))):
+        return a == b
+    elif a is None or b is None:
+        return False
+    elif isinstance(a, (list, tuple)) and len(a) == 3:
+        return a[0] <= b <= a[2]
+    elif isinstance(b, (list, tuple)) and len(b) == 3:
+        return b[0] <= a <= b[2]
+    else:
+        raise ValueError("Can only compare wavelengths of length 1 or 3")
+
+
+
 class DataArrayID:
     pass
 
 
+class DataID(dict):
+    def __init__(self, id_keys, **keyval_dict):
+        self._hash = None
+        self._id_keys = self.fix_id_keys(id_keys or {})
+        if keyval_dict:
+            curated = self.convert_dict(keyval_dict)
+        else:
+            curated = {}
+        # if curated.get('name') == 'ds5' and curated.get('modifiers'):
+        #     import ipdb; ipdb.set_trace()
+        super(DataID, self).__init__(curated)
+
+    @property
+    def id_keys(self):
+        return deepcopy(self._id_keys)
+
+    @staticmethod
+    def fix_id_keys(id_keys):
+        """Sanitize the id keys."""
+        new_id_keys = id_keys.copy()
+        for key, val in id_keys.items():
+            if not val:
+                continue
+            if 'enum' in val and 'type' in val:
+                raise ValueError('Cannot have both type and enum for the same id key.')
+            new_val = copy(val)
+            if 'enum' in val:
+                new_val['type'] = ValueList(key, ' '.join(new_val.pop('enum')))
+            new_id_keys[key] = new_val
+        return new_id_keys
+
+    def convert_dict(self, keyvals):
+        curated = {}
+        if not keyvals:
+            return curated
+        for key, val in self._id_keys.items():
+            if val is not None:
+                if key in keyvals or val.get('default') or val.get('required'):
+                    curated_val = keyvals.get(key, val.get('default'))
+                    if 'required' in val and curated_val is None:
+                        raise ValueError('Required field {} missing.'.format(key))
+                    if 'type' in val:
+                        curated[key] = val['type'].convert(curated_val)
+                    elif curated_val is not None:
+                        curated[key] = curated_val
+            else:
+                try:
+                    curated_val = keyvals[key]
+                except KeyError:
+                    pass
+                else:
+                    if curated_val is not None:
+                        curated[key] = curated_val
+        return curated
+
+    def from_dict(self, keyvals):
+        return self.__class__(self._id_keys, **keyvals)
+
+    @classmethod
+    def from_dataarray(cls, array, default_keys=minimal_default_keys_config):
+        id_keys = array.attrs.get('_id_keys', default_keys)
+        return cls(id_keys, **array.attrs)
+
+    def _asdict(self):
+        return dict(self.items())
+
+    def to_dict(self):
+        """Convert the ID to a dict."""
+
+        return self._asdict()
+
+    def __getattr__(self, key):
+        if key in self._id_keys:
+            warnings.warn('Access to DataID attributes is deprecated, use [] instead')
+            return self[key]
+        else:
+            return super().__getattr__(self)
+
+
+    def __repr__(self):
+        """Represent the id."""
+        items = ("{}={}".format(key, repr(val)) for key, val in self.items())
+        return self.__class__.__name__ + "(" + ", ".join(items) + ")"
+
+    # types = {}
+    # defaults = []
+    # for key, val in id_keys.items():
+    #     if val is None:
+    #         defaults.append(None)
+    #     else:
+    #         defaults.append(val.get('default'))
+    #         if 'type' in val:
+    #             types[key] = val['type']
+    #         elif 'enum' in val:
+    #             types[key] = ValueList(key, ' '.join(val['enum']))
+
+
+
+
+    #         for ckey, the_type in types.items():
+    #             if ckey in kwargs:
+    #                 # TODO: do we really need a convert method or should we fix __new__?
+    #                 kwargs[ckey] = the_type.convert(kwargs[ckey])
+    #         newargs = []
+    #         for key, val in zip(cls._fields, args):
+    #             if key in types:
+    #                 val = types[key].convert(val)
+    #             if val is not None:
+    #                 newargs.append(val)
+
+    def __hash__(self):
+        if self._hash is None:
+            self._hash = hash(tuple(sorted(self.items())))
+        return self._hash
+
+    def _immutable(self, *args, **kws):
+        raise TypeError('Cannot change a DatasetID')
+
+    def __lt__(self, other):
+        return tuple(self.values()) < tuple(other.values())
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+    pop = _immutable
+    popitem = _immutable
+    clear = _immutable
+    update = _immutable
+    setdefault = _immutable
+
+
+
 def make_dsid_class(types=None, **kwargs):
     """Make a new DatasetID class."""
+    return DataID
+
     fields = kwargs.keys()
     defaults = kwargs.values()
     klass = namedtuple("DatasetID", " ".join(fields), defaults=defaults)
@@ -287,6 +459,8 @@ def make_dsid_class(types=None, **kwargs):
     # TODO: put this documentation somewhere sphinx can find it.
     class DatasetID(klass, DataArrayID):
         """Identifier for all `Dataset` objects.
+
+        FIXME: talk about None not being a valid value
 
         DatasetID is a namedtuple that holds identifying and classifying
         information about a Dataset. There are two identifying elements,
@@ -364,8 +538,9 @@ def make_dsid_class(types=None, **kwargs):
             """Convert a dict to an ID."""
             newkwargs = dict()
             for k in cls._fields:
-                if k in d:
-                    newkwargs[k] = d[k]
+                val = d.get(k)
+                if val is not None:
+                    newkwargs[k] = val
 
             return cls(**newkwargs)
 
@@ -412,13 +587,13 @@ class DatasetQuery:
         """Hash."""
         fields = []
         values = []
-        for field, value in self._dict.items():
+        for field, value in sorted(self._dict.items()):
             if value != '*':
                 fields.append(field)
                 if isinstance(value, (list, set)):
                     value = tuple(value)
                 values.append(value)
-        return hash((tuple(fields), hash(tuple(values))))
+        return hash(tuple(zip(fields, values)))
 
     def get(self, key, default=None):
         return self._dict.get(key, default)
@@ -453,7 +628,7 @@ class DatasetQuery:
         for key, val in self._dict.items():
             if val != '*':
                 keys = [k for k in keys
-                        if getattr(k, key, None) == val]
+                        if k.get(key) == val]
         return keys
 
     def sort_dsids(self, dsids):
@@ -462,18 +637,26 @@ class DatasetQuery:
         Returns the sorted dsids and the list of distances.
         """
         distances = []
+        sorted_dsids = []
+        keys = set(self._dict.keys())
+        for dsid in dsids:
+            keys |= set(dsid.keys())
         for dsid in sorted(dsids):
+            sorted_dsids.append(dsid)
             distance = 0
-            for key, val in self._dict.items():
+            for key in keys:
+                val = self._dict.get(key, '*')
                 if val == '*':
                     try:
-                        distance += getattr(dsid, key).value
+                        # for enums
+                        distance += dsid.get(key).value
                     except AttributeError:
-                        pass
+                        if isinstance(dsid.get(key), numbers.Number):
+                            distance += dsid.get(key)
                 else:
                     try:
-                        dsid_val = getattr(dsid, key)
-                    except AttributeError:
+                        dsid_val = dsid[key]
+                    except KeyError:
                         distance = np.inf
                         break
                     try:
@@ -483,14 +666,14 @@ class DatasetQuery:
                             distance = np.inf
                             break
             distances.append(distance)
-        distances, dsids = zip(*sorted(zip(distances, dsids)))
+        distances, dsids = zip(*sorted(zip(distances, sorted_dsids)))
         return dsids, distances
 
 
 # TODO: remove this static list
-DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
-                "calibration", "level", "modifiers")
-
+# DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
+#                 "calibration", "level", "modifiers")
+DATASET_KEYS = None
 """
   identification_keys:
     name:
@@ -507,32 +690,11 @@ DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
       type: !!python/name:satpy.dataset.ModifierTuple
 """
 
-default_id_keys_config = {'name': {
-                              'required': True
-                          },
-                          'wavelength': {
-                              'type': WavelengthRange,
-                          },
-                          'resolution': None,
-                          # 'polarization': None,
-                          'calibration': {
-                              'enum': [
-                                  'reflectance',
-                                  'brightness_temperature',
-                                  'radiance',
-                                  'counts'
-                                  ]
-                          },
-                          # 'level': None,
-                          'modifiers': {
-                              'required': True,
-                              'default': tuple(),
-                              'type': ModifierTuple,
-                          },
-                          }
 
-
-default_DatasetID = new_dataset_id_class_from_keys(default_id_keys_config)
+def make_trimmed_dsid_from_keys(_id_keys=default_id_keys_config, **items):
+    keys = get_keys_from_config(_id_keys, items)
+    dsid_class = new_dataset_id_class_from_keys(keys)
+    return dsid_class.from_dict(items)
 
 
 class DatasetID:
@@ -563,9 +725,10 @@ def create_filtered_query(dataset_key, filter_query):
             ds_dict = {'wavelength': dataset_key}
         else:
             raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
-    for key, value in filter_query._dict.items():
-        if value != '*':
-            ds_dict.setdefault(key, value)
+    if filter_query is not None:
+        for key, value in filter_query._dict.items():
+            if value != '*':
+                ds_dict.setdefault(key, value)
 
     return DatasetQuery.from_dict(ds_dict)
 
@@ -578,9 +741,10 @@ def create_filtered_id(dataset_key, filter_query):
 
     """
     additional_info = {}
-    for key, val in filter_query._dict.items():
-        if val != '*':
-            additional_info[key] = val
+    if filter_query is not None:
+        for key, val in filter_query._dict.items():
+            if val != '*':
+                additional_info[key] = val
     if not additional_info:
         return dataset_key
     else:
@@ -606,8 +770,9 @@ def replace_anc(dataset, parent_dataset):
     """Replace *dataset* the *parent_dataset*'s `ancillary_variables` field."""
     if parent_dataset is None:
         return
-    current_dsid = DatasetID.from_dict(dataset.attrs)
+    id_keys = parent_dataset.attrs.get('_id_keys', dataset.attrs.get('_id_keys'))
+    current_dsid = DataID(id_keys, **dataset.attrs)
     for idx, ds in enumerate(parent_dataset.attrs['ancillary_variables']):
-        if current_dsid == DatasetID.from_dict(ds.attrs):
+        if current_dsid == DataID(id_keys, **ds.attrs):
             parent_dataset.attrs['ancillary_variables'][idx] = dataset
             return

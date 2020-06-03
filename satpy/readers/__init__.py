@@ -32,7 +32,7 @@ except ImportError:
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
-from satpy.dataset import DatasetQuery, DataArrayID, default_DatasetID
+from satpy.dataset import DatasetQuery, DataID, minimal_default_keys_config
 
 LOG = logging.getLogger(__name__)
 
@@ -91,11 +91,7 @@ def get_best_dataset_key(key, choices):
     if len(sorted_choices) == 0 or distances[0] is np.inf:
         return []
     else:
-        return sorted_choices[0:1]
-
-    return key.sort_dsids(choices)[0:1]
-
-    return choices
+        return [choice for choice, distance in zip(sorted_choices, distances) if distance == distances[0]]
 
 
 def filter_keys_by_dataset_query(dquery, key_container):
@@ -170,7 +166,7 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
         key = DatasetQuery(wavelength=key)
     elif isinstance(key, str):
         key = DatasetQuery(name=key)
-    elif isinstance(key, DataArrayID):
+    elif isinstance(key, DataID):
         key = DatasetQuery(**key.to_dict())
     elif not isinstance(key, DatasetQuery):
         raise ValueError("Expected 'DatasetQuery', str, or number dict key, "
@@ -260,7 +256,7 @@ class DatasetDict(dict):
             # xarray.DataArray objects
             d = value.attrs
         # use value information to make a more complete DatasetID
-        if not isinstance(key, (DataArrayID, DatasetQuery)):
+        if not isinstance(key, (DataID, DatasetQuery)):
             if not isinstance(d, dict):
                 raise ValueError("Key must be a DatasetID or DataQuery when value is not an xarray DataArray or dict")
             old_key = key
@@ -275,16 +271,18 @@ class DatasetDict(dict):
                 if new_name is None and d.get('wavelength') is None:
                     raise ValueError("One of 'name' or 'wavelength' attrs "
                                      "values should be set.")
+                id_keys = d.setdefault('_id_keys', minimal_default_keys_config)
                 d = d.copy()
                 d['name'] = new_name
-                dsid_class = d.get('_id_class', default_DatasetID)
-                key = dsid_class.from_dict(d)
+                key = DataID(id_keys, **d)
+                if hasattr(value, 'attrs') and 'name' not in value.attrs:
+                    value.attrs['name'] = new_name
 
         # update the 'value' with the information contained in the key
 
         if isinstance(d, dict):
-            for field in key._fields:
-                d[field] = getattr(key, field)
+            for field in key.keys():
+                d[field] = key.get(field)
 
         return super(DatasetDict, self).__setitem__(key, value)
 

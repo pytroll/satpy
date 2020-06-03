@@ -18,7 +18,7 @@
 """Nodes to build trees."""
 
 from satpy import DatasetDict
-from satpy.dataset import DataArrayID, DatasetQuery, ModifierTuple
+from satpy.dataset import DataID, DatasetQuery, ModifierTuple
 from satpy.readers import TooManyResults
 from satpy.utils import get_logger
 from satpy.dataset import create_filtered_query, create_filtered_id
@@ -227,6 +227,8 @@ class DependencyTree(Node):
         #               multiple times if more than one Node depends on them
         #               but they should all map to the same Node object.
         if self.contains(child.name):
+            if self._all_nodes[child.name] is not child:
+                import ipdb; ipdb.set_trace()
             assert self._all_nodes[child.name] is child
         if child is self.empty_node:
             # No need to store "empty" nodes
@@ -281,7 +283,7 @@ class DependencyTree(Node):
                 return self.compositors[sensor_name][key]
             except KeyError:
                 continue
-        if isinstance(key, DataArrayID) and key.modifiers:
+        if isinstance(key, (DatasetQuery, DataID)) and key.get('modifiers'):
             # we must be generating a modifier composite
             return self.get_modifier(key)
 
@@ -290,7 +292,7 @@ class DependencyTree(Node):
     def get_modifier(self, comp_id):
         """Get a modifer."""
         # create a DatasetID for the compositor we are generating
-        modifier = comp_id.modifiers[-1]
+        modifier = comp_id['modifiers'][-1]
         for sensor_name in self.modifiers.keys():
             modifiers = self.modifiers[sensor_name]
             compositors = self.compositors[sensor_name]
@@ -301,12 +303,12 @@ class DependencyTree(Node):
             moptions = moptions.copy()
             moptions.update(comp_id.to_dict())
             moptions['sensor'] = sensor_name
-            compositors[comp_id] = mloader(_id_class=comp_id.__class__, **moptions)
+            compositors[comp_id] = mloader(_id_keys=comp_id.id_keys, **moptions)
             return compositors[comp_id]
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
-    def _find_reader_dataset(self, dataset_key, query):
+    def _find_reader_dataset(self, dataset_key):
         """Attempt to find a `DatasetID` in the available readers.
 
         Args:
@@ -324,7 +326,7 @@ class DependencyTree(Node):
         too_many = False
         for reader_name, reader_instance in self.readers.items():
             try:
-                ds_id = reader_instance.get_dataset_key(dataset_key, query, available_only=self._available_only)
+                ds_id = reader_instance.get_dataset_key(dataset_key, available_only=self._available_only)
             except TooManyResults:
                 LOG.trace("Too many datasets matching key {} in reader {}".format(dataset_key, reader_name))
                 too_many = True
@@ -376,8 +378,8 @@ class DependencyTree(Node):
                 self.add_child(parent, n)
         return prereq_ids, unknowns
 
-    def _update_modifier_key(self, orig_key, dep_key):
-        """Update a key based on the dataset it will modify (dep).
+    def _update_modifier_id(self, query, dep_key):
+        """Promote a query to an id based on the dataset it will modify (dep).
 
         Typical use case is requesting a modified dataset (orig_key). This
         modified dataset most likely depends on a less-modified
@@ -390,7 +392,7 @@ class DependencyTree(Node):
         chance of Node's not being unique.
 
         """
-        orig_dict = orig_key._asdict()
+        orig_dict = query._asdict()
         dep_dict = dep_key._asdict()
         for k, dep_val in dep_dict.items():
             # don't change the modifiers, just cast them to the right class
@@ -398,23 +400,26 @@ class DependencyTree(Node):
                 orig_dict[k] = dep_val.__class__(orig_dict[k])
             else:
                 orig_dict[k] = dep_val
-        return dep_key.__class__.from_dict(orig_dict)
+        return dep_key.from_dict(orig_dict)
 
     def _find_compositor(self, dataset_key, query):
-        """Find the compositor object for the given dataset_key."""
+        """Find the compositor object for the given dataset_key.
+
+        *dataset_key* is already filtered with *query*
+        """
         # NOTE: This function can not find a modifier that performs
         # one or more modifications if it has modifiers see if we can find
         # the unmodified version first
         src_node = None
-        if isinstance(dataset_key, DatasetQuery) and dataset_key['modifiers']:
+        if isinstance(dataset_key, DatasetQuery) and dataset_key.get('modifiers'):
             new_dict = dataset_key.to_dict()
             new_dict['modifiers'] = new_dict['modifiers'][:-1]
             new_prereq = DatasetQuery.from_dict(new_dict)
-            src_node, u = self._find_dependencies(new_prereq, query)
-            # Update the requested DatasetID with information from the src
+            src_node, u = self._find_dependencies(new_prereq)
+            # Update the requested DatasetQuery with information from the src
             if src_node is not None:
-                dataset_key = self._update_modifier_key(dataset_key,
-                                                        src_node.name)
+                dataset_key = self._update_modifier_id(dataset_key,
+                                                       src_node.name)
             if u:
                 return None, u
         elif isinstance(dataset_key, str):
@@ -423,7 +428,7 @@ class DependencyTree(Node):
             compositor = self.get_compositor(dataset_key)
         except KeyError:
             raise KeyError("Can't find anything called {}".format(str(dataset_key)))
-        dataset_key = create_filtered_id(compositor.id, query)
+        dataset_key = compositor.id
         root = Node(dataset_key, data=(compositor, [], []))
         if src_node is not None:
             self.add_child(root, src_node)
@@ -446,12 +451,7 @@ class DependencyTree(Node):
 
         return root, set()
 
-    def get_filtered_item(self, dataset_key, query):
-        """Get the item matching *dataset_key* and *query*."""
-        dsid = create_filtered_query(dataset_key, query)
-        return self[dsid]
-
-    def _find_dependencies(self, dataset_key, query):
+    def _find_dependencies(self, dataset_key, query=None):
         """Find the dependencies for *dataset_key*.
 
         Args:
@@ -465,10 +465,12 @@ class DependencyTree(Node):
         # Special case: No required dependencies for this composite
         if dataset_key is None:
             return self.empty_node, set()
-
+        if query is None:
+            dsq = dataset_key
+        else:
+            dsq = create_filtered_query(dataset_key, query)
         # 0 check if the *exact* dataset is already loaded
         try:
-            dsq = create_filtered_query(dataset_key, query)
             node = self.getitem(dsq)
             LOG.trace("Found exact dataset already loaded: {}".format(node.name))
             return node, set()
@@ -478,7 +480,7 @@ class DependencyTree(Node):
 
         # 1 try to get *best* dataset from reader
         try:
-            node = self._find_reader_dataset(dataset_key, query)
+            node = self._find_reader_dataset(dsq)
         except TooManyResults:
             LOG.warning("Too many possible datasets to load for {}".format(dataset_key))
             return None, set([dataset_key])
@@ -492,7 +494,7 @@ class DependencyTree(Node):
             # assume that there is no such thing as a "better" composite
             # version so if we find any DatasetIDs already loaded then
             # we want to use them
-            node = self.get_filtered_item(dataset_key, query)
+            node = self[dsq]
             LOG.trace("Composite already loaded:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
             return node, set()
         except KeyError:
@@ -501,7 +503,7 @@ class DependencyTree(Node):
 
         # 3 try to find a composite that matches
         try:
-            node, unknowns = self._find_compositor(dataset_key, query)
+            node, unknowns = self._find_compositor(dsq, query)
             LOG.trace("Found composite:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node and node.name))
         except KeyError:
             node = None
@@ -510,12 +512,12 @@ class DependencyTree(Node):
 
         return node, unknowns
 
-    def find_dependencies(self, dataset_keys, query):
+    def find_dependencies(self, dataset_keys, query=None):
         """Create the dependency tree.
 
         Args:
             dataset_keys (iterable): Strings or DatasetIDs to find dependencies for
-            **dfilter (dict): Additional filter parameters. See
+            query (DatasetQuery): Additional filter parameters. See
                               `satpy.readers.get_key` for more details.
 
         Returns:

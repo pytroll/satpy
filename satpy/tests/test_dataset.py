@@ -17,49 +17,51 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Test objects and functions in the dataset module."""
 
+import unittest
 from datetime import datetime
 
-import unittest
+import numpy as np
 import pytest
 
 
 class TestDatasetID(unittest.TestCase):
     """Test DatasetID object creation and other methods."""
 
-    def test_make_dsid_class(self):
-        """Test making a new DatasetID class."""
-        from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
-        types = {'wavelength': WavelengthRange,
-                 'modifiers': ModifierTuple}
-        klass = make_dsid_class(types, name='', wavelength=None, modifiers=ModifierTuple())
-        dsid = klass('hej', (1., 2., 3.))
-        klass2 = make_dsid_class(name='', polarization='')
-        dsid2 = klass2('hej')
-        assert(dsid == dsid2)
+    # def test_make_dsid_class(self):
+    #     """Test making a new DatasetID class."""
+    #     from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
+    #     types = {'wavelength': WavelengthRange,
+    #              'modifiers': ModifierTuple}
+    #     klass = make_dsid_class(types, name='', wavelength=None, modifiers=ModifierTuple())
+    #     dsid = klass('hej', (1., 2., 3.))
+    #     klass2 = make_dsid_class(name='', polarization='')
+    #     dsid2 = klass2('hej')
+    #     assert(dsid == dsid2)
 
-        klass3 = make_dsid_class(types, name='', wavelength=None, view='nadir')
-        dsid3 = klass3('hej', 2.)
-        assert(dsid == dsid3)
-        assert(hash(dsid))
+    #     klass3 = make_dsid_class(types, name='', wavelength=None, view='nadir')
+    #     dsid3 = klass3('hej', 2.)
+    #     assert(dsid == dsid3)
+    #     assert(hash(dsid))
 
     def test_basic_init(self):
         """Test basic ways of creating a DatasetID."""
-        from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
-        types = {'wavelength': WavelengthRange,
-                 'modifiers': ModifierTuple}
-        DatasetID = make_dsid_class(types,
-                                    name='', wavelength=None, resolution=None,
-                                    calibration=None, modifiers=ModifierTuple())
+        from satpy.dataset import DataID, default_id_keys_config as dikc, minimal_default_keys_config as mdkc
 
-        DatasetID(name="a")
-        DatasetID(name="a", wavelength=0.86)
-        DatasetID(name="a", resolution=1000)
-        DatasetID(name="a", calibration='radiance')
-        DatasetID(name="a", wavelength=0.86, resolution=250,
-                  calibration='radiance')
-        DatasetID(name="a", wavelength=0.86, resolution=250,
-                       calibration='radiance', modifiers=('sunz_corrected',))
-        DatasetID(wavelength=0.86)
+        did = DataID(dikc, name="a")
+        assert did['name'] == 'a'
+        assert did['modifiers'] == tuple()
+        DataID(dikc, name="a", wavelength=0.86)
+        DataID(dikc, name="a", resolution=1000)
+        DataID(dikc, name="a", calibration='radiance')
+        DataID(dikc, name="a", wavelength=0.86, resolution=250,
+               calibration='radiance')
+        DataID(dikc, name="a", wavelength=0.86, resolution=250,
+               calibration='radiance', modifiers=('sunz_corrected',))
+        with pytest.raises(ValueError):
+            DataID(dikc, wavelength=0.86)
+        did = DataID(mdkc, name='comp24', resolution=500)
+        assert did['resolution'] == 500
+
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
@@ -71,12 +73,9 @@ class TestDatasetID(unittest.TestCase):
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""
-        from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
-        types = {'wavelength': WavelengthRange,
-                 'modifiers': ModifierTuple}
-        DatasetID = make_dsid_class(types, name='', wavelength=None, modifiers=ModifierTuple())
-        d1 = DatasetID(name="a", wavelength=(0.1, 0.2, 0.3))
-        d2 = DatasetID(name="a", wavelength=None)
+        from satpy.dataset import DataID, default_id_keys_config as dikc
+        d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3))
+        d2 = DataID(dikc, name="a", wavelength=None)
 
         # this happens when sorting IDs during dependency checks
         self.assertFalse(d1 < d2)
@@ -84,9 +83,9 @@ class TestDatasetID(unittest.TestCase):
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
-        from satpy.tests.utils import DatasetID
+        from satpy.dataset import DataID, default_id_keys_config as dikc
         with pytest.raises(ValueError):
-            DatasetID(name='C05', calibration='_bad_')
+            DataID(dikc, name='C05', calibration='_bad_')
 
 
 class TestCombineMetadata(unittest.TestCase):
@@ -120,3 +119,133 @@ class TestCombineMetadata(unittest.TestCase):
         ret = combine_metadata(*dts, average_times=False)
         # times are not equal so don't include it in the final result
         self.assertNotIn('start_time', ret)
+
+
+def test_datasetid():
+    from satpy.dataset import DataID, WavelengthRange, ModifierTuple, ValueList
+
+    default_id_keys_config = {'name': {
+                                'required': True,
+                              },
+                              'wavelength': {
+                                'type': WavelengthRange,
+                            },
+                            'resolution': None,
+                            'calibration': {
+                                'enum': [
+                                    'reflectance',
+                                    'brightness_temperature',
+                                    'radiance',
+                                    'counts'
+                                    ]
+                            },
+                            'modifiers': {
+                                'required': True,
+                                'default': ModifierTuple(),
+                                'type': ModifierTuple,
+                            },
+                            }
+
+    # Check that enum is translated to type.
+    did = DataID(default_id_keys_config)
+    assert issubclass(did._id_keys['calibration']['type'], ValueList)
+    assert 'enum' not in did._id_keys['calibration']
+
+    # Check that None is never a valid value
+    did = DataID(default_id_keys_config, name='cheese_shops', resolution=None)
+    assert 'resolution' not in did
+    assert 'None' not in did.__repr__()
+    with pytest.raises(ValueError):
+        DataID(default_id_keys_config, name=None, resolution=1000)
+
+    # Check that defaults are applied correctly
+    assert did['modifiers'] == ModifierTuple()
+
+    # Check that from_dict creates a distinct instance...
+    did2 = did.from_dict(dict(name='cheese_shops', resolution=None))
+    assert did is not did2
+    # ...But is equal
+    assert did2 == did
+
+    # Check that the instance is immutable
+    with pytest.raises(TypeError):
+        did['resolution'] = 1000
+
+    # Check that a missing required field crashes
+    with pytest.raises(ValueError):
+        DataID(default_id_keys_config, resolution=1000)
+
+    # Check to_dict
+    assert did.to_dict() == dict(name='cheese_shops', modifiers=tuple())
+
+
+def test_datasetquery():
+    from satpy.dataset import DatasetQuery
+
+    DatasetQuery(name='cheese_shops')
+
+
+def test_id_query_interactions():
+    from satpy.dataset import DatasetQuery, DataID, WavelengthRange, ModifierTuple
+
+    default_id_keys_config = {'name': {
+                                'required': True,
+                              },
+                              'wavelength': {
+                                'type': WavelengthRange,
+                            },
+                            'resolution': None,
+                            'calibration': {
+                                'enum': [
+                                    'reflectance',
+                                    'brightness_temperature',
+                                    'radiance',
+                                    'counts'
+                                    ]
+                            },
+                            'modifiers': {
+                                'required': True,
+                                'default': ModifierTuple(),
+                                'type': ModifierTuple,
+                            },
+                            }
+
+    # Check hash equality
+    dq = DatasetQuery(modifiers=tuple(), name='cheese_shops')
+    did = DataID(default_id_keys_config, name='cheese_shops')
+    assert hash(dq) == hash(did)
+
+    # Check did filtering
+    did2 = DataID(default_id_keys_config, name='ni')
+    res = dq.filter_dsids([did2, did])
+    assert len(res) == 1
+    assert res[0] == did
+
+    # Check did sorting
+    dq = DatasetQuery(name='cheese_shops', wavelength=2, modifiers='*')
+    did = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1, 2, 3))
+    did2 = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1.1, 2.1, 3.1))
+    dsids, distances = dq.sort_dsids([did2, did])
+    assert list(dsids) == [did, did2]
+    assert np.allclose(distances, [0, 0.1])
+
+    dq = DatasetQuery(name='cheese_shops')
+    did = DataID(default_id_keys_config, name='cheese_shops', resolution=200)
+    did2 = DataID(default_id_keys_config, name='cheese_shops', resolution=400)
+    dsids, distances = dq.sort_dsids([did2, did])
+    assert list(dsids) == [did, did2]
+    assert distances[0] < distances[1]
+
+    dq = DatasetQuery(name='cheese_shops')
+    did = DataID(default_id_keys_config, name='cheese_shops', calibration='counts')
+    did2 = DataID(default_id_keys_config, name='cheese_shops', calibration='reflectance')
+    dsids, distances = dq.sort_dsids([did2, did])
+    assert list(dsids) == [did2, did]
+    assert distances[0] < distances[1]
+
+def test_wavelength_range():
+    from satpy.dataset import WavelengthRange
+
+    wr = WavelengthRange(1, 2, 3)
+    assert 1.2 == wr
+    assert .9 != wr

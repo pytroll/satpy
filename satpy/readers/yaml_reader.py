@@ -40,7 +40,7 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DatasetQuery, new_dataset_id_class_from_keys, get_keys_from_config, default_id_keys_config
+from satpy.dataset import DatasetQuery, new_dataset_id_class_from_keys, get_keys_from_config, default_id_keys_config, DataID
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
@@ -211,13 +211,13 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             logger.warning("No filenames found for reader: %s", self.name)
         return selected_filenames
 
-    def get_dataset_key(self, key, query, **kwargs):
+    def get_dataset_key(self, key, **kwargs):
         """Get the fully qualified `DatasetID` matching `key`.
 
         See `satpy.readers.get_key` for more information about kwargs.
 
         """
-        return get_key(key, self.all_ids.keys(), query=query, **kwargs)
+        return get_key(key, self.all_ids.keys(), **kwargs)
 
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
@@ -251,19 +251,18 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                     # this key only has one choice so make it a one
                     # item iterable
                     id_kwargs.append((val, ))
-            dsid_klass = new_dataset_id_class_from_keys(id_keys)
             for id_params in itertools.product(*id_kwargs):
-                dsid = dsid_klass(*id_params)
+                dsid = DataID(id_keys, **dict(zip(id_keys, id_params)))
                 ids.append(dsid)
 
                 # create dataset infos specifically for this permutation
                 ds_info = dataset.copy()
-                for key in dsid._fields:
+                for key in dsid.keys():
                     if isinstance(ds_info.get(key), dict):
-                        ds_info.update(ds_info[key][getattr(dsid, key)])
+                        ds_info.update(ds_info[key][dsid.get(key)])
                     # this is important for wavelength which was converted
                     # to a tuple
-                    ds_info[key] = getattr(dsid, key)
+                    ds_info[key] = dsid.get(key)
                 self.all_ids[dsid] = ds_info
         # TODO: why is this called twice ?
         return ids
@@ -606,10 +605,9 @@ class FileYAMLReader(AbstractYAMLReader):
 
             ds_info.setdefault('modifiers', tuple())  # default to no mods
 
-            # Create DatasetID class for this dataset
+            # Create DataID for this dataset
             id_keys = get_keys_from_config(self._id_keys, ds_info)
-            dsid_klass = new_dataset_id_class_from_keys(id_keys)
-            ds_id = dsid_klass.from_dict(ds_info)
+            ds_id = DataID(id_keys, **ds_info)
             # all datasets
             new_ids[ds_id] = ds_info
             # available datasets
@@ -807,7 +805,7 @@ class FileYAMLReader(AbstractYAMLReader):
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
 
-    def get_dataset_key(self, key, query=None, available_only=False, **kwargs):
+    def get_dataset_key(self, key, available_only=False, **kwargs):
         """Get the fully qualified `DatasetID` matching `key`.
 
         This will first search through available DatasetIDs, datasets that
@@ -833,11 +831,11 @@ class FileYAMLReader(AbstractYAMLReader):
 
         """
         try:
-            return get_key(key, self.available_ids.keys(), query=query, **kwargs)
+            return get_key(key, self.available_ids.keys(), **kwargs)
         except KeyError:
             if available_only:
                 raise
-            return get_key(key, self.all_ids.keys(), query=query, **kwargs)
+            return get_key(key, self.all_ids.keys(), **kwargs)
 
     def load(self, dataset_keys, previous_datasets=None, **kwargs):
         """Load `dataset_keys`.
