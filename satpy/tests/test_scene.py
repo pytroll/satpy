@@ -21,7 +21,7 @@ import os
 import unittest
 from unittest import mock
 
-from satpy.tests.utils import make_dsid, make_cid, default_id_keys_config
+from satpy.tests.utils import make_dsid, make_cid, default_id_keys_config, make_dsq
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -1692,9 +1692,8 @@ class TestSceneLoading(unittest.TestCase):
 
         # Check dependency tree nodes
         # initialize the dep tree without loading the data
-        import ipdb; ipdb.set_trace()
-        ds1_mod_id = make_dsid(name='ds1', modifiers=('mod_wl',))
-        ds3_mod_id = make_dsid(name='ds3', modifiers=('mod_wl',))
+        ds1_mod_id = make_dsq(name='ds1', modifiers=('mod_wl',))
+        ds3_mod_id = make_dsq(name='ds3', modifiers=('mod_wl',))
         scene.dep_tree.find_dependencies({ds1_mod_id, ds3_mod_id})
         ds1_mod_node = scene.dep_tree[ds1_mod_id]
         ds3_mod_node = scene.dep_tree[ds3_mod_id]
