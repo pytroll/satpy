@@ -64,15 +64,16 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
 
 
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler"""
+    """Swap-in HDF5 File Handler."""
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None):
+        """Create fake file handler."""
         super(FakeHDF5FileHandler2, self).__init__(filename, filename_info, filetype_info)
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
 
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         start_time = filename_info['start_time']
         end_time = filename_info['end_time'].replace(year=start_time.year,
                                                      month=start_time.month,
@@ -163,11 +164,12 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 
 class TestVIIRSSDRReader(unittest.TestCase):
-    """Test VIIRS SDR Reader"""
+    """Test VIIRS SDR Reader."""
+
     yaml_file = "viirs_sdr.yaml"
 
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
+        """Wrap HDF5 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -177,7 +179,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF5 file handler"""
+        """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -236,7 +238,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_all_m_reflectances_no_geo(self):
-        """Load all M band reflectances with no geo files provided"""
+        """Load all M band reflectances with no geo files provided."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -269,10 +271,11 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
             self.assertNotIn('area', d.attrs)
 
     def test_load_all_m_reflectances_find_geo(self):
-        """Load all M band reflectances with geo files not specified but existing"""
+        """Load all M band reflectances with geo files not specified but existing."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -313,11 +316,12 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
 
     def test_load_all_m_reflectances_provided_geo(self):
-        """Load all M band reflectances with geo files provided"""
+        """Load all M band reflectances with geo files provided."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -351,13 +355,16 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
             self.assertEqual(d.attrs['area'].lons.min(), 5)
             self.assertEqual(d.attrs['area'].lats.min(), 45)
+            self.assertEqual(d.attrs['area'].lons.attrs['rows_per_scan'], 16)
+            self.assertEqual(d.attrs['area'].lats.attrs['rows_per_scan'], 16)
 
     def test_load_all_m_reflectances_use_nontc(self):
-        """Load all M band reflectances but use non-TC geolocation"""
+        """Load all M band reflectances but use non-TC geolocation."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs, use_tc=False)
         loadables = r.select_files_from_pathnames([
@@ -392,13 +399,16 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
             self.assertEqual(d.attrs['area'].lons.min(), 15)
             self.assertEqual(d.attrs['area'].lats.min(), 55)
+            self.assertEqual(d.attrs['area'].lons.attrs['rows_per_scan'], 16)
+            self.assertEqual(d.attrs['area'].lats.attrs['rows_per_scan'], 16)
 
     def test_load_all_m_reflectances_use_nontc2(self):
-        """Load all M band reflectances but use non-TC geolocation because TC isn't available"""
+        """Load all M band reflectances but use non-TC geolocation because TC isn't available."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs, use_tc=None)
         loadables = r.select_files_from_pathnames([
@@ -432,13 +442,16 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
             self.assertEqual(d.attrs['area'].lons.min(), 15)
             self.assertEqual(d.attrs['area'].lats.min(), 55)
+            self.assertEqual(d.attrs['area'].lons.attrs['rows_per_scan'], 16)
+            self.assertEqual(d.attrs['area'].lats.attrs['rows_per_scan'], 16)
 
     def test_load_all_m_bts(self):
-        """Load all M band brightness temperatures"""
+        """Load all M band brightness temperatures."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -460,11 +473,12 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['calibration'], 'brightness_temperature')
             self.assertEqual(d.attrs['units'], 'K')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
 
     def test_load_all_m_radiances(self):
-        """Load all M band radiances"""
+        """Load all M band radiances."""
         from satpy.readers import load_reader
         from satpy import DatasetID
         r = load_reader(self.reader_configs)
@@ -510,11 +524,12 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['calibration'], 'radiance')
             self.assertEqual(d.attrs['units'], 'W m-2 um-1 sr-1')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
 
     def test_load_dnb(self):
-        """Load DNB dataset"""
+        """Load DNB dataset."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -527,11 +542,12 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertEqual(d.attrs['calibration'], 'radiance')
             self.assertEqual(d.attrs['units'], 'W m-2 sr-1')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
 
     def test_load_i_no_files(self):
-        """Load I01 when only DNB files are provided"""
+        """Load I01 when only DNB files are provided."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
@@ -543,17 +559,95 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ds = r.load(['I01'])
         self.assertEqual(len(ds), 0)
 
+    def test_load_all_i_reflectances_provided_geo(self):
+        """Load all I band reflectances with geo files provided."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'SVI02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'SVI03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'GITCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        r.create_filehandlers(loadables)
+        ds = r.load(['I01',
+                     'I02',
+                     'I03',
+                     ])
+        self.assertEqual(len(ds), 3)
+        for d in ds.values():
+            self.assertEqual(d.attrs['calibration'], 'reflectance')
+            self.assertEqual(d.attrs['units'], '%')
+            self.assertEqual(d.attrs['rows_per_scan'], 32)
+            self.assertIn('area', d.attrs)
+            self.assertIsNotNone(d.attrs['area'])
+            self.assertEqual(d.attrs['area'].lons.min(), 5)
+            self.assertEqual(d.attrs['area'].lats.min(), 45)
+            self.assertEqual(d.attrs['area'].lons.attrs['rows_per_scan'], 32)
+            self.assertEqual(d.attrs['area'].lats.attrs['rows_per_scan'], 32)
+
+    def test_load_all_i_bts(self):
+        """Load all I band brightness temperatures."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'SVI04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'SVI05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'GITCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        r.create_filehandlers(loadables)
+        ds = r.load(['I04',
+                     'I05',
+                     ])
+        self.assertEqual(len(ds), 2)
+        for d in ds.values():
+            self.assertEqual(d.attrs['calibration'], 'brightness_temperature')
+            self.assertEqual(d.attrs['units'], 'K')
+            self.assertEqual(d.attrs['rows_per_scan'], 32)
+            self.assertIn('area', d.attrs)
+            self.assertIsNotNone(d.attrs['area'])
+
+    def test_load_all_i_radiances(self):
+        """Load all I band radiances."""
+        from satpy.readers import load_reader
+        from satpy import DatasetID
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'SVI02_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'SVI03_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'SVI04_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'SVI05_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'GITCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        r.create_filehandlers(loadables)
+        ds = r.load([
+            DatasetID(name='I01', calibration='radiance', modifiers=None),
+            DatasetID(name='I02', calibration='radiance', modifiers=None),
+            DatasetID(name='I03', calibration='radiance', modifiers=None),
+            DatasetID(name='I04', calibration='radiance', modifiers=None),
+            DatasetID(name='I05', calibration='radiance', modifiers=None),
+        ])
+        self.assertEqual(len(ds), 5)
+        for d in ds.values():
+            self.assertEqual(d.attrs['calibration'], 'radiance')
+            self.assertEqual(d.attrs['units'], 'W m-2 um-1 sr-1')
+            self.assertEqual(d.attrs['rows_per_scan'], 32)
+            self.assertIn('area', d.attrs)
+            self.assertIsNotNone(d.attrs['area'])
+
 
 class FakeHDF5FileHandlerAggr(FakeHDF5FileHandler):
-    """Swap-in HDF5 File Handler"""
+    """Swap-in HDF5 File Handler."""
 
     def __init__(self, filename, filename_info, filetype_info, use_tc=None):
+        """Create fake aggregated file handler."""
         super(FakeHDF5FileHandlerAggr, self).__init__(filename, filename_info, filetype_info)
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
 
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         start_time = filename_info['start_time']
         end_time = filename_info['end_time'].replace(year=start_time.year,
                                                      month=start_time.month,
@@ -702,11 +796,12 @@ class FakeHDF5FileHandlerAggr(FakeHDF5FileHandler):
 
 
 class TestAggrVIIRSSDRReader(unittest.TestCase):
-    """Test VIIRS SDR Reader"""
+    """Test VIIRS SDR Reader."""
+
     yaml_file = "viirs_sdr.yaml"
 
     def setUp(self):
-        """Wrap HDF5 file handler with our own fake handler"""
+        """Wrap HDF5 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.viirs_sdr import VIIRSSDRFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -716,11 +811,11 @@ class TestAggrVIIRSSDRReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the HDF5 file handler"""
+        """Stop wrapping the HDF5 file handler."""
         self.p.stop()
 
-    def test_bouding_box(self):
-        """Test bouding box."""
+    def test_bounding_box(self):
+        """Test bounding box."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([

@@ -17,10 +17,80 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """HRIT format reader for JMA data.
 
-References:
-    JMA HRIT - Mission Specific Implementation
-    http://www.jma.go.jp/jma/jma-eng/satellite/introduction/4_2HRIT.pdf
+Introduction
+------------
 
+The JMA HRIT format is described in the `JMA HRIT - Mission Specific
+Implementation`_. There are three readers for this format in Satpy:
+
+- ``jami_hrit``: For data from the `JAMI` instrument on MTSAT-1R
+- ``mtsat2-imager_hrit``: For data from the `Imager` instrument on MTSAT-2
+- ``ahi_hrit``: For data from the `AHI` instrument on Himawari-8/9
+
+Although the data format is identical, the instruments have different
+characteristics, which is why there is a dedicated reader for each of them.
+Sample data is available here:
+
+- `JAMI/Imager sample data`_
+- `AHI sample data`_
+
+
+Example
+-------
+
+Here is an example how to read Himwari-8 HRIT data with Satpy:
+
+.. code-block:: python
+
+    from satpy import Scene
+    import glob
+
+    filenames = glob.glob('data/IMG_DK01B14_2018011109*')
+    scn = Scene(filenames=filenames, reader='ahi_hrit')
+    scn.load(['B14'])
+    print(scn['B14'])
+
+
+Output:
+
+.. code-block:: none
+
+    <xarray.DataArray (y: 5500, x: 5500)>
+    dask.array<concatenate, shape=(5500, 5500), dtype=float64, chunksize=(550, 4096), ...
+    Coordinates:
+        acq_time  (y) datetime64[ns] 2018-01-11T09:00:20.995200 ... 2018-01-11T09:09:40.348800
+        crs       object +proj=geos +lon_0=140.7 +h=35785831 +x_0=0 +y_0=0 +a=6378169 ...
+      * y         (y) float64 5.5e+06 5.498e+06 5.496e+06 ... -5.496e+06 -5.498e+06
+      * x         (x) float64 -5.498e+06 -5.496e+06 -5.494e+06 ... 5.498e+06 5.5e+06
+    Attributes:
+        satellite_longitude:  140.7
+        satellite_latitude:   0.0
+        satellite_altitude:   35785831.0
+        orbital_parameters:   {'projection_longitude': 140.7, 'projection_latitud...
+        standard_name:        toa_brightness_temperature
+        level:                None
+        wavelength:           (11.0, 11.2, 11.4)
+        units:                K
+        calibration:          brightness_temperature
+        file_type:            ['hrit_b14_seg', 'hrit_b14_fd']
+        modifiers:            ()
+        polarization:         None
+        sensor:               ahi
+        name:                 B14
+        platform_name:        Himawari-8
+        resolution:           4000
+        start_time:           2018-01-11 09:00:20.995200
+        end_time:             2018-01-11 09:09:40.348800
+        area:                 Area ID: FLDK, Description: Full Disk, Projection I...
+        ancillary_variables:  []
+
+JMA HRIT data contain the scanline acquisition time for only a subset of scanlines. Timestamps of
+the remaining scanlines are computed using linear interpolation. This is what you'll find in the
+``acq_time`` coordinate of the dataset.
+
+.. _JMA HRIT - Mission Specific Implementation: http://www.jma.go.jp/jma/jma-eng/satellite/introduction/4_2HRIT.pdf
+.. _JAMI/Imager sample data: https://www.data.jma.go.jp/mscweb/en/operation/hrit_sample.html
+.. _AHI sample data: https://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
 """
 
 import logging
@@ -107,6 +177,15 @@ SENSORS = {
 }
 
 
+def mjd2datetime64(mjd):
+    """Convert Modified Julian Day (MJD) to datetime64."""
+
+    epoch = np.datetime64('1858-11-17 00:00')
+    day2usec = 24 * 3600 * 1E6
+    mjd_usec = (mjd * day2usec).astype(np.int64).astype('timedelta64[us]')
+    return epoch + mjd_usec
+
+
 class HRITJMAFileHandler(HRITFileHandler):
     """JMA HRIT format reader."""
 
@@ -149,6 +228,7 @@ class HRITJMAFileHandler(HRITFileHandler):
         if self.area_id not in AREA_NAMES:
             self.area_id = UNKNOWN_AREA
         self.area = self._get_area_def()
+        self.acq_time = self._get_acq_time()
 
     def _get_platform(self):
         """Get the platform name.
@@ -265,6 +345,10 @@ class HRITJMAFileHandler(HRITFileHandler):
         # Calibrate and mask space pixels
         res = self._mask_space(self.calibrate(res, key.calibration))
 
+        # Add scanline acquisition time
+        res.coords['acq_time'] = ('y', self.acq_time)
+        res.coords['acq_time'].attrs['long_name'] = 'Scanline acquisition time'
+
         # Update attributes
         res.attrs.update(info)
         res.attrs['platform_name'] = self.platform
@@ -282,6 +366,42 @@ class HRITJMAFileHandler(HRITFileHandler):
         """Mask space pixels."""
         geomask = get_geostationary_mask(area=self.area)
         return data.where(geomask)
+
+    def _get_acq_time(self):
+        """
+        Acquisition times for a subset of scanlines are stored in the header
+        as follows:
+
+        b'LINE:=1\rTIME:=54365.022558\rLINE:=21\rTIME:=54365.022664\r...'
+
+        Missing timestamps in between are computed using linear interpolation.
+        """
+        buf_b = np.frombuffer(self.mda['image_observation_time'],
+                              dtype=image_observation_time)
+
+        # Replace \r by \n before encoding, otherwise encoding will drop all
+        # elements except the last one
+        buf_s = b''.join(buf_b['times']).replace(b'\r', b'\n').decode()
+
+        # Split into key:=value pairs; then extract line number and timestamp
+        splits = buf_s.strip().split('\n')
+        lines_sparse = [int(s.split(':=')[1]) for s in splits[0::2]]
+        times_sparse = [float(s.split(':=')[1]) for s in splits[1::2]]
+
+        if self.platform == HIMAWARI8:
+            # Only a couple of timestamps in the header, and only the first
+            # and last are usable (duplicates inbetween).
+            lines_sparse = [lines_sparse[0], lines_sparse[-1]]
+            times_sparse = [times_sparse[0], times_sparse[-1]]
+
+        # Compute missing timestamps using linear interpolation.
+        lines = np.arange(lines_sparse[0], lines_sparse[-1]+1)
+        times = np.interp(lines, lines_sparse, times_sparse)
+
+        # Convert to np.datetime64
+        times64 = mjd2datetime64(times)
+
+        return times64
 
     @staticmethod
     def _interp(arr, cal):
@@ -304,3 +424,13 @@ class HRITJMAFileHandler(HRITFileHandler):
         res = res.where(data < 65535)
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return res
+
+    @property
+    def start_time(self):
+        """Get start time of the scan."""
+        return self.acq_time[0].astype(datetime)
+
+    @property
+    def end_time(self):
+        """Get end time of the scan."""
+        return self.acq_time[-1].astype(datetime)
