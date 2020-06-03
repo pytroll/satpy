@@ -26,7 +26,8 @@ from unittest.mock import MagicMock, patch
 
 import satpy.readers.yaml_reader as yr
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.dataset import DatasetID, DatasetQuery
+from satpy.dataset import DatasetQuery
+from satpy.tests.utils import make_dsid
 
 
 class FakeFH(BaseFileHandler):
@@ -265,11 +266,11 @@ class TestFileFileYAMLReader(unittest.TestCase):
         loadables = self.reader.select_files_from_pathnames(['a001.bla'])
         self.reader.create_filehandlers(loadables)
         self.assertSetEqual(set(self.reader.available_dataset_ids),
-                            {DatasetID(name='ch02',
+                            {make_dsid(name='ch02',
                                        wavelength=(0.7, 0.75, 0.8),
                                        calibration='counts',
                                        modifiers=()),
-                             DatasetID(name='ch01',
+                             make_dsid(name='ch01',
                                        wavelength=(0.5, 0.6, 0.7),
                                        calibration='reflectance',
                                        modifiers=())})
@@ -428,42 +429,28 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_get_coordinates_for_dataset_key(self):
         """Test getting coordinates for a key."""
-        ds_id = DatasetID(name='ch01', wavelength=(0.5, 0.6, 0.7),
-                             calibration='reflectance', modifiers=())
         ds_q = DatasetQuery(name='ch01', wavelength=(0.5, 0.6, 0.7),
-                             calibration='reflectance', modifiers=())
+                            calibration='reflectance', modifiers=())
         res = self.reader._get_coordinates_for_dataset_key(ds_q)
         self.assertListEqual(res,
-                             [DatasetID(name='lons',
-                                        modifiers=()),
-                              DatasetID(name='lats',
-                                        modifiers=())])
+                             [make_dsid(name='lons'),
+                              make_dsid(name='lats')])
 
     def test_get_coordinates_for_dataset_key_without(self):
         """Test getting coordinates for a key without coordinates."""
-        ds_id = DatasetID(name='lons',
-                          wavelength=None,
-                          resolution=None,
-                          polarization=None,
-                          calibration=None,
+        ds_id = make_dsid(name='lons',
                           modifiers=())
         res = self.reader._get_coordinates_for_dataset_key(ds_id)
         self.assertListEqual(res, [])
 
     def test_get_coordinates_for_dataset_keys(self):
         """Test getting coordinates for keys."""
-        ds_id1 = DatasetID(name='ch01', wavelength=(0.5, 0.6, 0.7),
-                           resolution=None, polarization=None,
+        ds_id1 = make_dsid(name='ch01', wavelength=(0.5, 0.6, 0.7),
                            calibration='reflectance', modifiers=())
-        ds_id2 = DatasetID(name='ch02', wavelength=(0.7, 0.75, 0.8),
-                           resolution=None, polarization=None,
+        ds_id2 = make_dsid(name='ch02', wavelength=(0.7, 0.75, 0.8),
                            calibration='counts', modifiers=())
-        lons = DatasetID(name='lons',  wavelength=None,
-                         resolution=None, polarization=None,
-                         calibration=None, modifiers=())
-        lats = DatasetID(name='lats', wavelength=None,
-                         resolution=None, polarization=None,
-                         calibration=None, modifiers=())
+        lons = make_dsid(name='lons', modifiers=())
+        lats = make_dsid(name='lats', modifiers=())
 
         res = self.reader._get_coordinates_for_dataset_keys([ds_id1, ds_id2,
                                                              lons])
@@ -473,16 +460,13 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_get_file_handlers(self):
         """Test getting filehandler to load a dataset."""
-        ds_id1 = DatasetID(name='ch01', wavelength=(0.5, 0.6, 0.7),
-                           resolution=None, polarization=None,
+        ds_id1 = make_dsid(name='ch01', wavelength=(0.5, 0.6, 0.7),
                            calibration='reflectance', modifiers=())
         self.reader.file_handlers = {'ftype1': 'bla'}
 
         self.assertEqual(self.reader._get_file_handlers(ds_id1), 'bla')
 
-        lons = DatasetID(name='lons',  wavelength=None,
-                         resolution=None, polarization=None,
-                         calibration=None, modifiers=())
+        lons = make_dsid(name='lons', modifiers=())
         self.assertEqual(self.reader._get_file_handlers(lons), None)
 
     @patch('satpy.readers.yaml_reader.xr')
@@ -594,8 +578,8 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                     file_types = ds_info['file_type']
                     if not isinstance(file_types, list):
                         file_types = [file_types]
-                    expected = resol if ftype in file_types else None
-                    self.assertEqual(expected, ds_id.resolution)
+                    if ftype in file_types:
+                        self.assertEqual(resol, ds_id.resolution)
 
 
 class TestGEOSegmentYAMLReader(unittest.TestCase):

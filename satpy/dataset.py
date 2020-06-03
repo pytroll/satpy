@@ -140,8 +140,6 @@ class ModifierTuple(tuple):
         return tuple.__hash__(self)
 
 
-
-
 default_id_keys_config = {'name': {
                               'required': True,
                           },
@@ -163,6 +161,19 @@ default_id_keys_config = {'name': {
                               'type': ModifierTuple,
                           },
                           }
+
+
+default_co_keys_config = {'name': {
+                              'required': True,
+                          },
+                          'resolution': None,
+                          'modifiers': {
+                              'required': True,
+                              'default': ModifierTuple(),
+                              'type': ModifierTuple,
+                          },
+                          }
+
 
 minimal_default_keys_config = {'name': {
                                   'required': True,
@@ -430,7 +441,7 @@ class DataID(dict):
             warnings.warn('Access to DataID attributes is deprecated, use [] instead')
             return self[key]
         else:
-            return super().__getattr__(self)
+            return super().__getattr__(key)
 
 
     def __repr__(self):
