@@ -443,12 +443,16 @@ class DataID(dict):
         else:
             return super().__getattr__(key)
 
-
     def __repr__(self):
         """Represent the id."""
         items = ("{}={}".format(key, repr(val)) for key, val in self.items())
         return self.__class__.__name__ + "(" + ", ".join(items) + ")"
 
+    def _replace(self, **kwargs):
+        """Make a new instance with replaced items."""
+        info = dict(self.items())
+        info.update(kwargs)
+        return self.from_dict(info)
     # types = {}
     # defaults = []
     # for key, val in id_keys.items():
