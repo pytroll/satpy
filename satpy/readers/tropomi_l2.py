@@ -145,7 +145,6 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
                         'file_key': var_name,
                         'coordinates': coordinates,
                         'file_type': self.filetype_info['file_type'],
-                        'resolution': None,
                     }
                     yield True, new_info
 

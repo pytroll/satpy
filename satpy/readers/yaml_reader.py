@@ -704,7 +704,8 @@ class FileYAMLReader(AbstractYAMLReader):
                 if key == 'name':
                     continue
                 if key in ds_info:
-                    cinfo[key] = ds_info[key]
+                    if ds_info[key] is not None:
+                        cinfo[key] = ds_info[key]
             cid = DatasetQuery.from_dict(cinfo)
             cids.append(self.get_dataset_key(cid))
 
