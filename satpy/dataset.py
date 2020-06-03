@@ -653,6 +653,8 @@ class DatasetQuery:
                     except AttributeError:
                         if isinstance(dsid.get(key), numbers.Number):
                             distance += dsid.get(key)
+                        elif isinstance(dsid.get(key), tuple):
+                            distance += len(dsid.get(key))
                 else:
                     try:
                         dsid_val = dsid[key]
@@ -670,10 +672,6 @@ class DatasetQuery:
         return dsids, distances
 
 
-# TODO: remove this static list
-# DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
-#                 "calibration", "level", "modifiers")
-DATASET_KEYS = None
 """
   identification_keys:
     name:

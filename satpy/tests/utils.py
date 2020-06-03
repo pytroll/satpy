@@ -262,7 +262,7 @@ def test_composites(sensor_name):
         'mod_opt_prereq': (['ds1'], ['ds2']),
         'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
         'mod_opt_only': ([], ['ds2']),
-        'mod_wl': ([make_dsid(name='wl_modifier', wavelength=0.2, modifiers=('mod1',))], []),
+        'mod_wl': ([make_dsq(wavelength=0.2, modifiers=('mod1',))], []),
     }
     comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
     mods = {sensor_name: dict((k, _create_fake_modifiers(k, *v)) for k, v in mods.items())}

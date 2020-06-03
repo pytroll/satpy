@@ -236,11 +236,16 @@ def test_id_query_interactions():
     assert list(dsids) == [did, did2]
     assert distances[0] < distances[1]
 
-    dq = DatasetQuery(name='cheese_shops')
     did = DataID(default_id_keys_config, name='cheese_shops', calibration='counts')
     did2 = DataID(default_id_keys_config, name='cheese_shops', calibration='reflectance')
     dsids, distances = dq.sort_dsids([did2, did])
     assert list(dsids) == [did2, did]
+    assert distances[0] < distances[1]
+
+    did = DataID(default_id_keys_config, name='cheese_shops', modifiers=tuple())
+    did2 = DataID(default_id_keys_config, name='cheese_shops', modifiers=tuple(['out_of_stock']))
+    dsids, distances = dq.sort_dsids([did2, did])
+    assert list(dsids) == [did, did2]
     assert distances[0] < distances[1]
 
 def test_wavelength_range():
