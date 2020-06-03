@@ -136,9 +136,8 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
                 )
                 if quality_assurance_required is True:
                     # Get quality assurance dataset recursively
-                    from satpy import DatasetID
-                    quality_assurance_dataset_id = DatasetID(
-                        name='quality_assurance', resolution=1000
+                    quality_assurance_dataset_id = dataset_id.from_dict(
+                        dict(name='quality_assurance', resolution=1000)
                     )
                     quality_assurance_dataset_info = {
                         'name': 'quality_assurance',
