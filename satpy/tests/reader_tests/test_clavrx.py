@@ -215,7 +215,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
                            'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
@@ -364,7 +364,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
@@ -397,7 +397,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
             datasets = r.load(['variable1', 'variable2', 'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
             self.assertIsInstance(v.attrs['area'], AreaDefinition)
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
