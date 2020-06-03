@@ -64,4 +64,9 @@ datasets:
         file_type: tropomi_l2
         file_key: 'PRODUCT/tm5_constant_b'
         standard_name: tm5_constant_b
+    time_utc:
+        name: 'time_utc'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/time_utc'
+        standard_name: time_utc
 

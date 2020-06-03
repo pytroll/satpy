@@ -20,7 +20,6 @@
 import unittest
 from unittest import mock
 import os
-import sys
 import numpy as np
 import numpy.testing
 import pyresample.geometry
