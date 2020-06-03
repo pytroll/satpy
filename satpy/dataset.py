@@ -25,6 +25,7 @@ from datetime import datetime
 from enum import IntEnum
 from copy import copy, deepcopy
 import warnings
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
