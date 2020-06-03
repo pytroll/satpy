@@ -19,13 +19,10 @@
 from datetime import datetime
 from unittest import mock
 
-from satpy.dataset import (DatasetQuery, minimal_default_keys_config,
-                           default_id_keys_config, make_trimmed_dsid_from_keys,
-                           new_dataset_id_class_from_keys, DataID)
+from satpy.dataset import (DataID, DatasetQuery, default_id_keys_config,
+                           minimal_default_keys_config)
 from satpy.readers.yaml_reader import FileYAMLReader
 
-#DatasetID = new_dataset_id_class_from_keys(default_id_keys_config)
-#make_dsid = make_trimmed_dsid_from_keys
 
 def make_dsid(**items):
     """Make a data id."""

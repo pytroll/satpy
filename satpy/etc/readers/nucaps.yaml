@@ -3,6 +3,15 @@ reader:
   name: nucaps
   reader: !!python/name:satpy.readers.nucaps.NUCAPSReader
   sensors: [cris, atms]
+  data_identification_keys:
+    name:
+      required: true
+    level:
+    resolution:
+    modifiers:
+      required: true
+      default: []
+      type: !!python/name:satpy.dataset.ModifierTuple
 
 file_types:
   nucaps:

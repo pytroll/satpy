@@ -30,8 +30,9 @@ from pyproj import Proj
 from pyresample import geometry
 from datetime import datetime
 
-from satpy import DatasetID, CHUNK_SIZE
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.dataset import ModifierTuple, DataID
 import pygrib
 
 LOG = logging.getLogger(__name__)
@@ -40,6 +41,23 @@ LOG = logging.getLogger(__name__)
 CF_UNITS = {
     'none': '1',
 }
+
+grib_id_keys_config = {'name': {
+    'required': True,
+},
+    'level': None,
+    'resolution': None,
+    'modifiers': {
+    'required': True,
+    'default': ModifierTuple(),
+    'type': ModifierTuple,
+},
+}
+
+
+def make_dsid(**items):
+    """Make a data id."""
+    return DataID(grib_id_keys_config, **items)
 
 
 class GRIBFileHandler(BaseFileHandler):
@@ -73,7 +91,7 @@ class GRIBFileHandler(BaseFileHandler):
     def _analyze_messages(self, grib_file):
         grib_file.seek(0)
         for idx, msg in enumerate(grib_file):
-            msg_id = DatasetID(name=msg['shortName'],
+            msg_id = make_dsid(name=msg['shortName'],
                                level=msg['level'])
             ds_info = {
                 'message': idx + 1,
@@ -90,7 +108,7 @@ class GRIBFileHandler(BaseFileHandler):
             id_keys = [keys[k]['id_key'] for k in ordered_keys]
             msg_info = dict(zip(ordered_keys, id_vals))
             ds_info = dict(zip(id_keys, id_vals))
-            msg_id = DatasetID(**ds_info)
+            msg_id = make_dsid(**ds_info)
             ds_info = msg_id.to_dict()
             ds_info.update(msg_info)
             ds_info['file_type'] = self.filetype_info['file_type']
