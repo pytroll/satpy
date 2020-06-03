@@ -350,7 +350,6 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
             'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
 
         reader = load_reader(self.reader_configs)
-        print("reader", reader)
         files = reader.select_files_from_pathnames(filenames)
         self.assertTrue(1, len(files))
         reader.create_filehandlers(files)
@@ -367,7 +366,6 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
             'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
 
         reader = load_reader(self.reader_configs)
-        print("reader", reader)
         files = reader.select_files_from_pathnames(filenames)
         self.assertTrue(1, len(files))
         reader.create_filehandlers(files)
@@ -385,7 +383,6 @@ class TestHY2SCATL2BH5Reader(unittest.TestCase):
             'W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,HY2B+SM_C_EUMP_20200326------_07077_o_250_l2b.h5', ]
 
         reader = load_reader(self.reader_configs)
-        print("reader", reader)
         files = reader.select_files_from_pathnames(filenames)
         self.assertTrue(1, len(files))
         reader.create_filehandlers(files)
