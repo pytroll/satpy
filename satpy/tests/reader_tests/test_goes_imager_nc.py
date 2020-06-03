@@ -20,8 +20,10 @@ import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
-from satpy import DatasetID
+
+from satpy.tests.utils import make_dsid
 
 
 class GOESNCBaseFileHandlerTest(unittest.TestCase):
@@ -250,11 +252,9 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
     def test_get_dataset_coords(self):
         """Test whether coordinates returned by get_dataset() are correct"""
-        lon = self.reader.get_dataset(key=DatasetID(name='longitude',
-                                                    calibration=None),
+        lon = self.reader.get_dataset(key=make_dsid(name='longitude'),
                                       info={})
-        lat = self.reader.get_dataset(key=DatasetID(name='latitude',
-                                                    calibration=None),
+        lat = self.reader.get_dataset(key=make_dsid(name='latitude'),
                                       info={})
         # ... this only compares the valid (unmasked) elements
         self.assertTrue(np.all(lat.to_masked_array() == self.lat),
@@ -288,7 +288,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
         for ch in self.channels:
             counts = self.reader.get_dataset(
-                key=DatasetID(name=ch, calibration='counts'), info={})
+                key=make_dsid(name=ch, calibration='counts'), info={})
             # ... this only compares the valid (unmasked) elements
             self.assertTrue(np.all(self.counts/32. == counts.to_masked_array()),
                             msg='get_dataset() returns invalid counts for '
@@ -301,8 +301,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
         """Test whether data and coordinates are masked consistently"""
         # Requires that no element has been masked due to invalid
         # radiance/reflectance/BT (see setUp()).
-        lon = self.reader.get_dataset(key=DatasetID(name='longitude',
-                                                    calibration=None),
+        lon = self.reader.get_dataset(key=make_dsid(name='longitude'),
                                       info={})
         lon_mask = lon.to_masked_array().mask
         for ch in self.channels:
@@ -310,7 +309,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                           'brightness_temperature'):
                 try:
                     data = self.reader.get_dataset(
-                        key=DatasetID(name=ch, calibration=calib), info={})
+                        key=make_dsid(name=ch, calibration=calib), info={})
                 except ValueError:
                     continue
                 data_mask = data.to_masked_array().mask
@@ -321,22 +320,22 @@ class GOESNCFileHandlerTest(unittest.TestCase):
     def test_get_dataset_invalid(self):
         """Test handling of invalid calibrations"""
         # VIS -> BT
-        args = dict(key=DatasetID(name='00_7',
+        args = dict(key=make_dsid(name='00_7',
                                   calibration='brightness_temperature'),
                     info={})
         self.assertRaises(ValueError, self.reader.get_dataset, **args)
 
         # IR -> Reflectance
-        args = dict(key=DatasetID(name='10_7',
+        args = dict(key=make_dsid(name='10_7',
                                   calibration='reflectance'),
                     info={})
         self.assertRaises(ValueError, self.reader.get_dataset, **args)
 
         # Unsupported calibration
-        args = dict(key=DatasetID(name='10_7',
-                                  calibration='invalid'),
-                    info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+        with pytest.raises(ValueError):
+            args = dict(key=make_dsid(name='10_7',
+                                      calibration='invalid'),
+                        info={})
 
     def test_calibrate(self):
         """Test whether the correct calibration methods are called"""
@@ -429,7 +428,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
         for ch in self.channels:
             if not self.reader._is_vis(ch):
                 radiance = self.reader.get_dataset(
-                    key=DatasetID(name=ch, calibration='radiance'), info={})
+                    key=make_dsid(name=ch, calibration='radiance'), info={})
                 # ... this only compares the valid (unmasked) elements
                 self.assertTrue(np.all(self.radiance == radiance.to_masked_array()),
                                 msg='get_dataset() returns invalid radiance for '
@@ -509,7 +508,7 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
         for ch in self.channels:
             if self.reader._is_vis(ch):
                 refl = self.reader.get_dataset(
-                    key=DatasetID(name=ch, calibration='reflectance'), info={})
+                    key=make_dsid(name=ch, calibration='reflectance'), info={})
                 # ... this only compares the valid (unmasked) elements
                 self.assertTrue(np.all(self.reflectance == refl.to_masked_array()),
                                 msg='get_dataset() returns invalid reflectance for '
