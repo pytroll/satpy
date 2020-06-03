@@ -612,6 +612,8 @@ class CFWriter(Writer):
             root.attrs = encode_attrs_nc(header_attrs)
         _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
         if 'history' in root.attrs:
+            if isinstance(root.attrs['history'], list):
+                root.attrs['history'] = ''.join(root.attrs['history'])
             root.attrs['history'] += '\n' + _history_create
         else:
             root.attrs['history'] = _history_create
