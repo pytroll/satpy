@@ -168,11 +168,6 @@ default_co_keys_config = {'name': {
                               'required': True,
                           },
                           'resolution': None,
-                          'modifiers': {
-                              'required': True,
-                              'default': ModifierTuple(),
-                              'type': ModifierTuple,
-                          },
                           }
 
 
