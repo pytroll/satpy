@@ -4,7 +4,7 @@ reader:
   sensors: [sar-c]
   default_channels: []
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
-  identification_keys:
+  data_identification_keys:
     name:
       required: true
     polarization:
@@ -18,6 +18,12 @@ reader:
       required: true
       default: []
       type: !!python/name:satpy.dataset.ModifierTuple
+
+  coord_identification_keys:
+    name:
+      required: true
+    polarization:
+    resolution:
 
 file_types:
     safe_measurement:

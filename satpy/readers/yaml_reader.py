@@ -40,7 +40,7 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DatasetQuery, new_dataset_id_class_from_keys, get_keys_from_config, default_id_keys_config, DataID
+from satpy.dataset import DatasetQuery, get_keys_from_config, default_id_keys_config, default_co_keys_config, DataID
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
@@ -114,7 +114,8 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         if 'sensors' in self.info and not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
         self.datasets = self.config.get('datasets', {})
-        self._id_keys = self.info.get('identification_keys', default_id_keys_config)
+        self._id_keys = self.info.get('data_identification_keys', default_id_keys_config)
+        self._co_keys = self.info.get('coord_identification_keys', default_co_keys_config)
         self.info['filenames'] = []
         self.all_ids = {}
         self.load_ds_ids_from_config()
@@ -625,8 +626,7 @@ class FileYAMLReader(AbstractYAMLReader):
             ds_info.setdefault('modifiers', tuple())  # default to no mods
 
             # Create DataID for this dataset
-            id_keys = get_keys_from_config(self._id_keys, ds_info)
-            ds_id = DataID(id_keys, **ds_info)
+            ds_id = DataID(self._id_keys, **ds_info)
             # all datasets
             new_ids[ds_id] = ds_info
             # available datasets
@@ -700,10 +700,11 @@ class FileYAMLReader(AbstractYAMLReader):
         for cinfo in ds_info.get('coordinates', []):
             if not isinstance(cinfo, dict):
                 cinfo = {'name': cinfo}
-
-            cinfo['resolution'] = ds_info['resolution']
-            if 'polarization' in ds_info:
-                cinfo['polarization'] = ds_info['polarization']
+            for key in self._co_keys:
+                if key == 'name':
+                    continue
+                if key in ds_info:
+                    cinfo[key] = ds_info[key]
             cid = DatasetQuery.from_dict(cinfo)
             cids.append(self.get_dataset_key(cid))
 
