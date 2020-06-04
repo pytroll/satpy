@@ -561,4 +561,3 @@ class TestBlendFuncs(unittest.TestCase):
         self.assertIsInstance(res2, xr.DataArray)
         self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
         self.assertTupleEqual((self.ds3.shape[0], self.ds3.shape[1]+self.ds4.shape[1]), res2.shape)
-
