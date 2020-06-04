@@ -70,8 +70,21 @@ def get_geostationary_angle_extent(geos_area):
     # TODO: take into account sweep_axis_angle parameter
 
     # get some projection parameters
-    req = float(geos_area.proj_dict['a']) / 1000
-    rp = float(geos_area.proj_dict['b']) / 1000
+    try:
+        crs = geos_area.crs
+        a = crs.ellipsoid.semi_major_metre
+        b = crs.ellipsoid.semi_minor_metre
+        if np.isnan(b):
+            # see https://github.com/pyproj4/pyproj/issues/457
+            raise AttributeError("'semi_minor_metre' attribute is not valid "
+                                 "in older versions of pyproj.")
+    except AttributeError:
+        # older versions of pyproj don't have CRS objects
+        from pyresample.utils import proj4_radius_parameters
+        a, b = proj4_radius_parameters(geos_area.proj_dict)
+
+    req = float(a) / 1000
+    rp = float(b) / 1000
     h = float(geos_area.proj_dict['h']) / 1000 + req
 
     # compute some constants
