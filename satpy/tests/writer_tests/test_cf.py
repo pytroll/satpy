@@ -139,6 +139,29 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
+    def test_ancillary_variables(self):
+        '''Test ancillary_variables cited each other'''
+        import xarray as xr
+        from satpy import Scene
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        da = xr.DataArray([1, 2, 3],
+                          attrs=dict(start_time=start_time,
+                          end_time=end_time,
+                          prerequisites=[DatasetID('hej')]))
+        scn['test-array-1'] = da
+        scn['test-array-2'] = da.copy()
+        scn['test-array-1'].attrs['ancillary_variables'] = [scn['test-array-2']]
+        scn['test-array-2'].attrs['ancillary_variables'] = [scn['test-array-1']]
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf')
+            with xr.open_dataset(filename) as f:
+                self.assertEqual(f['test-array-1'].attrs['ancillary_variables'],
+                                 'test-array-2')
+                self.assertEqual(f['test-array-2'].attrs['ancillary_variables'],
+                                 'test-array-1')
+
     def test_groups(self):
         """Test creating a file with groups."""
         import xarray as xr
