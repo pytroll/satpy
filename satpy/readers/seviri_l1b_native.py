@@ -329,7 +329,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         if dataset_id.name == 'HRV':
             grid_origin = data15hd['ImageDescription']['ReferenceGridHRV']['GridOrigin']
-            center_point = (HRV_NUM_COLUMNS-2) / 2
+            center_point = (HRV_NUM_COLUMNS / 2) - 2
             coeff = 3
             column_step = data15hd['ImageDescription']['ReferenceGridHRV']['ColumnDirGridStep'] * 1000.0
             line_step = data15hd['ImageDescription']['ReferenceGridHRV']['LineDirGridStep'] * 1000.0
