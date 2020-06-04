@@ -29,7 +29,7 @@ from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
-from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition, StackedAreaDefinition
+from pyresample.geometry import AreaDefinition, BaseDefinition, SwathDefinition
 
 import xarray as xr
 from xarray import DataArray
@@ -1135,113 +1135,6 @@ class Scene(MetadataObject):
             new_scn.unload(keepables)
 
         return new_scn
-
-    def set_orientation(self, datasets=None, upper_right_corner='native'):
-        """Set the orientation of datasets.
-
-        Allows to flip geostationary datasets without having to resample.
-
-        Args:
-            datasets (iterable): Limit the flipping to this list of names (str), wavelengths (float), or
-                                DatasetID objects.
-                                By default all currently loaded datasets are flipped.
-            upper_right_corner (str): Direction of the upper right corner of the image.
-                                    Possible options are 'NW', 'NE', 'SW', 'SE', or 'native'.
-                                    The common upright image orientation corresponds to 'NW'.
-                                    Defaults to 'native' (no flipping is applied).
-
-        """
-        def _change_area_extent_of_areadef(areadef, new_extent):
-            """Change the area extent of an area definition and regenerate it."""
-            # does this need to be moved somewhere else?
-            return AreaDefinition(
-                areadef.area_id,
-                areadef.description,
-                areadef.proj_id,
-                areadef.proj_dict,
-                areadef.width,
-                areadef.height,
-                new_extent
-            )
-
-        if isinstance(datasets, str):
-            raise TypeError("'set_orientation' expects a list of datasets, got a string.")
-
-        if upper_right_corner not in ['NW', 'NE', 'SE', 'SW', 'native']:
-            raise ValueError("Origin corner not recognized. Should be 'NW', 'NE', 'SW', 'SE' or 'native.")
-
-        if upper_right_corner == 'native':
-            LOG.debug("Requested Datasets orientation is 'native'. No orientation is applied.")
-            return
-
-        # get the target orientation
-        target_northup = False
-        target_eastright = False
-        if upper_right_corner in ['NW', 'NE']:
-            target_northup = True
-        if upper_right_corner in ['NW', 'SW']:
-            target_eastright = True
-
-        datasets_to_orientate = [dsid for (dsid, dataset) in self.datasets.items()
-                                 if (not datasets) or dsid in datasets]
-
-        for dataset_id in datasets_to_orientate:
-            print(self[dataset_id].attrs['name'])
-            if 'area' not in self[dataset_id].attrs:
-                LOG.info("Dataset {} is not a geographical dataset and cannot be flipped."
-                         "Looking for other Datasets.".format(self[dataset_id].attrs['name']))
-                continue
-
-            if self[dataset_id].attrs['area'].proj_dict['proj'] != 'geos':
-                LOG.info("Dataset {} is not in geos projection and cannot be flipped."
-                         "Looking for other Datasets.".format(self[dataset_id].attrs['name']))
-                continue
-
-            # get the current dataset orientation
-            if isinstance(self[dataset_id].attrs['area'], StackedAreaDefinition):
-                # array of area extents if the Area is a StackedAreaDefinition
-                ds_area_extents = np.asarray([list(adef.area_extent) for adef in self[dataset_id].attrs['area'].defs])
-            else:
-                # array with a single item if Area is in one piece
-                ds_area_extents = np.asarray([list(self[dataset_id].attrs['area'].area_extent)])
-
-            # assumes all AreaDefinitions inside a StackedAreaDefinition have the same orientation
-            current_northup = ds_area_extents[0, 3] - ds_area_extents[0, 1] > 0
-            current_eastright = ds_area_extents[0, 2] - ds_area_extents[0, 0] > 0
-
-            # if current and target orientations mismatch, then flip data and switch area extent elements
-            if target_northup == current_northup and target_eastright == current_eastright:
-                LOG.info("Dataset {} is already in the target orientation."
-                         "Looking for other Datasets".format(self[dataset_id].attrs['name']))
-                continue
-
-            if target_northup != current_northup:
-                LOG.info("Flipping Dataset {} upside-down.".format(self[dataset_id].attrs['name']))
-                self[dataset_id].data = self[dataset_id].data[::-1, :]
-                ds_area_extents[:, [1, 3]] = ds_area_extents[:, [3, 1]]
-
-            if target_eastright != current_eastright:
-                LOG.info("Flipping Dataset {} left-to-right.".format(self[dataset_id].attrs['name']))
-                self[dataset_id].data = self[dataset_id].data[:, ::-1]
-                ds_area_extents[:, [0, 2]] = ds_area_extents[:, [2, 0]]
-
-            # update the dataset area extent
-            # keeping the same id, description and proj_id, but should probably be changed to reflect the flipping
-            if len(ds_area_extents) == 1:
-                new_area_def = _change_area_extent_of_areadef(
-                    self[dataset_id].attrs['area'], ds_area_extents[0])
-            else:
-                new_area_defs_to_stack = []
-                for n_area_def, area_def in enumerate(self[dataset_id].attrs['area'].defs):
-                    new_area_defs_to_stack.append(_change_area_extent_of_areadef(
-                        area_def, ds_area_extents[n_area_def]))
-
-                # flip the order of stacking if the area is upside down
-                if target_northup != current_northup:
-                    new_area_defs_to_stack = new_area_defs_to_stack[::-1]
-                new_area_def = StackedAreaDefinition(*new_area_defs_to_stack)
-
-            self[dataset_id].attrs['area'] = new_area_def
 
     def show(self, dataset_id, overlay=None):
         """Show the *dataset* on screen as an image.
