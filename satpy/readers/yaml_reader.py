@@ -870,7 +870,7 @@ def _load_area_def(dsid, file_handlers):
     return final_area.squeeze()
 
 
-def _set_orientation(dataset, upper_right_corner='native'):
+def _set_orientation(dataset, upper_right_corner='native', **kwargs):
     """Set the orientation of datasets.
 
     Allows to flip geostationary datasets without having to resample.
@@ -898,15 +898,11 @@ def _set_orientation(dataset, upper_right_corner='native'):
             new_extent
         )
 
-    if isinstance(dataset, str):
-        raise TypeError("'set_orientation' expects a list of datasets, got a string.")
-
+    if upper_right_corner == 'native':
+        logger.debug("Requested Dataset orientation is 'native'. No flipping is applied.")
+        return
     if upper_right_corner not in ['NW', 'NE', 'SE', 'SW', 'native']:
         raise ValueError("Origin corner not recognized. Should be 'NW', 'NE', 'SW', 'SE' or 'native.")
-
-    if upper_right_corner == 'native':
-        logger.debug("Requested Datasets orientation is 'native'. No orientation is applied.")
-        return
 
     # get the target orientation
     target_northup = False
@@ -973,15 +969,15 @@ def _set_orientation(dataset, upper_right_corner='native'):
 
 
 class GEOFlippableFileYAMLReader(FileYAMLReader):
-    """Reader for segmented geostationary data."""
+    """Reader for flippable geostationary data."""
 
     def _load_dataset_with_area(self, dsid, coords, **kwargs):
-        ds = super(GEOFlippableFileYAMLReader, self)._load_dataset_with_area(dsid, coords, **kwargs)
+        ds = super()._load_dataset_with_area(dsid, coords, **kwargs)
         ds = _set_orientation(ds, **kwargs)
         return ds
 
 
-class GEOSegmentYAMLReader(FileYAMLReader):
+class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     """Reader for segmented geostationary data.
 
     This reader pads the data to full geostationary disk if necessary.
@@ -1015,7 +1011,7 @@ class GEOSegmentYAMLReader(FileYAMLReader):
         return created_fhs
 
     @staticmethod
-    def _load_dataset(dsid, ds_info, file_handlers, dim='y', pad_data=True):
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y', pad_data=True, **kwargs):
         """Load only a piece of the dataset."""
         if not pad_data:
             return FileYAMLReader._load_dataset(dsid, ds_info,
@@ -1047,7 +1043,7 @@ class GEOSegmentYAMLReader(FileYAMLReader):
         res.attrs = combined_info
         return res
 
-    def _load_area_def(self, dsid, file_handlers, pad_data=True):
+    def _load_area_def(self, dsid, file_handlers, pad_data=True, **kwargs):
         """Load the area definition of *dsid* with padding."""
         if not pad_data:
             return _load_area_def(dsid, file_handlers)
