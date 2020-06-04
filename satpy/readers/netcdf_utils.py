@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2017 Satpy developers
+# Copyright (c) 2016-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -155,6 +155,7 @@ class NetCDF4FileHandler(BaseFileHandler):
             self.file_content[var_name] = var_obj
             self.file_content[var_name + "/dtype"] = var_obj.dtype
             self.file_content[var_name + "/shape"] = var_obj.shape
+            self.file_content[var_name + "/dimensions"] = var_obj.dimensions
             self._collect_attrs(var_name, var_obj)
         self._collect_attrs(name, obj)
 
@@ -228,7 +229,10 @@ class NetCDF4FileHandler(BaseFileHandler):
     def _get_var_from_filehandle(self, group, key):
         # Not getting coordinates as this is more work, therefore more
         # overhead, and those are not used downstream.
-        g = self.file_handle[group]
+        if group is None:
+            g = self.file_handle
+        else:
+            g = self.file_handle[group]
         v = g[key]
         x = xr.DataArray(
                 da.from_array(v), dims=v.dimensions, attrs=v.__dict__,
