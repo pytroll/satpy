@@ -52,7 +52,7 @@ the base Satpy installation.
     overview
     install
     data_download
-    examples
+    examples/index
     quickstart
     readers
     composites
