@@ -423,6 +423,22 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         assert len(comps["fci"]) > 0
         assert len(mods["fci"]) > 0
 
+    def test_load_quality_only(self, reader_configs):
+        """Test that loading quality only works."""
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+        res = reader.load(["ir_123_pixel_quality"])
+        assert res["ir_123_pixel_quality"].attrs["name"] == "ir_123_pixel_quality"
+
     def test_platform_name(self, reader_configs):
         """Test that platform name is exposed.
 
