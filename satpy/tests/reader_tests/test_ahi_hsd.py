@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The abi_l1b reader tests package."""
+"""The ahi_hsd reader tests package."""
 
 import unittest
 from unittest import mock
@@ -184,10 +184,12 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             'number_of_lines': 1100,
                             'spare': ''}
             fh.basic_info = {
+                'observation_area': np.array(['FLDK']),
                 'observation_start_time': np.array([58413.12523839]),
                 'observation_end_time': np.array([58413.12562439]),
                 'observation_timeline': np.array([300]),
             }
+            fh.observation_area = np2str(fh.basic_info['observation_area'])
 
             self.fh = fh
 
@@ -195,6 +197,18 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         """Test start/end/scheduled time properties."""
         self.assertEqual(self.fh.start_time, datetime(2018, 10, 22, 3, 0, 20, 596896))
         self.assertEqual(self.fh.end_time, datetime(2018, 10, 22, 3, 0, 53, 947296))
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
+
+    def test_scanning_frequencies(self):
+        self.fh.observation_area = 'JP04'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R304'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
+        self.fh.observation_area = 'R420'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'R520'
+        self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 9, 30, 0))
+        self.fh.observation_area = 'FLDK'
         self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler.__init__',
