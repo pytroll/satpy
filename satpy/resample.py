@@ -589,6 +589,8 @@ class KDTreeResampler(BaseResampler):
             zarr_out.to_zarr(filename)
 
             self._index_caches[mask_name] = cache
+            # Delete the kdtree, it's not needed anymore
+            self.resampler.delayed_kdtree = None
 
     def _read_resampler_attrs(self):
         """Read certain attributes from the resampler for caching."""
