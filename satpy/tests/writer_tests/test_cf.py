@@ -140,7 +140,7 @@ class TestCFWriter(unittest.TestCase):
                                  expected_prereq)
 
     def test_ancillary_variables(self):
-        '''Test ancillary_variables cited each other'''
+        """Test ancillary_variables cited each other."""
         import xarray as xr
         from satpy import Scene
         scn = Scene()
