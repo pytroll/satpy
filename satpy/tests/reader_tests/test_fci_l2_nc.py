@@ -96,7 +96,10 @@ class TestFciL2NCFileHandler(unittest.TestCase):
         # First delets the reader, forcing the file to be closed if still open
         del self.reader
         # Then can safely remove it from the system
-        os.remove(TEST_FILE)
+        try:
+            os.remove(TEST_FILE)
+        except OSError:
+            pass
 
     def test_all_basic(self):
         """Test all basic functionalities."""
