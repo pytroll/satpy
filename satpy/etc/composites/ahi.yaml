@@ -28,6 +28,17 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: toa_bidirectional_reflectance
 
+  green_nocorr:
+    compositor: !!python/name:satpy.composites.ahi.GreenCorrector
+    # FUTURE: Set a wavelength...see what happens. Dependency finding
+    #         probably wouldn't work.
+    prerequisites:
+    # should we be using the most corrected or least corrected inputs?
+    # what happens if something requests more modifiers on top of this?
+    - wavelength: 0.51
+    - wavelength: 0.85
+    standard_name: toa_reflectance
+
   airmass:
     # PDF slides: https://www.eumetsat.int/website/home/News/ConferencesandEvents/DAT_2833302.html
     # Under session 2 by Akihiro Shimizu (JMA)
@@ -168,11 +179,29 @@ composites:
   true_color:
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
-    - wavelength: 0.65
+    - name: B03
       modifiers: [sunz_corrected, rayleigh_corrected]
     - name: green
-    - wavelength: 0.46
+    - name: B01
       modifiers: [sunz_corrected, rayleigh_corrected]
+    high_resolution_band: red
+    standard_name: true_color
+
+  natural_color_nocorr:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: B05
+    - name: B04
+    - name: B03
+    high_resolution_band: blue
+    standard_name: natural_color
+
+  true_color_nocorr:
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+    - name: B03
+    - name: green_nocorr
+    - name: B01
     high_resolution_band: red
     standard_name: true_color
 
@@ -229,6 +258,12 @@ composites:
     - wavelength: 1.6
     standard_name: cloud_phase_distinction
 
+  colorized_ir_clouds:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: B13
+    standard_name: colorized_ir_clouds
+
   water_vapors1:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -274,3 +309,40 @@ composites:
     compositor: !!python/name:satpy.composites.CloudCompositor
     prerequisites:
       - name: B14
+
+  true_color_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_ir
+    prerequisites:
+      - true_color
+      - night_ir_with_background
+
+  true_color_with_night_ir_hires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: true_color_with_night_ir_hires
+    prerequisites:
+      - true_color
+      - night_ir_with_background_hires
+
+  night_ir_alpha:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: night_ir_alpha
+    prerequisites:
+      - name: B07
+      - name: B13
+      - name: B15
+      - name: B13
+
+  night_ir_with_background:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - night_ir_alpha
+      - _night_background
+
+  night_ir_with_background_hires:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background_hires
+    prerequisites:
+      - night_ir_alpha
+      - _night_background_hires
