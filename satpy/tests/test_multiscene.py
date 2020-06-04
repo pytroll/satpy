@@ -538,6 +538,12 @@ class TestBlendFuncs(unittest.TestCase):
         ds2 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'x'),
                            attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
         self.ds2 = ds2
+        ds3 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'time'),
+                           attrs={'start_time': datetime(2018, 1, 1, 0, 0, 0), 'area': area})
+        self.ds3 = ds3
+        ds4 = xr.DataArray(da.zeros((2, 2), chunks=-1), dims=('y', 'time'),
+                           attrs={'start_time': datetime(2018, 1, 1, 1, 0, 0), 'area': area})
+        self.ds4 = ds4
 
     def test_stack(self):
         """Test the 'stack' function."""
@@ -550,5 +556,9 @@ class TestBlendFuncs(unittest.TestCase):
         from satpy.multiscene import timeseries
         import xarray as xr
         res = timeseries([self.ds1, self.ds2])
+        res2 = timeseries([self.ds3, self.ds4])
         self.assertIsInstance(res, xr.DataArray)
+        self.assertIsInstance(res2, xr.DataArray)
         self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
+        self.assertTupleEqual((self.ds3.shape[0], self.ds3.shape[1]+self.ds4.shape[1]), res2.shape)
+
