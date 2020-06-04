@@ -977,7 +977,7 @@ class GEOFlippableFileYAMLReader(FileYAMLReader):
 
     def _load_dataset_with_area(self, dsid, coords, **kwargs):
         ds = super(GEOFlippableFileYAMLReader, self)._load_dataset_with_area(dsid, coords, **kwargs)
-        ds = _set_orientation(ds, kwargs['upper_right_corner'])
+        ds = _set_orientation(ds, **kwargs)
         return ds
 
 
