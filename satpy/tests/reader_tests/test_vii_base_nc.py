@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2020 Satpy developers
 #
 # satpy is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -289,35 +289,16 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         self.assertEqual(return_lat.name, 'test_lat')
         self.assertEqual(return_lat.dims, ('num_pixels', 'num_lines'))
 
-        # Checks that the _perform_wrapping function is correctly executed
-        variable = xr.DataArray(
-            dims=('x', 'y'),
-            name='test_name',
-            attrs={
-                'key_1': 'value_1',
-                'key_2': 'value_2'
-            },
-            data=np.ones((10, 100))
-        )
-        variable.values[0, :] = 361.
-        variable.values[1, :] = -359.
-        return_variable = self.reader._perform_wrapping(variable)
-        self.assertEqual(return_variable.attrs['key_1'], 'value_1')
-        self.assertEqual(return_variable.dims, ('x', 'y'))
-        self.assertTrue(np.allclose(return_variable.values, np.ones((10, 100))))
-
     @mock.patch('satpy.readers.vii_base_nc.ViiNCBaseFileHandler._perform_calibration')
     @mock.patch('satpy.readers.vii_base_nc.ViiNCBaseFileHandler._perform_interpolation')
-    @mock.patch('satpy.readers.vii_base_nc.ViiNCBaseFileHandler._perform_wrapping')
     @mock.patch('satpy.readers.vii_base_nc.ViiNCBaseFileHandler._perform_orthorectification')
-    def test_dataset(self, po_, pw_, pi_, pc_):
+    def test_dataset(self, po_, pi_, pc_):
         """Test the execution of the get_dataset function."""
         # Checks the correct execution of the get_dataset function with a valid file_key
         variable = self.reader.get_dataset(None, {'file_key': 'data/measurement_data/tpw',
                                                   'calibration': None})
         pc_.assert_not_called()
         pi_.assert_not_called()
-        pw_.assert_not_called()
         po_.assert_not_called()
 
         self.assertTrue(np.allclose(variable.values, np.ones((10, 100))))
@@ -326,14 +307,13 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         self.assertEqual(variable.attrs['units'], None)
 
         # Checks the correct execution of the get_dataset function with a valid file_key
-        # and required calibration, interpolation and wrapping
+        # and required calibration and interpolation
         self.reader.get_dataset(None, {'file_key': 'data/measurement_data/tpw',
                                        'calibration': 'reflectance',
                                        'interpolate': True,
                                        'standard_name': 'longitude'})
         pc_.assert_called()
         pi_.assert_called()
-        pw_.assert_called()
         po_.assert_not_called()
 
         # Checks the correct execution of the get_dataset function with a valid file_key
@@ -351,7 +331,6 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         pc_.reset_mock()
         pi_.reset_mock()
-        pw_.reset_mock()
         po_.reset_mock()
 
         # Checks the correct execution of the get_dataset function with a 'cached_longitude' file_key
@@ -372,18 +351,16 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         pc_.reset_mock()
         pi_.reset_mock()
-        pw_.reset_mock()
         po_.reset_mock()
 
         # Checks the correct execution of the get_dataset function with a valid file_key
-        # and required calibration, interpolation and wrapping
+        # and required calibration and interpolation
         self.reader_2.get_dataset(None, {'file_key': 'data/measurement_data/tpw',
                                          'calibration': 'reflectance',
                                          'interpolate': True,
                                          'standard_name': 'longitude'})
         pc_.assert_called()
         pi_.assert_not_called()
-        pw_.assert_called()
         po_.assert_not_called()
 
         # Checks the correct execution of the get_dataset function with a valid file_key

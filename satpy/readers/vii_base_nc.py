@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2019 Satpy developers
+# Copyright (c) 2020 Satpy developers
 #
 # satpy is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +30,15 @@ logger = logging.getLogger(__name__)
 
 
 class ViiNCBaseFileHandler(NetCDF4FileHandler):
-    """Base reader class for VII products in netCDF format."""
+    """Base reader class for VII products in netCDF format.
+
+    Args:
+        filename (str): File to read
+        filename_info (dict): Dictionary with filename information
+        filetype_info (dict): Dictionary with filetype information
+        orthorect (bool): activates the orthorectification correction where available
+
+    """
 
     def __init__(self, filename, filename_info, filetype_info, orthorect=False):
         """Prepare the class for dataset reading."""
@@ -88,7 +96,7 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
         # If the dataset contains a longitude, change it to the interval [0., 360.) as natively in the product
         # since the unwrapping performed during the interpolation might have created values outside this range
         if dataset_info.get('standard_name', None) == 'longitude':
-            variable = self._perform_wrapping(variable)
+            variable %= 360.
 
         # Manage the attributes of the dataset
         variable.attrs.setdefault('units', None)
@@ -96,20 +104,6 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
         variable.attrs.update(dataset_info)
         variable.attrs.update(self._get_global_attributes())
 
-        return variable
-
-    @staticmethod
-    def _perform_wrapping(variable):
-        """Wrap the values to the interval [0, 360.) .
-
-        Args:
-            variable: xarray DataArray containing the dataset to wrap.
-
-        Returns:
-            DataArray: array containing the wrapped values and all the original metadata
-
-        """
-        variable %= 360.
         return variable
 
     @staticmethod

@@ -17,13 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Dataset objects."""
 
-import sys
 import logging
 import numbers
 from collections import namedtuple
+from collections.abc import Collection
 from datetime import datetime
-
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -62,11 +60,13 @@ def average_datetimes(dt_list):
 def combine_metadata(*metadata_objects, **kwargs):
     """Combine the metadata of two or more Datasets.
 
-    If any keys are not equal or do not exist in all provided dictionaries
-    then they are not included in the returned dictionary.
-    By default any keys with the word 'time' in them and consisting
-    of datetime objects will be averaged. This is to handle cases where
-    data were observed at almost the same time but not exactly.
+    If the values corresponding to any keys are not equal or do not
+    exist in all provided dictionaries then they are not included in
+    the returned dictionary.  By default any keys with the word 'time'
+    in them and consisting of datetime objects will be averaged. This
+    is to handle cases where data were observed at almost the same time
+    but not exactly.  In the interest of time, arrays are compared by
+    object identity rather than by their contents.
 
     Args:
         *metadata_objects: MetadataObject or dict objects to combine
@@ -98,16 +98,55 @@ def combine_metadata(*metadata_objects, **kwargs):
     shared_info = {}
     for k in shared_keys:
         values = [nfo[k] for nfo in info_dicts]
-        any_arrays = any([isinstance(val, np.ndarray) for val in values])
-        if any_arrays:
-            if all(np.all(val == values[0]) for val in values[1:]):
+        if _share_metadata_key(k, values, average_times):
+            if 'time' in k and isinstance(values[0], datetime) and average_times:
+                shared_info[k] = average_datetimes(values)
+            else:
                 shared_info[k] = values[0]
-        elif 'time' in k and isinstance(values[0], datetime) and average_times:
-            shared_info[k] = average_datetimes(values)
-        elif all(val == values[0] for val in values[1:]):
-            shared_info[k] = values[0]
 
     return shared_info
+
+
+def _share_metadata_key(k, values, average_times):
+    """Combine metadata. Helper for combine_metadata, decide if key is shared."""
+    any_arrays = any([hasattr(val, "__array__") for val in values])
+    # in the real world, the `ancillary_variables` attribute may be
+    # List[xarray.DataArray], this means our values are now
+    # List[List[xarray.DataArray]].
+    # note that this list_of_arrays check is also true for any
+    # higher-dimensional ndarray, but we only use this check after we have
+    # checked any_arrays so this false positive should have no impact
+    list_of_arrays = any(
+            [isinstance(val, Collection) and len(val) > 0 and
+             all([hasattr(subval, "__array__")
+                 for subval in val])
+             for val in values])
+    if any_arrays:
+        return _share_metadata_key_array(values)
+    elif list_of_arrays:
+        return _share_metadata_key_list_arrays(values)
+    elif 'time' in k and isinstance(values[0], datetime) and average_times:
+        return True
+    elif all(val == values[0] for val in values[1:]):
+        return True
+    return False
+
+
+def _share_metadata_key_array(values):
+    """Combine metadata. Helper for combine_metadata, check object identity in list of arrays."""
+    for val in values[1:]:
+        if val is not values[0]:
+            return False
+    return True
+
+
+def _share_metadata_key_list_arrays(values):
+    """Combine metadata. Helper for combine_metadata, check object identity in list of list of arrays."""
+    for val in values[1:]:
+        for arr, ref in zip(val, values[0]):
+            if arr is not ref:
+                return False
+    return True
 
 
 DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
@@ -158,6 +197,7 @@ class DatasetID(DatasetID):
                            other modifications have been performed on this
                            Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
                            etc). `None` or empty tuple if not applicable.
+
     """
 
     def __new__(cls, *args, **kwargs):
@@ -175,6 +215,7 @@ class DatasetID(DatasetID):
         Args:
             a (str): DatasetID.name or other string
             b (str): DatasetID.name or other string
+
         """
         return a == b
 
@@ -185,6 +226,7 @@ class DatasetID(DatasetID):
         Args:
             a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
             b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+
         """
         if type(a) == (type(b) or
                        isinstance(a, numbers.Number) and
