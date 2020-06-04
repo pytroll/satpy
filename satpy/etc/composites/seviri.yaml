@@ -170,6 +170,14 @@ composites:
       modifiers: [sunz_corrected]
     standard_name: natural_color
 
+  natural_color_nocorr:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: IR_016
+    - name: VIS008
+    - name: VIS006
+    standard_name: natural_color
+
   fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
