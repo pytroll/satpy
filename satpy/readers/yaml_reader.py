@@ -923,9 +923,18 @@ def _set_orientation(dataset, upper_right_corner='native', **kwargs):
 
     if upper_right_corner == 'native':
         logger.debug("Requested Dataset orientation is 'native'. No flipping is applied.")
-        return
+        return dataset
+
     if upper_right_corner not in ['NW', 'NE', 'SE', 'SW', 'native']:
         raise ValueError("Origin corner not recognized. Should be 'NW', 'NE', 'SW', 'SE' or 'native.")
+
+    if 'area' not in dataset.attrs:
+        logger.info("Dataset is missing the area attribute and cannot be flipped.")
+        return dataset
+
+    if dataset.attrs['area'].proj_dict['proj'] != 'geos':
+        logger.info("Dataset is not in geos projection and cannot be flipped.")
+        return dataset
 
     # get the target orientation
     target_northup = False
@@ -934,14 +943,6 @@ def _set_orientation(dataset, upper_right_corner='native', **kwargs):
         target_northup = True
     if upper_right_corner in ['NW', 'SW']:
         target_eastright = True
-
-    if 'area' not in dataset.attrs:
-        logger.info("Dataset is not a geographical dataset and cannot be flipped.")
-        return dataset
-
-    if dataset.attrs['area'].proj_dict['proj'] != 'geos':
-        logger.info("Dataset is not in geos projection and cannot be flipped.")
-        return dataset
 
     # get the current dataset orientation
     if isinstance(dataset.attrs['area'], StackedAreaDefinition):
@@ -996,7 +997,10 @@ class GEOFlippableFileYAMLReader(FileYAMLReader):
 
     def _load_dataset_with_area(self, dsid, coords, **kwargs):
         ds = super()._load_dataset_with_area(dsid, coords, **kwargs)
-        ds = _set_orientation(ds, **kwargs)
+
+        if ds is not None:
+            ds = _set_orientation(ds, **kwargs)
+
         return ds
 
 
