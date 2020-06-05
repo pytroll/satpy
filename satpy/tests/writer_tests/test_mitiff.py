@@ -302,7 +302,7 @@ class TestMITIFFWriter(unittest.TestCase):
         from datetime import datetime
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.scene import Scene
         area_def = AreaDefinition(
             'test',
@@ -315,13 +315,13 @@ class TestMITIFFWriter(unittest.TestCase):
             (-1000., -1500., 1000., 1500.),
         )
 
-        d = [
-            DatasetID(name='1', calibration='reflectance'),
-            DatasetID(name='2', calibration='reflectance'),
-            DatasetID(name='3', calibration='brightness_temperature'),
-            DatasetID(name='4', calibration='brightness_temperature'),
-            DatasetID(name='5', calibration='brightness_temperature'),
-            DatasetID(name='6', calibration='reflectance')
+        prereqs = [
+            make_dsq(name='1', calibration='reflectance'),
+            make_dsq(name='2', calibration='reflectance'),
+            make_dsq(name='3', calibration='brightness_temperature'),
+            make_dsq(name='4', calibration='brightness_temperature'),
+            make_dsq(name='5', calibration='brightness_temperature'),
+            make_dsq(name='6', calibration='reflectance')
         ]
         scene = Scene()
         scene["1"] = xr.DataArray(da.zeros((100, 200), chunks=50),
@@ -355,7 +355,7 @@ class TestMITIFFWriter(unittest.TestCase):
                      'platform_name': "TEST_PLATFORM_NAME",
                      'sensor': 'test-sensor',
                      'area': area_def,
-                     'prerequisites': d,
+                     'prerequisites': prereqs,
                      'metadata_requirements': {
                          'order': ['1', '2', '3', '4', '5', '6'],
                          'config': {
@@ -405,7 +405,7 @@ class TestMITIFFWriter(unittest.TestCase):
         from datetime import datetime
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.scene import Scene
         area_def = AreaDefinition(
             'test',
@@ -418,7 +418,7 @@ class TestMITIFFWriter(unittest.TestCase):
             (-1000., -1500., 1000., 1500.),
         )
 
-        d = [DatasetID(name='4', calibration='brightness_temperature')]
+        prereqs = [make_dsq(name='4', calibration='brightness_temperature')]
         scene = Scene()
         scene["4"] = xr.DataArray(da.zeros((100, 200), chunks=50),
                                   dims=('y', 'x'),
@@ -433,7 +433,7 @@ class TestMITIFFWriter(unittest.TestCase):
                      'platform_name': "TEST_PLATFORM_NAME",
                      'sensor': 'test-sensor',
                      'area': area_def,
-                     'prerequisites': d,
+                     'prerequisites': prereqs,
                      'metadata_requirements': {
                          'order': ['4'],
                          'config': {
@@ -458,7 +458,7 @@ class TestMITIFFWriter(unittest.TestCase):
         from datetime import datetime
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         area_def = AreaDefinition(
             'test',
             'test',
@@ -479,8 +479,8 @@ class TestMITIFFWriter(unittest.TestCase):
                    'platform_name': "TEST_PLATFORM_NAME",
                    'sensor': 'TEST_SENSOR_NAME',
                    'area': area_def,
-                   'prerequisites': [DatasetID(name='1', calibration='reflectance'),
-                                     DatasetID(name='2', calibration='reflectance')]}
+                   'prerequisites': [make_dsq(name='1', calibration='reflectance'),
+                                     make_dsq(name='2', calibration='reflectance')]}
         )
         return ds1
 
