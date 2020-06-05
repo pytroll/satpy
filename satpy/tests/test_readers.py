@@ -49,9 +49,11 @@ local_id_keys_config = {'name': {
                           },
                           }
 
+
 def make_dsid(**items):
     """Make a data id."""
     return DataID(local_id_keys_config, **items)
+
 
 class TestDatasetDict(unittest.TestCase):
     """Test DatasetDict and its methods."""
