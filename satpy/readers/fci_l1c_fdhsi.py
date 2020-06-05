@@ -244,12 +244,19 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
+        # if a user requests a pixel quality before the channel data, the
+        # yaml-reader will ask the area extent of the pixel quality field,
+        # which will ultimately end up here
+        if key.name.endswith("_pixel_quality"):
+            lab = key.name[:-len("_pixel_quality")]
+        else:
+            lab = key.name
         # Get metadata for given dataset
-        measured = self.get_channel_measured_group_path(key.name)
+        measured = self.get_channel_measured_group_path(lab)
         # Get start/end line and column of loaded swath.
         nlines, ncols = self[measured + "/effective_radiance/shape"]
 
-        logger.debug('Channel {} resolution: {}'.format(key.name, ncols))
+        logger.debug('Channel {} resolution: {}'.format(lab, ncols))
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
 
         # Calculate full globe line extent
@@ -257,7 +264,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         ext = {}
         for c in "xy":
-            c_radian = self["data/{:s}/measured/{:s}".format(key.name, c)]
+            c_radian = self["data/{:s}/measured/{:s}".format(lab, c)]
             c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
 
             # FCI defines pixels by centroids (Example Products for Pytroll

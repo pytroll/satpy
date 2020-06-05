@@ -245,6 +245,8 @@ the base Satpy installation.
       - Beta
     * - VII Level 1b in NetCDF4 format
       - `vii_l1b_nc`
+    * - MTG FCI Level 2 in NetCDF4 format
+      - `fci_l2_nc`
       - Beta
     * - SMOS level 2 wind data in NetCDF4 format
       - `smos_l2_wind`
