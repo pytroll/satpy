@@ -108,7 +108,7 @@ def combine_metadata(*metadata_objects, **kwargs):
 
 
 def _share_metadata_key(k, values, average_times):
-    """Helper for combine_metadata, decide if key is shared."""
+    """Combine metadata. Helper for combine_metadata, decide if key is shared."""
     any_arrays = any([hasattr(val, "__array__") for val in values])
     # in the real world, the `ancillary_variables` attribute may be
     # List[xarray.DataArray], this means our values are now
@@ -133,7 +133,7 @@ def _share_metadata_key(k, values, average_times):
 
 
 def _share_metadata_key_array(values):
-    """Helper for combine_metadata, check object identity in list of arrays."""
+    """Combine metadata. Helper for combine_metadata, check object identity in list of arrays."""
     for val in values[1:]:
         if val is not values[0]:
             return False
@@ -141,7 +141,7 @@ def _share_metadata_key_array(values):
 
 
 def _share_metadata_key_list_arrays(values):
-    """Helper for combine_metadata, check object identity in list of list of arrays."""
+    """Combine metadata. Helper for combine_metadata, check object identity in list of list of arrays."""
     for val in values[1:]:
         for arr, ref in zip(val, values[0]):
             if arr is not ref:
@@ -197,6 +197,7 @@ class DatasetID(DatasetID):
                            other modifications have been performed on this
                            Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
                            etc). `None` or empty tuple if not applicable.
+
     """
 
     def __new__(cls, *args, **kwargs):
@@ -214,6 +215,7 @@ class DatasetID(DatasetID):
         Args:
             a (str): DatasetID.name or other string
             b (str): DatasetID.name or other string
+
         """
         return a == b
 
@@ -224,6 +226,7 @@ class DatasetID(DatasetID):
         Args:
             a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
             b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+
         """
         if type(a) == (type(b) or
                        isinstance(a, numbers.Number) and
