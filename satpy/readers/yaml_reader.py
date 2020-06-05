@@ -885,19 +885,7 @@ def _set_orientation(dataset, upper_right_corner='native', **kwargs):
                                 Defaults to 'native' (no flipping is applied).
 
     """
-    def _change_area_extent_of_areadef(areadef, new_extent):
-        """Change the area extent of an area definition and regenerate it."""
-        # does this need to be moved somewhere else?
-        return AreaDefinition(
-            areadef.area_id,
-            areadef.description,
-            areadef.proj_id,
-            areadef.proj_dict,
-            areadef.width,
-            areadef.height,
-            new_extent
-        )
-
+    # do some checks and early returns
     if upper_right_corner == 'native':
         logger.debug("Requested Dataset orientation is 'native'. No flipping is applied.")
         return dataset
@@ -918,7 +906,7 @@ def _set_orientation(dataset, upper_right_corner='native', **kwargs):
     target_eastright = False
     if upper_right_corner in ['NW', 'NE']:
         target_northup = True
-    if upper_right_corner in ['NW', 'SW']:
+    if upper_right_corner in ['NE', 'SE']:
         target_eastright = True
 
     # get the current dataset orientation
@@ -951,13 +939,11 @@ def _set_orientation(dataset, upper_right_corner='native', **kwargs):
     # update the dataset area extent
     # keeping the same id, description and proj_id, but should probably be changed to reflect the flipping
     if len(ds_area_extents) == 1:
-        new_area_def = _change_area_extent_of_areadef(
-            dataset.attrs['area'], ds_area_extents[0])
+        new_area_def = dataset.attrs['area'].copy(area_extent=ds_area_extents[0])
     else:
         new_area_defs_to_stack = []
         for n_area_def, area_def in enumerate(dataset.attrs['area'].defs):
-            new_area_defs_to_stack.append(_change_area_extent_of_areadef(
-                area_def, ds_area_extents[n_area_def]))
+            new_area_defs_to_stack.append(area_def.copy(area_extent=ds_area_extents[n_area_def]))
 
         # flip the order of stacking if the area is upside down
         if target_northup != current_northup:
