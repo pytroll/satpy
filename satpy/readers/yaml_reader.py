@@ -893,7 +893,7 @@ def _load_area_def(dsid, file_handlers):
     return final_area.squeeze()
 
 
-def _set_orientation(dataset, upper_right_corner='native', **kwargs):
+def _set_orientation(dataset, upper_right_corner):
     """Set the orientation of datasets.
 
     Allows to flip geostationary datasets without having to resample.
@@ -981,11 +981,11 @@ def _set_orientation(dataset, upper_right_corner='native', **kwargs):
 class GEOFlippableFileYAMLReader(FileYAMLReader):
     """Reader for flippable geostationary data."""
 
-    def _load_dataset_with_area(self, dsid, coords, **kwargs):
+    def _load_dataset_with_area(self, dsid, coords, upper_right_corner='native', **kwargs):
         ds = super()._load_dataset_with_area(dsid, coords, **kwargs)
 
         if ds is not None:
-            ds = _set_orientation(ds, **kwargs)
+            ds = _set_orientation(ds, upper_right_corner)
 
         return ds
 
@@ -1024,7 +1024,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         return created_fhs
 
     @staticmethod
-    def _load_dataset(dsid, ds_info, file_handlers, dim='y', pad_data=True, **kwargs):
+    def _load_dataset(dsid, ds_info, file_handlers, dim='y', pad_data=True):
         """Load only a piece of the dataset."""
         if not pad_data:
             return FileYAMLReader._load_dataset(dsid, ds_info,
@@ -1056,7 +1056,7 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
         res.attrs = combined_info
         return res
 
-    def _load_area_def(self, dsid, file_handlers, pad_data=True, **kwargs):
+    def _load_area_def(self, dsid, file_handlers, pad_data=True):
         """Load the area definition of *dsid* with padding."""
         if not pad_data:
             return _load_area_def(dsid, file_handlers)
