@@ -897,8 +897,9 @@ def _set_orientation(dataset, upper_right_corner):
         logger.info("Dataset is missing the area attribute and cannot be flipped.")
         return dataset
 
-    if dataset.attrs['area'].proj_dict['proj'] != 'geos':
-        logger.info("Dataset is not in geos projection and cannot be flipped.")
+    if dataset.attrs['area'].crs.coordinate_operation.method_name not in ['Geostationary Satellite (Sweep Y)',
+                                                                          'Geostationary Satellite (Sweep X)']:
+        logger.info("Dataset is not in a know geostationary projection and cannot be flipped.")
         return dataset
 
     # get the target orientation
@@ -959,7 +960,7 @@ class GEOFlippableFileYAMLReader(FileYAMLReader):
     """Reader for flippable geostationary data."""
 
     def _load_dataset_with_area(self, dsid, coords, upper_right_corner='native', **kwargs):
-        ds = super()._load_dataset_with_area(dsid, coords, **kwargs)
+        ds = super(GEOFlippableFileYAMLReader, self)._load_dataset_with_area(dsid, coords, **kwargs)
 
         if ds is not None:
             ds = _set_orientation(ds, upper_right_corner)
