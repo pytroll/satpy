@@ -69,7 +69,11 @@ class TestViiL2NCFileHandler(unittest.TestCase):
 
     def tearDown(self):
         """Remove the previously created test file."""
-        os.remove(TEST_FILE)
+        # Catch Windows PermissionError for removing the created test file.
+        try:
+            os.remove(TEST_FILE)
+        except OSError:
+            pass
 
     def test_functions(self):
         """Test the functions."""
