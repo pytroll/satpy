@@ -245,7 +245,18 @@ the base Satpy installation.
       - Beta
     * - VII Level 2 in NetCDF4 format
       - `vii_l2_nc`
+    * - MTG FCI Level 2 in NetCDF4 format
+      - `fci_l2_nc`
       - Beta
+    * - SMOS level 2 wind data in NetCDF4 format
+      - `smos_l2_wind`
+      - Beta
+    * - AMSR2 level 2 wind data in HDF5 format
+      - `amsr_l2`
+      - Beta
+    * - GPM IMERG level 3 precipitation data in HDF5 format
+      - `gpm_imerg`
+      - Nominal
 
 Indices and tables
 ==================
