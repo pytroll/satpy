@@ -1,0 +1,14 @@
+reader:
+  description: HDF5 reader for the GPM/L2 data
+  name: gpm_l2
+  sensors: [multiple]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+    gpm_l2:
+        file_reader: !!python/name:satpy.readers.gpm_l2.HDF_GPM_L2
+        file_patterns: ['{data_type}.GPM.{instrument}.{algorithm}.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence}.{version_id}.HDF5',
+                        '{data_type}.GPM.{instrument}.{algorithm}.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence}.{version_id}.SUB.HDF5']
+
+datasets: ~
