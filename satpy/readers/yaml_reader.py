@@ -240,49 +240,52 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     def load_ds_ids_from_config(self):
         """Get the dataset ids from the config."""
         ids = []
-        for dataset in self.datasets.values():
-            # xarray doesn't like concatenating attributes that are lists
-            # https://github.com/pydata/xarray/issues/2060
-            if 'coordinates' in dataset and \
-                    isinstance(dataset['coordinates'], list):
-                dataset['coordinates'] = tuple(dataset['coordinates'])
-            # Build each permutation/product of the dataset
-            id_kwargs = []
-            for key in DATASET_KEYS:
-                val = dataset.get(key)
-                if key in ["wavelength", "modifiers"] and isinstance(val,
-                                                                     list):
-                    # special case: wavelength can be [min, nominal, max]
-                    # but is still considered 1 option
-                    # it also needs to be a tuple so it can be used in
-                    # a dictionary key (DatasetID)
-                    id_kwargs.append((tuple(val), ))
-                elif key == "modifiers" and val is None:
-                    # empty modifiers means no modifiers applied
-                    id_kwargs.append((tuple(), ))
-                elif isinstance(val, (list, tuple, set)):
-                    # this key has multiple choices
-                    # (ex. 250 meter, 500 meter, 1000 meter resolutions)
-                    id_kwargs.append(val)
-                elif isinstance(val, dict):
-                    id_kwargs.append(val.keys())
-                else:
-                    # this key only has one choice so make it a one
-                    # item iterable
-                    id_kwargs.append((val, ))
-            for id_params in itertools.product(*id_kwargs):
-                dsid = DatasetID(*id_params)
-                ids.append(dsid)
-
-                # create dataset infos specifically for this permutation
-                ds_info = dataset.copy()
+        if self.datasets:
+            for dataset in self.datasets.values():
+                # xarray doesn't like concatenating attributes that are lists
+                # https://github.com/pydata/xarray/issues/2060
+                if 'coordinates' in dataset and \
+                        isinstance(dataset['coordinates'], list):
+                    dataset['coordinates'] = tuple(dataset['coordinates'])
+                # Build each permutation/product of the dataset
+                id_kwargs = []
                 for key in DATASET_KEYS:
-                    if isinstance(ds_info.get(key), dict):
-                        ds_info.update(ds_info[key][getattr(dsid, key)])
-                    # this is important for wavelength which was converted
-                    # to a tuple
-                    ds_info[key] = getattr(dsid, key)
-                self.all_ids[dsid] = ds_info
+                    val = dataset.get(key)
+                    if key in ["wavelength", "modifiers"] and isinstance(val,
+                                                                         list):
+                        # special case: wavelength can be [min, nominal, max]
+                        # but is still considered 1 option
+                        # it also needs to be a tuple so it can be used in
+                        # a dictionary key (DatasetID)
+                        id_kwargs.append((tuple(val), ))
+                    elif key == "modifiers" and val is None:
+                        # empty modifiers means no modifiers applied
+                        id_kwargs.append((tuple(), ))
+                    elif isinstance(val, (list, tuple, set)):
+                        # this key has multiple choices
+                        # (ex. 250 meter, 500 meter, 1000 meter resolutions)
+                        id_kwargs.append(val)
+                    elif isinstance(val, dict):
+                        id_kwargs.append(val.keys())
+                    else:
+                        # this key only has one choice so make it a one
+                        # item iterable
+                        id_kwargs.append((val, ))
+                for id_params in itertools.product(*id_kwargs):
+                    dsid = DatasetID(*id_params)
+                    ids.append(dsid)
+
+                    # create dataset infos specifically for this permutation
+                    ds_info = dataset.copy()
+                    for key in DATASET_KEYS:
+                        if isinstance(ds_info.get(key), dict):
+                            ds_info.update(ds_info[key][getattr(dsid, key)])
+                        # this is important for wavelength which was converted
+                        # to a tuple
+                        ds_info[key] = getattr(dsid, key)
+                    self.all_ids[dsid] = ds_info
+        else:
+            logger.debug("Empty datasets in yaml reader %s", self.name)
 
         return ids
 
