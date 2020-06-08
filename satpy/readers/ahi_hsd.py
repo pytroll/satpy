@@ -432,7 +432,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             ("shift_amount_for_line_direction", "f4"),
         ])
         corrections = []
-        for i in range(ncorrs):
+        for _i in range(ncorrs):
             corrections.append(np.fromfile(fp_, dtype=dtype, count=1))
         fpos = fpos + int(header['block8']['blocklength'])
         self._check_fpos(fp_, fpos, 40, 'block8')
@@ -448,7 +448,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             ("observation_time", "f8"),
         ])
         lines_and_times = []
-        for i in range(numobstimes):
+        for _i in range(numobstimes):
             lines_and_times.append(np.fromfile(fp_,
                                                dtype=dtype,
                                                count=1))
@@ -467,7 +467,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         num_err_info_data = header["block10"][
             'number_of_error_info_data'][0]
         err_info_data = []
-        for i in range(num_err_info_data):
+        for _i in range(num_err_info_data):
             err_info_data.append(np.fromfile(fp_, dtype=dtype, count=1))
         header['error_information_data'] = err_info_data
         fpos = fpos + int(header['block10']['blocklength'])

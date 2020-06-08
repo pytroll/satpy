@@ -260,7 +260,7 @@ class TestGACLACFile(TestCase):
 
         # Without interpolation of coordinates
         fh.interpolate_coords = False
-        for name, exp_data in zip(['longitude', 'latitude'], [lons, lats]):
+        for name, _exp_data in zip(['longitude', 'latitude'], [lons, lats]):
             key = make_dsid(name=name)
             info = {'name': name, 'standard_name': 'my_standard_name'}
             res = fh.get_dataset(key=key, info=info)
