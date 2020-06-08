@@ -215,6 +215,16 @@ def test_datasetid():
     assert did.to_dict() == dict(name='cheese_shops', modifiers=tuple())
 
 
+def test_dataid_copy():
+    from satpy.dataset import DataID, default_id_keys_config as dikc
+    from copy import deepcopy
+
+    did = DataID(dikc, name="a", resolution=1000)
+    did2 = deepcopy(did)
+    assert did2 == did
+    assert did2.id_keys == did.id_keys
+
+
 def test_datasetquery():
     from satpy.dataset import DatasetQuery
 

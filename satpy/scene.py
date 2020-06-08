@@ -836,8 +836,11 @@ class Scene(MetadataObject):
             composite = compositor(prereq_datasets,
                                    optional_datasets=optional_datasets,
                                    **self.attrs)
-
-            cid = DataID(compositor.attrs.get('_id_keys', minimal_default_keys_config), **composite.attrs)
+            try:
+                cid = compositor.attrs['_satpy_id']
+            except KeyError:
+                cid = DataID(minimal_default_keys_config, **composite.attrs)
+                compositor.attrs['_satpy_id'] = cid
 
             self.datasets[cid] = composite
             # update the node with the computed DatasetID

@@ -502,8 +502,8 @@ class TestInlineComposites(unittest.TestCase):
         # Check that "fog" product has all its prerequisites defined
         keys = comps['visir'].keys()
         fog = [comps['visir'][dsid] for dsid in keys if "fog" == dsid.name][0]
-        self.assertEqual(fog.attrs['prerequisites'][0].name, '_fog_dep_0')
-        self.assertEqual(fog.attrs['prerequisites'][1].name, '_fog_dep_1')
+        self.assertEqual(fog.attrs['prerequisites'][0]['name'], '_fog_dep_0')
+        self.assertEqual(fog.attrs['prerequisites'][1]['name'], '_fog_dep_1')
         self.assertEqual(fog.attrs['prerequisites'][2], 10.8)
 
         # Check that the sub-composite dependencies use wavelengths

@@ -263,18 +263,26 @@ class DatasetDict(dict):
                 if new_name is None and d.get('wavelength') is None:
                     raise ValueError("One of 'name' or 'wavelength' attrs "
                                      "values should be set.")
-                id_keys = d.setdefault('_id_keys', minimal_default_keys_config)
-                d = d.copy()
+                try:
+                    id_keys = d['_satpy_id'].id_keys
+                except KeyError:
+                    try:
+                        id_keys = d['_satpy_id_keys']
+                    except KeyError:
+                        id_keys = minimal_default_keys_config
                 d['name'] = new_name
                 key = DataID(id_keys, **d)
                 if hasattr(value, 'attrs') and 'name' not in value.attrs:
                     value.attrs['name'] = new_name
 
         # update the 'value' with the information contained in the key
-
         if isinstance(d, dict):
             for field in key.keys():
                 d[field] = key.get(field)
+
+        if hasattr(value, 'attrs'):
+            if isinstance(key, DataID):
+                value.attrs['_satpy_id'] = key
 
         return super(DatasetDict, self).__setitem__(key, value)
 

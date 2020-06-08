@@ -227,8 +227,6 @@ class DependencyTree(Node):
         #               multiple times if more than one Node depends on them
         #               but they should all map to the same Node object.
         if self.contains(child.name):
-            if self._all_nodes[child.name] is not child:
-                import ipdb; ipdb.set_trace()
             assert self._all_nodes[child.name] is child
         if child is self.empty_node:
             # No need to store "empty" nodes
@@ -303,7 +301,7 @@ class DependencyTree(Node):
             moptions = moptions.copy()
             moptions.update(comp_id.to_dict())
             moptions['sensor'] = sensor_name
-            compositors[comp_id] = mloader(_id_keys=comp_id.id_keys, **moptions)
+            compositors[comp_id] = mloader(_satpy_id=comp_id, **moptions)
             return compositors[comp_id]
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
@@ -436,7 +434,10 @@ class DependencyTree(Node):
 
         # 2.1 get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
-        prereqs, unknowns = self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)
+        try:
+            prereqs, unknowns = self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)
+        except AssertionError:
+            self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)
         if unknowns:
             # Should we remove all of the unknown nodes that were found
             # if there is an unknown prerequisite are we in trouble?
