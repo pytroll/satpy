@@ -75,7 +75,7 @@ def add_group_aliases(scenes, groups):
         for group_id, member_names in groups.items():
             # Find out whether one of the datasets in this scene belongs
             # to this group
-            member_ids = [DatasetID.from_dict(scene[name].attrs)
+            member_ids = [scene[name].attrs['_satpy_id']
                           for name in member_names if name in scene]
 
             # Add an alias for the group it belongs to
@@ -553,7 +553,8 @@ class MultiScene(object):
             info_scenes.append(scenes[-1])
 
         available_ds = [first_scene.datasets.get(ds) for ds in first_scene.wishlist]
-        available_ds = [DatasetID.from_dict(ds.attrs) for ds in available_ds if ds is not None]
+        available_ds = [ds.attrs['_satpy_id'] for ds in available_ds if ds is not None]
+
         dataset_ids = datasets or available_ds
 
         if not dataset_ids:
