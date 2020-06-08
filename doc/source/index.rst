@@ -245,6 +245,10 @@ the base Satpy installation.
       - Beta
     * - VII Level 2 in NetCDF4 format
       - `vii_l2_nc`
+      - Beta
+    * - VII Level 1b in NetCDF4 format
+      - `vii_l1b_nc`
+      - Beta
     * - MTG FCI Level 2 in NetCDF4 format
       - `fci_l2_nc`
       - Beta
