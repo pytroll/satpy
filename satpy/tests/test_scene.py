@@ -578,7 +578,8 @@ class TestScene(unittest.TestCase):
         from xarray import DataArray
         import numpy as np
         scene = Scene()
-        scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3), '_satpy_id_keys': default_id_keys_config})
+        scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3),
+                                                    '_satpy_id_keys': default_id_keys_config})
         self.assertTrue('1' in scene)
         self.assertTrue(0.15 in scene)
         self.assertFalse('2' in scene)
@@ -590,9 +591,12 @@ class TestScene(unittest.TestCase):
         from xarray import DataArray
         import numpy as np
         scene = Scene()
-        scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3), '_satpy_id_keys': default_id_keys_config})
-        scene["2"] = DataArray(np.arange(5), attrs={'wavelength': (0.4, 0.5, 0.6), '_satpy_id_keys': default_id_keys_config})
-        scene["3"] = DataArray(np.arange(5), attrs={'wavelength': (0.7, 0.8, 0.9), '_satpy_id_keys': default_id_keys_config})
+        scene["1"] = DataArray(np.arange(5), attrs={'wavelength': (0.1, 0.2, 0.3),
+                                                    '_satpy_id_keys': default_id_keys_config})
+        scene["2"] = DataArray(np.arange(5), attrs={'wavelength': (0.4, 0.5, 0.6),
+                                                    '_satpy_id_keys': default_id_keys_config})
+        scene["3"] = DataArray(np.arange(5), attrs={'wavelength': (0.7, 0.8, 0.9),
+                                                    '_satpy_id_keys': default_id_keys_config})
         del scene['1']
         del scene['3']
         del scene[0.45]

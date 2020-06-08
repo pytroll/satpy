@@ -170,6 +170,7 @@ class TestMultiScene(unittest.TestCase):
             scn_mock.assert_has_calls(calls)
 
     def test_group(self):
+        """Test group."""
         from satpy import Scene, MultiScene
 
         ds1 = _create_test_dataset(name='ds1')

@@ -513,6 +513,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
         self.assertTrue(np.all(msec[1:-1] == np.arange(len(tline) - 2)))
 
     def test_get_header(self):
+        """Test getting the header."""
         # Make sure that the actual satellite position is only included if available
         self.reader.mda['orbital_parameters'] = {}
         self.reader.prologue_.get_satpos.return_value = 1, 2, 3

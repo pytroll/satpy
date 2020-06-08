@@ -61,8 +61,10 @@ def make_dsid(**items):
 
 
 class GRIBFileHandler(BaseFileHandler):
+    """File handler for grib files."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         super(GRIBFileHandler, self).__init__(filename, filename_info, filetype_info)
 
         self._msg_datasets = {}
@@ -138,7 +140,7 @@ class GRIBFileHandler(BaseFileHandler):
         return self._end_time
 
     def available_datasets(self, configured_datasets=None):
-        """Automatically determine datasets provided by this file"""
+        """Automatically determine datasets provided by this file."""
         # previously configured or provided datasets
         # we can't provide any additional information
         for is_avail, ds_info in (configured_datasets or []):
@@ -237,6 +239,7 @@ class GRIBFileHandler(BaseFileHandler):
             raise RuntimeError("Unknown GRIB projection information")
 
     def get_metadata(self, msg, ds_info):
+        """Get metadata."""
         model_time = self._convert_datetime(msg, 'dataDate',
                                             'dataTime')
         start_time = self._convert_datetime(msg, 'validityDate',

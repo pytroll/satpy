@@ -592,7 +592,6 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
-
         # Common parameters for both HRV and other channels
         nlines = int(self.mda['number_of_lines'])
         loff = np.float32(self.mda['loff'])

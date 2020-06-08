@@ -34,6 +34,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
     _ncols = 40
 
     def __init__(self, *args, auto_maskandscale, **kwargs):
+        """Init the file handler."""
         # make sure that CLAAS2 reader asks NetCDF4FileHandler for having
         # auto_maskandscale enabled
         assert auto_maskandscale
@@ -128,7 +129,6 @@ def fake_handler():
 
 def test_file_pattern(reader):
     """Test file pattern matching."""
-
     filenames = [
             "CTXin20040120091500305SVMSG01MD.nc",
             "CTXin20040120093000305SVMSG01MD.nc",

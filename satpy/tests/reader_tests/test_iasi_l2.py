@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Unit tests for IASI L2 reader"""
+"""Unit tests for IASI L2 reader."""
 
 import os
 import unittest
@@ -113,7 +113,7 @@ TEST_DATA = {
 
 
 def save_test_data(path):
-    """Save the test to the indicated directory"""
+    """Save the test to the indicated directory."""
     import h5py
     with h5py.File(os.path.join(path, FNAME), 'w') as fid:
         # Create groups
@@ -153,7 +153,7 @@ class TestIasiL2(unittest.TestCase):
         self.reader = IASIL2HDF5(self.fname, self.fname_info, self.ftype_info)
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             import shutil
             shutil.rmtree(self.base_dir, ignore_errors=True)
@@ -161,7 +161,7 @@ class TestIasiL2(unittest.TestCase):
             pass
 
     def test_scene(self):
-        """Test scene creation"""
+        """Test scene creation."""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
         scn = Scene(reader='iasi_l2', filenames=[fname])
@@ -171,14 +171,14 @@ class TestIasiL2(unittest.TestCase):
         self.assertTrue('iasi' in scn.attrs['sensor'])
 
     def test_scene_load_available_datasets(self):
-        """Test that all datasets are available"""
+        """Test that all datasets are available."""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
         scn = Scene(reader='iasi_l2', filenames=[fname])
         scn.load(scn.available_dataset_names())
 
     def test_scene_load_pressure(self):
-        """Test loading pressure data"""
+        """Test loading pressure data."""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
         scn = Scene(reader='iasi_l2', filenames=[fname])
@@ -187,7 +187,7 @@ class TestIasiL2(unittest.TestCase):
         self.check_pressure(pres, scn.attrs)
 
     def test_scene_load_emissivity(self):
-        """Test loading emissivity data"""
+        """Test loading emissivity data."""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
         scn = Scene(reader='iasi_l2', filenames=[fname])
@@ -196,7 +196,7 @@ class TestIasiL2(unittest.TestCase):
         self.check_emissivity(emis)
 
     def test_scene_load_sensing_times(self):
-        """Test loading sensing times"""
+        """Test loading sensing times."""
         from satpy import Scene
         fname = os.path.join(self.base_dir, FNAME)
         scn = Scene(reader='iasi_l2', filenames=[fname])
@@ -205,7 +205,7 @@ class TestIasiL2(unittest.TestCase):
         self.check_sensing_times(times)
 
     def test_init(self):
-        """Test reader initialization"""
+        """Test reader initialization."""
         self.assertEqual(self.reader.filename, self.fname)
         self.assertEqual(self.reader.finfo, self.fname_info)
         self.assertTrue(self.reader.lons is None)
@@ -214,13 +214,13 @@ class TestIasiL2(unittest.TestCase):
         self.assertEqual(self.reader.mda['sensor'], 'iasi')
 
     def test_time_properties(self):
-        """Test time properties"""
+        """Test time properties."""
         import datetime as dt
         self.assertTrue(isinstance(self.reader.start_time, dt.datetime))
         self.assertTrue(isinstance(self.reader.end_time, dt.datetime))
 
     def test_get_dataset(self):
-        """Test get_dataset() for different datasets"""
+        """Test get_dataset() for different datasets."""
         from satpy.tests.utils import make_dsid
         info = {'eggs': 'spam'}
         key = make_dsid(name='pressure')
@@ -236,7 +236,10 @@ class TestIasiL2(unittest.TestCase):
         self.assertEqual(data.shape, (NUM_SCANLINES, SCAN_WIDTH))
 
     def check_pressure(self, pres, attrs=None):
-        """Helper method for testing reading pressure dataset"""
+        """Test reading pressure dataset.
+
+        Helper function.
+        """
         self.assertTrue(np.all(pres == 0.0))
         self.assertEqual(pres.x.size, SCAN_WIDTH)
         self.assertEqual(pres.y.size, NUM_SCANLINES)
@@ -248,14 +251,20 @@ class TestIasiL2(unittest.TestCase):
         self.assertTrue('units' in pres.attrs)
 
     def check_emissivity(self, emis):
-        """Helper method for testing reading emissivity dataset."""
+        """Test reading emissivity dataset.
+
+        Helper function.
+        """
         self.assertTrue(np.all(emis == 0.0))
         self.assertEqual(emis.x.size, SCAN_WIDTH)
         self.assertEqual(emis.y.size, NUM_SCANLINES)
         self.assertTrue('emissivity_wavenumbers' in emis.attrs)
 
     def check_sensing_times(self, times):
-        """Helper method for testing reading sensing times"""
+        """Test reading sensing times.
+
+        Helper function.
+        """
         # Times should be equal in blocks of four, but not beyond, so
         # there should be SCAN_WIDTH/4 different values
         for i in range(int(SCAN_WIDTH / 4)):
@@ -263,7 +272,7 @@ class TestIasiL2(unittest.TestCase):
         self.assertEqual(np.unique(times[0, :]).size, SCAN_WIDTH / 4)
 
     def test_read_dataset(self):
-        """Test read_dataset() function"""
+        """Test read_dataset() function."""
         import h5py
         from satpy.readers.iasi_l2 import read_dataset
         from satpy.tests.utils import make_dsid
@@ -280,7 +289,7 @@ class TestIasiL2(unittest.TestCase):
             self.assertEqual(len(data.attrs), 0)
 
     def test_read_geo(self):
-        """Test read_geo() function"""
+        """Test read_geo() function."""
         import h5py
         from satpy.readers.iasi_l2 import read_geo
         from satpy.tests.utils import make_dsid
@@ -293,7 +302,7 @@ class TestIasiL2(unittest.TestCase):
             self.assertEqual(data.shape, (NUM_SCANLINES, SCAN_WIDTH))
 
     def test_form_datetimes(self):
-        """Test _form_datetimes() function"""
+        """Test _form_datetimes() function."""
         from satpy.readers.iasi_l2 import _form_datetimes
         days = TEST_DATA['L1C']['SensingTime_day']['data']
         msecs = TEST_DATA['L1C']['SensingTime_msec']['data']

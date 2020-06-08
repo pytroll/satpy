@@ -24,27 +24,11 @@ import numpy as np
 import pytest
 
 
-class TestDatasetID(unittest.TestCase):
-    """Test DatasetID object creation and other methods."""
-
-    # def test_make_dsid_class(self):
-    #     """Test making a new DatasetID class."""
-    #     from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
-    #     types = {'wavelength': WavelengthRange,
-    #              'modifiers': ModifierTuple}
-    #     klass = make_dsid_class(types, name='', wavelength=None, modifiers=ModifierTuple())
-    #     dsid = klass('hej', (1., 2., 3.))
-    #     klass2 = make_dsid_class(name='', polarization='')
-    #     dsid2 = klass2('hej')
-    #     assert(dsid == dsid2)
-
-    #     klass3 = make_dsid_class(types, name='', wavelength=None, view='nadir')
-    #     dsid3 = klass3('hej', 2.)
-    #     assert(dsid == dsid3)
-    #     assert(hash(dsid))
+class TestDataID(unittest.TestCase):
+    """Test DataID object creation and other methods."""
 
     def test_basic_init(self):
-        """Test basic ways of creating a DatasetID."""
+        """Test basic ways of creating a DataID."""
         from satpy.dataset import DataID, default_id_keys_config as dikc, minimal_default_keys_config as mdkc
 
         did = DataID(dikc, name="a")
@@ -61,7 +45,6 @@ class TestDatasetID(unittest.TestCase):
             DataID(dikc, wavelength=0.86)
         did = DataID(mdkc, name='comp24', resolution=500)
         assert did['resolution'] == 500
-
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
@@ -157,7 +140,8 @@ class TestCombineMetadata(unittest.TestCase):
         assert "quality" not in combine_metadata(*dts6)
 
 
-def test_datasetid():
+def test_dataid():
+    """Test the DataID object."""
     from satpy.dataset import DataID, WavelengthRange, ModifierTuple, ValueList
 
     default_id_keys_config = {'name': {
@@ -216,6 +200,7 @@ def test_datasetid():
 
 
 def test_dataid_copy():
+    """Test copying a DataID."""
     from satpy.dataset import DataID, default_id_keys_config as dikc
     from copy import deepcopy
 
@@ -226,12 +211,14 @@ def test_dataid_copy():
 
 
 def test_datasetquery():
+    """Test DatasetQuery objects."""
     from satpy.dataset import DatasetQuery
 
     DatasetQuery(name='cheese_shops')
 
 
 def test_id_query_interactions():
+    """Test interactions between DataIDs and DatasetQuery's."""
     from satpy.dataset import DatasetQuery, DataID, WavelengthRange, ModifierTuple
 
     default_id_keys_config = {'name': {
@@ -294,7 +281,9 @@ def test_id_query_interactions():
     assert list(dsids) == [did, did2]
     assert distances[0] < distances[1]
 
+
 def test_wavelength_range():
+    """Test the wavelength range object."""
     from satpy.dataset import WavelengthRange
 
     wr = WavelengthRange(1, 2, 3)

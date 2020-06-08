@@ -24,7 +24,7 @@ import xarray as xr
 import pandas as pd
 from satpy.scene import Scene
 from satpy.writers import get_enhanced_image
-from satpy.dataset import combine_metadata, DatasetID
+from satpy.dataset import combine_metadata
 from threading import Thread
 
 try:

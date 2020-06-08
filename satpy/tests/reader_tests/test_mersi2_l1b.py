@@ -31,6 +31,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
     def make_test_data(self, dims):
+        """Make test data."""
         return xr.DataArray(da.from_array(np.ones([dim for dim in dims], dtype=np.float32) * 10, [dim for dim in dims]))
 
     def _get_calibration(self, num_scans, rows_per_scan):
@@ -236,6 +237,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 class TestMERSI2L1BReader(unittest.TestCase):
     """Test MERSI2 L1B Reader."""
+
     yaml_file = "mersi2_l1b.yaml"
 
     def setUp(self):

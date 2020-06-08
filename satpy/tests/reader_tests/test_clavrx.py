@@ -39,9 +39,10 @@ DEFAULT_LON_DATA = np.repeat([DEFAULT_LON_DATA], DEFAULT_FILE_SHAPE[0], axis=0)
 
 
 class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
-    """Swap-in HDF4 File Handler"""
+    """Swap-in HDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {
             '/attr/platform': 'SNPP',
             '/attr/sensor': 'VIIRS',
@@ -106,10 +107,11 @@ class FakeHDF4FileHandlerPolar(FakeHDF4FileHandler):
 
 class TestCLAVRXReaderPolar(unittest.TestCase):
     """Test CLAVR-X Reader with Polar files."""
+
     yaml_file = "clavrx.yaml"
 
     def setUp(self):
-        """Wrap HDF4 file handler with our own fake handler"""
+        """Wrap HDF4 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.clavrx import CLAVRXFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -119,7 +121,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -201,7 +203,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         self.assertEqual(new_ds_infos[8][1]['resolution'], 742)
 
     def test_load_all(self):
-        """Test loading all test datasets"""
+        """Test loading all test datasets."""
         from satpy.readers import load_reader
         import xarray as xr
         r = load_reader(self.reader_configs)
@@ -221,9 +223,10 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
 
 
 class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
-    """Swap-in HDF4 File Handler"""
+    """Swap-in HDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         file_content = {
             '/attr/platform': 'HIM8',
             '/attr/sensor': 'AHI',
@@ -296,10 +299,11 @@ class FakeHDF4FileHandlerGeo(FakeHDF4FileHandler):
 
 class TestCLAVRXReaderGeo(unittest.TestCase):
     """Test CLAVR-X Reader with Geo files."""
+
     yaml_file = "clavrx.yaml"
 
     def setUp(self):
-        """Wrap HDF4 file handler with our own fake handler"""
+        """Wrap HDF4 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.clavrx import CLAVRXFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -309,7 +313,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):

@@ -33,6 +33,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
     def make_test_data(self, cwl, ch, prefix, dims, file_type):
+        """Make test data."""
         if prefix == 'CAL':
             data = xr.DataArray(
                                 da.from_array((np.arange(10.) + 1.) / 10., [dims[0] * dims[1]]),
@@ -126,7 +127,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         chs = [2]
         cwls = [0.65]
         data = {}
-        for index, cwl in enumerate(cwls):
+        for index, _cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
                                                                            [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
@@ -142,7 +143,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         chs = np.linspace(1, 3, 3)
         cwls = [0.47, 0.65, 0.83]
         data = {}
-        for index, cwl in enumerate(cwls):
+        for index, _cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
                                                                            [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
@@ -158,7 +159,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         chs = np.linspace(1, 7, 7)
         cwls = [0.47, 0.65, 0.83, 1.37, 1.61, 2.22, 3.72]
         data = {}
-        for index, cwl in enumerate(cwls):
+        for index, _cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
                                                                            [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
@@ -174,7 +175,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
         chs = np.linspace(1, 14, 14)
         cwls = [0.47, 0.65, 0.83, 1.37, 1.61, 2.22, 3.72, 3.72, 6.25, 7.10, 8.50, 10.8, 12, 13.5]
         data = {}
-        for index, cwl in enumerate(cwls):
+        for index, _cwl in enumerate(cwls):
             data['CALChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'CAL',
                                                                            [dim_0, dim_1], file_type)
             data['NOMChannel' + '%02d' % chs[index]] = self.make_test_data(cwls[index], chs[index], 'NOM',
@@ -215,6 +216,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 class Test_HDF_AGRI_L1_cal(unittest.TestCase):
     """Test VIRR L1B Reader."""
+
     yaml_file = "agri_l1.yaml"
 
     def setUp(self):
@@ -404,7 +406,6 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
                 self.assertEqual(2, len(res))
             else:
                 self.assertEqual(3, len(res))
-
 
         res = reader.load(band_names)
         self.assertEqual(7, len(res))
