@@ -1,0 +1,72 @@
+reader:
+    description: TROPOMI Level 2 NetCDF reader
+    name: tropomi_l2
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [tropomi]
+
+file_types:
+    tropomi_l2:
+        # Ex: S5P_OFFL_L2__NO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc
+        file_reader: !!python/name:satpy.readers.tropomi_l2.TROPOMIL2FileHandler
+        file_patterns:
+            - '{platform_shortname:3s}_{data_type:4s}_{level:3s}_{product:_<6s}_{start_time:%Y%m%dT%H%M%S}_{end_time:%Y%m%dT%H%M%S}_{orbit:5d}_{collection:2d}_{processor_version:6d}_{creation_time:%Y%m%dT%H%M%S}.nc'
+
+datasets:
+    latitude:
+        name: 'latitude'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/latitude'
+        coordinates: [longitude, latitude]
+        standard_name: latitude
+    longitude:
+        name: 'longitude'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/longitude'
+        coordinates: [longitude, latitude]
+        standard_name: longitude
+    latitude_bounds:
+        name: 'latitude_bounds'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/latitude_bounds'
+        standard_name: latitude_bounds
+    longitude_bounds:
+        name: 'longitude_bounds'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/longitude_bounds'
+        standard_name: longitude_bounds
+    assembled_lat_bounds:
+        name: 'assembled_lat_bounds'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/latitude_bounds'
+        standard_name: assembled_latitude_bounds
+    assembled_lon_bounds:
+        name: 'assembled_lon_bounds'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/SUPPORT_DATA/GEOLOCATIONS/longitude_bounds'
+        standard_name: assembled_longitude_bounds
+    offset_time:
+        name: 'offset_time'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/delta_time'
+        standard_name: offset_time
+    ref_time:
+        name: 'ref_time'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/time'
+        standard_name: ref_time
+    tm5_constant_a:
+        name: 'tm5_constant_a'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/tm5_constant_a'
+        standard_name: tm5_constant_a
+    tm5_constant_b:
+        name: 'tm5_constant_b'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/tm5_constant_b'
+        standard_name: tm5_constant_b
+    time_utc:
+        name: 'time_utc'
+        file_type: tropomi_l2
+        file_key: 'PRODUCT/time_utc'
+        standard_name: time_utc
+

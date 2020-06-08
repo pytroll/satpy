@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2011, 2012, 2013, 2014, 2015.
-#
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
+# Copyright (c) 2011-2015 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -20,9 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to OMPS EDR format
-
-"""
+"""Interface to OMPS EDR format."""
 from datetime import datetime, timedelta
 import numpy as np
 import logging
@@ -35,28 +28,36 @@ LOG = logging.getLogger(__name__)
 
 
 class EDRFileHandler(HDF5FileHandler):
+    """EDR file handler."""
+
     _fill_name = "_FillValue"
 
     @property
     def start_orbit_number(self):
+        """Get the start orbit number."""
         return self.filename_info['orbit']
 
     @property
     def end_orbit_number(self):
+        """Get the end orbit number."""
         return self.filename_info['orbit']
 
     @property
     def platform_name(self):
+        """Get the platform name."""
         return self.filename_info['platform_shortname']
 
     @property
     def sensor_name(self):
+        """Get the sensor name."""
         return self.filename_info['instrument_shortname']
 
     def get_shape(self, ds_id, ds_info):
+        """Get the shape."""
         return self[ds_info['file_key'] + '/shape']
 
     def adjust_scaling_factors(self, factors, file_units, output_units):
+        """Adjust scaling factors."""
         if factors is None or factors[0] is None:
             factors = [1, 0]
         if file_units == output_units:
@@ -65,8 +66,10 @@ class EDRFileHandler(HDF5FileHandler):
         return np.array(factors)
 
     def get_metadata(self, dataset_id, ds_info):
+        """Get the metadata."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
-        info = getattr(self[var_path], 'attrs', {})
+        info = getattr(self[var_path], 'attrs', {}).copy()
+        info.pop('DIMENSION_LIST', None)
         info.update(ds_info)
 
         file_units = ds_info.get('file_units')
@@ -94,12 +97,16 @@ class EDRFileHandler(HDF5FileHandler):
         return info
 
     def get_dataset(self, dataset_id, ds_info):
+        """Get the dataset."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         metadata = self.get_metadata(dataset_id, ds_info)
         valid_min, valid_max = self.get(var_path + '/attr/valid_range',
                                         self.get(var_path + '/attr/ValidRange', (None, None)))
         if valid_min is None or valid_max is None:
-            raise KeyError("File variable '{}' has no valid range attribute".format(var_path))
+            valid_min = self.get(var_path + '/attr/valid_min', None)
+            valid_max = self.get(var_path + '/attr/valid_max', None)
+            if valid_min is None or valid_max is None:
+                raise KeyError("File variable '{}' has no valid range attribute".format(var_path))
         fill_name = var_path + '/attr/{}'.format(self._fill_name)
         if fill_name in self:
             fill_value = self[fill_name]
@@ -127,8 +134,15 @@ class EDRFileHandler(HDF5FileHandler):
             data = data * factors[0] + factors[1]
 
         data.attrs.update(metadata)
+        if 'DIMENSION_LIST' in data.attrs:
+            data.attrs.pop('DIMENSION_LIST')
+            dimensions = self.get_reference(var_path, 'DIMENSION_LIST')
+            for dim, coord in zip(data.dims, dimensions):
+                data.coords[dim] = coord[0]
         return data
 
 
 class EDREOSFileHandler(EDRFileHandler):
+    """EDR EOS file handler."""
+
     _fill_name = "MissingValue"

@@ -1,30 +1,23 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2018.
-
-# Author(s):
-
-#   Trygve Aspenes <trygveas@met.no>
-
+# Copyright (c) 2018, 2019 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""MITIFF writer objects for creating MITIFF files from `Dataset` objects.
-
-"""
+"""MITIFF writer objects for creating MITIFF files from `Dataset` objects."""
 
 import logging
-
 import numpy as np
 
 from satpy.writers import ImageWriter
@@ -42,14 +35,12 @@ KELVIN_TO_CELSIUS = -273.15
 
 
 class MITIFFWriter(ImageWriter):
+    """Writer to produce MITIFF image files."""
 
-    def __init__(self, tags=None, **kwargs):
-        ImageWriter.__init__(self,
-                             default_config_filename="writers/mitiff.yaml",
-                             **kwargs)
-
-        self.tags = self.info.get("tags",
-                                  None) if tags is None else tags
+    def __init__(self, name=None, tags=None, **kwargs):
+        """Initialize reader with tag and other configuration information."""
+        ImageWriter.__init__(self, name=name, default_config_filename="writers/mitiff.yaml", **kwargs)
+        self.tags = self.info.get("tags", None) if tags is None else tags
         if self.tags is None:
             self.tags = {}
         elif not isinstance(self.tags, dict):
@@ -59,17 +50,22 @@ class MITIFFWriter(ImageWriter):
         self.mitiff_config = {}
         self.translate_channel_name = {}
         self.channel_order = {}
+        self.palette = False
+        self.sensor = None
 
     def save_image(self):
+        """Save dataset as an image array."""
         raise NotImplementedError("save_image mitiff is not implemented.")
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
-                     compute=True, base_dir=None, **kwargs):
+                     compute=True, **kwargs):
+        """Save single dataset as mitiff file."""
         LOG.debug("Starting in mitiff save_dataset ... ")
 
         def _delayed_create(create_opts, dataset):
-            LOG.debug("create_opts: %s", create_opts)
             try:
+                if 'palette' in kwargs:
+                    self.palette = kwargs['palette']
                 if 'platform_name' not in kwargs:
                     kwargs['platform_name'] = dataset.attrs['platform_name']
                 if 'name' not in kwargs:
@@ -79,56 +75,54 @@ class MITIFFWriter(ImageWriter):
                 if 'sensor' not in kwargs:
                     kwargs['sensor'] = dataset.attrs['sensor']
 
+                # Sensor attrs could be set. MITIFFs needing to handle sensor can only have one sensor
+                # Assume the first value of set as the sensor.
+                if isinstance(kwargs['sensor'], set):
+                    LOG.warning('Sensor is set, will use the first value: %s', kwargs['sensor'])
+                    kwargs['sensor'] = (list(kwargs['sensor']))[0]
+
                 try:
                     self.mitiff_config[kwargs['sensor']] = dataset.attrs['metadata_requirements']['config']
                     self.channel_order[kwargs['sensor']] = dataset.attrs['metadata_requirements']['order']
                     self.file_pattern = dataset.attrs['metadata_requirements']['file_pattern']
-                except KeyError as ke:
-                    LOG.warning("Something went wrong with assigning to various dicts: %s", ke)
+                except KeyError:
+                    # For some mitiff products this info is needed, for others not.
+                    # If needed you should know how to fix this
+                    pass
 
                 try:
                     self.translate_channel_name[kwargs['sensor']] = \
                         dataset.attrs['metadata_requirements']['translate']
-                except KeyError as ke:
-                    LOG.warning("Something went wrong with assigning to translate: %s", ke)
+                except KeyError:
+                    # For some mitiff products this info is needed, for others not.
+                    # If needed you should know how to fix this
+                    pass
 
                 image_description = self._make_image_description(dataset, **kwargs)
-                LOG.debug("File pattern %s", self.file_pattern)
-                self.filename_parser = self.create_filename_parser(create_opts)
-                gen_filename = filename or self.get_filename(**kwargs)
+                gen_filename = filename or self.get_filename(**dataset.attrs)
                 LOG.info("Saving mitiff to: %s ...", gen_filename)
                 self._save_datasets_as_mitiff(dataset, image_description,
                                               gen_filename, **kwargs)
-            except:
+            except (KeyError, ValueError, RuntimeError):
                 raise
 
-        save_dir = "./"
-        if 'mitiff_dir' in kwargs:
-            save_dir = kwargs['mitiff_dir']
-        elif 'base_dir' in kwargs:
-            save_dir = kwargs['base_dir']
-        elif base_dir:
-            save_dir = base_dir
-        else:
-            LOG.warning("Unset save_dir. Use: %s", save_dir)
-        create_opts = (save_dir)
+        create_opts = ()
         delayed = dask.delayed(_delayed_create)(create_opts, dataset)
 
         if compute:
             return delayed.compute()
         return delayed
 
-    def save_datasets(self, datasets, compute=True, **kwargs):
-        """Save all datasets to one or more files.
-        """
+    def save_datasets(self, datasets, filename=None, fill_value=None,
+                      compute=True, **kwargs):
+        """Save all datasets to one or more files."""
         LOG.debug("Starting in mitiff save_datasets ... ")
-        LOG.debug("kwargs: %s", kwargs)
 
         def _delayed_create(create_opts, datasets):
             LOG.debug("create_opts: %s", create_opts)
             try:
                 if 'platform_name' not in kwargs:
-                    kwargs['platform_name'] = datasets.attrs['platform_name']
+                    kwargs['platform_name'] = datasets[0].attrs['platform_name']
                 if 'name' not in kwargs:
                     kwargs['name'] = datasets[0].attrs['name']
                 if 'start_time' not in kwargs:
@@ -136,13 +130,22 @@ class MITIFFWriter(ImageWriter):
                 if 'sensor' not in kwargs:
                     kwargs['sensor'] = datasets[0].attrs['sensor']
 
+                # Sensor attrs could be set. MITIFFs needing to handle sensor can only have one sensor
+                # Assume the first value of set as the sensor.
+                if isinstance(kwargs['sensor'], set):
+                    LOG.warning('Sensor is set, will use the first value: %s', kwargs['sensor'])
+                    kwargs['sensor'] = (list(kwargs['sensor']))[0]
+
                 try:
-                    self.mitiff_config[kwargs['sensor']] = datasets['metadata_requirements']['config']
-                    self.translate_channel_name[kwargs['sensor']] = datasets['metadata_requirements']['translate']
-                    self.channel_order[kwargs['sensor']] = datasets['metadata_requirements']['order']
-                    self.file_pattern = datasets['metadata_requirements']['file_pattern']
+                    self.mitiff_config[kwargs['sensor']] = datasets[0].attrs['metadata_requirements']['config']
+                    translate = datasets[0].attrs['metadata_requirements']['translate']
+                    self.translate_channel_name[kwargs['sensor']] = translate
+                    self.channel_order[kwargs['sensor']] = datasets[0].attrs['metadata_requirements']['order']
+                    self.file_pattern = datasets[0].attrs['metadata_requirements']['file_pattern']
                 except KeyError:
-                    LOG.warning("metadata requirements not given. This is ok for predefined composites in satpy")
+                    # For some mitiff products this info is needed, for others not.
+                    # If needed you should know how to fix this
+                    pass
 
                 image_description = self._make_image_description(datasets, **kwargs)
                 LOG.debug("File pattern %s", self.file_pattern)
@@ -150,12 +153,10 @@ class MITIFFWriter(ImageWriter):
                     kwargs['start_time'] = datasets[0].attrs['start_time']
                 else:
                     kwargs['start_time'] = datasets.attrs['start_time']
-                self.filename_parser = \
-                    self.create_filename_parser(kwargs['mitiff_dir'])
-                LOG.info("Saving mitiff to: %s ...", self.get_filename(**kwargs))
-                gen_filename = self.get_filename(**kwargs)
+                gen_filename = filename or self.get_filename(**kwargs)
+                LOG.info("Saving mitiff to: %s ...", gen_filename)
                 self._save_datasets_as_mitiff(datasets, image_description, gen_filename, **kwargs)
-            except:
+            except (KeyError, ValueError, RuntimeError):
                 raise
 
         create_opts = ()
@@ -175,11 +176,16 @@ class MITIFFWriter(ImageWriter):
                             channels.append(
                                 ds.attrs['prerequisites'][ch][0])
                             break
+            elif self.palette:
+                if 'palette_channel_name' in kwargs:
+                    channels.append(kwargs['palette_channel_name'].upper())
+                else:
+                    LOG.error("Is palette but can not find palette_channel_name to name the dataset")
             else:
-                for ch, ds in enumerate(datasets):
+                for ch in range(len(datasets)):
                     channels.append(ch + 1)
         except KeyError:
-            for ch, ds in enumerate(datasets):
+            for ch in range(len(datasets)):
                 channels.append(ch + 1)
         return channels
 
@@ -218,12 +224,19 @@ class MITIFFWriter(ImageWriter):
         proj4_string = " Proj string: "
 
         if isinstance(datasets, list):
-            proj4_string += first_dataset.attrs['area'].proj4_string
+            area = first_dataset.attrs['area']
         else:
-            proj4_string += datasets.attrs['area'].proj4_string
+            area = datasets.attrs['area']
+        # Use pyproj's CRS object to get a valid EPSG code if possible
+        # only in newer pyresample versions with pyproj 2.0+ installed
+        if hasattr(area, 'crs') and area.crs.to_epsg() is not None:
+            proj4_string += "+init=EPSG:{}".format(area.crs.to_epsg())
+        else:
+            proj4_string += area.proj_str
 
         x_0 = 0
         y_0 = 0
+        # FUTURE: Use pyproj 2.0+ to convert EPSG to PROJ4 if possible
         if 'EPSG:32631' in proj4_string:
             proj4_string = proj4_string.replace("+init=EPSG:32631",
                                                 "+proj=etmerc +lat_0=0 +lon_0=3 +k=0.9996 +ellps=WGS84 +datum=WGS84")
@@ -252,8 +265,8 @@ class MITIFFWriter(ImageWriter):
             if '+a=6378137.0 +b=6356752.31414' in proj4_string:
                 proj4_string = proj4_string.replace("+a=6378137.0 +b=6356752.31414",
                                                     "+ellps=WGS84")
-            if '+units=m' in proj4_string:
-                proj4_string = proj4_string.replace("+units=m", "+units=km")
+        if '+units=m' in proj4_string:
+            proj4_string = proj4_string.replace("+units=m", "+units=km")
 
         if not any(datum in proj4_string for datum in ['datum', 'towgs84']):
             proj4_string += ' +towgs84=0,0,0'
@@ -261,23 +274,36 @@ class MITIFFWriter(ImageWriter):
         if 'units' not in proj4_string:
             proj4_string += ' +units=km'
 
-        if isinstance(datasets, list):
+        if 'x_0' not in proj4_string and isinstance(datasets, list):
             proj4_string += ' +x_0=%.6f' % (
                 (-first_dataset.attrs['area'].area_extent[0] +
                  first_dataset.attrs['area'].pixel_size_x) + x_0)
             proj4_string += ' +y_0=%.6f' % (
                 (-first_dataset.attrs['area'].area_extent[1] +
                  first_dataset.attrs['area'].pixel_size_y) + y_0)
-        else:
+        elif 'x_0' not in proj4_string:
             proj4_string += ' +x_0=%.6f' % (
                 (-datasets.attrs['area'].area_extent[0] +
                  datasets.attrs['area'].pixel_size_x) + x_0)
             proj4_string += ' +y_0=%.6f' % (
                 (-datasets.attrs['area'].area_extent[1] +
                  datasets.attrs['area'].pixel_size_y) + y_0)
-
-        proj4_string += '\n'
+        elif '+x_0=0' in proj4_string and '+y_0=0' in proj4_string and isinstance(datasets, list):
+            proj4_string = proj4_string.replace("+x_0=0", '+x_0=%.6f' % (
+                (-first_dataset.attrs['area'].area_extent[0] +
+                 first_dataset.attrs['area'].pixel_size_x) + x_0))
+            proj4_string = proj4_string.replace("+y_0=0", '+y_0=%.6f' % (
+                (-first_dataset.attrs['area'].area_extent[1] +
+                 first_dataset.attrs['area'].pixel_size_y) + y_0))
+        elif '+x_0=0' in proj4_string and '+y_0=0' in proj4_string:
+            proj4_string = proj4_string.replace("+x_0=0", '+x_0=%.6f' % (
+                (-datasets.attrs['area'].area_extent[0] +
+                 datasets.attrs['area'].pixel_size_x) + x_0))
+            proj4_string = proj4_string.replace("+y_0=0", '+y_0=%.6f' % (
+                (-datasets.attrs['area'].area_extent[1] +
+                 datasets.attrs['area'].pixel_size_y) + y_0))
         LOG.debug("proj4_string: %s", proj4_string)
+        proj4_string += '\n'
 
         return proj4_string
 
@@ -326,8 +352,15 @@ class MITIFFWriter(ImageWriter):
         _table_calibration = ""
         found_calibration = False
         skip_calibration = False
-        for i, ds in enumerate(datasets):
-            if isinstance(ds.attrs['prerequisites'][i], DatasetID):
+        ds_list = datasets
+        if not isinstance(datasets, list) and 'bands' not in datasets.sizes:
+            ds_list = [datasets]
+
+        for i, ds in enumerate(ds_list):
+            if ('prerequisites' in ds.attrs and
+                isinstance(ds.attrs['prerequisites'], list) and
+                len(ds.attrs['prerequisites']) >= i + 1 and
+                    isinstance(ds.attrs['prerequisites'][i], DatasetID)):
                 if ds.attrs['prerequisites'][i][0] == ch:
                     if ds.attrs['prerequisites'][i][4] == 'RADIANCE':
                         raise NotImplementedError(
@@ -366,6 +399,17 @@ class MITIFFWriter(ImageWriter):
             # http://stackoverflow.com/questions/1598579/rounding-decimals-with-new-python-format-function
         return skip_calibration, _table_calibration, _reverse_offset, _reverse_scale, _decimals
 
+    def _add_palette_info(self, datasets, palette_unit, palette_description, **kwargs):
+        # mitiff key word for palette interpretion
+        _palette = '\n COLOR INFO:\n'
+        # mitiff info for the unit of the interpretion
+        _palette += ' {}\n'.format(palette_unit)
+        # The length of the palette description as needed by mitiff in DIANA
+        _palette += ' {}\n'.format(len(palette_description))
+        for desc in palette_description:
+            _palette += ' {}\n'.format(desc)
+        return _palette
+
     def _add_calibration(self, channels, cns, datasets, **kwargs):
 
         _table_calibration = ""
@@ -387,35 +431,10 @@ class MITIFFWriter(ImageWriter):
                 _reverse_offset = 0.
                 _reverse_scale = 1.
                 _decimals = 2
-                try:
-                    if ch.calibration == 'RADIANCE':
-                        raise NotImplementedError(
-                            "Mitiff radiance calibration not implemented.")
-                    # _table_calibration += ', Radiance, '
-                    # _table_calibration += '[W/m²/µm/sr]'
-                    # _decimals = 8
-                    elif ch.calibration == 'brightness_temperature':
-                        _table_calibration += ', BT, '
-                        _table_calibration += u'\u00B0'  # '\u2103'
-                        _table_calibration += u'[C]'
 
-                        _reverse_offset = 255.
-                        _reverse_scale = -1.
-                        _decimals = 2
-                    elif ch.calibration == 'reflectance':
-                        _table_calibration += ', Reflectance(Albedo), '
-                        _table_calibration += '[%]'
-                        _decimals = 2
-                    elif ch.calibration is None:
-                        LOG.warning("ch.calibration is None")
-                        _table_calibration = ""
-                        break
-                    else:
-                        LOG.warning("Unknown calib type. Must be Radiance, Reflectance or BT.")
-                except AttributeError:
-                    skip_calibration, __table_calibration, _reverse_offset, _reverse_scale, _decimals = \
-                        self._add_calibration_datasets(ch, datasets, _reverse_offset, _reverse_scale, _decimals)
-                    _table_calibration += __table_calibration
+                skip_calibration, __table_calibration, _reverse_offset, _reverse_scale, _decimals = \
+                    self._add_calibration_datasets(ch, datasets, _reverse_offset, _reverse_scale, _decimals)
+                _table_calibration += __table_calibration
 
                 if not skip_calibration:
                     _table_calibration += ', 8, [ '
@@ -436,8 +455,7 @@ class MITIFFWriter(ImageWriter):
         return _table_calibration
 
     def _make_image_description(self, datasets, **kwargs):
-        """
-        generate image description for mitiff.
+        r"""Generate image description for mitiff.
 
         Satellite: NOAA 18
         Date and Time: 06:58 31/05-2016
@@ -480,8 +498,8 @@ class MITIFFWriter(ImageWriter):
         Table_calibration: <channel name>, <calibration type>, [<unit>],
         <no of bits of data>,
         [<calibration values space separated>]\n\n
-        """
 
+        """
         translate_platform_name = {'metop01': 'Metop-B',
                                    'metop02': 'Metop-A',
                                    'metop03': 'Metop-C',
@@ -536,9 +554,12 @@ class MITIFFWriter(ImageWriter):
         if isinstance(datasets, list):
             LOG.debug("len datasets: %s", len(datasets))
             _image_description += str(len(datasets))
-        else:
+        elif 'bands' in datasets.sizes:
             LOG.debug("len datasets: %s", datasets.sizes['bands'])
             _image_description += str(datasets.sizes['bands'])
+        elif len(datasets.sizes) == 2:
+            LOG.debug("len datasets: 1")
+            _image_description += '1'
 
         _image_description += ' In this file: '
 
@@ -573,77 +594,130 @@ class MITIFFWriter(ImageWriter):
         else:
             LOG.debug("Area extent: %s", datasets.attrs['area'].area_extent)
 
-        _image_description += self._add_calibration(channels, cns, datasets, **kwargs)
+        if self.palette:
+            LOG.debug("Doing palette image")
+            _image_description += self._add_palette_info(datasets, **kwargs)
+        else:
+            _image_description += self._add_calibration(channels, cns, datasets, **kwargs)
 
         return _image_description
 
+    def _calibrate_data(self, dataset, calibration, min_val, max_val):
+        reverse_offset = 0.
+        reverse_scale = 1.
+        if calibration == 'brightness_temperature':
+            # If data is brightness temperature, the data must be inverted.
+            reverse_offset = 255.
+            reverse_scale = -1.
+            dataset.data += KELVIN_TO_CELSIUS
+
+        # Need to possible translate channels names from satpy to mitiff
+        _data = reverse_offset + reverse_scale * ((dataset.data - float(min_val)) /
+                                                  (float(max_val) - float(min_val))) * 255.
+        return _data.clip(0, 255)
+
+    def _save_as_palette(self, tif, datasets, **kwargs):
+        # MITIFF palette has only one data channel
+        if len(datasets.dims) == 2:
+            LOG.debug("Palette ok with only 2 dimensions. ie only x and y")
+            # 3 = Palette color. In this model, a color is described with a single component.
+            # The value of the component is used as an index into the red, green and blue curves
+            # in the ColorMap field to retrieve an RGB triplet that defines the color. When
+            # PhotometricInterpretation=3 is used, ColorMap must be present and SamplesPerPixel must be 1.
+            tif.SetField('PHOTOMETRIC', 3)
+
+            # As write_image can not save tiff image as palette, this has to be done basicly
+            # ie. all needed tags needs to be set.
+            tif.SetField('IMAGEWIDTH', datasets.sizes['x'])
+            tif.SetField('IMAGELENGTH', datasets.sizes['y'])
+            tif.SetField('BITSPERSAMPLE', 8)
+            tif.SetField('COMPRESSION', tif.get_tag_define('deflate'))
+
+            if 'palette_color_map' in kwargs:
+                tif.SetField('COLORMAP', kwargs['palette_color_map'])
+            else:
+                LOG.ERROR("In a mitiff palette image a color map must be provided: palette_color_map is missing.")
+
+            data_type = np.uint8
+            # Looks like we need to pass the data to writeencodedstrip as ctypes
+            cont_data = np.ascontiguousarray(datasets.data, data_type)
+            tif.WriteEncodedStrip(0, cont_data.ctypes.data,
+                                  datasets.sizes['x'] * datasets.sizes['y'])
+            tif.WriteDirectory()
+
+    def _save_as_enhanced(self, tif, datasets, **kwargs):
+        """Save datasets as an enhanced RGB image."""
+        img = get_enhanced_image(datasets.squeeze(), enhance=self.enhancer)
+        if 'bands' in img.data.sizes and 'bands' not in datasets.sizes:
+            LOG.debug("Datasets without 'bands' become image with 'bands' due to enhancement.")
+            LOG.debug("Needs to regenerate mitiff image description")
+            image_description = self._make_image_description(img.data, **kwargs)
+            tif.SetField(IMAGEDESCRIPTION, (image_description).encode('utf-8'))
+        for band in img.data['bands']:
+            chn = img.data.sel(bands=band)
+            data = chn.values.clip(0, 1) * 254. + 1
+            data = data.clip(0, 255)
+            tif.write_image(data.astype(np.uint8), compression='deflate')
+
     def _save_datasets_as_mitiff(self, datasets, image_description,
                                  gen_filename, **kwargs):
-        """Put all togehter and save as a tiff file with the special tag
-           making it a mitiff file.
+        """Put all together and save as a tiff file.
+
+        Include the special tags making it a mitiff file.
+
         """
         from libtiff import TIFF
 
-        tif = TIFF.open(gen_filename, mode='w')
+        tif = TIFF.open(gen_filename, mode='wb')
 
         tif.SetField(IMAGEDESCRIPTION, (image_description).encode('utf-8'))
 
         cns = self.translate_channel_name.get(kwargs['sensor'], {})
         if isinstance(datasets, list):
             LOG.debug("Saving datasets as list")
-
             for _cn in self.channel_order[kwargs['sensor']]:
                 for dataset in datasets:
                     if dataset.attrs['name'] == _cn:
-                        reverse_offset = 0.
-                        reverse_scale = 1.
-                        if dataset.attrs['calibration'] == 'brightness_temperature':
-                            reverse_offset = 255.
-                            reverse_scale = -1.
-                            dataset.data += KELVIN_TO_CELSIUS
-
                         # Need to possible translate channels names from satpy to mitiff
                         cn = cns.get(dataset.attrs['name'], dataset.attrs['name'])
-                        _data = reverse_offset + reverse_scale * (((dataset.data - float(self.mitiff_config[
-                            kwargs['sensor']][cn]['min-val'])) /
-                            (float(self.mitiff_config[kwargs['sensor']][cn]['max-val']) -
-                             float(self.mitiff_config[kwargs['sensor']][cn]['min-val']))) * 255.)
-                        data = _data.clip(0, 255)
-
+                        data = self._calibrate_data(dataset, dataset.attrs['calibration'],
+                                                    self.mitiff_config[kwargs['sensor']][cn]['min-val'],
+                                                    self.mitiff_config[kwargs['sensor']][cn]['max-val'])
                         tif.write_image(data.astype(np.uint8), compression='deflate')
                         break
         elif 'dataset' in datasets.attrs['name']:
             LOG.debug("Saving %s as a dataset.", datasets.attrs['name'])
-            for _cn in self.channel_order[kwargs['sensor']]:
-                for i, band in enumerate(datasets['bands']):
-                    if band == _cn:
-                        chn = datasets.sel(bands=band)
-                        reverse_offset = 0.
-                        reverse_scale = 1.
-                        if chn.attrs['prerequisites'][i][4] == 'brightness_temperature':
-                            reverse_offset = 255.
-                            reverse_scale = -1.
-                            chn.data += KELVIN_TO_CELSIUS
+            if len(datasets.dims) == 2 and (all('bands' not in i for i in datasets.dims)):
+                # Special case with only one channel ie. no bands
 
-                        # Need to possible translate channels names from satpy to mitiff
-                        cn = cns.get(chn.attrs['prerequisites'][i][0],
-                                     chn.attrs['prerequisites'][i][0])
-                        _data = reverse_offset + reverse_scale * (((chn.data - float(self.mitiff_config[
-                            kwargs['sensor']][cn]['min-val'])) /
-                            (float(self.mitiff_config[kwargs['sensor']][cn]['max-val']) -
-                             float(self.mitiff_config[kwargs['sensor']][cn]['min-val']))) * 255.)
-                        data = _data.clip(0, 255)
+                # Need to possible translate channels names from satpy to mitiff
+                # Note the last index is a tuple index.
+                cn = cns.get(datasets.attrs['prerequisites'][0][0],
+                             datasets.attrs['prerequisites'][0][0])
+                data = self._calibrate_data(datasets, datasets.attrs['prerequisites'][0][4],
+                                            self.mitiff_config[kwargs['sensor']][cn]['min-val'],
+                                            self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 
-                        tif.write_image(data.astype(np.uint8), compression='deflate')
-                        break
+                tif.write_image(data.astype(np.uint8), compression='deflate')
+            else:
+                for _cn_i, _cn in enumerate(self.channel_order[kwargs['sensor']]):
+                    for band in datasets['bands']:
+                        if band == _cn:
+                            chn = datasets.sel(bands=band)
+                            # Need to possible translate channels names from satpy to mitiff
+                            # Note the last index is a tuple index.
+                            cn = cns.get(chn.attrs['prerequisites'][_cn_i][0],
+                                         chn.attrs['prerequisites'][_cn_i][0])
+                            data = self._calibrate_data(chn, chn.attrs['prerequisites'][_cn_i][4],
+                                                        self.mitiff_config[kwargs['sensor']][cn]['min-val'],
+                                                        self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 
+                            tif.write_image(data.astype(np.uint8), compression='deflate')
+                            break
+        elif self.palette:
+            LOG.debug("Saving dataset as palette.")
+            self._save_as_palette(tif, datasets, **kwargs)
         else:
             LOG.debug("Saving datasets as enhanced image")
-            img = get_enhanced_image(datasets.squeeze(), self.enhancer)
-            for i, band in enumerate(img.data['bands']):
-                chn = img.data.sel(bands=band)
-                data = chn.values * 254. + 1
-                data = data.clip(0, 255)
-                tif.write_image(data.astype(np.uint8), compression='deflate')
-
+            self._save_as_enhanced(tif, datasets, **kwargs)
         del tif

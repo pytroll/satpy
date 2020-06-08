@@ -13,26 +13,26 @@ at the pages listed below.
 
     CONTRIBUTING
     xarray_migration
+    custom_reader
+    plugins
 
 Coding guidelines
 =================
 
-SatPy tries to follow
-`PEP8 <https://www.python.org/dev/peps/pep-0008/>`_ style guidelines for
-all of its python code. We also try to limit lines of code to 80 characters
-whenever possible and when it doesn't hurt readability. SatPy follows
-`Google Style Docstrings <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html>`_
-for all code API documentation. When in doubt use the existing code as a
-guide for how coding should be done.
+Satpy is part of `Pytroll <http://pytroll.github.io/>`_,
+and all code should follow the
+`Pytroll coding guidelines and best
+practices <http://pytroll.github.io/guidelines.html>`_.
 
-SatPy currently supports Python 2.7 and 3.4+. All code should be written to
-be compatible with these versions.
+Satpy is now Python 3 only and it is no longer needed to support Python 2.
+Check ``setup.py`` for the current Python versions any new code needs
+to support.
 
 Development installation
 ========================
 
 See the :doc:`../install` section for basic installation instructions. When
-it comes time to install SatPy it should be installed from a clone of the git
+it comes time to install Satpy it should be installed from a clone of the git
 repository and in development mode so that local file changes are
 automatically reflected in the python environment. We highly recommend making
 a separate conda environment or virtualenv for development.
@@ -46,15 +46,16 @@ clone your fork. The package can then be installed in development by doing::
 Running tests
 =============
 
-SatPy tests are written using the python :mod:`unittest` module and the tests
-can be executed by running::
+Satpy tests are written using the python :mod:`unittest` module and the
+third-party :doc:`pytest <pytest:index>` package. Satpy tests can be executed by
+running::
 
-    python setup.py test
+    pytest satpy/tests
 
 Documentation
 =============
 
-SatPy's documentation is built using Sphinx. All documentation lives in the
+Satpy's documentation is built using Sphinx. All documentation lives in the
 ``doc/`` directory of the project repository. After editing the source files
 there the documentation can be generated locally::
 

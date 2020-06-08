@@ -1,0 +1,40 @@
+reader:
+  default_datasets: []
+  description: CALIOP Level 2 Cloud Layer Version 3 HDF4 reader
+  name: caliop_l2_cloud
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [caliop]
+
+datasets:
+  elevation:
+    file_type: hdf4_caliop
+    name: Lidar_Surface_Elevation
+    resolution: 1000
+    coordinates: [Longitude, Latitude]
+
+  layer_top_altitude:
+    file_type: hdf4_caliop
+    name: Layer_Top_Altitude
+    resolution: 1000
+    coordinates: [Longitude, Latitude]
+    units: km
+
+  longitude:
+    file_type: hdf4_caliop
+    name: Longitude
+    resolution: 1000
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    file_type: hdf4_caliop
+    name: Latitude
+    resolution: 1000
+    standard_name: latitude
+    units: degree
+
+file_types:
+  hdf4_caliop:
+    file_patterns:
+            - 'CAL_LID_L2_0{resolution:1s}kmCLay-ValStage1-V3-30.{start_time:%Y-%m-%dT%H-%M-%S}ZN.hdf'
+    file_reader: !!python/name:satpy.readers.caliop_l2_cloud.HDF4BandReader ''

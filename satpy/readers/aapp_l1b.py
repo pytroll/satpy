@@ -1,29 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2012, 2013, 2014, 2015, 2016, 2017
-
-# Author(s):
-
-#   Martin Raspaud <martin.raspaud@smhi.se>
-#   Adam Dybbroe <adam.dybbroe@smhi.se>
-#   Nina Håkansson <nina.hakansson@smhi.se>
-#   Oana Nicola <oananicola@yahoo.com>
-#   Lars Ørum Rasmussen <ras@dmi.dk>
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# Copyright (c) 2012-2020 Satpy developers
+#
+# This file is part of satpy.
+#
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Reader for aapp level 1b data.
 
 Options for loading:
@@ -42,8 +33,11 @@ import numpy as np
 import xarray as xr
 
 import dask.array as da
+from dask import delayed
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy import CHUNK_SIZE
+
+LINE_CHUNK = CHUNK_SIZE ** 2 // 2048
 
 logger = logging.getLogger(__name__)
 
@@ -65,14 +59,16 @@ PLATFORM_NAMES = {4: 'NOAA-15',
 
 
 def create_xarray(arr):
-    res = da.from_array(arr, chunks=(CHUNK_SIZE, CHUNK_SIZE))
-    res = xr.DataArray(res, dims=['y', 'x'])
+    """Create an `xarray.DataArray`."""
+    res = xr.DataArray(arr, dims=['y', 'x'])
     return res
 
 
 class AVHRRAAPPL1BFile(BaseFileHandler):
+    """Reader for AVHRR L1B files created from the AAPP software."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Initialize object information by reading the input file."""
         super(AVHRRAAPPL1BFile, self).__init__(filename, filename_info,
                                                filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
@@ -81,6 +77,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self._data = None
         self._header = None
         self._is3b = None
+        self._is3a = None
         self._shape = None
         self.lons = None
         self.lats = None
@@ -97,23 +94,20 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the time of the first observation."""
         return datetime(self._data['scnlinyr'][0], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][0]) - 1,
             milliseconds=int(self._data['scnlintime'][0]))
 
     @property
     def end_time(self):
+        """Get the time of the final observation."""
         return datetime(self._data['scnlinyr'][-1], 1, 1) + timedelta(
             days=int(self._data['scnlindy'][-1]) - 1,
             milliseconds=int(self._data['scnlintime'][-1]))
 
-    def shape(self):
-        # return self._data.shape
-        return self._shape
-
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
-
         if key.name in CHANNEL_NAMES:
             dataset = self.calibrate(key)
         elif key.name in ['longitude', 'latitude']:
@@ -131,13 +125,14 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                 else:
                     dataset = self.get_angles(key.name)
             else:
-                logger.exception(
-                    "Not a supported sun-sensor viewing angle: %s", key.name)
-                raise
+                raise ValueError("Not a supported sun-sensor viewing angle: %s", key.name)
 
         dataset.attrs.update({'platform_name': self.platform_name,
                               'sensor': self.sensor})
         dataset.attrs.update(key.to_dict())
+        for meta_key in ('standard_name', 'units'):
+            if meta_key in info:
+                dataset.attrs.setdefault(meta_key, info[meta_key])
 
         if not self._shape:
             self._shape = dataset.shape
@@ -145,12 +140,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         return dataset
 
     def read(self):
-        """Read the data.
-        """
+        """Read the data."""
         tic = datetime.now()
-        with open(self.filename, "rb") as fp_:
-            header = np.memmap(fp_, dtype=_HEADERTYPE, mode="r", shape=(1, ))
-            data = np.memmap(fp_, dtype=_SCANTYPE, offset=22016, mode="r")
+        header = np.memmap(self.filename, dtype=_HEADERTYPE, mode="r", shape=(1, ))
+        data = np.memmap(self.filename, dtype=_SCANTYPE, offset=22016, mode="r")
 
         logger.debug("Reading time %s", str(datetime.now() - tic))
 
@@ -158,10 +151,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self._data = data
 
     def get_angles(self, angle_id):
-        """Get sun-satellite viewing angles"""
-
-        tic = datetime.now()
-
+        """Get sun-satellite viewing angles."""
         sunz40km = self._data["ang"][:, :, 0] * 1e-2
         satz40km = self._data["ang"][:, :, 1] * 1e-2
         azidiff40km = self._data["ang"][:, :, 2] * 1e-2
@@ -185,17 +175,15 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             satint = Interpolator(
                 [sunz40km, satz40km, azidiff40km], (rows40km, cols40km),
                 (rows1km, cols1km), along_track_order, cross_track_order)
-            self.sunz, self.satz, self.azidiff = satint.interpolate()
-
-            logger.debug("Interpolate sun-sat angles: time %s",
-                         str(datetime.now() - tic))
+            self.sunz, self.satz, self.azidiff = delayed(satint.interpolate, nout=3)()
+            self.sunz = da.from_delayed(self.sunz, (lines, 2048), sunz40km.dtype)
+            self.satz = da.from_delayed(self.satz, (lines, 2048), satz40km.dtype)
+            self.azidiff = da.from_delayed(self.azidiff, (lines, 2048), azidiff40km.dtype)
 
         return create_xarray(getattr(self, ANGLES[angle_id]))
 
     def navigate(self):
-        """Return the longitudes and latitudes of the scene.
-        """
-        tic = datetime.now()
+        """Get the longitudes and latitudes of the scene."""
         lons40km = self._data["pos"][:, :, 1] * 1e-4
         lats40km = self._data["pos"][:, :, 0] * 1e-4
 
@@ -218,17 +206,15 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             satint = SatelliteInterpolator(
                 (lons40km, lats40km), (rows40km, cols40km), (rows1km, cols1km),
                 along_track_order, cross_track_order)
-            self.lons, self.lats = satint.interpolate()
-            logger.debug("Navigation time %s", str(datetime.now() - tic))
+            self.lons, self.lats = delayed(satint.interpolate, nout=2)()
+            self.lons = da.from_delayed(self.lons, (lines, 2048), lons40km.dtype)
+            self.lats = da.from_delayed(self.lats, (lines, 2048), lats40km.dtype)
 
     def calibrate(self,
                   dataset_id,
                   pre_launch_coeffs=False,
                   calib_coeffs=None):
-        """Calibrate the data
-        """
-        tic = datetime.now()
-
+        """Calibrate the data."""
         if calib_coeffs is None:
             calib_coeffs = {}
 
@@ -239,11 +225,15 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         if dataset_id.name in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
-            is3b = np.expand_dims(
-                np.bitwise_and(
-                    np.right_shift(self._data['scnlinbit'], 0), 1) == 1, 1)
-            self._is3b = np.repeat(is3b,
-                                   self._data['hrpt'][0].shape[0], axis=1)
+            self._is3a = da.bitwise_and(da.from_array(self._data['scnlinbit'],
+                                                      chunks=LINE_CHUNK), 3) == 0
+            self._is3b = da.bitwise_and(da.from_array(self._data['scnlinbit'],
+                                                      chunks=LINE_CHUNK), 3) == 1
+
+        if dataset_id.name == '3a' and not np.any(self._is3a):
+            raise ValueError("Empty dataset for channel 3A")
+        if dataset_id.name == '3b' and not np.any(self._is3b):
+            raise ValueError("Empty dataset for channel 3B")
 
         try:
             vis_idx = ['1', '2', '3a'].index(dataset_id.name)
@@ -252,34 +242,30 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
             vis_idx = None
             ir_idx = ['3b', '4', '5'].index(dataset_id.name)
 
+        mask = True
         if vis_idx is not None:
             coeffs = calib_coeffs.get('ch' + dataset_id.name)
+            if dataset_id.name == '3a':
+                mask = self._is3a[:, None]
             ds = create_xarray(
                 _vis_calibrate(self._data,
                                vis_idx,
                                dataset_id.calibration,
                                pre_launch_coeffs,
                                coeffs,
-                               mask=(dataset_id.name == '3a' and self._is3b)))
+                               mask=mask))
         else:
+            if dataset_id.name == '3b':
+                mask = self._is3b[:, None]
             ds = create_xarray(
                 _ir_calibrate(self._header,
                               self._data,
                               ir_idx,
                               dataset_id.calibration,
-                              mask=(dataset_id.name == '3b' and
-                                    np.logical_not(self._is3b))))
-
-        if dataset_id.name == '3a' and np.all(np.isnan(ds)):
-            raise ValueError("Empty dataset for channel 3A")
-        if dataset_id.name == '3b' and np.all(np.isnan(ds)):
-            raise ValueError("Empty dataset for channel 3B")
+                              mask=mask))
 
         ds.attrs['units'] = units[dataset_id.calibration]
         ds.attrs.update(dataset_id._asdict())
-
-        logger.debug("Calibration time %s", str(datetime.now() - tic))
-
         return ds
 
 
@@ -466,23 +452,24 @@ def _vis_calibrate(data,
                    calib_type,
                    pre_launch_coeffs=False,
                    calib_coeffs=None,
-                   mask=False):
-    """Visible channel calibration only.
+                   mask=True):
+    """Calibrate visible channel data.
 
-    *calib_type* in count, reflectance, radiance
+    *calib_type* in count, reflectance, radiance.
+
     """
     # Calibration count to albedo, the calibration is performed separately for
     # two value ranges.
-
     if calib_type not in ['counts', 'radiance', 'reflectance']:
         raise ValueError('Calibration ' + calib_type + ' unknown!')
 
-    arr = data["hrpt"][:, :, chn]
-    mask |= arr == 0
+    channel = da.from_array(data["hrpt"][:, :, chn], chunks=(LINE_CHUNK, 2048))
+    mask &= channel != 0
 
-    channel = arr.astype(np.float)
     if calib_type == 'counts':
         return channel
+
+    channel = channel.astype(np.float)
 
     if calib_type == 'radiance':
         logger.info("Radiances are not yet supported for " +
@@ -499,71 +486,65 @@ def _vis_calibrate(data,
         else:
             coeff_idx = 0
 
-    intersection = data["calvis"][:, chn, coeff_idx, 4]
+    intersection = da.from_array(data["calvis"][:, chn, coeff_idx, 4],
+                                 chunks=LINE_CHUNK)
 
     if calib_coeffs is not None:
         logger.info("Updating from external calibration coefficients.")
-        # intersection = np.expand_dims
-        slope1 = np.expand_dims(calib_coeffs[0], 1)
-        intercept1 = np.expand_dims(calib_coeffs[1], 1)
-        slope2 = np.expand_dims(calib_coeffs[2], 1)
-        intercept2 = np.expand_dims(calib_coeffs[3], 1)
+        slope1 = da.from_array(calib_coeffs[0], chunks=LINE_CHUNK)
+        intercept1 = da.from_array(calib_coeffs[1], chunks=LINE_CHUNK)
+        slope2 = da.from_array(calib_coeffs[2], chunks=LINE_CHUNK)
+        intercept2 = da.from_array(calib_coeffs[3], chunks=LINE_CHUNK)
     else:
-        slope1 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 0] * 1e-10,
-                                1)
-        intercept1 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 1] *
-                                    1e-7, 1)
-        slope2 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 2] * 1e-10,
-                                1)
-        intercept2 = np.expand_dims(data["calvis"][:, chn, coeff_idx, 3] *
-                                    1e-7, 1)
+        slope1 = da.from_array(data["calvis"][:, chn, coeff_idx, 0],
+                               chunks=LINE_CHUNK) * 1e-10
+        intercept1 = da.from_array(data["calvis"][:, chn, coeff_idx, 1],
+                                   chunks=LINE_CHUNK) * 1e-7
+        slope2 = da.from_array(data["calvis"][:, chn, coeff_idx, 2],
+                               chunks=LINE_CHUNK) * 1e-10
+        intercept2 = da.from_array(data["calvis"][:, chn, coeff_idx, 3],
+                                   chunks=LINE_CHUNK) * 1e-7
 
         if chn == 2:
-            slope2[slope2 < 0] += 0.4294967296
+            slope2 = da.where(slope2 < 0, slope2 + 0.4294967296, slope2)
 
-    mask1 = channel <= np.expand_dims(intersection, 1)
-    mask2 = channel > np.expand_dims(intersection, 1)
-
-    channel[mask1] = (channel * slope1 + intercept1)[mask1]
-
-    channel[mask2] = (channel * slope2 + intercept2)[mask2]
+    channel = da.where(channel <= intersection[:, None],
+                       channel * slope1[:, None] + intercept1[:, None],
+                       channel * slope2[:, None] + intercept2[:, None])
 
     channel = channel.clip(min=0)
 
-    return np.where(mask, np.nan, channel)
+    return da.where(mask, channel, np.nan)
 
 
-def _ir_calibrate(header, data, irchn, calib_type, mask=False):
-    """IR calibration
+def _ir_calibrate(header, data, irchn, calib_type, mask=True):
+    """Calibrate for IR bands.
+
     *calib_type* in brightness_temperature, radiance, count
-    """
 
-    count = data["hrpt"][:, :, irchn + 2].astype(np.float)
+    """
+    count = da.from_array(data["hrpt"][:, :, irchn + 2], chunks=(LINE_CHUNK, 2048))
 
     if calib_type == 0:
         return count
 
     # Mask unnaturally low values
-    mask |= count == 0.0
+    mask &= count != 0
+    count = count.astype(np.float)
 
-    k1_ = np.expand_dims(data['calir'][:, irchn, 0, 0] / 1.0e9, 1)
-    k2_ = np.expand_dims(data['calir'][:, irchn, 0, 1] / 1.0e6, 1)
-    k3_ = np.expand_dims(data['calir'][:, irchn, 0, 2] / 1.0e6, 1)
+    k1_ = da.from_array(data['calir'][:, irchn, 0, 0], chunks=LINE_CHUNK) / 1.0e9
+    k2_ = da.from_array(data['calir'][:, irchn, 0, 1], chunks=LINE_CHUNK) / 1.0e6
+    k3_ = da.from_array(data['calir'][:, irchn, 0, 2], chunks=LINE_CHUNK) / 1.0e6
 
     # Count to radiance conversion:
-    rad = k1_ * count * count + k2_ * count + k3_
+    rad = k1_[:, None] * count * count + k2_[:, None] * count + k3_[:, None]
 
-    all_zero = np.logical_and(
-        np.logical_and(
-            np.equal(k1_, 0), np.equal(k2_, 0)), np.equal(k3_, 0))
-    idx = np.indices((all_zero.shape[0], ))
-    suspect_line_nums = np.repeat(idx[0], all_zero[:, 0])
-    if suspect_line_nums.any():
-        logger.info("Suspicious scan lines: %s", str(suspect_line_nums))
+    # Suspicious lines
+    mask &= ((k1_ != 0) | (k2_ != 0) | (k3_ != 0))[:, None]
 
     if calib_type == 2:
-        mask |= rad <= 0.0
-        return np.where(mask, np.nan, rad)
+        mask &= rad > 0.0
+        return da.where(mask, rad, np.nan)
 
     # Central wavenumber:
     cwnum = header['radtempcnv'][0, irchn, 0]
@@ -589,6 +570,5 @@ def _ir_calibrate(header, data, irchn, calib_type, mask=False):
         tb_ = (t_planck - bandcor_2) / bandcor_3
 
     # Mask unnaturally low values
-    # mask |= tb_ < 0.1
 
-    return np.where(mask, np.nan, tb_)
+    return da.where(mask, tb_, np.nan)

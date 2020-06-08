@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
+# Copyright (c) 2017 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -123,9 +119,15 @@ class GRIBFileHandler(BaseFileHandler):
         """
         return self._end_time
 
-    def available_datasets(self):
+    def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file"""
-        return self._msg_datasets.items()
+        # previously configured or provided datasets
+        # we can't provide any additional information
+        for is_avail, ds_info in (configured_datasets or []):
+            yield is_avail, ds_info
+        # new datasets
+        for ds_info in self._msg_datasets.values():
+            yield True, ds_info
 
     def _get_message(self, ds_info):
         with pygrib.open(self.filename) as grib_file:
@@ -184,13 +186,15 @@ class GRIBFileHandler(BaseFileHandler):
 
             proj = Proj(**proj_params)
             x, y = proj(lons, lats)
-            x[np.abs(x) >= 1e30] = np.nan
-            y[np.abs(y) >= 1e30] = np.nan
-            min_x = np.nanmin(x)
-            max_x = np.nanmax(x)
-            min_y = np.nanmin(y)
-            max_y = np.nanmax(y)
-            extents = (min_x, min_y, max_x, max_y)
+            if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
+                min_x, min_y = x[0], y[0]
+                max_x, max_y = x[3], y[3]
+            else:
+                min_x, min_y = x[2], y[2]
+                max_x, max_y = x[1], y[1]
+            half_x = abs((max_x - min_x) / (shape[1] - 1)) / 2.
+            half_y = abs((max_y - min_y) / (shape[0] - 1)) / 2.
+            extents = (min_x - half_x, min_y - half_y, max_x + half_x, max_y + half_y)
 
         return geometry.AreaDefinition(
             'on-the-fly grib area',
@@ -251,6 +255,8 @@ class GRIBFileHandler(BaseFileHandler):
         ds_info = self.get_metadata(msg, ds_info)
         fill = msg['missingValue']
         data = msg.values.astype(np.float32)
+        if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
+            data = data[::-1]
 
         if isinstance(data, np.ma.MaskedArray):
             data = data.filled(np.nan)

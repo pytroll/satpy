@@ -1,0 +1,448 @@
+# References:
+#   - http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/spsg_ahi.html
+#   - http://www.data.jma.go.jp/mscweb/en/himawari89/space_segment/sample_hrit.html
+
+reader:
+  name: ahi_hrit
+  short_name: AHI HRIT
+  long_name: Himawari AHI Level 1 (HRIT)
+  description: Reader for the JMA Himawari AHI Level 1 data in HRIT format
+  sensors: [ahi]
+  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['start_time', 'area']
+
+file_types:
+    hrit_b01_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B01_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b01_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B01_{start_time:%Y%m%d%H%M}'
+
+    hrit_b02_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B02_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b02_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B02_{start_time:%Y%m%d%H%M}'
+
+    hrit_b03_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b03_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}'
+
+    hrit_b04_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B04_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b04_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B04_{start_time:%Y%m%d%H%M}'
+
+    hrit_b05_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B05_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b05_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B05_{start_time:%Y%m%d%H%M}'
+
+    hrit_b06_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B06_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b06_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B06_{start_time:%Y%m%d%H%M}'
+
+    hrit_b07_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        # B07 are high resolution versions of IR4 at night
+        # See section 1.3 of
+        # https://www.data.jma.go.jp/mscweb/en/himawari89/himawari_cast/note/HimawariCast_dataset_20150624_en.pdf
+        file_patterns:
+        - 'IMG_DK{area:02d}B07_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b07_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        # B07 are high resolution versions of IR4 at night
+        # See section 1.3 of
+        # https://www.data.jma.go.jp/mscweb/en/himawari89/himawari_cast/note/HimawariCast_dataset_20150624_en.pdf
+        file_patterns:
+        - 'IMG_DK{area:02d}B07_{start_time:%Y%m%d%H%M}'
+
+    hrit_b07_ir4_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b07_ir4_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}'
+
+    hrit_b08_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b08_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}'
+
+    hrit_b09_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B09_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b09_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B09_{start_time:%Y%m%d%H%M}'
+
+    hrit_b10_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B10_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b10_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B10_{start_time:%Y%m%d%H%M}'
+
+    hrit_b11_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B11_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b11_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B11_{start_time:%Y%m%d%H%M}'
+
+    hrit_b12_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B12_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b12_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B12_{start_time:%Y%m%d%H%M}'
+
+    hrit_b13_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b13_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}'
+
+    hrit_b14_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B14_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b14_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B14_{start_time:%Y%m%d%H%M}'
+
+    hrit_b15_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b15_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}'
+
+    hrit_b16_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B16_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_b16_fd:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}B16_{start_time:%Y%m%d%H%M}'
+
+datasets:
+  B01:
+    name: B01
+    sensor: ahi
+    wavelength: [0.45,0.47,0.49]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b01_seg, hrit_b01_fd]
+
+  B02:
+    name: B02
+    sensor: ahi
+    wavelength: [0.49,0.51,0.53]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b02_seg, hrit_b02_fd]
+
+  B03:
+    name: B03
+    sensor: ahi
+    wavelength: [0.62,0.64,0.66]
+    resolution: 1000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b03_seg, hrit_b03_fd]
+
+  B04:
+    name: B04
+    sensor: ahi
+    wavelength: [0.83, 0.85, 0.87]
+    resolution: 4000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b04_seg, hrit_b04_fd]
+
+  B05:
+    name: B05
+    sensor: ahi
+    wavelength: [1.5, 1.6, 1.7]
+    resolution: 4000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b05_seg, hrit_b05_fd]
+
+  B06:
+    name: B06
+    sensor: ahi
+    wavelength: [2.2, 2.3, 2.4]
+    resolution: 4000
+    calibration:
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b06_seg, hrit_b06_fd]
+
+  B07_low_res:
+    name: B07
+    resolution: 4000
+#    resolution: 2000
+    sensor: ahi
+    wavelength: [3.7, 3.9, 4.1]
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    # FUTURE: Split this in to multiple resolutions so each can be loaded
+    file_type: [hrit_b07_seg, hrit_b07_ir4_seg, hrit_b07_fd, hrit_b07_ir4_fd]
+
+#  B07_high_res:
+#    name: B07
+#    resolution: 2000
+#    sensor: ahi
+#    wavelength: [3.7, 3.9, 4.1]
+#    calibration:
+#      brightness_temperature:
+#        standard_name: toa_brightness_temperature
+#        units: "K"
+#      counts:
+#        standard_name: counts
+#        units: 1
+#    file_type: hrit_b07
+
+  B08:
+    name: B08
+    sensor: ahi
+    wavelength: [6.0, 6.2, 6.4]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b08_seg, hrit_b08_fd]
+
+  B09:
+    name: B09
+    sensor: ahi
+    wavelength: [6.7, 6.9, 7.1]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b09_seg, hrit_b09_fd]
+
+  B10:
+    name: B10
+    sensor: ahi
+    wavelength: [7.1, 7.3, 7.5]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b10_seg, hrit_b10_fd]
+
+  B11:
+    name: B11
+    sensor: ahi
+    wavelength: [8.4, 8.6, 8.8]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b11_seg, hrit_b11_fd]
+
+  B12:
+    name: B12
+    sensor: ahi
+    wavelength: [9.4, 9.6, 9.8]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b12_seg, hrit_b12_fd]
+
+  B13:
+    name: B13
+    sensor: ahi
+    wavelength: [10.2, 10.4, 10.6]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b13_seg, hrit_b13_fd]
+
+  B14:
+    name: B14
+    sensor: ahi
+    wavelength: [11.0, 11.2, 11.4]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b14_seg, hrit_b14_fd]
+
+  B15:
+    name: B15
+    sensor: ahi
+    wavelength: [12.2, 12.4, 12.6]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b15_seg, hrit_b15_fd]
+
+  B16:
+    name: B16
+    sensor: ahi
+    wavelength: [13.1, 13.3, 13.5]
+    resolution: 4000
+    calibration:
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+      counts:
+        standard_name: counts
+        units: 1
+    file_type: [hrit_b16_seg, hrit_b16_fd]

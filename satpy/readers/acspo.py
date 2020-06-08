@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017.
-#
-# Author(s):
-#
-#
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#
+# Copyright (c) 2017 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -21,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""ACSPO SST Reader
+"""ACSPO SST Reader.
 
 See the following page for more information:
 
@@ -44,9 +38,11 @@ ROWS_PER_SCAN = {
 
 
 class ACSPOFileHandler(NetCDF4FileHandler):
-    """ACSPO L2P SST File Reader"""
+    """ACSPO L2P SST File Reader."""
+
     @property
     def platform_name(self):
+        """Get satellite name for this file's data."""
         res = self['/attr/platform']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
@@ -55,6 +51,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     @property
     def sensor_name(self):
+        """Get instrument name for this file's data."""
         res = self['/attr/sensor']
         if isinstance(res, np.ndarray):
             return str(res.astype(str))
@@ -63,14 +60,14 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         """Get numpy array shape for the specified dataset.
-        
+
         Args:
             ds_id (DatasetID): ID of dataset that will be loaded
             ds_info (dict): Dictionary of dataset information from config file
-            
+
         Returns:
             tuple: (rows, cols)
-            
+
         """
         var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
         if var_path + '/shape' not in self:
@@ -91,13 +88,16 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     @property
     def start_time(self):
+        """Get first observation time of data."""
         return self._parse_datetime(self['/attr/time_coverage_start'])
 
     @property
     def end_time(self):
+        """Get final observation time of data."""
         return self._parse_datetime(self['/attr/time_coverage_end'])
 
     def get_metadata(self, dataset_id, ds_info):
+        """Collect various metadata about the specified dataset."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         shape = self.get_shape(dataset_id, ds_info)
         units = self[var_path + '/attr/units']
@@ -119,20 +119,12 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         })
         return info
 
-    def get_dataset(self, dataset_id, ds_info, xslice=slice(None), yslice=slice(None)):
+    def get_dataset(self, dataset_id, ds_info):
         """Load data array and metadata from file on disk."""
         var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
         metadata = self.get_metadata(dataset_id, ds_info)
         shape = metadata['shape']
         file_shape = self[var_path + '/shape']
-        if isinstance(shape, tuple) and len(shape) == 2:
-            # 2D array
-            if xslice.start is not None:
-                shape = (shape[0], xslice.stop - xslice.start)
-            if yslice.start is not None:
-                shape = (yslice.stop - yslice.start, shape[1])
-        elif isinstance(shape, tuple) and len(shape) == 1 and yslice.start is not None:
-            shape = ((yslice.stop - yslice.start) / yslice.step,)
         metadata['shape'] = shape
 
         valid_min = self[var_path + '/attr/valid_min']
@@ -141,14 +133,10 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         scale_factor = self.get(var_path + '/attr/scale_factor')
         add_offset = self.get(var_path + '/attr/add_offset')
 
+        data = self[var_path]
         if isinstance(file_shape, tuple) and len(file_shape) == 3:
-            data = self[var_path][0, yslice, xslice]
-        elif isinstance(file_shape, tuple) and len(file_shape) == 2:
-            data = self[var_path][yslice, xslice]
-        elif isinstance(file_shape, tuple) and len(file_shape) == 1:
-            data = self[var_path][yslice]
-        else:
-            data = self[var_path]
+            # can only read 3D arrays with size 1 in the first dimension
+            data = data[0]
         data = data.where((data >= valid_min) & (data <= valid_max))
         if scale_factor is not None:
             data = data * scale_factor + add_offset
@@ -159,4 +147,8 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             data = data.where(~clear_sky_mask)
 
         data.attrs.update(metadata)
+        # Remove these attributes since they are no longer valid and can cause invalid value filling.
+        data.attrs.pop('_FillValue', None)
+        data.attrs.pop('valid_max', None)
+        data.attrs.pop('valid_min', None)
         return data

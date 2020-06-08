@@ -1,26 +1,20 @@
 #!/usr/bin/python
-# Copyright (c) 2018.
+# Copyright (c) 2018 Satpy developers
 #
-
-# Author(s):
-#   Panu Lahtinen <panu.lahtinen@fmi.fi>
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# This file is part of satpy.
 #
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
+# satpy is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
 #
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
+# satpy is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 #
-
-"""Unittests for generic image reader.
-"""
+# You should have received a copy of the GNU General Public License along with
+# satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Unittests for generic image reader."""
 
 import os
 import unittest
@@ -55,12 +49,12 @@ class TestGenericImage(unittest.TestCase):
 
         # Create datasets for L, LA, RGB and RGBA mode images
         r__ = da.random.randint(0, 256, size=(self.y_size, self.x_size),
-                                chunks=(50, 50))
+                                chunks=(50, 50)).astype(np.uint8)
         g__ = da.random.randint(0, 256, size=(self.y_size, self.x_size),
-                                chunks=(50, 50))
+                                chunks=(50, 50)).astype(np.uint8)
         b__ = da.random.randint(0, 256, size=(self.y_size, self.x_size),
-                                chunks=(50, 50))
-        a__ = 255 * np.ones((self.y_size, self.x_size))
+                                chunks=(50, 50)).astype(np.uint8)
+        a__ = 255 * np.ones((self.y_size, self.x_size), dtype=np.uint8)
         a__[:10, :10] = 0
         a__ = da.from_array(a__, chunks=(50, 50))
 
@@ -98,17 +92,10 @@ class TestGenericImage(unittest.TestCase):
         scn['rgba'].attrs['area'] = self.area_def
 
         # Save the images.  Two images in PNG and two in GeoTIFF
-        scn.save_dataset('l', os.path.join(self.base_dir, 'test_l.png'),
-                         writer='simple_image')
-        scn.save_dataset('la', os.path.join(self.base_dir,
-                                            '20180101_0000_test_la.png'),
-                         writer='simple_image')
-        scn.save_dataset('rgb', os.path.join(self.base_dir,
-                                             '20180101_0000_test_rgb.tif'),
-                         writer='geotiff')
-        scn.save_dataset('rgba', os.path.join(self.base_dir,
-                                              'test_rgba.tif'),
-                         writer='geotiff')
+        scn.save_dataset('l', os.path.join(self.base_dir, 'test_l.png'), writer='simple_image')
+        scn.save_dataset('la', os.path.join(self.base_dir, '20180101_0000_test_la.png'), writer='simple_image')
+        scn.save_dataset('rgb', os.path.join(self.base_dir, '20180101_0000_test_rgb.tif'), writer='geotiff')
+        scn.save_dataset('rgba', os.path.join(self.base_dir, 'test_rgba.tif'), writer='geotiff')
 
         self.scn = scn
 
@@ -131,6 +118,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['sensor'], set(['images']))
         self.assertEqual(scn.attrs['start_time'], None)
         self.assertEqual(scn.attrs['end_time'], None)
+        self.assertNotIn('area', scn['image'].attrs)
 
         fname = os.path.join(self.base_dir, '20180101_0000_test_la.png')
         scn = Scene(reader='generic_image', filenames=[fname])
@@ -140,6 +128,7 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['sensor'], set(['images']))
         self.assertEqual(scn.attrs['start_time'], self.date)
         self.assertEqual(scn.attrs['end_time'], self.date)
+        self.assertNotIn('area', scn['image'].attrs)
         self.assertEqual(np.sum(np.isnan(data)), 100)
 
     def test_geotiff_scene(self):
@@ -163,17 +152,6 @@ class TestGenericImage(unittest.TestCase):
         self.assertEqual(scn.attrs['start_time'], None)
         self.assertEqual(scn.attrs['end_time'], None)
         self.assertEqual(scn['image'].area, self.area_def)
-
-    def test_get_geotiff_area_def(self):
-        """Test reading area definition from a geotiff"""
-        from satpy.readers.generic_image import get_geotiff_area_def
-        from satpy import CHUNK_SIZE
-
-        fname = os.path.join(self.base_dir, '20180101_0000_test_rgb.tif')
-        data = xr.open_rasterio(fname,
-                                chunks=(1, CHUNK_SIZE, CHUNK_SIZE))
-        adef = get_geotiff_area_def(fname, data.crs)
-        self.assertEqual(adef, self.area_def)
 
     def test_GenericImageFileHandler(self):
         """Test direct use of the reader."""
@@ -206,23 +184,10 @@ class TestGenericImage(unittest.TestCase):
         self.assertTrue('transform' in dataset.attrs)
         self.assertTrue(np.all(np.isnan(dataset.data[:, :10, :10].compute())))
 
-        # Test masking
+        # Test masking of floats
         data = self.scn['rgba']
-        self.assertRaises(ValueError, mask_image_data, data)
+        self.assertRaises(ValueError, mask_image_data, data / 255.)
         data = data.astype(np.uint32)
         self.assertTrue(data.bands.size == 4)
         data = mask_image_data(data)
         self.assertTrue(data.bands.size == 3)
-
-
-def suite():
-    """The test suite for test_writers."""
-    loader = unittest.TestLoader()
-    my_suite = unittest.TestSuite()
-    my_suite.addTest(loader.loadTestsFromTestCase(TestGenericImage))
-
-    return my_suite
-
-
-if __name__ == '__main__':
-    unittest.main()

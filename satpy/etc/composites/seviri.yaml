@@ -8,48 +8,116 @@ modifiers:
     compositor: !!python/name:satpy.composites.CO2Corrector
     sensor: [seviri]
     prerequisites:
-    - 10.8
-    - 13.4
+    - IR_108
+    - IR_134
 
 composites:
+
+  ct_masked_ir:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - IR_108
+    - ct
+    standard_name: ct_masked_ir
+    conditions:
+      - method: equal
+        value: 0
+        transparency: 100
+      - method: equal
+        value: 1
+        transparency: 100
+      - method: equal
+        value: 2
+        transparency: 100
+      - method: equal
+        value: 3
+        transparency: 100
+      - method: equal
+        value: 4
+        transparency: 100
+      - method: equal
+        value: 10
+        transparency: 35
+
+  nwc_geo_ct_masked_ir:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    prerequisites:
+    - IR_108
+    - ct
+    standard_name: nwc_geo_ct_masked_ir
+    # Default is opaque (transparency = 0)
+    conditions:
+      - method: equal
+        value: Cloud-free_land
+        transparency: 100
+      - method: equal
+        value: Cloud-free_sea
+        transparency: 100
+      - method: equal
+        value: Snow_over_land
+        transparency: 100
+      - method: equal
+        value: Sea_ice
+        transparency: 100
+      - method: equal
+        value: Fractional_clouds
+        transparency: 45
+      - method: equal
+        value: High_semitransparent_thin_clouds
+        transparency: 50
+      - method: equal
+        value: High_semitransparent_above_snow_ice
+        transparency: 60
 
   cloudtop:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 3.75
+    - name: IR_039
       modifiers: [co2_corrected]
-    - 10.8
-    - 12.0
+    - IR_108
+    - IR_120
     standard_name: cloudtop
 
   cloudtop_daytime:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 3.7
+    - name: IR_039
       modifiers: [nir_emissive]
-    - 10.8
-    - 12.0
+    - IR_108
+    - IR_120
     standard_name: cloudtop
 
   convection:
-    compositor: !!python/name:satpy.composites.Convection
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 0.635
-    - 1.63
-    - wavelength: 3.75
-      modifiers: [co2_corrected]
-    - 6.7
-    - 7.3
-    - 10.8
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - WV_062
+        - WV_073
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: IR_039
+          modifiers: [co2_corrected]
+        - IR_108
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - IR_016
+        - VIS006
     standard_name: convection
 
   night_fog:
-    compositor: !!python/name:satpy.composites.Dust
+    compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 3.75
-      modifiers: [co2_corrected]
-    - 10.8
-    - 12.0
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - IR_120
+      - IR_108
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - IR_108
+      - name: IR_039
+        modifiers: [co2_corrected]
+    - IR_108
     standard_name: night_fog
 
   snow:
@@ -57,9 +125,9 @@ composites:
     prerequisites:
     - name: VIS008
       modifiers: [sunz_corrected]
-    - wavelength: 1.63
+    - name: IR_016
       modifiers: [sunz_corrected]
-    - wavelength: 3.7
+    - name: IR_039
       modifiers: [nir_reflectance]
     standard_name: snow
 
@@ -68,9 +136,9 @@ composites:
     prerequisites:
     - name: VIS008
       modifiers: [sunz_corrected]
-    - wavelength: 3.7
+    - name: IR_039
       modifiers: [nir_reflectance]
-    - 10.8
+    - IR_108
     standard_name: day_microphysics
 
   day_microphysics_winter:
@@ -78,29 +146,51 @@ composites:
     prerequisites:
     - name: VIS008
       modifiers: [sunz_corrected]
-    - wavelength: 3.7
+    - name: IR_039
       modifiers: [nir_reflectance]
-    - 10.8
+    - IR_108
     standard_name: day_microphysics_winter
+
+  natural_color_raw:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - IR_016
+    - VIS008
+    - VIS006
+    standard_name: natural_color
 
   natural_color:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - 1.63
+    - name: IR_016
+      modifiers: [sunz_corrected]
+    - name: VIS008
+      modifiers: [sunz_corrected]
+    - name: VIS006
+      modifiers: [sunz_corrected]
+    standard_name: natural_color
+
+  natural_color_nocorr:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: IR_016
     - name: VIS008
     - name: VIS006
     standard_name: natural_color
 
-  natural_color_sun:
+  fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 1.63
-      modifiers: [sunz_corrected]
-    - name: VIS008
-      modifiers: [sunz_corrected]
-    - name: VIS006
-      modifiers: [sunz_corrected]
-    standard_name: natural_color
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - IR_120
+      - IR_108
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - IR_108
+      - IR_087
+    - IR_108
+    standard_name: fog
 
   cloudmask:
     compositor: !!python/name:satpy.composites.PaletteCompositor
@@ -263,25 +353,158 @@ composites:
   ir_overview:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-    - wavelength: 3.75
+    - name: IR_039
       modifiers: [co2_corrected]
-    - 10.8
-    - 12.0
+    - IR_108
+    - IR_120
     standard_name: ir_overview
 
-  overview:
+  overview_raw:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - VIS006
     - VIS008
-    - 10.8
+    - IR_108
     standard_name: overview
-  overview_sun:
+  overview:
     compositor: !!python/name:satpy.composites.RGBCompositor
     prerequisites:
     - name: VIS006
       modifiers: [sunz_corrected]
     - name: VIS008
       modifiers: [sunz_corrected]
-    - 10.8
+    - IR_108
     standard_name: overview
+
+  colorized_ir_clouds:
+    compositor: !!python/name:satpy.composites.SingleBandCompositor
+    prerequisites:
+      - name: 'IR_108'
+    standard_name: colorized_ir_clouds
+
+  vis_sharpened_ir:
+    compositor: !!python/name:satpy.composites.LuminanceSharpeningCompositor
+    standard_name: vis_sharpened_ir
+    prerequisites:
+      - name: 'HRV'
+        modifiers: [sunz_corrected]
+      - name: colorized_ir_clouds
+
+  ir_sandwich:
+    compositor: !!python/name:satpy.composites.SandwichCompositor
+    standard_name: ir_sandwich
+    prerequisites:
+      - name: 'HRV'
+        modifiers: [sunz_corrected]
+      - name: colorized_ir_clouds
+
+  natural_enh:
+    compositor: !!python/name:satpy.composites.NaturalEnh
+    standard_name: natural_enh
+    ch16_w: 1.3
+    ch08_w: 2.5
+    ch06_w: 2.2
+    prerequisites:
+    - name: IR_016
+      modifiers: [sunz_corrected]
+    - name: VIS008
+      modifiers: [sunz_corrected]
+    - name: VIS006
+      modifiers: [sunz_corrected]
+
+  hrv_clouds:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: hrv_clouds
+    prerequisites:
+      - name: HRV
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+      - IR_108
+  hrv_fog:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: hrv_fog
+    prerequisites:
+      - name: IR_016
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+      - name: HRV
+        modifiers: [sunz_corrected]
+
+  hrv_severe_storms:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: HRV
+      modifiers: [sunz_corrected]
+    - name: HRV
+      modifiers: [sunz_corrected]
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 10.8
+      - wavelength: 3.9
+    standard_name: hrv_severe_storms
+
+  hrv_severe_storms_masked:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    conditions:
+    # Data will be masked where SZA corrected HRV data is less than 70 %, or NaN
+    - method: less
+      value: 75
+      transparency: 70
+    - method: less
+      value: 70
+      transparency: 100
+    - method: isnan
+      transparency: 100
+    prerequisites:
+    # Composite
+    - name: hrv_severe_storms
+    # Data used in masking
+    - name: HRV
+      modifiers: [sunz_corrected]
+    standard_name: hrv_severe_storms_masked
+
+  natural_with_night_fog:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_with_night_fog
+    prerequisites:
+      - natural_color
+      - night_fog
+
+  natural_color_with_night_ir:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir
+    prerequisites:
+      - natural_color
+      - night_ir_with_background
+
+  natural_color_with_night_ir_hires:
+    compositor: !!python/name:satpy.composites.DayNightCompositor
+    standard_name: natural_color_with_night_ir_hires
+    prerequisites:
+      - natural_color
+      - night_ir_with_background_hires
+
+  night_ir_alpha:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: night_ir_alpha
+    prerequisites:
+      - name: IR_039
+      - name: IR_108
+      - name: IR_120
+      - name: IR_108
+
+  night_ir_with_background:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background
+    prerequisites:
+      - night_ir_alpha
+      - _night_background
+
+  night_ir_with_background_hires:
+    compositor: !!python/name:satpy.composites.BackgroundCompositor
+    standard_name: night_ir_with_background_hires
+    prerequisites:
+      - night_ir_alpha
+      - _night_background_hires

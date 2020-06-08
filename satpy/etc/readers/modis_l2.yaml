@@ -1,0 +1,948 @@
+reader:
+  default_datasets: [cloud_mask]
+  description: MODIS HDF-EOS Cloud Mask Reader
+  name: modis_l2
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [modis]
+
+file_types:
+  mod35_hdf:
+    file_patterns:
+    - 'M{platform_indicator:1s}D35_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
+  mod06_hdf:
+    file_patterns:
+    - 'M{platform_indicator:1s}D06_L2.A{acquisition_time:%Y%j.%H%M}.{collection:03d}.{production_time:%Y%j%H%M%S}.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l2.ModisL2HDFFileHandler
+  hdf_eos_geo:
+    file_patterns:
+      - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+      - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+      - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+      - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
+      - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSGeoReader
+
+datasets:
+  longitude:
+    name: longitude
+    resolution:
+      5000:
+        file_type: [mod35_hdf, mod06_hdf]
+      1000:
+        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf]
+      500:
+        file_type: hdf_eos_geo
+      250:
+        file_type: hdf_eos_geo
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    name: latitude
+    resolution:
+      5000:
+        # For EUM reduced (thinned) files
+        file_type: [mod35_hdf, mod06_hdf]
+      1000:
+        file_type: [hdf_eos_geo, mod35_hdf, mod06_hdf]
+      500:
+        file_type: hdf_eos_geo
+      250:
+        file_type: hdf_eos_geo
+    standard_name: latitude
+    units: degree
+
+##########################
+#Datasets in file mod35_l2
+##########################
+  cloud_mask:
+    # byte Cloud_Mask(Byte_Segment, Cell_Along_Swath_1km, Cell_Across_Swath_1km)
+    name: cloud_mask
+    resolution: [1000, 250]
+    # The dimension of the dataset where the byte information is stored
+    byte_dimension: 0
+    # Different logic depending on the resolution
+    byte:
+      - 1000: 0
+      - 250: [4, 5]
+    bit_start:
+      - 1000: 1
+      - 250: 0
+    bit_count:
+      - 1000: 2
+      - 250: 1
+    # Quality Assurance flag is necessary for 250m resolution dataset
+    quality_assurance:
+      - 250: True
+    file_key: Cloud_Mask
+    file_type: mod35_hdf
+    coordinates: [longitude, latitude]
+
+  quality_assurance:
+    # byte Quality_Assurance(Cell_Along_Swath_1km, Cell_Across_Swath_1km, QA_Dimension)
+    name: quality_assurance
+    resolution: 1000
+    # The dimension of the dataset where the byte information is stored
+    byte_dimension: 2
+    # The byte to consider to extract relevant bits
+    byte: 0
+    bit_start: 0
+    bit_count: 1
+    file_key: Quality_Assurance
+    file_type: mod35_hdf
+    coordinates: [longitude, latitude]
+
+##########################
+#Datasets in file mod06_l2
+##########################
+
+# file contents: https://atmosphere-imager.gsfc.nasa.gov/sites/default/files/ModAtmo/MOD06_L2_CDL_fs.txt
+
+  brightness_temperature:
+    name: brightness_temperature
+    long_name: Observed Brightness Temperature from Averaged Radiances in a 5x5 1-km Pixel Region
+    units: K
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Brightness_Temperature
+
+  surface_temperature:
+    name: surface_temperature
+    long_name: Surface Temperature from Ancillary Data
+    units: K
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: surface_temperature_1km
+      5000:
+        file_key: Surface_Temperature
+
+  surface_pressure:
+    name: surface_pressure
+    long_name: Surface Pressure from Ancillary Data
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Surface_Pressure
+
+  cloud_height_method:
+    name: cloud_height_method
+    long_name: Index Indicating MODIS Bands Used for Cloud Top Pressure Retrieval
+    units: None
+    comment: "1: CO2-slicing retrieval, bands 36/35, 2: CO2-slicing retrieval, bands 35/34, 3: CO2-slicing retrieval, bands 35/33,
+              4: CO2-slicing retrieval, bands 34/33, 6: IR-window retrieval, band 31"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Height_Method
+
+  cloud_top_height:
+    name: cloud_top_height
+    long_name: Geopotential Height at Retrieved Cloud Top Pressure Level (rounded to nearest 50 m)
+    units: m
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: cloud_top_height_1km
+      5000:
+        file_key: Cloud_Top_Height
+
+  cloud_top_height_nadir:
+    name: cloud_top_height_nadir
+    long_name: Geopotential Height at Retrieved Cloud Top Pressure Level for Sensor Zenith (View) Angles  <=32 Degrees (rounded to nearest 50 m)
+    units: m
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Height_Nadir
+
+  cloud_top_height_nadir_day:
+    name: cloud_top_height_nadir_day
+    long_name: Geopotential Height at Retrieved Cloud Top Pressure Level for Sensor Zenith (View) Angles  <=32 Degrees, Day Data Only (rounded to nearest 50 m)
+    units: m
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Height_Nadir_Day
+
+  cloud_top_height_nadir_night:
+    name: cloud_top_height_nadir_night
+    long_name: Geopotential Height at Retrieved Cloud Top Pressure Level for Sensor Zenith (View) Angles  <=32 Degrees, Night Data Only (rounded to nearest 50 m)
+    units: m
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Height_Nadir_Night
+
+  cloud_top_pressure:
+    name: cloud_top_pressure
+    long_name: Cloud Top Pressure Level (rounded to nearest 5 mb)
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: cloud_top_pressure_1km
+      5000:
+        file_key: Cloud_Top_Pressure
+
+  cloud_top_pressure_nadir:
+    name: cloud_top_pressure_nadir
+    long_name: Cloud Top Pressure Level for Sensor Zenith (View) Angles <= 32 Degrees (rounded to nearest 5 mb)
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Pressure_Nadir
+
+  cloud_top_pressure_night:
+    name: cloud_top_pressure_night
+    long_name: Cloud Top Pressure Level, Night Data Only (rounded to nearest 5 mb)
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Pressure_Night
+
+  cloud_top_pressure_nadir_night:
+    name: cloud_top_pressure_nadir_night
+    long_name: Cloud Top Pressure Level for Sensor Zenith (View) Angles <= 32 Degrees (rounded to nearest 5 mb), Night Data Only
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Pressure_Nadir_Night
+
+  cloud_top_pressure_day:
+    name: cloud_top_pressure_day
+    long_name: Cloud Top Pressure Level, Day Only (rounded to nearest 5 mb)
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Pressure_Day
+
+  cloud_top_pressure_nadir_day:
+    name: cloud_top_pressure_nadir_day
+    long_name: Cloud Top Pressure Level for Sensor Zenith (View) Angles <= 32 Degrees (rounded to nearest 5 mb), Day Data Only
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Pressure_Nadir_Day
+
+  cloud_top_temperature:
+    name: cloud_top_temperature
+    long_name: Temperature from Ancillary Data at Retrieved Cloud Top Pressure Level
+    units: K
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: cloud_top_temperature_1km
+      5000:
+        file_key: Cloud_Top_Temperature
+
+  cloud_top_temperature_nadir:
+    name: cloud_top_temperature_nadir
+    long_name: Temperature from Ancillary Data at Retrieved Cloud Top Pressure Level for Sensor Zenith (View) Angles <= 32 Degrees
+    units: K
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Temperature_Nadir
+
+  cloud_top_temperature_night:
+    name: cloud_top_temperature_night
+    long_name: Temperature from Ancillary Data at Retrieved Cloud Top Pressure Level, Night Only
+    units: K
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Temperature_Night
+
+  cloud_top_temperature_nadir_night:
+    name: cloud_top_temperature_nadir_night
+    long_name: Temperature from Ancillary Data at Retrieved Cloud Top Pressure Level for Sensor Zenith (View) Angles <= 32 Degrees, Night Data Only
+    units: K
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Temperature_Nadir_Night
+
+  cloud_top_temperature_day:
+    name: cloud_top_temperature_day
+    long_name: Temperature from Ancillary Data at Retrieved Cloud Top Pressure Level, Day Only
+    units: K
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Temperature_Day
+
+  cloud_top_temperature_nadir_day:
+    name: cloud_top_temperature_nadir_day
+    long_name: Temperature from Ancillary Data at Retrieved Cloud Top Pressure Level for Sensor Zenith (View) Angles <= 32 Degrees, Day Data Only
+    units: K
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Temperature_Nadir_Day
+
+  tropopause_height:
+    name: tropopause_height
+    long_name: Tropopause Height from Ancillary Data
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Tropopause_Height
+
+  cloud_fraction:
+    name: cloud_fraction
+    long_name: Cloud Fraction in Retrieval Region (5x5 1-km Pixels) from 1-km Cloud Mask
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Fraction
+
+  cloud_fraction_nadir:
+    name: cloud_fraction_nadir
+    long_name: Cloud Fraction in Retrieval Region (5x5 1-km Pixels) from 1-km Cloud Mask for Sensor Zenith (View) Angles <= 32 Degrees
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Fraction_Nadir
+
+  cloud_fraction_night:
+    name: cloud_fraction_night
+    long_name: Cloud Fraction in Retrieval Region (5x5 1-km Pixels) from 1-km Cloud Mask, Night Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Fraction_Night
+
+  cloud_fraction_nadir_night:
+    name: cloud_fraction_nadir_night
+    long_name: Cloud Fraction in Retrieval Region (5x5 1-km Pixels) from 1-km Cloud Mask for Sensor Zenith (View) Angles <= 32 Degrees, Night Data Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Fraction_Nadir_Night
+
+  cloud_fraction_day:
+    name: cloud_fraction_day
+    long_name: Cloud Fraction in Retrieval Region (5x5 1-km Pixels) from 1-km Cloud Mask, Day Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Fraction_Day
+
+  cloud_fraction_nadir_day:
+    name: cloud_fraction_nadir_day
+    long_name: Cloud Fraction in Retrieval Region (5x5 1-km Pixels) from 1-km Cloud Mask for Sensor Zenith (View) Angles <= 32 Degrees, Day Data Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Fraction_Nadir_Day
+
+  cloud_effective_emissivity:
+    name: cloud_effective_emissivity
+    long_name: Cloud Effective Emissivity from Cloud Top Pressure Retrieval
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Effective_Emissivity
+
+  cloud_effective_emissivity_nadir:
+    name: cloud_effective_emissivity_nadir
+    long_name: Cloud Effective Emissivity from Cloud Top Pressure Retrieval for Sensor Zenith (View) Angles <= 32 Degrees
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Effective_Emissivity_Nadir
+
+  cloud_effective_emissivity_night:
+    name: cloud_effective_emissivity_night
+    long_name: Cloud Effective Emissivity from Cloud Top Pressure Retrieval, Night Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Effective_Emissivity_Night
+
+  cloud_effective_emissivity_nadir_night:
+    name: cloud_effective_emissivity_nadir_night
+    long_name: Cloud Effective Emissivity from Cloud Top Pressure Retrieval for Sensor Zenith (View) Angles <= 32 Degrees, Night Data Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Effective_Emissivity_Nadir_Night
+
+  cloud_effective_emissivity_day:
+    name: cloud_effective_emissivity_day
+    long_name: Cloud Effective Emissivity from Cloud Top Pressure Retrieval, Day Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Effective_Emissivity_Day
+
+  cloud_effective_emissivity_nadir_day:
+    name: cloud_effective_emissivity_nadir_day
+    long_name: Cloud Effective Emissivity from Cloud Top Pressure Retrieval for Sensor Zenith (View) Angles <= 32 Degrees, Day Data Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Effective_Emissivity_Nadir_Day
+
+  cloud_top_pressure_infrared:
+    name: cloud_top_pressure_infrared
+    long_name: Cloud Top Pressure from IR Window Retrieval
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Pressure_Infrared
+
+  spectral_cloud_forcing:
+    name: spectral_cloud_forcing
+    long_name: Spectral Cloud Forcing (cloud minus clear radiance)
+    units: Watts/meter2/steradian/micron
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Spectral_Cloud_Forcing
+
+  cloud_top_pressure_from_ratios:
+    name: cloud_top_pressure_from_ratios
+    long_name: Cloud Top Pressure Levels from Ratios of Bands 36/35, 35/34, 35/33, 34/33 from the CO2-slicing Algorithm
+    units: hPa
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Top_Pressure_From_Ratios
+
+  radiance_variance:
+    name: radiance_variance
+    long_name: Band 31 Radiance Standard Deviation
+    units: Watts/meter2/steradian/micron
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Radiance_Variance
+
+  cloud_phase_infrared:
+    name: cloud_phase_infrared
+    long_name: Cloud Phase from 8.5 and 11 um Bands
+    units: None
+    comment: "0: cloud free, 1: water cloud, 2: ice cloud, 3: mixed phase cloud, 6: undetermined phase"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Phase_Infrared_1km
+      5000:
+        file_key: Cloud_Phase_Infrared
+
+  cloud_phase_infrared_night:
+    name: cloud_phase_infrared_night
+    long_name: Cloud Phase from 8.5 and 11 um Bands, Night Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Phase_Infrared_Night
+
+  cloud_phase_infrared_day:
+    name: cloud_phase_infrared_day
+    long_name: Cloud Phase from 8.5 and 11 um Bands, Day Only
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      5000:
+        file_key: Cloud_Phase_Infrared_Day
+
+  os_top_flag:
+    name: os_top_flag
+    long_name: Upper Tropospheric/Lower Stratospheric (UTLS) Cloud Flag at 1-km  resolution - valid from -50 to +50 Degrees Latitude
+    units: None
+    comment: "0: stratospheric cloud test not performed, 1: stratospheric cloud not indicated, 2: stratospheric cloud indicated (BTD35-33 > 0.5K)"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: os_top_flag_1km
+
+  cloud_emissivity:
+    name: cloud_emissivity
+    long_name: Cloud Emissivity at 1-km resolution from LEOCAT Cloud Top Pressure Retrieval
+    units: unitless
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: cloud_emissivity_1km
+
+  cloud_top_method:
+    name: cloud_top_method
+    long_name: Index Indicating the MODIS Band(s) Used to Produce the Cloud Top Pressure Result
+    units: unitless
+    comment: "1: CO2-slicing retrieval, bands 36/35, 2: CO2-slicing retrieval, bands 35/34, 3: CO2-slicing retrieval, bands 35/33,
+              4: CO2-slicing retrieval, bands 34/33, 6: IR-window retrieval, band 31"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: cloud_top_method_1km
+
+  cloud_emiss11:
+    name: cloud_emiss11
+    long_name: 11 micron Cloud Emissivity at 1-km resolution from LEOCAT for All Clouds
+    units: unitless
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: cloud_emiss11_1km
+
+  cloud_emiss12:
+    name: cloud_emiss12
+    long_name: 12 micron Cloud Emissivity at 1-km resolution from LEOCAT for All Clouds
+    units: unitless
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: cloud_emiss12_1km
+
+  cloud_emiss13:
+    name: cloud_emiss13
+    long_name: 13.3 micron Cloud Emissivity at 1-km resolution from LEOCAT for All Clouds
+    units: unitless
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: cloud_emiss13_1km
+
+  cloud_emiss85:
+    name: cloud_emiss85
+    long_name: 8.5 micron Cloud Emissivity at 1-km resolution from LEOCAT for All Clouds
+    units: unitless
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: cloud_emiss85_1km
+
+  cloud_effective_radius:
+    name: cloud_effective_radius
+    long_name: "Cloud Particle Effective Radius two-channel retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
+    units: micron
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius
+
+  cloud_effective_radius_pcl:
+    name: cloud_effective_radius_pcl
+    long_name: Cloud Particle Effective Radius two-channel retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: micron
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_PCL
+
+  cloud_effective_radius_16:
+    name: cloud_effective_radius_16
+    long_name: "Cloud Particle Effective Radius two-channel retrieval using band 6 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
+    units: micron
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_16
+
+  cloud_effective_radius_16_PCL:
+    name: cloud_effective_radius_16_PCL
+    long_name: Cloud Particle Effective Radius two-channel retrieval using band 6 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: micron
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_16_PCL
+
+  cloud_effective_radius_37:
+    name: cloud_effective_radius_37
+    long_name: "Cloud Particle Effective Radius two-channel retrieval using band 20 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
+    units: micron
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_37
+
+  cloud_effective_radius_37_PCL:
+    name: cloud_effective_radius_37_PCL
+    long_name: Cloud Particle Effective Radius two-channel retrieval using band 20 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: micron
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_37_PCL
+
+  cloud_optical_thickness:
+    name: cloud_optical_thickness
+    long_name: "Cloud Optical Thickness two-channel retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Optical_Thickness
+
+  cloud_optical_thickness_pcl:
+    name: cloud_optical_thickness_pcl
+    long_name: Cloud Optical Thickness two-channel retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Optical_Thickness_PCL
+
+  cloud_effective_radius_1621:
+    name: cloud_effective_radius_1621
+    long_name: "Cloud Particle Effective Radius two-channel retrieval using band 7 and band 6from best points: not failed in any way, not marked for clear sky restoral"
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_1621
+
+  cloud_effective_radius_1621_pcl:
+    name: cloud_effective_radius_1621_pcl
+    long_name: Cloud Particle Effective Radius two-channel retrieval using band 7 and band 6from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_1621_PCL
+
+  cloud_optical_thickness_1621:
+    name: cloud_optical_thickness_1621
+    long_name: "Cloud Optical Thickness two-channel retrieval using band 7 and band 6 from best points: not failed in any way, not marked for clear sky restoral"
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Optical_Thickness_1621
+
+  cloud_optical_thickness_1621_pcl:
+    name: cloud_optical_thickness_1621_pcl
+    long_name: Cloud Optical Thickness two-channel retrieval using band 7 and band 6 from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Optical_Thickness_1621_PCL
+
+  cloud_water_path:
+    name: cloud_water_path
+    long_name: "Column Water Path two-band retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
+    units: g/m^2
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path
+
+  cloud_water_path_pcl:
+    name: cloud_water_path_pcl
+    long_name: Column Water Path two-band retrieval using band 7 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: g/m^2
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_PCL
+
+  cloud_water_path_1621:
+    name: cloud_water_path_1621
+    long_name: "Column Water Path two-band retrieval using band 7 and band 6from best points: not failed in any way, not marked for clear sky restoral"
+    units: g/m^2
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_1621
+
+  cloud_water_path_1621_pcl:
+    name: cloud_water_path_1621_pcl
+    long_name: Column Water Path two-band retrieval using band 7 and band 6from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: g/m^2
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_1621_PCL
+        
+  cloud_water_path_16:
+    name: cloud_water_path_16
+    long_name: "Column Water Path two-band retrieval using band 6 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
+    units: g/m^2
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_16
+
+  cloud_water_path_16_pcl:
+    name: cloud_water_path_16_pcl
+    long_name: Column Water Path two-band retrieval using band 6 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: g/m^2
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_16_PCL
+        
+  cloud_water_path_37:
+    name: cloud_water_path_37
+    long_name: "Column Water Path two-band retrieval using band 20 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from best points: not failed in any way, not marked for clear sky restoral"
+    units: g/m^2
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_37
+
+  cloud_water_path_37_pcl:
+    name: cloud_water_path_37_pcl
+    long_name: Column Water Path two-band retrieval using band 20 and either band 1, 2, or 5 (specified in Quality_Assurance_1km)from points identified as either partly cloudy from 250m cloud mask test or 1km cloud edges
+    units: g/m^2
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_37_PCL
+        
+  cloud_effective_radius_uncertainty:
+    name: cloud_effective_radius_uncertainty
+    long_name: Cloud Effective Particle Radius (from band 7) Relative Uncertainty (Percent)from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_Unvertainty
+
+  cloud_effective_radius_uncertainty_16:
+    name: cloud_effective_radius_uncertainty_16
+    long_name: Cloud Effective Particle Radius (from band 6) Relative Uncertainty (Percent)from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_Unvertainty_16
+
+  cloud_effective_radius_uncertainty_37:
+    name: cloud_effective_radius_uncertainty_37
+    long_name: Cloud Effective Particle Radius (from band 20) Relative Uncertainty (Percent)from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_Unvertainty_37
+
+  cloud_optical_thickness_uncertainty:
+    name: cloud_optical_thickness_uncertainty
+    long_name: Cloud Optical Thickness Relative Uncertainty (Percent)from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Optical_Thickness_Uncertainty
+
+  cloud_water_path_uncertainty:
+    name: cloud_water_path_uncertainty
+    long_name: Cloud Water Path Relative Uncertainty (Percent)from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_Uncertainty
+
+  cloud_effective_radius_uncertainty_1621:
+    name: cloud_effective_radius_uncertainty_1621
+    long_name: Cloud Effective Particle Radius Relative Uncertainty (Percent) using band 7 and band 6from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Effective_Radius_Uncertainty_1621
+
+  cloud_optical_thickness_uncertainty_1621:
+    name: cloud_optical_thickness_uncertainty_1621
+    long_name: Cloud Optical Thickness Relative Uncertainty (Percent) using band 7 and band 6from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Optical_Thickness_Uncertainty_1621
+
+  cloud_water_path_uncertainty_1621:
+    name: cloud_water_path_uncertainty_1621
+    long_name: Cloud Water Path Relative Uncertainty (Percent) using band 7 and band 6from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_Uncertainty_1621
+
+  cloud_water_path_uncertainty_16:
+    name: cloud_water_path_uncertainty_16
+    long_name: Cloud Water Path Relative Uncertainty (Percent)from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m using the 0.86-1.6um retrieval
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_Uncertainty_16
+
+  cloud_water_path_uncertainty_37:
+    name: cloud_water_path_uncertainty_37
+    long_name: Cloud Water Path Relative Uncertainty (Percent)from both best points and points identified as cloud edge at 1km resolution or partly cloudy at 250m using the 0.86-3.7um retrieval
+    units: "%"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Water_Path_Uncertainty_37
+
+  above_cloud_water_vapor_094:
+    name: above_cloud_water_vapor_094
+    long_name: Above-cloud water vapor amount from 0.94um channel, ocean only, tau > 5.
+    units: cm
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Above_Cloud_Water_Vapor_094
+
+  irw_low_cloud_temperature_from_cop:
+    name: irw_low_cloud_temperature_from_cop
+    long_name: Low Cloud Temperature from IR Window retrieval using cloud emissivity  based on cloud optical thickness
+    units: K
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: IRW_Low_Cloud_Temperature_From_COP
+
+  cloud_phase_optical_properties:
+    name: cloud_phase_optical_properties
+    long_name: Cloud Phase Determination Used in Optical Thickness/Effective Radius Retrieval
+    units: None
+    comment: "0: cloud mask undetermined, 1: clear sky, 2: liquid water cloud, 3: ice  cloud, 4: undetermined phase cloud (but attempted as liquid water)"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Phase_Optical_Properties
+
+  cloud_multi_layer_flag:
+    name: cloud_multi_layer_flag
+    long_name: Cloud Multi Layer Identification From MODIS Shortwave Observations
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cloud_Multi_Layer_Flag
+
+  cirrus_reflectance:
+    name: cirrus_reflectance
+    long_name: Cirrus Reflectance
+    units: None
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cirrus_Reflectance
+
+  cirrus_reflectance_flag:
+    name: cirrus_reflectance_flag
+    long_name: Cirrus Reflectance Flag
+    units: None
+    comment: "0: bad data, 1: non-cirrus pixel, 2: cirrus pixel, 3: contrail pixel"
+    file_type: mod06_hdf
+    coordinates: [longitude, latitude]
+    resolution:
+      1000:
+        file_key: Cirrus_Reflectance_Flag

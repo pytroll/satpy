@@ -1,23 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2017.
-
-# Author(s):
-
-#   David Hoese <david.hoese@ssec.wisc.edu>
-#   Martin Raspaud <martin.raspaud@smhi.se>
-
+# Copyright (c) 2015-2019 Satpy developers
+#
 # This file is part of satpy.
-
+#
 # satpy is free software: you can redistribute it and/or modify it under the
 # terms of the GNU General Public License as published by the Free Software
 # Foundation, either version 3 of the License, or (at your option) any later
 # version.
-
+#
 # satpy is distributed in the hope that it will be useful, but WITHOUT ANY
 # WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
 # A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
-
+#
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Shared objects of the various writer classes.
@@ -27,12 +22,17 @@ For now, this includes enhancement configuration utilities.
 
 import logging
 import os
-
-import numpy as np
-import yaml
-import dask.array as da
-import xarray as xr
 import warnings
+
+import dask.array as da
+import numpy as np
+import xarray as xr
+import yaml
+
+try:
+    from yaml import UnsafeLoader
+except ImportError:
+    from yaml import Loader as UnsafeLoader
 
 from satpy.config import (config_search_paths, glob_config,
                           get_environ_config_dir, recursive_dict_update)
@@ -47,14 +47,13 @@ from trollimage.xrimage import XRImage
 LOG = logging.getLogger(__name__)
 
 
-def read_writer_config(config_files, loader=yaml.Loader):
+def read_writer_config(config_files, loader=UnsafeLoader):
     """Read the writer `config_files` and return the info extracted."""
-
     conf = {}
     LOG.debug('Reading %s', str(config_files))
     for config_file in config_files:
         with open(config_file) as fd:
-            conf.update(yaml.load(fd.read(), loader))
+            conf.update(yaml.load(fd.read(), Loader=loader))
 
     try:
         writer_info = conf['writer']
@@ -104,7 +103,7 @@ def load_writer(writer, ppp_config_dir=None, **writer_kwargs):
 
 
 def configs_for_writer(writer=None, ppp_config_dir=None):
-    """Generator of writer configuration files for one or more writers
+    """Generate writer configuration files for one or more writers.
 
     Args:
         writer (Optional[str]): Yield configs only for this writer
@@ -178,21 +177,58 @@ def _determine_mode(dataset):
                            str(dataset))
 
 
-def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=None,
-                level_coast=1, level_borders=1, fill_value=None):
-    """Add coastline and political borders to image, using *color* (tuple
-    of integers between 0 and 255).
-    Warning: Loses the masks !
-    *resolution* is chosen automatically if None (default), otherwise it should be one of:
+def _burn_overlay(img, image_metadata, area, cw_, overlays):
+    """Burn the overlay in the image array."""
+    del image_metadata
+    cw_.add_overlay_from_dict(overlays, area, background=img)
+    return img
+
+
+def add_overlay(orig_img, area, coast_dir, color=None, width=None, resolution=None,
+                level_coast=None, level_borders=None, fill_value=None,
+                grid=None, overlays=None):
+    """Add coastline, political borders and grid(graticules) to image.
+
+    Uses ``color`` for feature colors where ``color`` is a 3-element tuple
+    of integers between 0 and 255 representing (R, G, B).
+
+    .. warning::
+
+        This function currently loses the data mask (alpha band).
+
+    ``resolution`` is chosen automatically if None (default),
+    otherwise it should be one of:
+
     +-----+-------------------------+---------+
     | 'f' | Full resolution         | 0.04 km |
+    +-----+-------------------------+---------+
     | 'h' | High resolution         | 0.2 km  |
+    +-----+-------------------------+---------+
     | 'i' | Intermediate resolution | 1.0 km  |
+    +-----+-------------------------+---------+
     | 'l' | Low resolution          | 5.0 km  |
+    +-----+-------------------------+---------+
     | 'c' | Crude resolution        | 25  km  |
     +-----+-------------------------+---------+
-    """
 
+    ``grid`` is a dictionary with key values as documented in detail in pycoast
+
+    eg. overlay={'grid': {'major_lonlat': (10, 10),
+                          'write_text': False,
+                          'outline': (224, 224, 224),
+                          'width': 0.5}}
+
+    Here major_lonlat is plotted every 10 deg for both longitude and latitude,
+    no labels for the grid lines are plotted, the color used for the grid lines
+    is light gray, and the width of the gratucules is 0.5 pixels.
+
+    For grid if aggdraw is used, font option is mandatory, if not
+    ``write_text`` is set to False::
+
+        font = aggdraw.Font('black', '/usr/share/fonts/truetype/msttcorefonts/Arial.ttf',
+                            opacity=127, size=16)
+
+    """
     if area is None:
         raise ValueError("Area of image is None, can't add overlay.")
 
@@ -201,51 +237,55 @@ def add_overlay(orig, area, coast_dir, color=(0, 0, 0), width=0.5, resolution=No
         area = get_area_def(area)
     LOG.info("Add coastlines and political borders to image.")
 
-    if resolution is None:
+    old_args = [color, width, resolution, grid, level_coast, level_borders]
+    if any(arg is not None for arg in old_args):
+        warnings.warn("'color', 'width', 'resolution', 'grid', 'level_coast', 'level_borders'"
+                      " arguments will be deprecated soon. Please use 'overlays' instead.", DeprecationWarning)
+    if hasattr(orig_img, 'convert'):
+        # image must be in RGB space to work with pycoast/pydecorate
+        res_mode = ('RGBA' if orig_img.final_mode(fill_value).endswith('A') else 'RGB')
+        orig_img = orig_img.convert(res_mode)
+    elif not orig_img.mode.startswith('RGB'):
+        raise RuntimeError("'trollimage' 1.6+ required to support adding "
+                           "overlays/decorations to non-RGB data.")
 
-        x_resolution = ((area.area_extent[2] -
-                         area.area_extent[0]) /
-                        area.x_size)
-        y_resolution = ((area.area_extent[3] -
-                         area.area_extent[1]) /
-                        area.y_size)
-        res = min(x_resolution, y_resolution)
+    if overlays is None:
+        overlays = dict()
+        # fill with sensible defaults
+        general_params = {'outline': color or (0, 0, 0),
+                          'width': width or 0.5}
+        for key, val in general_params.items():
+            if val is not None:
+                overlays.setdefault('coasts', {}).setdefault(key, val)
+                overlays.setdefault('borders', {}).setdefault(key, val)
+        if level_coast is None:
+            level_coast = 1
+        overlays.setdefault('coasts', {}).setdefault('level', level_coast)
+        if level_borders is None:
+            level_borders = 1
+        overlays.setdefault('borders', {}).setdefault('level', level_borders)
 
-        if res > 25000:
-            resolution = "c"
-        elif res > 5000:
-            resolution = "l"
-        elif res > 1000:
-            resolution = "i"
-        elif res > 200:
-            resolution = "h"
-        else:
-            resolution = "f"
+        if grid is not None:
+            if 'major_lonlat' in grid and grid['major_lonlat']:
+                major_lonlat = grid.pop('major_lonlat')
+                minor_lonlat = grid.pop('minor_lonlat', major_lonlat)
+                grid.update({'Dlonlat': major_lonlat, 'dlonlat': minor_lonlat})
+            for key, val in grid.items():
+                overlays.setdefault('grid', {}).setdefault(key, val)
 
-        LOG.debug("Automagically choose resolution %s", resolution)
-
-    img = orig.pil_image(fill_value=fill_value)
     cw_ = ContourWriterAGG(coast_dir)
-    cw_.add_coastlines(img, area, outline=color,
-                       resolution=resolution, width=width, level=level_coast)
-    cw_.add_borders(img, area, outline=color,
-                    resolution=resolution, width=width, level=level_borders)
-
-    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
-
-    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                             coords={'y': orig.data.coords['y'],
-                                     'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)},
-                             attrs=orig.data.attrs)
+    new_image = orig_img.apply_pil(_burn_overlay, res_mode,
+                                   None, {'fill_value': fill_value},
+                                   (area, cw_, overlays), None)
+    return new_image
 
 
-def add_text(orig, dc, img, text=None):
-    """
-    Add text to an image using the pydecorate function add_text
-    All the features in pydecorate are available
+def add_text(orig, dc, img, text):
+    """Add text to an image using the pydecorate package.
 
-    See documentation of pydecorate
+    All the features of pydecorate's ``add_text`` are available.
+    See documentation of :doc:`pydecorate:index` for more info.
+
     """
     LOG.info("Add text to image.")
 
@@ -253,19 +293,20 @@ def add_text(orig, dc, img, text=None):
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                             coords={'y': orig.data.coords['y'],
-                                     'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)},
-                             attrs=orig.data.attrs)
+    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                            coords={'y': orig.data.coords['y'],
+                                    'x': orig.data.coords['x'],
+                                    'bands': list(img.mode)},
+                            attrs=orig.data.attrs)
+    return XRImage(new_data)
 
 
-def add_logo(orig, dc, img, logo=None):
-    """
-    Add logos or other images to an image using the pydecorate function add_logo
-    All the features in pydecorate are available
+def add_logo(orig, dc, img, logo):
+    """Add logos or other images to an image using the pydecorate package.
 
-    See documentation of pydecorate
+    All the features of pydecorate's ``add_logo`` are available.
+    See documentation of :doc:`pydecorate:index` for more info.
+
     """
     LOG.info("Add logo to image.")
 
@@ -273,11 +314,33 @@ def add_logo(orig, dc, img, logo=None):
 
     arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
 
-    orig.data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
-                             coords={'y': orig.data.coords['y'],
-                                     'x': orig.data.coords['x'],
-                                     'bands': list(img.mode)},
-                             attrs=orig.data.attrs)
+    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                            coords={'y': orig.data.coords['y'],
+                                    'x': orig.data.coords['x'],
+                                    'bands': list(img.mode)},
+                            attrs=orig.data.attrs)
+    return XRImage(new_data)
+
+
+def add_scale(orig, dc, img, scale):
+    """Add scale to an image using the pydecorate package.
+
+    All the features of pydecorate's ``add_scale`` are available.
+    See documentation of :doc:`pydecorate:index` for more info.
+
+    """
+    LOG.info("Add scale to image.")
+
+    dc.add_scale(**scale)
+
+    arr = da.from_array(np.array(img) / 255.0, chunks=CHUNK_SIZE)
+
+    new_data = xr.DataArray(arr, dims=['y', 'x', 'bands'],
+                            coords={'y': orig.data.coords['y'],
+                                    'x': orig.data.coords['x'],
+                                    'bands': list(img.mode)},
+                            attrs=orig.data.attrs)
+    return XRImage(new_data)
 
 
 def add_decorate(orig, fill_value=None, **decorate):
@@ -315,37 +378,86 @@ def add_decorate(orig, fill_value=None, **decorate):
 
     # Need to create this here to possible keep the alignment
     # when adding text and/or logo with pydecorate
+    if hasattr(orig, 'convert'):
+        # image must be in RGB space to work with pycoast/pydecorate
+        orig = orig.convert('RGBA' if orig.mode.endswith('A') else 'RGB')
+    elif not orig.mode.startswith('RGB'):
+        raise RuntimeError("'trollimage' 1.6+ required to support adding "
+                           "overlays/decorations to non-RGB data.")
     img_orig = orig.pil_image(fill_value=fill_value)
     from pydecorate import DecoratorAGG
     dc = DecoratorAGG(img_orig)
 
     # decorate need to be a list to maintain the alignment
     # as ordered in the list
+    img = orig
     if 'decorate' in decorate:
         for dec in decorate['decorate']:
             if 'logo' in dec:
-                add_logo(orig, dc, img_orig, logo=dec['logo'])
+                img = add_logo(img, dc, img_orig, logo=dec['logo'])
             elif 'text' in dec:
-                add_text(orig, dc, img_orig, text=dec['text'])
+                img = add_text(img, dc, img_orig, text=dec['text'])
+            elif 'scale' in dec:
+                img = add_scale(img, dc, img_orig, scale=dec['scale'])
+    return img
 
 
-def get_enhanced_image(dataset,
-                       enhancer=None,
-                       ppp_config_dir=None,
-                       enhancement_config_file=None,
-                       overlay=None,
-                       decorate=None,
-                       fill_value=None):
+def get_enhanced_image(dataset, ppp_config_dir=None, enhance=None, enhancement_config_file=None,
+                       overlay=None, decorate=None, fill_value=None):
+    """Get an enhanced version of `dataset` as an :class:`~trollimage.xrimage.XRImage` instance.
+
+    Args:
+        dataset (xarray.DataArray): Data to be enhanced and converted to an image.
+        ppp_config_dir (str): Root configuration directory.
+        enhance (bool or Enhancer): Whether to automatically enhance
+            data to be more visually useful and to fit inside the file
+            format being saved to. By default this will default to using
+            the enhancement configuration files found using the default
+            :class:`~satpy.writers.Enhancer` class. This can be set to
+            `False` so that no enhancments are performed. This can also
+            be an instance of the :class:`~satpy.writers.Enhancer` class
+            if further custom enhancement is needed.
+        enhancement_config_file (str): Deprecated.
+        overlay (dict): Options for image overlays. See :func:`add_overlay`
+            for available options.
+        decorate (dict): Options for decorating the image. See
+            :func:`add_decorate` for available options.
+        fill_value (int or float): Value to use when pixels are masked or
+            invalid. Default of `None` means to create an alpha channel.
+            See :meth:`~trollimage.xrimage.XRImage.finalize` for more
+            details. Only used when adding overlays or decorations. Otherwise
+            it is up to the caller to "finalize" the image before using it
+            except if calling ``img.show()`` or providing the image to
+            a writer as these will finalize the image.
+
+    .. versionchanged:: 0.10
+
+        Deprecated `enhancement_config_file` and 'enhancer' in favor of
+        `enhance`. Pass an instance of the `Enhancer` class to `enhance`
+        instead.
+
+    """
     if ppp_config_dir is None:
         ppp_config_dir = get_environ_config_dir()
 
-    if enhancer is None:
+    if enhancement_config_file is not None:
+        warnings.warn("'enhancement_config_file' has been deprecated. Pass an instance of the "
+                      "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
+
+    if enhance is False:
+        # no enhancement
+        enhancer = None
+    elif enhance is None or enhance is True:
+        # default enhancement
         enhancer = Enhancer(ppp_config_dir, enhancement_config_file)
+    else:
+        # custom enhancer
+        enhancer = enhance
 
     # Create an image for enhancement
     img = to_image(dataset)
 
-    if enhancer.enhancement_tree is None:
+    if enhancer is None or enhancer.enhancement_tree is None:
         LOG.debug("No enhancement being applied to dataset")
     else:
         if dataset.attrs.get("sensor", None):
@@ -354,23 +466,36 @@ def get_enhanced_image(dataset,
         enhancer.apply(img, **dataset.attrs)
 
     if overlay is not None:
-        add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
+        img = add_overlay(img, dataset.attrs['area'], fill_value=fill_value, **overlay)
 
     if decorate is not None:
-        add_decorate(img, fill_value=fill_value, **decorate)
+        img = add_decorate(img, fill_value=fill_value, **decorate)
 
     return img
 
 
 def show(dataset, **kwargs):
-    """Display the dataset as an image.
-    """
+    """Display the dataset as an image."""
     img = get_enhanced_image(dataset.squeeze(), **kwargs)
     img.show()
     return img
 
 
 def to_image(dataset):
+    """Convert ``dataset`` into a :class:`~trollimage.xrimage.XRImage` instance.
+
+    Convert the ``dataset`` into an instance of the
+    :class:`~trollimage.xrimage.XRImage` class.  This function makes no other
+    changes.  To get an enhanced image, possibly with overlays and decoration,
+    see :func:`~get_enhanced_image`.
+
+    Args:
+        dataset (xarray.DataArray): Data to be converted to an image.
+
+    Returns:
+        Instance of :class:`~trollimage.xrimage.XRImage`.
+
+    """
     dataset = dataset.squeeze()
     if dataset.ndim < 2:
         raise ValueError("Need at least a 2D array to make an image.")
@@ -379,8 +504,11 @@ def to_image(dataset):
 
 
 def split_results(results):
-    """Get sources, targets and delayed objects to separate lists from a
-    list of results collected from (multiple) writer(s)."""
+    """Split results.
+
+    Get sources, targets and delayed objects to separate lists from a list of
+    results collected from (multiple) writer(s).
+    """
     from dask.delayed import Delayed
 
     def flatten(results):
@@ -406,8 +534,7 @@ def split_results(results):
 
 
 def compute_writer_results(results):
-    """Compute all the given dask graphs `results` so that the files are
-    saved.
+    """Compute all the given dask graphs `results` so that the files are saved.
 
     Args:
         results (iterable): Iterable of dask graphs resulting from calls to
@@ -454,17 +581,17 @@ class Writer(Plugin):
                 package may also be used. Any directories in the provided
                 pattern will be created if they do not exist. Example::
 
-                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S.tif
+                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S}.tif
 
             base_dir (str):
                 Base destination directories for all created files.
             kwargs (dict): Additional keyword arguments to pass to the
                 :class:`~satpy.plugin_base.Plugin` class.
 
-            """
+        """
         # Load the config
         Plugin.__init__(self, **kwargs)
-        self.info = self.config['writer']
+        self.info = self.config.get('writer', {})
 
         if 'file_pattern' in self.info:
             warnings.warn("Writer YAML config is using 'file_pattern' which "
@@ -486,7 +613,7 @@ class Writer(Plugin):
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
-        """Helper class method to separate arguments between init and save methods.
+        """Help separating arguments between init and save methods.
 
         Currently the :class:`~satpy.scene.Scene` is passed one set of
         arguments to represent the Writer creation and saving steps. This is
@@ -547,8 +674,8 @@ class Writer(Plugin):
                                  save using this writer.
             compute (bool): If `True` (default), compute all of the saves to
                             disk. If `False` then the return value is either
-                            a `dask.delayed.Delayed` object or two lists to
-                            be passed to a `dask.array.store` call.
+                            a :doc:`dask:delayed` object or two lists to
+                            be passed to a :func:`dask.array.store` call.
                             See return values below for more details.
             **kwargs: Keyword arguments to pass to `save_dataset`. See that
                       documentation for more details.
@@ -556,11 +683,11 @@ class Writer(Plugin):
         Returns:
             Value returned depends on `compute` keyword argument. If
             `compute` is `True` the value is the result of a either a
-            `dask.array.store` operation or a `dask.delayed.Delayed` compute,
-            typically this is `None`. If `compute` is `False` then the
-            result is either a `dask.delayed.Delayed` object that can be
+            :func:`dask.array.store` operation or a :doc:`dask:delayed`
+            compute, typically this is `None`. If `compute` is `False` then
+            the result is either a :doc:`dask:delayed` object that can be
             computed with `delayed.compute()` or a two element tuple of
-            sources and targets to be passed to `dask.array.store`. If
+            sources and targets to be passed to :func:`dask.array.store`. If
             `targets` is provided then it is the caller's responsibility to
             close any objects that have a "close" method.
 
@@ -582,7 +709,7 @@ class Writer(Plugin):
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      compute=True, **kwargs):
-        """Saves the ``dataset`` to a given ``filename``.
+        """Save the ``dataset`` to a given ``filename``.
 
         This method must be overloaded by the subclass.
 
@@ -596,7 +723,7 @@ class Writer(Plugin):
                                        with this fill value if applicable to
                                        this writer.
             compute (bool): If `True` (default), compute and save the dataset.
-                            If `False` return either a `dask.delayed.Delayed`
+                            If `False` return either a :doc:`dask:delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
             **kwargs: Other keyword arguments for this particular writer.
@@ -604,13 +731,13 @@ class Writer(Plugin):
         Returns:
             Value returned depends on `compute`. If `compute` is `True` then
             the return value is the result of computing a
-            `dask.delayed.Delayed` object or running `dask.array.store`. If
-            `compute` is `False` then the returned value is either a
-            `dask.delayed.Delayed` object that can be computed using
+            :doc:`dask:delayed` object or running :func:`dask.array.store`.
+            If `compute` is `False` then the returned value is either a
+            :doc:`dask:delayed` object that can be computed using
             `delayed.compute()` or a tuple of (source, target) that should be
-            passed to `dask.array.store`. If target is provided the the caller
-            is responsible for calling `target.close()` if the target has
-            this method.
+            passed to :func:`dask.array.store`. If target is provided the the
+            caller is responsible for calling `target.close()` if the target
+            has this method.
 
         """
         raise NotImplementedError(
@@ -618,39 +745,88 @@ class Writer(Plugin):
 
 
 class ImageWriter(Writer):
+    """Base writer for image file formats."""
 
-    def __init__(self, name=None, filename=None, enhancement_config=None, base_dir=None, **kwargs):
-        Writer.__init__(self, name, filename, base_dir, **kwargs)
-        enhancement_config = self.info.get(
-            "enhancement_config", None) if enhancement_config is None else enhancement_config
+    def __init__(self, name=None, filename=None, base_dir=None, enhance=None, enhancement_config=None, **kwargs):
+        """Initialize image writer object.
 
-        self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir,
-                                 enhancement_config_file=enhancement_config)
+        Args:
+            name (str): A name for this writer for log and error messages.
+                If this writer is configured in a YAML file its name should
+                match the name of the YAML file. Writer names may also appear
+                in output file attributes.
+            filename (str): Filename to save data to. This filename can and
+                should specify certain python string formatting fields to
+                differentiate between data written to the files. Any
+                attributes provided by the ``.attrs`` of a DataArray object
+                may be included. Format and conversion specifiers provided by
+                the :class:`trollsift <trollsift.parser.StringFormatter>`
+                package may also be used. Any directories in the provided
+                pattern will be created if they do not exist. Example::
+
+                    {platform_name}_{sensor}_{name}_{start_time:%Y%m%d_%H%M%S}.tif
+
+            base_dir (str):
+                Base destination directories for all created files.
+            enhance (bool or Enhancer): Whether to automatically enhance
+                data to be more visually useful and to fit inside the file
+                format being saved to. By default this will default to using
+                the enhancement configuration files found using the default
+                :class:`~satpy.writers.Enhancer` class. This can be set to
+                `False` so that no enhancments are performed. This can also
+                be an instance of the :class:`~satpy.writers.Enhancer` class
+                if further custom enhancement is needed.
+            enhancement_config (str): Deprecated.
+
+            kwargs (dict): Additional keyword arguments to pass to the
+                :class:`~satpy.writer.Writer` base class.
+
+        .. versionchanged:: 0.10
+
+            Deprecated `enhancement_config_file` and 'enhancer' in favor of
+            `enhance`. Pass an instance of the `Enhancer` class to `enhance`
+            instead.
+
+        """
+        super(ImageWriter, self).__init__(name, filename, base_dir, **kwargs)
+        if enhancement_config is not None:
+            warnings.warn("'enhancement_config' has been deprecated. Pass an instance of the "
+                          "'Enhancer' class to the 'enhance' keyword argument instead.", DeprecationWarning)
+        else:
+            enhancement_config = self.info.get("enhancement_config", None)
+
+        if enhance is False:
+            # No enhancement
+            self.enhancer = False
+        elif enhance is None or enhance is True:
+            # default enhancement
+            self.enhancer = Enhancer(ppp_config_dir=self.ppp_config_dir, enhancement_config_file=enhancement_config)
+        else:
+            # custom enhancer
+            self.enhancer = enhance
 
     @classmethod
     def separate_init_kwargs(cls, kwargs):
+        """Separate the init kwargs."""
         # FUTURE: Don't pass Scene.save_datasets kwargs to init and here
-        init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(
-            kwargs)
-        for kw in ['enhancement_config']:
+        init_kwargs, kwargs = super(ImageWriter, cls).separate_init_kwargs(kwargs)
+        for kw in ['enhancement_config', 'enhance']:
             if kw in kwargs:
                 init_kwargs[kw] = kwargs.pop(kw)
         return init_kwargs, kwargs
 
     def save_dataset(self, dataset, filename=None, fill_value=None,
                      overlay=None, decorate=None, compute=True, **kwargs):
-        """Saves the ``dataset`` to a given ``filename``.
+        """Save the ``dataset`` to a given ``filename``.
 
-        This method creates an enhanced image using `get_enhanced_image`. The
-        image is then passed to `save_image`. See both of these functions for
-        more details on the arguments passed to this method.
+        This method creates an enhanced image using :func:`get_enhanced_image`.
+        The image is then passed to :meth:`save_image`. See both of these
+        functions for more details on the arguments passed to this method.
 
         """
-        img = get_enhanced_image(
-            dataset.squeeze(), self.enhancer, overlay=overlay,
-            decorate=decorate, fill_value=fill_value)
-        return self.save_image(img, filename=filename, compute=compute,
-                               fill_value=fill_value, **kwargs)
+        img = get_enhanced_image(dataset.squeeze(), enhance=self.enhancer, overlay=overlay,
+                                 decorate=decorate, fill_value=fill_value)
+        return self.save_image(img, filename=filename, compute=compute, fill_value=fill_value, **kwargs)
 
     def save_image(self, img, filename=None, compute=True, **kwargs):
         """Save Image object to a given ``filename``.
@@ -662,7 +838,7 @@ class ImageWriter(Writer):
                             patterns that will be filled in by dataset
                             attributes.
             compute (bool): If `True` (default), compute and save the dataset.
-                            If `False` return either a `dask.delayed.Delayed`
+                            If `False` return either a :doc:`dask:delayed`
                             object or tuple of (source, target). See the
                             return values below for more information.
             **kwargs: Other keyword arguments to pass to this writer.
@@ -670,23 +846,25 @@ class ImageWriter(Writer):
         Returns:
             Value returned depends on `compute`. If `compute` is `True` then
             the return value is the result of computing a
-            `dask.delayed.Delayed` object or running `dask.array.store`. If
-            `compute` is `False` then the returned value is either a
-            `dask.delayed.Delayed` object that can be computed using
+            :doc:`dask:delayed` object or running :func:`dask.array.store`.
+            If `compute` is `False` then the returned value is either a
+            :doc:`dask:delayed` object that can be computed using
             `delayed.compute()` or a tuple of (source, target) that should be
-            passed to `dask.array.store`. If target is provided the the caller
-            is responsible for calling `target.close()` if the target has
-            this method.
+            passed to :func:`dask.array.store`. If target is provided the the
+            caller is responsible for calling `target.close()` if the target
+            has this method.
 
         """
-        raise NotImplementedError(
-            "Writer '%s' has not implemented image saving" % (self.name, ))
+        raise NotImplementedError("Writer '%s' has not implemented image saving" % (self.name,))
 
 
 class DecisionTree(object):
+    """The decision tree."""
+
     any_key = None
 
     def __init__(self, decision_dicts, attrs, **kwargs):
+        """Init the decision tree."""
         self.attrs = attrs
         self.tree = {}
         if not isinstance(decision_dicts, (list, tuple)):
@@ -694,13 +872,15 @@ class DecisionTree(object):
         self.add_config_to_tree(*decision_dicts)
 
     def add_config_to_tree(self, *decision_dicts):
+        """Add a configuration to the tree."""
         conf = {}
         for decision_dict in decision_dicts:
             conf = recursive_dict_update(conf, decision_dict)
         self._build_tree(conf)
 
     def _build_tree(self, conf):
-        for section_name, attrs in conf.items():
+        """Build the tree."""
+        for _section_name, attrs in conf.items():
             # Set a path in the tree for each section in the configuration
             # files
             curr_level = self.tree
@@ -717,6 +897,7 @@ class DecisionTree(object):
                 curr_level = curr_level[this_attr]
 
     def _find_match(self, curr_level, attrs, kwargs):
+        """Find a match."""
         if len(attrs) == 0:
             # we're at the bottom level, we must have found something
             return curr_level
@@ -741,6 +922,7 @@ class DecisionTree(object):
         return match
 
     def find_match(self, **kwargs):
+        """Find a match."""
         try:
             match = self._find_match(self.tree, self.attrs, kwargs)
         except (KeyError, IndexError, ValueError):
@@ -755,8 +937,10 @@ class DecisionTree(object):
 
 
 class EnhancementDecisionTree(DecisionTree):
+    """The enhancement decision tree."""
 
     def __init__(self, *decision_dicts, **kwargs):
+        """Init the decision tree."""
         attrs = kwargs.pop("attrs", ("name",
                                      "platform_name",
                                      "sensor",
@@ -767,11 +951,12 @@ class EnhancementDecisionTree(DecisionTree):
             decision_dicts, attrs, **kwargs)
 
     def add_config_to_tree(self, *decision_dict):
+        """Add configuration to tree."""
         conf = {}
         for config_file in decision_dict:
             if os.path.isfile(config_file):
                 with open(config_file) as fd:
-                    enhancement_config = yaml.load(fd)
+                    enhancement_config = yaml.load(fd, Loader=UnsafeLoader)
                     if enhancement_config is None:
                         # empty file
                         continue
@@ -785,7 +970,7 @@ class EnhancementDecisionTree(DecisionTree):
                 conf = recursive_dict_update(conf, config_file)
             else:
                 LOG.debug("Loading enhancement config string")
-                d = yaml.load(config_file)
+                d = yaml.load(config_file, Loader=UnsafeLoader)
                 if not isinstance(d, dict):
                     raise ValueError(
                         "YAML file doesn't exist or string is not YAML dict: {}".format(config_file))
@@ -794,6 +979,7 @@ class EnhancementDecisionTree(DecisionTree):
         self._build_tree(conf)
 
     def find_match(self, **kwargs):
+        """Find a match."""
         try:
             return super(EnhancementDecisionTree, self).find_match(**kwargs)
         except KeyError:
@@ -803,7 +989,6 @@ class EnhancementDecisionTree(DecisionTree):
 
 
 class Enhancer(object):
-
     """Helper class to get enhancement information for images."""
 
     def __init__(self, ppp_config_dir=None, enhancement_config_file=None):
@@ -811,8 +996,7 @@ class Enhancer(object):
 
         Args:
             ppp_config_dir: Points to the base configuration directory
-            enhancement_config_file: The enhancement configuration to
-                apply, False to leave as is.
+            enhancement_config_file: The enhancement configuration to apply, False to leave as is.
         """
         self.ppp_config_dir = ppp_config_dir or get_environ_config_dir()
         self.enhancement_config_file = enhancement_config_file
@@ -821,8 +1005,7 @@ class Enhancer(object):
             # it wasn't specified in the config or in the kwargs, we should
             # provide a default
             config_fn = os.path.join("enhancements", "generic.yaml")
-            self.enhancement_config_file = config_search_paths(
-                config_fn, self.ppp_config_dir)
+            self.enhancement_config_file = config_search_paths(config_fn, self.ppp_config_dir)
 
         if not self.enhancement_config_file:
             # They don't want any automatic enhancements
@@ -831,12 +1014,12 @@ class Enhancer(object):
             if not isinstance(self.enhancement_config_file, (list, tuple)):
                 self.enhancement_config_file = [self.enhancement_config_file]
 
-            self.enhancement_tree = EnhancementDecisionTree(
-                *self.enhancement_config_file)
+            self.enhancement_tree = EnhancementDecisionTree(*self.enhancement_config_file)
 
         self.sensor_enhancement_configs = []
 
     def get_sensor_enhancement_config(self, sensor):
+        """Get the sensor-specific config."""
         if isinstance(sensor, str):
             # one single sensor
             sensor = [sensor]
@@ -850,6 +1033,7 @@ class Enhancer(object):
                 yield config_file
 
     def add_sensor_enhancements(self, sensor):
+        """Add sensor-specific enhancements."""
         # XXX: Should we just load all enhancements from the base directory?
         new_configs = []
         for config_file in self.get_sensor_enhancement_config(sensor):
@@ -861,6 +1045,7 @@ class Enhancer(object):
             self.enhancement_tree.add_config_to_tree(*new_configs)
 
     def apply(self, img, **info):
+        """Apply the enhancements."""
         enh_kwargs = self.enhancement_tree.find_match(**info)
 
         LOG.debug("Enhancement configuration options: %s" %

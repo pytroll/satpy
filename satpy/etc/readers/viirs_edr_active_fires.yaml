@@ -1,0 +1,84 @@
+reader:
+    description: VIIRS Active Fires Reader
+    name: viirs_edr_active_fires
+    reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+    sensors: [viirs]
+
+file_types:
+    fires_netcdf_img:
+        file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresFileHandler
+        variable_prefix: ""
+        file_patterns:
+            - 'AFIMG_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
+    fires_netcdf:
+        file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresFileHandler
+        variable_prefix: "Fire Pixels/"
+        file_patterns:
+            - 'AFEDR_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
+            - 'AFMOD_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.nc'
+    fires_text_img:
+        file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresTextFileHandler
+        skip_rows: 15
+        columns: ["latitude", "longitude", "T4", "Along-scan", "Along-track", "confidence_cat", "power"]
+        file_patterns:
+            - 'AFIMG_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.txt'
+    fires_text:
+        file_reader: !!python/name:satpy.readers.viirs_edr_active_fires.VIIRSActiveFiresTextFileHandler
+        skip_rows: 15
+        columns: ["latitude", "longitude", "T13", "Along-scan", "Along-track", "confidence_pct", "power"]
+        file_patterns:
+            - 'AFMOD_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.txt'
+            - 'AFEDR_{satellite_name}_d{start_time:%Y%m%d_t%H%M%S%f}_e{end_time:%H%M%S%f}_b{orbit:5d}_c{creation_time}_{source}.txt'
+
+datasets:
+    confidence_cat:
+        name: confidence_cat
+        file_type: [fires_netcdf_img, fires_text_img]
+        file_key: "{variable_prefix}FP_confidence"
+        coordinates: [longitude, latitude]
+        units: '1'
+        flag_meanings: ['low', 'medium', 'high']
+        flag_values: [7, 8, 9]
+        _FillValue: 0
+    confidence_pct:
+        name: confidence_pct
+        file_type: [fires_netcdf, fires_text]
+        file_key: "{variable_prefix}FP_confidence"
+        coordinates: [longitude, latitude]
+        units: '%'
+        # this is not a category product but we should define a fill value
+        # since we aren't going to scale the data to a float data type in
+        # the python code
+        _FillValue: 255
+    longitude:
+        name: longitude
+        standard_name: longitude
+        file_type: [fires_netcdf_img, fires_netcdf, fires_text_img, fires_text]
+        file_key: "{variable_prefix}FP_longitude"
+        units: 'degrees_east'
+    latitude:
+        name: latitude
+        standard_name: latitude
+        file_type: [fires_netcdf_img, fires_netcdf, fires_text_img, fires_text]
+        file_key: "{variable_prefix}FP_latitude"
+        units: 'degrees_north'
+    power:
+        name: power
+        file_type: [fires_netcdf_img, fires_netcdf, fires_text_img, fires_text]
+        file_key: "{variable_prefix:s}FP_power"
+        coordinates: [longitude, latitude]
+        units: 'MW'
+    T13:
+        name: T13
+        file_type: [fires_netcdf, fires_text]
+        file_key: "{variable_prefix}FP_T13"
+        coordinates: [longitude, latitude]
+        standard_name: toa_brightness_temperature
+        units: 'K'
+    T4:
+        name: T4
+        file_type: [fires_netcdf_img, fires_text_img]
+        file_key: "{variable_prefix}FP_T4"
+        coordinates: [longitude, latitude]
+        standard_name: toa_brightness_temperature
+        units: 'K'

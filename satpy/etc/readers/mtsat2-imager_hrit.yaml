@@ -1,0 +1,149 @@
+reader:
+  name: mtsat2-imager_hrit
+  short_name: MTSAT-2 Imager HRIT
+  long_name: MTSAT-2 Imager Level 1 (HRIT)
+  description: >
+    Reader for MTSAT-2 Imager data in JMA HRIT format. Note that there
+    exist two versions of the dataset. A segmented (data split into
+    multiple files) and a non-segmented version (all data in one file).
+    References:
+
+    - https://www.wmo-sat.info/oscar/instruments/view/219
+    - http://www.data.jma.go.jp/mscweb/notice/Himawari7_e.html
+
+  sensors: [mtsat2_imager]
+  default_channels: []
+  reader: !!python/name:satpy.readers.yaml_reader.GEOSegmentYAMLReader
+
+file_types:
+    hrit_vis:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}VIS'
+
+    hrit_ir1:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR1'
+
+    hrit_ir2:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR2'
+
+    hrit_ir3:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR3'
+
+    hrit_ir4:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}'
+        - 'HRIT_MTSAT2_{start_time:%Y%m%d_%H%M}_DK{area:02d}IR4'
+
+    hrit_vis_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}VIS_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_ir1_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR1_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_ir2_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR2_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_ir3_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR3_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+    hrit_ir4_seg:
+        file_reader: !!python/name:satpy.readers.hrit_jma.HRITJMAFileHandler
+        file_patterns:
+        - 'IMG_DK{area:02d}IR4_{start_time:%Y%m%d%H%M}_{segment:03d}'
+        expected_segments: 10
+
+
+datasets:
+  VIS:
+    name: VIS
+    sensor: mtsat2_imager
+    wavelength: [0.55, 0.675, 0.80]
+    resolution: 1000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      reflectance:
+        standard_name: toa_bidirectional_reflectance
+        units: "%"
+    file_type: [hrit_vis, hrit_vis_seg]
+
+  IR1:
+    name: IR1
+    sensor: mtsat2_imager
+    wavelength: [10.3, 10.8, 11.3]
+    resolution: 4000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: [hrit_ir1, hrit_ir1_seg]
+
+  IR2:
+    name: IR2
+    sensor: mtsat2_imager
+    wavelength: [11.5, 12.0, 12.5]
+    resolution: 4000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: [hrit_ir2, hrit_ir2_seg]
+
+  IR3:
+    name: IR3
+    sensor: mtsat2_imager
+    wavelength: [6.5, 6.75, 7.0]
+    resolution: 4000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: [hrit_ir3, hrit_ir3_seg]
+
+  IR4:
+    name: IR4
+    sensor: mtsat2_imager
+    wavelength: [3.5, 3.75, 4.0]
+    resolution: 4000
+    calibration:
+      counts:
+        standard_name: counts
+        units: 1
+      brightness_temperature:
+        standard_name: toa_brightness_temperature
+        units: "K"
+    file_type: [hrit_ir4, hrit_ir4_seg]

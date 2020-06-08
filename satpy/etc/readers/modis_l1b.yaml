@@ -1,0 +1,501 @@
+reader:
+  default_datasets: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36]
+  description: Generic MODIS HDF-EOS Reader
+  name: modis_l1b
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  sensors: [modis]
+
+navigations:
+  hdf_eos_geo:
+      description: MODIS navigation
+      file_type: hdf_eos_geo
+      latitude_key: Latitude
+      longitude_key: Longitude
+      nadir_resolution: [1000]
+      rows_per_scan: 10
+
+datasets:
+  '1':
+    name: '1'
+    resolution:
+      250: {file_type: hdf_eos_data_250m}
+      500: {file_type: hdf_eos_data_500m}
+      1000: {file_type: hdf_eos_data_1000m}
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.62
+    - 0.645
+    - 0.67
+  '2':
+    name: '2'
+    resolution:
+      250: {file_type: hdf_eos_data_250m}
+      500: {file_type: hdf_eos_data_500m}
+      1000: {file_type: hdf_eos_data_1000m}
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.841
+    - 0.8585
+    - 0.876
+  '3':
+    name: '3'
+    resolution:
+      500: {file_type: hdf_eos_data_500m}
+      1000: {file_type: hdf_eos_data_1000m}
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.459
+    - 0.469
+    - 0.479
+  '4':
+    name: '4'
+    resolution:
+      500: {file_type: hdf_eos_data_500m}
+      1000: {file_type: hdf_eos_data_1000m}
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.545
+    - 0.555
+    - 0.565
+  '5':
+    name: '5'
+    resolution:
+      500: {file_type: hdf_eos_data_500m}
+      1000: {file_type: hdf_eos_data_1000m}
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 1.23
+    - 1.24
+    - 1.25
+  '6':
+    name: '6'
+    resolution:
+      500: {file_type: hdf_eos_data_500m}
+      1000: {file_type: hdf_eos_data_1000m}
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 1.628
+    - 1.64
+    - 1.652
+  '7':
+    name: '7'
+    resolution:
+      500: {file_type: hdf_eos_data_500m}
+      1000: {file_type: hdf_eos_data_1000m}
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 2.105
+    - 2.13
+    - 2.155
+  '8':
+    file_type: hdf_eos_data_1000m
+    name: '8'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.405
+    - 0.4125
+    - 0.42
+  '9':
+    file_type: hdf_eos_data_1000m
+    name: '9'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.438
+    - 0.443
+    - 0.448
+  '10':
+    file_type: hdf_eos_data_1000m
+    name: '10'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.483
+    - 0.488
+    - 0.493
+  '11':
+    file_type: hdf_eos_data_1000m
+    name: '11'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.526
+    - 0.531
+    - 0.536
+  '12':
+    file_type: hdf_eos_data_1000m
+    name: '12'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.546
+    - 0.551
+    - 0.556
+  13hi:
+    file_type: hdf_eos_data_1000m
+    name: '13hi'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.662
+    - 0.667
+    - 0.672
+  13lo:
+    file_type: hdf_eos_data_1000m
+    name: '13lo'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.662
+    - 0.667
+    - 0.672
+  14hi:
+    file_type: hdf_eos_data_1000m
+    name: '14hi'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.673
+    - 0.678
+    - 0.683
+  14lo:
+    file_type: hdf_eos_data_1000m
+    name: '14lo'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.673
+    - 0.678
+    - 0.683
+  '15':
+    file_type: hdf_eos_data_1000m
+    name: '15'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.743
+    - 0.748
+    - 0.753
+  '16':
+    file_type: hdf_eos_data_1000m
+    name: '16'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.862
+    - 0.8695
+    - 0.877
+  '17':
+    file_type: hdf_eos_data_1000m
+    name: '17'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.89
+    - 0.905
+    - 0.92
+  '18':
+    file_type: hdf_eos_data_1000m
+    name: '18'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.931
+    - 0.936
+    - 0.941
+  '19':
+    file_type: hdf_eos_data_1000m
+    name: '19'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 0.915
+    - 0.94
+    - 0.965
+  '20':
+    file_type: hdf_eos_data_1000m
+    name: '20'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 3.66
+    - 3.75
+    - 3.84
+  '21':
+    file_type: hdf_eos_data_1000m
+    name: '21'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 3.929
+    - 3.959
+    - 3.989
+  '22':
+    file_type: hdf_eos_data_1000m
+    name: '22'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 3.929
+    - 3.959
+    - 3.989
+  '23':
+    file_type: hdf_eos_data_1000m
+    name: '23'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 4.02
+    - 4.05
+    - 4.08
+  '24':
+    file_type: hdf_eos_data_1000m
+    name: '24'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 4.433
+    - 4.4655
+    - 4.498
+  '25':
+    file_type: hdf_eos_data_1000m
+    name: '25'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 4.482
+    - 4.5155
+    - 4.549
+  '26':
+    file_type: hdf_eos_data_1000m
+    name: '26'
+    resolution: 1000
+    calibration: [reflectance, radiance, counts]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 1.36
+    - 1.375
+    - 1.39
+  '27':
+    file_type: hdf_eos_data_1000m
+    name: '27'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 6.535
+    - 6.715
+    - 6.895
+  '28':
+    file_type: hdf_eos_data_1000m
+    name: '28'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 7.175
+    - 7.325
+    - 7.475
+  '29':
+    file_type: hdf_eos_data_1000m
+    name: '29'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 8.4
+    - 8.55
+    - 8.7
+  '30':
+    file_type: hdf_eos_data_1000m
+    name: '30'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 9.58
+    - 9.73
+    - 9.88
+  '31':
+    file_type: hdf_eos_data_1000m
+    name: '31'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 10.78
+    - 11.03
+    - 11.28
+  '32':
+    file_type: hdf_eos_data_1000m
+    name: '32'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 11.77
+    - 12.02
+    - 12.27
+  '33':
+    file_type: hdf_eos_data_1000m
+    name: '33'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 13.185
+    - 13.335
+    - 13.485
+  '34':
+    file_type: hdf_eos_data_1000m
+    name: '34'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 13.485
+    - 13.635
+    - 13.785
+  '35':
+    file_type: hdf_eos_data_1000m
+    name: '35'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 13.785
+    - 13.935
+    - 14.085
+  '36':
+    file_type: hdf_eos_data_1000m
+    name: '36'
+    resolution: 1000
+    calibration: [brightness_temperature, radiance]
+    coordinates: [longitude, latitude]
+    wavelength:
+    - 14.085
+    - 14.235
+    - 14.385
+
+  longitude:
+    name: longitude
+    resolution:
+      5000:
+        # For EUM reduced (thinned) files
+        file_type: hdf_eos_data_1000m
+      1000:
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+      500:
+        file_type: hdf_eos_geo
+      250:
+        file_type: hdf_eos_geo
+    standard_name: longitude
+    units: degree
+
+  latitude:
+    name: latitude
+    resolution:
+      5000:
+        # For EUM reduced (thinned) files
+        file_type: hdf_eos_data_1000m
+      1000:
+        file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+      500:
+        file_type: hdf_eos_geo
+      250:
+        file_type: hdf_eos_geo
+    standard_name: latitude
+    units: degree
+
+  solar_zenith_angle:
+    name: solar_zenith_angle
+    sensor: modis
+    resolution: [1000, 500, 250]
+    coordinates: [longitude, latitude]
+    file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+
+  solar_azimuth_angle:
+    name: solar_azimuth_angle
+    sensor: modis
+    resolution: [1000, 500, 250]
+    coordinates: [longitude, latitude]
+    file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+
+  satellite_zenith_angle:
+    name: satellite_zenith_angle
+    sensor: modis
+    resolution: [1000, 500, 250]
+    coordinates: [longitude, latitude]
+    file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+
+  satellite_azimuth_angle:
+    name: satellite_azimuth_angle
+    sensor: modis
+    resolution: [1000, 500, 250]
+    coordinates: [longitude, latitude]
+    file_type: [hdf_eos_geo, hdf_eos_data_1000m]
+
+
+file_types:
+  hdf_eos_data_250m:
+    file_patterns:
+    - 'M{platform_indicator:1s}D02Qkm_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D02QKM.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D02QKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'M{platform_indicator:1s}D02QKM.{start_time:%y%j%H%M%S}.hdf'
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.250m.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSBandReader
+  hdf_eos_data_500m:
+    file_patterns:
+    - 'M{platform_indicator:1s}D02Hkm_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D02HKM.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D02HKM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'M{platform_indicator:1s}D02HKM.{start_time:%y%j%H%M%S}.hdf'
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.500m.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSBandReader
+  hdf_eos_data_1000m:
+    file_patterns:
+    - 'M{platform_indicator:1s}D021km_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D021KM.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D021KM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'thin_M{platform_indicator:1s}D021KM.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'M{platform_indicator:1s}D021KM.{start_time:%y%j%H%M%S}.hdf'
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.1000m.hdf'
+    - 'M{platform_indicator:1s}D021KM_A{start_time:%Y%j_%H%M}_{collection:03d}_NRT.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l1b.MixedHDFEOSReader
+  hdf_eos_geo:
+    file_patterns:
+    - 'M{platform_indicator:1s}D03_A{start_time:%y%j_%H%M%S}_{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}.{processing_time:%Y%j%H%M%S}.hdf'
+    - 'M{platform_indicator:1s}D03.A{start_time:%Y%j.%H%M}.{collection:03d}{suffix}.hdf'
+    - 'M{platform_indicator:1s}D03.{start_time:%y%j%H%M%S}.hdf'
+    - '{platform_indicator:1s}1.{start_time:%y%j.%H%M}.geo.hdf'
+    file_reader: !!python/name:satpy.readers.modis_l1b.HDFEOSGeoReader
