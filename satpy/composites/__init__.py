@@ -152,7 +152,7 @@ class CompositorLoader(object):
     def _process_composite_config(self, composite_name, conf,
                                   composite_type, sensor_id, sensor_deps, composite_config, **kwargs):
         try:
-            id_keys = conf['identification_keys']
+            id_keys = conf['composite_identification_keys']
         except KeyError:
             id_keys = self.ds_id_keys[sensor_deps[-1]]
         self.ds_id_keys[sensor_id] = id_keys
@@ -180,7 +180,7 @@ class CompositorLoader(object):
                         dep_num += 1
                         # Minimal composite config
                         sub_conf = {composite_type: {sub_comp_name: item},
-                                    'identification_keys': minimal_default_keys_config
+                                    'composite_identification_keys': minimal_default_keys_config
                                     }
                         self._process_composite_config(
                             sub_comp_name, sub_conf, composite_type, sensor_id,
