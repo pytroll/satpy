@@ -284,10 +284,7 @@ def get_keys_from_config(common_id_keys, config):
 
 
 def _share_metadata_key(k, values, average_times):
-    """Decide if key is shared.
-
-    Helper for combine_metadata.
-    """
+    """Combine metadata. Helper for combine_metadata, decide if key is shared."""
     any_arrays = any([hasattr(val, "__array__") for val in values])
     # in the real world, the `ancillary_variables` attribute may be
     # List[xarray.DataArray], this means our values are now
@@ -312,10 +309,7 @@ def _share_metadata_key(k, values, average_times):
 
 
 def _share_metadata_key_array(values):
-    """Check object identity in list of arrays.
-
-    Helper for combine_metadata.
-    """
+    """Combine metadata. Helper for combine_metadata, check object identity in list of arrays."""
     for val in values[1:]:
         if val is not values[0]:
             return False
@@ -323,10 +317,7 @@ def _share_metadata_key_array(values):
 
 
 def _share_metadata_key_list_arrays(values):
-    """Check object identity in list of list of arrays.
-
-    Helper for combine_metadata.
-    """
+    """Combine metadata. Helper for combine_metadata, check object identity in list of list of arrays."""
     for val in values[1:]:
         for arr, ref in zip(val, values[0]):
             if arr is not ref:
@@ -375,9 +366,10 @@ class DataID(dict):
                             typically in hPa, but may be in inverse meters
                             for altitude datasets (1/meters).
         modifiers (tuple): Tuple of strings identifying what corrections or
-                        other modifications have been performed on this
-                        Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
-                        etc). `None` or empty tuple if not applicable.
+                           other modifications have been performed on this
+                           Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
+                           etc). `None` or empty tuple if not applicable.
+
     """
 
     def __init__(self, id_keys, **keyval_dict):

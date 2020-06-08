@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2017 Satpy developers
+# Copyright (c) 2016-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -78,6 +78,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         xarray_kwargs (dict): Addition arguments to `xarray.open_dataset`
         cache_var_size (int): Cache variables smaller than this size.
         cache_handle (bool): Keep files open for lifetime of filehandler.
+
     """
 
     file_handle = None
@@ -85,7 +86,7 @@ class NetCDF4FileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
                  cache_var_size=0, cache_handle=False):
-        """Set up the file handler."""
+        """Initialize object."""
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
@@ -145,7 +146,10 @@ class NetCDF4FileHandler(BaseFileHandler):
         # Look through each subgroup
         base_name = name + "/" if name else ""
         for group_name, group_obj in obj.groups.items():
-            self.collect_metadata(base_name + group_name, group_obj)
+            full_group_name = base_name + group_name
+            self.file_content[full_group_name] = group_obj
+            self._collect_attrs(full_group_name, group_obj)
+            self.collect_metadata(full_group_name, group_obj)
         for var_name, var_obj in obj.variables.items():
             var_name = base_name + var_name
             self.file_content[var_name] = var_obj
@@ -174,6 +178,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         Args:
             cache_vars (List[str]): Names of data variables to be cached.
             obj (netCDF4.Dataset): Dataset object from which to read them.
+
         """
         for var_name in cache_vars:
             v = self.file_content[var_name]
@@ -198,6 +203,11 @@ class NetCDF4FileHandler(BaseFileHandler):
                 val = self._get_var_from_filehandle(group, key)
             else:
                 val = self._get_var_from_xr(group, key)
+        elif isinstance(val, netCDF4.Group):
+            # Full groups are conveniently read with xr even if file_handle is available
+            with xr.open_dataset(self.filename, group=key,
+                                 **self._xarray_kwargs) as nc:
+                val = nc
         return val
 
     def _get_var_from_xr(self, group, key):
