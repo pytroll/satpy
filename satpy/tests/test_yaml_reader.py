@@ -26,7 +26,7 @@ from unittest.mock import MagicMock, patch
 
 import satpy.readers.yaml_reader as yr
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.dataset import DatasetQuery
+from satpy.dataset import DataQuery
 from satpy.tests.utils import make_dsid
 
 
@@ -429,8 +429,8 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_get_coordinates_for_dataset_key(self):
         """Test getting coordinates for a key."""
-        ds_q = DatasetQuery(name='ch01', wavelength=(0.5, 0.6, 0.7),
-                            calibration='reflectance', modifiers=())
+        ds_q = DataQuery(name='ch01', wavelength=(0.5, 0.6, 0.7),
+                         calibration='reflectance', modifiers=())
         res = self.reader._get_coordinates_for_dataset_key(ds_q)
         self.assertListEqual(res,
                              [make_dsid(name='lons'),

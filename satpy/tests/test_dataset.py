@@ -212,14 +212,14 @@ def test_dataid_copy():
 
 def test_datasetquery():
     """Test DatasetQuery objects."""
-    from satpy.dataset import DatasetQuery
+    from satpy.dataset import DataQuery
 
-    DatasetQuery(name='cheese_shops')
+    DataQuery(name='cheese_shops')
 
 
 def test_id_query_interactions():
     """Test interactions between DataIDs and DatasetQuery's."""
-    from satpy.dataset import DatasetQuery, DataID, WavelengthRange, ModifierTuple
+    from satpy.dataset import DataQuery, DataID, WavelengthRange, ModifierTuple
 
     default_id_keys_config = {'name': {
                                 'required': True,
@@ -244,7 +244,7 @@ def test_id_query_interactions():
                             }
 
     # Check hash equality
-    dq = DatasetQuery(modifiers=tuple(), name='cheese_shops')
+    dq = DataQuery(modifiers=tuple(), name='cheese_shops')
     did = DataID(default_id_keys_config, name='cheese_shops')
     assert hash(dq) == hash(did)
 
@@ -255,14 +255,14 @@ def test_id_query_interactions():
     assert res[0] == did
 
     # Check did sorting
-    dq = DatasetQuery(name='cheese_shops', wavelength=2, modifiers='*')
+    dq = DataQuery(name='cheese_shops', wavelength=2, modifiers='*')
     did = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1, 2, 3))
     did2 = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1.1, 2.1, 3.1))
     dsids, distances = dq.sort_dsids([did2, did])
     assert list(dsids) == [did, did2]
     assert np.allclose(distances, [0, 0.1])
 
-    dq = DatasetQuery(name='cheese_shops')
+    dq = DataQuery(name='cheese_shops')
     did = DataID(default_id_keys_config, name='cheese_shops', resolution=200)
     did2 = DataID(default_id_keys_config, name='cheese_shops', resolution=400)
     dsids, distances = dq.sort_dsids([did2, did])

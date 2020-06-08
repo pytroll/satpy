@@ -22,7 +22,7 @@ import os
 
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
-from satpy.dataset import (DatasetQuery, DataID, MetadataObject, dataset_walker,
+from satpy.dataset import (DataQuery, DataID, MetadataObject, dataset_walker,
                            replace_anc, combine_metadata, minimal_default_keys_config)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
@@ -963,10 +963,10 @@ class Scene(MetadataObject):
         dataset_keys = set(wishlist)
         needed_datasets = (self.wishlist | dataset_keys) - \
             set(self.datasets.keys())
-        query = DatasetQuery(calibration=calibration,
-                             polarization=polarization,
-                             resolution=resolution,
-                             level=level)
+        query = DataQuery(calibration=calibration,
+                          polarization=polarization,
+                          resolution=resolution,
+                          level=level)
         unknown = self.dep_tree.find_dependencies(needed_datasets,
                                                   query)
         self.wishlist |= needed_datasets

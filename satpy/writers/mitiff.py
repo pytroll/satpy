@@ -23,7 +23,7 @@ import numpy as np
 from satpy.writers import ImageWriter
 
 from satpy.writers import get_enhanced_image
-from satpy.dataset import DatasetQuery, DataID
+from satpy.dataset import DataQuery, DataID
 
 import dask
 
@@ -172,7 +172,7 @@ class MITIFFWriter(ImageWriter):
             if self.channel_order:
                 for cn in self.channel_order[kwargs['sensor']]:
                     for ch, ds in enumerate(datasets):
-                        if isinstance(ds.attrs['prerequisites'][ch], (DatasetQuery, DataID)):
+                        if isinstance(ds.attrs['prerequisites'][ch], (DataQuery, DataID)):
                             if ds.attrs['prerequisites'][ch]['name'] == cn:
                                 channels.append(
                                     ds.attrs['prerequisites'][ch]['name'])
@@ -366,7 +366,7 @@ class MITIFFWriter(ImageWriter):
             if ('prerequisites' in ds.attrs and
                 isinstance(ds.attrs['prerequisites'], list) and
                 len(ds.attrs['prerequisites']) >= i + 1 and
-                    isinstance(ds.attrs['prerequisites'][i], (DatasetQuery, DataID))):
+                    isinstance(ds.attrs['prerequisites'][i], (DataQuery, DataID))):
                 if ds.attrs['prerequisites'][i]['name'] == str(ch):
                     if ds.attrs['prerequisites'][i].get('calibration') == 'RADIANCE':
                         raise NotImplementedError(

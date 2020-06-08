@@ -18,7 +18,7 @@
 """Nodes to build trees."""
 
 from satpy import DatasetDict
-from satpy.dataset import DataID, DatasetQuery, ModifierTuple
+from satpy.dataset import DataID, DataQuery, ModifierTuple
 from satpy.readers import TooManyResults
 from satpy.utils import get_logger
 from satpy.dataset import create_filtered_query
@@ -281,7 +281,7 @@ class DependencyTree(Node):
                 return self.compositors[sensor_name][key]
             except KeyError:
                 continue
-        if isinstance(key, (DatasetQuery, DataID)) and key.get('modifiers'):
+        if isinstance(key, (DataQuery, DataID)) and key.get('modifiers'):
             # we must be generating a modifier composite
             return self.get_modifier(key)
 
@@ -409,10 +409,10 @@ class DependencyTree(Node):
         # one or more modifications if it has modifiers see if we can find
         # the unmodified version first
         src_node = None
-        if isinstance(dataset_key, DatasetQuery) and dataset_key.get('modifiers'):
+        if isinstance(dataset_key, DataQuery) and dataset_key.get('modifiers'):
             new_dict = dataset_key.to_dict()
             new_dict['modifiers'] = new_dict['modifiers'][:-1]
-            new_prereq = DatasetQuery.from_dict(new_dict)
+            new_prereq = DataQuery.from_dict(new_dict)
             src_node, u = self._find_dependencies(new_prereq)
             # Update the requested DatasetQuery with information from the src
             if src_node is not None:
@@ -421,7 +421,7 @@ class DependencyTree(Node):
             if u:
                 return None, u
         elif isinstance(dataset_key, str):
-            dataset_key = DatasetQuery(name=dataset_key)
+            dataset_key = DataQuery(name=dataset_key)
         try:
             compositor = self.get_compositor(dataset_key)
         except KeyError:
