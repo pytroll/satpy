@@ -194,7 +194,7 @@ class CompositorLoader(object):
         if composite_type == 'composites':
             options.update(**kwargs)
             key = DataID(id_keys, **options)
-            comp = loader(_id_keys=id_keys, **options)
+            comp = loader(_satpy_id=key, **options)
             compositors[key] = comp
         elif composite_type == 'modifiers':
             modifiers[composite_name] = loader, options
@@ -306,7 +306,10 @@ class CompositeBase(MetadataObject):
         o = getattr(origin, 'attrs', origin)
         d = getattr(destination, 'attrs', destination)
 
-        dataset_keys = self.attrs['_id_keys'].keys()
+        try:
+            dataset_keys = self.attrs['_satpy_id'].id_keys.keys()
+        except KeyError:
+            dataset_keys = ['name', 'modifiers']
         for k in dataset_keys:
             if k == 'modifiers':
                 d[k] = self.attrs[k]

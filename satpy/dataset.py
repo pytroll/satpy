@@ -188,11 +188,11 @@ class MetadataObject(object):
     @property
     def id(self):
         """Return the DatasetID of the object."""
-        #print(self.attrs)
-        # if self.attrs['name'] is None:
-        #     import ipdb; ipdb.set_trace()
-        id_keys = self.attrs.get('_id_keys', minimal_default_keys_config)
-        return DataID(id_keys, **self.attrs)
+        try:
+            return self.attrs['_satpy_id']
+        except KeyError:
+            id_keys = self.attrs.get('_satpy_id_keys', minimal_default_keys_config)
+            return DataID(id_keys, **self.attrs)
 
 
 def average_datetimes(dt_list):
@@ -356,11 +356,6 @@ def wavelength_match(a, b):
         raise ValueError("Can only compare wavelengths of length 1 or 3")
 
 
-
-class DataArrayID:
-    pass
-
-
 class DataID(dict):
     def __init__(self, id_keys, **keyval_dict):
         self._hash = None
@@ -421,7 +416,10 @@ class DataID(dict):
 
     @classmethod
     def from_dataarray(cls, array, default_keys=minimal_default_keys_config):
-        id_keys = array.attrs.get('_id_keys', default_keys)
+        try:
+            id_keys = array.attrs['_satpy_id'].id_keys
+        except KeyError:
+            id_keys = array.attrs.get('_satpy_id_keys', default_keys)
         return cls(id_keys, **array.attrs)
 
     def _asdict(self):
@@ -433,11 +431,25 @@ class DataID(dict):
         return self._asdict()
 
     def __getattr__(self, key):
-        if key in self._id_keys:
+        if key != '_id_keys' and key in self._id_keys:
             warnings.warn('Access to DataID attributes is deprecated, use [] instead')
             return self[key]
         else:
             return super().__getattr__(key)
+
+    def __deepcopy__(self, memo=None):
+        """Copy this object.
+
+        Returns self as it's immutable.
+        """
+        return self
+
+    def __copy__(self):
+        """Copy this object.
+
+        Returns self as it's immutable.
+        """
+        return self
 
     def __repr__(self):
         """Represent the id."""
@@ -449,31 +461,6 @@ class DataID(dict):
         info = dict(self.items())
         info.update(kwargs)
         return self.from_dict(info)
-    # types = {}
-    # defaults = []
-    # for key, val in id_keys.items():
-    #     if val is None:
-    #         defaults.append(None)
-    #     else:
-    #         defaults.append(val.get('default'))
-    #         if 'type' in val:
-    #             types[key] = val['type']
-    #         elif 'enum' in val:
-    #             types[key] = ValueList(key, ' '.join(val['enum']))
-
-
-
-
-    #         for ckey, the_type in types.items():
-    #             if ckey in kwargs:
-    #                 # TODO: do we really need a convert method or should we fix __new__?
-    #                 kwargs[ckey] = the_type.convert(kwargs[ckey])
-    #         newargs = []
-    #         for key, val in zip(cls._fields, args):
-    #             if key in types:
-    #                 val = types[key].convert(val)
-    #             if val is not None:
-    #                 newargs.append(val)
 
     def __hash__(self):
         if self._hash is None:
@@ -818,7 +805,7 @@ def replace_anc(dataset, parent_dataset):
     """Replace *dataset* the *parent_dataset*'s `ancillary_variables` field."""
     if parent_dataset is None:
         return
-    id_keys = parent_dataset.attrs.get('_id_keys', dataset.attrs.get('_id_keys'))
+    id_keys = parent_dataset.attrs.get('_satpy_id_keys', dataset.attrs.get('_satpy_id_keys'))
     current_dsid = DataID(id_keys, **dataset.attrs)
     for idx, ds in enumerate(parent_dataset.attrs['ancillary_variables']):
         if current_dsid == DataID(id_keys, **ds.attrs):
