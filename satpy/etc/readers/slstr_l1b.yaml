@@ -878,6 +878,13 @@ datasets:
     file_type: esa_l1b_flag_cn
     coordinates: [longitude_cn, latitude_cn]
 
+  probability_cloud_single_in:
+    name: probability_cloud_single_in
+    sensor: slstr
+    resolution: 1000
+    file_type: esa_l1b_flag_in
+    coordinates: [longitude_in, latitude_in]
+
   cloud_in:
     name: cloud_in
     sensor: slstr
