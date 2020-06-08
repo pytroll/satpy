@@ -35,7 +35,7 @@ except ImportError:
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
-from satpy.dataset import DataID, DatasetQuery, MetadataObject, combine_metadata, minimal_default_keys_config
+from satpy.dataset import DataID, DataQuery, MetadataObject, combine_metadata, minimal_default_keys_config
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
@@ -185,7 +185,7 @@ class CompositorLoader(object):
                         self._process_composite_config(
                             sub_comp_name, sub_conf, composite_type, sensor_id,
                             sensor_deps, composite_config, **kwargs)
-                    key = DatasetQuery.from_dict(item)
+                    key = DataQuery.from_dict(item)
                     prereqs.append(key)
                 else:
                     prereqs.append(item)

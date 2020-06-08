@@ -31,7 +31,7 @@ except ImportError:
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
-from satpy.dataset import DatasetQuery, DataID, minimal_default_keys_config, create_filtered_query
+from satpy.dataset import DataQuery, DataID, minimal_default_keys_config, create_filtered_query
 
 LOG = logging.getLogger(__name__)
 
@@ -246,7 +246,7 @@ class DatasetDict(dict):
             # xarray.DataArray objects
             d = value.attrs
         # use value information to make a more complete DatasetID
-        if not isinstance(key, (DataID, DatasetQuery)):
+        if not isinstance(key, (DataID, DataQuery)):
             if not isinstance(d, dict):
                 raise ValueError("Key must be a DatasetID or DataQuery when value is not an xarray DataArray or dict")
             old_key = key

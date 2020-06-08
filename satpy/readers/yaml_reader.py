@@ -40,7 +40,7 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DatasetQuery, get_keys_from_config, default_id_keys_config, default_co_keys_config, DataID
+from satpy.dataset import DataQuery, get_keys_from_config, default_id_keys_config, default_co_keys_config, DataID
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
@@ -706,7 +706,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 if key in ds_info:
                     if ds_info[key] is not None:
                         cinfo[key] = ds_info[key]
-            cid = DatasetQuery.from_dict(cinfo)
+            cid = DataQuery.from_dict(cinfo)
             cids.append(self.get_dataset_key(cid))
 
         return cids

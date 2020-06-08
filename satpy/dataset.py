@@ -513,8 +513,8 @@ class DataID(dict):
     setdefault = _immutable
 
 
-class DatasetQuery:
-    """The dataset query object."""
+class DataQuery:
+    """The data query object."""
 
     def __init__(self, **kwargs):
         """Initialize the query."""
@@ -661,7 +661,7 @@ def create_filtered_query(dataset_key, filter_query):
             if value != '*':
                 ds_dict.setdefault(key, value)
 
-    return DatasetQuery.from_dict(ds_dict)
+    return DataQuery.from_dict(ds_dict)
 
 
 def create_filtered_id(dataset_key, filter_query):

@@ -19,7 +19,7 @@
 from datetime import datetime
 from unittest import mock
 
-from satpy.dataset import (DataID, DatasetQuery, default_id_keys_config,
+from satpy.dataset import (DataID, DataQuery, default_id_keys_config,
                            minimal_default_keys_config)
 from satpy.readers.yaml_reader import FileYAMLReader
 
@@ -36,7 +36,7 @@ def make_cid(**items):
 
 def make_dsq(**items):
     """Make a dataset query."""
-    return DatasetQuery(**items)
+    return DataQuery(**items)
 
 
 def spy_decorator(method_to_decorate):

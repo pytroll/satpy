@@ -132,7 +132,7 @@ class TestDatasetDict(unittest.TestCase):
     def test_get_key(self):
         """Test 'get_key' special functions."""
         from satpy.readers import get_key
-        from satpy.dataset import DatasetQuery
+        from satpy.dataset import DataQuery
         d = self.test_dict
         res1 = get_key(make_dsid(name='test4'), d, calibration='radiance')
         res2 = get_key(make_dsid(name='test4'), d, calibration='radiance',
@@ -145,22 +145,22 @@ class TestDatasetDict(unittest.TestCase):
         res3 = res3[0]
         self.assertEqual(res1, res2)
         self.assertEqual(res1, res3)
-        res1 = get_key('test4', d, query=DatasetQuery(polarization='V'))
+        res1 = get_key('test4', d, query=DataQuery(polarization='V'))
         self.assertEqual(res1, make_dsid(name='test4', calibration='radiance',
                                          polarization='V'))
 
-        res1 = get_key(0.5, d, query=DatasetQuery(resolution=500))
+        res1 = get_key(0.5, d, query=DataQuery(resolution=500))
         self.assertEqual(res1, make_dsid(name='testh',
                                          wavelength=(0, 0.5, 1),
                                          resolution=500))
 
-        res1 = get_key('test6', d, query=DatasetQuery(level=100))
+        res1 = get_key('test6', d, query=DataQuery(level=100))
         self.assertEqual(res1, make_dsid(name='test6',
                                          level=100))
 
         res1 = get_key('test5', d)
-        res2 = get_key('test5', d, query=DatasetQuery(modifiers=('mod2',)))
-        res3 = get_key('test5', d, query=DatasetQuery(modifiers=('mod1', 'mod2',)))
+        res2 = get_key('test5', d, query=DataQuery(modifiers=('mod2',)))
+        res3 = get_key('test5', d, query=DataQuery(modifiers=('mod1', 'mod2',)))
         self.assertEqual(res1, make_dsid(name='test5',
                                          modifiers=('mod2',)))
         self.assertEqual(res1, res2)
