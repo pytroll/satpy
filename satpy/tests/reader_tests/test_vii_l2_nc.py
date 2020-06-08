@@ -24,6 +24,7 @@ import xarray as xr
 import dask.array as da
 import datetime
 from netCDF4 import Dataset
+import uuid
 
 from satpy.readers.vii_l2_nc import ViiL2NCFileHandler
 
@@ -39,7 +40,10 @@ class TestViiL2NCFileHandler(unittest.TestCase):
     def setUp(self):
         """Set up the test."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-        with Dataset(TEST_FILE, 'w') as nc:
+        # uses a UUID to avoid permission conflicts during execution of tests in parallel
+        self.test_file_name = TEST_FILE + str(uuid.uuid1())
+
+        with Dataset(self.test_file_name, 'w') as nc:
             # Create data group
             g1 = nc.createGroup('data')
 
@@ -55,7 +59,7 @@ class TestViiL2NCFileHandler(unittest.TestCase):
             delta_lat[:] = 0.1
 
         self.reader = ViiL2NCFileHandler(
-            filename=TEST_FILE,
+            filename=self.test_file_name,
             filename_info={
                 'creation_time': datetime.datetime(year=2017, month=9, day=22,
                                                    hour=22, minute=40, second=10),
@@ -71,7 +75,7 @@ class TestViiL2NCFileHandler(unittest.TestCase):
         """Remove the previously created test file."""
         # Catch Windows PermissionError for removing the created test file.
         try:
-            os.remove(TEST_FILE)
+            os.remove(self.test_file_name)
         except OSError:
             pass
 

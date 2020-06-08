@@ -23,6 +23,7 @@ import numpy as np
 import xarray as xr
 import datetime
 from netCDF4 import Dataset
+import uuid
 
 from satpy.readers.vii_base_nc import ViiNCBaseFileHandler, SCAN_ALT_TIE_POINTS, \
     TIE_POINTS_FACTOR
@@ -44,7 +45,10 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
     def setUp(self, pgi_):
         """Set up the test."""
         # Easiest way to test the reader is to create a test netCDF file on the fly
-        with Dataset(TEST_FILE, 'w') as nc:
+        # uses a UUID to avoid permission conflicts during execution of tests in parallel
+        self.test_file_name = TEST_FILE + str(uuid.uuid1())
+
+        with Dataset(self.test_file_name, 'w') as nc:
             # Add global attributes
             nc.sensing_start_time_utc = "20170920173040.888"
             nc.sensing_end_time_utc = "20170920174117.555"
@@ -115,7 +119,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         # Create a reader
         self.reader = ViiNCBaseFileHandler(
-            filename=TEST_FILE,
+            filename=self.test_file_name,
             filename_info=filename_info,
             filetype_info={
                 'cached_longitude': 'data/measurement_data/longitude',
@@ -126,7 +130,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         # Create a second reader where orthorectification and interpolation are inhibited
         # by means of the filetype_info flags
         self.reader_2 = ViiNCBaseFileHandler(
-            filename=TEST_FILE,
+            filename=self.test_file_name,
             filename_info=filename_info,
             filetype_info={
                 'cached_longitude': 'data/measurement_data/longitude',
@@ -140,7 +144,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         # Create a third reader without defining cached latitude and longitude
         # by means of the filetype_info flags
         self.reader_3 = ViiNCBaseFileHandler(
-            filename=TEST_FILE,
+            filename=self.test_file_name,
             filename_info=filename_info,
             filetype_info={},
             orthorect=True
@@ -150,7 +154,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
         """Remove the previously created test file."""
         # Catch Windows PermissionError for removing the created test file.
         try:
-            os.remove(TEST_FILE)
+            os.remove(self.test_file_name)
         except OSError:
             pass
 
@@ -171,7 +175,7 @@ class TestViiNCBaseFileHandler(unittest.TestCase):
 
         # Checks that the global attributes are correctly read
         expected_global_attributes = {
-            'filename': TEST_FILE,
+            'filename': self.test_file_name,
             'start_time': expected_start_time,
             'end_time': expected_end_time,
             'spacecraft_name': "test_spacecraft",
