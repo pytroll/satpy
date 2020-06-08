@@ -85,6 +85,7 @@ class NetCDF4FileHandler(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  auto_maskandscale=False, xarray_kwargs=None,
                  cache_var_size=0, cache_handle=False):
+        """Set up the file handler."""
         super(NetCDF4FileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.file_content = {}
@@ -119,6 +120,7 @@ class NetCDF4FileHandler(BaseFileHandler):
         self._xarray_kwargs.setdefault('mask_and_scale', self.auto_maskandscale)
 
     def __del__(self):
+        """Delete the file handler."""
         if self.file_handle is not None:
             try:
                 self.file_handle.close()

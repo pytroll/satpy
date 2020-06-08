@@ -32,7 +32,6 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
 
     def test_vaisala_gld360(self):
         """Test basic functionality for vaisala file handler."""
-
         expected = np.array([12.3,  13.2, -31.])
 
         filename = StringIO(

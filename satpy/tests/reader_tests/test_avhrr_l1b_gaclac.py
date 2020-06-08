@@ -144,6 +144,7 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
     def test_get_dataset_channels(self, get_channel, *mocks):
+        """Test getting the channel datasets."""
         from satpy.tests.utils import make_dsid
 
         # Mock reader and file handler
@@ -191,6 +192,7 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.slice')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
     def test_get_dataset_slice(self, get_channel, slc, *mocks):
+        """Get a slice of a dataset."""
         from satpy.tests.utils import make_dsid
 
         # Test slicing/stripping
@@ -230,6 +232,7 @@ class TestGACLACFile(TestCase):
 
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     def test_get_dataset_latlon(self, *mocks):
+        """Test getting the latitudes and longitudes."""
         from satpy.tests.utils import make_dsid
 
         lons = np.ones((3, 3))
@@ -266,6 +269,7 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle')
     def test_get_dataset_angles(self, get_angle, *mocks):
+        """Test getting the angles."""
         from satpy.tests.utils import make_dsid
         from satpy.readers.avhrr_l1b_gaclac import ANGLES
 
@@ -301,6 +305,7 @@ class TestGACLACFile(TestCase):
 
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     def test_get_dataset_qual_flags(self, *mocks):
+        """Test getting the qualitiy flags."""
         from satpy.tests.utils import make_dsid
 
         qual_flags = np.ones((3, 7))
@@ -331,6 +336,7 @@ class TestGACLACFile(TestCase):
         xr.testing.assert_equal(res, exp)
 
     def test_get_channel(self):
+        """Test getting the channels."""
         from satpy.tests.utils import make_dsid
 
         counts = np.moveaxis(np.array([[[1, 2, 3],

@@ -21,7 +21,7 @@ from satpy import DatasetDict
 from satpy.dataset import DataID, DatasetQuery, ModifierTuple
 from satpy.readers import TooManyResults
 from satpy.utils import get_logger
-from satpy.dataset import create_filtered_query, create_filtered_id
+from satpy.dataset import create_filtered_query
 
 LOG = get_logger(__name__)
 # Empty leaf used for marking composites with no prerequisites

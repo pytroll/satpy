@@ -27,12 +27,12 @@ class TestMITIFFWriter(unittest.TestCase):
     """Test the MITIFF Writer class."""
 
     def setUp(self):
-        """Create temporary directory to save files to"""
+        """Create temporary directory to save files to."""
         import tempfile
         self.base_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             import shutil
             shutil.rmtree(self.base_dir, ignore_errors=True)
@@ -40,7 +40,7 @@ class TestMITIFFWriter(unittest.TestCase):
             pass
 
     def _get_test_datasets(self):
-        """Helper function to create a datasets list."""
+        """Create a datasets list."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -106,7 +106,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return [ds1, ds2]
 
     def _get_test_datasets_sensor_set(self):
-        """Helper function to create a datasets list."""
+        """Create a datasets list."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -172,7 +172,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return [ds1, ds2]
 
     def _get_test_dataset(self, bands=3):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -202,7 +202,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_one_dataset(self):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -232,7 +232,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_one_dataset_sensor_set(self):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -262,7 +262,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_dataset_with_bad_values(self, bands=3):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import numpy as np
         from datetime import datetime
@@ -296,7 +296,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_dataset_calibration(self, bands=6):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -399,7 +399,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_dataset_calibration_one_dataset(self, bands=1):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -452,7 +452,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_dataset_three_bands_two_prereq(self, bands=3):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -803,6 +803,7 @@ class TestMITIFFWriter(unittest.TestCase):
             np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
     def test_convert_proj4_string(self):
+        """Test conversion of geolocations."""
         import xarray as xr
         import dask.array as da
         from satpy.writers.mitiff import MITIFFWriter
@@ -936,7 +937,7 @@ class TestMITIFFWriter(unittest.TestCase):
             np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
     def test_simple_write_two_bands(self):
-        """Test basic writer operation with 3 bands from 2 prerequisites"""
+        """Test basic writer operation with 3 bands from 2 prerequisites."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset_three_bands_two_prereq()
         w = MITIFFWriter(base_dir=self.base_dir)

@@ -220,7 +220,7 @@ _SPARE_TYPE = np.dtype([
 
 
 class AHIHSDFileHandler(BaseFileHandler):
-    """AHI standard format reader
+    """AHI standard format reader.
 
     The AHI sensor produces data for some pixels outside the Earth disk (i,e:
     atmospheric limb or deep space pixels).
@@ -308,15 +308,18 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.calib_mode = calib_mode.upper()
 
     def __del__(self):
+        """Delete the object."""
         if (self.is_zipped and os.path.exists(self.filename)):
             os.remove(self.filename)
 
     @property
     def start_time(self):
+        """Get the start time."""
         return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_start_time']))
 
     @property
     def end_time(self):
+        """Get the end time."""
         return datetime(1858, 11, 17) + timedelta(days=float(self.basic_info['observation_end_time']))
 
     @property
@@ -332,9 +335,11 @@ class AHIHSDFileHandler(BaseFileHandler):
                                        second=dt % 60, microsecond=0)
 
     def get_dataset(self, key, info):
+        """Get the dataset."""
         return self.read_band(key, info)
 
     def get_area_def(self, dsid):
+        """Get the area definition."""
         del dsid
 
         pdict = {}
@@ -364,13 +369,13 @@ class AHIHSDFileHandler(BaseFileHandler):
         return area
 
     def _check_fpos(self, fp_, fpos, offset, block):
-        """Check file position matches blocksize"""
+        """Check file position matches blocksize."""
         if (fp_.tell() + offset != fpos):
             warnings.warn("Actual "+block+" header size does not match expected")
         return
 
     def _read_header(self, fp_):
-        """Read header"""
+        """Read header."""
         header = {}
 
         fpos = 0
@@ -477,7 +482,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         return header
 
     def _read_data(self, fp_, header):
-        """Read data block"""
+        """Read data block."""
         nlines = int(header["block2"]['number_of_lines'][0])
         ncols = int(header["block2"]['number_of_columns'][0])
         return da.from_array(np.memmap(self.filename, offset=fp_.tell(),
@@ -485,13 +490,13 @@ class AHIHSDFileHandler(BaseFileHandler):
                              chunks=CHUNK_SIZE)
 
     def _mask_invalid(self, data, header):
-        """Mask invalid data"""
+        """Mask invalid data."""
         invalid = da.logical_or(data == header['block5']["count_value_outside_scan_pixels"][0],
                                 data == header['block5']["count_value_error_pixels"][0])
         return da.where(invalid, np.float32(np.nan), data)
 
     def _mask_space(self, data):
-        """Mask space pixels"""
+        """Mask space pixels."""
         return data.where(get_geostationary_mask(self.area))
 
     def read_band(self, key, info):
@@ -551,7 +556,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         return res
 
     def calibrate(self, data, calibration):
-        """Calibrate the data"""
+        """Calibrate the data."""
         tic = datetime.now()
 
         if calibration == 'counts':
@@ -569,7 +574,6 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def convert_to_radiance(self, data):
         """Calibrate to radiance."""
-
         bnum = self._header["block5"]['band_number'][0]
         # Check calibration mode and select corresponding coefficients
         if self.calib_mode == "UPDATE" and bnum < 7:

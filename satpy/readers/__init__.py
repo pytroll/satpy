@@ -113,8 +113,6 @@ def filter_keys_by_dataset_query(dquery, key_container):
 
 def get_key(key, key_container, num_results=1, best=True, query=None,
             **kwargs):
-            # resolution=None, calibration=None, polarization=None,
-            # level=None, modifiers=None):
     """Get the fully-specified key best matching the provided key.
 
     Only the best match is returned if `best` is `True` (default). See
@@ -513,6 +511,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
                            filter_parameters=None, reader_kwargs=None,
                            missing_ok=False, fs=None):
     """Find files matching the provided parameters.
+
     Use `start_time` and/or `end_time` to limit found filenames by the times
     in the filenames (not the internal file metadata). Files are matched if
     they fall anywhere within the range specified by these parameters.

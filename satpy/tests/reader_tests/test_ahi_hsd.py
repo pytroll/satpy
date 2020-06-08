@@ -200,6 +200,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 0, 0, 0))
 
     def test_scanning_frequencies(self):
+        """Test scanning frequencies."""
         self.fh.observation_area = 'JP04'
         self.assertEqual(self.fh.scheduled_time, datetime(2018, 10, 22, 3, 7, 30, 0))
         self.fh.observation_area = 'R304'

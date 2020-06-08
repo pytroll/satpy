@@ -74,7 +74,6 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
 
     def available_datasets(self, configured_datasets=None):
         """Automatically determine datasets provided by this file."""
-
         handled_variables = set()
 
         # Iterate over dataset contents
@@ -102,7 +101,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
             return data
 
     def _adjust_lon_coord(self, data):
-        """Adjust lon coordinate to -180 .. 180 ( not 0 .. 360)"""
+        """Adjust lon coordinate to -180 .. 180 ( not 0 .. 360)."""
         data = data.assign_coords(lon=(((data.lon + 180) % 360) - 180))
         return data.where(data < 180., data - 360.)
 
@@ -127,7 +126,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         return data
 
     def _roll_dataset_lon_coord(self, data):
-        """Roll dataset along the lon coordinate"""
+        """Roll dataset along the lon coordinate."""
         if 'lon' in data.dims:
             data = data.roll(lon=720, roll_coords=True)
         return data
@@ -150,7 +149,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
         return data
 
     def _create_area_extent(self, width, height):
-        """Create area extent"""
+        """Create area extent."""
         # Creating a meshgrid, not needed actually, but makes it easy to find extremes
         _lon = self._adjust_lon_coord(self['lon'])
         _lon = self._roll_dataset_lon_coord(_lon)

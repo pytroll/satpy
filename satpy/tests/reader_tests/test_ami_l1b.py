@@ -194,7 +194,6 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
             self.assertEqual(val, res.attrs[key])
         self._check_orbital_parameters(res.attrs['orbital_parameters'])
 
-
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def(self, adef):
         """Test the area generation."""

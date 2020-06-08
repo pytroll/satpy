@@ -25,10 +25,12 @@ from satpy.tests.utils import make_dsid
 
 class TestSAFENC(unittest.TestCase):
     """Test various SAFE SAR L2 OCN file handlers."""
+
     @mock.patch('satpy.readers.safe_sar_l2_ocn.xr')
     @mock.patch.multiple('satpy.readers.safe_sar_l2_ocn.SAFENC',
                          __abstractmethods__=set())
     def setUp(self, xr_):
+        """Set up the tests."""
         from satpy.readers.safe_sar_l2_ocn import SAFENC
 
         self.channels = ['owiWindSpeed', 'owiLon', 'owiLat', 'owiHs', 'owiNrcs', 'foo',
@@ -63,13 +65,14 @@ class TestSAFENC(unittest.TestCase):
                              filetype_info={})
 
     def test_init(self):
-        """Tests reader initialization"""
+        """Test reader initialization."""
         self.assertEqual(self.reader.start_time, 0)
         self.assertEqual(self.reader.end_time, 0)
         self.assertEqual(self.reader.fstart_time, 0)
         self.assertEqual(self.reader.fend_time, 0)
 
     def test_get_dataset(self):
+        """Test getting a dataset."""
         for ch in self.channels:
             dt = self.reader.get_dataset(
                 key=make_dsid(name=ch), info={})
@@ -77,22 +80,3 @@ class TestSAFENC(unittest.TestCase):
             self.assertTrue(np.all(self.nc[ch] == dt.to_masked_array()),
                             msg='get_dataset() returns invalid data for '
                             'dataset {}'.format(ch))
-
-#    @mock.patch('xarray.open_dataset')
-#    def test_init(self, mocked_dataset):
-#        """Test basic init with no extra parameters."""
-#        from satpy.readers.safe_sar_l2_ocn import SAFENC
-#        from satpy.tests.utils import make_dsid
-#
-#        print(mocked_dataset)
-#        ds_id = make_dsid(name='foo')
-#        filename_info = {'mission_id': 'S3A', 'product_type': 'foo',
-#                         'start_time': 0, 'end_time': 0,
-#                         'fstart_time': 0, 'fend_time': 0,
-#                         'polarization': 'vv'}
-#
-#        test = SAFENC('S1A_IW_OCN__2SDV_20190228T075834_20190228T075849_026127_02EA43_8846.SAFE/measurement/'
-#                      's1a-iw-ocn-vv-20190228t075741-20190228t075800-026127-02EA43-001.nc', filename_info, 'c')
-#        print(test)
-#        mocked_dataset.assert_called()
-#        test.get_dataset(ds_id, filename_info)

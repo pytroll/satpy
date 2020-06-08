@@ -26,28 +26,28 @@ from satpy.dataset import WavelengthRange, ModifierTuple, DataID
 os.environ.pop("PPP_CONFIG_DIR", None)
 
 local_id_keys_config = {'name': {
-                              'required': True,
-                          },
-                          'wavelength': {
-                              'type': WavelengthRange,
-                          },
-                          'resolution': None,
-                          'calibration': {
-                              'enum': [
-                                  'reflectance',
-                                  'brightness_temperature',
-                                  'radiance',
-                                  'counts'
-                                  ]
-                          },
-                          'polarization': None,
-                          'level': None,
-                          'modifiers': {
-                              'required': True,
-                              'default': ModifierTuple(),
-                              'type': ModifierTuple,
-                          },
-                          }
+    'required': True,
+},
+    'wavelength': {
+    'type': WavelengthRange,
+},
+    'resolution': None,
+    'calibration': {
+    'enum': [
+        'reflectance',
+        'brightness_temperature',
+        'radiance',
+        'counts'
+    ]
+},
+    'polarization': None,
+    'level': None,
+    'modifiers': {
+    'required': True,
+    'default': ModifierTuple(),
+    'type': ModifierTuple,
+},
+}
 
 
 def make_dsid(**items):

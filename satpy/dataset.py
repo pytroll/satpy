@@ -42,15 +42,19 @@ class ValueList(IntEnum):
             raise ValueError('{} invalid value for {}'.format(value, cls))
 
     def __eq__(self, other):
+        """Check equality."""
         return self.name == other
 
     def __ne__(self, other):
+        """Check non-equality."""
         return self.name != other
 
     def __hash__(self):
+        """Hash the object."""
         return hash(self.name)
 
     def __repr__(self):
+        """Represent the values."""
         return '<' + str(self) + '>'
 
 
@@ -97,6 +101,7 @@ class WavelengthRange(wlklass):
         return tuple.__hash__(self)
 
     def distance(self, value):
+        """Get the distance from value."""
         if self == value:
             try:
                 return abs(value.central - self.central)
@@ -127,11 +132,13 @@ class ModifierTuple(tuple):
         return cls(modifiers)
 
     def __eq__(self, other):
+        """Check equality."""
         if isinstance(other, list):
             other = tuple(other)
         return super().__eq__(other)
 
     def __ne__(self, other):
+        """Check non-equality."""
         if isinstance(other, list):
             other = tuple(other)
         return super().__ne__(other)
@@ -264,7 +271,7 @@ def combine_metadata(*metadata_objects, **kwargs):
 
 
 def get_keys_from_config(common_id_keys, config):
-    """Gather keys for a new DatasetID from the ones available in configured dataset."""
+    """Gather keys for a new DataID from the ones available in configured dataset."""
     id_keys = {}
     for key, val in common_id_keys.items():
         if key in config:
@@ -277,7 +284,10 @@ def get_keys_from_config(common_id_keys, config):
 
 
 def _share_metadata_key(k, values, average_times):
-    """Helper for combine_metadata, decide if key is shared."""
+    """Decide if key is shared.
+
+    Helper for combine_metadata.
+    """
     any_arrays = any([hasattr(val, "__array__") for val in values])
     # in the real world, the `ancillary_variables` attribute may be
     # List[xarray.DataArray], this means our values are now
@@ -302,7 +312,10 @@ def _share_metadata_key(k, values, average_times):
 
 
 def _share_metadata_key_array(values):
-    """Helper for combine_metadata, check object identity in list of arrays."""
+    """Check object identity in list of arrays.
+
+    Helper for combine_metadata.
+    """
     for val in values[1:]:
         if val is not values[0]:
             return False
@@ -310,7 +323,10 @@ def _share_metadata_key_array(values):
 
 
 def _share_metadata_key_list_arrays(values):
-    """Helper for combine_metadata, check object identity in list of list of arrays."""
+    """Check object identity in list of list of arrays.
+
+    Helper for combine_metadata.
+    """
     for val in values[1:]:
         for arr, ref in zip(val, values[0]):
             if arr is not ref:
@@ -318,46 +334,54 @@ def _share_metadata_key_list_arrays(values):
     return True
 
 
-def new_dataset_id_class_from_keys(id_keys):
-    """Create a new DatasetID from a configuration."""
-    types = {}
-    defaults = []
-    for key, val in id_keys.items():
-        if val is None:
-            defaults.append(None)
-        else:
-            defaults.append(val.get('default'))
-            if 'type' in val:
-                types[key] = val['type']
-            elif 'enum' in val:
-                types[key] = ValueList(key, ' '.join(val['enum']))
-    klass = make_dsid_class(types, **dict(zip(id_keys.keys(), defaults)))
-    return klass
+class DataID(dict):
+    """Identifier for all `Dataset` objects.
 
+    FIXME: talk about None not being a valid value
 
-def wavelength_match(a, b):
-    """Return if two wavelengths are equal.
+    DataID is a namedtuple that holds identifying and classifying
+    information about a Dataset. There are two identifying elements,
+    ``name`` and ``wavelength``. These can be used to generically refer to a
+    Dataset. The other elements of a DataID are meant to further
+    distinguish a Dataset from the possible variations it may have. For
+    example multiple Datasets may be called by one ``name`` but may exist
+    in multiple resolutions or with different calibrations such as "radiance"
+    and "reflectance". If an element is `None` then it is considered not
+    applicable.
+
+    A DatasetID can also be used in Satpy to query for a Dataset. This way
+    a fully qualified DatasetID can be found even if some of the DatasetID
+    elements are unknown. In this case a `None` signifies something that is
+    unknown or not applicable to the requested Dataset.
 
     Args:
-        a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
-        b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+        name (str): String identifier for the Dataset
+        wavelength (float, tuple): Single float wavelength when querying for
+                                a Dataset. Otherwise 3-element tuple of
+                                floats specifying the minimum, nominal,
+                                and maximum wavelength for a Dataset.
+                                `None` if not applicable.
+        resolution (int, float): Per data pixel/area resolution. If resolution
+                                varies across the Dataset then nadir view
+                                resolution is preferred. Usually this is in
+                                meters, but for lon/lat gridded data angle
+                                degrees may be used.
+        polarization (str): 'V' or 'H' polarizations of a microwave channel.
+                            `None` if not applicable.
+        calibration (str): String identifying the calibration level of the
+                        Dataset (ex. 'radiance', 'reflectance', etc).
+                        `None` if not applicable.
+        level (int, float): Pressure/altitude level of the dataset. This is
+                            typically in hPa, but may be in inverse meters
+                            for altitude datasets (1/meters).
+        modifiers (tuple): Tuple of strings identifying what corrections or
+                        other modifications have been performed on this
+                        Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
+                        etc). `None` or empty tuple if not applicable.
     """
-    if ((type(a) == type(b)) or
-        (isinstance(a, numbers.Number) and
-            isinstance(b, numbers.Number))):
-        return a == b
-    elif a is None or b is None:
-        return False
-    elif isinstance(a, (list, tuple)) and len(a) == 3:
-        return a[0] <= b <= a[2]
-    elif isinstance(b, (list, tuple)) and len(b) == 3:
-        return b[0] <= a <= b[2]
-    else:
-        raise ValueError("Can only compare wavelengths of length 1 or 3")
 
-
-class DataID(dict):
     def __init__(self, id_keys, **keyval_dict):
+        """Init the DataID."""
         self._hash = None
         self._id_keys = self.fix_id_keys(id_keys or {})
         if keyval_dict:
@@ -370,6 +394,7 @@ class DataID(dict):
 
     @property
     def id_keys(self):
+        """Get the id_keys."""
         return deepcopy(self._id_keys)
 
     @staticmethod
@@ -388,6 +413,7 @@ class DataID(dict):
         return new_id_keys
 
     def convert_dict(self, keyvals):
+        """Convert a dictionary to another types like defined in this object's id_keys."""
         curated = {}
         if not keyvals:
             return curated
@@ -412,10 +438,12 @@ class DataID(dict):
         return curated
 
     def from_dict(self, keyvals):
+        """Create a DataID from a dictionary."""
         return self.__class__(self._id_keys, **keyvals)
 
     @classmethod
     def from_dataarray(cls, array, default_keys=minimal_default_keys_config):
+        """Create a DataID from a dataarray."""
         try:
             id_keys = array.attrs['_satpy_id'].id_keys
         except KeyError:
@@ -427,10 +455,10 @@ class DataID(dict):
 
     def to_dict(self):
         """Convert the ID to a dict."""
-
         return self._asdict()
 
     def __getattr__(self, key):
+        """Support old syntax for getting items."""
         if key != '_id_keys' and key in self._id_keys:
             warnings.warn('Access to DataID attributes is deprecated, use [] instead')
             return self[key]
@@ -463,14 +491,17 @@ class DataID(dict):
         return self.from_dict(info)
 
     def __hash__(self):
+        """Hash the object."""
         if self._hash is None:
             self._hash = hash(tuple(sorted(self.items())))
         return self._hash
 
     def _immutable(self, *args, **kws):
-        raise TypeError('Cannot change a DatasetID')
+        """Raise and error."""
+        raise TypeError('Cannot change a DataID')
 
     def __lt__(self, other):
+        """Check lesser than."""
         return tuple(self.values()) < tuple(other.values())
 
     __setitem__ = _immutable
@@ -480,119 +511,6 @@ class DataID(dict):
     clear = _immutable
     update = _immutable
     setdefault = _immutable
-
-
-
-def make_dsid_class(types=None, **kwargs):
-    """Make a new DatasetID class."""
-    return DataID
-
-    fields = kwargs.keys()
-    defaults = kwargs.values()
-    klass = namedtuple("DatasetID", " ".join(fields), defaults=defaults)
-    if types is None:
-        types = {}
-
-    # TODO: put this documentation somewhere sphinx can find it.
-    class DatasetID(klass, DataArrayID):
-        """Identifier for all `Dataset` objects.
-
-        FIXME: talk about None not being a valid value
-
-        DatasetID is a namedtuple that holds identifying and classifying
-        information about a Dataset. There are two identifying elements,
-        ``name`` and ``wavelength``. These can be used to generically refer to a
-        Dataset. The other elements of a DatasetID are meant to further
-        distinguish a Dataset from the possible variations it may have. For
-        example multiple Datasets may be called by one ``name`` but may exist
-        in multiple resolutions or with different calibrations such as "radiance"
-        and "reflectance". If an element is `None` then it is considered not
-        applicable.
-
-        A DatasetID can also be used in Satpy to query for a Dataset. This way
-        a fully qualified DatasetID can be found even if some of the DatasetID
-        elements are unknown. In this case a `None` signifies something that is
-        unknown or not applicable to the requested Dataset.
-
-        Args:
-            name (str): String identifier for the Dataset
-            wavelength (float, tuple): Single float wavelength when querying for
-                                    a Dataset. Otherwise 3-element tuple of
-                                    floats specifying the minimum, nominal,
-                                    and maximum wavelength for a Dataset.
-                                    `None` if not applicable.
-            resolution (int, float): Per data pixel/area resolution. If resolution
-                                    varies across the Dataset then nadir view
-                                    resolution is preferred. Usually this is in
-                                    meters, but for lon/lat gridded data angle
-                                    degrees may be used.
-            polarization (str): 'V' or 'H' polarizations of a microwave channel.
-                                `None` if not applicable.
-            calibration (str): String identifying the calibration level of the
-                            Dataset (ex. 'radiance', 'reflectance', etc).
-                            `None` if not applicable.
-            level (int, float): Pressure/altitude level of the dataset. This is
-                                typically in hPa, but may be in inverse meters
-                                for altitude datasets (1/meters).
-            modifiers (tuple): Tuple of strings identifying what corrections or
-                            other modifications have been performed on this
-                            Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
-                            etc). `None` or empty tuple if not applicable.
-        """
-
-        def __new__(cls, *args, **kwargs):
-            """Create new DatasetID."""
-            for ckey, the_type in types.items():
-                if ckey in kwargs:
-                    # TODO: do we really need a convert method or should we fix __new__?
-                    kwargs[ckey] = the_type.convert(kwargs[ckey])
-            newargs = []
-            for key, val in zip(cls._fields, args):
-                if key in types:
-                    val = types[key].convert(val)
-                if val is not None:
-                    newargs.append(val)
-
-            return super(DatasetID, cls).__new__(cls, *newargs, **kwargs)
-
-        def __hash__(self):
-            """Hash."""
-            return hash((self._fields, tuple.__hash__(self)))
-
-        def __eq__(self, other):
-            """Compare the DatasetIDs."""
-            if isinstance(other, DatasetQuery):
-                return other.__eq__(self)
-            sdict = self._asdict()
-            odict = other._asdict()
-            for key, val in sdict.items():
-                if key in odict and odict[key] != val:
-                    return False
-            return True
-
-        @classmethod
-        def from_dict(cls, d, **kwargs):
-            """Convert a dict to an ID."""
-            newkwargs = dict()
-            for k in cls._fields:
-                val = d.get(k)
-                if val is not None:
-                    newkwargs[k] = val
-
-            return cls(**newkwargs)
-
-        def to_dict(self, trim=True):
-            """Convert the ID to a dict."""
-            if trim:
-                return self._to_trimmed_dict()
-            else:
-                return self._asdict()
-
-        def _to_trimmed_dict(self):
-            return {key: getattr(self, key) for key in self._fields
-                    if getattr(self, key) is not None}
-
-    return DatasetID
 
 
 class DatasetQuery:
@@ -633,6 +551,7 @@ class DatasetQuery:
         return hash(tuple(zip(fields, values)))
 
     def get(self, key, default=None):
+        """Get an item."""
         return self._dict.get(key, default)
 
     @classmethod
@@ -709,31 +628,8 @@ class DatasetQuery:
         return dsids, distances
 
 
-"""
-  identification_keys:
-    name:
-      required: true
-    wavelength:
-      type: !!python/name:satpy.dataset.WavelengthRange
-    resolution:
-    view:
-      default: nadir
-    calibration:
-    modifiers:
-      required: true
-      default: []
-      type: !!python/name:satpy.dataset.ModifierTuple
-"""
-
-
-def make_trimmed_dsid_from_keys(_id_keys=default_id_keys_config, **items):
-    keys = get_keys_from_config(_id_keys, items)
-    dsid_class = new_dataset_id_class_from_keys(keys)
-    return dsid_class.from_dict(items)
-
-
 class DatasetID:
-    """Fake datasetid."""
+    """Deprecated datasetid."""
 
     def __init__(self, *args, **kwargs):
         """Fake init."""
