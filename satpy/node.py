@@ -434,12 +434,9 @@ class DependencyTree(Node):
 
         # 2.1 get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
-        try:
-            prereqs, unknowns = self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)
-        except AssertionError:
-            self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)
+        prereqs, unknowns = self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)
         if unknowns:
-            # Should we remove all of the unknown nodes that were found
+            # Should we remove all of the unknown nodes that were found ?
             # if there is an unknown prerequisite are we in trouble?
             return None, unknowns
         root.data[1].extend(prereqs)
@@ -459,8 +456,8 @@ class DependencyTree(Node):
             dataset_key (str, float, DatasetID): Dataset identifier to locate
                                                  and find any additional
                                                  dependencies for.
-            query (DatasetQuery): Additional filter parameters. See
-                                  `satpy.readers.get_key` for more details.
+            query (DataQuery): Additional filter parameters. See
+                               `satpy.readers.get_key` for more details.
 
         """
         # Special case: No required dependencies for this composite
@@ -504,7 +501,7 @@ class DependencyTree(Node):
 
         # 3 try to find a composite that matches
         try:
-            node, unknowns = self._find_compositor(dsq, query)
+            node, unknowns = self._find_compositor(dsq)
             LOG.trace("Found composite:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node and node.name))
         except KeyError:
             node = None
@@ -518,7 +515,7 @@ class DependencyTree(Node):
 
         Args:
             dataset_keys (iterable): Strings or DatasetIDs to find dependencies for
-            query (DatasetQuery): Additional filter parameters. See
+            query (DataQuery): Additional filter parameters. See
                               `satpy.readers.get_key` for more details.
 
         Returns:
