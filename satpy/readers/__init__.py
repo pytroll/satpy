@@ -60,28 +60,19 @@ def _wl_dist(wl_a, wl_b):
 
 
 def get_best_dataset_key(key, choices):
-    """Choose the "best" `DatasetID` from `choices` based on `key`.
+    """Choose the "best" `DataID` from `choices` based on `key`.
 
-    The best key is chosen based on the follow criteria:
-
-        1. Central wavelength is nearest to the `key` wavelength if
-           specified.
-        2. Least modified dataset if `modifiers` is `None` in `key`.
-           Otherwise, the modifiers are ignored.
-        3. Highest calibration if `calibration` is `None` in `key`.
-           Calibration priority is chosen by `satpy.CALIBRATION_ORDER`.
-        4. Best resolution (smallest number) if `resolution` is `None`
-           in `key`. Otherwise, the resolution is ignored.
+    To see how the keys are sorted, refer to `:meth:satpy.datasets.DataQuery.sort_dsids`.
 
     This function assumes `choices` has already been filtered to only
     include datasets that match the provided `key`.
 
     Args:
-        key (DatasetID): Query parameters to sort `choices` by.
-        choices (iterable): `DatasetID` objects to sort through to determine
+        key (DataQuery): Query parameters to sort `choices` by.
+        choices (iterable): `DataID` objects to sort through to determine
                             the best dataset.
 
-    Returns: List of best `DatasetID`s from `choices`. If there is more
+    Returns: List of best `DataID`s from `choices`. If there is more
              than one element this function could not choose between the
              available datasets.
 
@@ -94,14 +85,14 @@ def get_best_dataset_key(key, choices):
 
 
 def filter_keys_by_dataset_query(dquery, key_container):
-    """Filer provided key iterable by the provided `DatasetQuery`.
+    """Filer provided key iterable by the provided `DataQuery`.
 
     Note: The `modifiers` attribute of `did` should be `None` to allow for
           **any** modifier in the results.
 
     Args:
-        dquery (DatasetQuery): Query parameters to match in the `key_container`.
-        key_container (iterable): Set, list, tuple, or dict of `DatasetID`
+        dquery (DataQuery): Query parameters to match in the `key_container`.
+        key_container (iterable): Set, list, tuple, or dict of `DataID`
                                   keys.
 
     Returns (list): List of keys matching the provided parameters in no
@@ -118,16 +109,15 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
     Only the best match is returned if `best` is `True` (default). See
     `get_best_dataset_key` for more information on how this is determined.
 
-    The `resolution` and other identifier keywords are provided as a
-    convenience to filter by multiple parameters at once without having
-    to filter by multiple `key` inputs.
+    `query` is provided as a convenience to filter by multiple parameters
+    at once without having to filter by multiple `key` inputs.
 
     Args:
-        key (DatasetID): DatasetID of query parameters to use for
+        key (DataID): DataID of query parameters to use for
                          searching. Any parameter that is `None`
                          is considered a wild card and any match is
                          accepted.
-        key_container (dict or set): Container of DatasetID objects that
+        key_container (dict or set): Container of DataID objects that
                                      uses hashing to quickly access items.
         num_results (int): Number of results to return. Use `0` for all
                            matching results. If `1` then the single matching
@@ -135,7 +125,7 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
                            (default: 1)
         best (bool): Sort results to get "best" result first
                      (default: True). See `get_best_dataset_key` for details.
-        query (DatasetQuery): filter for the key which can contain:
+        query (DataQuery): filter for the key which can contain for example:
             resolution (float, int, or list): Resolution of the dataset in
                                             dataset units (typically
                                             meters). This can also be a
@@ -154,7 +144,7 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
                             a list of possible modifiers.
 
 
-    Returns (list or DatasetID): Matching key(s)
+    Returns (list or DataID): Matching key(s)
 
     Raises: KeyError if no matching results or if more than one result is
             found when `num_results` is `1`.
@@ -182,9 +172,9 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
 
 
 class DatasetDict(dict):
-    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DatasetID.
+    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DataID.
 
-    Note: Internal dictionary keys are `DatasetID` objects.
+    Note: Internal dictionary keys are `DataID` objects.
 
     """
 
@@ -203,12 +193,12 @@ class DatasetDict(dict):
         """Get multiple fully-specified keys that match the provided query.
 
         Args:
-            key (DatasetID): DatasetID of query parameters to use for
-                             searching. Any parameter that is `None`
-                             is considered a wild card and any match is
-                             accepted. Can also be a string representing the
-                             dataset name or a number representing the dataset
-                             wavelength.
+            key (DataID): DataID of query parameters to use for
+                          searching. Any parameter that is `None`
+                          is considered a wild card and any match is
+                          accepted. Can also be a string representing the
+                          dataset name or a number representing the dataset
+                          wavelength.
             num_results (int): Number of results to return. If `0` return all,
                                if `1` return only that element, otherwise
                                return a list of matching keys.
@@ -219,7 +209,7 @@ class DatasetDict(dict):
                        best=best, **dfilter)
 
     def getitem(self, item):
-        """Get Node when we know the *exact* DatasetID."""
+        """Get Node when we know the *exact* DataID."""
         return super(DatasetDict, self).__getitem__(item)
 
     def __getitem__(self, item):
@@ -245,10 +235,10 @@ class DatasetDict(dict):
         if hasattr(value, 'attrs'):
             # xarray.DataArray objects
             d = value.attrs
-        # use value information to make a more complete DatasetID
+        # use value information to make a more complete DataID
         if not isinstance(key, (DataID, DataQuery)):
             if not isinstance(d, dict):
-                raise ValueError("Key must be a DatasetID or DataQuery when value is not an xarray DataArray or dict")
+                raise ValueError("Key must be a DataID or DataQuery when value is not an xarray DataArray or dict")
             old_key = key
             try:
                 key = self.get_key(key)
@@ -257,7 +247,7 @@ class DatasetDict(dict):
                     new_name = old_key
                 else:
                     new_name = d.get("name")
-                # this is a new key and it's not a full DatasetID tuple
+                # this is a new key and it's not a full DataID tuple
                 if new_name is None and d.get('wavelength') is None:
                     raise ValueError("One of 'name' or 'wavelength' attrs "
                                      "values should be set.")
@@ -285,7 +275,7 @@ class DatasetDict(dict):
         return super(DatasetDict, self).__setitem__(key, value)
 
     def contains(self, item):
-        """Check contains when we know the *exact* DatasetID."""
+        """Check contains when we know the *exact* DataID."""
         return super(DatasetDict, self).__contains__(item)
 
     def __contains__(self, item):
