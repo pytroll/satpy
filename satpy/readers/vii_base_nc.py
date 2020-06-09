@@ -206,12 +206,20 @@ class ViiNCBaseFileHandler(NetCDF4FileHandler):
     @property
     def start_time(self):
         """Get observation start time."""
-        return datetime.strptime(self['/attr/sensing_start_time_utc'], '%Y%m%d%H%M%S.%f')
+        try:
+            start_time = datetime.strptime(self['/attr/sensing_start_time_utc'], '%Y%m%d%H%M%S.%f')
+        except ValueError:
+            start_time = datetime.strptime(self['/attr/sensing_start_time_utc'], '%Y-%m-%d %H:%M:%S.%f')
+        return start_time
 
     @property
     def end_time(self):
         """Get observation end time."""
-        return datetime.strptime(self['/attr/sensing_end_time_utc'], '%Y%m%d%H%M%S.%f')
+        try:
+            end_time = datetime.strptime(self['/attr/sensing_end_time_utc'], '%Y%m%d%H%M%S.%f')
+        except ValueError:
+            end_time = datetime.strptime(self['/attr/sensing_end_time_utc'], '%Y-%m-%d %H:%M:%S.%f')
+        return end_time
 
     @property
     def spacecraft_name(self):
