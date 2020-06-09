@@ -476,7 +476,7 @@ needs to implement a few methods:
    in the example below.
 
  - the ``get_area_def`` method, that takes as single argument the
-   :class:`~satpy.dataset.DatasetID` for which we want
+   :class:`~satpy.dataset.DataID` for which we want
    the area. It should return a :class:`~pyresample.geometry.AreaDefinition`
    object. For data that cannot be geolocated with an area
    definition, the pixel coordinates will be loaded using the
