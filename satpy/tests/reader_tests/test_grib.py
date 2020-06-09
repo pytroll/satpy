@@ -25,6 +25,8 @@ from unittest import mock
 import numpy as np
 import xarray as xr
 
+from satpy.dataset import DataQuery
+
 
 class FakeMessage(object):
     """Fake message returned by pygrib.open().message(x)."""
@@ -215,11 +217,10 @@ class TestGRIBReader(unittest.TestCase):
             'gfs.t18z.sfluxgrbf106.grib2',
         ])
         r.create_filehandlers(loadables)
-        from satpy.readers.grib import make_dsid
         datasets = r.load([
-            make_dsid(name='t', level=100),
-            make_dsid(name='t', level=200),
-            make_dsid(name='t', level=300)])
+            DataQuery(name='t', level=100, modifiers=tuple()),
+            DataQuery(name='t', level=200, modifiers=tuple()),
+            DataQuery(name='t', level=300, modifiers=tuple())])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
@@ -247,16 +248,15 @@ class TestGRIBReader(unittest.TestCase):
                 'lat_1': 25.0, 'lat_2': 25.0},
             latlons=(lats, lons))
         from satpy.readers import load_reader
-        from satpy.readers.grib import make_dsid
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'gfs.t18z.sfluxgrbf106.grib2',
         ])
         r.create_filehandlers(loadables)
         datasets = r.load([
-            make_dsid(name='t', level=100),
-            make_dsid(name='t', level=200),
-            make_dsid(name='t', level=300)])
+            DataQuery(name='t', level=100, modifiers=tuple()),
+            DataQuery(name='t', level=200, modifiers=tuple()),
+            DataQuery(name='t', level=300, modifiers=tuple())])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
