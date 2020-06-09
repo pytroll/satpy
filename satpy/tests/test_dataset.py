@@ -48,11 +48,8 @@ class TestDataID(unittest.TestCase):
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
-        from satpy.dataset import make_dsid_class, WavelengthRange, ModifierTuple
-        types = {'wavelength': WavelengthRange,
-                 'modifiers': ModifierTuple}
-        DatasetID = make_dsid_class(types, name='', wavelength=None, modifiers=ModifierTuple())
-        self.assertRaises(TypeError, DatasetID, name="a", modifiers="str")
+        from satpy.dataset import DataID, default_id_keys_config as dikc
+        self.assertRaises(TypeError, DataID, dikc, name="a", modifiers="str")
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""
