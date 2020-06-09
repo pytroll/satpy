@@ -395,7 +395,7 @@ class DependencyTree(Node):
                 orig_dict[k] = dep_val
         return dep_key.from_dict(orig_dict)
 
-    def _find_compositor(self, dataset_key, query):
+    def _find_compositor(self, dataset_key, query=None):
         """Find the compositor object for the given dataset_key.
 
         *dataset_key* is already filtered with *query*
