@@ -267,11 +267,11 @@ class DependencyTree(Node):
         return self._all_nodes[item]
 
     def contains(self, item):
-        """Check contains when we know the *exact* DatasetID."""
+        """Check contains when we know the *exact* DataID or DataQuery."""
         return super(DatasetDict, self._all_nodes).__contains__(item)
 
     def getitem(self, item):
-        """Get Node when we know the *exact* DatasetID."""
+        """Get Node when we know the *exact* DataID or DataQuery."""
         return super(DatasetDict, self._all_nodes).__getitem__(item)
 
     def get_compositor(self, key):
@@ -289,7 +289,7 @@ class DependencyTree(Node):
 
     def get_modifier(self, comp_id):
         """Get a modifer."""
-        # create a DatasetID for the compositor we are generating
+        # create a DataID for the compositor we are generating
         modifier = comp_id['modifiers'][-1]
         for sensor_name in self.modifiers.keys():
             modifiers = self.modifiers[sensor_name]
@@ -307,12 +307,12 @@ class DependencyTree(Node):
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
     def _find_reader_dataset(self, dataset_key):
-        """Attempt to find a `DatasetID` in the available readers.
+        """Attempt to find a `DataID` in the available readers.
 
         Args:
-            dataset_key (str, float, DatasetID):
-                Dataset name, wavelength, or a combination of `DatasetID`
-                parameters to use in searching for the dataset from the
+            dataset_key (str, float, DataID, DataQuery):
+                Dataset name, wavelength, `DataID` or `DataQuery`
+                to use in searching for the dataset from the
                 available readers.
 
         """
@@ -329,7 +329,7 @@ class DependencyTree(Node):
                 continue
             LOG.trace("Found {} in reader {} when asking for {}".format(str(ds_id), reader_name, repr(dataset_key)))
             try:
-                # now that we know we have the exact DatasetID see if we have already created a Node for it
+                # now that we know we have the exact DataID see if we have already created a Node for it
                 return self.getitem(ds_id)
             except KeyError:
                 # we haven't created a node yet, create it now
@@ -337,14 +337,14 @@ class DependencyTree(Node):
         if too_many:
             raise TooManyResults("Too many keys matching: {}".format(dataset_key))
 
-    def _get_compositor_prereqs(self, parent, prereq_names, skip=False,
+    def _get_compositor_prereqs(self, parent, prereqs, skip=False,
                                 query=None):
         """Determine prerequisite Nodes for a composite.
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
-            prereq_names (sequence): Strings (names), floats (wavelengths), or
-                                     DatasetIDs to analyze.
+            prereqs (sequence): Strings (names), floats (wavelengths), or
+                                DataQuerys to analyze.
             skip (bool, optional): If True, prerequisites are considered
                                    optional if they can't be found and a
                                    debug message is logged. If False (default),
@@ -355,10 +355,10 @@ class DependencyTree(Node):
         """
         prereq_ids = []
         unknowns = set()
-        if not prereq_names and not skip:
+        if not prereqs and not skip:
             # this composite has no required prerequisites
-            prereq_names = [None]
-        for prereq in prereq_names:
+            prereqs = [None]
+        for prereq in prereqs:
             n, u = self._find_dependencies(prereq, query=query)
             if u:
                 unknowns.update(u)
@@ -448,9 +448,9 @@ class DependencyTree(Node):
         """Find the dependencies for *dataset_key*.
 
         Args:
-            dataset_key (str, float, DatasetID): Dataset identifier to locate
-                                                 and find any additional
-                                                 dependencies for.
+            dataset_key (str, float, DataID, DataQuery): Dataset identifier to locate
+                                                         and find any additional
+                                                         dependencies for.
             query (DataQuery): Additional filter parameters. See
                                `satpy.readers.get_key` for more details.
 
@@ -485,7 +485,7 @@ class DependencyTree(Node):
         # 2 try to find a composite by name (any version of it is good enough)
         try:
             # assume that there is no such thing as a "better" composite
-            # version so if we find any DatasetIDs already loaded then
+            # version so if we find any DataIDs already loaded then
             # we want to use them
             node = self[dsq]
             LOG.trace("Composite already loaded:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
@@ -509,7 +509,7 @@ class DependencyTree(Node):
         """Create the dependency tree.
 
         Args:
-            dataset_keys (iterable): Strings or DatasetIDs to find dependencies for
+            dataset_keys (iterable): Strings, DataIDs, DataQuerys to find dependencies for
             query (DataQuery): Additional filter parameters. See
                               `satpy.readers.get_key` for more details.
 
@@ -521,9 +521,9 @@ class DependencyTree(Node):
         for key in dataset_keys.copy():
             n, unknowns = self._find_dependencies(key, query)
 
-            dataset_keys.discard(key)  # remove old non-DatasetID
+            dataset_keys.discard(key)  # remove old non-DataID
             if n is not None:
-                dataset_keys.add(n.name)  # add equivalent DatasetID
+                dataset_keys.add(n.name)  # add equivalent DataID
             if unknowns:
                 unknown_datasets.update(unknowns)
                 continue
