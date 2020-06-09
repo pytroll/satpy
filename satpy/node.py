@@ -314,11 +314,6 @@ class DependencyTree(Node):
                 Dataset name, wavelength, or a combination of `DatasetID`
                 parameters to use in searching for the dataset from the
                 available readers.
-            **dfilter (list or str): `DatasetID` parameters besides `name`
-                                     and `wavelength` to use to filter the
-                                     available datasets. Passed directly to
-                                     `get_dataset_key` of the readers, see
-                                     that method for more information.
 
         """
         too_many = False
