@@ -11,4 +11,4 @@ file_types:
         file_patterns: ['{data_type}.GPM.{instrument}.{algorithm}.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence}.{version_id}.HDF5',
                         '{data_type}.GPM.{instrument}.{algorithm}.{date:%Y%m%d}-S{start_time:%H%M%S}-E{end_time:%H%M%S}.{sequence}.{version_id}.SUB.HDF5']
 
-datasets: ~
+datasets: {}
