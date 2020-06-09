@@ -284,7 +284,6 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                     # to a tuple
                     ds_info[key] = dsid.get(key)
                 self.all_ids[dsid] = ds_info
-        # TODO: why is this called twice ?
         return ids
 
 
