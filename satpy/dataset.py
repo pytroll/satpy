@@ -583,6 +583,26 @@ class DataQuery:
         """Sort the datasetids based on this query.
 
         Returns the sorted dsids and the list of distances.
+
+        The sorting is performed based on the types of the keys to search on
+        (as they are defined in the DataIDs from `dsids`).
+        If that type defines a `distance` method, then it is used to find how
+        'far' the DataID is from the current query.
+        If the type is a number, a simple subtraction is performed.
+        For other types, the distance is 0 if the values are identical, np.inf
+        otherwise.
+
+        For example, with the default DataID, we use the following criteria:
+
+        1. Central wavelength is nearest to the `key` wavelength if
+           specified.
+        2. Least modified dataset if `modifiers` is `None` in `key`.
+           Otherwise, the modifiers are ignored.
+        3. Highest calibration if `calibration` is `None` in `key`.
+           Calibration priority is chosen by `satpy.CALIBRATION_ORDER`.
+        4. Best resolution (smallest number) if `resolution` is `None`
+           in `key`. Otherwise, the resolution is ignored.
+
         """
         distances = []
         sorted_dsids = []

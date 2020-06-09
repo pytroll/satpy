@@ -142,7 +142,7 @@ def _create_fake_compositor(ds_id, prereqs, opt_prereqs):
     se = mock.MagicMock()
 
     def _se(datasets, optional_datasets=None, ds_id=ds_id, **kwargs):
-        if ds_id.name == 'comp14':
+        if ds_id['name'] == 'comp14':
             # used as a test when composites update the dataset id with
             # information from prereqs
             ds_id = DataID(ds_id.id_keys, resolution=555, **ds_id)
@@ -274,7 +274,7 @@ def _filter_datasets(all_ds, names_or_ids):
     str_filter = [ds_name for ds_name in names_or_ids if isinstance(ds_name, str)]
     id_filter = [ds_id for ds_id in names_or_ids if not isinstance(ds_id, str)]
     for ds_id in all_ds:
-        if ds_id in id_filter or ds_id.name in str_filter:
+        if ds_id in id_filter or ds_id['name'] in str_filter:
             yield ds_id
 
 
@@ -344,7 +344,7 @@ class FakeReader(FileYAMLReader):
         dataset_ids = self.all_ids.keys()
         loaded_datasets = DatasetDict()
         for k in dataset_keys:
-            if k.name == 'ds9_fail_load':
+            if k['name'] == 'ds9_fail_load':
                 continue
             for ds in dataset_ids:
                 if ds == k:
