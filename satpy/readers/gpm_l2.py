@@ -75,6 +75,31 @@ class HDF_GPM_L2(HDF5FileHandler):
                 yield is_avail, ds_info
             var_name = ds_info.get("file_key", ds_info["name"])
 
+        # get lon and lat in different groups first
+        for var_name, val in self.file_content.items():
+            if isinstance(val, h5py._hl.dataset.Dataset):
+                if ("Longitude" in var_name) or \
+                    ("Latitude" in var_name):
+                    logger.debug("Evaluating new variable: %s", var_name)
+                    var_shape = self[var_name + "/shape"]
+                    logger.debug("Dims:{}".format(var_shape))
+                    logger.debug("Found valid additional dataset: %s", var_name)
+
+                    handled_variables.add(var_name)
+                    coordinates = [var_name.split('/')[0]+"/Longitude",
+                                   var_name.split('/')[0]+"/Latitude"]
+
+                    new_info = {
+                        "name": var_name,
+                        "standard_name": var_name.split('/')[-1].lower(),
+                        "file_key": var_name,
+                        "file_type": self.filetype_info["file_type"],
+                        "instrument": self.finfo["instrument"],
+                        "coordinates": coordinates,
+                        "resolution": None,
+                    }
+                    yield True, new_info
+
         # Iterate over dataset contents
         for var_name, val in self.file_content.items():
             # Only evaluate variables
@@ -100,11 +125,19 @@ class HDF_GPM_L2(HDF5FileHandler):
                 else:
                     var_name_no_path = var_name
 
+                # assign coordinates only for 2D array
+                if len(self[var_name + "/shape"]) == 2:
+                    coordinates = [var_name.split('/')[0]+"/Longitude",
+                                   var_name.split('/')[0]+"/Latitude"]
+                else:
+                    coordinates = []
+
                 new_info = {
                     "name": var_name_no_path,
                     "file_key": var_name,
                     "file_type": self.filetype_info["file_type"],
-                    "instrument": self.finfo['instrument'],
+                    "instrument": self.finfo["instrument"],
+                    "coordinates": coordinates,
                     "resolution": None,
                 }
                 yield True, new_info
