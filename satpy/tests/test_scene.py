@@ -535,7 +535,6 @@ class TestScene(unittest.TestCase):
     def test_aggregate(self):
         """Test the aggregate method."""
         from satpy import Scene
-        from satpy.dataset import make_dsid_class
         from xarray import DataArray
         from pyresample.geometry import AreaDefinition
         import numpy as np
@@ -556,13 +555,11 @@ class TestScene(unittest.TestCase):
             area_extent,
         )
 
-        dsid_class = make_dsid_class(name='')
-
-        scene1["1"] = DataArray(np.ones((y_size, x_size)), attrs={'_id_class': dsid_class})
+        scene1["1"] = DataArray(np.ones((y_size, x_size)), attrs={'_satpy_id_keys': default_id_keys_config})
         scene1["2"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'_id_class': dsid_class})
+                                attrs={'_satpy_id_keys': default_id_keys_config})
         scene1["3"] = DataArray(np.ones((y_size, x_size)), dims=('y', 'x'),
-                                attrs={'area': area_def, '_id_class': dsid_class})
+                                attrs={'area': area_def, '_satpy_id_keys': default_id_keys_config})
 
         scene2 = scene1.aggregate(func='sum', x=2, y=2)
         self.assertIs(scene1['1'], scene2['1'])
