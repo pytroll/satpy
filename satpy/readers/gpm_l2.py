@@ -78,8 +78,7 @@ class HDF_GPM_L2(HDF5FileHandler):
         # get lon and lat in different groups first
         for var_name, val in self.file_content.items():
             if isinstance(val, h5py._hl.dataset.Dataset):
-                if ("Longitude" in var_name) or \
-                    ("Latitude" in var_name):
+                if ("Longitude" in var_name) or ("Latitude" in var_name):
                     logger.debug("Evaluating new variable: %s", var_name)
                     var_shape = self[var_name + "/shape"]
                     logger.debug("Dims:{}".format(var_shape))
