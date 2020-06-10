@@ -14,6 +14,7 @@ as explanations in the various sections of this documentation.
     :maxdepth: 1
 
     fci_l1c_natural_color
+    vii_l1b_nc
 
 .. list-table::
     :header-rows: 1
