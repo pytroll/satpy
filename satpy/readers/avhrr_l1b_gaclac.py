@@ -57,7 +57,7 @@ class GACLACFile(BaseFileHandler):
     def __init__(self, filename, filename_info, filetype_info,
                  start_line=None, end_line=None, strip_invalid_coords=True,
                  interpolate_coords=True, adjust_clock_drift=True,
-                 tle_dir=None, tle_name=None, tle_thresh=7):
+                 tle_dir=None, tle_name=None, tle_thresh=7, calibration=None):
         """Init the file handler.
 
         Args:
@@ -73,6 +73,7 @@ class GACLACFile(BaseFileHandler):
             tle_name: Filename pattern of TLE files.
             tle_thresh: Maximum number of days between observation and nearest
                 TLE
+            calibration: Calibration coefficients to be used
 
         """
         super(GACLACFile, self).__init__(
@@ -86,6 +87,7 @@ class GACLACFile(BaseFileHandler):
         self.tle_dir = tle_dir
         self.tle_name = tle_name
         self.tle_thresh = tle_thresh
+        self.calibration = calibration
         self.creation_site = filename_info.get('creation_site')
         self.reader = None
         self.calib_channels = None
@@ -135,6 +137,7 @@ class GACLACFile(BaseFileHandler):
                 tle_dir=self.tle_dir,
                 tle_name=self.tle_name,
                 tle_thresh=self.tle_thresh,
+                calibration=self.calibration,
                 creation_site=self.creation_site)
             self.reader.read(self.filename)
         if np.all(self.reader.mask):
