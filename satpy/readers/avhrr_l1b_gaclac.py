@@ -94,8 +94,6 @@ class GACLACFile(BaseFileHandler):
         self.counts = None
         self.angles = None
         self.qual_flags = None
-        self.midnight_scanline = None
-        self.missing_scanlines = None
         self.first_valid_lat = None
         self.last_valid_lat = None
         self._start_time = filename_info['start_time']
@@ -182,8 +180,6 @@ class GACLACFile(BaseFileHandler):
         self._end_time = times[-1].astype(datetime)
 
         # Select user-defined scanlines and/or strip invalid coordinates
-        self.midnight_scanline = self.reader.meta_data['midnight_scanline']
-        self.missing_scanlines = self.reader.meta_data['missing_scanlines']
         if (self.start_line is not None or self.end_line is not None
                 or self.strip_invalid_coords):
             data, times = self.slice(data=data, times=times)
@@ -208,7 +204,7 @@ class GACLACFile(BaseFileHandler):
     def slice(self, data, times):
         """Select user-defined scanlines and/or strip invalid coordinates.
 
-        Furthermore, update scanline timestamps and auxiliary information.
+        Furthermore, update scanline timestamps.
 
         Args:
             data: Data to be sliced
@@ -217,22 +213,17 @@ class GACLACFile(BaseFileHandler):
             Sliced data and timestamps
 
         """
-        # Slice data, update midnight scanline & list of missing scanlines
-        sliced, self.midnight_scanline, miss_lines = self._slice(data)
-        self.missing_scanlines = miss_lines.astype(int)
-
-        # Slice timestamps, update start/end time
-        times, _, _ = self._slice(times)
+        sliced = self._slice(data)
+        times = self._slice(times)
         self._start_time = times[0].astype(datetime)
         self._end_time = times[-1].astype(datetime)
-
         return sliced, times
 
     def _slice(self, data):
         """Select user-defined scanlines and/or strip invalid coordinates.
 
         Returns:
-            Sliced data, updated midnight scanline & list of missing scanlines
+            Sliced data
 
         """
         start_line = self.start_line if self.start_line is not None else 0
@@ -253,20 +244,14 @@ class GACLACFile(BaseFileHandler):
             along_track=data.shape[0]
         )
 
-        # Slice data, update missing lines and midnight scanline to new
-        # scanline range
-        sliced, miss_lines, midnight_scanline = pygac.utils.slice_channel(
-            data,
-            start_line=start_line,
-            end_line=end_line,
-            first_valid_lat=first_valid_lat,
-            last_valid_lat=last_valid_lat,
-            midnight_scanline=self.midnight_scanline,
-            miss_lines=self.missing_scanlines,
-            qual_flags=self._get_qual_flags()
-        )
+        # Slice data
+        sliced = pygac.utils.slice_channel(data,
+                                           start_line=start_line,
+                                           end_line=end_line,
+                                           first_valid_lat=first_valid_lat,
+                                           last_valid_lat=last_valid_lat)
 
-        return sliced, midnight_scanline, miss_lines
+        return sliced
 
     def _get_channel(self, key):
         """Get channel and buffer results."""
