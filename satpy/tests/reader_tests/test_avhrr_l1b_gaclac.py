@@ -130,10 +130,19 @@ class TestGACLACFile(TestCase):
         from pygac.lac_klm import LACKLMReader
         from pygac.lac_pod import LACPODReader
 
+        kwargs = {'start_line': 1,
+                  'end_line': 2,
+                  'strip_invalid_coords': True,
+                  'interpolate_coords': True,
+                  'adjust_clock_drift': True,
+                  'tle_dir': 'tle_dir',
+                  'tle_name': 'tle_name',
+                  'tle_thresh': 123,
+                  'calibration': 'calibration'}
         for filenames, reader_cls in zip([GAC_POD_FILENAMES, GAC_KLM_FILENAMES, LAC_POD_FILENAMES, LAC_KLM_FILENAMES],
                                          [GACPODReader, GACKLMReader, LACPODReader, LACKLMReader]):
             for filename in filenames:
-                fh = self._get_fh(filename)
+                fh = self._get_fh(filename, **kwargs)
                 self.assertLess(fh.start_time, fh.end_time,
                                 "Start time must precede end time.")
                 self.assertIs(fh.reader_class, reader_cls,
