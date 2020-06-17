@@ -1534,7 +1534,7 @@ class StaticImageCompositor(GenericCompositor):
         """
         if filename is None:
             raise ValueError("No image configured for static image compositor")
-        self.filename = filename
+        self.filename = os.path.expandvars(filename)
         self.area = None
         if area is not None:
             from satpy.resample import get_area_def
