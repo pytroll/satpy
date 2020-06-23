@@ -56,8 +56,7 @@ class GACLACFile(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  start_line=None, end_line=None, strip_invalid_coords=True,
-                 interpolate_coords=True, adjust_clock_drift=True,
-                 tle_dir=None, tle_name=None, tle_thresh=7, calibration=None):
+                 interpolate_coords=True, **reader_kwargs):
         """Init the file handler.
 
         Args:
@@ -67,13 +66,8 @@ class GACLACFile(BaseFileHandler):
                 the beginning/end of the orbit
             interpolate_coords: Interpolate coordinates from every eighth pixel
                 to all pixels.
-            adjust_clock_drift: Adjust the geolocation to compensate for the
-                clock error (POD satellites only).
-            tle_dir: Directory holding Two-Line-Element (TLE) files
-            tle_name: Filename pattern of TLE files.
-            tle_thresh: Maximum number of days between observation and nearest
-                TLE
-            calibration: Calibration coefficients to be used
+            reader_kwargs: More keyword arguments to be passed to pygac.Reader.
+                See the pygac documentation for available options.
 
         """
         super(GACLACFile, self).__init__(
@@ -83,11 +77,7 @@ class GACLACFile(BaseFileHandler):
         self.end_line = end_line
         self.strip_invalid_coords = strip_invalid_coords
         self.interpolate_coords = interpolate_coords
-        self.adjust_clock_drift = adjust_clock_drift
-        self.tle_dir = tle_dir
-        self.tle_name = tle_name
-        self.tle_thresh = tle_thresh
-        self.calibration = calibration
+        self.reader_kwargs = reader_kwargs
         self.creation_site = filename_info.get('creation_site')
         self.reader = None
         self.calib_channels = None
@@ -131,12 +121,8 @@ class GACLACFile(BaseFileHandler):
         if self.reader is None:
             self.reader = self.reader_class(
                 interpolate_coords=self.interpolate_coords,
-                adjust_clock_drift=self.adjust_clock_drift,
-                tle_dir=self.tle_dir,
-                tle_name=self.tle_name,
-                tle_thresh=self.tle_thresh,
-                calibration=self.calibration,
-                creation_site=self.creation_site)
+                creation_site=self.creation_site,
+                **self.reader_kwargs)
             self.reader.read(self.filename)
         if np.all(self.reader.mask):
             raise ValueError('All data is masked out')
@@ -250,6 +236,9 @@ class GACLACFile(BaseFileHandler):
                                            end_line=end_line,
                                            first_valid_lat=first_valid_lat,
                                            last_valid_lat=last_valid_lat)
+        if isinstance(sliced, tuple):
+            # pygac < 1.4.0
+            sliced = sliced[0]
 
         return sliced
 
