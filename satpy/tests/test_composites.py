@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for compositors in composites/__init__.py."""
 
+import os
 import unittest
 from datetime import datetime
 from unittest import mock
@@ -1033,6 +1034,11 @@ class TestStaticImageCompositor(unittest.TestCase):
         comp = StaticImageCompositor("name", filename="foo.tif", area='euro4')
         res = comp()
         self.assertEqual(res.attrs['area'].area_id, 'euro4')
+
+        # Filename contains environment variable
+        os.environ["TEST_IMAGE_PATH"] = "/path/to/image"
+        comp = StaticImageCompositor("name", filename="${TEST_IMAGE_PATH}/foo.tif", area='euro4')
+        self.assertEqual(comp.filename, "/path/to/image/foo.tif")
 
 
 def _enhance2dataset(dataset):
