@@ -1521,20 +1521,23 @@ class StaticImageCompositor(GenericCompositor):
     If the filename passed to this compositor is not valid then
     the SATPY_ANCPATH environment variable will be checked to see
     if the image is located there
+
+    Environment variables in the filename are automatically expanded
     """
 
     def __init__(self, name, filename=None, area=None, **kwargs):
         """Collect custom configuration values.
 
         Args:
-            filename (str): Filename of the image to load
+            filename (str): Filename of the image to load, environment
+                            variables are expanded
             area (str): Name of area definition for the image.  Optional
                         for images with built-in area definitions (geotiff)
 
         """
         if filename is None:
             raise ValueError("No image configured for static image compositor")
-        self.filename = filename
+        self.filename = os.path.expandvars(filename)
         self.area = None
         if area is not None:
             from satpy.resample import get_area_def
