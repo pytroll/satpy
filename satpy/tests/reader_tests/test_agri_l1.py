@@ -300,7 +300,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         # check the data type of orbital_parameters
         orbital_parameters = res[band_names[0]].attrs['orbital_parameters']
         for attr in orbital_parameters:
-            self.assertEqual(orbital_parameters[attr].dtype, np.float64)
+            self.assertEqual(type(orbital_parameters[attr]), float)
 
     def test_fy4a_counts_calib(self):
         """Test loading data at counts calibration."""
