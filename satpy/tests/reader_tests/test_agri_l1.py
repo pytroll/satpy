@@ -292,7 +292,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
             else:
                 self.assertEqual('K', res[band_name].attrs['units'])
 
-        # check the data type of orbital_parameters
+        # check whether the data type of orbital_parameters is float
         orbital_parameters = res[band_names[0]].attrs['orbital_parameters']
         for attr in orbital_parameters:
             self.assertEqual(type(orbital_parameters[attr]), float)
