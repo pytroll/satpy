@@ -36,8 +36,27 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         HRITJMAFileHandler.mda = mda
         return HRITJMAFileHandler('filename', filename_info, {})
 
+    def _get_acq_time(self, nlines):
+        """Get sample header entry for scanline acquisition times.
+
+        Lines: 1, 21, 41, 61, ..., nlines
+        Times: 1970-01-01 00:00 + (1, 21, 41, 61, ..., nlines) seconds
+
+        So the interpolated times are expected to be 1970-01-01 +
+        (1, 2, 3, 4, ..., nlines) seconds. Note that there will be some
+        floating point inaccuracies, because timestamps are stored
+        with only 6 decimals precision.
+        """
+        mjd_1970 = 40587.0
+        lines_sparse = np.array(list(range(1, nlines, 20)) + [nlines])
+        times_sparse = mjd_1970 + lines_sparse / 24 / 3600
+        acq_time_s = ['LINE:={}\rTIME:={:.6f}\r'.format(l, t)
+                      for l, t in zip(lines_sparse, times_sparse)]
+        acq_time_b = ''.join(acq_time_s).encode()
+        return acq_time_b
+
     def _get_mda(self, loff=5500.0, coff=5500.0, nlines=11000, ncols=11000,
-                 segno=0, numseg=1, vis=True):
+                 segno=0, numseg=1, vis=True, platform='Himawari-8'):
         """Create metadata dict like HRITFileHandler would do it."""
         if vis:
             idf = b'$HALFTONE:=16\r_NAME:=VISIBLE\r_UNIT:=ALBEDO(%)\r' \
@@ -45,10 +64,12 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         else:
             idf = b'$HALFTONE:=16\r_NAME:=INFRARED\r_UNIT:=KELVIN\r' \
                   b'0:=329.98\r1023:=130.02\r65535:=130.02\r'
-
+        proj_h8 = b'GEOS(140.70)                    '
+        proj_mtsat2 = b'GEOS(145.00)                    '
+        proj_name = proj_h8 if platform == 'Himawari-8' else proj_mtsat2
         return {'image_segm_seq_no': segno,
                 'total_no_image_segm': numseg,
-                'projection_name': b'GEOS(140.70)                    ',
+                'projection_name': proj_name,
                 'projection_parameters': {
                     'a': 6378169.00,
                     'b': 6356583.80,
@@ -60,7 +81,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                 'loff': loff,
                 'number_of_columns': ncols,
                 'number_of_lines': nlines,
-                'image_data_function': idf}
+                'image_data_function': idf,
+                'image_observation_time': self._get_acq_time(nlines)}
 
     def test_init(self):
         """Test creating the file handler."""
@@ -86,6 +108,9 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                  [1023,  100],
                                  [65535,  100]])
         self.assertTrue(np.all(reader.calibration_table == cal_expected))
+
+        # Check if scanline timestamps are there (dedicated test below)
+        self.assertIsInstance(reader.acq_time, np.ndarray)
 
         # Check platform
         self.assertEqual(reader.platform, HIMAWARI8)
@@ -247,7 +272,8 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         key.calibration = 'reflectance'
 
         base_get_dataset.return_value = DataArray(da.ones((275, 1375),
-                                                          chunks=1024))
+                                                          chunks=1024),
+                                                  dims=('y', 'x'))
 
         # Check attributes
         res = reader.get_dataset(key, {'units': '%', 'sensor': 'ahi'})
@@ -261,6 +287,9 @@ class TestHRITJMAFileHandler(unittest.TestCase):
                                                                'projection_latitude': 0.,
                                                                'projection_altitude': 35785831.0})
 
+        # Check if acquisition time is a coordinate
+        self.assertIn('acq_time', res.coords)
+
         # Check called methods
         with mock.patch.object(reader, '_mask_space') as mask_space:
             with mock.patch.object(reader, 'calibrate') as calibrate:
@@ -271,3 +300,25 @@ class TestHRITJMAFileHandler(unittest.TestCase):
         with mock.patch('logging.Logger.error') as log_mock:
             reader.get_dataset(key, {'units': '%', 'sensor': 'jami'})
             log_mock.assert_called()
+
+    def test_mjd2datetime64(self):
+        """Test conversion from modified julian day to datetime64"""
+        from satpy.readers.hrit_jma import mjd2datetime64
+        self.assertEqual(mjd2datetime64(np.array([0])),
+                         np.datetime64('1858-11-17', 'us'))
+        self.assertEqual(mjd2datetime64(np.array([40587.5])),
+                         np.datetime64('1970-01-01 12:00', 'us'))
+
+    def test_get_acq_time(self):
+        """Test computation of scanline acquisition times."""
+        dt_line = np.arange(1, 11000+1).astype('timedelta64[s]')
+        acq_time_exp = np.datetime64('1970-01-01', 'us') + dt_line
+
+        for platform in ['Himawari-8', 'MTSAT-2']:
+            # Results are not exactly identical because timestamps are stored in
+            # the header with only 6 decimals precision (max diff here: 45 msec).
+            mda = self._get_mda(platform=platform)
+            reader = self._get_reader(mda=mda)
+            np.testing.assert_allclose(reader.acq_time.astype(np.int64),
+                                       acq_time_exp.astype(np.int64),
+                                       atol=45000)

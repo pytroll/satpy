@@ -3,10 +3,18 @@ Examples
 
 Satpy examples are available as Jupyter Notebooks on the
 `pytroll-examples <https://github.com/pytroll/pytroll-examples/tree/master/satpy>`_
-git repository. They include python code, PNG images, and descriptions of
+git repository. Some examples are described in further detail as separate pages
+in this documentation. They include python code, PNG images, and descriptions of
 what the example is doing. Below is a list of some of the examples and a brief
-summary. Additional example can be found at the repository mentioned above or
+summary. Additional examples can be found at the repository mentioned above or
 as explanations in the various sections of this documentation.
+
+.. toctree::
+    :hidden:
+    :maxdepth: 1
+
+    fci_l1c_natural_color
+    vii_l1b_nc
 
 .. list-table::
     :header-rows: 1
@@ -33,3 +41,7 @@ as explanations in the various sections of this documentation.
       - Reading Level 2 EARS-NWC cloud products
     * - `Level 2 MAIA cloud products <https://github.com/pytroll/pytroll-examples/blob/master/satpy/polar_maia.ipynb>`_
       - Reading Level 2 MAIA cloud products
+    * - :doc:`Meteosat Third Generation FCI Natural Color RGB <fci_l1c_natural_color>`
+      - Generate Natural Color RGB from Meteosat Third Generation (MTG) FCI Level 1c data
+    * - :doc:`Reading EPS-SG Visible and Infrared Imager (VII) with Pytroll <vii_l1b_nc>`
+      - Read and visualize EPS-SG VII L1B test data and save it to an image
