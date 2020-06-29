@@ -105,9 +105,9 @@ class HDF_AGRI_L1(HDF5FileHandler):
         data.attrs.update({'platform_name': satname,
                            'sensor': self['/attr/Sensor Identification Code'].lower(),
                            'orbital_parameters': {
-                               'satellite_nominal_latitude': self['/attr/NOMCenterLat'],
-                               'satellite_nominal_longitude': self['/attr/NOMCenterLon'],
-                               'satellite_nominal_altitude': self['/attr/NOMSatHeight']}})
+                               'satellite_nominal_latitude': float(self['/attr/NOMCenterLat']),
+                               'satellite_nominal_longitude': float(self['/attr/NOMCenterLon']),
+                               'satellite_nominal_altitude': float(self['/attr/NOMSatHeight'])}})
         data.attrs.update(ds_info)
 
         # remove attributes that could be confusing later
