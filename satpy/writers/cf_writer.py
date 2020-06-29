@@ -314,6 +314,8 @@ class AttributeEncoder(json.JSONEncoder):
             for key, val in obj.items():
                 serialized[key] = self.default(val)
             return serialized
+        elif isinstance(obj, np.ndarray) and not obj.shape:
+            return float(obj)
         elif isinstance(obj, (list, tuple, np.ndarray)):
             return [self.default(item) for item in obj]
         return self._encode(obj)
