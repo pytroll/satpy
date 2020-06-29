@@ -18,9 +18,12 @@
 """Pygac interface."""
 
 from datetime import datetime
-from unittest import TestCase, main, TestLoader, TestSuite
+import dask.array as da
+from unittest import TestCase
 import numpy as np
+import xarray as xr
 from unittest import mock
+
 
 GAC_PATTERN = '{creation_site:3s}.{transfer_mode:4s}.{platform_id:2s}.D{start_time:%y%j.S%H%M}.E{end_time:%H%M}.B{orbit_number:05d}{end_orbit_last_digits:02d}.{station:2s}'  # noqa
 
@@ -101,6 +104,27 @@ class TestGACLACFile(TestCase):
         filename_info = parse(GAC_PATTERN, filename)
         return self.GACLACFile(filename, filename_info, {}, **kwargs)
 
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
+    def _get_fh_mocked(self, init_mock, **attrs):
+        """Create a mocked file handler with the given attributes."""
+        from satpy.readers.avhrr_l1b_gaclac import GACLACFile
+
+        fh = GACLACFile()
+        for name, value in attrs.items():
+            setattr(fh, name, value)
+        return fh
+
+    def _get_reader_mocked(self, along_track=3):
+        """Create a mocked reader."""
+        reader = mock.MagicMock(spacecraft_name='spacecraft_name',
+                                meta_data={'foo': 'bar',
+                                           'midnight_scanline': 1,
+                                           'missing_scanlines': [1, 2, 3]})
+        reader.mask = [0, 0]
+        reader.get_times.return_value = np.arange(along_track)
+        reader.get_tle_lines.return_value = 'tle'
+        return reader
+
     def test_init(self):
         """Test GACLACFile initialization."""
         from pygac.gac_klm import GACKLMReader
@@ -117,119 +141,57 @@ class TestGACLACFile(TestCase):
                 self.assertIs(fh.reader_class, reader_cls,
                               'Wrong reader class assigned to {}'.format(filename))
 
-    def test_get_dataset(self):
-        """Test getting the dataset."""
-        from pygac.gac_pod import GACPODReader
-        from satpy.dataset import DatasetID
-
-        fh = self._get_fh(strip_invalid_coords=False)
-
-        lon_ones = np.ones((10, 10))
-        lat_ones = np.ones((10, 10))
-        ch_ones = np.ones((10, 10))
-        acq_ones = np.ones((10, ), dtype='datetime64[us]')
-        angle_ones = np.ones((10, 10))
-        qualflags_ones = np.ones((10, 7))
-        miss_lines = np.array([1, 2])
-
-        # Channel
-        key = DatasetID('1')
-        info = {'name': '1', 'standard_name': 'reflectance'}
-
-        GACPODReader.return_value.get_calibrated_channels.return_value.__getitem__.return_value = ch_ones
-        GACPODReader.return_value.get_times.return_value = acq_ones
-        GACPODReader.return_value.get_lonlat.return_value = lon_ones, lat_ones
-        GACPODReader.return_value.get_qual_flags.return_value = qualflags_ones
-        GACPODReader.return_value.get_miss_lines.return_value = miss_lines
-        GACPODReader.return_value.get_midnight_scanline.return_value = 'midn_line'
-        GACPODReader.return_value.mask = [0]
-
-        GACPODReader.return_value.meta_data = {'missing_scanlines': miss_lines,
-                                               'midnight_scanline': 'midn_line'}
-
-        res = fh.get_dataset(key, info)
-        np.testing.assert_allclose(res.data, ch_ones)
-        np.testing.assert_array_equal(res.coords['acq_time'].data, acq_ones)
-        self.assertTupleEqual(res.dims, ('y', 'x'))
-        self.assertEqual(fh.start_time, datetime(1970, 1, 1, 0, 0, 0, 1))
-        self.assertEqual(fh.end_time, datetime(1970, 1, 1, 0, 0, 0, 1))
-        np.testing.assert_array_equal(res.attrs['missing_scanlines'], miss_lines)
-        self.assertEqual(res.attrs['midnight_scanline'], 'midn_line')
-
-        # Angles
-        for item in ['solar_zenith_angle', 'sensor_zenith_angle',
-                     'solar_azimuth_angle', 'sensor_azimuth_angle',
-                     'sun_sensor_azimuth_difference_angle']:
-            key = DatasetID(item)
-            info = {'name': item}
-
-            GACPODReader.return_value.get_angles.return_value = (angle_ones, ) * 5
-            GACPODReader.return_value.get_tle_lines.return_value = 'tle1', 'tle2'
-            res = fh.get_dataset(key, info)
-            np.testing.assert_allclose(res.data, angle_ones)
-            np.testing.assert_array_equal(res.coords['acq_time'].data, acq_ones)
-            self.assertDictEqual(res.attrs['orbital_parameters'], {'tle': ('tle1', 'tle2')})
-
-        # Longitude
-        key = DatasetID('longitude')
-        info = {'name': 'longitude', 'unit': 'degrees_east'}
-
-        res = fh.get_dataset(key, info)
-        np.testing.assert_allclose(res.data, lon_ones)
-        self.assertEqual(res.attrs['unit'], 'degrees_east')
-        np.testing.assert_array_equal(res.coords['acq_time'].data, acq_ones)
-
-        # Latitude
-        key = DatasetID('latitude')
-        info = {'name': 'latitude', 'unit': 'degrees_north'}
-
-        res = fh.get_dataset(key, info)
-        np.testing.assert_allclose(res.data, lat_ones)
-        self.assertEqual(res.attrs['unit'], 'degrees_north')
-        np.testing.assert_array_equal(res.coords['acq_time'].data, acq_ones)
-
-        # Quality flags
-        key = DatasetID('qual_flags')
-        info = {'name': 'qual_flags', 'long_name': 'My long name'}
-
-        res = fh.get_dataset(key, info)
-        np.testing.assert_allclose(res.data, qualflags_ones)
-        self.assertTupleEqual(res.dims, ('y', 'num_flags'))
-        np.testing.assert_array_equal(res.coords['acq_time'].data, acq_ones)
-        self.assertEqual(res.attrs['long_name'], 'My long name')
-
-        # Buffering
-        GACPODReader.return_value.get_calibrated_channels.assert_called_once()
-        GACPODReader.return_value.get_calibrated_channels.assert_called_once()
-        GACPODReader.return_value.get_qual_flags.assert_called_once()
-
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.slice')
-    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle')
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
-    def test_get_dataset_extras(self, get_channel, get_angle, slc):
-        """Test getting the dataset with extra options."""
+    def test_get_dataset_channels(self, get_channel, *mocks):
         from satpy.dataset import DatasetID
 
-        # Define test data
-        lons = np.array([[1, 2],
-                         [3, 4],
-                         [5, 6],
-                         [7, 8]])
-        lats = lons.copy()
-        angles = lons.copy()
-        ch = np.array([[0.1, 0.2],
-                       [0.3, 0.4],
-                       [0.5, 0.6],
-                       [0.7, 0.8]])
-        acq = np.array([1, 2, 3, 4], dtype='datetime64[us]')
+        # Mock reader and file handler
+        fh = self._get_fh_mocked(
+            reader=self._get_reader_mocked(),
+            chn_dict={'1': 0, '5': 0},
+            start_line=None,
+            end_line=None,
+            strip_invalid_coords=False,
+            filename_info={'orbit_number': 123},
+            sensor='sensor',
+        )
 
-        # Mock reading
-        reader = mock.MagicMock()
-        reader.mask = [0]
-        reader.get_lonlat.return_value = lons, lats
-        reader.get_times.return_value = acq
-        get_channel.return_value = ch
-        get_angle.return_value = angles
+        # Test calibration to reflectance as well as attributes.
+        counts = np.ones((3, 3))
+        get_channel.return_value = counts
+        key = DatasetID('1', calibration='reflectance')
+        info = {'name': '1', 'standard_name': 'my_standard_name'}
+
+        res = fh.get_dataset(key=key, info=info)
+        exp = xr.DataArray(da.ones((3, 3)),
+                           name=res.name,
+                           dims=('y', 'x'),
+                           coords={'acq_time': ('y', [0, 1, 2])},
+                           attrs={'name': '1',
+                                  'platform_name': 'spacecraft_name',
+                                  'orbit_number': 123,
+                                  'sensor': 'sensor',
+                                  'orbital_parameters': {'tle': 'tle'},
+                                  'midnight_scanline': 1,
+                                  'missing_scanlines': [1, 2, 3],
+                                  'foo': 'bar',
+                                  'standard_name': 'my_standard_name'})
+        exp.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
+        xr.testing.assert_identical(res, exp)
+        get_channel.assert_called_with(key)
+
+        # Counts & brightness temperature: Similar, just check _get_channel() call
+        for key in [DatasetID('1', calibration='counts'),
+                    DatasetID('5', calibration='brightness_temperature')]:
+            fh.get_dataset(key=key, info={'name': 1})
+            get_channel.assert_called_with(key)
+
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.slice')
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
+    def test_get_dataset_slice(self, get_channel, slc, *mocks):
+        from satpy.dataset import DatasetID
 
         # Test slicing/stripping
         def slice_patched(data, times):
@@ -237,7 +199,14 @@ class TestGACLACFile(TestCase):
                 return data[1:3, :], times[1:3]
             return data[1:3], times[1:3]
 
+        ch = np.array([[1, 2, 3],
+                       [4, 5, 6],
+                       [7, 8, 9],
+                       [10, 11, 12],
+                       [13, 14, 15]])
+        acq = np.array([0, 1, 2, 3, 4])
         slc.side_effect = slice_patched
+        get_channel.return_value = ch
         kwargs_list = [{'strip_invalid_coords': False,
                         'start_line': 123, 'end_line': 456},
                        {'strip_invalid_coords': True,
@@ -245,39 +214,176 @@ class TestGACLACFile(TestCase):
                        {'strip_invalid_coords': True,
                         'start_line': 123, 'end_line': 456}]
         for kwargs in kwargs_list:
-            fh = self._get_fh(**kwargs)
-            fh.reader = reader
+            fh = self._get_fh_mocked(
+                reader=self._get_reader_mocked(along_track=len(acq)),
+                chn_dict={'1': 0},
+                **kwargs
+            )
 
-            key = DatasetID('1')
+            key = DatasetID('1', calibration='reflectance')
             info = {'name': '1', 'standard_name': 'reflectance'}
             res = fh.get_dataset(key, info)
             np.testing.assert_array_equal(res.data, ch[1:3, :])
             np.testing.assert_array_equal(res.coords['acq_time'].data, acq[1:3])
-            slc.assert_called_with(data=ch, times=acq)
+            np.testing.assert_array_equal(slc.call_args_list[-1][1]['times'], acq)
+            np.testing.assert_array_equal(slc.call_args_list[-1][1]['data'], ch)
 
-        # Renaming of coordinates if interpolation is switched off
-        fh = self._get_fh(interpolate_coords=False)
-        fh.reader = reader
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
+    def test_get_dataset_latlon(self, *mocks):
+        from satpy.dataset import DatasetID
 
-        key = DatasetID('latitude')
-        info = {'name': 'latitude', 'unit': 'degrees_north'}
-        res = fh.get_dataset(key, info)
-        self.assertTupleEqual(res.dims, ('y', 'x_every_eighth'))
+        lons = np.ones((3, 3))
+        lats = 2 * lons
+        reader = self._get_reader_mocked()
+        reader.get_lonlat.return_value = lons, lats
+        fh = self._get_fh_mocked(
+            reader=reader,
+            start_line=None,
+            end_line=None,
+            strip_invalid_coords=False,
+            interpolate_coords=True
+        )
 
-        key = DatasetID('solar_zenith_angle')
-        info = {'name': 'solar_zenith_angle', 'unit': 'degrees'}
-        res = fh.get_dataset(key, info)
-        self.assertTupleEqual(res.dims, ('y', 'x_every_eighth'))
+        # With interpolation of coordinates
+        for name, exp_data in zip(['longitude', 'latitude'], [lons, lats]):
+            key = DatasetID(name)
+            info = {'name': name, 'standard_name': 'my_standard_name'}
+            res = fh.get_dataset(key=key, info=info)
+            exp = xr.DataArray(exp_data,
+                               name=res.name,
+                               dims=('y', 'x'),
+                               coords={'acq_time': ('y', [0, 1, 2])})
+            xr.testing.assert_equal(res, exp)
+
+        # Without interpolation of coordinates
+        fh.interpolate_coords = False
+        for name, exp_data in zip(['longitude', 'latitude'], [lons, lats]):
+            key = DatasetID(name)
+            info = {'name': name, 'standard_name': 'my_standard_name'}
+            res = fh.get_dataset(key=key, info=info)
+            self.assertTupleEqual(res.dims, ('y', 'x_every_eighth'))
+
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle')
+    def test_get_dataset_angles(self, get_angle, *mocks):
+        from satpy.dataset import DatasetID
+        from satpy.readers.avhrr_l1b_gaclac import ANGLES
+
+        ones = np.ones((3, 3))
+        get_angle.return_value = ones
+        reader = self._get_reader_mocked()
+        fh = self._get_fh_mocked(
+            reader=reader,
+            start_line=None,
+            end_line=None,
+            strip_invalid_coords=False,
+            interpolate_coords=True
+        )
+
+        # With interpolation of coordinates
+        for angle in ANGLES:
+            key = DatasetID(angle)
+            info = {'name': angle, 'standard_name': 'my_standard_name'}
+            res = fh.get_dataset(key=key, info=info)
+            exp = xr.DataArray(ones,
+                               name=res.name,
+                               dims=('y', 'x'),
+                               coords={'acq_time': ('y', [0, 1, 2])})
+            xr.testing.assert_equal(res, exp)
+
+        # Without interpolation of coordinates
+        fh.interpolate_coords = False
+        for angle in ANGLES:
+            key = DatasetID(angle)
+            info = {'name': angle, 'standard_name': 'my_standard_name'}
+            res = fh.get_dataset(key=key, info=info)
+            self.assertTupleEqual(res.dims, ('y', 'x_every_eighth'))
+
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
+    def test_get_dataset_qual_flags(self, *mocks):
+        from satpy.dataset import DatasetID
+
+        qual_flags = np.ones((3, 7))
+        reader = self._get_reader_mocked()
+        reader.get_qual_flags.return_value = qual_flags
+        fh = self._get_fh_mocked(
+            reader=reader,
+            start_line=None,
+            end_line=None,
+            strip_invalid_coords=False,
+            interpolate_coords=True
+        )
+
+        key = DatasetID('qual_flags')
+        info = {'name': 'qual_flags'}
+        res = fh.get_dataset(key=key, info=info)
+        exp = xr.DataArray(qual_flags,
+                           name=res.name,
+                           dims=('y', 'num_flags'),
+                           coords={'acq_time': ('y', [0, 1, 2]),
+                                   'num_flags': ['Scan line number',
+                                                 'Fatal error flag',
+                                                 'Insufficient data for calibration',
+                                                 'Insufficient data for calibration',
+                                                 'Solar contamination of blackbody in channels 3',
+                                                 'Solar contamination of blackbody in channels 4',
+                                                 'Solar contamination of blackbody in channels 5']})
+        xr.testing.assert_equal(res, exp)
+
+    def test_get_channel(self):
+        from satpy.dataset import DatasetID
+
+        counts = np.moveaxis(np.array([[[1, 2, 3],
+                                        [4, 5, 6]]]), 0, 2)
+        calib_channels = 2 * counts
+        reader = self._get_reader_mocked()
+        reader.get_counts.return_value = counts
+        reader.get_calibrated_channels.return_value = calib_channels
+        fh = self._get_fh_mocked(reader=reader, counts=None, calib_channels=None,
+                                 chn_dict={'1': 0})
+
+        key = DatasetID('1', calibration='counts')
+        # Counts
+        res = fh._get_channel(key=key)
+        np.testing.assert_array_equal(res, [[1, 2, 3],
+                                            [4, 5, 6]])
+        np.testing.assert_array_equal(fh.counts, counts)
+
+        # Reflectance and Brightness Temperature
+        for calib in ['reflectance', 'brightness_temperature']:
+            key = DatasetID('1', calibration=calib)
+            res = fh._get_channel(key=key)
+            np.testing.assert_array_equal(res, [[2, 4, 6],
+                                                [8, 10, 12]])
+            np.testing.assert_array_equal(fh.calib_channels, calib_channels)
+
+        # Invalid
+        key = DatasetID('7', calibration='coffee')
+        self.assertRaises(ValueError, fh._get_channel, key=key)
+
+        # Buffering
+        reader.get_counts.reset_mock()
+        key = DatasetID('1', calibration='counts')
+        fh._get_channel(key=key)
+        reader.get_counts.assert_not_called()
+
+        reader.get_calibrated_channels.reset_mock()
+        for calib in ['reflectance', 'brightness_temperature']:
+            key = DatasetID('1', calibration=calib)
+            fh._get_channel(key)
+            reader.get_calibrated_channels.assert_not_called()
 
     def test_get_angle(self):
         """Test getting the angle."""
+        from satpy.dataset import DatasetID
+
         reader = mock.MagicMock()
         reader.get_angles.return_value = 1, 2, 3, 4, 5
-        fh = self._get_fh()
-        fh.reader = reader
+        fh = self._get_fh_mocked(reader=reader, angles=None)
 
         # Test angle readout
-        res = fh._get_angle('sensor_zenith_angle')
+        key = DatasetID('sensor_zenith_angle')
+        res = fh._get_angle(key)
         self.assertEqual(res, 2)
         self.assertDictEqual(fh.angles, {'sensor_zenith_angle': 2,
                                          'sensor_azimuth_angle': 1,
@@ -286,7 +392,8 @@ class TestGACLACFile(TestCase):
                                          'sun_sensor_azimuth_difference_angle': 5})
 
         # Test buffering
-        fh._get_angle('sensor_azimuth_angle')
+        key = DatasetID('sensor_azimuth_angle')
+        fh._get_angle(key)
         reader.get_angles.assert_called_once()
 
     def test_strip_invalid_lat(self):
@@ -295,8 +402,7 @@ class TestGACLACFile(TestCase):
 
         reader = mock.MagicMock()
         reader.get_lonlat.return_value = None, None
-        fh = self._get_fh()
-        fh.reader = reader
+        fh = self._get_fh_mocked(reader=reader, first_valid_lat=None)
 
         # Test stripping
         pygac.utils.strip_invalid_lat.return_value = 1, 2
@@ -319,7 +425,7 @@ class TestGACLACFile(TestCase):
         data = np.zeros((4, 2))
         times = np.array([1, 2, 3, 4], dtype='datetime64[us]')
 
-        fh = self._get_fh()
+        fh = self._get_fh_mocked()
         data_slc, times_slc = fh.slice(data, times)
         np.testing.assert_array_equal(data_slc, data[1:3])
         np.testing.assert_array_equal(times_slc, times[1:3])
@@ -342,7 +448,8 @@ class TestGACLACFile(TestCase):
         data = np.zeros((2, 2))
 
         # a) Only start/end line given
-        fh = self._get_fh(start_line=5, end_line=6, strip_invalid_coords=False)
+        fh = self._get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=False,
+                                 midnight_scanline=None, missing_scanlines=None)
         data_slc, midn_line, miss_lines = fh._slice(data)
         self.assertEqual(data_slc, 'sliced')
         self.assertEqual(midn_line, 'midn_line')
@@ -356,14 +463,16 @@ class TestGACLACFile(TestCase):
             midnight_scanline=None, miss_lines=None, qual_flags='qual_flags')
 
         # b) Only strip_invalid_coords=True
-        fh = self._get_fh(strip_invalid_coords=True)
+        fh = self._get_fh_mocked(start_line=None, end_line=None, strip_invalid_coords=True,
+                                 midnight_scanline=None, missing_scanlines=None)
         fh._slice(data)
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=0, end_line=0,
             first_valid_lat=3, last_valid_lat=4, along_track=2)
 
         # c) Both
-        fh = self._get_fh(start_line=5, end_line=6, strip_invalid_coords=True)
+        fh = self._get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=True,
+                                 midnight_scanline=None, missing_scanlines=None)
         fh._slice(data)
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,

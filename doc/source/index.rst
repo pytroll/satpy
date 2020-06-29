@@ -52,7 +52,7 @@ the base Satpy installation.
     overview
     install
     data_download
-    examples
+    examples/index
     quickstart
     readers
     composites
@@ -243,6 +243,24 @@ the base Satpy installation.
     * - OMPS EDR data in HDF5 format
       - `omps_edr`
       - Beta
+    * - VII Level 2 in NetCDF4 format
+      - `vii_l2_nc`
+      - Beta
+    * - VII Level 1b in NetCDF4 format
+      - `vii_l1b_nc`
+      - Beta
+    * - MTG FCI Level 2 in NetCDF4 format
+      - `fci_l2_nc`
+      - Beta
+    * - SMOS level 2 wind data in NetCDF4 format
+      - `smos_l2_wind`
+      - Beta
+    * - AMSR2 level 2 wind data in HDF5 format
+      - `amsr_l2`
+      - Beta
+    * - GPM IMERG level 3 precipitation data in HDF5 format
+      - `gpm_imerg`
+      - Nominal
 
 Indices and tables
 ==================

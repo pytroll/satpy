@@ -23,6 +23,7 @@ import xarray as xr
 import dask.array as da
 import numpy.testing
 import pytest
+import logging
 from unittest import mock
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
@@ -58,6 +59,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         chroot = "data/{:s}"
         meas = chroot + "/measured"
         rad = meas + "/effective_radiance"
+        qual = meas + "/pixel_quality"
         pos = meas + "/{:s}_position_{:s}"
         shp = rad + "/shape"
         x = meas + "/x"
@@ -66,6 +68,13 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         ch_str = pat.format(ch)
         ch_path = rad.format(ch_str)
 
+        common_attrs = {
+                "scale_factor": 5,
+                "add_offset": 10,
+                "long_name": "Effective Radiance",
+                "units": "mW.m-2.sr-1.(cm-1)-1",
+                "ancillary_variables": "pixel_quality"
+                }
         if ch == 38:
             fire_line = da.ones((1, ncols), dtype="uint16", chunks=1024) * 5000
             data_without_fires = da.ones((nrows-1, ncols), dtype="uint16", chunks=1024)
@@ -74,12 +83,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 dims=("y", "x"),
                 attrs={
                     "valid_range": [0, 8191],
-                    "scale_factor": 5,
-                    "add_offset": 10,
                     "warm_scale_factor": 2,
                     "warm_add_offset": -300,
-                    "long_name": "Effective Radiance",
-                    "units": "mW.m-2.sr-1.(cm-1)-1",
+                    **common_attrs
                 }
             )
         else:
@@ -88,14 +94,11 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                 dims=("y", "x"),
                 attrs={
                     "valid_range": [0, 4095],
-                    "scale_factor": 5,
-                    "add_offset": 10,
                     "warm_scale_factor": 1,
                     "warm_add_offset": 0,
-                    "long_name": "Effective Radiance",
-                    "units": "mW.m-2.sr-1.(cm-1)-1",
-                }
-            )
+                    **common_attrs
+                    }
+                )
 
         data[ch_path] = d
         data[x.format(ch_str)] = xrda(
@@ -114,6 +117,9 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
                     "add_offset": 0.155619515845,
                     }
                 )
+        data[qual.format(ch_str)] = xrda(
+                da.arange(nrows*ncols, dtype="uint8").reshape(nrows, ncols) % 128,
+                dims=("y", "x"))
 
         data[pos.format(ch_str, "start", "row")] = xrda(0)
         data[pos.format(ch_str, "start", "column")] = xrda(0)
@@ -208,6 +214,13 @@ class FakeNetCDF4FileHandler3(FakeNetCDF4FileHandler2):
         data[meas + "/radiance_to_bt_conversion_coefficient_b"] = v
         data[meas + "/radiance_to_bt_conversion_constant_c1"] = v
         data[meas + "/radiance_to_bt_conversion_constant_c2"] = v
+        return data
+
+    def _get_test_calib_for_channel_vis(self, chroot, meas):
+        data = super()._get_test_calib_for_channel_vis(chroot, meas)
+        from netCDF4 import default_fillvals
+        v = xr.DataArray(default_fillvals["f4"])
+        data[meas + "/channel_effective_solar_irradiance"] = v
         return data
 
 
@@ -368,7 +381,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
             assert res[ch].attrs["units"] == "%"
             numpy.testing.assert_array_equal(res[ch], 100 * 15 * 1 * np.pi / 50)
 
-    def test_load_bt(self, reader_configs):
+    def test_load_bt(self, reader_configs, caplog):
         """Test loading with bt."""
         from satpy import DatasetID
         from satpy.readers import load_reader
@@ -381,10 +394,11 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
-        res = reader.load(
-                [DatasetID(name=name, calibration="brightness_temperature") for
-                    name in self._chans["terran"]])
-        assert 8 == len(res)
+        with caplog.at_level(logging.WARNING):
+            res = reader.load(
+                    [DatasetID(name=name, calibration="brightness_temperature") for
+                        name in self._chans["terran"]])
+            assert caplog.text == ""
         for ch in self._chans["terran"]:
             assert res[ch].shape == (200, 11136)
             assert res[ch].dtype == np.float64
@@ -409,6 +423,22 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         assert len(comps["fci"]) > 0
         assert len(mods["fci"]) > 0
 
+    def test_load_quality_only(self, reader_configs):
+        """Test that loading quality only works."""
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+        res = reader.load(["ir_123_pixel_quality"])
+        assert res["ir_123_pixel_quality"].attrs["name"] == "ir_123_pixel_quality"
+
     def test_platform_name(self, reader_configs):
         """Test that platform name is exposed.
 
@@ -429,6 +459,32 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         res = reader.load(["ir_123"])
         assert res["ir_123"].attrs["platform_name"] == "MTG-I1"
 
+    def test_excs(self, reader_configs, caplog):
+        """Test that exceptions are raised where expected."""
+        from satpy import DatasetID
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        fhs = reader.create_filehandlers(loadables)
+
+        with pytest.raises(ValueError):
+            fhs["fci_l1c_fdhsi"][0].get_dataset(DatasetID(name="invalid"), {})
+        with pytest.raises(ValueError):
+            fhs["fci_l1c_fdhsi"][0]._get_dataset_quality(DatasetID(name="invalid"),
+                                                         {})
+        with caplog.at_level(logging.ERROR):
+            fhs["fci_l1c_fdhsi"][0].get_dataset(
+                    DatasetID(name="ir_123", calibration="unknown"),
+                    {"units": "unknown"})
+            assert "unknown calibration key" in caplog.text
+
 
 class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     """Test the FCI L1C FDHSI Reader for bad data input."""
@@ -436,7 +492,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
     _alt_handler = FakeNetCDF4FileHandler3
 
     def test_handling_bad_data_ir(self, reader_configs, caplog):
-        """Test handling of bad data."""
+        """Test handling of bad IR data."""
         from satpy import DatasetID
         from satpy.readers import load_reader
 
@@ -454,3 +510,23 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
                     name="ir_123",
                     calibration="brightness_temperature")])
             assert "cannot produce brightness temperature" in caplog.text
+
+    def test_handling_bad_data_vis(self, reader_configs, caplog):
+        """Test handling of bad VIS data."""
+        from satpy import DatasetID
+        from satpy.readers import load_reader
+
+        filenames = [
+            "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
+            "CHK-BODY--L2P-NC4E_C_EUMT_20170410114434_GTT_DEV_"
+            "20170410113925_20170410113934_N__C_0070_0067.nc",
+        ]
+
+        reader = load_reader(reader_configs)
+        loadables = reader.select_files_from_pathnames(filenames)
+        reader.create_filehandlers(loadables)
+        with caplog.at_level("ERROR"):
+            reader.load([DatasetID(
+                    name="vis_04",
+                    calibration="reflectance")])
+            assert "cannot produce reflectance" in caplog.text
