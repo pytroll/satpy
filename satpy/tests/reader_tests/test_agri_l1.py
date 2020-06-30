@@ -299,8 +299,9 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
 
         # check whether the data type of orbital_parameters is float
         orbital_parameters = res[band_names[0]].attrs['orbital_parameters']
-        for attr in orbital_parameters:
-            self.assertEqual(type(orbital_parameters[attr]), float)
+        self.assertEqual(orbital_parameters['satellite_nominal_latitude'], 0.)
+        self.assertEqual(orbital_parameters['satellite_nominal_longitude'], 104.7)
+        self.assertEqual(orbital_parameters['satellite_nominal_altitude'], 3.5786E7)
 
     def test_fy4a_counts_calib(self):
         """Test loading data at counts calibration."""
