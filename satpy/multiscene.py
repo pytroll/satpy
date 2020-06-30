@@ -62,6 +62,8 @@ def timeseries(datasets):
         if 'time' not in ds.dims:
             tmp = ds.expand_dims("time")
             tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
+            tmp.coords['start_time'] = ('time', [ds.attrs["start_time"]])
+            tmp.coords['end_time'] = ('time', [ds.attrs["end_time"]])
         else:
             tmp = ds
         expanded_ds.append(tmp)

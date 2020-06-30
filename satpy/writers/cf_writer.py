@@ -206,12 +206,8 @@ def area2cf(dataarray, strict=False):
 
 def make_time_bounds(start_times, end_times):
     """Create time bounds for the current *dataarray*."""
-    start_time = min(start_time for start_time in start_times
-                     if start_time is not None)
-    end_time = min(end_time for end_time in end_times
-                   if end_time is not None)
-    data = xr.DataArray([[np.datetime64(start_time), np.datetime64(end_time)]],
-                        dims=['time', 'bnds_1d'])
+    data = xr.DataArray([[start_time, end_time]],
+                         dims=['time', 'bnds_1d'])
     return data
 
 
