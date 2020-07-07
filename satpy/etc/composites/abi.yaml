@@ -316,9 +316,9 @@ composites:
     compositor: !!python/name:satpy.composites.GenericCompositor
     description: >
       The fire temperature RGB highlights intense fires and differentiate these
-      from “cooler” fires. Small/”cool” fires will only show up at 3.9 μm and
+      from “cooler” fires. Small/”cool” fires will only show up at 3.9 um and
       appear red. With the increasing intensity the fires will also be detected
-      by the 2.2μm and 1.6 μm bands resulting in white very intense fires.
+      by the 2.2 um and 1.6 um bands resulting in white very intense fires.
     references:
       Research Article: http://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
     prerequisites:
