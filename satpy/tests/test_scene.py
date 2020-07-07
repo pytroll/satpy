@@ -587,6 +587,7 @@ class TestScene(unittest.TestCase):
         scene['blackberry'] = DataArray(np.arange(5))
         scene['strawberry'] = DataArray(np.arange(5))
         scene['raspberry'] = DataArray(np.arange(5))
+        #  deepcode ignore replace~keys~list~compare: This is on purpose
         assert make_cid(name='blueberry') in scene.keys()
         assert make_cid(name='blueberry') in scene
         assert 'blueberry' in scene
