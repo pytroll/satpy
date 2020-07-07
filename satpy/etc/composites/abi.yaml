@@ -314,28 +314,28 @@ composites:
 
   cira_fire_temperature:
     compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: cira_fire_temperature
     description: >
       The fire temperature RGB highlights intense fires and differentiate these
-      from “cooler” fires. Small/”cool” fires will only show up at 3.9 um and
+      from “cooler” fires. Small/”cool” fires will only show up at 3.9 μm and
       appear red. With the increasing intensity the fires will also be detected
-      by the 2.2 um and 1.6 um bands resulting in white very intense fires.
+      by the 2.2 μm and 1.6 μm bands resulting in white very intense fires.
     references:
       Research Article: http://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
     prerequisites:
       - name: C07
       - name: C06
       - name: C05
-    standard_name: cira_fire_temperature
 
   cira_day_convection:
     compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: cira_day_convection
     description: >
       The Day Convection RGB emphasizes convection with strong updrafts and small ice particles
       indicative of severe storms. Bright yellow in the RGB indicates strong updrafts prior
       to the mature storm stage.
     references:
       Research Article: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
-    standard_name: cira_day_convection
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
@@ -352,6 +352,7 @@ composites:
 
   cimss_cloud_type:
     compositor: !!python/name:satpy.composites.GenericCompositor
+    standard_name: cimss_cloud_type
     description: >
       The Cloud Type RGB discriminates very well between high clouds and low clouds and can be
       used to estimate cloud type. Thin cirrus clouds appear red, opaque ice clouds are yellow,
@@ -362,4 +363,3 @@ composites:
       - name: C04
       - name: C02
       - name: C05
-    standard_name: cimss_cloud_type
