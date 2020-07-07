@@ -96,3 +96,20 @@ we define equality between different instances of these classes, and across the 
 as equality between the sorted key/value pairs shared between the instances.
 If a DataQuery has one or more values set to `'*'`, the corresponding key/value pair will be omited from the comparison.
 Instances sharing no keys will no be equal.
+
+
+Breaking changes from DatasetIDs
+================================
+
+ - The way to access values from the DataID and DataQuery is through getitem: `my_dataid['resolution']`
+ - For checking if a dataset is loaded, use `'mydataset' in scene`, as `'mydataset' in scene.keys()` will always return `False`:
+   the `DatasetDict` instance only supports `DataID` as key type.
+
+Creating DataID for tests
+=========================
+
+Sometimes, it is useful to create `DataID` instances for testing purposes. For these cases, the `satpy.tests.utils` module
+now has a `make_dsid` function that can be used just for this::
+
+  from satpy.tests.utils import make_dsid
+  did = make_dsid(name='camembert', modifiers=('runny',))
