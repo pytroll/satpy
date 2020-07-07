@@ -5,8 +5,8 @@
 Querying and identifying data arrays
 ====================================
 
-DataQuery's
------------
+DataQuery
+---------
 
 The loading of data in Satpy is usually done through giving the name or the wavelength of the data arrays we are interested
 in. This way, the highest, most calibrated data arrays is often returned.
@@ -26,12 +26,12 @@ If one wants to use wildcards to query data, just provide `'*'`, eg::
 
 
 
-DataID's
---------
+DataID
+------
 
 Satpy stores loaded data arrays in a special dictionary (`DatasetDict`) inside scene objects.
 In order to identify each data array uniquely, Satpy is assigning an ID to each data array, which is then used as the key in
-the scene object. These IDs are of type `DataID` and are imutable. They are not supposed to be used by regular users and should only be
+the scene object. These IDs are of type `DataID` and are immutable. They are not supposed to be used by regular users and should only be
 created in special circumstances. Satpy should take care of creating and assigning these automatically. They are also stored in the
 `attrs` of each data array as `_satpy_id`.
 
