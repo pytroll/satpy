@@ -525,10 +525,13 @@ class DataQuery:
             odict = other._asdict()
         except AttributeError:
             return False
+        common_keys = False
         for key, val in sdict.items():
-            if key in odict and odict[key] != val and val is not None:
-                return False
-        return True
+            if key in odict:
+                common_keys = True
+                if odict[key] != val and val is not None:
+                    return False
+        return common_keys
 
     def __hash__(self):
         """Hash."""

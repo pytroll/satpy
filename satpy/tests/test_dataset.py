@@ -199,6 +199,28 @@ def test_dataid():
     did = DataID(default_id_keys_config, name='VIS008', resolution=111)
     assert repr(did) == "DataID(name='VIS008', resolution=111, modifiers=())"
 
+    # Check inequality
+    default_id_keys_config = {'name': None,
+                              'wavelength': {
+                                'type': WavelengthRange,
+                              },
+                              'resolution': None,
+                              'calibration': {
+                                'enum': [
+                                    'reflectance',
+                                    'brightness_temperature',
+                                    'radiance',
+                                    'counts'
+                                    ]
+                              },
+                              'modifiers': {
+                                'required': True,
+                                'default': ModifierTuple(),
+                                'type': ModifierTuple,
+                              },
+                              }
+    assert DataID(default_id_keys_config, wavelength=10) != DataID(default_id_keys_config, name="VIS006")
+
 
 def test_dataid_copy():
     """Test copying a DataID."""
@@ -220,6 +242,9 @@ def test_datasetquery():
     # Check repr
     did = DataQuery(name='VIS008', resolution=111)
     assert repr(did) == "DataQuery(name='VIS008', resolution=111)"
+
+    # Check inequality
+    assert DataQuery(wavelength=10) != DataQuery(name="VIS006")
 
 
 def test_id_query_interactions():
@@ -285,6 +310,9 @@ def test_id_query_interactions():
     dsids, distances = dq.sort_dsids([did2, did])
     assert list(dsids) == [did, did2]
     assert distances[0] < distances[1]
+
+    # Check (in)equality
+    assert DataQuery(wavelength=10) != DataID(default_id_keys_config, name="VIS006")
 
 
 def test_wavelength_range():

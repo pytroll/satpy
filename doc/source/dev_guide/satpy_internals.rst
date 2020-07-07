@@ -93,5 +93,6 @@ DataID and DataQuery interactions
 
 Different DataIDs and DataQuerys can have different metadata items defined. As such
 we define equality between different instances of these classes, and across the classes
-as equality between the sorted key/value pairs of the instances. If a DataQuery has one or more values set to `'*'`, the
-corresponding key/value pair will be omited from the comparison.
+as equality between the sorted key/value pairs shared between the instances.
+If a DataQuery has one or more values set to `'*'`, the corresponding key/value pair will be omited from the comparison.
+Instances sharing no keys will no be equal.
