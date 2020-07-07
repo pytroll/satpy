@@ -127,7 +127,7 @@ class ModifierTuple(tuple):
         if modifiers is None:
             return None
         elif not isinstance(modifiers, (cls, tuple, list)):
-            raise TypeError("'DatasetID' modifiers must be a tuple or None, "
+            raise TypeError("'DataID' modifiers must be a tuple or None, "
                             "not {}".format(type(modifiers)))
         return cls(modifiers)
 
@@ -194,7 +194,7 @@ class MetadataObject(object):
 
     @property
     def id(self):
-        """Return the DatasetID of the object."""
+        """Return the DataID of the object."""
         try:
             return self.attrs['_satpy_id']
         except KeyError:
@@ -279,7 +279,7 @@ def get_keys_from_config(common_id_keys, config):
         elif val is not None and val.get('required') is True:
             id_keys[key] = val
     if not id_keys:
-        raise ValueError('Metada does not contain enough information to create a DatasetID.')
+        raise ValueError('Metada does not contain enough information to create a DataID.')
     return id_keys
 
 
@@ -339,11 +339,6 @@ class DataID(dict):
     in multiple resolutions or with different calibrations such as "radiance"
     and "reflectance". If an element is `None` then it is considered not
     applicable.
-
-    A DatasetID can also be used in Satpy to query for a Dataset. This way
-    a fully qualified DatasetID can be found even if some of the DatasetID
-    elements are unknown. In this case a `None` signifies something that is
-    unknown or not applicable to the requested Dataset.
 
     Args:
         name (str): String identifier for the Dataset
@@ -506,7 +501,13 @@ class DataID(dict):
 
 
 class DataQuery:
-    """The data query object."""
+    """The data query object.
+
+    A DataQuery can be used in Satpy to query for a Dataset. This way
+    a fully qualified DataID can be found even if some of the DataID
+    elements are unknown. In this case a `*` signifies something that is
+    unknown or not applicable to the requested Dataset.
+    """
 
     def __init__(self, **kwargs):
         """Initialize the query."""
@@ -519,7 +520,7 @@ class DataQuery:
         return self._dict[key]
 
     def __eq__(self, other):
-        """Compare the DatasetIDs."""
+        """Compare the DataQuerys."""
         sdict = self._asdict()
         try:
             odict = other._asdict()
@@ -574,7 +575,7 @@ class DataQuery:
         return self.__class__.__name__ + "(" + ", ".join(items) + ")"
 
     def filter_dsids(self, dsid_container):
-        """Filter datasetids based on this query."""
+        """Filter dataids based on this query."""
         keys = iter(dsid_container)
         for key, val in self._dict.items():
             if val != '*':
@@ -583,7 +584,7 @@ class DataQuery:
         return keys
 
     def sort_dsids(self, dsids):
-        """Sort the datasetids based on this query.
+        """Sort the dataids based on this query.
 
         Returns the sorted dsids and the list of distances.
 
@@ -680,7 +681,7 @@ def create_filtered_query(dataset_key, filter_query):
 
 
 def create_filtered_id(dataset_key, filter_query):
-    """Create a DatasetID matching *dataset_key* and *filter_query*.
+    """Create a DataID matching *dataset_key* and *filter_query*.
 
     If a proprety is specified in both *dataset_key* and *filter_query*, the former
     has priority.
@@ -694,7 +695,7 @@ def create_filtered_id(dataset_key, filter_query):
     if not additional_info:
         return dataset_key
     else:
-        raise NotImplementedError("Missmatch {} vs {}".format(str(dataset_key), str(filter_query)))
+        raise NotImplementedError("Mismatch {} vs {}".format(str(dataset_key), str(filter_query)))
 
 
 def dataset_walker(datasets):
