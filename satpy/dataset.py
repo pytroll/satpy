@@ -279,7 +279,7 @@ def get_keys_from_config(common_id_keys, config):
         elif val is not None and val.get('required') is True:
             id_keys[key] = val
     if not id_keys:
-        raise ValueError('Metada does not contain enough information to create a DataID.')
+        raise ValueError('Metadata does not contain enough information to create a DataID.')
     return id_keys
 
 
@@ -447,7 +447,7 @@ class DataID(dict):
     def __getattr__(self, key):
         """Support old syntax for getting items."""
         if key != '_id_keys' and key in self._id_keys:
-            warnings.warn('Access to DataID attributes is deprecated, use [] instead')
+            warnings.warn('Attribute access to DataIDs is deprecated, use key access instead.')
             return self[key]
         else:
             return super().__getattr__(key)
