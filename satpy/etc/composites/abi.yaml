@@ -311,3 +311,55 @@ composites:
     prerequisites:
       - night_ir_alpha
       - _night_background_hires
+
+  cira_fire_temperature:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    description: >
+      The fire temperature RGB highlights intense fires and differentiate these
+      from “cooler” fires. Small/”cool” fires will only show up at 3.9 μm and
+      appear red. With the increasing intensity the fires will also be detected
+      by the 2.2μm and 1.6 μm bands resulting in white very intense fires.
+    references:
+      Research Article: http://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
+    prerequisites:
+      - name: C07
+      - name: C06
+      - name: C05
+    standard_name: cira_fire_temperature
+
+  cira_day_convection:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    description: >
+      The Day Convection RGB emphasizes convection with strong updrafts and small ice particles
+      indicative of severe storms. Bright yellow in the RGB indicates strong updrafts prior
+      to the mature storm stage.
+    references:
+      Research Article: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
+    standard_name: cira_day_convection
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - name: C08
+      - name: C10
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C07
+        - name: C13
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: C05
+        - name: C02
+
+  cimss_cloud_type:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    description: >
+      The Cloud Type RGB discriminates very well between high clouds and low clouds and can be
+      used to estimate cloud type. Thin cirrus clouds appear red, opaque ice clouds are yellow,
+      low water clouds are cyan, and lofted water clouds are white.
+    references:
+      Research Article: https://www.wmo.int/pages/prog/sat/meetings/documents/RGB-WS-2017_Doc_02g_Kerkmann-new-rgbs.pdf
+    prerequisites:
+      - name: C04
+      - name: C02
+      - name: C05
+    standard_name: cimss_cloud_type
