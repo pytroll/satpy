@@ -520,7 +520,11 @@ class DataQuery:
         return self._dict[key]
 
     def __eq__(self, other):
-        """Compare the DataQuerys."""
+        """Compare the DataQuerys.
+
+        A DataQuery is considered equal to another DataQuery or DataID
+        if they have common keys that have equal values.
+        """
         sdict = self._asdict()
         try:
             odict = other._asdict()
