@@ -195,6 +195,10 @@ def test_dataid():
     # Check to_dict
     assert did.to_dict() == dict(name='cheese_shops', modifiers=tuple())
 
+    # Check repr
+    did = DataID(default_id_keys_config, name='VIS008', resolution=111)
+    assert repr(did) == "DataID(name='VIS008', resolution=111, modifiers=())"
+
 
 def test_dataid_copy():
     """Test copying a DataID."""
@@ -212,6 +216,10 @@ def test_datasetquery():
     from satpy.dataset import DataQuery
 
     DataQuery(name='cheese_shops')
+
+    # Check repr
+    did = DataQuery(name='VIS008', resolution=111)
+    assert repr(did) == "DataQuery(name='VIS008', resolution=111)"
 
 
 def test_id_query_interactions():

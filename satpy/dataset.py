@@ -473,7 +473,7 @@ class DataID(dict):
 
     def __repr__(self):
         """Represent the id."""
-        items = ("{}={!r}".format(key, repr(val)) for key, val in self.items())
+        items = ("{}={}".format(key, repr(val)) for key, val in self.items())
         return self.__class__.__name__ + "(" + ", ".join(items) + ")"
 
     def _replace(self, **kwargs):
@@ -567,7 +567,7 @@ class DataQuery:
 
     def __repr__(self):
         """Represent the query."""
-        items = ("{}={!r}".format(key, val) for key, val in zip(self._fields, self._values))
+        items = ("{}={}".format(key, repr(val)) for key, val in zip(self._fields, self._values))
         return self.__class__.__name__ + "(" + ", ".join(items) + ")"
 
     def filter_dsids(self, dsid_container):
