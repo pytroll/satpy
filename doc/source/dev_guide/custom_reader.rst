@@ -122,6 +122,10 @@ The parameters to provide in this section are:
       sensors: [seviri]
       reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
+Optionally, if you need to customize the `DataID` for this reader, you can provide the
+relevant keys with a `data_identification_keys` item here. See the doc:`satpy_internals`
+section for more information.
+
 .. _custom_reader_file_types_section:
 
 The ``file_types`` section
