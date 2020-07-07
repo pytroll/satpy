@@ -582,6 +582,16 @@ class TestScene(unittest.TestCase):
         self.assertFalse('2' in scene)
         self.assertFalse(0.31 in scene)
 
+        scene = Scene()
+        scene['blueberry'] = DataArray(np.arange(5))
+        scene['blackberry'] = DataArray(np.arange(5))
+        scene['strawberry'] = DataArray(np.arange(5))
+        scene['raspberry'] = DataArray(np.arange(5))
+        assert make_cid(name='blueberry') in scene.keys()
+        assert make_cid(name='blueberry') in scene
+        assert 'blueberry' in scene
+        assert 'blueberry' not in scene.keys()
+
     def test_delitem(self):
         """Test deleting an item."""
         from satpy import Scene
