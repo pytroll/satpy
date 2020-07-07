@@ -539,7 +539,7 @@ One way of implementing a file handler is shown below:
             self.nc = None
 
         def get_dataset(self, dataset_id, dataset_info):
-            if dataset_id.calibration != 'radiance':
+            if dataset_id['calibration'] != 'radiance':
                 # TODO: implement calibration to reflectance or brightness temperature
                 return
             if self.nc is None:
