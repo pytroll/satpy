@@ -295,7 +295,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
         # assumption: channels with same resolution should have same area
         # cache results to improve performance
-        if key.resolution in self._cache.keys():
+        if key.resolution in self._cache:
             return self._cache[key.resolution]
 
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])

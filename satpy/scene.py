@@ -369,7 +369,7 @@ class Scene(MetadataObject):
         dep_tree.find_dependencies(all_comps)
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
-        return sorted(available_comps & set(all_comps))
+        return sorted(available_comps & all_comps)
 
     def available_composite_ids(self):
         """Get names of composites that can be generated from the available datasets."""
@@ -1208,7 +1208,7 @@ class Scene(MetadataObject):
         else:
             gvds = gv.Dataset(ds)
 
-        if "latitude" in ds.coords.keys():
+        if "latitude" in ds.coords:
             gview = gvds.to(gv.QuadMesh, kdims=["longitude", "latitude"], vdims=vdims, dynamic=dynamic)
         else:
             gview = gvds.to(gvtype, kdims=["x", "y"], vdims=vdims, dynamic=dynamic)

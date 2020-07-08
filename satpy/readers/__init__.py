@@ -154,7 +154,7 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
 
     res = filter_keys_by_dataset_query(key, key_container)
     if not res:
-        raise(KeyError)
+        raise KeyError("No dataset matching '{}' found".format(str(key)))
 
     if best:
         res = get_best_dataset_key(key, res)
