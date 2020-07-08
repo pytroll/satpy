@@ -233,8 +233,8 @@ def test_dataid_copy():
     assert did2.id_keys == did.id_keys
 
 
-def test_datasetquery():
-    """Test DatasetQuery objects."""
+def test_dataquery():
+    """Test DataQuery objects."""
     from satpy.dataset import DataQuery
 
     DataQuery(name='cheese_shops')
@@ -248,7 +248,7 @@ def test_datasetquery():
 
 
 def test_id_query_interactions():
-    """Test interactions between DataIDs and DatasetQuery's."""
+    """Test interactions between DataIDs and DataQuery's."""
     from satpy.dataset import DataQuery, DataID, WavelengthRange, ModifierTuple
 
     default_id_keys_config = {'name': {
@@ -280,7 +280,7 @@ def test_id_query_interactions():
 
     # Check did filtering
     did2 = DataID(default_id_keys_config, name='ni')
-    res = dq.filter_dsids([did2, did])
+    res = dq.filter_dataids([did2, did])
     assert len(res) == 1
     assert res[0] == did
 
@@ -288,26 +288,26 @@ def test_id_query_interactions():
     dq = DataQuery(name='cheese_shops', wavelength=2, modifiers='*')
     did = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1, 2, 3))
     did2 = DataID(default_id_keys_config, name='cheese_shops', wavelength=(1.1, 2.1, 3.1))
-    dsids, distances = dq.sort_dsids([did2, did])
+    dsids, distances = dq.sort_dataids([did2, did])
     assert list(dsids) == [did, did2]
     assert np.allclose(distances, [0, 0.1])
 
     dq = DataQuery(name='cheese_shops')
     did = DataID(default_id_keys_config, name='cheese_shops', resolution=200)
     did2 = DataID(default_id_keys_config, name='cheese_shops', resolution=400)
-    dsids, distances = dq.sort_dsids([did2, did])
+    dsids, distances = dq.sort_dataids([did2, did])
     assert list(dsids) == [did, did2]
     assert distances[0] < distances[1]
 
     did = DataID(default_id_keys_config, name='cheese_shops', calibration='counts')
     did2 = DataID(default_id_keys_config, name='cheese_shops', calibration='reflectance')
-    dsids, distances = dq.sort_dsids([did2, did])
+    dsids, distances = dq.sort_dataids([did2, did])
     assert list(dsids) == [did2, did]
     assert distances[0] < distances[1]
 
     did = DataID(default_id_keys_config, name='cheese_shops', modifiers=tuple())
     did2 = DataID(default_id_keys_config, name='cheese_shops', modifiers=tuple(['out_of_stock']))
-    dsids, distances = dq.sort_dsids([did2, did])
+    dsids, distances = dq.sort_dataids([did2, did])
     assert list(dsids) == [did, did2]
     assert distances[0] < distances[1]
 

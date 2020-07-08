@@ -23,7 +23,7 @@ from unittest import mock
 import numpy as np
 import xarray as xr
 
-from satpy.tests.utils import make_dsid
+from satpy.tests.utils import make_dataid
 
 
 class Test_NC_ABI_L1B_Base(unittest.TestCase):
@@ -127,7 +127,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
 
     def test_get_dataset(self):
         """Test the get_dataset method."""
-        key = make_dsid(name='Rad', calibration='radiance')
+        key = make_dataid(name='Rad', calibration='radiance')
         res = self.reader.get_dataset(key, {'info': 'info'})
         exp = {'calibration': 'radiance',
                'instrument_ID': None,
@@ -195,7 +195,7 @@ class Test_NC_ABI_L1B_ir_cal(Test_NC_ABI_L1B_Base):
     def test_ir_calibrate(self):
         """Test IR calibration."""
         res = self.reader.get_dataset(
-            make_dsid(name='C05', calibration='brightness_temperature'), {})
+            make_dataid(name='C05', calibration='brightness_temperature'), {})
 
         expected = np.array([[267.55572248, 305.15576503, 332.37383249, 354.73895301, 374.19710115],
                              [391.68679226, 407.74064808, 422.69329105, 436.77021913, np.nan]])
@@ -230,7 +230,7 @@ class Test_NC_ABI_L1B_vis_cal(Test_NC_ABI_L1B_Base):
     def test_vis_calibrate(self):
         """Test VIS calibration."""
         res = self.reader.get_dataset(
-            make_dsid(name='C05', calibration='reflectance'), {})
+            make_dataid(name='C05', calibration='reflectance'), {})
 
         expected = np.array([[0.15265617, 0.30531234, 0.45796851, 0.61062468, 0.76328085],
                              [0.91593702, 1.06859319, 1.22124936, np.nan, 1.52656171]])

@@ -20,7 +20,7 @@ import unittest
 import unittest.mock as mock
 import numpy as np
 import xarray as xr
-from satpy.tests.utils import make_dsid
+from satpy.tests.utils import make_dataid
 
 
 class TestSAFENC(unittest.TestCase):
@@ -75,7 +75,7 @@ class TestSAFENC(unittest.TestCase):
         """Test getting a dataset."""
         for ch in self.channels:
             dt = self.reader.get_dataset(
-                key=make_dsid(name=ch), info={})
+                key=make_dataid(name=ch), info={})
             # ... this only compares the valid (unmasked) elements
             self.assertTrue(np.all(self.nc[ch] == dt.to_masked_array()),
                             msg='get_dataset() returns invalid data for '

@@ -295,7 +295,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_counts(self, reader_configs):
         """Test loading with counts."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         # testing two filenames to test correctly combined
@@ -312,7 +312,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
-                [make_dsid(name=name, calibration="counts") for name in
+                [make_dataid(name=name, calibration="counts") for name in
                     self._chans["solar"] + self._chans["terran"]])
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
@@ -328,7 +328,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_radiance(self, reader_configs):
         """Test loading with radiance."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -341,7 +341,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
-                [make_dsid(name=name, calibration="radiance") for name in
+                [make_dataid(name=name, calibration="radiance") for name in
                     self._chans["solar"] + self._chans["terran"]])
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
@@ -357,7 +357,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_reflectance(self, reader_configs):
         """Test loading with reflectance."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -370,7 +370,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         res = reader.load(
-                [make_dsid(name=name, calibration="reflectance") for name in
+                [make_dataid(name=name, calibration="reflectance") for name in
                     self._chans["solar"]])
         assert 8 == len(res)
         for ch in self._chans["solar"]:
@@ -382,7 +382,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_load_bt(self, reader_configs, caplog):
         """Test loading with bt."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
         filenames = [
             "W_XX-EUMETSAT-Darmstadt,IMG+SAT,MTI1+FCI-1C-RRAD-FDHSI-FD--"
@@ -395,7 +395,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader.create_filehandlers(loadables)
         with caplog.at_level(logging.WARNING):
             res = reader.load(
-                    [make_dsid(name=name, calibration="brightness_temperature") for
+                    [make_dataid(name=name, calibration="brightness_temperature") for
                         name in self._chans["terran"]])
             assert caplog.text == ""
         for ch in self._chans["terran"]:
@@ -460,7 +460,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
 
     def test_excs(self, reader_configs):
         """Test that exceptions are raised where expected."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -474,13 +474,13 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         fhs = reader.create_filehandlers(loadables)
 
         with pytest.raises(ValueError):
-            fhs["fci_l1c_fdhsi"][0].get_dataset(make_dsid(name="invalid"), {})
+            fhs["fci_l1c_fdhsi"][0].get_dataset(make_dataid(name="invalid"), {})
         with pytest.raises(ValueError):
-            fhs["fci_l1c_fdhsi"][0]._get_dataset_quality(make_dsid(name="invalid"),
+            fhs["fci_l1c_fdhsi"][0]._get_dataset_quality(make_dataid(name="invalid"),
                                                          {})
         with pytest.raises(ValueError):
             fhs["fci_l1c_fdhsi"][0].get_dataset(
-                    make_dsid(name="ir_123", calibration="unknown"),
+                    make_dataid(name="ir_123", calibration="unknown"),
                     {"units": "unknown"})
 
 
@@ -491,7 +491,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
 
     def test_handling_bad_data_ir(self, reader_configs, caplog):
         """Test handling of bad IR data."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -504,14 +504,14 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         with caplog.at_level("ERROR"):
-            reader.load([make_dsid(
+            reader.load([make_dataid(
                     name="ir_123",
                     calibration="brightness_temperature")])
             assert "cannot produce brightness temperature" in caplog.text
 
     def test_handling_bad_data_vis(self, reader_configs, caplog):
         """Test handling of bad VIS data."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
 
         filenames = [
@@ -524,7 +524,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
         with caplog.at_level("ERROR"):
-            reader.load([make_dsid(
+            reader.load([make_dataid(
                     name="vis_04",
                     calibration="reflectance")])
             assert "cannot produce reflectance" in caplog.text

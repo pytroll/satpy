@@ -27,7 +27,7 @@ import xarray as xr
 from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFileHandler, HRITMSGEpilogueFileHandler,
                                            NoValidOrbitParams, pad_data)
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
-from satpy.tests.utils import make_dsid
+from satpy.tests.utils import make_dataid
 
 
 def new_get_hd(instance, hdr_info):
@@ -241,7 +241,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
     def test_get_area_def(self):
         """Test getting the area def."""
         from pyresample.utils import proj4_radius_parameters
-        area = self.reader.get_area_def(make_dsid(name='HRV'))
+        area = self.reader.get_area_def(make_dataid(name='HRV'))
         self.assertEqual(area.area_extent,
                          (-45561979844414.07, -3720765401003.719, 45602912357076.38, 77771774058.38356))
         proj_dict = area.proj_dict
@@ -253,7 +253,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
         self.assertEqual(proj_dict['proj'], 'geos')
         self.assertEqual(proj_dict['units'], 'm')
         self.reader.fill_hrv = False
-        area = self.reader.get_area_def(make_dsid(name='HRV'))
+        area = self.reader.get_area_def(make_dataid(name='HRV'))
         self.assertEqual(area.defs[0].area_extent,
                          (-22017598561055.01, -2926674655354.9604, 23564847539690.22, 77771774058.38356))
         self.assertEqual(area.defs[1].area_extent,
@@ -326,7 +326,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
     def test_get_area_def(self):
         """Test getting the area def."""
         from pyresample.utils import proj4_radius_parameters
-        area = self.reader.get_area_def(make_dsid(name='VIS006'))
+        area = self.reader.get_area_def(make_dataid(name='VIS006'))
         proj_dict = area.proj_dict
         a, b = proj4_radius_parameters(proj_dict)
         self.assertEqual(a, 6378169.0)
@@ -341,7 +341,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
 
         # Data shifted by 1.5km to N-W
         self.reader.mda['offset_corrected'] = False
-        area = self.reader.get_area_def(make_dsid(name='VIS006'))
+        area = self.reader.get_area_def(make_dataid(name='VIS006'))
         self.assertEqual(area.area_extent,
                          (-77771772558.38356, -3720765402503.719,
                           30310525627938.438, 77771772558.38356))
