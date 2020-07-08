@@ -322,3 +322,22 @@ def test_wavelength_range():
     wr = WavelengthRange(1, 2, 3)
     assert 1.2 == wr
     assert .9 != wr
+
+    # Check containement
+    assert 1.2 in wr
+    assert .9 not in wr
+    assert WavelengthRange(1, 2, 3) in wr
+    assert WavelengthRange(1.1, 2.2, 3.3) not in wr
+    assert WavelengthRange(1.2, 2, 2.8) in wr
+    assert WavelengthRange(10, 20, 30) not in wr
+    assert 'bla' not in wr
+    assert None not in wr
+    wr2 = WavelengthRange(1, 2, 3, 'µm')
+    assert wr2 in wr
+    wr2 = WavelengthRange(1, 2, 3, 'nm')
+    with pytest.raises(NotImplementedError):
+        wr2 in wr
+
+    # Check __str__
+    assert str(wr) == "2µm (1-3µm)"
+    assert str(wr2) == "2nm (1-3nm)"

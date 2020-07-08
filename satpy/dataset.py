@@ -15,16 +15,18 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Dataset objects."""
+"""Dataset identifying objects."""
 
 import logging
 import numbers
+import warnings
 from collections import namedtuple
 from collections.abc import Collection
+from contextlib import suppress
+from copy import copy, deepcopy
 from datetime import datetime
 from enum import IntEnum
-from copy import copy, deepcopy
-import warnings
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -58,7 +60,11 @@ class ValueList(IntEnum):
         return '<' + str(self) + '>'
 
 
-wlklass = namedtuple("WavelengthRange", "min central max")
+try:
+    wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))
+except NameError:  # python 3.6
+    wlklass = namedtuple("WavelengthRange", "min central max unit")
+    wlklass.__new__.__defaults__ = ('µm',)
 
 
 class WavelengthRange(wlklass):
@@ -77,7 +83,7 @@ class WavelengthRange(wlklass):
         if other is None:
             return False
         elif isinstance(other, numbers.Number):
-            return self.min <= other <= self.max
+            return other in self
         return super().__eq__(other)
 
     def __ne__(self, other):
@@ -99,6 +105,22 @@ class WavelengthRange(wlklass):
     def __hash__(self):
         """Hash this tuple."""
         return tuple.__hash__(self)
+
+    def __str__(self):
+        """Format for print out."""
+        return "{0.central}{0.unit} ({0.min}-{0.max}{0.unit})".format(self)
+
+    def __contains__(self, other):
+        """Check if this range contains *other*."""
+        if other is None:
+            return False
+        elif isinstance(other, numbers.Number):
+            return self.min <= other <= self.max
+        with suppress(AttributeError):
+            if self.unit != other.unit:
+                raise NotImplementedError("Can't compare wavelength ranges with different units.")
+            return self.min <= other.min and self.max >= other.max
+        return False
 
     def distance(self, value):
         """Get the distance from value."""
@@ -326,12 +348,12 @@ def _share_metadata_key_list_arrays(values):
 
 
 class DataID(dict):
-    """Identifier for all `Dataset` objects.
+    """Identifier for all `DataArray` objects.
 
     FIXME: talk about None not being a valid value
 
-    DataID is a namedtuple that holds identifying and classifying
-    information about a Dataset. There are two identifying elements,
+    DataID is a dict that holds identifying and classifying
+    information about a DataArray. There are two identifying elements,
     ``name`` and ``wavelength``. These can be used to generically refer to a
     Dataset. The other elements of a DataID are meant to further
     distinguish a Dataset from the possible variations it may have. For
@@ -386,7 +408,7 @@ class DataID(dict):
 
     @staticmethod
     def fix_id_keys(id_keys):
-        """Sanitize the id keys."""
+        """Flesh out enums in the id keys as gotten from a config."""
         new_id_keys = id_keys.copy()
         for key, val in id_keys.items():
             if not val:
@@ -400,7 +422,7 @@ class DataID(dict):
         return new_id_keys
 
     def convert_dict(self, keyvals):
-        """Convert a dictionary to another types like defined in this object's id_keys."""
+        """Convert a dictionary's values to the types defined in this object's id_keys."""
         curated = {}
         if not keyvals:
             return curated
