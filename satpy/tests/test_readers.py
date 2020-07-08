@@ -129,6 +129,9 @@ class TestDatasetDict(unittest.TestCase):
         self.assertEqual(d[make_dataid(name='test4', calibration='radiance')], '4rad')
         self.assertRaises(KeyError, d.getitem, '1h')
 
+        # test with full tuple
+        self.assertEqual(d[make_dsq(name='test', wavelength=(0, 0.5, 1), resolution=1000)], "1")
+
     def test_get_key(self):
         """Test 'get_key' special functions."""
         from satpy.readers import get_key
@@ -194,8 +197,8 @@ class TestDatasetDict(unittest.TestCase):
             'test', 'test2', 'test3', 'test4'])
         wl_keys = tuple(d.keys(wavelengths=True))
         self.assertIn((0, 0.5, 1), wl_keys)
-        self.assertIn((1, 1.5, 2), wl_keys)
-        self.assertIn((1.2, 1.7, 2.2), wl_keys)
+        self.assertIn((1, 1.5, 2, 'µm'), wl_keys)
+        self.assertIn((1.2, 1.7, 2.2, 'µm'), wl_keys)
         self.assertIn(None, wl_keys)
 
     def test_setitem(self):

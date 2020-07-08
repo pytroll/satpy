@@ -1694,6 +1694,7 @@ class TestSceneLoading(unittest.TestCase):
         """
         import satpy.scene
         from satpy.tests.utils import FakeReader, test_composites
+        from satpy.dataset import WavelengthRange
         cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
@@ -1714,9 +1715,8 @@ class TestSceneLoading(unittest.TestCase):
         # mod_wl depends on the this node:
         ds6_modded_node = scene.dep_tree[make_dataid(name='ds6', modifiers=('mod1',))]
         # this dep should be full qualified with name and wavelength
-        self.assertIsNotNone(ds6_modded_node.name.name)
-        self.assertIsNotNone(ds6_modded_node.name.wavelength)
-        self.assertEqual(len(ds6_modded_node.name.wavelength), 3)
+        self.assertIsNotNone(ds6_modded_node.name['name'])
+        assert isinstance(ds6_modded_node.name['wavelength'], WavelengthRange)
         # the node should be shared between everything that uses it
         self.assertIs(ds1_mod_dep_node, ds3_mod_dep_node)
         self.assertIs(ds1_mod_dep_node, ds6_modded_node)

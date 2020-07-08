@@ -252,7 +252,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
             name = dataid.name.replace('0', '')
             assert self.config['datasets'][name]['name'] == dataid.name
             if 'wavelength' in self.config['datasets'][name]:
-                assert self.config['datasets'][name]['wavelength'] == list(dataid.wavelength)
+                assert self.config['datasets'][name]['wavelength'] == list(dataid.wavelength)[:3]
             if 'calibration' in self.config['datasets'][name]:
                 assert self.config['datasets'][name]['calibration'] == dataid.calibration
 
@@ -429,7 +429,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
     def test_get_coordinates_for_dataset_key(self):
         """Test getting coordinates for a key."""
-        ds_q = DataQuery(name='ch01', wavelength=(0.5, 0.6, 0.7),
+        ds_q = DataQuery(name='ch01', wavelength=(0.5, 0.6, 0.7, 'µm'),
                          calibration='reflectance', modifiers=())
         res = self.reader._get_coordinates_for_dataset_key(ds_q)
         self.assertListEqual(res,

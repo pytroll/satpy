@@ -322,6 +322,8 @@ def test_wavelength_range():
     wr = WavelengthRange(1, 2, 3)
     assert 1.2 == wr
     assert .9 != wr
+    assert wr == (1, 2, 3)
+    assert wr == (1, 2, 3, 'µm')
 
     # Check containement
     assert 1.2 in wr
