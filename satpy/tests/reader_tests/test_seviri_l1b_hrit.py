@@ -421,7 +421,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                                     prologue=pro, epilogue=epi, ext_calib_coefs=coefs,
                                     calib_mode='GSICS')
         for ch_id, ch_name in CHANNEL_NAMES.items():
-            if ch_name in coefs.keys():
+            if ch_name in coefs:
                 gain, offset = coefs[ch_name]['gain'], coefs[ch_name]['offset']
             elif ch_name not in VIS_CHANNELS:
                 gain, offset = gsics_gain[ch_id - 1], gsics_offset[ch_id - 1]

@@ -907,7 +907,7 @@ def _move_existing_caches(cache_dir, filename):
     import shutil
     old_cache_dir = os.path.join(cache_dir, 'moved_by_satpy')
     try:
-        os.mkdir(old_cache_dir)
+        os.makedirs(old_cache_dir)
     except FileExistsError:
         pass
     try:
@@ -1232,6 +1232,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               }
 
 
+# deepcode ignore PythonSameEvalBinaryExpressiontrue: PRBaseResampler is None only on import errors
 if PRBaseResampler is None:
     PRBaseResampler = BaseResampler
 
