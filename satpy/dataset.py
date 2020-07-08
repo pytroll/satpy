@@ -89,6 +89,8 @@ class WavelengthRange(wlklass):
             return False
         elif isinstance(other, numbers.Number):
             return other in self
+        elif isinstance(other, (tuple, list)) and len(other) == 3:
+            return self[:3] == other
         return super().__eq__(other)
 
     def __ne__(self, other):
@@ -133,6 +135,8 @@ class WavelengthRange(wlklass):
             try:
                 return abs(value.central - self.central)
             except AttributeError:
+                if isinstance(value, (tuple, list)):
+                    return abs(value[1] - self.central)
                 return abs(value - self.central)
         else:
             return np.inf

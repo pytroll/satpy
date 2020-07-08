@@ -76,7 +76,7 @@ class TestCFWriter(unittest.TestCase):
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
-                expected_prereq = ('DataQuery(name=hej)')
+                expected_prereq = ("DataQuery(name='hej')")
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
@@ -131,7 +131,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertNotIn('crs', f)
                 self.assertNotIn('_FillValue', f['x'].attrs)
                 self.assertNotIn('_FillValue', f['y'].attrs)
-                expected_prereq = ("DataQuery(name=hej)")
+                expected_prereq = ("DataQuery(name='hej')")
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
@@ -501,7 +501,7 @@ class TestCFWriter(unittest.TestCase):
         attrs['prerequisites'] = [make_dsq(name='hej')]
 
         # Adjust expected attributes
-        expected_prereq = ("DataQuery(name=hej)")
+        expected_prereq = ("DataQuery(name='hej')")
         update = {'prerequisites': [expected_prereq], 'long_name': attrs['name']}
 
         attrs_expected.update(update)
