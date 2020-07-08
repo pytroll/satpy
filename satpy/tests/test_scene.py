@@ -21,7 +21,7 @@ import os
 import unittest
 from unittest import mock
 
-from satpy.tests.utils import make_dsid, make_cid, default_id_keys_config, make_dsq
+from satpy.tests.utils import make_dataid, make_cid, default_id_keys_config, make_dsq
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -293,29 +293,29 @@ class TestScene(unittest.TestCase):
         # Return least modified item
         scene = Scene()
         scene['1'] = ds1_m0 = DataArray(np.arange(5))
-        scene[make_dsid(name='1', modifiers=('mod1',))
+        scene[make_dataid(name='1', modifiers=('mod1',))
               ] = ds1_m1 = DataArray(np.arange(5))
         self.assertIs(scene['1'], ds1_m0)
         self.assertEqual(len(list(scene.keys())), 2)
 
         scene = Scene()
         scene['1'] = ds1_m0 = DataArray(np.arange(5))
-        scene[make_dsid(name='1', modifiers=('mod1',))
+        scene[make_dataid(name='1', modifiers=('mod1',))
               ] = ds1_m1 = DataArray(np.arange(5))
-        scene[make_dsid(name='1', modifiers=('mod1', 'mod2'))
+        scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))
               ] = ds1_m2 = DataArray(np.arange(5))
         self.assertIs(scene['1'], ds1_m0)
         self.assertEqual(len(list(scene.keys())), 3)
 
         scene = Scene()
-        scene[make_dsid(name='1', modifiers=('mod1', 'mod2'))
+        scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))
               ] = ds1_m2 = DataArray(np.arange(5))
-        scene[make_dsid(name='1', modifiers=('mod1',))
+        scene[make_dataid(name='1', modifiers=('mod1',))
               ] = ds1_m1 = DataArray(np.arange(5))
         self.assertIs(scene['1'], ds1_m1)
-        self.assertIs(scene[make_dsid(name='1', modifiers=('mod1', 'mod2'))], ds1_m2)
+        self.assertIs(scene[make_dataid(name='1', modifiers=('mod1', 'mod2'))], ds1_m2)
         self.assertRaises(KeyError, scene.__getitem__,
-                          make_dsid(name='1', modifiers=tuple()))
+                          make_dataid(name='1', modifiers=tuple()))
         self.assertEqual(len(list(scene.keys())), 2)
 
     def test_getitem_slices(self):
@@ -842,13 +842,13 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 0)
         r.load.assert_called_once_with(
-            set([make_dsid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2))]))
+            set([make_dataid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2))]))
 
         scene.load(['ds1'])
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(r.load.call_count, 2)
         # most recent call should have only been ds1
-        r.load.assert_called_with(set([make_dsid(name='ds1')]))
+        r.load.assert_called_with(set([make_dataid(name='ds1')]))
         self.assertEqual(len(loaded_ids), 1)
 
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -864,7 +864,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds1'])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_dsid(name='ds1')
+        assert loaded_ids[0] == make_dataid(name='ds1')
 
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_ds1_load_twice(self, cri):
@@ -879,13 +879,13 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds1'])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_dsid(name='ds1')
+        assert loaded_ids[0] == make_dataid(name='ds1')
 
         with mock.patch.object(r, 'load') as m:
             scene.load(['ds1'])
             loaded_ids = list(scene.datasets.keys())
             assert len(loaded_ids) == 1
-            assert loaded_ids[0] == make_dsid(name='ds1')
+            assert loaded_ids[0] == make_dataid(name='ds1')
             self.assertFalse(
                 m.called, "Reader.load was called again when loading something that's already loaded")
 
@@ -903,7 +903,7 @@ class TestSceneLoading(unittest.TestCase):
                                   base_dir='bli',
                                   reader='fake_reader')
         self.assertRaises(KeyError, scene.load,
-                          [make_dsid(name='ds1', modifiers=('_fake_bad_mod_',))])
+                          [make_dataid(name='ds1', modifiers=('_fake_bad_mod_',))])
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -972,7 +972,7 @@ class TestSceneLoading(unittest.TestCase):
         from satpy.tests.utils import FakeReader, test_composites
 
         # only the 500m is available
-        available_datasets = [make_dsid(name='ds5', resolution=500)]
+        available_datasets = [make_dataid(name='ds5', resolution=500)]
         cri.return_value = {
             'fake_reader': FakeReader(
                 'fake_reader', 'fake_sensor', datasets=['ds5'],
@@ -1358,11 +1358,11 @@ class TestSceneLoading(unittest.TestCase):
         # for the incomp_areas modifier
         self.assertEqual(len(loaded_ids), 4)  # the 1 dependencies
         self.assertIn('ds3', scene.datasets)
-        self.assertIn(make_dsid(name='ds4', calibration='reflectance',
-                                modifiers=('mod1', 'mod3')),
+        self.assertIn(make_dataid(name='ds4', calibration='reflectance',
+                                  modifiers=('mod1', 'mod3')),
                       scene.datasets)
-        self.assertIn(make_dsid(name='ds5', resolution=250,
-                                modifiers=('mod1',)),
+        self.assertIn(make_dataid(name='ds5', resolution=250,
+                                  modifiers=('mod1',)),
                       scene.datasets)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
@@ -1395,11 +1395,11 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(loaded_ids), 5)  # the 1 dependencies
         self.assertIn('ds3', scene.datasets)
         self.assertIn('ds2', scene.datasets)
-        self.assertIn(make_dsid(name='ds4', calibration='reflectance',
-                                modifiers=('mod1', 'mod3')),
+        self.assertIn(make_dataid(name='ds4', calibration='reflectance',
+                                  modifiers=('mod1', 'mod3')),
                       scene.datasets)
-        self.assertIn(make_dsid(name='ds5', resolution=250,
-                                modifiers=('mod1',)),
+        self.assertIn(make_dataid(name='ds5', resolution=250,
+                                  modifiers=('mod1',)),
                       scene.datasets)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
@@ -1427,7 +1427,7 @@ class TestSceneLoading(unittest.TestCase):
         # initialize the dep tree without loading the data
         scene.dep_tree.find_dependencies({'comp19'})
         this_node = scene.dep_tree['comp19']
-        shared_dep_id = make_dsid(name='ds5', modifiers=('res_change',))
+        shared_dep_id = make_dataid(name='ds5', modifiers=('res_change',))
         shared_dep_expected_node = scene.dep_tree[shared_dep_id]
         # get the node for the first dep in the prereqs list of the
         # comp13 node
@@ -1499,7 +1499,7 @@ class TestSceneLoading(unittest.TestCase):
         scene = satpy.scene.Scene(filenames=['bla'],
                                   base_dir='bli',
                                   reader='fake_reader')
-        scene.load([make_dsid(name='ds1', modifiers=('mod1', 'mod2'))])
+        scene.load([make_dataid(name='ds1', modifiers=('mod1', 'mod2'))])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0].modifiers == ('mod1', 'mod2')
@@ -1518,8 +1518,8 @@ class TestSceneLoading(unittest.TestCase):
                                   base_dir='bli',
                                   reader='fake_reader')
         scene.load([
-            make_dsid(name='ds1', modifiers=('mod1', 'mod2')),
-            make_dsid(name='ds2', modifiers=('mod2', 'mod1')),
+            make_dataid(name='ds1', modifiers=('mod1', 'mod2')),
+            make_dataid(name='ds2', modifiers=('mod2', 'mod1')),
         ])
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
@@ -1579,7 +1579,7 @@ class TestSceneLoading(unittest.TestCase):
             loaded_ids = list(scene.datasets.keys())
             self.assertEqual(len(loaded_ids), 2)
             # this is the unmodified ds1
-            self.assertIn(make_dsid(name='ds1'), loaded_ids)
+            self.assertIn(make_dataid(name='ds1'), loaded_ids)
             # m.assert_called_once_with(set([scene.dep_tree['ds1']]))
             m.assert_called_once_with(set())
         with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
@@ -1588,7 +1588,7 @@ class TestSceneLoading(unittest.TestCase):
             loaded_ids = list(scene.datasets.keys())
             self.assertEqual(len(loaded_ids), 2)
             # this is the unmodified ds1
-            self.assertIn(make_dsid(name='ds1'), loaded_ids)
+            self.assertIn(make_dataid(name='ds1'), loaded_ids)
             m.assert_called_once_with(set())
         # we should only generate the composite once
         self.assertEqual(comps['fake_sensor'][
@@ -1712,7 +1712,7 @@ class TestSceneLoading(unittest.TestCase):
         ds1_mod_dep_node = ds1_mod_node.data[1][1]
         ds3_mod_dep_node = ds3_mod_node.data[1][1]
         # mod_wl depends on the this node:
-        ds6_modded_node = scene.dep_tree[make_dsid(name='ds6', modifiers=('mod1',))]
+        ds6_modded_node = scene.dep_tree[make_dataid(name='ds6', modifiers=('mod1',))]
         # this dep should be full qualified with name and wavelength
         self.assertIsNotNone(ds6_modded_node.name.name)
         self.assertIsNotNone(ds6_modded_node.name.wavelength)
@@ -1777,8 +1777,8 @@ class TestSceneLoading(unittest.TestCase):
         """Test dependency tree if too many reader keys match."""
         import satpy.scene
         from satpy.tests.utils import FakeReader, test_composites
-        datasets = [make_dsid(name='duplicate1', wavelength=(0.1, 0.2, 0.3)),
-                    make_dsid(name='duplicate2', wavelength=(0.1, 0.2, 0.3))]
+        datasets = [make_dataid(name='duplicate1', wavelength=(0.1, 0.2, 0.3)),
+                    make_dataid(name='duplicate2', wavelength=(0.1, 0.2, 0.3))]
         reader = FakeReader('fake_reader', 'fake_sensor', datasets=datasets,
                             filter_datasets=False)
         cri.return_value = {'fake_reader': reader}
@@ -1890,7 +1890,7 @@ class TestSceneResampling(unittest.TestCase):
         scene.load(['ds1'])
 
         comp19_node = scene.dep_tree['comp19']
-        ds5_mod_id = make_dsid(name='ds5', modifiers=('res_change',))
+        ds5_mod_id = make_dataid(name='ds5', modifiers=('res_change',))
         ds5_node = scene.dep_tree[ds5_mod_id]
         comp13_node = scene.dep_tree['comp13']
 
@@ -1901,7 +1901,7 @@ class TestSceneResampling(unittest.TestCase):
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 2
         assert loaded_ids[0] == make_cid(name='comp19')
-        assert loaded_ids[1] == make_dsid(name='ds1')
+        assert loaded_ids[1] == make_dataid(name='ds1')
 
         loaded_ids = list(new_scene.datasets.keys())
         assert len(loaded_ids) == 2

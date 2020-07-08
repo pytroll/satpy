@@ -145,7 +145,7 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
     def test_get_dataset_channels(self, get_channel, *mocks):
         """Test getting the channel datasets."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
 
         # Mock reader and file handler
         fh = self._get_fh_mocked(
@@ -161,7 +161,7 @@ class TestGACLACFile(TestCase):
         # Test calibration to reflectance as well as attributes.
         counts = np.ones((3, 3))
         get_channel.return_value = counts
-        key = make_dsid(name='1', calibration='reflectance')
+        key = make_dataid(name='1', calibration='reflectance')
         info = {'name': '1', 'standard_name': 'my_standard_name'}
 
         res = fh.get_dataset(key=key, info=info)
@@ -183,8 +183,8 @@ class TestGACLACFile(TestCase):
         get_channel.assert_called_with(key)
 
         # Counts & brightness temperature: Similar, just check _get_channel() call
-        for key in [make_dsid(name='1', calibration='counts'),
-                    make_dsid(name='5', calibration='brightness_temperature')]:
+        for key in [make_dataid(name='1', calibration='counts'),
+                    make_dataid(name='5', calibration='brightness_temperature')]:
             fh.get_dataset(key=key, info={'name': 1})
             get_channel.assert_called_with(key)
 
@@ -193,7 +193,7 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
     def test_get_dataset_slice(self, get_channel, slc, *mocks):
         """Get a slice of a dataset."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
 
         # Test slicing/stripping
         def slice_patched(data, times):
@@ -222,7 +222,7 @@ class TestGACLACFile(TestCase):
                 **kwargs
             )
 
-            key = make_dsid(name='1', calibration='reflectance')
+            key = make_dataid(name='1', calibration='reflectance')
             info = {'name': '1', 'standard_name': 'reflectance'}
             res = fh.get_dataset(key, info)
             np.testing.assert_array_equal(res.data, ch[1:3, :])
@@ -233,7 +233,7 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     def test_get_dataset_latlon(self, *mocks):
         """Test getting the latitudes and longitudes."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
 
         lons = np.ones((3, 3))
         lats = 2 * lons
@@ -249,7 +249,7 @@ class TestGACLACFile(TestCase):
 
         # With interpolation of coordinates
         for name, exp_data in zip(['longitude', 'latitude'], [lons, lats]):
-            key = make_dsid(name=name)
+            key = make_dataid(name=name)
             info = {'name': name, 'standard_name': 'my_standard_name'}
             res = fh.get_dataset(key=key, info=info)
             exp = xr.DataArray(exp_data,
@@ -261,7 +261,7 @@ class TestGACLACFile(TestCase):
         # Without interpolation of coordinates
         fh.interpolate_coords = False
         for name, _exp_data in zip(['longitude', 'latitude'], [lons, lats]):
-            key = make_dsid(name=name)
+            key = make_dataid(name=name)
             info = {'name': name, 'standard_name': 'my_standard_name'}
             res = fh.get_dataset(key=key, info=info)
             self.assertTupleEqual(res.dims, ('y', 'x_every_eighth'))
@@ -270,7 +270,7 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_angle')
     def test_get_dataset_angles(self, get_angle, *mocks):
         """Test getting the angles."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         from satpy.readers.avhrr_l1b_gaclac import ANGLES
 
         ones = np.ones((3, 3))
@@ -286,7 +286,7 @@ class TestGACLACFile(TestCase):
 
         # With interpolation of coordinates
         for angle in ANGLES:
-            key = make_dsid(name=angle)
+            key = make_dataid(name=angle)
             info = {'name': angle, 'standard_name': 'my_standard_name'}
             res = fh.get_dataset(key=key, info=info)
             exp = xr.DataArray(ones,
@@ -298,7 +298,7 @@ class TestGACLACFile(TestCase):
         # Without interpolation of coordinates
         fh.interpolate_coords = False
         for angle in ANGLES:
-            key = make_dsid(name=angle)
+            key = make_dataid(name=angle)
             info = {'name': angle, 'standard_name': 'my_standard_name'}
             res = fh.get_dataset(key=key, info=info)
             self.assertTupleEqual(res.dims, ('y', 'x_every_eighth'))
@@ -306,7 +306,7 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     def test_get_dataset_qual_flags(self, *mocks):
         """Test getting the qualitiy flags."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
 
         qual_flags = np.ones((3, 7))
         reader = self._get_reader_mocked()
@@ -319,7 +319,7 @@ class TestGACLACFile(TestCase):
             interpolate_coords=True
         )
 
-        key = make_dsid(name='qual_flags')
+        key = make_dataid(name='qual_flags')
         info = {'name': 'qual_flags'}
         res = fh.get_dataset(key=key, info=info)
         exp = xr.DataArray(qual_flags,
@@ -337,7 +337,7 @@ class TestGACLACFile(TestCase):
 
     def test_get_channel(self):
         """Test getting the channels."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
 
         counts = np.moveaxis(np.array([[[1, 2, 3],
                                         [4, 5, 6]]]), 0, 2)
@@ -348,7 +348,7 @@ class TestGACLACFile(TestCase):
         fh = self._get_fh_mocked(reader=reader, counts=None, calib_channels=None,
                                  chn_dict={'1': 0})
 
-        key = make_dsid(name='1', calibration='counts')
+        key = make_dataid(name='1', calibration='counts')
         # Counts
         res = fh._get_channel(key=key)
         np.testing.assert_array_equal(res, [[1, 2, 3],
@@ -357,7 +357,7 @@ class TestGACLACFile(TestCase):
 
         # Reflectance and Brightness Temperature
         for calib in ['reflectance', 'brightness_temperature']:
-            key = make_dsid(name='1', calibration=calib)
+            key = make_dataid(name='1', calibration=calib)
             res = fh._get_channel(key=key)
             np.testing.assert_array_equal(res, [[2, 4, 6],
                                                 [8, 10, 12]])
@@ -365,30 +365,30 @@ class TestGACLACFile(TestCase):
 
         # Invalid
         with pytest.raises(ValueError):
-            key = make_dsid(name='7', calibration='coffee')
+            key = make_dataid(name='7', calibration='coffee')
 
         # Buffering
         reader.get_counts.reset_mock()
-        key = make_dsid(name='1', calibration='counts')
+        key = make_dataid(name='1', calibration='counts')
         fh._get_channel(key=key)
         reader.get_counts.assert_not_called()
 
         reader.get_calibrated_channels.reset_mock()
         for calib in ['reflectance', 'brightness_temperature']:
-            key = make_dsid(name='1', calibration=calib)
+            key = make_dataid(name='1', calibration=calib)
             fh._get_channel(key)
             reader.get_calibrated_channels.assert_not_called()
 
     def test_get_angle(self):
         """Test getting the angle."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
 
         reader = mock.MagicMock()
         reader.get_angles.return_value = 1, 2, 3, 4, 5
         fh = self._get_fh_mocked(reader=reader, angles=None)
 
         # Test angle readout
-        key = make_dsid(name='sensor_zenith_angle')
+        key = make_dataid(name='sensor_zenith_angle')
         res = fh._get_angle(key)
         self.assertEqual(res, 2)
         self.assertDictEqual(fh.angles, {'sensor_zenith_angle': 2,
@@ -398,7 +398,7 @@ class TestGACLACFile(TestCase):
                                          'sun_sensor_azimuth_difference_angle': 5})
 
         # Test buffering
-        key = make_dsid(name='sensor_azimuth_angle')
+        key = make_dataid(name='sensor_azimuth_angle')
         fh._get_angle(key)
         reader.get_angles.assert_called_once()
 

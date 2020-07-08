@@ -96,15 +96,15 @@ def step_impl_datasets_with_same_name(context):
     """Datasets with the same name but different other ID parameters."""
     from satpy import Scene
     from xarray import DataArray
-    from satpy.tests.utils import make_dsid
+    from satpy.tests.utils import make_dataid
     scn = Scene()
-    scn[make_dsid(name='ds1', calibration='radiance')] = DataArray([[1, 2], [3, 4]])
-    scn[make_dsid(name='ds1', resolution=500, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
-    scn[make_dsid(name='ds1', resolution=250, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
-    scn[make_dsid(name='ds1', resolution=1000, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
-    scn[make_dsid(name='ds1', resolution=500, calibration='radiance', modifiers=('mod1',))] = \
+    scn[make_dataid(name='ds1', calibration='radiance')] = DataArray([[1, 2], [3, 4]])
+    scn[make_dataid(name='ds1', resolution=500, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
+    scn[make_dataid(name='ds1', resolution=250, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
+    scn[make_dataid(name='ds1', resolution=1000, calibration='reflectance')] = DataArray([[5, 6], [7, 8]])
+    scn[make_dataid(name='ds1', resolution=500, calibration='radiance', modifiers=('mod1',))] = \
         DataArray([[5, 6], [7, 8]])
-    ds_id = make_dsid(name='ds1', resolution=1000, calibration='radiance', modifiers=('mod1', 'mod2'))
+    ds_id = make_dataid(name='ds1', resolution=1000, calibration='radiance', modifiers=('mod1', 'mod2'))
     scn[ds_id] = DataArray([[5, 6], [7, 8]])
     context.scene = scn
 

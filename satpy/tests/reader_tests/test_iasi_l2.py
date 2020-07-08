@@ -221,17 +221,17 @@ class TestIasiL2(unittest.TestCase):
 
     def test_get_dataset(self):
         """Test get_dataset() for different datasets."""
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         info = {'eggs': 'spam'}
-        key = make_dsid(name='pressure')
+        key = make_dataid(name='pressure')
         data = self.reader.get_dataset(key, info).compute()
         self.check_pressure(data)
         self.assertTrue('eggs' in data.attrs)
         self.assertEqual(data.attrs['eggs'], 'spam')
-        key = make_dsid(name='emissivity')
+        key = make_dataid(name='emissivity')
         data = self.reader.get_dataset(key, info).compute()
         self.check_emissivity(data)
-        key = make_dsid(name='sensing_time')
+        key = make_dataid(name='sensing_time')
         data = self.reader.get_dataset(key, info).compute()
         self.assertEqual(data.shape, (NUM_SCANLINES, SCAN_WIDTH))
 
@@ -275,16 +275,16 @@ class TestIasiL2(unittest.TestCase):
         """Test read_dataset() function."""
         import h5py
         from satpy.readers.iasi_l2 import read_dataset
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         with h5py.File(self.fname, 'r') as fid:
-            key = make_dsid(name='pressure')
+            key = make_dataid(name='pressure')
             data = read_dataset(fid, key).compute()
             self.check_pressure(data)
-            key = make_dsid(name='emissivity')
+            key = make_dataid(name='emissivity')
             data = read_dataset(fid, key).compute()
             self.check_emissivity(data)
             # This dataset doesn't have any attributes
-            key = make_dsid(name='ozone_total_column')
+            key = make_dataid(name='ozone_total_column')
             data = read_dataset(fid, key).compute()
             self.assertEqual(len(data.attrs), 0)
 
@@ -292,12 +292,12 @@ class TestIasiL2(unittest.TestCase):
         """Test read_geo() function."""
         import h5py
         from satpy.readers.iasi_l2 import read_geo
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
         with h5py.File(self.fname, 'r') as fid:
-            key = make_dsid(name='sensing_time')
+            key = make_dataid(name='sensing_time')
             data = read_geo(fid, key).compute()
             self.assertEqual(data.shape, (NUM_SCANLINES, SCAN_WIDTH))
-            key = make_dsid(name='latitude')
+            key = make_dataid(name='latitude')
             data = read_geo(fid, key).compute()
             self.assertEqual(data.shape, (NUM_SCANLINES, SCAN_WIDTH))
 

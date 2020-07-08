@@ -50,7 +50,7 @@ local_id_keys_config = {'name': {
 }
 
 
-def make_dsid(**items):
+def make_dataid(**items):
     """Make a data id."""
     return DataID(local_id_keys_config, **items)
 
@@ -62,30 +62,30 @@ class TestDatasetDict(unittest.TestCase):
         """Create a test DatasetDict."""
         from satpy.readers import DatasetDict
         self.regular_dict = regular_dict = {
-            make_dsid(name="test",
-                      wavelength=(0, 0.5, 1),
-                      resolution=1000): "1",
-            make_dsid(name="testh",
-                      wavelength=(0, 0.5, 1),
-                      resolution=500): "1h",
-            make_dsid(name="test2",
-                      wavelength=(1, 1.5, 2),
-                      resolution=1000): "2",
-            make_dsid(name="test3",
-                      wavelength=(1.2, 1.7, 2.2),
-                      resolution=1000): "3",
-            make_dsid(name="test4",
-                      calibration="radiance",
-                      polarization="V"): "4rad",
-            make_dsid(name="test4",
-                      calibration="reflectance",
-                      polarization="H"): "4refl",
-            make_dsid(name="test5",
-                      modifiers=('mod1', 'mod2')): "5_2mod",
-            make_dsid(name="test5",
-                      modifiers=('mod2',)): "5_1mod",
-            make_dsid(name='test6', level=100): '6_100',
-            make_dsid(name='test6', level=200): '6_200',
+            make_dataid(name="test",
+                        wavelength=(0, 0.5, 1),
+                        resolution=1000): "1",
+            make_dataid(name="testh",
+                        wavelength=(0, 0.5, 1),
+                        resolution=500): "1h",
+            make_dataid(name="test2",
+                        wavelength=(1, 1.5, 2),
+                        resolution=1000): "2",
+            make_dataid(name="test3",
+                        wavelength=(1.2, 1.7, 2.2),
+                        resolution=1000): "3",
+            make_dataid(name="test4",
+                        calibration="radiance",
+                        polarization="V"): "4rad",
+            make_dataid(name="test4",
+                        calibration="reflectance",
+                        polarization="H"): "4refl",
+            make_dataid(name="test5",
+                        modifiers=('mod1', 'mod2')): "5_2mod",
+            make_dataid(name="test5",
+                        modifiers=('mod2',)): "5_1mod",
+            make_dataid(name='test6', level=100): '6_100',
+            make_dataid(name='test6', level=200): '6_200',
         }
         self.test_dict = DatasetDict(regular_dict)
 
@@ -98,7 +98,7 @@ class TestDatasetDict(unittest.TestCase):
     def test_init_dict(self):
         """Test DatasetDict init with a regular dict argument."""
         from satpy.readers import DatasetDict
-        regular_dict = {make_dsid(name="test", wavelength=(0, 0.5, 1)): "1", }
+        regular_dict = {make_dataid(name="test", wavelength=(0, 0.5, 1)): "1", }
         d = DatasetDict(regular_dict)
         self.assertEqual(d, regular_dict)
 
@@ -126,7 +126,7 @@ class TestDatasetDict(unittest.TestCase):
         # higher resolution is returned
         self.assertEqual(d[0.5], "1h")
         self.assertEqual(d['test4'], '4refl')
-        self.assertEqual(d[make_dsid(name='test4', calibration='radiance')], '4rad')
+        self.assertEqual(d[make_dataid(name='test4', calibration='radiance')], '4rad')
         self.assertRaises(KeyError, d.getitem, '1h')
 
     def test_get_key(self):
@@ -134,10 +134,10 @@ class TestDatasetDict(unittest.TestCase):
         from satpy.readers import get_key
         from satpy.dataset import DataQuery
         d = self.test_dict
-        res1 = get_key(make_dsid(name='test4'), d, calibration='radiance')
-        res2 = get_key(make_dsid(name='test4'), d, calibration='radiance',
+        res1 = get_key(make_dataid(name='test4'), d, calibration='radiance')
+        res2 = get_key(make_dataid(name='test4'), d, calibration='radiance',
                        num_results=0)
-        res3 = get_key(make_dsid(name='test4'), d, calibration='radiance',
+        res3 = get_key(make_dataid(name='test4'), d, calibration='radiance',
                        num_results=3)
         self.assertEqual(len(res2), 1)
         self.assertEqual(len(res3), 1)
@@ -146,23 +146,23 @@ class TestDatasetDict(unittest.TestCase):
         self.assertEqual(res1, res2)
         self.assertEqual(res1, res3)
         res1 = get_key('test4', d, query=DataQuery(polarization='V'))
-        self.assertEqual(res1, make_dsid(name='test4', calibration='radiance',
-                                         polarization='V'))
+        self.assertEqual(res1, make_dataid(name='test4', calibration='radiance',
+                                           polarization='V'))
 
         res1 = get_key(0.5, d, query=DataQuery(resolution=500))
-        self.assertEqual(res1, make_dsid(name='testh',
-                                         wavelength=(0, 0.5, 1),
-                                         resolution=500))
+        self.assertEqual(res1, make_dataid(name='testh',
+                                           wavelength=(0, 0.5, 1),
+                                           resolution=500))
 
         res1 = get_key('test6', d, query=DataQuery(level=100))
-        self.assertEqual(res1, make_dsid(name='test6',
-                                         level=100))
+        self.assertEqual(res1, make_dataid(name='test6',
+                                           level=100))
 
         res1 = get_key('test5', d)
         res2 = get_key('test5', d, query=DataQuery(modifiers=('mod2',)))
         res3 = get_key('test5', d, query=DataQuery(modifiers=('mod1', 'mod2',)))
-        self.assertEqual(res1, make_dsid(name='test5',
-                                         modifiers=('mod2',)))
+        self.assertEqual(res1, make_dataid(name='test5',
+                                           modifiers=('mod2',)))
         self.assertEqual(res1, res2)
         self.assertNotEqual(res1, res3)
 
@@ -180,7 +180,7 @@ class TestDatasetDict(unittest.TestCase):
         self.assertIn(1.5, d)
         self.assertIn(1.55, d)
         self.assertIn(1.65, d)
-        self.assertIn(make_dsid(name='test4', calibration='radiance'), d)
+        self.assertIn(make_dataid(name='test4', calibration='radiance'), d)
         self.assertIn('test4', d)
 
     def test_keys(self):

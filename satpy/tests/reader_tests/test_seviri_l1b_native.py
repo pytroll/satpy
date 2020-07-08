@@ -26,7 +26,7 @@ from satpy.readers.seviri_l1b_native import (
     NativeMSGFileHandler,
     get_available_channels,
 )
-from satpy.tests.utils import make_dsid
+from satpy.tests.utils import make_dataid
 
 
 CHANNEL_INDEX_LIST = ['VIS006', 'VIS008', 'IR_016', 'IR_039',
@@ -51,7 +51,7 @@ TEST3_HEADER_CHNLIST[SEC15HDR][IDS]['Value'] = 'XXXXXXXXXXXX'
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
     'earth_model': 1,
-    'dataset_id': make_dsid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
@@ -68,7 +68,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
     'earth_model': 1,
-    'dataset_id': make_dsid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
@@ -85,7 +85,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_VISIR_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
     'earth_model': 1,
-    'dataset_id': make_dsid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
@@ -103,7 +103,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
     'earth_model': 1,
-    'dataset_id': make_dsid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
@@ -120,7 +120,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
     'earth_model': 2,
-    'dataset_id': make_dsid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
@@ -137,7 +137,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
     'earth_model': 2,
-    'dataset_id': make_dsid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': True,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
@@ -155,7 +155,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
     'earth_model': 2,
-    'dataset_id': make_dsid(name='VIS006'),
+    'dataset_id': make_dataid(name='VIS006'),
     'is_full_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_visir',
@@ -172,7 +172,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_VISIR_ROI = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
     'earth_model': 2,
-    'dataset_id': make_dsid(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'expected_area_def': {
         'Area ID': 'geos_seviri_hrv',
@@ -189,7 +189,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_ROI = {
 
 TEST_CALIBRATION_MODE = {
     'earth_model': 1,
-    'dataset_id': make_dsid(name='IR_108', calibration='radiance'),
+    'dataset_id': make_dataid(name='IR_108', calibration='radiance'),
     'is_full_disk': True,
     'calibration': 'radiance',
     'CalSlope': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.96, 0.97],

@@ -62,7 +62,7 @@ def _wl_dist(wl_a, wl_b):
 def get_best_dataset_key(key, choices):
     """Choose the "best" `DataID` from `choices` based on `key`.
 
-    To see how the keys are sorted, refer to `:meth:satpy.datasets.DataQuery.sort_dsids`.
+    To see how the keys are sorted, refer to `:meth:satpy.datasets.DataQuery.sort_dataids`.
 
     This function assumes `choices` has already been filtered to only
     include datasets that match the provided `key`.
@@ -77,7 +77,7 @@ def get_best_dataset_key(key, choices):
              available datasets.
 
     """
-    sorted_choices, distances = key.sort_dsids(choices)
+    sorted_choices, distances = key.sort_dataids(choices)
     if len(sorted_choices) == 0 or distances[0] is np.inf:
         return []
     else:
@@ -99,7 +99,7 @@ def filter_keys_by_dataset_query(dquery, key_container):
                     specific order.
 
     """
-    return dquery.filter_dsids(key_container)
+    return dquery.filter_dataids(key_container)
 
 
 def get_key(key, key_container, num_results=1, best=True, query=None,

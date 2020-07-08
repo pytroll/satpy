@@ -24,13 +24,13 @@ from satpy.dataset import (DataID, DataQuery, default_id_keys_config,
 from satpy.readers.yaml_reader import FileYAMLReader
 
 
-def make_dsid(**items):
-    """Make a data id."""
+def make_dataid(**items):
+    """Make a DataID with default keys."""
     return DataID(default_id_keys_config, **items)
 
 
 def make_cid(**items):
-    """Make a composite ID."""
+    """Make a DataID with a minimal set of keys to id composites."""
     return DataID(minimal_default_keys_config, **items)
 
 
@@ -106,23 +106,23 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
 def test_datasets():
     """Get list of various test datasets."""
     d = [
-        make_dsid(name='ds1'),
-        make_dsid(name='ds2'),
-        make_dsid(name='ds3'),
-        make_dsid(name='ds4', calibration='reflectance'),
-        make_dsid(name='ds4', calibration='radiance'),
-        make_dsid(name='ds5', resolution=250),
-        make_dsid(name='ds5', resolution=500),
-        make_dsid(name='ds5', resolution=1000),
-        make_dsid(name='ds6', wavelength=(0.1, 0.2, 0.3)),
-        make_dsid(name='ds7', wavelength=(0.4, 0.5, 0.6)),
-        make_dsid(name='ds8', wavelength=(0.7, 0.8, 0.9)),
-        make_dsid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
-        make_dsid(name='ds10', wavelength=(0.75, 0.85, 0.95)),
-        make_dsid(name='ds11', resolution=500),
-        make_dsid(name='ds11', resolution=1000),
-        make_dsid(name='ds12', resolution=500),
-        make_dsid(name='ds12', resolution=1000),
+        make_dataid(name='ds1'),
+        make_dataid(name='ds2'),
+        make_dataid(name='ds3'),
+        make_dataid(name='ds4', calibration='reflectance'),
+        make_dataid(name='ds4', calibration='radiance'),
+        make_dataid(name='ds5', resolution=250),
+        make_dataid(name='ds5', resolution=500),
+        make_dataid(name='ds5', resolution=1000),
+        make_dataid(name='ds6', wavelength=(0.1, 0.2, 0.3)),
+        make_dataid(name='ds7', wavelength=(0.4, 0.5, 0.6)),
+        make_dataid(name='ds8', wavelength=(0.7, 0.8, 0.9)),
+        make_dataid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
+        make_dataid(name='ds10', wavelength=(0.75, 0.85, 0.95)),
+        make_dataid(name='ds11', resolution=500),
+        make_dataid(name='ds11', resolution=1000),
+        make_dataid(name='ds12', resolution=500),
+        make_dataid(name='ds12', resolution=1000),
     ]
     return d
 
@@ -255,7 +255,7 @@ def test_composites(sensor_name):
         'mod3': (['ds2'], []),
         'res_change': ([], []),
         'incomp_areas': (['ds1'], []),
-        'incomp_areas_opt': ([make_dsid(name='ds1', modifiers=('incomp_areas',))], ['ds2']),
+        'incomp_areas_opt': ([make_dataid(name='ds1', modifiers=('incomp_areas',))], ['ds2']),
         'mod_opt_prereq': (['ds1'], ['ds2']),
         'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
         'mod_opt_only': ([], ['ds2']),

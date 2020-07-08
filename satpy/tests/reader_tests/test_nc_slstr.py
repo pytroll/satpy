@@ -27,9 +27,9 @@ class TestSLSTRReader(unittest.TestCase):
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
         from satpy.readers.slstr_l1b import NCSLSTR1B, NCSLSTRGeo, NCSLSTRAngles, NCSLSTRFlag
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
 
-        ds_id = make_dsid(name='foo', calibration='radiance')
+        ds_id = make_dataid(name='foo', calibration='radiance')
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo', 'start_time': 0, 'end_time': 0}
 
         test = NCSLSTR1B('somedir/S1_radiance_an.nc', filename_info, 'c')

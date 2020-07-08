@@ -108,8 +108,8 @@ class TestGLML2FileHandler(unittest.TestCase):
 
     def test_get_dataset(self):
         """Test the get_dataset method."""
-        from satpy.tests.utils import make_dsid
-        key = make_dsid(name='flash_extent_density')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='flash_extent_density')
         res = self.reader.get_dataset(key, {'info': 'info'})
         exp = {'instrument_ID': None,
                'modifiers': (),

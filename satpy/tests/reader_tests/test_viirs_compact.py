@@ -2438,18 +2438,18 @@ class TestCompact(unittest.TestCase):
     def test_get_dataset(self):
         """Retrieve datasets from a DNB file."""
         from satpy.readers.viirs_compact import VIIRSCompactFileHandler
-        from satpy.tests.utils import make_dsid
+        from satpy.tests.utils import make_dataid
 
         filename_info = {}
         filetype_info = {'file_type': 'compact_dnb'}
-        dsid = make_dsid(name='DNB', calibration='radiance')
+        dsid = make_dataid(name='DNB', calibration='radiance')
         test = VIIRSCompactFileHandler(self.filename, filename_info, filetype_info)
         ds = test.get_dataset(dsid, {})
         self.assertEqual(ds.shape, (752, 4064))
         self.assertEqual(ds.dtype, np.float32)
         self.assertEqual(ds.attrs['rows_per_scan'], 16)
 
-        dsid = make_dsid(name='longitude_dnb')
+        dsid = make_dataid(name='longitude_dnb')
         ds = test.get_dataset(dsid, {'standard_name': 'longitude'})
         self.assertEqual(ds.shape, (752, 4064))
         self.assertEqual(ds.dtype, np.float32)

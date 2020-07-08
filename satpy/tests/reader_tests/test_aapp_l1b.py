@@ -22,7 +22,7 @@ import numpy as np
 from satpy.readers.aapp_l1b import _HEADERTYPE, _SCANTYPE, AVHRRAAPPL1BFile
 import tempfile
 import datetime
-from satpy.tests.utils import make_dsid
+from satpy.tests.utils import make_dataid
 
 
 class TestAAPPL1B(unittest.TestCase):
@@ -93,7 +93,7 @@ class TestAAPPL1B(unittest.TestCase):
             mins = []
             maxs = []
             for name in ['1', '2', '3a']:
-                key = make_dsid(name=name, calibration='reflectance')
+                key = make_dataid(name=name, calibration='reflectance')
                 res = fh.get_dataset(key, info)
                 assert(res.min() == 0)
                 assert(res.max() >= 100)
@@ -103,7 +103,7 @@ class TestAAPPL1B(unittest.TestCase):
                     assert(np.all(np.isnan(res[:2, :])))
 
             for name in ['3b', '4', '5']:
-                key = make_dsid(name=name, calibration='reflectance')
+                key = make_dataid(name=name, calibration='reflectance')
                 res = fh.get_dataset(key, info)
                 mins.append(res.min().values)
                 maxs.append(res.max().values)
@@ -123,7 +123,7 @@ class TestAAPPL1B(unittest.TestCase):
 
             fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
-            key = make_dsid(name='solar_zenith_angle')
+            key = make_dataid(name='solar_zenith_angle')
             res = fh.get_dataset(key, info)
             assert(np.all(res == 0))
 
@@ -136,9 +136,9 @@ class TestAAPPL1B(unittest.TestCase):
 
             fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
-            key = make_dsid(name='longitude')
+            key = make_dataid(name='longitude')
             res = fh.get_dataset(key, info)
             assert(np.all(res == 0))
-            key = make_dsid(name='latitude')
+            key = make_dataid(name='latitude')
             res = fh.get_dataset(key, info)
             assert(np.all(res == 0))

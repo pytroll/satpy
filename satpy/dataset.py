@@ -578,22 +578,22 @@ class DataQuery:
         items = ("{}={}".format(key, repr(val)) for key, val in zip(self._fields, self._values))
         return self.__class__.__name__ + "(" + ", ".join(items) + ")"
 
-    def filter_dsids(self, dsid_container):
-        """Filter dataids based on this query."""
-        keys = iter(dsid_container)
+    def filter_dataids(self, dataid_container):
+        """Filter DataIDs based on this query."""
+        keys = iter(dataid_container)
         for key, val in self._dict.items():
             if val != '*':
                 keys = [k for k in keys
                         if k.get(key) == val]
         return keys
 
-    def sort_dsids(self, dsids):
-        """Sort the dataids based on this query.
+    def sort_dataids(self, dataids):
+        """Sort the DataIDs based on this query.
 
-        Returns the sorted dsids and the list of distances.
+        Returns the sorted dataids and the list of distances.
 
         The sorting is performed based on the types of the keys to search on
-        (as they are defined in the DataIDs from `dsids`).
+        (as they are defined in the DataIDs from `dataids`).
         If that type defines a `distance` method, then it is used to find how
         'far' the DataID is from the current query.
         If the type is a number, a simple subtraction is performed.
@@ -613,39 +613,39 @@ class DataQuery:
 
         """
         distances = []
-        sorted_dsids = []
+        sorted_dataids = []
         keys = set(self._dict.keys())
-        for dsid in dsids:
-            keys |= set(dsid.keys())
-        for dsid in sorted(dsids):
-            sorted_dsids.append(dsid)
+        for dataid in dataids:
+            keys |= set(dataid.keys())
+        for dataid in sorted(dataids):
+            sorted_dataids.append(dataid)
             distance = 0
             for key in keys:
                 val = self._dict.get(key, '*')
                 if val == '*':
                     try:
                         # for enums
-                        distance += dsid.get(key).value
+                        distance += dataid.get(key).value
                     except AttributeError:
-                        if isinstance(dsid.get(key), numbers.Number):
-                            distance += dsid.get(key)
-                        elif isinstance(dsid.get(key), tuple):
-                            distance += len(dsid.get(key))
+                        if isinstance(dataid.get(key), numbers.Number):
+                            distance += dataid.get(key)
+                        elif isinstance(dataid.get(key), tuple):
+                            distance += len(dataid.get(key))
                 else:
                     try:
-                        dsid_val = dsid[key]
+                        dataid_val = dataid[key]
                     except KeyError:
                         distance = np.inf
                         break
                     try:
-                        distance += dsid_val.distance(val)
+                        distance += dataid_val.distance(val)
                     except AttributeError:
-                        if dsid_val != val:
+                        if dataid_val != val:
                             distance = np.inf
                             break
             distances.append(distance)
-        distances, dsids = zip(*sorted(zip(distances, sorted_dsids)))
-        return dsids, distances
+        distances, dataids = zip(*sorted(zip(distances, sorted_dataids)))
+        return dataids, distances
 
 
 class DatasetID:
@@ -661,9 +661,9 @@ class DatasetID:
 
 
 def create_filtered_query(dataset_key, filter_query):
-    """Create a DatasetQuery matching *dataset_key* and *filter_query*.
+    """Create a DataQuery matching *dataset_key* and *filter_query*.
 
-    If a proprety is specified in both *dataset_key* and *filter_query*, the former
+    If a property is specified in both *dataset_key* and *filter_query*, the former
     has priority.
 
     """
@@ -682,24 +682,6 @@ def create_filtered_query(dataset_key, filter_query):
                 ds_dict.setdefault(key, value)
 
     return DataQuery.from_dict(ds_dict)
-
-
-def create_filtered_id(dataset_key, filter_query):
-    """Create a DataID matching *dataset_key* and *filter_query*.
-
-    If a proprety is specified in both *dataset_key* and *filter_query*, the former
-    has priority.
-
-    """
-    additional_info = {}
-    if filter_query is not None:
-        for key, val in filter_query._dict.items():
-            if val != '*':
-                additional_info[key] = val
-    if not additional_info:
-        return dataset_key
-    else:
-        raise NotImplementedError("Mismatch {} vs {}".format(str(dataset_key), str(filter_query)))
 
 
 def dataset_walker(datasets):
@@ -722,8 +704,8 @@ def replace_anc(dataset, parent_dataset):
     if parent_dataset is None:
         return
     id_keys = parent_dataset.attrs.get('_satpy_id_keys', dataset.attrs.get('_satpy_id_keys'))
-    current_dsid = DataID(id_keys, **dataset.attrs)
+    current_dataid = DataID(id_keys, **dataset.attrs)
     for idx, ds in enumerate(parent_dataset.attrs['ancillary_variables']):
-        if current_dsid == DataID(id_keys, **ds.attrs):
+        if current_dataid == DataID(id_keys, **ds.attrs):
             parent_dataset.attrs['ancillary_variables'][idx] = dataset
             return
