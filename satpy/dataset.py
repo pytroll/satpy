@@ -68,7 +68,12 @@ except NameError:  # python 3.6
 
 
 class WavelengthRange(wlklass):
-    """A named tuple for wavelength ranges."""
+    """A named tuple for wavelength ranges.
+
+    The elements of the range are min, central and max values, and optionally a unit
+    (defaults to µm). No clever unit conversion is done here, it's just used for checking
+    that two ranges are comparable.
+    """
 
     def __eq__(self, other):
         """Return if two wavelengths are equal.
@@ -170,6 +175,7 @@ class ModifierTuple(tuple):
         return tuple.__hash__(self)
 
 
+#: Default ID keys DataArrays.
 default_id_keys_config = {'name': {
                               'required': True,
                           },
@@ -193,13 +199,14 @@ default_id_keys_config = {'name': {
                           }
 
 
+#: Default ID keys for coordinate DataArrays.
 default_co_keys_config = {'name': {
                               'required': True,
                           },
                           'resolution': None,
                           }
 
-
+#: Minimal ID keys for DataArrays, for example composites.
 minimal_default_keys_config = {'name': {
                                   'required': True,
                               },
@@ -350,47 +357,17 @@ def _share_metadata_key_list_arrays(values):
 class DataID(dict):
     """Identifier for all `DataArray` objects.
 
-    FIXME: talk about None not being a valid value
-
     DataID is a dict that holds identifying and classifying
-    information about a DataArray. There are two identifying elements,
-    ``name`` and ``wavelength``. These can be used to generically refer to a
-    Dataset. The other elements of a DataID are meant to further
-    distinguish a Dataset from the possible variations it may have. For
-    example multiple Datasets may be called by one ``name`` but may exist
-    in multiple resolutions or with different calibrations such as "radiance"
-    and "reflectance". If an element is `None` then it is considered not
-    applicable.
-
-    Args:
-        name (str): String identifier for the Dataset
-        wavelength (float, tuple): Single float wavelength when querying for
-                                a Dataset. Otherwise 3-element tuple of
-                                floats specifying the minimum, nominal,
-                                and maximum wavelength for a Dataset.
-                                `None` if not applicable.
-        resolution (int, float): Per data pixel/area resolution. If resolution
-                                varies across the Dataset then nadir view
-                                resolution is preferred. Usually this is in
-                                meters, but for lon/lat gridded data angle
-                                degrees may be used.
-        polarization (str): 'V' or 'H' polarizations of a microwave channel.
-                            `None` if not applicable.
-        calibration (str): String identifying the calibration level of the
-                        Dataset (ex. 'radiance', 'reflectance', etc).
-                        `None` if not applicable.
-        level (int, float): Pressure/altitude level of the dataset. This is
-                            typically in hPa, but may be in inverse meters
-                            for altitude datasets (1/meters).
-        modifiers (tuple): Tuple of strings identifying what corrections or
-                           other modifications have been performed on this
-                           Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
-                           etc). `None` or empty tuple if not applicable.
-
+    information about a DataArray.
     """
 
     def __init__(self, id_keys, **keyval_dict):
-        """Init the DataID."""
+        """Init the DataID.
+
+        The *id_keys* dictionary has to be formed as described in :doc:`satpy_internals`.
+        The other keyword arguments are values to be assigned to the keys. Note that
+        `None` isn't a valid value and will simply be ignored.
+        """
         self._hash = None
         self._id_keys = self.fix_id_keys(id_keys or {})
         if keyval_dict:

@@ -79,6 +79,35 @@ arrays. Under each of this, a few options are available:
    is None. It will be passed to the type's `convert` method if available.
 
 
+If the definition of the metadata keys need to be done in python rather than in a yaml file, it will
+be a dictionary very similar to the yaml code. Here is the same example as above in python:
+
+  .. code-block:: python
+
+    from satpy.dataset import WavelengthRange, ModifierTuple
+
+    id_keys_config = {'name': {
+                          'required': True,
+                      },
+                      'wavelength': {
+                          'type': WavelengthRange,
+                      },
+                      'resolution': None,
+                      'calibration': {
+                          'enum': [
+                              'reflectance',
+                              'brightness_temperature',
+                              'radiance',
+                              'counts'
+                              ]
+                      },
+                      'modifiers': {
+                          'required': True,
+                          'default': ModifierTuple(),
+                          'type': ModifierTuple,
+                      },
+                      }
+
 Types
 ~~~~~
 Types are classes that implement a type to be used as value for metadata in the `DataID`. They have
