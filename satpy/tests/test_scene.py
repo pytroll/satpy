@@ -1255,7 +1255,7 @@ class TestSceneLoading(unittest.TestCase):
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_comp14(self, cri, cl):
-        """Test loading a composite that updates the DatasetID during generation."""
+        """Test loading a composite that updates the DataID during generation."""
         import satpy.scene
         from satpy.tests.utils import FakeReader, test_composites
         cri.return_value = {'fake_reader': FakeReader(
@@ -1689,7 +1689,7 @@ class TestSceneLoading(unittest.TestCase):
 
         More importantly test that loading the modifiers dependency at the
         same time as the original modified dataset that the dependency tree
-        nodes are unique and that DatasetIDs.
+        nodes are unique and that DataIDs.
 
         """
         import satpy.scene

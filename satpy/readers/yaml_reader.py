@@ -127,7 +127,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
 
     @property
     def all_dataset_ids(self):
-        """Get DatasetIDs of all datasets known to this reader."""
+        """Get DataIDs of all datasets known to this reader."""
         return self.all_ids.keys()
 
     @property
@@ -138,7 +138,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
 
     @property
     def available_dataset_ids(self):
-        """Get DatasetIDs that are loadable by this reader."""
+        """Get DataIDs that are loadable by this reader."""
         logger.warning(
             "Available datasets are unknown, returning all datasets...")
         return self.all_dataset_ids
@@ -232,7 +232,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         return selected_filenames
 
     def get_dataset_key(self, key, **kwargs):
-        """Get the fully qualified `DatasetID` matching `key`.
+        """Get the fully qualified `DataID` matching `key`.
 
         See `satpy.readers.get_key` for more information about kwargs.
 
@@ -333,7 +333,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     @property
     def available_dataset_ids(self):
-        """Get DatasetIDs that are loadable by this reader."""
+        """Get DataIDs that are loadable by this reader."""
         return self.available_ids.keys()
 
     @property
@@ -825,16 +825,16 @@ class FileYAMLReader(AbstractYAMLReader):
             dataset.attrs['ancillary_variables'] = new_vars
 
     def get_dataset_key(self, key, available_only=False, **kwargs):
-        """Get the fully qualified `DatasetID` matching `key`.
+        """Get the fully qualified `DataID` matching `key`.
 
-        This will first search through available DatasetIDs, datasets that
+        This will first search through available DataIDs, datasets that
         should be possible to load, and fallback to "known" datasets, those
         that are configured but aren't loadable from the provided files.
         Providing ``available_only=True`` will stop this fallback behavior
         and raise a ``KeyError`` exception if no available dataset is found.
 
         Args:
-            key (str, float, DatasetID): Key to search for in this reader.
+            key (str, float, DataID, DataQuery): Key to search for in this reader.
             available_only (bool): Search only loadable datasets for the
                 provided key. Loadable datasets are always searched first,
                 but if ``available_only=False`` (default) then all known
@@ -843,7 +843,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 kwargs.
 
         Returns:
-            Best matching DatasetID to the provided ``key``.
+            Best matching DataID to the provided ``key``.
 
         Raises:
             KeyError: if no key match is found.
