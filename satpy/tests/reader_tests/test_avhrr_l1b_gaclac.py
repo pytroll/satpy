@@ -149,6 +149,7 @@ class TestGACLACFile(TestCase):
                               'Wrong reader class assigned to {}'.format(filename))
 
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.read_raw_data')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
     def test_get_dataset_channels(self, get_channel, *mocks):
         from satpy.dataset import DatasetID
@@ -191,6 +192,27 @@ class TestGACLACFile(TestCase):
                     DatasetID('5', calibration='brightness_temperature')]:
             fh.get_dataset(key=key, info={'name': 1})
             get_channel.assert_called_with(key)
+
+    def test_read_raw_data(self):
+        fh = self._get_fh_mocked(reader=None,
+                                 interpolate_coords='interpolate_coords',
+                                 creation_site='creation_site',
+                                 reader_kwargs={'foo': 'bar'},
+                                 filename='myfile')
+        reader = mock.MagicMock(mask=[0])
+        reader_cls = mock.MagicMock(return_value=reader)
+        fh.reader_class = reader_cls
+        fh.read_raw_data()
+        reader_cls.assert_called_with(interpolate_coords='interpolate_coords',
+                                      creation_site='creation_site',
+                                      foo='bar')
+        reader.read.assert_called_with('myfile')
+
+        # Test exception if all data is masked
+        reader.mask = [1]
+        fh.reader = None
+        with self.assertRaises(ValueError):
+            fh.read_raw_data()
 
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.slice')
@@ -472,3 +494,8 @@ class TestGACLACFile(TestCase):
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,
             first_valid_lat=3, last_valid_lat=4, along_track=2)
+
+        # Test slicing with older pygac versions
+        pygac.utils.slice_channel.return_value = ('sliced', 'foo', 'bar')
+        data_slc = fh._slice(data)
+        self.assertEqual(data_slc, 'sliced')

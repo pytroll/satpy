@@ -116,17 +116,20 @@ class GACLACFile(BaseFileHandler):
             self.sensor = 'avhrr'
         self.filename_info = filename_info
 
-    def get_dataset(self, key, info):
-        """Get the dataset."""
+    def read_raw_data(self):
+        """Create a pygac reader and read raw data from the file."""
         if self.reader is None:
             self.reader = self.reader_class(
                 interpolate_coords=self.interpolate_coords,
                 creation_site=self.creation_site,
                 **self.reader_kwargs)
             self.reader.read(self.filename)
-        if np.all(self.reader.mask):
-            raise ValueError('All data is masked out')
+            if np.all(self.reader.mask):
+                raise ValueError('All data is masked out')
 
+    def get_dataset(self, key, info):
+        """Get the dataset."""
+        self.read_raw_data()
         if key.name in ['latitude', 'longitude']:
             # Lats/lons are buffered by the reader
             if key.name == 'latitude':
