@@ -47,10 +47,10 @@ to them. By default Satpy will provide the version of the dataset with the
 highest resolution and the highest level of calibration (brightness
 temperature or reflectance over radiance). It is also possible to request one
 of these exact versions of a dataset by using the
-:class:`~satpy.dataset.DatasetID` class::
+:class:`~satpy.dataset.DataQuery` class::
 
-    >>> from satpy import DatasetID
-    >>> my_channel_id = DatasetID(name='IR_016', calibration='radiance')
+    >>> from satpy import DataQuery
+    >>> my_channel_id = DataQuery(name='IR_016', calibration='radiance')
     >>> scn.load([my_channel_id])
     >>> print(scn['IR_016'])
 
@@ -82,7 +82,7 @@ loading datasets::
     If a dataset could not be loaded there is no exception raised. You must
     check the
     :meth:`scn.missing_datasets <satpy.scene.Scene.missing_datasets>`
-    property for any ``DatasetID`` that could not be loaded.
+    property for any ``DataID`` that could not be loaded.
 
 To find out what datasets are available from a reader from the files that were
 provided to the ``Scene`` use
@@ -126,8 +126,7 @@ Metadata
 The datasets held by a scene also provide vital metadata such as dataset name, units, observation
 time etc. The following attributes are standardized across all readers:
 
-* ``name``, ``wavelength``, ``resolution``, ``polarization``, ``calibration``, ``level``,
-  ``modifiers``: See :class:`satpy.dataset.DatasetID`.
+* ``name``, and other identifying metadata keys: See :doc:`dev_guide/satpy_internals`.
 * ``start_time``: Left boundary of the time interval covered by the dataset.
 * ``end_time``: Right boundary of the time interval covered by the dataset.
 * ``area``: :class:`~pyresample.geometry.AreaDefinition` or
