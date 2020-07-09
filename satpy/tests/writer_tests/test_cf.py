@@ -960,6 +960,40 @@ class TestCFWriter(unittest.TestCase):
         self.assertDictContainsSubset({'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'},
                                       lon.attrs)
 
+    def test_update_encoding(self):
+        import xarray as xr
+        from satpy.writers.cf_writer import CFWriter
+
+        # Without time dimension
+        ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
+                         'bar': (('y', 'x'), [[3, 4], [5, 6]])},
+                        coords={'y': [1, 2], 'x': [3, 4]})
+        ds = ds.chunk(2)
+        kwargs = {'encoding': {'bar': {'chunksizes': (1, 1)}},
+                  'other': 'kwargs'}
+        enc, other_kwargs = CFWriter.update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'foo': {'chunksizes': (2, 2)},
+                                   'bar': {'chunksizes': (1, 1)}})
+        self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
+
+        # With time dimension
+        ds = ds.expand_dims({'time': [datetime(2009, 7, 1, 12, 15)]})
+        kwargs = {'encoding': {'bar': {'chunksizes': (1, 1, 1)}},
+                  'other': 'kwargs'}
+        enc, other_kwargs = CFWriter.update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'foo': {'chunksizes': (1, 2, 2)},
+                                   'bar': {'chunksizes': (1, 1, 1)},
+                                   'time': {'_FillValue': None,
+                                            'calendar': 'proleptic_gregorian',
+                                            'units': 'days since 2009-07-01 12:15:00'},
+                                   'time_bnds': {'_FillValue': None,
+                                                 'calendar': 'proleptic_gregorian',
+                                                 'units': 'days since 2009-07-01 12:15:00'}})
+
 
 def suite():
     """Test suite for this writer's tests."""

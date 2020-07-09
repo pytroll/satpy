@@ -514,13 +514,25 @@ class CFWriter(Writer):
 
         return datas, start_times, end_times
 
-    def update_encoding(self, dataset, to_netcdf_kwargs):
+    @staticmethod
+    def update_encoding(dataset, to_netcdf_kwargs):
         """Update encoding.
 
-        Avoid _FillValue attribute being added to coordinate variables (https://github.com/pydata/xarray/issues/1865).
+        Preserve chunk sizes, avoid fill values in coordinate variables and make sure that
+        time & time bounds have the same units.
         """
         other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
         encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
+
+        # If not specified otherwise by the user, preserve current chunks.
+        for var_name, data_var in dataset.data_vars.items():
+            if data_var.chunks:
+                if var_name not in encoding:
+                    encoding[var_name] = {}
+                encoding[var_name].setdefault('chunksizes', data_var.data.chunksize)
+
+        # Avoid _FillValue attribute being added to coordinate variables
+        # (https://github.com/pydata/xarray/issues/1865).
         coord_vars = []
         for data_array in dataset.values():
             coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
