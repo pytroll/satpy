@@ -357,49 +357,90 @@ class CustomScheduler(object):
         return dask.get(dsk, keys, **kwargs)
 
 
-def make_a_scene(cont_dict, daskify=False):
+def make_a_scene(cont_dict, daskify=False, area=True, common_attrs=None):
     """Make a fake Scene.
 
-    Make a Scene from fake data.  Data are provided in the ``cont_dict``
-    argument.  In ``cont_dict``, keys should be strings or DatasetID/DataID,
-    and values should be numpy.ndarray with exactly two dimensions.  The
-    function will convert each of the numpy.ndarray objects into an
-    xarray.DataArray and assign those to a scene object.  A fake area will be
-    assigned for each ndarray. Arrays with the same shape will get the same
-    area.
+    Make a Scene from fake data.  Data are provided in the
+    ``cont_dict`` argument.  In ``cont_dict``, keys should be strings
+    or DatasetID/DataID, and values may be either numpy.ndarray or
+    xarray.DataArray, in either case with exactly two dimensions.
+    The function will convert each of the numpy.ndarray objects into
+    an xarray.DataArray and assign those as datasets to a Scene object.
+    A fake AreaDefinition will be assigned for each array, unless disabled
+    by passing ``area=False``.  When areas are automatically generated,
+    arrays with the same shape will get the same area.
 
     This function is exclusively intended for testing purposes.
 
-    If the keyword argument daskify is True, DataArrays will be created
-    as dask arrays.  If False (default), regular DataArrays will be created.
+    If regular ndarrays are passed and the keyword argument daskify is
+    True, DataArrays will be created as dask arrays.  If False (default),
+    regular DataArrays will be created.  When the user passes xarray.DataArray
+    objects then this flag has no effect.
 
     Args:
         cont_dict: mapping with str/datasetid/dataid to ndarrays
-        daskify, optional: boolean, use dask or not
+        daskify, optional: boolean, use dask or not, default False
+        area, optional: boolean, add areas, default True
+        common_attrs, optional: dict, attributes to add to every dataset
 
     Return:
         Scene object with datasets corresponding to cont_dict
     """
     import pyresample
     import satpy
-    import xarray
+    import xarray as xr
+    if common_attrs is None:
+        common_attrs = {}
     if daskify:
         import dask.array
     sc = satpy.Scene()
     for (did, arr) in cont_dict.items():
-        fake_area = pyresample.create_area_def(
-                "test-area",
-                {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0, "x_0": 0,
-                 "y_0": 0, "ellps": "sphere", "units": "m", "no_defs": None,
-                 "type": "crs"},
-                units="m",
-                shape=arr.shape,
-                resolution=1000,
-                center=(0, 0))
-        if daskify:
-            arr = dask.array.from_array(arr)
-        sc[did] = xarray.DataArray(
-                arr,
-                dims=("y", "x"),
-                attrs={"area": fake_area})
+        extra_attrs = common_attrs.copy()
+        if area:
+            extra_attrs["area"] = pyresample.create_area_def(
+                    "test-area",
+                    {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
+                     "x_0": 0, "y_0": 0, "ellps": "sphere", "units": "m",
+                     "no_defs": None, "type": "crs"},
+                    units="m",
+                    shape=arr.shape,
+                    resolution=1000,
+                    center=(0, 0))
+        if isinstance(arr, xr.DataArray):
+            sc[did] = arr.copy()  # don't change attributes of input
+            sc[did].attrs.update(extra_attrs)
+        else:
+            if daskify:
+                arr = dask.array.from_array(arr)
+            sc[did] = xr.DataArray(
+                    arr,
+                    dims=("y", "x"),
+                    attrs=extra_attrs)
     return sc
+
+
+def test_make_a_scene():
+    """Test the make_a_scene utility.
+
+    Although the make_a_scene utility is for internal testing purposes, it has
+    grown sufficiently complex that it needs its own testing.
+    """
+    import numpy as np
+    import dask.array as da
+
+    assert make_a_scene({}).keys() == []
+    sc = make_a_scene({
+        "six": np.arange(25).reshape(5, 5)})
+    assert len(sc.keys()) == 1
+    assert sc.keys().pop().name == "six"
+    assert sc["six"].attrs["area"].shape == (5, 5)
+    sc = make_a_scene({
+        "seven": np.arange(3*7).reshape(3, 7),
+        "eight": np.arange(3*8).reshape(3, 8)},
+        daskify=True,
+        area=False,
+        common_attrs={"repetency": "fourteen hundred per centimetre"})
+    assert "area" not in sc["seven"].attrs.keys()
+    assert (sc["seven"].attrs["repetency"] == sc["eight"].attrs["repetency"] ==
+            "fourteen hundred per centimetre")
+    assert isinstance(sc["seven"].data, da.Array)
