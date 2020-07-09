@@ -117,9 +117,7 @@ class TestGACLACFile(TestCase):
     def _get_reader_mocked(self, along_track=3):
         """Create a mocked reader."""
         reader = mock.MagicMock(spacecraft_name='spacecraft_name',
-                                meta_data={'foo': 'bar',
-                                           'midnight_scanline': 1,
-                                           'missing_scanlines': [1, 2, 3]})
+                                meta_data={'foo': 'bar'})
         reader.mask = [0, 0]
         reader.get_times.return_value = np.arange(along_track)
         reader.get_tle_lines.return_value = 'tle'
@@ -132,16 +130,26 @@ class TestGACLACFile(TestCase):
         from pygac.lac_klm import LACKLMReader
         from pygac.lac_pod import LACPODReader
 
+        kwargs = {'start_line': 1,
+                  'end_line': 2,
+                  'strip_invalid_coords': True,
+                  'interpolate_coords': True,
+                  'adjust_clock_drift': True,
+                  'tle_dir': 'tle_dir',
+                  'tle_name': 'tle_name',
+                  'tle_thresh': 123,
+                  'calibration': 'calibration'}
         for filenames, reader_cls in zip([GAC_POD_FILENAMES, GAC_KLM_FILENAMES, LAC_POD_FILENAMES, LAC_KLM_FILENAMES],
                                          [GACPODReader, GACKLMReader, LACPODReader, LACKLMReader]):
             for filename in filenames:
-                fh = self._get_fh(filename)
+                fh = self._get_fh(filename, **kwargs)
                 self.assertLess(fh.start_time, fh.end_time,
                                 "Start time must precede end time.")
                 self.assertIs(fh.reader_class, reader_cls,
                               'Wrong reader class assigned to {}'.format(filename))
 
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.__init__', return_value=None)
+    @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.read_raw_data')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_channel')
     def test_get_dataset_channels(self, get_channel, *mocks):
         from satpy.dataset import DatasetID
@@ -173,8 +181,6 @@ class TestGACLACFile(TestCase):
                                   'orbit_number': 123,
                                   'sensor': 'sensor',
                                   'orbital_parameters': {'tle': 'tle'},
-                                  'midnight_scanline': 1,
-                                  'missing_scanlines': [1, 2, 3],
                                   'foo': 'bar',
                                   'standard_name': 'my_standard_name'})
         exp.coords['acq_time'].attrs['long_name'] = 'Mean scanline acquisition time'
@@ -186,6 +192,27 @@ class TestGACLACFile(TestCase):
                     DatasetID('5', calibration='brightness_temperature')]:
             fh.get_dataset(key=key, info={'name': 1})
             get_channel.assert_called_with(key)
+
+    def test_read_raw_data(self):
+        fh = self._get_fh_mocked(reader=None,
+                                 interpolate_coords='interpolate_coords',
+                                 creation_site='creation_site',
+                                 reader_kwargs={'foo': 'bar'},
+                                 filename='myfile')
+        reader = mock.MagicMock(mask=[0])
+        reader_cls = mock.MagicMock(return_value=reader)
+        fh.reader_class = reader_cls
+        fh.read_raw_data()
+        reader_cls.assert_called_with(interpolate_coords='interpolate_coords',
+                                      creation_site='creation_site',
+                                      foo='bar')
+        reader.read.assert_called_with('myfile')
+
+        # Test exception if all data is masked
+        reader.mask = [1]
+        fh.reader = None
+        with self.assertRaises(ValueError):
+            fh.read_raw_data()
 
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._update_attrs')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile.slice')
@@ -416,24 +443,20 @@ class TestGACLACFile(TestCase):
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._slice')
     def test_slice(self, _slice):
         """Test slicing."""
-        def slice_patched(data):
-            if len(data.shape) == 2:
-                return data[1:3, :], 'midn_line', np.array([1., 2., 3.])
-            return data[1:3], 'foo', np.array([0, 0, 0])
 
-        _slice.side_effect = slice_patched
+        def _slice_patched(data):
+            return data[1:3]
+        _slice.side_effect = _slice_patched
+
         data = np.zeros((4, 2))
         times = np.array([1, 2, 3, 4], dtype='datetime64[us]')
 
-        fh = self._get_fh_mocked()
+        fh = self._get_fh_mocked(start_line=1, end_line=3, strip_invalid_coords=False)
         data_slc, times_slc = fh.slice(data, times)
         np.testing.assert_array_equal(data_slc, data[1:3])
         np.testing.assert_array_equal(times_slc, times[1:3])
         self.assertEqual(fh.start_time, datetime(1970, 1, 1, 0, 0, 0, 2))
         self.assertEqual(fh.end_time, datetime(1970, 1, 1, 0, 0, 0, 3))
-        self.assertEqual(fh.midnight_scanline, 'midn_line')
-        np.testing.assert_array_equal(fh.missing_scanlines, np.array([1, 2, 3]))
-        self.assertEqual(fh.missing_scanlines.dtype, int)
 
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._get_qual_flags')
     @mock.patch('satpy.readers.avhrr_l1b_gaclac.GACLACFile._strip_invalid_lat')
@@ -441,39 +464,38 @@ class TestGACLACFile(TestCase):
         """Test slicing."""
         import pygac.utils
         pygac.utils.check_user_scanlines.return_value = 1, 2
-        pygac.utils.slice_channel.return_value = 'sliced', 'miss_lines', 'midn_line'
+        pygac.utils.slice_channel.return_value = 'sliced'
         strip_invalid_lat.return_value = 3, 4
         get_qual_flags.return_value = 'qual_flags'
 
         data = np.zeros((2, 2))
 
         # a) Only start/end line given
-        fh = self._get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=False,
-                                 midnight_scanline=None, missing_scanlines=None)
-        data_slc, midn_line, miss_lines = fh._slice(data)
+        fh = self._get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=False)
+        data_slc = fh._slice(data)
         self.assertEqual(data_slc, 'sliced')
-        self.assertEqual(midn_line, 'midn_line')
-        self.assertEqual(miss_lines, 'miss_lines')
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,
             first_valid_lat=None, last_valid_lat=None, along_track=2)
         pygac.utils.slice_channel.assert_called_with(
             data, start_line=1, end_line=2,
-            first_valid_lat=None, last_valid_lat=None,
-            midnight_scanline=None, miss_lines=None, qual_flags='qual_flags')
+            first_valid_lat=None, last_valid_lat=None)
 
         # b) Only strip_invalid_coords=True
-        fh = self._get_fh_mocked(start_line=None, end_line=None, strip_invalid_coords=True,
-                                 midnight_scanline=None, missing_scanlines=None)
+        fh = self._get_fh_mocked(start_line=None, end_line=None, strip_invalid_coords=True)
         fh._slice(data)
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=0, end_line=0,
             first_valid_lat=3, last_valid_lat=4, along_track=2)
 
         # c) Both
-        fh = self._get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=True,
-                                 midnight_scanline=None, missing_scanlines=None)
+        fh = self._get_fh_mocked(start_line=5, end_line=6, strip_invalid_coords=True)
         fh._slice(data)
         pygac.utils.check_user_scanlines.assert_called_with(
             start_line=5, end_line=6,
             first_valid_lat=3, last_valid_lat=4, along_track=2)
+
+        # Test slicing with older pygac versions
+        pygac.utils.slice_channel.return_value = ('sliced', 'foo', 'bar')
+        data_slc = fh._slice(data)
+        self.assertEqual(data_slc, 'sliced')
