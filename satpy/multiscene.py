@@ -300,10 +300,10 @@ class MultiScene(object):
         by `MultiScene`. Even if their dataset IDs differ (for example because the names or
         wavelengths are slightly different).
         Groups can be specified as a dictionary `{group_id: dataset_names}` where the keys
-        must be of type `DatasetID`, for example::
+        must be of type `DataQuery`, for example::
 
             groups={
-                DatasetID('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
+                DataQuery('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
             }
         """
         self._scenes = add_group_aliases(self._scenes, groups)
@@ -513,7 +513,7 @@ class MultiScene(object):
             filename (str): Filename to save to. Can include python string
                             formatting keys from dataset ``.attrs``
                             (ex. "{name}_{start_time:%Y%m%d_%H%M%S.gif")
-            datasets (list): DatasetIDs to save (default: all datasets)
+            datasets (list): DataIDs to save (default: all datasets)
             fps (int): Frames per second for produced animation
             fill_value (int): Value to use instead creating an alpha band.
             batch_size (int): Number of frames to compute at the same time.

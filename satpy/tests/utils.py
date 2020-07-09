@@ -268,8 +268,8 @@ def test_composites(sensor_name):
 
 
 def _filter_datasets(all_ds, names_or_ids):
-    """Help filtering DatasetIDs by name or DatasetID."""
-    # DatasetID will match a str to the name
+    """Help filtering DataIDs by name or DataQuery."""
+    # DataID will match a str to the name
     # need to separate them out
     str_filter = [ds_name for ds_name in names_or_ids if isinstance(ds_name, str)]
     id_filter = [ds_id for ds_id in names_or_ids if not isinstance(ds_id, str)]

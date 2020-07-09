@@ -66,7 +66,7 @@ supports the pixel quality, obtained by prepending the channel name such as
     change.  Currently, for each channel, the pixel quality is available by
     ``<chan>_pixel_quality``.  In the future, they will likely all be called
     ``pixel_quality`` and disambiguated by a to-be-decided property in the
-    `DatasetID`.
+    `DataID`.
 
 .. _RADTOBR: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_EFFECT_RAD_TO_BRIGHTNESS&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _PUG: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_DMT_719113&RevisionSelectionMethod=LatestReleased&Rendition=Web

@@ -248,7 +248,7 @@ class NUCAPSReader(FileYAMLReader):
         self.mask_quality = self.info.get('mask_quality', mask_quality)
 
     def load_ds_ids_from_config(self):
-        """Convert config dataset entries to DatasetIDs.
+        """Convert config dataset entries to DataIDs.
 
         Special handling is done to provide level specific datasets
         for any pressured based datasets. For example, a dataset is

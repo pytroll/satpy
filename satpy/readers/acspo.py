@@ -62,7 +62,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
         """Get numpy array shape for the specified dataset.
 
         Args:
-            ds_id (DatasetID): ID of dataset that will be loaded
+            ds_id (DataID): ID of dataset that will be loaded
             ds_info (dict): Dictionary of dataset information from config file
 
         Returns:

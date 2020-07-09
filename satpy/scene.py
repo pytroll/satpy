@@ -207,7 +207,7 @@ class Scene(MetadataObject):
 
     @property
     def missing_datasets(self):
-        """Set of DatasetIDs that have not been successfully loaded."""
+        """Set of DataIDs that have not been successfully loaded."""
         return set(self.wishlist) - set(self.datasets.keys())
 
     def _compare_areas(self, datasets=None, compare_func=max):
@@ -284,7 +284,7 @@ class Scene(MetadataObject):
         return self._compare_areas(datasets=datasets, compare_func=min)
 
     def available_dataset_ids(self, reader_name=None, composites=False):
-        """Get DatasetIDs of loadable datasets.
+        """Get DataIDs of loadable datasets.
 
         This can be for all readers loaded by this Scene or just for
         ``reader_name`` if specified.
@@ -365,7 +365,7 @@ class Scene(MetadataObject):
                  for comp in comp_dict.keys() if not comp.name.startswith('_'))
         # make sure that these composites are even create-able by these readers
         all_comps = set(comps)
-        # find_dependencies will update the all_comps set with DatasetIDs
+        # find_dependencies will update the all_comps set with DataIDs
         dep_tree.find_dependencies(all_comps)
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
@@ -415,7 +415,7 @@ class Scene(MetadataObject):
         return datasets_by_area.items()
 
     def keys(self, **kwargs):
-        """Get DatasetID keys for the underlying data container."""
+        """Get DataID keys for the underlying data container."""
         return self.datasets.keys(**kwargs)
 
     def values(self):
@@ -426,7 +426,7 @@ class Scene(MetadataObject):
         """Create a copy of the Scene including dependency information.
 
         Args:
-            datasets (list, tuple): `DatasetID` objects for the datasets
+            datasets (list, tuple): `DataID` objects for the datasets
                                     to include in the new Scene object.
 
         """
@@ -548,7 +548,7 @@ class Scene(MetadataObject):
                                    longitude and Y is latitude.
             xy_bbox (tuple, list): Same as `ll_bbox` but elements are in
                                    projection units.
-            dataset_ids (iterable): DatasetIDs to include in the returned
+            dataset_ids (iterable): DataIDs to include in the returned
                                  `Scene`. Defaults to all datasets.
 
         This method will attempt to intelligently slice the data to preserve
@@ -623,7 +623,7 @@ class Scene(MetadataObject):
         """Create an aggregated version of the Scene.
 
         Args:
-            dataset_ids (iterable): DatasetIDs to include in the returned
+            dataset_ids (iterable): DataIDs to include in the returned
                                     `Scene`. Defaults to all datasets.
             func (string): Function to apply on each aggregation window. One of
                            'mean', 'sum', 'min', 'max', 'median', 'argmin',
@@ -727,7 +727,7 @@ class Scene(MetadataObject):
         """Get a composite's prerequisites, generating them if needed.
 
         Args:
-            comp_id (DatasetID): DatasetID for the composite whose
+            comp_id (DataID): DataID for the composite whose
                                  prerequisites are being collected.
             prereq_nodes (sequence of Nodes): Prerequisites to collect
             keepables (set): `set` to update if any prerequisites can't
@@ -843,7 +843,7 @@ class Scene(MetadataObject):
                 compositor.attrs['_satpy_id'] = cid
 
             self.datasets[cid] = composite
-            # update the node with the computed DatasetID
+            # update the node with the computed DataID
             if comp_node.name in self.wishlist:
                 self.wishlist.remove(comp_node.name)
                 self.wishlist.add(cid)
@@ -906,7 +906,7 @@ class Scene(MetadataObject):
         generate composites that have yet to be generated.
 
         Args:
-            keepables (iterable): DatasetIDs to keep whether they are needed
+            keepables (iterable): DataIDs to keep whether they are needed
                                   or not.
 
         """
@@ -922,23 +922,23 @@ class Scene(MetadataObject):
              **kwargs):
         """Read and generate requested datasets.
 
-        When the `wishlist` contains `DatasetID` objects they can either be
-        fully-specified `DatasetID` objects with every parameter specified
+        When the `wishlist` contains `DataQuery` objects they can either be
+        fully-specified `DataQuery` objects with every parameter specified
         or they can not provide certain parameters and the "best" parameter
         will be chosen. For example, if a dataset is available in multiple
-        resolutions and no resolution is specified in the wishlist's DatasetID
+        resolutions and no resolution is specified in the wishlist's DataQuery
         then the highest (smallest number) resolution will be chosen.
 
         Loaded `DataArray` objects are created and stored in the Scene object.
 
         Args:
-            wishlist (iterable): List of names (str), wavelengths (float), or
-                                 DatasetID objects of the requested datasets
-                                 to load. See `available_dataset_ids()` for
-                                 what datasets are available.
+            wishlist (iterable): List of names (str), wavelengths (float),
+                                 DataQuery objects or DataID of the requested
+                                 datasets to load. See `available_dataset_ids()`
+                                 for what datasets are available.
             calibration (list, str): Calibration levels to limit available
                                      datasets. This is a shortcut to
-                                     having to list each DatasetID in
+                                     having to list each DataQuery/DataID in
                                      `wishlist`.
             resolution (list | float): Resolution to limit available datasets.
                                        This is a shortcut similar to
@@ -1087,7 +1087,7 @@ class Scene(MetadataObject):
                 resample to. If not specified then the area returned by
                 `Scene.max_area()` will be used.
             datasets (list): Limit datasets to resample to these specified
-                `DatasetID` objects . By default all currently loaded
+                `DataID` objects . By default all currently loaded
                 datasets are resampled.
             generate (bool): Generate any requested composites that could not
                 be previously due to incompatible areas (default: True).
@@ -1146,8 +1146,8 @@ class Scene(MetadataObject):
         Show dataset on screen as an image, possibly with an overlay.
 
         Args:
-            dataset_id (DatasetID or str):
-                Either a DatasetID or a string representing a DatasetID, that
+            dataset_id (DataID or str):
+                Either a DataID or a string representing a DataID, that
                 has been previously loaded using Scene.load.
             overlay (dict, optional):
                 Add an overlay before showing the image.  The keys/values for
@@ -1261,7 +1261,7 @@ class Scene(MetadataObject):
         """Save the ``dataset_id`` to file using ``writer``.
 
         Args:
-            dataset_id (str or Number or DatasetID): Identifier for the
+            dataset_id (str or Number or DataID): Identifier for the
                 dataset to save to disk.
             filename (str): Optionally specify the filename to save this
                             dataset to. It may include string formatting
