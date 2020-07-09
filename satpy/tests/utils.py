@@ -427,6 +427,7 @@ def test_make_a_scene():
     """
     import numpy as np
     import dask.array as da
+    import xarray as xr
 
     assert make_a_scene({}).keys() == []
     sc = make_a_scene({
@@ -444,3 +445,10 @@ def test_make_a_scene():
     assert (sc["seven"].attrs["repetency"] == sc["eight"].attrs["repetency"] ==
             "fourteen hundred per centimetre")
     assert isinstance(sc["seven"].data, da.Array)
+    sc = make_a_scene({
+        "nine": xr.DataArray(
+            np.arange(2*9).reshape(2, 9),
+            dims=("y", "x"),
+            attrs={"please": "preserve", "answer": 42})},
+        common_attrs={"bad words": "semprini bahnhof veerooster winterbanden"})
+    assert sc["nine"].attrs.keys() >= {"please", "answer", "bad words", "area"}
