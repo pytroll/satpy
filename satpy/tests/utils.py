@@ -355,3 +355,51 @@ class CustomScheduler(object):
             raise RuntimeError("Too many dask computations were scheduled: "
                                "{}".format(self.total_computes))
         return dask.get(dsk, keys, **kwargs)
+
+
+def make_a_scene(cont_dict, daskify=False):
+    """Make a fake Scene.
+
+    Make a Scene from fake data.  Data are provided in the ``cont_dict``
+    argument.  In ``cont_dict``, keys should be strings or DatasetID/DataID,
+    and values should be numpy.ndarray with exactly two dimensions.  The
+    function will convert each of the numpy.ndarray objects into an
+    xarray.DataArray and assign those to a scene object.  A fake area will be
+    assigned for each ndarray. Arrays with the same shape will get the same
+    area.
+
+    This function is exclusively intended for testing purposes.
+
+    If the keyword argument daskify is True, DataArrays will be created
+    as dask arrays.  If False (default), regular DataArrays will be created.
+
+    Args:
+        cont_dict: mapping with str/datasetid/dataid to ndarrays
+        daskify, optional: boolean, use dask or not
+
+    Return:
+        Scene object with datasets corresponding to cont_dict
+    """
+    import pyresample
+    import satpy
+    import xarray
+    if daskify:
+        import dask.array
+    sc = satpy.Scene()
+    for (did, arr) in cont_dict.items():
+        fake_area = pyresample.create_area_def(
+                "test-area",
+                {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0, "x_0": 0,
+                 "y_0": 0, "ellps": "sphere", "units": "m", "no_defs": None,
+                 "type": "crs"},
+                units="m",
+                shape=arr.shape,
+                resolution=1000,
+                center=(0, 0))
+        if daskify:
+            arr = dask.array.from_array(arr)
+        sc[did] = xarray.DataArray(
+                arr,
+                dims=("x", "y"),
+                attrs={"area": fake_area})
+    return sc
