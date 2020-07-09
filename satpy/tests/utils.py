@@ -415,6 +415,6 @@ def make_a_scene(cont_dict, daskify=False):
             arr = dask.array.from_array(arr)
         sc[did] = xarray.DataArray(
                 arr,
-                dims=("x", "y"),
+                dims=("y", "x"),
                 attrs={"area": fake_area})
     return sc
