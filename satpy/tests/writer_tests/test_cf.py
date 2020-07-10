@@ -967,13 +967,16 @@ class TestCFWriter(unittest.TestCase):
         # Without time dimension
         ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
                          'bar': (('y', 'x'), [[3, 4], [5, 6]])},
-                        coords={'y': [1, 2], 'x': [3, 4]})
+                        coords={'y': [1, 2],
+                                'x': [3, 4],
+                                'lon': (('y', 'x'), [[7, 8], [9, 10]])})
         ds = ds.chunk(2)
         kwargs = {'encoding': {'bar': {'chunksizes': (1, 1)}},
                   'other': 'kwargs'}
         enc, other_kwargs = CFWriter.update_encoding(ds, kwargs)
         self.assertDictEqual(enc, {'y': {'_FillValue': None},
                                    'x': {'_FillValue': None},
+                                   'lon': {'chunksizes': (2, 2)},
                                    'foo': {'chunksizes': (2, 2)},
                                    'bar': {'chunksizes': (1, 1)}})
         self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
@@ -985,6 +988,7 @@ class TestCFWriter(unittest.TestCase):
         enc, other_kwargs = CFWriter.update_encoding(ds, kwargs)
         self.assertDictEqual(enc, {'y': {'_FillValue': None},
                                    'x': {'_FillValue': None},
+                                   'lon': {'chunksizes': (2, 2)},
                                    'foo': {'chunksizes': (1, 2, 2)},
                                    'bar': {'chunksizes': (1, 1, 1)},
                                    'time': {'_FillValue': None,
