@@ -525,11 +525,10 @@ class CFWriter(Writer):
         encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
 
         # If not specified otherwise by the user, preserve current chunks.
-        for var_name, data_var in dataset.data_vars.items():
-            if data_var.chunks:
-                if var_name not in encoding:
-                    encoding[var_name] = {}
-                encoding[var_name].setdefault('chunksizes', data_var.data.chunksize)
+        for var_name, variable in dataset.variables.items():
+            if variable.chunks:
+                encoding.setdefault(var_name, {})
+                encoding[var_name].setdefault('chunksizes', variable.data.chunksize)
 
         # Avoid _FillValue attribute being added to coordinate variables
         # (https://github.com/pydata/xarray/issues/1865).
