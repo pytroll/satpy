@@ -99,6 +99,7 @@ This is what the corresponding ``ncdump`` output would look like in this case:
 """
 
 from collections import OrderedDict, defaultdict
+import copy
 import logging
 from datetime import datetime
 import json
@@ -527,8 +528,12 @@ class CFWriter(Writer):
         # If not specified otherwise by the user, preserve current chunks.
         for var_name, variable in dataset.variables.items():
             if variable.chunks:
+                chunks = tuple(
+                    np.stack([variable.data.chunksize,
+                              variable.shape]).min(axis=0)
+                )  # Chunksize may not exceed shape
                 encoding.setdefault(var_name, {})
-                encoding[var_name].setdefault('chunksizes', variable.data.chunksize)
+                encoding[var_name].setdefault('chunksizes', chunks)
 
         # Avoid _FillValue attribute being added to coordinate variables
         # (https://github.com/pydata/xarray/issues/1865).
@@ -627,6 +632,7 @@ class CFWriter(Writer):
             root.attrs['Conventions'] = CF_VERSION
 
         # Remove satpy-specific kwargs
+        to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)  # may contain dictionaries (encoding)
         satpy_kwargs = ['overlay', 'decorate', 'config_files']
         for kwarg in satpy_kwargs:
             to_netcdf_kwargs.pop(kwarg, None)
