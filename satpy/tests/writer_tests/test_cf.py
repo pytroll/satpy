@@ -981,6 +981,16 @@ class TestCFWriter(unittest.TestCase):
                                    'bar': {'chunksizes': (1, 1)}})
         self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
 
+        # Chunksize may not exceed shape
+        ds = ds.chunk(8)
+        kwargs = {'encoding': {}, 'other': 'kwargs'}
+        enc, other_kwargs = CFWriter.update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'lon': {'chunksizes': (2, 2)},
+                                   'foo': {'chunksizes': (2, 2)},
+                                   'bar': {'chunksizes': (2, 2)}})
+
         # With time dimension
         ds = ds.expand_dims({'time': [datetime(2009, 7, 1, 12, 15)]})
         kwargs = {'encoding': {'bar': {'chunksizes': (1, 1, 1)}},
@@ -997,6 +1007,9 @@ class TestCFWriter(unittest.TestCase):
                                    'time_bnds': {'_FillValue': None,
                                                  'calendar': 'proleptic_gregorian',
                                                  'units': 'days since 2009-07-01 12:15:00'}})
+
+        # User-defined encoding may not be altered
+        self.assertDictEqual(kwargs['encoding'], {'bar': {'chunksizes': (1, 1, 1)}})
 
 
 def suite():
