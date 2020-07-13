@@ -372,13 +372,14 @@ class CustomScheduler(object):
         return dask.get(dsk, keys, **kwargs)
 
 
-def make_a_scene(cont_dict, daskify=False, area=True, common_attrs=None):
+def make_a_fake_scene(content_dict, daskify=False, area=True,
+                      common_attrs=None):
     """Make a fake Scene.
 
-    Make a Scene from fake data.  Data are provided in the
-    ``cont_dict`` argument.  In ``cont_dict``, keys should be strings
-    or DatasetID/DataID, and values may be either numpy.ndarray or
-    xarray.DataArray, in either case with exactly two dimensions.
+    Make a fake Scene from fake data.  Data are provided in the
+    ``content_dict`` argument.  In ``content_dict``, keys should be
+    strings or DatasetID/DataID, and values may be either numpy.ndarray
+    or xarray.DataArray, in either case with exactly two dimensions.
     The function will convert each of the numpy.ndarray objects into
     an xarray.DataArray and assign those as datasets to a Scene object.
     A fake AreaDefinition will be assigned for each array, unless disabled
@@ -393,13 +394,26 @@ def make_a_scene(cont_dict, daskify=False, area=True, common_attrs=None):
     objects then this flag has no effect.
 
     Args:
-        cont_dict: mapping with str/datasetid/dataid to ndarrays
-        daskify, optional: boolean, use dask or not, default False
-        area, optional: boolean, add areas, default True
-        common_attrs, optional: dict, attributes to add to every dataset
+        content_dict (Mapping): Mapping where keys correspond to objects
+            accepted by ``Scene.__setitem__``, i.e. strings or DatasetID,
+            and values may be either ``numpy.ndarray`` or
+            ``xarray.DataArray``.
+        daskify (bool): optional, to use dask when converting
+            ``numpy.ndarray`` to ``xarray.DataArray`.  No effect when the
+            values in ``content_dict`` are already ``xarray.DataArray`.
+        area (bool or BaseDefinition): Can be ``True``, ``False``, or an
+            instance of ``pyresample.geometry.BaseDefinition`` such as
+            ``AreaDefinition`` or ``SwathDefinition``.  If ``True``, which is
+            the default, automatically generate areas.  If ``False``, values
+            will not have assigned areas.  If an instance of
+            ``pyresample.geometry.BaseDefinition``, those instances will be
+            used for all generated fake datasets.  Warning: Passing an area as
+            a string (``area="germ"``) is not supported.
+        common_attrs (Mapping): optional, additional attributes that will
+            be added to every dataset in the scene.
 
-    Return:
-        Scene object with datasets corresponding to cont_dict
+    Returns:
+        Scene object with datasets corresponding to content_dict.
     """
     import pyresample
     import satpy
@@ -409,9 +423,11 @@ def make_a_scene(cont_dict, daskify=False, area=True, common_attrs=None):
     if daskify:
         import dask.array
     sc = satpy.Scene()
-    for (did, arr) in cont_dict.items():
+    for (did, arr) in content_dict.items():
         extra_attrs = common_attrs.copy()
-        if area:
+        if isinstance(area, pyresample.geometry.BaseDefinition):
+            extra_attrs["area"] = area
+        elif area:
             extra_attrs["area"] = pyresample.create_area_def(
                     "test-area",
                     {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
@@ -435,22 +451,23 @@ def make_a_scene(cont_dict, daskify=False, area=True, common_attrs=None):
 
 
 def test_make_a_scene():
-    """Test the make_a_scene utility.
+    """Test the make_a_fake_scene utility.
 
-    Although the make_a_scene utility is for internal testing purposes, it has
-    grown sufficiently complex that it needs its own testing.
+    Although the make_a_fake_scene utility is for internal testing
+    purposes, it has grown sufficiently complex that it needs its own
+    testing.
     """
     import numpy as np
     import dask.array as da
     import xarray as xr
 
-    assert make_a_scene({}).keys() == []
-    sc = make_a_scene({
+    assert make_a_fake_scene({}).keys() == []
+    sc = make_a_fake_scene({
         "six": np.arange(25).reshape(5, 5)})
     assert len(sc.keys()) == 1
     assert sc.keys().pop().name == "six"
     assert sc["six"].attrs["area"].shape == (5, 5)
-    sc = make_a_scene({
+    sc = make_a_fake_scene({
         "seven": np.arange(3*7).reshape(3, 7),
         "eight": np.arange(3*8).reshape(3, 8)},
         daskify=True,
@@ -460,7 +477,7 @@ def test_make_a_scene():
     assert (sc["seven"].attrs["repetency"] == sc["eight"].attrs["repetency"] ==
             "fourteen hundred per centimetre")
     assert isinstance(sc["seven"].data, da.Array)
-    sc = make_a_scene({
+    sc = make_a_fake_scene({
         "nine": xr.DataArray(
             np.arange(2*9).reshape(2, 9),
             dims=("y", "x"),
