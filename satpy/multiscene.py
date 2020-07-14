@@ -59,13 +59,41 @@ def timeseries(datasets):
     """Expand dataset with and concatenate by time dimension."""
     expanded_ds = []
     for ds in datasets:
-        tmp = ds.expand_dims("time")
-        tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
+        if 'time' not in ds.dims:
+            tmp = ds.expand_dims("time")
+            tmp.coords["time"] = pd.DatetimeIndex([ds.attrs["start_time"]])
+        else:
+            tmp = ds
         expanded_ds.append(tmp)
 
     res = xr.concat(expanded_ds, dim="time")
     res.attrs = combine_metadata(*[x.attrs for x in expanded_ds])
     return res
+
+
+def add_group_aliases(scenes, groups):
+    """Add aliases for the groups datasets belong to."""
+    for scene in scenes:
+        scene = scene.copy()
+        for group_id, member_names in groups.items():
+            # Find out whether one of the datasets in this scene belongs
+            # to this group
+            member_ids = [DatasetID.from_dict(scene[name].attrs)
+                          for name in member_names if name in scene]
+
+            # Add an alias for the group it belongs to
+            if len(member_ids) == 1:
+                member_id = member_ids[0]
+                new_ds = scene[member_id].copy()
+                new_ds.attrs.update(group_id.to_dict())
+                scene[group_id] = new_ds
+            elif len(member_ids) > 1:
+                raise ValueError('Cannot add multiple datasets from the same '
+                                 'scene to a group')
+            else:
+                # Datasets in this scene don't belong to any group
+                pass
+        yield scene
 
 
 class _SceneGenerator(object):
@@ -266,6 +294,22 @@ class MultiScene(object):
             new_scn[ds_id] = blend_function(datasets)
 
         return new_scn
+
+    def group(self, groups):
+        """Group datasets from the multiple scenes.
+
+        By default, `MultiScene` only operates on dataset IDs shared by all scenes. Using
+        this method you can specify groups of datasets that shall be treated equally
+        by `MultiScene`. Even if their dataset IDs differ (for example because the names or
+        wavelengths are slightly different).
+        Groups can be specified as a dictionary `{group_id: dataset_names}` where the keys
+        must be of type `DatasetID`, for example::
+
+            groups={
+                DatasetID('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
+            }
+        """
+        self._scenes = add_group_aliases(self._scenes, groups)
 
     def _distribute_save_datasets(self, scenes_iter, client, batch_size=1, **kwargs):
         """Distribute save_datasets across a cluster."""

@@ -167,20 +167,19 @@ def area2lonlat(dataarray):
     """Convert an area to longitudes and latitudes."""
     dataarray = dataarray.copy()
     area = dataarray.attrs['area']
-    chunks = getattr(dataarray.data, 'chunks', None)
+    ignore_dims = {dim: 0 for dim in dataarray.dims if dim not in ['x', 'y']}
+    chunks = getattr(dataarray.isel(**ignore_dims), 'chunks', None)
     lons, lats = area.get_lonlats(chunks=chunks)
-    lons = xr.DataArray(lons, dims=['y', 'x'],
-                        attrs={'name': "longitude",
-                               'standard_name': "longitude",
-                               'units': 'degrees_east'},
-                        name='longitude')
-    lats = xr.DataArray(lats, dims=['y', 'x'],
-                        attrs={'name': "latitude",
-                               'standard_name': "latitude",
-                               'units': 'degrees_north'},
-                        name='latitude')
-    dataarray['longitude'] = lons
-    dataarray['latitude'] = lats
+    dataarray['longitude'] = xr.DataArray(lons, dims=['y', 'x'],
+                                          attrs={'name': "longitude",
+                                                 'standard_name': "longitude",
+                                                 'units': 'degrees_east'},
+                                          name='longitude')
+    dataarray['latitude'] = xr.DataArray(lats, dims=['y', 'x'],
+                                         attrs={'name': "latitude",
+                                                'standard_name': "latitude",
+                                                'units': 'degrees_north'},
+                                         name='latitude')
     return dataarray
 
 

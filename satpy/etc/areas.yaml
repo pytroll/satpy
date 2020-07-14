@@ -126,18 +126,6 @@ SouthAmerica_flat:
     lower_left_xy: [-8326322.82790897, -4609377.085697311]
     upper_right_xy: [-556597.4539663679, 1535833.8895192828]
     units: m
-worldeqc30km:
-  description: World in 3km, platecarree
-  projection:
-    proj: eqc
-    ellps: WGS84
-  shape:
-    height: 410
-    width: 820
-  area_extent:
-    lower_left_xy: [-20037508.3428, -10018754.1714]
-    upper_right_xy: [20037508.3428, 10018754.1714]
-    units: m
 south_america:
   description: south_america, platecarree
   projection:
@@ -445,6 +433,40 @@ met07globe:
   area_extent:
     lower_left_xy: [-5621225.237846375, -5621225.237846375]
     upper_right_xy: [5621225.237846375, 5621225.237846375]
+fci_0deg_1km:
+  description: Full disk FCI view, 1 km (based on pre-launch test data)
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 11136
+    width: 11136
+  area_extent:
+    lower_left_xy: [-5567999.998527619, -5567999.998577303]
+    upper_right_xy: [5567999.998577303,  5567999.998527619]
+    units: m
+fci_0deg_2km:
+  description: Full disk FCI view, 2 km (based on pre-launch test data)
+  projection:
+    proj: geos
+    lon_0: 0
+    h: 35786400
+    x_0: 0
+    y_0: 0
+    ellps: WGS84
+    no_defs: null
+  shape:
+    height: 5568
+    width: 5568
+  area_extent:
+    lower_left_xy: [-5567999.994206558, -5567999.994200589]
+    upper_right_xy: [5567999.994200589,  5567999.994206558]
+    units: m
 spain:
   description: Spain
   projection:

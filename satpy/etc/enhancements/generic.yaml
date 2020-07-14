@@ -813,6 +813,36 @@ enhancements:
           max_stretch: [70, 100, 100]
     standard_name: hrv_fog
 
+  hrv_severe_storms:
+    standard_name: hrv_severe_storms
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        min_stretch: [70, 70, -60]
+        max_stretch: [100, 100, -40]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        gamma: [1.7, 1.7, 2.0]
+
+  hrv_severe_storms_masked:
+    standard_name: hrv_severe_storms_masked
+    operations:
+    - name: stretch
+      method: *stretchfun
+      kwargs:
+        stretch: crude
+        # MaskingCompositor always adds alpha channel
+        min_stretch: [70, 70, -60, 0]
+        max_stretch: [100, 100, -40, 1]
+    - name: gamma
+      method: *gammafun
+      kwargs:
+        # MaskingCompositor always adds alpha channel
+        gamma: [1.7, 1.7, 2.0, 1.0]
+
   true_color_with_night_ir:
     standard_name: true_color_with_night_ir
     operations:
