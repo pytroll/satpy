@@ -411,6 +411,21 @@ class MultiScene(object):
         this_fn = filename.format(**attrs)
         return this_fn, shape, fill_value
 
+    def _maybe_format_decoration(ds, decorate):
+        """Maybe format decoration.
+
+        If the nested dictionary in decorate (argument to ``save_animation``)
+        contains a text to be added, format those based on dataset parameters.
+        """
+
+        decorate = copy.deepcopy(decorate)
+        if "decorate" in decorate:
+            deco_local = copy.deepcopy(decorate)
+            for deco in deco_local["decorate"]:
+                if "txt" in deco:
+                    deco["txt"] = deco["txt"].format(**ds.attrs)
+        return deco
+
     def _get_animation_frames(self, all_datasets, shape, fill_value=None,
                               ignore_missing=False, enhance=None, overlay=None,
                               decorate=None):
@@ -423,13 +438,9 @@ class MultiScene(object):
                 data = da.zeros(shape, dtype=np.uint8, chunks=shape)
                 data = xr.DataArray(data)
             else:
-                if "decorate" in decorate:
-                    deco_local = copy.deepcopy(decorate)
-                    for deco in deco_local["decorate"]:
-                        if "txt" in deco:
-                            deco["txt"] = deco["txt"].format(**ds.attrs)
+                deco = self._maybe_format_decoration(ds, decorate)
                 img = get_enhanced_image(ds, enhance=enhance,
-                                         decorate=decorate, overlay=overlay)
+                                         decorate=deco, overlay=overlay)
                 data, mode = img.finalize(fill_value=fill_value)
                 if data.ndim == 3:
                     # assume all other shapes are (y, x)
