@@ -411,6 +411,7 @@ class MultiScene(object):
         this_fn = filename.format(**attrs)
         return this_fn, shape, fill_value
 
+    @staticmethod
     def _maybe_format_decoration(ds, decorate):
         """Maybe format decoration.
 
@@ -418,13 +419,13 @@ class MultiScene(object):
         contains a text to be added, format those based on dataset parameters.
         """
 
-        decorate = copy.deepcopy(decorate)
-        if "decorate" in decorate:
+        if decorate and "decorate" in decorate:
             deco_local = copy.deepcopy(decorate)
             for deco in deco_local["decorate"]:
                 if "txt" in deco:
                     deco["txt"] = deco["txt"].format(**ds.attrs)
-        return deco
+            return deco_local
+        return decorate
 
     def _get_animation_frames(self, all_datasets, shape, fill_value=None,
                               ignore_missing=False, enhance=None, overlay=None,
