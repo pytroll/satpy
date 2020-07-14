@@ -419,13 +419,29 @@ class MultiScene(object):
         contains a text to be added, format those based on dataset parameters.
         """
 
-        if decorate and "decorate" in decorate:
-            deco_local = copy.deepcopy(decorate)
-            for deco in deco_local["decorate"]:
-                if "txt" in deco:
-                    deco["txt"] = deco["txt"].format(**ds.attrs)
-            return deco_local
-        return decorate
+        if decorate is None or "decorate" not in decorate:
+            return decorate
+        deco_local = copy.deepcopy(decorate)
+        for deco in deco_local["decorate"]:
+            if "txt" in deco:
+                deco["txt"] = deco["txt"].format(**ds.attrs)
+        return deco_local
+
+    def _get_single_frame(self, ds, enhance, decorate, overlay, fill_value):
+        """Get single frame from dataset.
+
+        Yet a single image frame from a dataset.
+        """
+        deco = self._maybe_format_decoration(ds, decorate)
+        img = get_enhanced_image(ds, enhance=enhance,
+                                 decorate=deco, overlay=overlay)
+        data, mode = img.finalize(fill_value=fill_value)
+        if data.ndim == 3:
+            # assume all other shapes are (y, x)
+            # we need arrays grouped by pixel so
+            # transpose if needed
+            data = data.transpose('y', 'x', 'bands')
+        return data
 
     def _get_animation_frames(self, all_datasets, shape, fill_value=None,
                               ignore_missing=False, enhance=None, overlay=None,
@@ -439,15 +455,8 @@ class MultiScene(object):
                 data = da.zeros(shape, dtype=np.uint8, chunks=shape)
                 data = xr.DataArray(data)
             else:
-                deco = self._maybe_format_decoration(ds, decorate)
-                img = get_enhanced_image(ds, enhance=enhance,
-                                         decorate=deco, overlay=overlay)
-                data, mode = img.finalize(fill_value=fill_value)
-                if data.ndim == 3:
-                    # assume all other shapes are (y, x)
-                    # we need arrays grouped by pixel so
-                    # transpose if needed
-                    data = data.transpose('y', 'x', 'bands')
+                data = self._get_single_frame(ds, enhance, decorate, overlay,
+                                              fill_value)
             yield data.data
 
     def _get_client(self, client=True):
