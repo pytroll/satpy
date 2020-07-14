@@ -58,7 +58,7 @@ def make_dataid(**items):
     return DataID(local_id_keys_config, **items)
 
 
-def _fake_get_enhanced_image(img):
+def _fake_get_enhanced_image(img, enhance=None, overlay=None, decorate=None):
     from trollimage.xrimage import XRImage
     return XRImage(img)
 
@@ -256,58 +256,6 @@ class TestMultiSceneSave(unittest.TestCase):
             shutil.rmtree(self.base_dir, ignore_errors=True)
         except OSError:
             pass
-
-    @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
-    def test_save_mp4(self):
-        """Save a series of fake scenes to an mp4 video."""
-        from satpy import MultiScene
-        area = _create_test_area()
-        scenes = _create_test_scenes(area=area)
-
-        # Add a dataset to only one of the Scenes
-        scenes[1]['ds3'] = _create_test_dataset('ds3')
-        # Add a start and end time
-        for ds_id in ['ds1', 'ds2', 'ds3']:
-            scenes[1][ds_id].attrs['start_time'] = datetime(2018, 1, 2)
-            scenes[1][ds_id].attrs['end_time'] = datetime(2018, 1, 2, 12)
-            if ds_id == 'ds3':
-                continue
-            scenes[0][ds_id].attrs['start_time'] = datetime(2018, 1, 1)
-            scenes[0][ds_id].attrs['end_time'] = datetime(2018, 1, 1, 12)
-
-        mscn = MultiScene(scenes)
-        fn = os.path.join(
-            self.base_dir,
-            'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
-        writer_mock = mock.MagicMock()
-        with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
-            get_writer.return_value = writer_mock
-            # force order of datasets by specifying them
-            mscn.save_animation(fn, datasets=['ds1', 'ds2', 'ds3'], client=False)
-
-        # 2 saves for the first scene + 1 black frame
-        # 3 for the second scene
-        self.assertEqual(writer_mock.append_data.call_count, 3 + 3)
-        filenames = [os.path.basename(args[0][0]) for args in get_writer.call_args_list]
-        self.assertEqual(filenames[0], 'test_save_mp4_ds1_20180101_00_20180102_12.mp4')
-        self.assertEqual(filenames[1], 'test_save_mp4_ds2_20180101_00_20180102_12.mp4')
-        self.assertEqual(filenames[2], 'test_save_mp4_ds3_20180102_00_20180102_12.mp4')
-
-        # make sure that not specifying datasets still saves all of them
-        fn = os.path.join(
-            self.base_dir,
-            'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
-        writer_mock = mock.MagicMock()
-        with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
-            get_writer.return_value = writer_mock
-            # force order of datasets by specifying them
-            mscn.save_animation(fn, client=False)
-        # the 'ds3' dataset isn't known to the first scene so it doesn't get saved
-        # 2 for first scene, 2 for second scene
-        self.assertEqual(writer_mock.append_data.call_count, 2 + 2)
-        self.assertIn('test_save_mp4_ds1_20180101_00_20180102_12.mp4', filenames)
-        self.assertIn('test_save_mp4_ds2_20180101_00_20180102_12.mp4', filenames)
-        self.assertIn('test_save_mp4_ds3_20180102_00_20180102_12.mp4', filenames)
 
     @mock.patch('satpy.multiscene.get_enhanced_image', _fake_get_enhanced_image)
     def test_save_mp4_distributed(self):
@@ -561,3 +509,79 @@ class TestBlendFuncs(unittest.TestCase):
         self.assertIsInstance(res2, xr.DataArray)
         self.assertTupleEqual((2, self.ds1.shape[0], self.ds1.shape[1]), res.shape)
         self.assertTupleEqual((self.ds3.shape[0], self.ds3.shape[1]+self.ds4.shape[1]), res2.shape)
+
+
+@mock.patch('satpy.multiscene.get_enhanced_image')
+def test_save_mp4(smg, tmp_path):
+    """Save a series of fake scenes to an mp4 video."""
+    from satpy import MultiScene
+    area = _create_test_area()
+    scenes = _create_test_scenes(area=area)
+    smg.side_effect = _fake_get_enhanced_image
+
+    # Add a dataset to only one of the Scenes
+    scenes[1]['ds3'] = _create_test_dataset('ds3')
+    # Add a start and end time
+    for ds_id in ['ds1', 'ds2', 'ds3']:
+        scenes[1][ds_id].attrs['start_time'] = datetime(2018, 1, 2)
+        scenes[1][ds_id].attrs['end_time'] = datetime(2018, 1, 2, 12)
+        if ds_id == 'ds3':
+            continue
+        scenes[0][ds_id].attrs['start_time'] = datetime(2018, 1, 1)
+        scenes[0][ds_id].attrs['end_time'] = datetime(2018, 1, 1, 12)
+
+    mscn = MultiScene(scenes)
+    tmp_path
+    fn = str(tmp_path /
+             'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
+    writer_mock = mock.MagicMock()
+    with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
+        get_writer.return_value = writer_mock
+        # force order of datasets by specifying them
+        mscn.save_animation(fn, datasets=['ds1', 'ds2', 'ds3'], client=False)
+
+    # 2 saves for the first scene + 1 black frame
+    # 3 for the second scene
+    assert writer_mock.append_data.call_count == 3 + 3
+    filenames = [os.path.basename(args[0][0]) for args in get_writer.call_args_list]
+    assert filenames[0] == 'test_save_mp4_ds1_20180101_00_20180102_12.mp4'
+    assert filenames[1] == 'test_save_mp4_ds2_20180101_00_20180102_12.mp4'
+    assert filenames[2] == 'test_save_mp4_ds3_20180102_00_20180102_12.mp4'
+
+    # make sure that not specifying datasets still saves all of them
+    fn = str(tmp_path /
+             'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
+    writer_mock = mock.MagicMock()
+    with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
+        get_writer.return_value = writer_mock
+        # force order of datasets by specifying them
+        mscn.save_animation(fn, client=False)
+    # the 'ds3' dataset isn't known to the first scene so it doesn't get saved
+    # 2 for first scene, 2 for second scene
+    assert writer_mock.append_data.call_count == 2 + 2
+    assert "test_save_mp4_ds1_20180101_00_20180102_12.mp4" in filenames
+    assert "test_save_mp4_ds2_20180101_00_20180102_12.mp4" in filenames
+    assert "test_save_mp4_ds3_20180102_00_20180102_12.mp4" in filenames
+
+    # test decorating and enhancing
+
+    fn = str(tmp_path /
+             'test-{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}-rich.mp4')
+    writer_mock = mock.MagicMock()
+    with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
+        get_writer.return_value = writer_mock
+        # force order of datasets by specifying them
+        mscn.save_animation(
+                fn, client=False,
+                decorate={
+                    "decorate": [{
+                        "txt":
+                        "Test {start_time:%Y-%m-%d %H:%M - {end_time:%Y-%m-%d %H:%M"}]})
+    assert writer_mock.append_data.call_count == 2 + 2
+    smg.assert_called_with(
+            mock.call(
+                scenes[-1]["ds1"], enhance=None, overlay=None,
+                decorate={
+                    "decorate": [{
+                        "txt":
+                        "Test 2018-01-02 00:00 - 2018-01-02 12:00"}]}))
