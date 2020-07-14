@@ -59,13 +59,17 @@ SUB_AREAS = {
     'Peru':          [2712, 3695, 2360, 3039],
     'Haiti':         [1637, 1743, 2739, 2887],
     'Panama':        [2185, 2316, 2275, 2590],
-    'Antillas Menores':[1660, 2196, 2956, 3596],
+    'Antillas Menores M':[1500, 2300, 2400, 4100],
+    'Antillas Menores':  [1660, 2196, 2956, 3596],
     'Haiti & Rep. Dominicana':[1637, 1765, 2739, 3059],
     'Mexico':        [1109, 1932, 1028, 2097],
-    'Continental US':[ 454, 1928, 1581, 3845],
+    'Continental US':  [ 454, 1928, 1581, 3845],
+    'Centro America M':[1500, 2500, 1300, 2900],    
     'Centro America':[1700, 2350, 1790, 2640],
     'Sur America':   [1980, 5150, 2100, 4680],
-    'MexicoC':       [ 670, 1500,   70, 1300],
+    'HN':            [   0, 2712,    0, 5424],
+    'HS':            [2712, 5424,    0, 5424],
+    'MexicoC':       [ 670, 1500,    0, 1300],
 }
 
 class NC_ABI_BASE(BaseFileHandler):
