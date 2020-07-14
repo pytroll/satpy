@@ -179,10 +179,24 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         else:
             return True
 
-    def select_files_from_directory(self, directory=None):
+    def select_files_from_directory(
+            self, directory=None, fs=None):
         """Find files for this reader in *directory*.
 
         If directory is None or '', look in the current directory.
+
+        Searches the local file system by default.  Can search on a remote
+        filesystem by passing an instance of a suitable implementation of
+        ``fsspec.spec.AbstractFileSystem``.
+
+        Args:
+            directory (Optional[str]): Path to search.
+            fs (Optional[FileSystem]): fsspec FileSystem implementation to use.
+                                       Defaults to None, using local file
+                                       system.
+
+        Returns:
+            list of strings describing matching files
         """
         filenames = set()
         if directory is None:
@@ -190,9 +204,14 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         # all the glob patterns that we are going to look at
         all_globs = {os.path.join(directory, globify(pattern))
                      for pattern in self.file_patterns}
+        # custom filesystem or not
+        if fs is None:
+            matcher = glob.iglob
+        else:
+            matcher = fs.glob
         # get all files matching these patterns
         for glob_pat in all_globs:
-            filenames.update(glob.iglob(glob_pat))
+            filenames.update(matcher(glob_pat))
         return filenames
 
     def select_files_from_pathnames(self, filenames):

@@ -24,6 +24,7 @@ modifiers:
     optional_prerequisites:
     - solar_zenith_angle
     - 13.4
+    sunz_threshold: 85.0
 
   nir_emissive:
     compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
@@ -32,7 +33,7 @@ modifiers:
     optional_prerequisites:
     - solar_zenith_angle
     - 13.4
-
+    sunz_threshold: 85.0
   atm_correction:
     compositor: !!python/name:satpy.composites.PSPAtmosphericalCorrection
     optional_prerequisites:
@@ -419,4 +420,3 @@ composites:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background_hires
     filename: BlackMarble_2016_3km_geo.tif
-

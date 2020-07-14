@@ -412,6 +412,16 @@ class TestFileFileYAMLReader(unittest.TestCase):
                          len(self.reader.select_files_from_directory(dpath)))
         os.rmdir(dpath)
 
+        from fsspec.implementations.local import LocalFileSystem
+
+        class Silly(LocalFileSystem):
+            def glob(self, pattern):
+                return ["/grocery/apricot.nc", "/grocery/aubergine.nc"]
+        res = self.reader.select_files_from_directory(dpath, fs=Silly())
+        self.assertEqual(
+                res,
+                {"/grocery/apricot.nc", "/grocery/aubergine.nc"})
+
     def test_supports_sensor(self):
         """Check supports_sensor."""
         self.assertTrue(self.reader.supports_sensor('canon'))

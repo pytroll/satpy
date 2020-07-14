@@ -19,13 +19,25 @@ composites:
     - IR_108
     - ct
     standard_name: ct_masked_ir
-    transparency:
-      0: 100
-      1: 100
-      2: 100
-      3: 100
-      4: 100
-      10: 35
+    conditions:
+      - method: equal
+        value: 0
+        transparency: 100
+      - method: equal
+        value: 1
+        transparency: 100
+      - method: equal
+        value: 2
+        transparency: 100
+      - method: equal
+        value: 3
+        transparency: 100
+      - method: equal
+        value: 4
+        transparency: 100
+      - method: equal
+        value: 10
+        transparency: 35
 
   nwc_geo_ct_masked_ir:
     compositor: !!python/name:satpy.composites.MaskingCompositor
@@ -34,14 +46,28 @@ composites:
     - ct
     standard_name: nwc_geo_ct_masked_ir
     # Default is opaque (transparency = 0)
-    transparency:
-      Cloud-free_land: 100
-      Cloud-free_sea: 100
-      Snow_over_land: 100
-      Sea_ice: 100
-      Fractional_clouds: 45
-      High_semitransparent_thin_clouds: 50
-      High_semitransparent_above_snow_ice: 60
+    conditions:
+      - method: equal
+        value: Cloud-free_land
+        transparency: 100
+      - method: equal
+        value: Cloud-free_sea
+        transparency: 100
+      - method: equal
+        value: Snow_over_land
+        transparency: 100
+      - method: equal
+        value: Sea_ice
+        transparency: 100
+      - method: equal
+        value: Fractional_clouds
+        transparency: 45
+      - method: equal
+        value: High_semitransparent_thin_clouds
+        transparency: 50
+      - method: equal
+        value: High_semitransparent_above_snow_ice
+        transparency: 60
 
   cloudtop:
     compositor: !!python/name:satpy.composites.GenericCompositor
@@ -142,6 +168,14 @@ composites:
       modifiers: [sunz_corrected]
     - name: VIS006
       modifiers: [sunz_corrected]
+    standard_name: natural_color
+
+  natural_color_nocorr:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: IR_016
+    - name: VIS008
+    - name: VIS006
     standard_name: natural_color
 
   fog:
@@ -397,6 +431,39 @@ composites:
         modifiers: [sunz_corrected]
       - name: HRV
         modifiers: [sunz_corrected]
+
+  hrv_severe_storms:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - name: HRV
+      modifiers: [sunz_corrected]
+    - name: HRV
+      modifiers: [sunz_corrected]
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+      - wavelength: 10.8
+      - wavelength: 3.9
+    standard_name: hrv_severe_storms
+
+  hrv_severe_storms_masked:
+    compositor: !!python/name:satpy.composites.MaskingCompositor
+    conditions:
+    # Data will be masked where SZA corrected HRV data is less than 70 %, or NaN
+    - method: less
+      value: 75
+      transparency: 70
+    - method: less
+      value: 70
+      transparency: 100
+    - method: isnan
+      transparency: 100
+    prerequisites:
+    # Composite
+    - name: hrv_severe_storms
+    # Data used in masking
+    - name: HRV
+      modifiers: [sunz_corrected]
+    standard_name: hrv_severe_storms_masked
 
   natural_with_night_fog:
     compositor: !!python/name:satpy.composites.DayNightCompositor
