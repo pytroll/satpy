@@ -18,6 +18,7 @@
 """MultiScene object to work with multiple timesteps of satellite data."""
 
 import logging
+import copy
 import numpy as np
 import dask.array as da
 import xarray as xr
@@ -411,7 +412,8 @@ class MultiScene(object):
         return this_fn, shape, fill_value
 
     def _get_animation_frames(self, all_datasets, shape, fill_value=None,
-                              ignore_missing=False):
+                              ignore_missing=False, enhance=None, overlay=None,
+                              decorate=None):
         """Create enhanced image frames to save to a file."""
         for idx, ds in enumerate(all_datasets):
             if ds is None and ignore_missing:
@@ -421,7 +423,13 @@ class MultiScene(object):
                 data = da.zeros(shape, dtype=np.uint8, chunks=shape)
                 data = xr.DataArray(data)
             else:
-                img = get_enhanced_image(ds)
+                if "decorate" in decorate:
+                    deco_local = copy.deepcopy(decorate)
+                    for deco in deco_local["decorate"]:
+                        if "txt" in deco:
+                            deco["txt"] = deco["txt"].format(**ds.attrs)
+                img = get_enhanced_image(ds, enhance=enhance,
+                                         decorate=decorate, overlay=overlay)
                 data, mode = img.finalize(fill_value=fill_value)
                 if data.ndim == 3:
                     # assume all other shapes are (y, x)
@@ -491,7 +499,8 @@ class MultiScene(object):
                 w.append_data(product_frame.compute())
 
     def save_animation(self, filename, datasets=None, fps=10, fill_value=None,
-                       batch_size=1, ignore_missing=False, client=True, **kwargs):
+                       batch_size=1, ignore_missing=False, client=True,
+                       enhance=None, overlay=None, decorate=None, **kwargs):
         """Save series of Scenes to movie (MP4) or GIF formats.
 
         Supported formats are dependent on the `imageio` library and are
@@ -537,6 +546,16 @@ class MultiScene(object):
                 created and ``dask.distributed`` will not be used. If this
                 is a dask ``Client`` object then it will be used for
                 distributed computation.
+            enhance (bool or Enhancer): Optional, passed to
+                :func:`satpy.writers.get_enhanced_image`.
+            overlay (Mapping): Optional, passed to
+                :func:`~satpy.writers.get_enhanced_image`.
+            decorate (Mapping): Optional, passed to
+                :func:`~satpy.writers.get_enhanced_image`.  In any text added
+                to the image, string formatting will be applied based on
+                dataset attributes.  For example, passing
+                ``decorate={"decorate": [{"txt": "{start_time:%H:%M}"}]}``
+                will replace the decorated text accordingly.
             kwargs: Additional keyword arguments to pass to
                    `imageio.get_writer`.
 
@@ -572,7 +591,9 @@ class MultiScene(object):
             all_datasets = scene_gen[dataset_id]
             info_datasets = [scn.get(dataset_id) for scn in info_scenes]
             this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
-            data_to_write = self._get_animation_frames(all_datasets, shape, this_fill, ignore_missing)
+            data_to_write = self._get_animation_frames(
+                    all_datasets, shape, this_fill, ignore_missing,
+                    enhance=enhance, overlay=overlay, decorate=decorate)
 
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
             frames[dataset_id] = data_to_write
