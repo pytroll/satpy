@@ -186,7 +186,9 @@ default_id_keys_config = {'name': {
                           'wavelength': {
                               'type': WavelengthRange,
                           },
-                          'resolution': None,
+                          'resolution': {
+                              'transitive': True,
+                              },
                           'calibration': {
                               'enum': [
                                   'reflectance',
@@ -207,14 +209,18 @@ default_id_keys_config = {'name': {
 default_co_keys_config = {'name': {
                               'required': True,
                           },
-                          'resolution': None,
+                          'resolution': {
+                              'transitive': True,
+                          }
                           }
 
 #: Minimal ID keys for DataArrays, for example composites.
 minimal_default_keys_config = {'name': {
                                   'required': True,
                               },
-                               'resolution': None
+                               'resolution': {
+                                   'transitive': True,
+                               }
                               }
 
 
@@ -378,8 +384,6 @@ class DataID(dict):
             curated = self.convert_dict(keyval_dict)
         else:
             curated = {}
-        # if curated.get('name') == 'ds5' and curated.get('modifiers'):
-        #     import ipdb; ipdb.set_trace()
         super(DataID, self).__init__(curated)
 
     @property
@@ -440,6 +444,17 @@ class DataID(dict):
             id_keys = array.attrs.get('_satpy_id_keys', default_keys)
         return cls(id_keys, **array.attrs)
 
+    def create_dep_filter(self, query):
+        """Remove the required fields from *query*."""
+        try:
+            new_query = query.to_dict()
+        except AttributeError:
+            new_query = query.copy()
+        for key, val in self._id_keys.items():
+            if val and (val.get('transitive') is not True):
+                new_query.pop(key, None)
+        return DataQuery.from_dict(new_query)
+
     def _asdict(self):
         return dict(self.items())
 
@@ -492,7 +507,36 @@ class DataID(dict):
 
     def __lt__(self, other):
         """Check lesser than."""
-        return tuple(self.values()) < tuple(other.values())
+        list_self, list_other = [], []
+        for key in self._id_keys:
+            if key not in self and key not in other:
+                continue
+            elif key in self and key in other:
+                list_self.append(self[key])
+                list_other.append(other[key])
+            elif key in self:
+                val = self[key]
+                list_self.append(val)
+                if isinstance(val, numbers.Number):
+                    list_other.append(0)
+                elif isinstance(val, str):
+                    list_other.append('')
+                elif isinstance(val, tuple):
+                    list_other.append(tuple())
+                else:
+                    raise NotImplementedError("Don't know how to generalize " + str(type(val)))
+            elif key in other:
+                val = other[key]
+                list_other.append(val)
+                if isinstance(val, numbers.Number):
+                    list_self.append(0)
+                elif isinstance(val, str):
+                    list_self.append('')
+                elif isinstance(val, tuple):
+                    list_self.append(tuple())
+                else:
+                    raise NotImplementedError("Don't know how to generalize " + str(type(val)))
+        return tuple(list_self) < tuple(list_other)
 
     __setitem__ = _immutable
     __delitem__ = _immutable
@@ -581,13 +625,32 @@ class DataQuery:
         items = ("{}={}".format(key, repr(val)) for key, val in zip(self._fields, self._values))
         return self.__class__.__name__ + "(" + ", ".join(items) + ")"
 
+    def _match_dataid(self, dataid):
+        """Match the dataid with the current query."""
+        has_required = False
+        for key, val in dataid._id_keys.items():
+            try:
+                if val.get('required', False):
+                    if key in self._fields:
+                        has_required = True
+                    break
+            except AttributeError:
+                continue
+        if has_required:
+            for key, val in self._dict.items():
+                if val != '*' and dataid.get(key, val) != val and key in dataid._id_keys:
+                    return False
+        else:
+            for key, val in self._dict.items():
+                if val != '*' and dataid.get(key, None) != val and key in dataid._id_keys:
+                    return False
+        return True
+
     def filter_dataids(self, dataid_container):
         """Filter DataIDs based on this query."""
-        keys = iter(dataid_container)
-        for key, val in self._dict.items():
-            if val != '*':
-                keys = [k for k in keys
-                        if k.get(key) == val]
+        keys = filter(self._match_dataid, dataid_container)
+        keys = [dataid for dataid in keys if set(dataid.keys()) & set(self._fields)]
+
         return keys
 
     def sort_dataids(self, dataids):
@@ -617,6 +680,7 @@ class DataQuery:
         """
         distances = []
         sorted_dataids = []
+        big_distance = 100000
         keys = set(self._dict.keys())
         for dataid in dataids:
             keys |= set(dataid.keys())
@@ -638,7 +702,7 @@ class DataQuery:
                     try:
                         dataid_val = dataid[key]
                     except KeyError:
-                        distance = np.inf
+                        distance += big_distance
                         break
                     try:
                         distance += dataid_val.distance(val)

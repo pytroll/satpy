@@ -249,7 +249,7 @@ def test_dataquery():
 
 def test_id_query_interactions():
     """Test interactions between DataIDs and DataQuery's."""
-    from satpy.dataset import DataQuery, DataID, WavelengthRange, ModifierTuple
+    from satpy.dataset import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
 
     default_id_keys_config = {'name': {
                                 'required': True,
@@ -283,6 +283,18 @@ def test_id_query_interactions():
     res = dq.filter_dataids([did2, did])
     assert len(res) == 1
     assert res[0] == did
+
+    dataid_container = [DataID(default_id_keys_config,
+                               name='ds1',
+                               resolution=250,
+                               calibration='reflectance',
+                               modifiers=tuple())]
+    dq = DataQuery(wavelength=0.22, modifiers=tuple())
+    assert len(dq.filter_dataids(dataid_container)) == 0
+    dataid_container = [DataID(minimal_default_keys_config,
+                               name='natural_color')]
+    dq = DataQuery(name='natural_color', resolution=250)
+    assert len(dq.filter_dataids(dataid_container)) == 1
 
     # Check did sorting
     dq = DataQuery(name='cheese_shops', wavelength=2, modifiers='*')

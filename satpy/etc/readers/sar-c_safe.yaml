@@ -9,6 +9,7 @@ reader:
       required: true
     polarization:
     resolution:
+      transitive: true
     calibration:
       enum:
         - gamma
@@ -24,6 +25,7 @@ reader:
       required: true
     polarization:
     resolution:
+      transitive: true
 
 file_types:
     safe_measurement:
