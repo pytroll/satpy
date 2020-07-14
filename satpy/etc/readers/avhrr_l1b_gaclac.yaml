@@ -13,8 +13,8 @@ datasets:
           reflectance:
             standard_name: toa_bidirectional_reflectance
             units: '%'
-          radiance:
-            standard_name: toa_outgoing_radiance_per_unit_wavelength
+          counts:
+            units: count
         coordinates:
             - longitude
             - latitude
@@ -27,8 +27,8 @@ datasets:
           reflectance:
             standard_name: toa_bidirectional_reflectance
             units: '%'
-          radiance:
-            standard_name: toa_outgoing_radiance_per_unit_wavelength
+          counts:
+            units: count
         coordinates:
             - longitude
             - latitude
@@ -41,8 +41,8 @@ datasets:
           reflectance:
             standard_name: toa_bidirectional_reflectance
             units: '%'
-          radiance:
-            standard_name: toa_outgoing_radiance_per_unit_wavelength
+          counts:
+            units: count
         coordinates:
             - longitude
             - latitude
@@ -55,8 +55,8 @@ datasets:
           reflectance:
             standard_name: toa_bidirectional_reflectance
             units: '%'
-          radiance:
-            standard_name: toa_outgoing_radiance_per_unit_wavelength
+          counts:
+            units: count
         coordinates:
             - longitude
             - latitude
@@ -69,8 +69,8 @@ datasets:
           brightness_temperature:
             standard_name: toa_brightness_temperature
             units: K
-          radiance:
-            standard_name: toa_outgoing_radiance_per_unit_wavelength
+          counts:
+            units: count
         coordinates:
             - longitude
             - latitude
@@ -83,8 +83,8 @@ datasets:
           brightness_temperature:
             standard_name: toa_brightness_temperature
             units: K
-          radiance:
-            standard_name: toa_outgoing_radiance_per_unit_wavelength
+          counts:
+            units: count
         coordinates:
             - longitude
             - latitude
@@ -97,8 +97,8 @@ datasets:
           brightness_temperature:
             standard_name: toa_brightness_temperature
             units: K
-          radiance:
-            standard_name: toa_outgoing_radiance_per_unit_wavelength
+          counts:
+            units: count
         coordinates:
             - longitude
             - latitude

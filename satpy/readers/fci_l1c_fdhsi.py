@@ -56,6 +56,18 @@ geolocation calculations.
 The brightness temperature calculation is based on the formulas indicated in
 `PUG`_ and `RADTOBR`_.
 
+The reading routine supports channel data in counts, radiances, and (depending
+on channel) brightness temperatures or reflectances.  For each channel, it also
+supports the pixel quality, obtained by prepending the channel name such as
+``"vis_04_pixel_quality"``.
+
+.. warning::
+    The API for the direct reading of pixel quality is temporary and likely to
+    change.  Currently, for each channel, the pixel quality is available by
+    ``<chan>_pixel_quality``.  In the future, they will likely all be called
+    ``pixel_quality`` and disambiguated by a to-be-decided property in the
+    `DatasetID`.
+
 .. _RADTOBR: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_EFFECT_RAD_TO_BRIGHTNESS&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _PUG: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_DMT_719113&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _EUMETSAT: https://www.eumetsat.int/website/home/Satellites/FutureSatellites/MeteosatThirdGeneration/MTGDesign/index.html#fci  # noqa: E501
@@ -126,6 +138,21 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def get_dataset(self, key, info=None):
         """Load a dataset."""
         logger.debug('Reading {} from {}'.format(key.name, self.filename))
+        if "pixel_quality" in key.name:
+            return self._get_dataset_quality(key, info=info)
+        elif any(lb in key.name for lb in {"vis_", "ir_", "nir_", "wv_"}):
+            return self._get_dataset_measurand(key, info=info)
+        else:
+            raise ValueError("Unknown dataset key, not a channel or quality: "
+                             f"{key.name:s}")
+
+    def _get_dataset_measurand(self, key, info=None):
+        """Load dataset corresponding to channel measurement.
+
+        Load a dataset when the key refers to a measurand, whether uncalibrated
+        (counts) or calibrated in terms of brightness temperature, radiance, or
+        reflectance.
+        """
         # Get the dataset
         # Get metadata for given dataset
         measured = self.get_channel_measured_group_path(key.name)
@@ -152,6 +179,24 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         info.pop("units")
         attrs.pop("units")
 
+        # For each channel, the effective_radiance contains in the
+        # "ancillary_variables" attribute the value "pixel_quality".  In
+        # FileYAMLReader._load_ancillary_variables, satpy will try to load
+        # "pixel_quality" but is lacking the context from what group to load
+        # it.  Until we can have multiple pixel_quality variables defined (for
+        # example, with https://github.com/pytroll/satpy/pull/1088), rewrite
+        # the ancillary variable to include the channel.  See also
+        # https://github.com/pytroll/satpy/issues/1171.
+        if "pixel_quality" in attrs["ancillary_variables"]:
+            attrs["ancillary_variables"] = attrs["ancillary_variables"].replace(
+                    "pixel_quality", key.name + "_pixel_quality")
+        else:
+            raise ValueError(
+                "Unexpected value for attribute ancillary_variables, "
+                "which the FCI file handler intends to rewrite (see "
+                "https://github.com/pytroll/satpy/issues/1171 for why). "
+                f"Expected 'pixel_quality', got {attrs['ancillary_variables']:s}")
+
         res.attrs.update(key.to_dict())
         res.attrs.update(info)
         res.attrs.update(attrs)
@@ -171,6 +216,26 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         return res
 
+    def _get_dataset_quality(self, key, info=None):
+        """Load quality for channel.
+
+        Load a quality field for an FCI channel.  This is a bit involved in
+        case of FCI because each channel group (data/<channel>/measured) has
+        its own data variable 'pixel_quality', referred to in ancillary
+        variables (see also Satpy issue 1171), so some special treatment in
+        necessary.
+        """
+        # FIXME: replace by .removesuffix after we drop support for Python < 3.9
+        if key.name.endswith("_pixel_quality"):
+            chan_lab = key.name[:-len("_pixel_quality")]
+        else:
+            raise ValueError("Quality label must end with pixel_quality, got "
+                             f"{key.name:s}")
+        grp_path = self.get_channel_measured_group_path(chan_lab)
+        dv_path = grp_path + "/pixel_quality"
+        data = self[dv_path]
+        return data
+
     def get_channel_measured_group_path(self, channel):
         """Get the channel's measured group path."""
         measured_group_path = 'data/{}/measured'.format(channel)
@@ -179,12 +244,19 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
+        # if a user requests a pixel quality before the channel data, the
+        # yaml-reader will ask the area extent of the pixel quality field,
+        # which will ultimately end up here
+        if key.name.endswith("_pixel_quality"):
+            lab = key.name[:-len("_pixel_quality")]
+        else:
+            lab = key.name
         # Get metadata for given dataset
-        measured = self.get_channel_measured_group_path(key.name)
+        measured = self.get_channel_measured_group_path(lab)
         # Get start/end line and column of loaded swath.
         nlines, ncols = self[measured + "/effective_radiance/shape"]
 
-        logger.debug('Channel {} resolution: {}'.format(key.name, ncols))
+        logger.debug('Channel {} resolution: {}'.format(lab, ncols))
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
 
         # Calculate full globe line extent
@@ -192,7 +264,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         ext = {}
         for c in "xy":
-            c_radian = self["data/{:s}/measured/{:s}".format(key.name, c)]
+            c_radian = self["data/{:s}/measured/{:s}".format(lab, c)]
             c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
 
             # FCI defines pixels by centroids (Example Products for Pytroll
