@@ -501,7 +501,6 @@ def test_save_mp4(smg, tmp_path):
         scenes[0][ds_id].attrs['end_time'] = datetime(2018, 1, 1, 12)
 
     mscn = MultiScene(scenes)
-    tmp_path
     fn = str(tmp_path /
              'test_save_mp4_{name}_{start_time:%Y%m%d_%H}_{end_time:%Y%m%d_%H}.mp4')
     writer_mock = mock.MagicMock()
