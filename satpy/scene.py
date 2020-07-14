@@ -23,7 +23,7 @@ import os
 from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
 from satpy.dataset import (DataQuery, DataID, MetadataObject, dataset_walker,
-                           replace_anc, combine_metadata, minimal_default_keys_config)
+                           replace_anc, combine_metadata)
 from satpy.node import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
@@ -674,7 +674,7 @@ class Scene(MetadataObject):
 
     def __getitem__(self, key):
         """Get a dataset or create a new 'slice' of the Scene."""
-        if isinstance(key, tuple) and not isinstance(key, DataID):
+        if isinstance(key, tuple):
             return self.slice(key)
         return self.datasets[key]
 
@@ -836,13 +836,9 @@ class Scene(MetadataObject):
             composite = compositor(prereq_datasets,
                                    optional_datasets=optional_datasets,
                                    **self.attrs)
-            try:
-                cid = compositor.attrs['_satpy_id']
-            except KeyError:
-                cid = DataID(minimal_default_keys_config, **composite.attrs)
-                compositor.attrs['_satpy_id'] = cid
-
+            cid = DataID.from_dataarray(composite)
             self.datasets[cid] = composite
+
             # update the node with the computed DataID
             if comp_node.name in self.wishlist:
                 self.wishlist.remove(comp_node.name)

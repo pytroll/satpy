@@ -395,11 +395,8 @@ class DependencyTree(Node):
                 orig_dict[k] = dep_val
         return dep_key.from_dict(orig_dict)
 
-    def _find_compositor(self, dataset_key, query=None):
-        """Find the compositor object for the given dataset_key.
-
-        *dataset_key* is already filtered with *query*
-        """
+    def _find_compositor(self, dataset_key):
+        """Find the compositor object for the given dataset_key."""
         # NOTE: This function can not find a modifier that performs
         # one or more modifications if it has modifiers see if we can find
         # the unmodified version first
@@ -421,12 +418,14 @@ class DependencyTree(Node):
             compositor = self.get_compositor(dataset_key)
         except KeyError:
             raise KeyError("Can't find anything called {}".format(str(dataset_key)))
-        dataset_key = compositor.id
-        root = Node(dataset_key, data=(compositor, [], []))
+
+        cid = compositor.id
+        root = Node(cid, data=(compositor, [], []))
         if src_node is not None:
             self.add_child(root, src_node)
             root.data[1].append(src_node)
 
+        query = cid.create_dep_filter(dataset_key)
         # 2.1 get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
         prereqs, unknowns = self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)

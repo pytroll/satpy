@@ -106,15 +106,15 @@ def convert_file_content_to_data_array(file_content, attrs=tuple(),
 def test_datasets():
     """Get list of various test datasets."""
     d = [
-        make_dataid(name='ds1'),
-        make_dataid(name='ds2'),
+        make_dataid(name='ds1', resolution=250, calibration='reflectance'),
+        make_dataid(name='ds2', resolution=250, calibration='reflectance'),
         make_dataid(name='ds3'),
         make_dataid(name='ds4', calibration='reflectance'),
         make_dataid(name='ds4', calibration='radiance'),
         make_dataid(name='ds5', resolution=250),
         make_dataid(name='ds5', resolution=500),
         make_dataid(name='ds5', resolution=1000),
-        make_dataid(name='ds6', wavelength=(0.1, 0.2, 0.3)),
+        make_dataid(name='ds6', wavelength=(0.1, 0.2, 0.3), resolution=250),
         make_dataid(name='ds7', wavelength=(0.4, 0.5, 0.6)),
         make_dataid(name='ds8', wavelength=(0.7, 0.8, 0.9)),
         make_dataid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),

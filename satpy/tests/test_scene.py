@@ -848,7 +848,10 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(r.load.call_count, 2)
         # most recent call should have only been ds1
-        r.load.assert_called_with(set([make_dataid(name='ds1')]))
+        r.load.assert_called_with(set([make_dataid(name='ds1',
+                                                   resolution=250,
+                                                   calibration='reflectance',
+                                                   modifiers=tuple())]))
         self.assertEqual(len(loaded_ids), 1)
 
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -864,7 +867,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds1'])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_dataid(name='ds1')
+        assert loaded_ids[0] == make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple())
 
     @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_ds1_load_twice(self, cri):
@@ -879,13 +882,16 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds1'])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0] == make_dataid(name='ds1')
+        assert loaded_ids[0] == make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple())
 
         with mock.patch.object(r, 'load') as m:
             scene.load(['ds1'])
             loaded_ids = list(scene.datasets.keys())
             assert len(loaded_ids) == 1
-            assert loaded_ids[0] == make_dataid(name='ds1')
+            assert loaded_ids[0] == make_dataid(name='ds1',
+                                                resolution=250,
+                                                calibration='reflectance',
+                                                modifiers=tuple())
             self.assertFalse(
                 m.called, "Reader.load was called again when loading something that's already loaded")
 
@@ -1499,7 +1505,7 @@ class TestSceneLoading(unittest.TestCase):
         scene = satpy.scene.Scene(filenames=['bla'],
                                   base_dir='bli',
                                   reader='fake_reader')
-        scene.load([make_dataid(name='ds1', modifiers=('mod1', 'mod2'))])
+        scene.load([make_dsq(name='ds1', modifiers=('mod1', 'mod2'))])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
         assert loaded_ids[0].modifiers == ('mod1', 'mod2')
@@ -1579,7 +1585,8 @@ class TestSceneLoading(unittest.TestCase):
             loaded_ids = list(scene.datasets.keys())
             self.assertEqual(len(loaded_ids), 2)
             # this is the unmodified ds1
-            self.assertIn(make_dataid(name='ds1'), loaded_ids)
+            self.assertIn(make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple()),
+                          loaded_ids)
             # m.assert_called_once_with(set([scene.dep_tree['ds1']]))
             m.assert_called_once_with(set())
         with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
@@ -1588,7 +1595,8 @@ class TestSceneLoading(unittest.TestCase):
             loaded_ids = list(scene.datasets.keys())
             self.assertEqual(len(loaded_ids), 2)
             # this is the unmodified ds1
-            self.assertIn(make_dataid(name='ds1'), loaded_ids)
+            self.assertIn(make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple()),
+                          loaded_ids)
             m.assert_called_once_with(set())
         # we should only generate the composite once
         self.assertEqual(comps['fake_sensor'][
@@ -1901,7 +1909,7 @@ class TestSceneResampling(unittest.TestCase):
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 2
         assert loaded_ids[0] == make_cid(name='comp19')
-        assert loaded_ids[1] == make_dataid(name='ds1')
+        assert loaded_ids[1] == make_dataid(name='ds1', resolution=250, calibration='reflectance', modifiers=tuple())
 
         loaded_ids = list(new_scene.datasets.keys())
         assert len(loaded_ids) == 2
