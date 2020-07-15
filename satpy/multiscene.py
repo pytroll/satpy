@@ -428,6 +428,7 @@ class MultiScene(object):
 
         Yet a single image frame from a dataset.
         """
+        enh_args = enh_args.copy()  # don't change caller's dict!
         if "decorate" in enh_args:
             enh_args["decorate"] = self._maybe_format_decoration(
                     ds, enh_args["decorate"])
