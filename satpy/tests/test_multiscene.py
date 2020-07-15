@@ -548,5 +548,5 @@ def test_save_mp4(smg, tmp_path):
                             "Test {start_time:%Y-%m-%d %H:%M} - "
                             "{end_time:%Y-%m-%d %H:%M}"}}]}})
     assert writer_mock.append_data.call_count == 2 + 2
-    assert ("2018-01" in smg.call_args_list[-1][1]
+    assert ("2018-01-02" in smg.call_args_list[-1][1]
             ["decorate"]["decorate"][0]["text"]["txt"])
