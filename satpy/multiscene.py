@@ -423,8 +423,8 @@ class MultiScene(object):
             return decorate
         deco_local = copy.deepcopy(decorate)
         for deco in deco_local["decorate"]:
-            if "txt" in deco:
-                deco["txt"] = deco["txt"].format(**ds.attrs)
+            if "text" in deco and "txt" in deco["text"]:
+                deco["text"]["txt"] = deco["text"]["txt"].format(**ds.attrs)
         return deco_local
 
     def _get_single_frame(self, ds, enhance, decorate, overlay, fill_value):
