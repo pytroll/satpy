@@ -185,7 +185,8 @@ applied based on the attributes of the dataset, for example:
 
     >>> mscn.save_animation(
     ...     "{name:s}_{start_time:%Y%m%d_%H%M}.mp4",
-    ...     decorate={
+    ...     enh_args={
+    ...     "decorate": {
     ...         "decorate": [
     ...             {"text": {
     ...                 "txt": "time {start_time:%Y-%m-%d %H:%M}",
@@ -197,7 +198,7 @@ applied based on the attributes of the dataset, for example:
     ...                 "height": 30,
     ...                 "bg": "black",
     ...                 "bg_opacity": 255,
-    ...                 "line": "white"}}]})
+    ...                 "line": "white"}}]}})
 
 If your file covers ABI MESO data for an hour for channel 2 lasting
 from 2020-04-12 01:00-01:59, then the output file will be called
