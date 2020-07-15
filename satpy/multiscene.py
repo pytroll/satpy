@@ -427,14 +427,15 @@ class MultiScene(object):
                 deco["text"]["txt"] = deco["text"]["txt"].format(**ds.attrs)
         return deco_local
 
-    def _get_single_frame(self, ds, enhance, decorate, overlay, fill_value):
+    def _get_single_frame(self, ds, enh_args, fill_value):
         """Get single frame from dataset.
 
         Yet a single image frame from a dataset.
         """
-        deco = self._maybe_format_decoration(ds, decorate)
-        img = get_enhanced_image(ds, enhance=enhance,
-                                 decorate=deco, overlay=overlay)
+        if "decorate" in enh_args:
+            enh_args["decorate"] = self._maybe_format_decoration(
+                    ds, enh_args["decorate"])
+        img = get_enhanced_image(ds, **enh_args)
         data, mode = img.finalize(fill_value=fill_value)
         if data.ndim == 3:
             # assume all other shapes are (y, x)
@@ -444,9 +445,10 @@ class MultiScene(object):
         return data
 
     def _get_animation_frames(self, all_datasets, shape, fill_value=None,
-                              ignore_missing=False, enhance=None, overlay=None,
-                              decorate=None):
+                              ignore_missing=False, enh_args=None):
         """Create enhanced image frames to save to a file."""
+        if enh_args is None:
+            enh_args = {}
         for idx, ds in enumerate(all_datasets):
             if ds is None and ignore_missing:
                 continue
@@ -455,8 +457,7 @@ class MultiScene(object):
                 data = da.zeros(shape, dtype=np.uint8, chunks=shape)
                 data = xr.DataArray(data)
             else:
-                data = self._get_single_frame(ds, enhance, decorate, overlay,
-                                              fill_value)
+                data = self._get_single_frame(ds, enh_args, fill_value)
             yield data.data
 
     def _get_client(self, client=True):
@@ -521,7 +522,7 @@ class MultiScene(object):
 
     def save_animation(self, filename, datasets=None, fps=10, fill_value=None,
                        batch_size=1, ignore_missing=False, client=True,
-                       enhance=None, overlay=None, decorate=None, **kwargs):
+                       enh_args=None, **kwargs):
         """Save series of Scenes to movie (MP4) or GIF formats.
 
         Supported formats are dependent on the `imageio` library and are
@@ -567,16 +568,14 @@ class MultiScene(object):
                 created and ``dask.distributed`` will not be used. If this
                 is a dask ``Client`` object then it will be used for
                 distributed computation.
-            enhance (bool or Enhancer): Optional, passed to
-                :func:`satpy.writers.get_enhanced_image`.
-            overlay (Mapping): Optional, passed to
-                :func:`~satpy.writers.get_enhanced_image`.
-            decorate (Mapping): Optional, passed to
-                :func:`~satpy.writers.get_enhanced_image`.  In any text added
+            enh_args (Mapping): Optional, arguments passed to
+                :func:`satpy.writers.get_enhanced_image`.  If this includes a
+                keyword "decorate", in any text added
                 to the image, string formatting will be applied based on
                 dataset attributes.  For example, passing
-                ``decorate={"decorate": [{"txt": "{start_time:%H:%M}"}]}``
-                will replace the decorated text accordingly.
+                ``enh_args={"decorate": {"decorate": [{"text": {"txt":
+                "{start_time:%H:%M}"}}]}`` will replace the decorated text
+                accordingly.
             kwargs: Additional keyword arguments to pass to
                    `imageio.get_writer`.
 
@@ -584,6 +583,8 @@ class MultiScene(object):
         if imageio is None:
             raise ImportError("Missing required 'imageio' library")
 
+        if enh_args is None:
+            enh_args = {}
         scene_gen = self._scene_gen
         first_scene = self.first_scene
         scenes = iter(self._scene_gen)
@@ -614,7 +615,7 @@ class MultiScene(object):
             this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
             data_to_write = self._get_animation_frames(
                     all_datasets, shape, this_fill, ignore_missing,
-                    enhance=enhance, overlay=overlay, decorate=decorate)
+                    enh_args)
 
             writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
             frames[dataset_id] = data_to_write
