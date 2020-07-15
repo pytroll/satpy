@@ -569,15 +569,14 @@ def test_save_mp4(smg, tmp_path):
     writer_mock = mock.MagicMock()
     with mock.patch('satpy.multiscene.imageio.get_writer') as get_writer:
         get_writer.return_value = writer_mock
-        # force order of datasets by specifying them
         mscn.save_animation(
                 fn, client=False,
-                decorate={
+                enh_args={"decorate": {
                     "decorate": [{
                         "text": {
                             "txt":
                             "Test {start_time:%Y-%m-%d %H:%M} - "
-                            "{end_time:%Y-%m-%d %H:%M}"}}]})
+                            "{end_time:%Y-%m-%d %H:%M}"}}]}})
     assert writer_mock.append_data.call_count == 2 + 2
-    assert ("2018-01-02" in smg.call_args_list[-1][1]
+    assert ("2018-01" in smg.call_args_list[-1][1]
             ["decorate"]["decorate"][0]["text"]["txt"])
