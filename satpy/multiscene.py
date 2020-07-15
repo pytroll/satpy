@@ -17,23 +17,19 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """MultiScene object to work with multiple timesteps of satellite data."""
 
-import logging
 import copy
-import numpy as np
-import dask.array as da
-import xarray as xr
-import pandas as pd
-from satpy.scene import Scene
-from satpy.writers import get_enhanced_image
-from satpy.dataset import combine_metadata
+import logging
+from queue import Queue
 from threading import Thread
 
-try:
-    # python 3
-    from queue import Queue
-except ImportError:
-    # python 2
-    from Queue import Queue
+import dask.array as da
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+from satpy.dataset import DataID, combine_metadata
+from satpy.scene import Scene
+from satpy.writers import get_enhanced_image
 
 try:
     import imageio
@@ -520,6 +516,53 @@ class MultiScene(object):
                 w = writers[frame_key]
                 w.append_data(product_frame.compute())
 
+    def _get_writers_and_frames(
+            self, filename, datasets, fill_value, ignore_missing,
+            enh_args, imio_args):
+        """Get writers and frames.
+
+        Helper function for save_animation.
+        """
+        scene_gen = self._scene_gen
+        writers = {}
+        frames = {}
+
+        scene_gen = self._scene_gen
+        first_scene = self.first_scene
+        scenes = iter(self._scene_gen)
+        info_scenes = [first_scene]
+        if 'end_time' in filename:
+            # if we need the last scene to generate the filename
+            # then compute all the scenes so we can figure it out
+            log.debug("Generating scenes to compute end_time for filename")
+            scenes = list(scenes)
+            info_scenes.append(scenes[-1])
+
+        available_ds = [first_scene.datasets.get(ds) for ds in first_scene.wishlist]
+        available_ds = [DataID.from_dataarray(ds) for ds in available_ds if ds is not None]
+        dataset_ids = datasets or available_ds
+
+        if not dataset_ids:
+            raise RuntimeError("No datasets found for saving (resampling may be needed to generate composites)")
+
+        writers = {}
+        frames = {}
+        for dataset_id in dataset_ids:
+            if not self.is_generator and not self._all_same_area([dataset_id]):
+                raise ValueError("Sub-scene datasets must all be on the same "
+                                 "area (see the 'resample' method).")
+
+            all_datasets = scene_gen[dataset_id]
+            info_datasets = [scn.get(dataset_id) for scn in info_scenes]
+            this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
+            data_to_write = self._get_animation_frames(
+                    all_datasets, shape, this_fill, ignore_missing, enh_args)
+
+            writer = imageio.get_writer(this_fn, **imio_args)
+            frames[dataset_id] = data_to_write
+            writers[dataset_id] = writer
+        return (writers, frames)
+
     def save_animation(self, filename, datasets=None, fps=10, fill_value=None,
                        batch_size=1, ignore_missing=False, client=True,
                        enh_args=None, **kwargs):
@@ -583,44 +626,9 @@ class MultiScene(object):
         if imageio is None:
             raise ImportError("Missing required 'imageio' library")
 
-        if enh_args is None:
-            enh_args = {}
-        scene_gen = self._scene_gen
-        first_scene = self.first_scene
-        scenes = iter(self._scene_gen)
-        info_scenes = [first_scene]
-        if 'end_time' in filename:
-            # if we need the last scene to generate the filename
-            # then compute all the scenes so we can figure it out
-            log.debug("Generating scenes to compute end_time for filename")
-            scenes = list(scenes)
-            info_scenes.append(scenes[-1])
-
-        available_ds = [first_scene.datasets.get(ds) for ds in first_scene.wishlist]
-        available_ds = [ds.attrs['_satpy_id'] for ds in available_ds if ds is not None]
-
-        dataset_ids = datasets or available_ds
-
-        if not dataset_ids:
-            raise RuntimeError("No datasets found for saving (resampling may be needed to generate composites)")
-
-        writers = {}
-        frames = {}
-        for dataset_id in dataset_ids:
-            if not self.is_generator and not self._all_same_area([dataset_id]):
-                raise ValueError("Sub-scene datasets must all be on the same "
-                                 "area (see the 'resample' method).")
-
-            all_datasets = scene_gen[dataset_id]
-            info_datasets = [scn.get(dataset_id) for scn in info_scenes]
-            this_fn, shape, this_fill = self._get_animation_info(info_datasets, filename, fill_value=fill_value)
-            data_to_write = self._get_animation_frames(
-                    all_datasets, shape, this_fill, ignore_missing,
-                    enh_args)
-
-            writer = imageio.get_writer(this_fn, fps=fps, **kwargs)
-            frames[dataset_id] = data_to_write
-            writers[dataset_id] = writer
+        (writers, frames) = self._get_writers_and_frames(
+                filename, datasets, fill_value, ignore_missing,
+                enh_args, imio_args={"fps": fps, **kwargs})
 
         client = self._get_client(client=client)
         # get an ordered list of frames
