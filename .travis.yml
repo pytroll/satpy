@@ -62,7 +62,6 @@ install:
         git+https://github.com/pydata/xarray;
       fi
     - pip install --no-deps -e .
-    - conda list
 script:
 - pytest --cov=satpy satpy/tests
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
