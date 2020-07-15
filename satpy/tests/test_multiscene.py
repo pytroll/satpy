@@ -547,10 +547,4 @@ def test_save_mp4(smg, tmp_path):
                         "txt":
                         "Test {start_time:%Y-%m-%d %H:%M} - {end_time:%Y-%m-%d %H:%M}"}]})
     assert writer_mock.append_data.call_count == 2 + 2
-    smg.assert_called_with(
-                scenes[-1]["ds1"], enhance=None,
-                decorate={
-                    "decorate": [{
-                        "txt":
-                        "Test 2018-01-02 00:00 - 2018-01-02 12:00"}]},
-                    overlay=None)
+    assert "2018-01-02" in smg.call_args_list[-1][1]["decorate"]["decorate"][0]["txt"]
