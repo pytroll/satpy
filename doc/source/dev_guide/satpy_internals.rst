@@ -144,5 +144,5 @@ Creating DataID for tests
 Sometimes, it is useful to create `DataID` instances for testing purposes. For these cases, the `satpy.tests.utils` module
 now has a `make_dsid` function that can be used just for this::
 
-  from satpy.tests.utils import make_dsid
-  did = make_dsid(name='camembert', modifiers=('runny',))
+  from satpy.tests.utils import make_dataid
+  did = make_dataid(name='camembert', modifiers=('runny',))
