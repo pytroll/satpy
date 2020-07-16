@@ -532,7 +532,6 @@ class MultiScene(object):
         writers = {}
         frames = {}
 
-        scene_gen = self._scene_gen
         first_scene = self.first_scene
         scenes = iter(self._scene_gen)
         info_scenes = [first_scene]
