@@ -357,12 +357,12 @@ class CustomScheduler(object):
         return dask.get(dsk, keys, **kwargs)
 
 
-def make_a_fake_scene(content_dict, daskify=False, area=True,
+def make_fake_scene(content_dict, daskify=False, area=True,
                       common_attrs=None):
-    """Make a fake Scene.
+    """Create a fake Scene.
 
-    Make a fake Scene from fake data.  Data are provided in the
-    ``content_dict`` argument.  In ``content_dict``, keys should be
+    Create a fake Scene object from fake data.  Data are provided in
+    the ``content_dict`` argument.  In ``content_dict``, keys should be
     strings or DatasetID/DataID, and values may be either numpy.ndarray
     or xarray.DataArray, in either case with exactly two dimensions.
     The function will convert each of the numpy.ndarray objects into
@@ -435,10 +435,10 @@ def make_a_fake_scene(content_dict, daskify=False, area=True,
     return sc
 
 
-def test_make_a_scene():
-    """Test the make_a_fake_scene utility.
+def test_make_fake_scene():
+    """Test the make_fake_scene utility.
 
-    Although the make_a_fake_scene utility is for internal testing
+    Although the make_fake_scene utility is for internal testing
     purposes, it has grown sufficiently complex that it needs its own
     testing.
     """
@@ -446,13 +446,13 @@ def test_make_a_scene():
     import dask.array as da
     import xarray as xr
 
-    assert make_a_fake_scene({}).keys() == []
-    sc = make_a_fake_scene({
+    assert make_fake_scene({}).keys() == []
+    sc = make_fake_scene({
         "six": np.arange(25).reshape(5, 5)})
     assert len(sc.keys()) == 1
     assert sc.keys().pop().name == "six"
     assert sc["six"].attrs["area"].shape == (5, 5)
-    sc = make_a_fake_scene({
+    sc = make_fake_scene({
         "seven": np.arange(3*7).reshape(3, 7),
         "eight": np.arange(3*8).reshape(3, 8)},
         daskify=True,
@@ -462,7 +462,7 @@ def test_make_a_scene():
     assert (sc["seven"].attrs["repetency"] == sc["eight"].attrs["repetency"] ==
             "fourteen hundred per centimetre")
     assert isinstance(sc["seven"].data, da.Array)
-    sc = make_a_fake_scene({
+    sc = make_fake_scene({
         "nine": xr.DataArray(
             np.arange(2*9).reshape(2, 9),
             dims=("y", "x"),
