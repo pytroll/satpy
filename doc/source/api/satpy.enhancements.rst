@@ -12,6 +12,14 @@ satpy.enhancements.abi module
    :undoc-members:
    :show-inheritance:
 
+satpy.enhancements.mimic module
+-------------------------------
+
+.. automodule:: satpy.enhancements.mimic
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 satpy.enhancements.viirs module
 -------------------------------
 
