@@ -525,8 +525,6 @@ class MultiScene(object):
         Helper function for save_animation.
         """
         scene_gen = self._scene_gen
-        writers = {}
-        frames = {}
 
         first_scene = self.first_scene
         scenes = iter(self._scene_gen)
