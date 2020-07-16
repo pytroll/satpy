@@ -408,7 +408,7 @@ class MultiScene(object):
         return this_fn, shape, fill_value
 
     @staticmethod
-    def _maybe_format_decoration(ds, decorate):
+    def _format_decoration(ds, decorate):
         """Maybe format decoration.
 
         If the nested dictionary in decorate (argument to ``save_animation``)
@@ -430,7 +430,7 @@ class MultiScene(object):
         """
         enh_args = enh_args.copy()  # don't change caller's dict!
         if "decorate" in enh_args:
-            enh_args["decorate"] = self._maybe_format_decoration(
+            enh_args["decorate"] = self._format_decoration(
                     ds, enh_args["decorate"])
         img = get_enhanced_image(ds, **enh_args)
         data, mode = img.finalize(fill_value=fill_value)
