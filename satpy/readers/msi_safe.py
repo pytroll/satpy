@@ -126,7 +126,10 @@ class SAFEMSIMDXML(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the dataset."""
-        from pyproj import CRS
+        try:
+            from pyproj import CRS
+        except ImportError:
+            CRS = None
         geocoding = self.root.find('.//Tile_Geocoding')
         epsg = geocoding.find('HORIZONTAL_CS_CODE').text
         rows = int(geocoding.find('Size[@resolution="' + str(dsid.resolution) + '"]/NROWS').text)
@@ -137,11 +140,15 @@ class SAFEMSIMDXML(BaseFileHandler):
         xdim = float(geoposition.find('XDIM').text)
         ydim = float(geoposition.find('YDIM').text)
         area_extent = (ulx, uly + rows * ydim, ulx + cols * xdim, uly)
+        if CRS is not None:
+            proj = CRS(epsg)
+        else:
+            proj = {'init': epsg}
         area = geometry.AreaDefinition(
                     self.tile,
                     "On-the-fly area",
                     self.tile,
-                    CRS(epsg),
+                    proj,
                     cols,
                     rows,
                     area_extent)
