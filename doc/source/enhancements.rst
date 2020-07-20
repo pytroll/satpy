@@ -8,11 +8,12 @@ Built-in enhancement methods
 stretch
 -------
 
-The most basic operation is to stretch the image so that the data fits
-to the output format.  There are many different ways to stretch the
-data, which are configured by giving them in `kwargs` dictionary, like
-in the example above.  The default, if nothing else is defined, is to
-apply a linear stretch.  For more details, see below.
+The most basic operation is to stretch the image so that the data fits to
+the output format.  There are many different ways to stretch the data,
+which are configured by giving them in `kwargs` dictionary, like in the
+example above.  The default, if nothing else is defined, is to apply
+a linear stretch.  For more details, see
+:ref:`enhancing the images <enhancing-the-images>`.
 
 linear
 ******
