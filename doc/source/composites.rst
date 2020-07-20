@@ -410,6 +410,8 @@ image) for both of the static images::
           min_stretch: [0, 0, 0]
           max_stretch: [255, 255, 255]
 
+.. _enhancing-the-images:
+
 Enhancing the images
 ====================
 
