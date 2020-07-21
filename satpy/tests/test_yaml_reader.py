@@ -244,7 +244,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                         filter_parameters={
                                             'start_time': datetime(2000, 1, 1),
                                             'end_time': datetime(2000, 1, 2),
-        })
+                                        })
 
     def test_all_data_ids(self):
         """Check that all datasets ids are returned."""
@@ -335,10 +335,12 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         def get_start_time():
             return self.reader.start_time
+
         self.assertRaises(RuntimeError, get_start_time)
 
         def get_end_time():
             return self.reader.end_time
+
         self.assertRaises(RuntimeError, get_end_time)
 
         fh0 = FakeFH(datetime(1999, 12, 30, 0, 0),
@@ -396,10 +398,11 @@ class TestFileFileYAMLReader(unittest.TestCase):
         class Silly(LocalFileSystem):
             def glob(self, pattern):
                 return ["/grocery/apricot.nc", "/grocery/aubergine.nc"]
+
         res = self.reader.select_files_from_directory(dpath, fs=Silly())
         self.assertEqual(
-                res,
-                {"/grocery/apricot.nc", "/grocery/aubergine.nc"})
+            res,
+            {"/grocery/apricot.nc", "/grocery/aubergine.nc"})
 
     def test_supports_sensor(self):
         """Check supports_sensor."""
@@ -582,13 +585,179 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                         self.assertEqual(resol, ds_id.resolution)
 
 
+class TestGEOFlippableFileYAMLReader(unittest.TestCase):
+    """Test GEOFlippableFileYAMLReader."""
+
+    def setUp(self):
+        """Add setup for GEOFlippableFileYAMLReader."""
+        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+
+        GEOFlippableFileYAMLReader.__bases__ = (MagicMock,)
+        # use this hack (adapted from TestGEOSegmentYAMLReader.test_get_expected_segments) to mock the super class
+        # and later control its return value. Store it into a self for easy access.
+        self.ldwa = MagicMock()
+        GEOFlippableFileYAMLReader.__bases__[0]._load_dataset_with_area = self.ldwa
+
+        self.reader = GEOFlippableFileYAMLReader()
+
+    def tearDown(self):
+        """Add tearDown for GEOFlippableFileYAMLReader."""
+        from satpy.readers.yaml_reader import GEOFlippableFileYAMLReader
+        # undo the hacky-ness
+        del GEOFlippableFileYAMLReader.__bases__[0]._load_dataset_with_area
+
+    def test_load_dataset_with_area_for_single_areas(self):
+        """Test _load_dataset_with_area() for single area definitions."""
+        import xarray as xr
+        import numpy as np
+        from pyresample.geometry import AreaDefinition
+
+        dsid = MagicMock()
+        coords = MagicMock()
+
+        # create a dummy upright xarray
+        original_area_extent = (-1500, -1000, 1500, 1000)
+        original_array = np.arange(6).reshape((2, 3))
+
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            {'proj': 'geos',
+             'h': 35785831,
+             'type': 'crs'},
+            3,
+            2,
+            original_area_extent,
+        )
+
+        dummy_ds_xr = xr.DataArray(original_array,
+                                   dims=('y', 'x'),
+                                   attrs={'area': area_def})
+        # assign the dummy xr as return for the super _load_dataset_with_area method
+        self.ldwa.return_value = dummy_ds_xr
+
+        # check no input, nothing should change
+        res = self.reader._load_dataset_with_area(dsid, coords)
+        np.testing.assert_equal(res.values, original_array)
+        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+
+        # check wrong input
+        with self.assertRaises(ValueError):
+            res = self.reader._load_dataset_with_area(dsid, coords, 'wronginput')
+
+        # check native orientation, nothing should change
+        res = self.reader._load_dataset_with_area(dsid, coords, 'native')
+        np.testing.assert_equal(res.values, original_array)
+        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+
+        # check upright orientation, nothing should change since area is already upright
+        res = self.reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, original_array)
+        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+
+        # check that left-right image is flipped correctly
+        dummy_ds_xr.attrs['area'].area_extent = (1500, -1000, -1500, 1000)
+        self.ldwa.return_value = dummy_ds_xr.copy()
+        res = self.reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, np.fliplr(original_array))
+        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+
+        # check that upside down image is flipped correctly
+        dummy_ds_xr.attrs['area'].area_extent = (-1500, 1000, 1500, -1000)
+        self.ldwa.return_value = dummy_ds_xr.copy()
+        res = self.reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, np.flipud(original_array))
+        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+
+        # check different projection than geos
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            {'proj': 'lcc',
+             'lat_1': 25.0,
+             'type': 'crs'},
+            3,
+            2,
+            original_area_extent,
+        )
+
+        dummy_ds_xr = xr.DataArray(original_array,
+                                   dims=('y', 'x'),
+                                   attrs={'area': area_def})
+        self.ldwa.return_value = dummy_ds_xr
+        res = self.reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, original_array)
+        np.testing.assert_equal(res.attrs['area'].area_extent, original_area_extent)
+
+    def test_load_dataset_with_area_for_stacked_areas(self):
+        """Test _load_dataset_with_area() for stacked area definitions."""
+        import xarray as xr
+        import numpy as np
+        from pyresample.geometry import AreaDefinition, StackedAreaDefinition
+
+        dsid = MagicMock()
+        coords = MagicMock()
+
+        # create a dummy upright xarray
+        original_area_extents = [(-1500, -1000, 1500, 1000), (3000, 5000, 7000, 8000)]
+        original_array = np.arange(12).reshape((4, 3))
+
+        area_def0 = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            {'proj': 'geos',
+             'h': 35785831,
+             'type': 'crs'},
+            3,
+            2,
+            original_area_extents[0],
+        )
+        area_def1 = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            {'proj': 'geos',
+             'h': 35785831,
+             'type': 'crs'},
+            3,
+            2,
+            original_area_extents[1],
+        )
+
+        dummy_ds_xr = xr.DataArray(original_array,
+                                   dims=('y', 'x'),
+                                   attrs={'area': StackedAreaDefinition(area_def0, area_def1)})
+
+        # check that left-right image is flipped correctly
+        dummy_ds_xr.attrs['area'].defs[0].area_extent = (1500, -1000, -1500, 1000)
+        dummy_ds_xr.attrs['area'].defs[1].area_extent = (7000, 5000, 3000, 8000)
+        self.ldwa.return_value = dummy_ds_xr.copy()
+        res = self.reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, np.fliplr(original_array))
+        np.testing.assert_equal(res.attrs['area'].defs[0].area_extent, original_area_extents[0])
+        np.testing.assert_equal(res.attrs['area'].defs[1].area_extent, original_area_extents[1])
+
+        # check that upside down image is flipped correctly
+        dummy_ds_xr.attrs['area'].defs[0].area_extent = (-1500, 1000, 1500, -1000)
+        dummy_ds_xr.attrs['area'].defs[1].area_extent = (3000, 8000, 7000, 5000)
+        self.ldwa.return_value = dummy_ds_xr.copy()
+        res = self.reader._load_dataset_with_area(dsid, coords, 'NE')
+        np.testing.assert_equal(res.values, np.flipud(original_array))
+        # note that the order of the stacked areadefs is flipped here, as expected
+        np.testing.assert_equal(res.attrs['area'].defs[1].area_extent, original_area_extents[0])
+        np.testing.assert_equal(res.attrs['area'].defs[0].area_extent, original_area_extents[1])
+
+
 class TestGEOSegmentYAMLReader(unittest.TestCase):
     """Test GEOSegmentYAMLReader."""
 
     def setUp(self):
         """Add setup for GEOSegmentYAMLReader."""
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
-        GEOSegmentYAMLReader.__bases__ = (MagicMock, )
+        GEOSegmentYAMLReader.__bases__ = (MagicMock,)
         self.reader = GEOSegmentYAMLReader()
 
     def test_get_expected_segments(self):
