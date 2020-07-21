@@ -900,24 +900,29 @@ def _set_orientation(dataset, upper_right_corner):
                             By default all currently loaded datasets are flipped.
         upper_right_corner (str): Direction of the upper right corner of the image.
                                 Possible options are 'NW', 'NE', 'SW', 'SE', or 'native'.
-                                The common upright image orientation corresponds to 'NW'.
+                                The common upright image orientation corresponds to 'NE'.
                                 Defaults to 'native' (no flipping is applied).
 
     """
     # do some checks and early returns
     if upper_right_corner == 'native':
-        logger.debug("Requested Dataset orientation is 'native'. No flipping is applied.")
+        logger.debug("Requested Dataset orientation is 'native' (default). No flipping is applied.")
         return dataset
 
     if upper_right_corner not in ['NW', 'NE', 'SE', 'SW', 'native']:
-        raise ValueError("Origin corner not recognized. Should be 'NW', 'NE', 'SW', 'SE' or 'native.")
+        raise ValueError("Origin corner not recognized. Should be 'NW', 'NE', 'SW', 'SE' or 'native'.")
 
     if 'area' not in dataset.attrs:
         logger.info("Dataset is missing the area attribute and cannot be flipped.")
         return dataset
 
-    if dataset.attrs['area'].crs.coordinate_operation.method_name not in ['Geostationary Satellite (Sweep Y)',
-                                                                          'Geostationary Satellite (Sweep X)']:
+    if isinstance(dataset.attrs['area'], StackedAreaDefinition):
+        # assumes all areadefs in a Stacked areadef have the same projection
+        projection_type = dataset.attrs['area'].defs[0].crs.coordinate_operation.method_name
+    else:
+        projection_type = dataset.attrs['area'].crs.coordinate_operation.method_name
+
+    if projection_type not in ['Geostationary Satellite (Sweep Y)', 'Geostationary Satellite (Sweep X)']:
         logger.info("Dataset is not in a know geostationary projection and cannot be flipped.")
         return dataset
 
@@ -932,7 +937,7 @@ def _set_orientation(dataset, upper_right_corner):
     # get the current dataset orientation
     if isinstance(dataset.attrs['area'], StackedAreaDefinition):
         # array of area extents if the Area is a StackedAreaDefinition
-        ds_area_extents = np.asarray([list(adef.area_extent) for adef in dataset.attrs['area'].defs])
+        ds_area_extents = np.asarray([list(area_def.area_extent) for area_def in dataset.attrs['area'].defs])
     else:
         # array with a single item if Area is in one piece
         ds_area_extents = np.asarray([list(dataset.attrs['area'].area_extent)])
@@ -956,8 +961,7 @@ def _set_orientation(dataset, upper_right_corner):
         dataset.data = dataset.data[:, ::-1]
         ds_area_extents[:, [0, 2]] = ds_area_extents[:, [2, 0]]
 
-    # update the dataset area extent
-    # keeping the same id, description and proj_id, but should probably be changed to reflect the flipping
+    # update the dataset area extent, keeping the same id, description and proj_id
     if len(ds_area_extents) == 1:
         new_area_def = dataset.attrs['area'].copy(area_extent=ds_area_extents[0])
     else:
@@ -968,6 +972,7 @@ def _set_orientation(dataset, upper_right_corner):
         # flip the order of stacking if the area is upside down
         if target_northup != current_northup:
             new_area_defs_to_stack = new_area_defs_to_stack[::-1]
+
         new_area_def = StackedAreaDefinition(*new_area_defs_to_stack)
 
     dataset.attrs['area'] = new_area_def
