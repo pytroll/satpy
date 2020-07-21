@@ -57,6 +57,7 @@ def _get_invalid_info(granule_data):
     VDNE: value does not exist / processing algorithm did not execute
     SOUB: scaled out-of-bounds / solution not within allowed range
     """
+    msg = None
     if issubclass(granule_data.dtype.type, np.integer):
         msg = ("na:" + str((granule_data == 65535).sum()) +
                " miss:" + str((granule_data == 65534).sum()) +
@@ -319,7 +320,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         if variable.size != scans.size:
             for gscans in scans.values:
                 data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + gscans * scan_size)))
-                start_scan += scan_size * 48
+                start_scan += gscans * scan_size
             return xr.concat(data_chunks, 'y')
         else:
             return self.expand_single_values(variable, scans)
