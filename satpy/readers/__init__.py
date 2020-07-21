@@ -379,7 +379,7 @@ class DatasetDict(dict):
             return super(DatasetDict, self).__delitem__(key)
 
 
-def group_files(files_to_sort, reader=None, time_threshold=10,
+def group_files(files_to_sort, *, reader, time_threshold=10,
                 group_keys=None, ppp_config_dir=None, reader_kwargs=None):
     """Group series of files by file pattern information.
 
@@ -421,9 +421,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
     """
     # FUTURE: Find the best reader for each filename using `find_files_and_readers`
-    if reader is None:
-        raise ValueError("'reader' keyword argument is required.")
-    elif not isinstance(reader, (list, tuple)):
+    if not isinstance(reader, (list, tuple)):
         reader = [reader]
 
     # FUTURE: Handle multiple readers
