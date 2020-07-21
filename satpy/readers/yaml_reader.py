@@ -793,7 +793,7 @@ class FileYAMLReader(AbstractYAMLReader):
             ds = add_crs_xy_coords(ds, area)
         return ds
 
-    def _load_ancillary_variables(self, datasets):
+    def _load_ancillary_variables(self, datasets, **kwargs):
         """Load the ancillary variables of `datasets`."""
         all_av_ids = set()
         for dataset in datasets.values():
@@ -813,7 +813,7 @@ class FileYAMLReader(AbstractYAMLReader):
         if not all_av_ids:
             return
         if loadable_av_ids:
-            self.load(loadable_av_ids, previous_datasets=datasets)
+            self.load(loadable_av_ids, previous_datasets=datasets, **kwargs)
 
         for dataset in datasets.values():
             new_vars = []
@@ -878,7 +878,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 all_datasets[dsid] = ds
                 if dsid in dsids:
                     datasets[dsid] = ds
-        self._load_ancillary_variables(all_datasets)
+        self._load_ancillary_variables(all_datasets, **kwargs)
 
         return datasets
 
