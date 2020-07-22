@@ -142,13 +142,23 @@ class TestMultiScene(unittest.TestCase):
         ]
         with mock.patch('satpy.multiscene.Scene') as scn_mock:
             mscn = MultiScene.from_files(
+                    input_files_abi,
+                    reader=('abi_l1b'))
+            assert len(mscn.scenes) == 6
+            calls = [mock.call(
+                filenames={'abi_l1b': [in_file_abi]})
+                for in_file_abi in input_files_abi]
+            scn_mock.assert_has_calls(calls)
+
+            scn_mock.reset_mock()
+            mscn = MultiScene.from_files(
                     input_files_abi + input_files_glm,
                     reader=('abi_l1b', "glm_l2"))
             assert len(mscn.scenes) == 6
             calls = [mock.call(
                 filenames={'abi_l1b': [in_file_abi], 'glm_l2': [in_file_glm]})
-                for (in_file_abi, in_file_glm) in zip(input_files_abi,
-                    input_files_glm)]
+                for (in_file_abi, in_file_glm) in
+                zip(input_files_abi, input_files_glm)]
             scn_mock.assert_has_calls(calls)
 
     def test_group(self):
