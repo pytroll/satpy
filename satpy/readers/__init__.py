@@ -407,7 +407,9 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
             the first key in ``group_keys``. Otherwise, there is a good chance
             that files will not be grouped properly (datetimes being barely
             unequal). Defaults to a reader's ``group_keys`` configuration (set
-            in YAML), otherwise ``('start_time',)``.
+            in YAML), otherwise ``('start_time',)``.  When passing multiple
+            readers, passing group_keys is strongly recommended as the
+            behaviour without doing so is undefined.
         ppp_config_dir (str): Root usser configuration directory for Satpy.
             This will be deprecated in the future, but is here for consistency
             with other Satpy features.
