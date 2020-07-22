@@ -133,12 +133,14 @@ class TestMultiScene(unittest.TestCase):
             "OR_ABI-L1b-RadC-M3C01_G16_s20171171527203_e20171171529576_c20171171530017.nc",
             ]
         input_files_glm = [
-            "OR_GLM-L2-GLMC-M3_G16_s20171171502203_e20171171504576_c20171171505018.nc",
-            "OR_GLM-L2-GLMC-M3_G16_s20171171507203_e20171171509576_c20171171510018.nc",
-            "OR_GLM-L2-GLMC-M3_G16_s20171171512203_e20171171514576_c20171171515017.nc",
-            "OR_GLM-L2-GLMC-M3_G16_s20171171517203_e20171171519577_c20171171520019.nc",
-            "OR_GLM-L2-GLMC-M3_G16_s20171171522203_e20171171524576_c20171171525020.nc",
-            "OR_GLM-L2-GLMC-M3_G16_s20171171527203_e20171171529576_c20171171530017.nc",
+            "OR_GLM-L2-GLMC-M3_G16_s20171171500000_e20171171501000_c20380190314080.nc",
+            "OR_GLM-L2-GLMC-M3_G16_s20171171501000_e20171171502000_c20380190314080.nc",
+            "OR_GLM-L2-GLMC-M3_G16_s20171171502000_e20171171503000_c20380190314080.nc",
+            "OR_GLM-L2-GLMC-M3_G16_s20171171503000_e20171171504000_c20380190314080.nc",
+            "OR_GLM-L2-GLMC-M3_G16_s20171171504000_e20171171505000_c20380190314080.nc",
+            "OR_GLM-L2-GLMC-M3_G16_s20171171505000_e20171171506000_c20380190314080.nc",
+            "OR_GLM-L2-GLMC-M3_G16_s20171171506000_e20171171507000_c20380190314080.nc",
+            "OR_GLM-L2-GLMC-M3_G16_s20171171507000_e20171171508000_c20380190314080.nc",
         ]
         with mock.patch('satpy.multiscene.Scene') as scn_mock:
             mscn = MultiScene.from_files(
@@ -153,13 +155,25 @@ class TestMultiScene(unittest.TestCase):
             scn_mock.reset_mock()
             mscn = MultiScene.from_files(
                     input_files_abi + input_files_glm,
-                    reader=('abi_l1b', "glm_l2"))
-            assert len(mscn.scenes) == 6
+                    reader=('abi_l1b', "glm_l2"),
+                    group_keys=["start_time"],
+                    ensure_all_readers=True,
+                    time_threshold=30)
+            assert len(mscn.scenes) == 2
             calls = [mock.call(
                 filenames={'abi_l1b': [in_file_abi], 'glm_l2': [in_file_glm]})
                 for (in_file_abi, in_file_glm) in
-                zip(input_files_abi, input_files_glm)]
+                zip(input_files_abi[0:2],
+                    [input_files_glm[2]] + [input_files_glm[7]])]
             scn_mock.assert_has_calls(calls)
+            scn_mock.reset_mock()
+            mscn = MultiScene.from_files(
+                    input_files_abi + input_files_glm,
+                    reader=('abi_l1b', "glm_l2"),
+                    group_keys=["start_time"],
+                    ensure_all_readers=False,
+                    time_threshold=30)
+            assert len(mscn.scenes) == 12
 
     def test_group(self):
         from satpy import Scene, MultiScene, DatasetID
