@@ -80,8 +80,12 @@ loading datasets::
 For geostationary products, where the imagery is stored in the files in a flipped orientation
 (e.g. MSG SEVIRI L1.5 data which is flipped upside-down and left-right), the keyword argument
 ``upper_right_corner`` can be passed into the load call to automatically flip the datasets to the
-wished orientation. By default, no flipping is applied (corresponding to ``upper_right_corner='native'``) and
-the data is delivered in the original format. To get the data in the common upright orientation, load the datasets using e.g.:
+wished orientation. Accepted argument values are ``'NE'``, ``'NW'``, ``'SE'``, ``'SW'``,
+and ``'native'``.
+By default, no flipping is applied (corresponding to ``upper_right_corner='native'``) and
+the data is delivered in the original format. To get the data in the common upright orientation,
+load the datasets using e.g.::
+
     >>> scn.load(['VIS008'], upper_right_corner='NE')
 
 .. note::
