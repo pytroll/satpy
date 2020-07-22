@@ -21,6 +21,8 @@ import os
 import unittest
 from unittest import mock
 
+import pytest
+
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
 
@@ -648,6 +650,9 @@ class TestGroupFiles(unittest.TestCase):
             "SVI03_npp_d20180511_t1940321_e1941563_b33872_c20190612032009230105_noac_ops.h5",
             "SVI03_npp_d20180511_t1941575_e1943217_b33872_c20190612032009230105_noac_ops.h5",
         ]
+        self.unknown_files = [
+                "ʌsɔ˙pıʃɐʌuı",
+                "no such"]
 
     def test_no_reader(self):
         """Test that reader does not need to be provided."""
@@ -656,6 +661,12 @@ class TestGroupFiles(unittest.TestCase):
         assert group_files([]) == []
         groups = group_files(self.g16_files)
         self.assertEqual(6, len(groups))
+
+    def test_unknown_files(self):
+        """Test that error is raised on unknown files."""
+        from satpy.readers import group_files
+        with pytest.raises(ValueError):
+            group_files(self.unknown_files, "abi_l1b")
 
     def test_bad_reader(self):
         """Test that reader not existing causes an error."""
@@ -768,8 +779,17 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(5 * 3, len(groups[1]['viirs_sdr']))
 
     def test_multi_readers(self):
+        """Test passing multiple readers."""
         from satpy.readers import group_files
         groups = group_files(
                 self.g16_files + self.noaa20_files,
                 reader=("abi_l1b", "viirs_sdr"))
         assert len(groups) == 11
+        # test that they're grouped together when time threshold is huge and
+        # only time is used to group
+        groups = group_files(
+                self.g16_files + self.noaa20_files,
+                reader=("abi_l1b", "viirs_sdr"),
+                group_keys=("start_time"),
+                time_threshold=10**9)
+        assert len(groups) == 1
