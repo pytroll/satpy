@@ -174,18 +174,29 @@ class MultiScene(object):
         return self._scene_gen.first
 
     @classmethod
-    def from_files(cls, files_to_sort, reader=None, **kwargs):
+    def from_files(cls, files_to_sort, reader=None,
+                   ensure_all_readers=False, **kwargs):
         """Create multiple Scene objects from multiple files.
 
+        Args:
+            files_to_sort (Collection[str]): files to read
+            reader (str or Collection[str]): reader or readers to use
+            ensure_all_readers (bool): If True, limit to scenes where all
+                readers have at least one file.  If False (default), include
+                all scenes where at least one reader has at least one file.
+
         This uses the :func:`satpy.readers.group_files` function to group
-        files. See this function for more details on possible keyword
-        arguments.
+        files. See this function for more details on additional possible
+        keyword arguments.  In particular, it is strongly recommended to pass
+        `"group_keys"` when using multiple instruments.
 
         .. versionadded:: 0.12
 
         """
         from satpy.readers import group_files
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
+        if ensure_all_readers:
+            file_groups = [fg for fg in file_groups if all(fg.values())]
         scenes = (Scene(filenames=fg) for fg in file_groups)
         return cls(scenes)
 
