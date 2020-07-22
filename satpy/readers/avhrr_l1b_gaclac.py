@@ -56,8 +56,7 @@ class GACLACFile(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  start_line=None, end_line=None, strip_invalid_coords=True,
-                 interpolate_coords=True, adjust_clock_drift=True,
-                 tle_dir=None, tle_name=None, tle_thresh=7):
+                 interpolate_coords=True, **reader_kwargs):
         """Init the file handler.
 
         Args:
@@ -67,12 +66,8 @@ class GACLACFile(BaseFileHandler):
                 the beginning/end of the orbit
             interpolate_coords: Interpolate coordinates from every eighth pixel
                 to all pixels.
-            adjust_clock_drift: Adjust the geolocation to compensate for the
-                clock error (POD satellites only).
-            tle_dir: Directory holding Two-Line-Element (TLE) files
-            tle_name: Filename pattern of TLE files.
-            tle_thresh: Maximum number of days between observation and nearest
-                TLE
+            reader_kwargs: More keyword arguments to be passed to pygac.Reader.
+                See the pygac documentation for available options.
 
         """
         super(GACLACFile, self).__init__(
@@ -82,18 +77,13 @@ class GACLACFile(BaseFileHandler):
         self.end_line = end_line
         self.strip_invalid_coords = strip_invalid_coords
         self.interpolate_coords = interpolate_coords
-        self.adjust_clock_drift = adjust_clock_drift
-        self.tle_dir = tle_dir
-        self.tle_name = tle_name
-        self.tle_thresh = tle_thresh
+        self.reader_kwargs = reader_kwargs
         self.creation_site = filename_info.get('creation_site')
         self.reader = None
         self.calib_channels = None
         self.counts = None
         self.angles = None
         self.qual_flags = None
-        self.midnight_scanline = None
-        self.missing_scanlines = None
         self.first_valid_lat = None
         self.last_valid_lat = None
         self._start_time = filename_info['start_time']
@@ -126,20 +116,20 @@ class GACLACFile(BaseFileHandler):
             self.sensor = 'avhrr'
         self.filename_info = filename_info
 
-    def get_dataset(self, key, info):
-        """Get the dataset."""
+    def read_raw_data(self):
+        """Create a pygac reader and read raw data from the file."""
         if self.reader is None:
             self.reader = self.reader_class(
                 interpolate_coords=self.interpolate_coords,
-                adjust_clock_drift=self.adjust_clock_drift,
-                tle_dir=self.tle_dir,
-                tle_name=self.tle_name,
-                tle_thresh=self.tle_thresh,
-                creation_site=self.creation_site)
+                creation_site=self.creation_site,
+                **self.reader_kwargs)
             self.reader.read(self.filename)
-        if np.all(self.reader.mask):
-            raise ValueError('All data is masked out')
+            if np.all(self.reader.mask):
+                raise ValueError('All data is masked out')
 
+    def get_dataset(self, key, info):
+        """Get the dataset."""
+        self.read_raw_data()
         if key.name in ['latitude', 'longitude']:
             # Lats/lons are buffered by the reader
             if key.name == 'latitude':
@@ -179,8 +169,6 @@ class GACLACFile(BaseFileHandler):
         self._end_time = times[-1].astype(datetime)
 
         # Select user-defined scanlines and/or strip invalid coordinates
-        self.midnight_scanline = self.reader.meta_data['midnight_scanline']
-        self.missing_scanlines = self.reader.meta_data['missing_scanlines']
         if (self.start_line is not None or self.end_line is not None
                 or self.strip_invalid_coords):
             data, times = self.slice(data=data, times=times)
@@ -205,7 +193,7 @@ class GACLACFile(BaseFileHandler):
     def slice(self, data, times):
         """Select user-defined scanlines and/or strip invalid coordinates.
 
-        Furthermore, update scanline timestamps and auxiliary information.
+        Furthermore, update scanline timestamps.
 
         Args:
             data: Data to be sliced
@@ -214,22 +202,17 @@ class GACLACFile(BaseFileHandler):
             Sliced data and timestamps
 
         """
-        # Slice data, update midnight scanline & list of missing scanlines
-        sliced, self.midnight_scanline, miss_lines = self._slice(data)
-        self.missing_scanlines = miss_lines.astype(int)
-
-        # Slice timestamps, update start/end time
-        times, _, _ = self._slice(times)
+        sliced = self._slice(data)
+        times = self._slice(times)
         self._start_time = times[0].astype(datetime)
         self._end_time = times[-1].astype(datetime)
-
         return sliced, times
 
     def _slice(self, data):
         """Select user-defined scanlines and/or strip invalid coordinates.
 
         Returns:
-            Sliced data, updated midnight scanline & list of missing scanlines
+            Sliced data
 
         """
         start_line = self.start_line if self.start_line is not None else 0
@@ -250,20 +233,17 @@ class GACLACFile(BaseFileHandler):
             along_track=data.shape[0]
         )
 
-        # Slice data, update missing lines and midnight scanline to new
-        # scanline range
-        sliced, miss_lines, midnight_scanline = pygac.utils.slice_channel(
-            data,
-            start_line=start_line,
-            end_line=end_line,
-            first_valid_lat=first_valid_lat,
-            last_valid_lat=last_valid_lat,
-            midnight_scanline=self.midnight_scanline,
-            miss_lines=self.missing_scanlines,
-            qual_flags=self._get_qual_flags()
-        )
+        # Slice data
+        sliced = pygac.utils.slice_channel(data,
+                                           start_line=start_line,
+                                           end_line=end_line,
+                                           first_valid_lat=first_valid_lat,
+                                           last_valid_lat=last_valid_lat)
+        if isinstance(sliced, tuple):
+            # pygac < 1.4.0
+            sliced = sliced[0]
 
-        return sliced, midnight_scanline, miss_lines
+        return sliced
 
     def _get_channel(self, key):
         """Get channel and buffer results."""
