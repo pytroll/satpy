@@ -420,6 +420,9 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
     """
 
+    if not isinstance(reader, (list, tuple)):
+        reader = [reader]
+
     reader_kwargs = reader_kwargs or {}
 
     reader_files = _assign_files_to_readers(
@@ -427,41 +430,100 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
     file_keys = _get_file_keys_for_reader_files(reader_files)
 
-#    # FUTURE: Find the best reader for each filename using `find_files_and_readers`
-#    if not isinstance(reader, (list, tuple)):
-#        reader = [reader]
-#
-#    # FUTURE: Handle multiple readers
-#    reader = reader[0]
-#    reader_configs = list(configs_for_reader(reader, ppp_config_dir))[0]
-#    reader_kwargs = reader_kwargs or {}
-#    try:
-#        reader_instance = load_reader(reader_configs, **reader_kwargs)
-#    except (KeyError, IOError, yaml.YAMLError) as err:
-#        LOG.info('Cannot use %s', str(reader_configs))
-#        LOG.debug(str(err))
-#        # if reader and (isinstance(reader, str) or len(reader) == 1):
-#        #     # if it is a single reader then give a more usable error
-#        #     raise
-#        raise
-#
-#    if group_keys is None:
-#        group_keys = reader_instance.info.get('group_keys', ('start_time',))
-#    file_keys = []
-#    # make a copy because filename_items_for_filetype will modify inplace
-#    files_to_sort = set(files_to_sort)
-#    for _, filetype_info in reader_instance.sorted_filetype_items():
-#        for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
-#            group_key = tuple(file_info.get(k) for k in group_keys)
-#            file_keys.append((group_key, f))
+    file_groups = _get_sorted_file_groups(file_keys, time_threshold)
 
-    if len(file_keys) > 1:
-        raise NotImplementedError("Multiple readers not implemented yet")
-    file_keys = next(iter(file_keys.values()))
+    return [{rn: file_groups[group_key].get(rn, []) for rn in reader} for group_key in file_groups]
+
+
+def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
+                             reader_kwargs):
+    """Assign files to readers.
+
+    Given a list of file names (paths), match those to reader instances.
+
+    Internal helper for group_files.
+
+    Args:
+        files_to_sort (Collection[str]): Files to assign to readers.
+        reader_names (Collection[str]): Readers to consider
+        ppp_config_dir (str):
+        reader_kwargs (Mapping):
+
+    Returns:
+        Mapping[str, Tuple[reader, Set[str]]]
+        Mapping where the keys are reader names and the values are tuples of
+        (reader_configs, filenames).
+    """
+
+    files_to_sort = set(files_to_sort)
+    D = {}
+    for (reader_name, reader_configs) in zip(
+            reader_names, configs_for_reader(reader_names, ppp_config_dir)):
+        reader = load_reader(reader_configs, **reader_kwargs)
+        files_matching = set(reader.filter_selected_filenames(files_to_sort))
+        files_to_sort -= files_matching
+        D[reader_name] = (reader, files_matching)
+    if files_to_sort:
+        raise ValueError("No matching readers found for these files: " +
+                         ", ".join(files_to_sort))
+    return D
+
+
+def _get_file_keys_for_reader_files(reader_files, group_keys=None):
+    """From a mapping from _assign_files_to_readers, get file keys.
+
+    Given a mapping where each key is a reader name and each value is a
+    tuple of reader instance (typically FileYAMLReader) and a collection
+    of files, return a mapping with the same keys, but where the values are
+    lists of tuples of (keys, filename), where keys are extracted from the filenames
+    according to group_keys and filenames are the names those keys were
+    extracted from.
+
+    Internal helper for group_files.
+
+    Returns:
+        Mapping[str, List[Tuple[Tuple, str]]], as described.
+    """
+
+    file_keys = {}
+    for (reader_name, (reader_instance, files_to_sort)) in reader_files.items():
+        if group_keys is None:
+            group_keys = reader_instance.info.get('group_keys', ('start_time',))
+        file_keys[reader_name] = []
+        # make a copy because filename_items_for_filetype will modify inplace
+        files_to_sort = set(files_to_sort)
+        for _, filetype_info in reader_instance.sorted_filetype_items():
+            for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
+                group_key = tuple(file_info.get(k) for k in group_keys)
+                file_keys[reader_name].append((group_key, f))
+    return file_keys
+
+
+def _get_sorted_file_groups(all_file_keys, time_threshold):
+    """Get sorted file groups.
+
+    Get a list of dictionaries, where each list item consists of a dictionary
+    mapping a tuple of keys to a mapping of reader names to files.  The files
+    listed in each list item are considered to be grouped within the same time.
+
+    Args:
+        all_file_keys, as returned by _get_file_keys_for_reader_files
+        time_threshold: temporal threshold
+
+    Returns:
+        List[Mapping[Tuple, Mapping[str, List[str]]]], as described
+
+    Internal helper for group_files.
+    """
+    # flatten to get an overall sorting; put the name in the middle in the
+    # interest of sorting
+    flat_keys = ((v[0], rn, v[1]) for (rn, vL) in all_file_keys.items() for v in vL)
     prev_key = None
     threshold = timedelta(seconds=time_threshold)
+    # file_groups is sorted, because dictionaries are sorted by insertion
+    # order in Python 3.7+
     file_groups = {}
-    for gk, f in sorted(file_keys):
+    for gk, rn, f in sorted(flat_keys):
         # use first element of key as time identifier (if datetime type)
         if prev_key is None:
             is_new_group = True
@@ -479,66 +541,14 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
                           if this_val is not None and prev_val is not None)
         # if this is a new group based on the first element
         if is_new_group or any(vals_not_equal):
-            file_groups[gk] = [f]
+            file_groups[gk] = {rn: [f]}
             prev_key = gk
         else:
-            file_groups[prev_key].append(f)
-    sorted_group_keys = sorted(file_groups)
-    # passable to Scene as 'filenames'
-    return [{reader: file_groups[group_key]} for group_key in sorted_group_keys]
-
-
-def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
-                             reader_kwargs):
-    """Assign files to readers.
-
-    Given a list of file names (paths), match those to reader instances.
-
-    Args:
-        files_to_sort (Collection[str]): Files to assign to readers.
-        reader_names (Collection[str]): Readers to consider
-        ppp_config_dir (str):
-        reader_kwargs (Mapping):
-
-    Returns:
-        Dict[reader, Set[str]]
-    """
-
-    files_to_sort = set(files_to_sort)
-    D = {}
-    for reader_configs in configs_for_reader(reader_names, ppp_config_dir):
-        reader = load_reader(reader_configs, **reader_kwargs)
-        files_matching = set(reader.filter_selected_filenames(files_to_sort))
-        files_to_sort -= files_matching
-        D[reader] = files_matching
-    if files_to_sort:
-        raise ValueError("No matching readers found for these files: " +
-                         ", ".join(files_to_sort))
-    return D
-
-
-def _get_file_keys_for_reader_files(reader_files, group_keys=None):
-    """From a Mapping[reader, files], get file keys.
-
-    Given a mapping where each key is a reader instance (typically
-    FileYamlReader) and each value is a collection
-    of files, return a mapping with the same keys, but where the values are
-    tuples of (keys, filenames), where keys are extracted from the filenames
-    according to group_keys.
-    """
-
-    file_keys = {}
-    for (reader_instance, files_to_sort) in reader_files.items():
-        if group_keys is None:
-            group_keys = reader_instance.info.get('group_keys', ('start_time',))
-        file_keys[reader_instance] = []
-        # make a copy because filename_items_for_filetype will modify inplace
-        files_to_sort = set(files_to_sort)
-        for _, filetype_info in reader_instance.sorted_filetype_items():
-            for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
-                group_key = tuple(file_info.get(k) for k in group_keys)
-                file_keys[reader_instance].append((group_key, f))
-    return file_keys
+            if rn not in file_groups[prev_key]:
+                file_groups[prev_key][rn] = [f]
+            else:
+                file_groups[prev_key][rn].append(f)
+    return file_groups
 
 
 def read_reader_config(config_files, loader=UnsafeLoader):
