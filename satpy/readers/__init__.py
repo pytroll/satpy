@@ -467,13 +467,13 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
     for reader_configs in configs_for_reader(reader_names, ppp_config_dir):
         try:
             reader = load_reader(reader_configs, **reader_kwargs)
-        except yaml.constructor.ConstructorError as e:
+        except yaml.constructor.ConstructorError:
             LOG.exception(
                     f"ConstructorError loading {reader_configs!s}, "
-                     "probably a missing dependency, skipping "
-                     "corresponding reader (if you did not explicitly "
-                     "specify the reader, Satpy tries all; performance "
-                     "will improve if you pass readers explicitly).")
+                    "probably a missing dependency, skipping "
+                    "corresponding reader (if you did not explicitly "
+                    "specify the reader, Satpy tries all; performance "
+                    "will improve if you pass readers explicitly).")
         reader_name = reader.info["name"]
         files_matching = set(reader.filter_selected_filenames(files_to_sort))
         files_to_sort -= files_matching
