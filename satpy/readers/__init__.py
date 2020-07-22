@@ -393,7 +393,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     Args:
         files_to_sort (iterable): File paths to sort in to group
         reader (str or Collection[str]): Reader or readers whose file patterns
-            should be used to sort files.  If not given, try all readers (slow).
+            should be used to sort files.  If not given, try all readers (slow,
+            adding a list of readers is strongly recommended).
         time_threshold (int): Number of seconds used to consider time elements
             in a group as being equal. For example, if the 'start_time' item
             is used to group files then any time within `time_threshold`
@@ -420,7 +421,7 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
     """
 
-    if not isinstance(reader, (list, tuple)):
+    if reader is not None and not isinstance(reader, (list, tuple)):
         reader = [reader]
 
     reader_kwargs = reader_kwargs or {}
@@ -428,7 +429,11 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
     reader_files = _assign_files_to_readers(
             files_to_sort, reader, ppp_config_dir, reader_kwargs)
 
-    file_keys = _get_file_keys_for_reader_files(reader_files)
+    if reader is None:
+        reader = reader_files.keys()
+
+    file_keys = _get_file_keys_for_reader_files(
+            reader_files, group_keys=group_keys)
 
     file_groups = _get_sorted_file_groups(file_keys, time_threshold)
 
@@ -457,12 +462,13 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
 
     files_to_sort = set(files_to_sort)
     D = {}
-    for (reader_name, reader_configs) in zip(
-            reader_names, configs_for_reader(reader_names, ppp_config_dir)):
+    for reader_configs in configs_for_reader(reader_names, ppp_config_dir):
         reader = load_reader(reader_configs, **reader_kwargs)
+        reader_name = reader.info["name"]
         files_matching = set(reader.filter_selected_filenames(files_to_sort))
         files_to_sort -= files_matching
-        D[reader_name] = (reader, files_matching)
+        if files_matching or reader_names is not None:
+            D[reader_name] = (reader, files_matching)
     if files_to_sort:
         raise ValueError("No matching readers found for these files: " +
                          ", ".join(files_to_sort))

@@ -650,9 +650,12 @@ class TestGroupFiles(unittest.TestCase):
         ]
 
     def test_no_reader(self):
-        """Test that reader must be provided."""
+        """Test that reader does not need to be provided."""
         from satpy.readers import group_files
-        self.assertRaises(ValueError, group_files, [])
+        # without files it's going to be an empty result
+        assert group_files([]) == []
+        groups = group_files(self.g16_files)
+        self.assertEqual(6, len(groups))
 
     def test_bad_reader(self):
         """Test that reader not existing causes an error."""
@@ -763,3 +766,10 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(6, len(groups[0]['viirs_sdr']))
         # 5 granules * 3 file types
         self.assertEqual(5 * 3, len(groups[1]['viirs_sdr']))
+
+    def test_multi_readers(self):
+        from satpy.readers import group_files
+        groups = group_files(
+                self.g16_files + self.noaa20_files,
+                reader=("abi_l1b", "viirs_sdr"))
+        assert len(groups) == 11
