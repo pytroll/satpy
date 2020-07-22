@@ -474,6 +474,7 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
                     "corresponding reader (if you did not explicitly "
                     "specify the reader, Satpy tries all; performance "
                     "will improve if you pass readers explicitly).")
+            continue
         reader_name = reader.info["name"]
         files_matching = set(reader.filter_selected_filenames(files_to_sort))
         files_to_sort -= files_matching
