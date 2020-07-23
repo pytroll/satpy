@@ -155,7 +155,7 @@ class TestVIIRSL1BReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'VL1BM_snpp_d20161130_t012400_c20161130054822.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)

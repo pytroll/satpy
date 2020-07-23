@@ -129,7 +129,7 @@ class TestGEOCATReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'geocatL2.GOES-13.2015143.234500.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)

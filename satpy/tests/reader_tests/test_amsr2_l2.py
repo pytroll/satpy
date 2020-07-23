@@ -93,7 +93,7 @@ class TestAMSR2L2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'GW1AM2_202004160129_195B_L2SNSSWLB3300300.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -105,7 +105,7 @@ class TestAMSR2L2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'GW1AM2_202004160129_195B_L2SNSSWLB3300300.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         ds = r.load(['ssw'])
         self.assertEqual(len(ds), 1)
