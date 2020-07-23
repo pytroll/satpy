@@ -237,7 +237,7 @@ Combining multiple readers
 
 Since Satpy 0.23, it is possible to automatically
 combine multiple readers into a single MultiScene using the
-:meth:`~satpy.multiscene.MultiScene.fromFiles` constructor.  It is
+:meth:`~satpy.multiscene.MultiScene.from_files` constructor.  It is
 no longer necessary for the user to create the :meth:`~satpy.Scene`
 objects themselves.  For example, you can combine Advanced Baseline Imager
 (ABI) and Global Lightning Mapper (GLM) measurements.  Constructing a
@@ -245,29 +245,20 @@ multi-reader MultiScene requires more parameters than a single-reader
 MultiScene, because Satpy can poorly guess how to group files belonging
 to different instruments.  For an example creating a video with lightning
 superimposed on ABI channel 14 (11.2 micrometre), using the built-in
-composite ``C14_flash_extent_density``.
+composite ``C14_flash_extent_density``:
 
-    import datetime
-
-    import satpy
-    import satpy.utils
-    satpy.utils.debug_on()
-    import glob
-
-    glm_dir = "/path/to/GLMC/"
-    abi_dir = "/path/to/ABI/"
-
-    ms = satpy.MultiScene.from_files(
-            glob.glob(glm_dir + "OR_GLM-L2-GLMC-M3_G16_s202010418*.nc") +
-            glob.glob(abi_dir + "C*/OR_ABI-L1b-RadC-M6C*_G16_s202010418*_e*_c*.nc"),
-            reader=["glm_l2", "abi_l1b"],
-            ensure_all_readers=True,
-            group_keys=["start_time"],
-            time_threshold=30)
-    ms.load(["C14_flash_extent_density"])
-    ms = ms.resample(ms.first_scene["C14"].attrs["area"])
-
-    ms.save_animation("/path/for/output/{name:s}_{start_time:%Y%m%d_%H%M}.mp4")
+    >>> glm_dir = "/path/to/GLMC/"
+    >>> abi_dir = "/path/to/ABI/"
+    >>> ms = satpy.MultiScene.from_files(
+    ...        glob.glob(glm_dir + "OR_GLM-L2-GLMC-M3_G16_s202010418*.nc") +
+    ...        glob.glob(abi_dir + "C*/OR_ABI-L1b-RadC-M6C*_G16_s202010418*_e*_c*.nc"),
+    ...        reader=["glm_l2", "abi_l1b"],
+    ...        ensure_all_readers=True,
+    ...        group_keys=["start_time"],
+    ...        time_threshold=30)
+    >>> ms.load(["C14_flash_extent_density"])
+    >>> ms = ms.resample(ms.first_scene["C14"].attrs["area"])
+    >>> ms.save_animation("/path/for/output/{name:s}_{start_time:%Y%m%d_%H%M}.mp4")
 
 In this example, we pass to
 :meth:`~satpy.multiscene.MultiScene.from_files` the additional parameters
