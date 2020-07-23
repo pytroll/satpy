@@ -115,7 +115,7 @@ class TestTROPOMIL2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'S5P_OFFL_L2__NO2____20180709T170334_20180709T184504_03821_01_010002_20180715T184729.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)

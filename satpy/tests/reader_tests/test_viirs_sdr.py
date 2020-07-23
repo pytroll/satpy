@@ -189,7 +189,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -205,7 +205,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        self.assertTrue(len(loadables), 0)
+        self.assertEqual(len(loadables), 0)
 
     def test_init_end_time_beyond(self):
         """Test basic init with end_time before the provided files."""
@@ -218,7 +218,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        self.assertTrue(len(loadables), 0)
+        self.assertEqual(len(loadables), 0)
 
     def test_init_start_end_time(self):
         """Test basic init with end_time before the provided files."""
@@ -232,7 +232,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)

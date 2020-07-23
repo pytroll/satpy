@@ -263,7 +263,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -326,7 +326,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -381,7 +381,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -417,7 +417,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -478,7 +478,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
