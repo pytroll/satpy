@@ -235,8 +235,11 @@ multiple Scenes use:
 Combining multiple readers
 --------------------------
 
-Since Satpy 0.23, it is possible to combine multiple readers into a
-single MultiScene.  For example, you can combine Advanced Baseline Imager
+Since Satpy 0.23, it is possible to automatically
+combine multiple readers into a single MultiScene using the
+:meth:`~satpy.multiscene.MultiScene.fromFiles` constructor.  It is
+no longer necessary for the user to create the :meth:`~satpy.Scene`
+objects themselves.  For example, you can combine Advanced Baseline Imager
 (ABI) and Global Lightning Mapper (GLM) measurements.  Constructing a
 multi-reader MultiScene requires more parameters than a single-reader
 MultiScene, because Satpy can poorly guess how to group files belonging
@@ -266,9 +269,12 @@ composite ``C14_flash_extent_density``.
 
     ms.save_animation("/path/for/output/{name:s}_{start_time:%Y%m%d_%H%M}.mp4")
 
-In this example, we pass to :meth:`~satpy.MultiScene.from_files`
-the additional parameters ``ensure_all_readers=True,
-group_keys=["start_time"], time_threshold=30`` so we only get scenes
-at times that both ABI and GLM have a file starting within 30 seconds
-from each other, and ignore all differences for the purposes of grouping
-the two.
+In this example, we pass to
+:meth:`~satpy.multiscene.MultiScene.from_files` the additional parameters
+``ensure_all_readers=True, group_keys=["start_time"], time_threshold=30``
+so we only get scenes at times that both ABI and GLM have a file starting
+within 30 seconds from each other, and ignore all other differences for
+the purposes of grouping the two.  For this example, the ABI files occur
+every 5 minutes but the GLM files (processed with glmtools) every minute.
+Scenes where there is a GLM file without an ABI file starting within at
+most ±30 seconds are skipped.
