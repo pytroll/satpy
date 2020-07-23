@@ -238,14 +238,19 @@ Combining multiple readers
 Since Satpy 0.23, it is possible to automatically
 combine multiple readers into a single MultiScene using the
 :meth:`~satpy.multiscene.MultiScene.from_files` constructor.  It is
-no longer necessary for the user to create the :meth:`~satpy.Scene`
-objects themselves.  For example, you can combine Advanced Baseline Imager
-(ABI) and Global Lightning Mapper (GLM) measurements.  Constructing a
-multi-reader MultiScene requires more parameters than a single-reader
-MultiScene, because Satpy can poorly guess how to group files belonging
-to different instruments.  For an example creating a video with lightning
-superimposed on ABI channel 14 (11.2 micrometre), using the built-in
-composite ``C14_flash_extent_density``:
+no longer necessary for the user to create the :class:`~satpy.scene.Scene`
+objects themselves.  For example, you can combine Advanced Baseline
+Imager (ABI) and Global Lightning Mapper (GLM) measurements.
+Constructing a multi-reader MultiScene requires more parameters
+than a single-reader MultiScene, because Satpy can poorly guess how
+to group files belonging to different instruments.  For an example
+creating a video with lightning superimposed on ABI channel 14 (11.2
+micrometre), using the built-in composite ``C14_flash_extent_density``,
+which superimposes flash extent density from GLM (read with the
+:class:`~satpy.readers.glm_l2.NCGriddedGLML2` or ``glm_l2`` reader) on ABI
+channel 14 data (read with the :class:`~satpy.readers.abi_l1b.NC_ABI_L1B`
+or ``abi_l1b`` reader), and therefore needs Scene objects that combine
+both readers:
 
     >>> glm_dir = "/path/to/GLMC/"
     >>> abi_dir = "/path/to/ABI/"
