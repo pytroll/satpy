@@ -68,7 +68,7 @@ the specified parameters. So the above ``load`` call would load the ``0.6``
 (a visible/reflectance band) radiance data and ``10.8`` (an IR band)
 brightness temperature data.
 
-For geostatinary satellites that have the individual channel data
+For geostationary satellites that have the individual channel data
 separated to several files (segments) the missing segments are padded
 by default to full disk area.  This is made to simplify caching of
 resampling look-up tables (see :doc:`resample` for more information).
@@ -76,6 +76,17 @@ To disable this, the user can pass ``pad_data`` keyword argument when
 loading datasets::
 
     >>> scn.load([0.6, 10.8], pad_data=False)
+
+For geostationary products, where the imagery is stored in the files in a flipped orientation
+(e.g. MSG SEVIRI L1.5 data which is flipped upside-down and left-right), the keyword argument
+``upper_right_corner`` can be passed into the load call to automatically flip the datasets to the
+wished orientation. Accepted argument values are ``'NE'``, ``'NW'``, ``'SE'``, ``'SW'``,
+and ``'native'``.
+By default, no flipping is applied (corresponding to ``upper_right_corner='native'``) and
+the data is delivered in the original format. To get the data in the common upright orientation,
+load the datasets using e.g.::
+
+    >>> scn.load(['VIS008'], upper_right_corner='NE')
 
 .. note::
 
