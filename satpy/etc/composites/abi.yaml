@@ -613,7 +613,7 @@ composites:
     standard_name: tropical_airmass
 
   color_infrared:
-      description: >
+    description: >
       Similar to landsat and sentinel 2 combinations for enhance vegetation
     compositor: !!python/name:satpy.composites.SelfSharpenedRGB
     prerequisites:
