@@ -358,7 +358,7 @@ class CustomScheduler(object):
 
 
 def make_fake_scene(content_dict, daskify=False, area=True,
-                      common_attrs=None):
+                    common_attrs=None):
     """Create a fake Scene.
 
     Create a fake Scene object from fake data.  Data are provided in
