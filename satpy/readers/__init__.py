@@ -31,7 +31,7 @@ except ImportError:
 
 from satpy.config import (config_search_paths, get_environ_config_dir,
                           glob_config)
-from satpy.dataset import DataQuery, DataID, minimal_default_keys_config, create_filtered_query
+from satpy.dataset import DataID, minimal_default_keys_config, create_filtered_query
 
 LOG = logging.getLogger(__name__)
 
@@ -231,14 +231,14 @@ class DatasetDict(dict):
 
     def __setitem__(self, key, value):
         """Support assigning 'Dataset' objects or dictionaries of metadata."""
-        d = value
+        value_dict = value
         if hasattr(value, 'attrs'):
             # xarray.DataArray objects
-            d = value.attrs
+            value_dict = value.attrs
         # use value information to make a more complete DataID
-        if not isinstance(key, (DataID, DataQuery)):
-            if not isinstance(d, dict):
-                raise ValueError("Key must be a DataID or DataQuery when value is not an xarray DataArray or dict")
+        if not isinstance(key, DataID):
+            if not isinstance(value_dict, dict):
+                raise ValueError("Key must be a DataID when value is not an xarray DataArray or dict")
             old_key = key
             try:
                 key = self.get_key(key)
@@ -246,27 +246,27 @@ class DatasetDict(dict):
                 if isinstance(old_key, str):
                     new_name = old_key
                 else:
-                    new_name = d.get("name")
+                    new_name = value_dict.get("name")
                 # this is a new key and it's not a full DataID tuple
-                if new_name is None and d.get('wavelength') is None:
+                if new_name is None and value_dict.get('wavelength') is None:
                     raise ValueError("One of 'name' or 'wavelength' attrs "
                                      "values should be set.")
                 try:
-                    id_keys = d['_satpy_id'].id_keys
+                    id_keys = value_dict['_satpy_id'].id_keys
                 except KeyError:
                     try:
-                        id_keys = d['_satpy_id_keys']
+                        id_keys = value_dict['_satpy_id_keys']
                     except KeyError:
                         id_keys = minimal_default_keys_config
-                d['name'] = new_name
-                key = DataID(id_keys, **d)
+                value_dict['name'] = new_name
+                key = DataID(id_keys, **value_dict)
                 if hasattr(value, 'attrs') and 'name' not in value.attrs:
                     value.attrs['name'] = new_name
 
         # update the 'value' with the information contained in the key
-        if isinstance(d, dict):
+        if isinstance(value_dict, dict):
             for field in key.keys():
-                d[field] = key.get(field)
+                value_dict[field] = key.get(field)
 
         if hasattr(value, 'attrs'):
             if isinstance(key, DataID):

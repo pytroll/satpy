@@ -21,7 +21,10 @@ import os
 import unittest
 from unittest import mock
 
-from satpy.tests.utils import make_dataid, make_cid, default_id_keys_config, make_dsq
+import pytest
+
+from satpy.tests.utils import (default_id_keys_config, make_cid, make_dataid,
+                               make_dsq)
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -260,6 +263,7 @@ class TestScene(unittest.TestCase):
     def test_setitem(self):
         """Test setting an item."""
         from satpy import Scene
+        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
         scene = Scene()
@@ -267,6 +271,17 @@ class TestScene(unittest.TestCase):
         expected_id = make_cid(**ds1.attrs)
         self.assertSetEqual(set(scene.datasets.keys()), {expected_id})
         self.assertSetEqual(set(scene.wishlist), {expected_id})
+
+        did = make_dataid(name='oranges')
+        scene[did] = ds1
+        assert 'oranges' in scene
+        nparray = np.arange(5*5).reshape(5, 5)
+        with pytest.raises(ValueError):
+            scene['apples'] = nparray
+        assert 'apples' not in scene
+        did = make_dataid(name='apples')
+        scene[did] = nparray
+        assert 'apples' in scene
 
     def test_getitem(self):
         """Test __getitem__ with names only."""

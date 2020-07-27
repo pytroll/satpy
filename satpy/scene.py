@@ -836,7 +836,7 @@ class Scene(MetadataObject):
             composite = compositor(prereq_datasets,
                                    optional_datasets=optional_datasets,
                                    **self.attrs)
-            cid = DataID.from_dataarray(composite)
+            cid = DataID.from_dataarray(composite, new=True)
             self.datasets[cid] = composite
 
             # update the node with the computed DataID
