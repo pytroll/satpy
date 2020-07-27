@@ -23,6 +23,7 @@ from unittest.mock import patch
 import dask.array as da
 import numpy as np
 from xarray import DataArray, Dataset
+from satpy.tests.utils import make_dataid
 
 
 def generate_fake_abi_xr_dataset(filename, chunks=None, **kwargs):
@@ -175,3 +176,32 @@ def test_1258(fake_open_dataset):
     scene.load(['true_color_nocorr', 'C04'], calibration='radiance')
     resampled_scene = scene.resample(scene.min_area(), resampler='native')
     assert len(resampled_scene.keys()) == 2
+
+
+@patch('xarray.open_dataset')
+def test_1088(fake_open_dataset):
+    """Check that copied array gets resampled."""
+    from satpy import Scene
+    abi_files = ['/data/OR_ABI-L1b-RadF-M3C01_G16_s20180722030423_e20180722041189_c20180722041235-118900_0.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C02_G16_s20180722030423_e20180722041190_c20180722041228-120000_0.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C03_G16_s20180722030423_e20180722041190_c20180722041237-119000_0.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C04_G16_s20180722030423_e20180722041189_c20180722041221.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C05_G16_s20180722030423_e20180722041190_c20180722041237-119101_0.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C06_G16_s20180722030423_e20180722041195_c20180722041227.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C07_G16_s20180722030423_e20180722041201_c20180722041238.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C08_G16_s20180722030423_e20180722041190_c20180722041238.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C09_G16_s20180722030423_e20180722041195_c20180722041256.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C10_G16_s20180722030423_e20180722041201_c20180722041250.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C11_G16_s20180722030423_e20180722041189_c20180722041254.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C12_G16_s20180722030423_e20180722041195_c20180722041256.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C13_G16_s20180722030423_e20180722041201_c20180722041259.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C14_G16_s20180722030423_e20180722041190_c20180722041258.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C15_G16_s20180722030423_e20180722041195_c20180722041259.nc',
+                 '/data/OR_ABI-L1b-RadF-M3C16_G16_s20180722030423_e20180722041202_c20180722041259.nc']
+    fake_open_dataset.side_effect = generate_fake_abi_xr_dataset
+    scene = Scene(abi_files, reader='abi_l1b')
+    scene.load(['C04'], calibration='radiance')
+    my_id = make_dataid(name='my_name', wavelength=(10, 11, 12))
+    scene[my_id] = scene['C04'].copy()
+    resampled = scene.resample('eurol')
+    assert resampled[my_id].shape == (2048, 2560)
