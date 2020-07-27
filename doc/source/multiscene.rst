@@ -179,6 +179,35 @@ for information on creating a ``Client`` object. If working on a cluster
 you may want to use :doc:`dask jobqueue <jobqueue:index>` to take advantage
 of multiple nodes at a time.
 
+It is possible to add an overlay or decoration to each frame of an
+animation.  For text added as a decoration, string substitution will be
+applied based on the attributes of the dataset, for example:
+
+    >>> mscn.save_animation(
+    ...     "{name:s}_{start_time:%Y%m%d_%H%M}.mp4",
+    ...     enh_args={
+    ...     "decorate": {
+    ...         "decorate": [
+    ...             {"text": {
+    ...                 "txt": "time {start_time:%Y-%m-%d %H:%M}",
+    ...                 "align": {
+    ...                     "top_bottom": "bottom",
+    ...                     "left_right": "right"},
+    ...                 "font": '/usr/share/fonts/truetype/arial.ttf',
+    ...                 "font_size": 20,
+    ...                 "height": 30,
+    ...                 "bg": "black",
+    ...                 "bg_opacity": 255,
+    ...                 "line": "white"}}]}})
+
+If your file covers ABI MESO data for an hour for channel 2 lasting
+from 2020-04-12 01:00-01:59, then the output file will be called
+``C02_20200412_0100.mp4`` (because the first dataset/frame corresponds to
+an image that started to be taken at 01:00), consist of sixty frames (one
+per minute for MESO data), and each frame will have the start time for
+that frame floored to the minute blended into the frame.  Note that this
+text is "burned" into the video and cannot be switched on or off later.
+
 .. warning::
 
     GIF images, although supported, are not recommended due to the large file
