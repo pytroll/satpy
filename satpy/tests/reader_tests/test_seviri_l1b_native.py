@@ -26,6 +26,8 @@ from satpy.readers.seviri_l1b_native import (
     NativeMSGFileHandler,
     get_available_channels,
 )
+
+
 from satpy.tests.utils import make_dataid
 
 
@@ -106,7 +108,7 @@ TEST_AREA_EXTENT_EARTHMODEL1_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN = {
     'earth_model': 1,
-    'dataset_id': DatasetID(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'expected_area_def': {
@@ -179,7 +181,7 @@ TEST_AREA_EXTENT_EARTHMODEL2_HRV_FULLDISK = {
 
 TEST_AREA_EXTENT_EARTHMODEL2_HRV_RAPIDSCAN = {
     'earth_model': 2,
-    'dataset_id': DatasetID(name='HRV'),
+    'dataset_id': make_dataid(name='HRV'),
     'is_full_disk': False,
     'is_rapid_scan': 1,
     'expected_area_def': {

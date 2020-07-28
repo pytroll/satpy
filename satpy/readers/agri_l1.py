@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Advanced Geostationary Radiation Imager reader for the Level_1 HDF format
+"""Advanced Geostationary Radiation Imager reader for the Level_1 HDF format.
 
 The files read by this reader are described in the official Real Time Data Service:
 
@@ -46,8 +46,10 @@ PLATFORM_NAMES = {'FY4A': 'FY-4A',
 
 
 class HDF_AGRI_L1(HDF5FileHandler):
+    """AGRI l1 file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init filehandler."""
         super(HDF_AGRI_L1, self).__init__(filename, filename_info, filetype_info)
 
     def get_dataset(self, dataset_id, ds_info):
@@ -121,6 +123,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
         return data
 
     def get_area_def(self, key):
+        """Get the area definition."""
         # Coordination Group for Meteorological Satellites LRIT/HRIT Global Specification
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
         res = key.resolution
@@ -172,7 +175,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
         return area
 
     def dn2(self, dn, calibration, slope, offset):
-        """Convert digital number (DN) to reflectance or radiance
+        """Convert digital number (DN) to reflectance or radiance.
 
         Args:
             dn: Raw detector digital number
@@ -196,7 +199,8 @@ class HDF_AGRI_L1(HDF5FileHandler):
         return lut[block]
 
     def calibrate(self, data, lut):
-        """Calibrate digital number (DN) to brightness_temperature
+        """Calibrate digital number (DN) to brightness_temperature.
+
         Args:
             dn: Raw detector digital number
             lut: the look up table
@@ -214,10 +218,12 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         start_time = self['/attr/Observing Beginning Date'] + 'T' + self['/attr/Observing Beginning Time'] + 'Z'
         return datetime.strptime(start_time, '%Y-%m-%dT%H:%M:%S.%fZ')
 
     @property
     def end_time(self):
+        """Get the end time."""
         end_time = self['/attr/Observing Ending Date'] + 'T' + self['/attr/Observing Ending Time'] + 'Z'
         return datetime.strptime(end_time, '%Y-%m-%dT%H:%M:%S.%fZ')
