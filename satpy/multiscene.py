@@ -414,7 +414,6 @@ class MultiScene(object):
         If the nested dictionary in decorate (argument to ``save_animation``)
         contains a text to be added, format those based on dataset parameters.
         """
-
         if decorate is None or "decorate" not in decorate:
             return decorate
         deco_local = copy.deepcopy(decorate)

@@ -195,6 +195,7 @@ class TestGACLACFile(TestCase):
             get_channel.assert_called_with(key)
 
     def test_read_raw_data(self):
+        """Test raw data reading."""
         fh = self._get_fh_mocked(reader=None,
                                  interpolate_coords='interpolate_coords',
                                  creation_site='creation_site',
