@@ -1083,7 +1083,7 @@ class Scene(MetadataObject):
                 resample to. If not specified then the area returned by
                 `Scene.max_area()` will be used.
             datasets (list): Limit datasets to resample to these specified
-                `DataID` objects . By default all currently loaded
+                data arrays. By default all currently loaded
                 datasets are resampled.
             generate (bool): Generate any requested composites that could not
                 be previously due to incompatible areas (default: True).
@@ -1142,9 +1142,9 @@ class Scene(MetadataObject):
         Show dataset on screen as an image, possibly with an overlay.
 
         Args:
-            dataset_id (DataID or str):
-                Either a DataID or a string representing a DataID, that
-                has been previously loaded using Scene.load.
+            dataset_id (DataID, DataQuery or str):
+                Either a DataID, a DataQuery or a string, that refers to a data
+                array that has been previously loaded using Scene.load.
             overlay (dict, optional):
                 Add an overlay before showing the image.  The keys/values for
                 this dictionary are as the arguments for
@@ -1257,8 +1257,8 @@ class Scene(MetadataObject):
         """Save the ``dataset_id`` to file using ``writer``.
 
         Args:
-            dataset_id (str or Number or DataID): Identifier for the
-                dataset to save to disk.
+            dataset_id (str or Number or DataID or DataQuery): Identifier for
+                the dataset to save to disk.
             filename (str): Optionally specify the filename to save this
                             dataset to. It may include string formatting
                             patterns that will be filled in by dataset
