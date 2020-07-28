@@ -436,10 +436,15 @@ class DataID(dict):
         return self.__class__(self._id_keys, **keyvals)
 
     @classmethod
-    def from_dataarray(cls, array, default_keys=minimal_default_keys_config, new=False):
-        """Create a DataID from a dataarray."""
-        if not new and '_satpy_id' in array.attrs:
+    def from_dataarray(cls, array, default_keys=minimal_default_keys_config):
+        """Get the DataID using the dataarray attributes."""
+        if '_satpy_id' in array.attrs:
             return array.attrs['_satpy_id']
+        return cls.new_id_from_dataarray(array, default_keys)
+
+    @classmethod
+    def new_id_from_dataarray(cls, array, default_keys=minimal_default_keys_config):
+        """Create a new DataID from a dataarray's attributes."""
         try:
             id_keys = array.attrs['_satpy_id'].id_keys
         except KeyError:
