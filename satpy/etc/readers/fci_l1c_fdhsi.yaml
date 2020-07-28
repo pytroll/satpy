@@ -6,7 +6,7 @@ reader:
     Reader for FCI FDSHI data in NetCDF4 format.
     Used to read Meteosat Third Generation (MTG) Flexible
     Combined Imager (FCI) Full Disk High Spectral Imagery (FDHSI) data.
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
   sensors: [fci]
 
 datasets:
