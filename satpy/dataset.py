@@ -379,17 +379,13 @@ class DataID(dict):
         `None` isn't a valid value and will simply be ignored.
         """
         self._hash = None
+        self._orig_id_keys = id_keys
         self._id_keys = self.fix_id_keys(id_keys or {})
         if keyval_dict:
             curated = self.convert_dict(keyval_dict)
         else:
             curated = {}
         super(DataID, self).__init__(curated)
-
-    @property
-    def id_keys(self):
-        """Get the id_keys."""
-        return deepcopy(self._id_keys)
 
     @staticmethod
     def fix_id_keys(id_keys):
@@ -431,6 +427,27 @@ class DataID(dict):
                         curated[key] = curated_val
         return curated
 
+    @classmethod
+    def _unpickle(cls, id_keys, keyval):
+        """Create a new instance of the DataID after pickling."""
+        return cls(id_keys, **keyval)
+
+    def __reduce__(self):
+        """Reduce the object for pickling."""
+        keyvals = self._replace_enums_with_names(self.to_dict())
+        return (self._unpickle, (self._orig_id_keys, keyvals))
+
+    @staticmethod
+    def _replace_enums_with_names(keyvals):
+        """Remove all enum instances, replacing them with their names."""
+        new_keyvals = dict()
+        for key, val in keyvals.items():
+            try:
+                new_keyvals[key] = val.name
+            except AttributeError:
+                new_keyvals[key] = val
+        return new_keyvals
+
     def from_dict(self, keyvals):
         """Create a DataID from a dictionary."""
         return self.__class__(self._id_keys, **keyvals)
@@ -450,6 +467,11 @@ class DataID(dict):
         except KeyError:
             id_keys = array.attrs.get('_satpy_id_keys', default_keys)
         return cls(id_keys, **array.attrs)
+
+    @property
+    def id_keys(self):
+        """Get the id_keys."""
+        return deepcopy(self._id_keys)
 
     def create_dep_filter(self, query):
         """Remove the required fields from *query*."""
@@ -471,7 +493,7 @@ class DataID(dict):
 
     def __getattr__(self, key):
         """Support old syntax for getting items."""
-        if key != '_id_keys' and key in self._id_keys:
+        if key in self._id_keys:
             warnings.warn('Attribute access to DataIDs is deprecated, use key access instead.')
             return self[key]
         else:
