@@ -443,7 +443,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             data0 = dec10216(raw0.flatten())
             data0 = data0.reshape(shape_layer)
 
-            data = da.stack((data0, data1, data2), axis=1).reshape(shape)
+            data = np.stack((data0, data1, data2), axis=1).reshape(shape)
 
         xarr = xr.DataArray(data, dims=['y', 'x']).where(data != 0).astype(np.float32)
 
