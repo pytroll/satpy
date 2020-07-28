@@ -233,6 +233,14 @@ def test_dataid_copy():
     assert did2.id_keys == did.id_keys
 
 
+def test_dataid_pickle():
+    """Test dataid pickling roundtrip."""
+    from satpy.tests.utils import make_dataid
+    import pickle
+    did = make_dataid(name='hi', wavelength=(10, 11, 12), resolution=1000, calibration='radiance')
+    assert did == pickle.loads(pickle.dumps(did))
+
+
 def test_dataquery():
     """Test DataQuery objects."""
     from satpy.dataset import DataQuery
