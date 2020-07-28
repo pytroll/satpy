@@ -20,6 +20,7 @@
 import logging
 import numbers
 import os
+import warnings
 from datetime import datetime, timedelta
 
 import yaml
@@ -463,7 +464,7 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
     """
 
     files_to_sort = set(files_to_sort)
-    D = {}
+    reader_dict = {}
     for reader_configs in configs_for_reader(reader_names, ppp_config_dir):
         try:
             reader = load_reader(reader_configs, **reader_kwargs)
@@ -479,11 +480,11 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
         files_matching = set(reader.filter_selected_filenames(files_to_sort))
         files_to_sort -= files_matching
         if files_matching or reader_names is not None:
-            D[reader_name] = (reader, files_matching)
+            reader_dict[reader_name] = (reader, files_matching)
     if files_to_sort:
         raise ValueError("No matching readers found for these files: " +
                          ", ".join(files_to_sort))
-    return D
+    return reader_dict
 
 
 def _get_file_keys_for_reader_files(reader_files, group_keys=None):
@@ -512,6 +513,12 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
         for _, filetype_info in reader_instance.sorted_filetype_items():
             for f, file_info in reader_instance.filename_items_for_filetype(files_to_sort, filetype_info):
                 group_key = tuple(file_info.get(k) for k in group_keys)
+                if all(g is None for g in group_key):
+                    warnings.warn(
+                            f"Found matching file {f:s} for reader "
+                            "{reader_name:s}, but none of group keys found. "
+                            "Group keys requested: " + ", ".join(group_keys),
+                            UserWarning)
                 file_keys[reader_name].append((group_key, f))
     return file_keys
 

@@ -790,6 +790,14 @@ class TestGroupFiles(unittest.TestCase):
         groups = group_files(
                 self.g16_files + self.noaa20_files,
                 reader=("abi_l1b", "viirs_sdr"),
-                group_keys=("start_time"),
+                group_keys=("start_time",),
                 time_threshold=10**9)
         assert len(groups) == 1
+        # test that a warning is raised when a string is passed (meaning no
+        # group keys found in common)
+        with pytest.warns(UserWarning):
+            groups = group_files(
+                    self.g16_files + self.noaa20_files,
+                    reader=("abi_l1b", "viirs_sdr"),
+                    group_keys=("start_time"),
+                    time_threshold=10**9)

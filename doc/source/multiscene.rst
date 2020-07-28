@@ -235,16 +235,19 @@ multiple Scenes use:
 Combining multiple readers
 --------------------------
 
-Since Satpy 0.23, it is possible to automatically
-combine multiple readers into a single MultiScene using the
-:meth:`~satpy.multiscene.MultiScene.from_files` constructor.  It is
-no longer necessary for the user to create the :class:`~satpy.scene.Scene`
+.. versionadded:: 0.23
+.. |_| unicode:: 0xA0
+   :trim:
+
+The :meth:`~satpy.multiscene.MultiScene.from_files` constructor allows to
+automatically combine multiple readers into a single MultiScene.  It is no
+longer necessary for the user to create the :class:`~satpy.scene.Scene`
 objects themselves.  For example, you can combine Advanced Baseline
 Imager (ABI) and Global Lightning Mapper (GLM) measurements.
-Constructing a multi-reader MultiScene requires more parameters
-than a single-reader MultiScene, because Satpy can poorly guess how
-to group files belonging to different instruments.  For an example
-creating a video with lightning superimposed on ABI channel 14 (11.2
+Constructing a multi-reader MultiScene requires more parameters than a
+single-reader MultiScene, because Satpy can poorly guess how to group
+files belonging to different instruments.  For an example creating
+a video with lightning superimposed on ABI channel 14 (11.2 |_| µm)
 micrometre), using the built-in composite ``C14_flash_extent_density``,
 which superimposes flash extent density from GLM (read with the
 :class:`~satpy.readers.glm_l2.NCGriddedGLML2` or ``glm_l2`` reader) on ABI
@@ -273,4 +276,8 @@ within 30 seconds from each other, and ignore all other differences for
 the purposes of grouping the two.  For this example, the ABI files occur
 every 5 minutes but the GLM files (processed with glmtools) every minute.
 Scenes where there is a GLM file without an ABI file starting within at
-most ±30 seconds are skipped.
+most ±30 seconds are skipped.  The ``group_keys`` and ``time_threshold``
+keyword arguments are processed by the :func:`~satpy.readers.group_files`
+function.  The heavy work of blending the two instruments together is
+performed by the :class:`~satpy.composites.BackgroundCompositor` class
+through the `"C14_flash_extent_density"` composite.
