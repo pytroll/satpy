@@ -684,7 +684,7 @@ class DataQuery:
         val = self._dict[key]
         if val == '*':
             return True
-        if isinstance(id_val, tuple):
+        if isinstance(id_val, tuple) and isinstance(val, (tuple, list)):
             return tuple(val) == id_val
         if not isinstance(val, list):
             val = [val]
