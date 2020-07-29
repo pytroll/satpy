@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE SAR-C reader
-*********************
+"""SAFE SAR-C reader.
 
 This module implements a reader for Sentinel 1 SAR-C GRD (level1) SAFE format as
 provided by ESA. The format is comprised of a directory containing multiple
@@ -24,15 +23,14 @@ files, most notably two measurement files in geotiff and a few xml files for
 calibration, noise and metadata.
 
 References:
+  - *Level 1 Product Formatting*
+    https://sentinel.esa.int/web/sentinel/technical-guides/sentinel-1-sar/products-algorithms/level-1-product-formatting
 
-      - *Level 1 Product Formatting*
-        https://sentinel.esa.int/web/sentinel/technical-guides/sentinel-1-sar/products-algorithms/level-1-product-formatting
-
-      - J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
-        *"Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"*
-        in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
-        pp. 1555-1565, March 2018.
-        doi: `10.1109/TGRS.2017.2765248 <https://doi.org/10.1109/TGRS.2017.2765248>`_
+  - J. Park, A. A. Korosov, M. Babiker, S. Sandven and J. Won,
+    *"Efficient Thermal Noise Removal for Sentinel-1 TOPSAR Cross-Polarization Channel,"*
+    in IEEE Transactions on Geoscience and Remote Sensing, vol. 56, no. 3,
+    pp. 1555-1565, March 2018.
+    doi: `10.1109/TGRS.2017.2765248 <https://doi.org/10.1109/TGRS.2017.2765248>`_
 
 """
 
@@ -80,6 +78,7 @@ class SAFEXML(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  header_file=None):
+        """Init the xml filehandler."""
         super(SAFEXML, self).__init__(filename, filename_info, filetype_info)
 
         self._start_time = filename_info['start_time']
@@ -206,10 +205,12 @@ class SAFEXML(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self._end_time
 
 
@@ -247,6 +248,7 @@ def interpolate_xarray(xpoints, ypoints, values, shape, kind='cubic',
 
 
 def intp(grid_x, grid_y, interpolator):
+    """Interpolate."""
     return interpolator((grid_y, grid_x))
 
 
@@ -284,6 +286,7 @@ class SAFEGRD(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info, calfh, noisefh):
+        """Init the grd filehandler."""
         super(SAFEGRD, self).__init__(filename, filename_info,
                                       filetype_info)
 
@@ -481,8 +484,10 @@ class SAFEGRD(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self._end_time
