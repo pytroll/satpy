@@ -145,7 +145,7 @@ class TestMultiScene(unittest.TestCase):
         with mock.patch('satpy.multiscene.Scene') as scn_mock:
             mscn = MultiScene.from_files(
                     input_files_abi,
-                    reader=('abi_l1b'))
+                    reader='abi_l1b')
             assert len(mscn.scenes) == 6
             calls = [mock.call(
                 filenames={'abi_l1b': [in_file_abi]})
