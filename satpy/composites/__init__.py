@@ -154,7 +154,10 @@ class CompositorLoader(object):
         try:
             id_keys = conf['composite_identification_keys']
         except KeyError:
-            id_keys = self.ds_id_keys[sensor_deps[-1]]
+            try:
+                id_keys = self.ds_id_keys[sensor_deps[-1]]
+            except IndexError:
+                id_keys = minimal_default_keys_config
         self.ds_id_keys[sensor_id] = id_keys
         compositors = self.compositors[sensor_id]
         modifiers = self.modifiers[sensor_id]

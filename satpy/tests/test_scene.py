@@ -987,6 +987,25 @@ class TestSceneLoading(unittest.TestCase):
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
+    def test_load_ds5_resolution_list(self, cri, cl):
+        """Test loading a dataset has multiple resolutions available with different resolutions."""
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader(
+            'fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        scene.load(['ds5'], resolution=[500, 1000])
+        loaded_ids = list(scene.datasets.keys())
+        assert len(loaded_ids) == 1
+        assert loaded_ids[0].name == 'ds5'
+        assert loaded_ids[0].resolution == 500
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene.create_reader_instances')
     def test_load_ds5_missing_best_resolution(self, cri, cl):
         """Test loading a dataset that has multiple resolutions but the best isn't available."""
         import satpy.scene
@@ -1800,6 +1819,7 @@ class TestSceneLoading(unittest.TestCase):
         """Test dependency tree if too many reader keys match."""
         import satpy.scene
         from satpy.tests.utils import FakeReader, test_composites
+        import ipdb; ipdb.set_trace()
         datasets = [make_dataid(name='duplicate1', wavelength=(0.1, 0.2, 0.3)),
                     make_dataid(name='duplicate2', wavelength=(0.1, 0.2, 0.3))]
         reader = FakeReader('fake_reader', 'fake_sensor', datasets=datasets,

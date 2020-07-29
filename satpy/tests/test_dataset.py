@@ -23,6 +23,8 @@ from datetime import datetime
 import numpy as np
 import pytest
 
+from satpy.tests.utils import make_cid, make_dataid, make_dsq
+
 
 class TestDataID(unittest.TestCase):
     """Test DataID object creation and other methods."""
@@ -141,39 +143,17 @@ def test_dataid():
     """Test the DataID object."""
     from satpy.dataset import DataID, WavelengthRange, ModifierTuple, ValueList
 
-    default_id_keys_config = {'name': {
-                                'required': True,
-                              },
-                              'wavelength': {
-                                'type': WavelengthRange,
-                            },
-                            'resolution': None,
-                            'calibration': {
-                                'enum': [
-                                    'reflectance',
-                                    'brightness_temperature',
-                                    'radiance',
-                                    'counts'
-                                    ]
-                            },
-                            'modifiers': {
-                                'required': True,
-                                'default': ModifierTuple(),
-                                'type': ModifierTuple,
-                            },
-                            }
-
     # Check that enum is translated to type.
-    did = DataID(default_id_keys_config)
+    did = make_dataid()
     assert issubclass(did._id_keys['calibration']['type'], ValueList)
     assert 'enum' not in did._id_keys['calibration']
 
     # Check that None is never a valid value
-    did = DataID(default_id_keys_config, name='cheese_shops', resolution=None)
+    did = make_dataid(name='cheese_shops', resolution=None)
     assert 'resolution' not in did
     assert 'None' not in did.__repr__()
     with pytest.raises(ValueError):
-        DataID(default_id_keys_config, name=None, resolution=1000)
+        make_dataid(name=None, resolution=1000)
 
     # Check that defaults are applied correctly
     assert did['modifiers'] == ModifierTuple()
@@ -190,13 +170,13 @@ def test_dataid():
 
     # Check that a missing required field crashes
     with pytest.raises(ValueError):
-        DataID(default_id_keys_config, resolution=1000)
+        make_dataid(resolution=1000)
 
     # Check to_dict
     assert did.to_dict() == dict(name='cheese_shops', modifiers=tuple())
 
     # Check repr
-    did = DataID(default_id_keys_config, name='VIS008', resolution=111)
+    did = make_dataid(name='VIS008', resolution=111)
     assert repr(did) == "DataID(name='VIS008', resolution=111, modifiers=())"
 
     # Check inequality
@@ -214,7 +194,6 @@ def test_dataid():
                                     ]
                               },
                               'modifiers': {
-                                'required': True,
                                 'default': ModifierTuple(),
                                 'type': ModifierTuple,
                               },
@@ -275,7 +254,6 @@ def test_id_query_interactions():
                                     ]
                             },
                             'modifiers': {
-                                'required': True,
                                 'default': ModifierTuple(),
                                 'type': ModifierTuple,
                             },
@@ -303,6 +281,10 @@ def test_id_query_interactions():
                                name='natural_color')]
     dq = DataQuery(name='natural_color', resolution=250)
     assert len(dq.filter_dataids(dataid_container)) == 1
+
+    dq = make_dsq(wavelength=0.22, modifiers=('mod1',))
+    did = make_cid(name='static_image')
+    assert len(dq.filter_dataids([did])) == 0
 
     # Check did sorting
     dq = DataQuery(name='cheese_shops', wavelength=2, modifiers='*')
