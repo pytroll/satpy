@@ -246,7 +246,7 @@ class TestScene(unittest.TestCase):
         scene["2"] = DataArray(np.arange(5), attrs={'area': sd})
         scene["3"] = DataArray(np.arange(5))
         for area_obj, ds_list in scene.iter_by_area():
-            ds_list_names = set(ds.name for ds in ds_list)
+            ds_list_names = set(ds['name'] for ds in ds_list)
             if area_obj is sd:
                 self.assertSetEqual(ds_list_names, {'1', '2'})
             else:
@@ -942,7 +942,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds4'])
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 1)
-        self.assertEqual(loaded_ids[0].calibration, 'reflectance')
+        self.assertEqual(loaded_ids[0]['calibration'], 'reflectance')
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -960,8 +960,8 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds5'])
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 1)
-        self.assertEqual(loaded_ids[0].name, 'ds5')
-        self.assertEqual(loaded_ids[0].resolution, 250)
+        self.assertEqual(loaded_ids[0]['name'], 'ds5')
+        self.assertEqual(loaded_ids[0]['resolution'], 250)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -980,10 +980,10 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds5'], resolution=500)
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
-        self.assertEqual(loaded_ids[0].name, 'ds5')
-        self.assertEqual(loaded_ids[0].resolution, 500)
-        self.assertEqual(loaded_ids[1].name, 'ds5')
-        self.assertEqual(loaded_ids[1].resolution, 1000)
+        self.assertEqual(loaded_ids[0]['name'], 'ds5')
+        self.assertEqual(loaded_ids[0]['resolution'], 500)
+        self.assertEqual(loaded_ids[1]['name'], 'ds5')
+        self.assertEqual(loaded_ids[1]['resolution'], 1000)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1001,8 +1001,8 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds5'], resolution=[500, 1000])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0].name == 'ds5'
-        assert loaded_ids[0].resolution == 500
+        assert loaded_ids[0]['name'] == 'ds5'
+        assert loaded_ids[0]['resolution'] == 500
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1020,7 +1020,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load([make_dsq(name='ds5', modifiers=tuple())])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0].name == 'ds5'
+        assert loaded_ids[0]['name'] == 'ds5'
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1044,8 +1044,8 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['ds5'])
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 1)
-        self.assertEqual(loaded_ids[0].name, 'ds5')
-        self.assertEqual(loaded_ids[0].resolution, 500)
+        self.assertEqual(loaded_ids[0]['name'], 'ds5')
+        self.assertEqual(loaded_ids[0]['resolution'], 500)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1063,7 +1063,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load([0.22])
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 1)
-        self.assertEqual(loaded_ids[0].name, 'ds6')
+        self.assertEqual(loaded_ids[0]['name'], 'ds6')
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1137,10 +1137,10 @@ class TestSceneLoading(unittest.TestCase):
 
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
-        self.assertEqual(loaded_ids[0].name, 'comp25')
-        self.assertEqual(loaded_ids[0].resolution, 500)
-        self.assertEqual(loaded_ids[1].name, 'comp25')
-        self.assertEqual(loaded_ids[1].resolution, 1000)
+        self.assertEqual(loaded_ids[0]['name'], 'comp25')
+        self.assertEqual(loaded_ids[0]['resolution'], 500)
+        self.assertEqual(loaded_ids[1]['name'], 'comp25')
+        self.assertEqual(loaded_ids[1]['resolution'], 1000)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1159,10 +1159,10 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['comp24', 'comp25'], resolution=500)
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
-        self.assertEqual(loaded_ids[0].name, 'comp24')
-        self.assertEqual(loaded_ids[0].resolution, 500)
-        self.assertEqual(loaded_ids[1].name, 'comp25')
-        self.assertEqual(loaded_ids[1].resolution, 500)
+        self.assertEqual(loaded_ids[0]['name'], 'comp24')
+        self.assertEqual(loaded_ids[0]['resolution'], 500)
+        self.assertEqual(loaded_ids[1]['name'], 'comp25')
+        self.assertEqual(loaded_ids[1]['resolution'], 500)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1327,7 +1327,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['comp14'])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0].name == 'comp14'
+        assert loaded_ids[0]['name'] == 'comp14'
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1372,7 +1372,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['comp16'])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0].name == 'comp16'
+        assert loaded_ids[0]['name'] == 'comp16'
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1560,7 +1560,7 @@ class TestSceneLoading(unittest.TestCase):
         scene.load([make_dsq(name='ds1', modifiers=('mod1', 'mod2'))])
         loaded_ids = list(scene.datasets.keys())
         assert len(loaded_ids) == 1
-        assert loaded_ids[0].modifiers == ('mod1', 'mod2')
+        assert loaded_ids[0]['modifiers'] == ('mod1', 'mod2')
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1582,11 +1582,11 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
         for i in loaded_ids:
-            if i.name == 'ds1':
-                self.assertTupleEqual(i.modifiers, ('mod1', 'mod2'))
+            if i['name'] == 'ds1':
+                self.assertTupleEqual(i['modifiers'], ('mod1', 'mod2'))
             else:
-                self.assertEqual(i.name, 'ds2')
-                self.assertTupleEqual(i.modifiers, ('mod2', 'mod1'))
+                self.assertEqual(i['name'], 'ds2')
+                self.assertTupleEqual(i['modifiers'], ('mod2', 'mod1'))
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene.create_reader_instances')
@@ -1731,14 +1731,14 @@ class TestSceneLoading(unittest.TestCase):
                                   reader='fake_reader')
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp10'], generate=False)
-        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in scene.wishlist))
+        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene.wishlist))
         self.assertNotIn('comp10', scene.datasets)
         # two dependencies should have been loaded
         self.assertEqual(len(scene.datasets), 2)
         self.assertEqual(len(scene.missing_datasets), 1)
 
         scene.generate_composites()
-        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in scene.wishlist))
+        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene.wishlist))
         self.assertIn('comp10', scene.datasets)
         self.assertEqual(len(scene.missing_datasets), 0)
 
@@ -1824,8 +1824,8 @@ class TestSceneLoading(unittest.TestCase):
         scene.load(['comp11', 'comp23'])
         comp11_node = scene.dep_tree['comp11']
         comp23_node = scene.dep_tree['comp23']
-        self.assertEqual(comp11_node.data[1][-1].name.name, 'ds10')
-        self.assertEqual(comp23_node.data[1][0].name.name, 'ds8')
+        self.assertEqual(comp11_node.data[1][-1].name['name'], 'ds10')
+        self.assertEqual(comp23_node.data[1][0].name['name'], 'ds8')
         loaded_ids = list(scene.datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
         self.assertIn('comp11', scene.datasets)
@@ -2134,7 +2134,7 @@ class TestSceneResampling(unittest.TestCase):
 
         # it is fine that an optional prereq doesn't exist
         scene.load(['comp10'], generate=False)
-        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in scene.wishlist))
+        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene.wishlist))
         self.assertNotIn('comp10', scene.datasets)
         # two dependencies should have been loaded
         self.assertEqual(len(scene.datasets), 2)
@@ -2147,13 +2147,13 @@ class TestSceneResampling(unittest.TestCase):
         self.assertEqual(len(scene.missing_datasets), 1)
 
         new_scn.generate_composites()
-        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in new_scn.wishlist))
+        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in new_scn.wishlist))
         self.assertIn('comp10', new_scn.datasets)
         self.assertEqual(len(new_scn.missing_datasets), 0)
 
         # try generating them right away
         new_scn = scene.resample(area_def)
-        self.assertTrue(any(ds_id.name == 'comp10' for ds_id in new_scn.wishlist))
+        self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in new_scn.wishlist))
         self.assertIn('comp10', new_scn.datasets)
         self.assertEqual(len(new_scn.missing_datasets), 0)
 

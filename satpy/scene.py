@@ -158,7 +158,7 @@ class Scene(MetadataObject):
         self.resamplers = {}
 
     def _ipython_key_completions_(self):
-        return [x.name for x in self.datasets.keys()]
+        return [x['name'] for x in self.datasets.keys()]
 
     def _compute_metadata_from_readers(self):
         """Determine pieces of metadata from the readers loaded."""
@@ -315,7 +315,7 @@ class Scene(MetadataObject):
 
     def available_dataset_names(self, reader_name=None, composites=False):
         """Get the list of the names of the available datasets."""
-        return sorted(set(x.name for x in self.available_dataset_ids(
+        return sorted(set(x['name'] for x in self.available_dataset_ids(
             reader_name=reader_name, composites=composites)))
 
     def all_dataset_ids(self, reader_name=None, composites=False):
@@ -349,7 +349,7 @@ class Scene(MetadataObject):
         product for a particular reader.
 
         """
-        return sorted(set(x.name for x in self.all_dataset_ids(
+        return sorted(set(x['name'] for x in self.all_dataset_ids(
             reader_name=reader_name, composites=composites)))
 
     def _check_known_composites(self, available_only=False):
@@ -377,7 +377,7 @@ class Scene(MetadataObject):
 
     def available_composite_names(self):
         """All configured composites known to this Scene."""
-        return sorted(set(x.name for x in self.available_composite_ids()))
+        return sorted(set(x['name'] for x in self.available_composite_ids()))
 
     def all_composite_ids(self):
         """Get all IDs for configured composites."""
@@ -385,7 +385,7 @@ class Scene(MetadataObject):
 
     def all_composite_names(self):
         """Get all names for all configured composites."""
-        return sorted(set(x.name for x in self.all_composite_ids()))
+        return sorted(set(x['name'] for x in self.all_composite_ids()))
 
     def all_modifier_names(self):
         """Get names of configured modifier objects."""

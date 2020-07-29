@@ -582,7 +582,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                     if not isinstance(file_types, list):
                         file_types = [file_types]
                     if ftype in file_types:
-                        self.assertEqual(resol, ds_id.resolution)
+                        self.assertEqual(resol, ds_id['resolution'])
 
 
 class TestGEOFlippableFileYAMLReader(unittest.TestCase):
