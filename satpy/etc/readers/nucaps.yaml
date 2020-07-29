@@ -9,7 +9,6 @@ reader:
     level:
     resolution:
     modifiers:
-      required: true
       default: []
       type: !!python/name:satpy.dataset.ModifierTuple
 

@@ -24,6 +24,10 @@ If one wants to use wildcards to query data, just provide `'*'`, eg::
 
   scn.load([DataQuery(name='channel1', resolution=400, calibration='*')]
 
+Alternatively, one can provide a list as parameter to query data, like this::
+
+  scn.load([DataQuery(name='channel1', resolution=[400, 800])]
+
 
 
 DataID

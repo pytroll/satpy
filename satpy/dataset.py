@@ -198,7 +198,6 @@ default_id_keys_config = {'name': {
                                   ]
                           },
                           'modifiers': {
-                              'required': True,
                               'default': ModifierTuple(),
                               'type': ModifierTuple,
                           },
@@ -315,7 +314,7 @@ def get_keys_from_config(common_id_keys, config):
     for key, val in common_id_keys.items():
         if key in config:
             id_keys[key] = val
-        elif val is not None and val.get('required') is True:
+        elif val is not None and (val.get('required') is True or val.get('default') is not None):
             id_keys[key] = val
     if not id_keys:
         raise ValueError('Metadata does not contain enough information to create a DataID.')
@@ -409,7 +408,7 @@ class DataID(dict):
             return curated
         for key, val in self._id_keys.items():
             if val is not None:
-                if key in keyvals or val.get('default') or val.get('required'):
+                if key in keyvals or val.get('default') is not None or val.get('required'):
                     curated_val = keyvals.get(key, val.get('default'))
                     if 'required' in val and curated_val is None:
                         raise ValueError('Required field {} missing.'.format(key))
@@ -654,33 +653,41 @@ class DataQuery:
         items = ("{}={}".format(key, repr(val)) for key, val in zip(self._fields, self._values))
         return self.__class__.__name__ + "(" + ", ".join(items) + ")"
 
+    def filter_dataids(self, dataid_container):
+        """Filter DataIDs based on this query."""
+        keys = list(filter(self._match_dataid, dataid_container))
+        keys = [dataid for dataid in keys if set(dataid.keys()) & set(self._fields)]
+
+        return keys
+
     def _match_dataid(self, dataid):
         """Match the dataid with the current query."""
-        has_required = False
+        if self._shares_required_keys(dataid):
+            keys_to_check = set(dataid.keys()) & set(self._fields)
+        else:
+            keys_to_check = set(dataid._id_keys.keys()) & set(self._fields)
+        if not keys_to_check:
+            return False
+        return all(self._match_query_value(key, dataid.get(key)) for key in keys_to_check)
+
+    def _shares_required_keys(self, dataid):
+        """Check if dataid shares required keys with the current query."""
         for key, val in dataid._id_keys.items():
             try:
                 if val.get('required', False):
                     if key in self._fields:
-                        has_required = True
-                    break
+                        return True
             except AttributeError:
                 continue
-        if has_required:
-            for key, val in self._dict.items():
-                if val != '*' and dataid.get(key, val) != val and key in dataid._id_keys:
-                    return False
-        else:
-            for key, val in self._dict.items():
-                if val != '*' and dataid.get(key, None) != val and key in dataid._id_keys:
-                    return False
-        return True
+        return False
 
-    def filter_dataids(self, dataid_container):
-        """Filter DataIDs based on this query."""
-        keys = filter(self._match_dataid, dataid_container)
-        keys = [dataid for dataid in keys if set(dataid.keys()) & set(self._fields)]
-
-        return keys
+    def _match_query_value(self, key, id_val):
+        val = self._dict[key]
+        if val == '*':
+            return True
+        if not isinstance(val, list):
+            val = [val]
+        return id_val in val
 
     def sort_dataids(self, dataids):
         """Sort the DataIDs based on this query.

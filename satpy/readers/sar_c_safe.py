@@ -194,10 +194,10 @@ class SAFEXML(BaseFileHandler):
             noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
         return noise
 
-    def get_calibration(self, name, shape, chunks=None):
+    def get_calibration(self, calibration_name, shape, chunks=None):
         """Get the calibration array."""
         data_items = self.root.findall(".//calibrationVector")
-        data, low_res_coords = self.read_xml_array(data_items, name)
+        data, low_res_coords = self.read_xml_array(data_items, calibration_name)
         return self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
 
     def get_calibration_constant(self):
@@ -324,11 +324,11 @@ class SAFEGRD(BaseFileHandler):
             data.attrs.update(info)
 
         else:
-            calibration = key.calibration or 'gamma'
-            if calibration == 'sigma_nought':
-                calibration = 'sigmaNought'
-            elif calibration == 'beta_nought':
-                calibration = 'betaNought'
+            calibration_name = key['calibration'].name or 'gamma'
+            if calibration_name == 'sigma_nought':
+                calibration_name = 'sigmaNought'
+            elif calibration_name == 'beta_nought':
+                calibration_name = 'betaNought'
 
             data = self.read_band()
             # chunks = data.chunks  # This seems to be slower for some reason
@@ -338,7 +338,7 @@ class SAFEGRD(BaseFileHandler):
 
             logger.debug('Reading calibration data.')
 
-            cal = self.calibration.get_calibration(calibration, data.shape, chunks=chunks)
+            cal = self.calibration.get_calibration(calibration_name, data.shape, chunks=chunks)
             cal_constant = self.calibration.get_calibration_constant()
 
             logger.debug('Calibrating.')
@@ -354,7 +354,7 @@ class SAFEGRD(BaseFileHandler):
 
             data.attrs.update({'platform_name': self._mission_id})
 
-            data.attrs['units'] = calibration
+            data.attrs['units'] = '1'
 
         return data
 

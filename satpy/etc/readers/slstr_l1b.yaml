@@ -29,7 +29,6 @@ reader:
         - i
         - f
     modifiers:
-      required: true
       default: []
       type: !!python/name:satpy.dataset.ModifierTuple
 

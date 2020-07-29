@@ -16,7 +16,6 @@ reader:
         - sigma_nought
         - beta_nought
     modifiers:
-      required: true
       default: []
       type: !!python/name:satpy.dataset.ModifierTuple
 
