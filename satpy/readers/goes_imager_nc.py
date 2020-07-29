@@ -1002,19 +1002,19 @@ class GOESNCFileHandler(GOESNCBaseFileHandler):
                                                 filetype_info)
 
     def get_dataset(self, key, info):
-        """Load dataset designated by the given key from file"""
-        logger.debug('Reading dataset {}'.format(key.name))
+        """Load dataset designated by the given key from file."""
+        logger.debug('Reading dataset {}'.format(key['name']))
 
         # Read data from file and calibrate if necessary
-        if 'longitude' in key.name:
+        if 'longitude' in key['name']:
             data = self.geo_data['lon']
-        elif 'latitude' in key.name:
+        elif 'latitude' in key['name']:
             data = self.geo_data['lat']
         else:
             tic = datetime.now()
             data = self.calibrate(self.nc['data'].isel(time=0),
-                                  calibration=key.calibration,
-                                  channel=key.name)
+                                  calibration=key['calibration'],
+                                  channel=key['name'])
             logger.debug('Calibration time: {}'.format(datetime.now() - tic))
 
         # Mask space pixels
@@ -1068,12 +1068,12 @@ class GOESEUMNCFileHandler(GOESNCBaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load dataset designated by the given key from file"""
-        logger.debug('Reading dataset {}'.format(key.name))
+        logger.debug('Reading dataset {}'.format(key['name']))
 
         tic = datetime.now()
         data = self.calibrate(self.nc['data'].isel(time=0),
-                              calibration=key.calibration,
-                              channel=key.name)
+                              calibration=key['calibration'],
+                              channel=key['name'])
         logger.debug('Calibration time: {}'.format(datetime.now() - tic))
 
         # Mask space pixels
@@ -1129,15 +1129,15 @@ class GOESEUMGEONCFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load dataset designated by the given key from file"""
-        logger.debug('Reading dataset {}'.format(key.name))
+        logger.debug('Reading dataset {}'.format(key['name']))
 
         # Read data from file and calibrate if necessary
-        if 'longitude' in key.name:
+        if 'longitude' in key['name']:
             data = self.nc['lon']
-        elif 'latitude' in key.name:
+        elif 'latitude' in key['name']:
             data = self.nc['lat']
         else:
-            raise KeyError("Unknown dataset: {}".format(key.name))
+            raise KeyError("Unknown dataset: {}".format(key['name']))
 
         # Set proper dimension names
         data = data.rename({'xc': 'x', 'yc': 'y'})
