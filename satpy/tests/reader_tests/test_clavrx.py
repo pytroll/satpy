@@ -129,7 +129,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -141,7 +141,7 @@ class TestCLAVRXReaderPolar(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'clavrx_npp_d20170520_t2053581_e2055223_b28822.level2.hdf',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -319,7 +319,7 @@ class TestCLAVRXReaderGeo(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'clavrx_H08_20180806_1800.level2.hdf',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)

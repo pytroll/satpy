@@ -166,7 +166,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         from satpy.readers import load_reader
         FY3B_reader = load_reader(self.reader_configs)
         FY3B_file = FY3B_reader.select_files_from_pathnames(['tf2018359214943.FY3B-L_VIRRX_L1B.HDF'])
-        self.assertTrue(1, len(FY3B_file))
+        self.assertEqual(1, len(FY3B_file))
         FY3B_reader.create_filehandlers(FY3B_file)
         # Make sure we have some files
         self.assertTrue(FY3B_reader.file_handlers)
@@ -178,7 +178,7 @@ class TestVIRRL1BReader(unittest.TestCase):
         FY3C_reader = load_reader(self.reader_configs)
         FY3C_files = FY3C_reader.select_files_from_pathnames(['tf2018359143912.FY3C-L_VIRRX_GEOXX.HDF',
                                                               'tf2018359143912.FY3C-L_VIRRX_L1B.HDF'])
-        self.assertTrue(2, len(FY3C_files))
+        self.assertEqual(2, len(FY3C_files))
         FY3C_reader.create_filehandlers(FY3C_files)
         # Make sure we have some files
         self.assertTrue(FY3C_reader.file_handlers)

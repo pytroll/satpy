@@ -97,7 +97,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
