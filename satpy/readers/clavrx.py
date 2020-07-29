@@ -15,8 +15,8 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Interface to CLAVR-X HDF4 products.
-"""
+"""Interface to CLAVR-X HDF4 products."""
+
 import os
 import logging
 import numpy as np
@@ -34,6 +34,8 @@ CF_UNITS = {
 
 
 class CLAVRXFileHandler(HDF4FileHandler):
+    """A file handler for CLAVRx files."""
+
     sensors = {
         'MODIS': 'modis',
         'VIIRS': 'viirs',
@@ -63,23 +65,27 @@ class CLAVRXFileHandler(HDF4FileHandler):
     }
 
     def get_sensor(self, sensor):
+        """Get the sensor."""
         for k, v in self.sensors.items():
             if k in sensor:
                 return v
         raise ValueError("Unknown sensor '{}'".format(sensor))
 
     def get_platform(self, platform):
+        """Get the platform."""
         for k, v in self.platforms.items():
             if k in platform:
                 return v
         return platform
 
     def get_rows_per_scan(self, sensor):
+        """Get number of rows per scan."""
         for k, v in self.rows_per_scan.items():
             if sensor.startswith(k):
                 return v
 
     def get_nadir_resolution(self, sensor):
+        """Get nadir resolution."""
         for k, v in self.nadir_resolution.items():
             if sensor.startswith(k):
                 return v
@@ -91,14 +97,16 @@ class CLAVRXFileHandler(HDF4FileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self.filename_info['start_time']
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self.filename_info.get('end_time', self.start_time)
 
     def available_datasets(self, configured_datasets=None):
-        """Automatically determine datasets provided by this file"""
+        """Automatically determine datasets provided by this file."""
         sensor = self.get_sensor(self['/attr/sensor'])
         nadir_resolution = self.get_nadir_resolution(sensor)
         coordinates = ('longitude', 'latitude')
@@ -141,10 +149,12 @@ class CLAVRXFileHandler(HDF4FileHandler):
                 yield True, ds_info
 
     def get_shape(self, dataset_id, ds_info):
+        """Get the shape."""
         var_name = ds_info.get('file_key', dataset_id['name'])
         return self[var_name + '/shape']
 
     def get_metadata(self, data_arr, ds_info):
+        """Get metadata."""
         i = {}
         i.update(data_arr.attrs)
         i.update(ds_info)
@@ -171,6 +181,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
         return i
 
     def get_dataset(self, dataset_id, ds_info):
+        """Get a dataset."""
         var_name = ds_info.get('file_key', dataset_id['name'])
         data = self[var_name]
         if dataset_id['resolution']:
@@ -214,8 +225,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
 
     @staticmethod
     def _read_pug_fixed_grid(projection, distance_multiplier=1.0):
-        """Read from recent PUG format, where axes are in meters
-        """
+        """Read from recent PUG format, where axes are in meters."""
         a = projection.semi_major_axis
         h = projection.perspective_point_height
         b = projection.semi_minor_axis
@@ -244,7 +254,9 @@ class CLAVRXFileHandler(HDF4FileHandler):
         return l1b_filenames[0]
 
     def _read_axi_fixed_grid(self, l1b_attr):
-        """CLAVR-x does not transcribe fixed grid parameters to its output
+        """Read a fixed grid.
+
+        CLAVR-x does not transcribe fixed grid parameters to its output
         We have to recover that information from the original input file,
         which is partially named as L1B attribute
 
