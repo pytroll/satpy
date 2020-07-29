@@ -107,8 +107,8 @@ class IASIL2HDF5(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset"""
         with h5py.File(self.filename, 'r') as fid:
-            LOGGER.debug('Reading %s.', key.name)
-            if key.name in DSET_NAMES:
+            LOGGER.debug('Reading %s.', key['name'])
+            if key['name'] in DSET_NAMES:
                 m_data = read_dataset(fid, key)
             else:
                 m_data = read_geo(fid, key)
@@ -119,15 +119,15 @@ class IASIL2HDF5(BaseFileHandler):
 
 
 def read_dataset(fid, key):
-    """Read dataset"""
-    dsid = DSET_NAMES[key.name]
+    """Read dataset."""
+    dsid = DSET_NAMES[key['name']]
     dset = fid["/PWLR/" + dsid]
     if dset.ndim == 3:
         dims = ['y', 'x', 'level']
     else:
         dims = ['y', 'x']
     data = xr.DataArray(da.from_array(dset.value, chunks=CHUNK_SIZE),
-                        name=key.name, dims=dims).astype(np.float32)
+                        name=key['name'], dims=dims).astype(np.float32)
     data = xr.where(data > 1e30, np.nan, data)
 
     dset_attrs = dict(dset.attrs)
@@ -138,9 +138,9 @@ def read_dataset(fid, key):
 
 def read_geo(fid, key):
     """Read geolocation and related datasets."""
-    dsid = GEO_NAMES[key.name]
+    dsid = GEO_NAMES[key['name']]
     add_epoch = False
-    if "time" in key.name:
+    if "time" in key['name']:
         days = fid["/L1C/" + dsid["day"]].value
         msecs = fid["/L1C/" + dsid["msec"]].value
         data = _form_datetimes(days, msecs)
@@ -150,7 +150,7 @@ def read_geo(fid, key):
         data = fid["/L1C/" + dsid].value
         dtype = np.float32
     data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
-                        name=key.name, dims=['y', 'x']).astype(dtype)
+                        name=key['name'], dims=['y', 'x']).astype(dtype)
 
     if add_epoch:
         data.attrs['sensing_time_epoch'] = EPOCH

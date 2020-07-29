@@ -141,15 +141,15 @@ class HSAFFileHandler(BaseFileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Read a GRIB message into an xarray DataArray."""
-        if (ds_id.name not in self.filename):
-            raise IOError("File does not contain {} data".format(ds_id.name))
+        if (ds_id['name'] not in self.filename):
+            raise IOError("File does not contain {} data".format(ds_id['name']))
 
         msg = self._get_message(1)
 
         ds_info = self.get_metadata(msg)
         ds_info['end_time'] = ds_info['data_time']
 
-        if (ds_id.name == 'h05' or ds_id.name == 'h05B'):
+        if (ds_id['name'] == 'h05' or ds_id['name'] == 'h05B'):
             flen = len(self.filename)
             timedelt = self.filename[flen-10:flen-8]
             ds_info['start_time'] = (ds_info['end_time'] -
