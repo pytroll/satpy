@@ -1819,7 +1819,6 @@ class TestSceneLoading(unittest.TestCase):
         """Test dependency tree if too many reader keys match."""
         import satpy.scene
         from satpy.tests.utils import FakeReader, test_composites
-        import ipdb; ipdb.set_trace()
         datasets = [make_dataid(name='duplicate1', wavelength=(0.1, 0.2, 0.3)),
                     make_dataid(name='duplicate2', wavelength=(0.1, 0.2, 0.3))]
         reader = FakeReader('fake_reader', 'fake_sensor', datasets=datasets,
