@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Modis level 1b hdf-eos format reader
+"""Modis level 1b hdf-eos format reader.
 
 Introduction
 ------------
@@ -63,6 +63,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
            "H": 500}
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
 
         ds = self.metadata['INVENTORYMETADATA'][
@@ -187,10 +188,12 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
     """A file handler for the files that have both regular bands and geographical information in them."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info)
         HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info)
 
     def get_dataset(self, key, info):
+        """Get the dataset."""
         if key['name'] in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, key, info)
         return HDFEOSBandReader.get_dataset(self, key, info)

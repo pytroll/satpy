@@ -103,7 +103,6 @@ class NcNWCSAF(BaseFileHandler):
 
     def set_platform_and_sensor(self, **kwargs):
         """Set some metadata: platform_name, sensors, and pps (identifying PPS or Geo)."""
-
         try:
             # NWCSAF/Geo
             self.platform_name = PLATFORM_NAMES.get(kwargs['sat_id'], kwargs['sat_id'])

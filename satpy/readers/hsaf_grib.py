@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""A reader for files produced by the Hydrology SAF
+"""A reader for files produced by the Hydrology SAF.
 
 Currently this reader depends on the `pygrib` python package. The `eccodes`
 package from ECMWF is preferred, but does not support python 3 at the time
@@ -42,8 +42,10 @@ CF_UNITS = {
 
 
 class HSAFFileHandler(BaseFileHandler):
+    """File handler for HSAF grib files."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         super(HSAFFileHandler, self).__init__(filename,
                                               filename_info,
                                               filetype_info)
@@ -68,12 +70,11 @@ class HSAFFileHandler(BaseFileHandler):
 
     @property
     def analysis_time(self):
-        """
-        Get validity time of this file
-        """
+        """Get validity time of this file."""
         return self._analysis_time
 
     def get_metadata(self, msg):
+        """Get the metadata."""
         try:
             center_description = msg['centreDescription']
         except (RuntimeError, KeyError):
@@ -92,9 +93,7 @@ class HSAFFileHandler(BaseFileHandler):
         return ds_info
 
     def get_area_def(self, dsid):
-        """
-        Get area definition for message.
-        """
+        """Get area definition for message."""
         msg = self._get_message(1)
         try:
             return self._get_area_def(msg)
@@ -102,10 +101,7 @@ class HSAFFileHandler(BaseFileHandler):
             raise RuntimeError("Unknown GRIB projection information")
 
     def _get_area_def(self, msg):
-        """
-        Get the area definition of the datasets in the file.
-        """
-
+        """Get the area definition of the datasets in the file."""
         proj_param = msg.projparams.copy()
 
         Rx = 2 * np.arcsin(1. / msg['NrInRadiusOfEarth']) / msg['dx']

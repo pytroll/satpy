@@ -14,7 +14,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""HY-2B L2B Reader, distributed by Eumetsat in HDF5 format"""
+"""HY-2B L2B Reader, distributed by Eumetsat in HDF5 format."""
 
 import numpy as np
 import xarray as xr
@@ -26,6 +26,7 @@ from satpy.readers.hdf5_utils import HDF5FileHandler
 
 
 class HY2SCATL2BH5FileHandler(HDF5FileHandler):
+    """File handler for HY2 scat."""
 
     @property
     def start_time(self):
@@ -41,10 +42,11 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
 
     @property
     def platform_name(self):
-        """Platform ShortName"""
+        """Get the Platform ShortName."""
         return self['/attr/Platform_ShortName']
 
     def get_variable_metadata(self):
+        """Get the variable metadata."""
         info = getattr(self, 'attrs', {})
         info.update({
             "Equator_Crossing_Longitude": self['/attr/Equator_Crossing_Longitude'],
@@ -61,6 +63,7 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         return info
 
     def get_metadata(self):
+        """Get the metadata."""
         info = getattr(self, 'attrs', {})
         info.update({
             "WVC_Size": self['/attr/WVC_Size'],
@@ -85,6 +88,7 @@ class HY2SCATL2BH5FileHandler(HDF5FileHandler):
         return info
 
     def get_dataset(self, key, info):
+        """Get the dataset."""
         dims = ['y', 'x']
         if self[key['name']].ndim == 3:
             dims = ['y', 'x', 'selection']

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017 Satpy developers
+# Copyright (c) 2017-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""IASI L2 HDF5 files.
-"""
+"""IASI L2 HDF5 files."""
 
 import h5py
 import numpy as np
@@ -75,10 +74,10 @@ LOGGER = logging.getLogger(__name__)
 
 
 class IASIL2HDF5(BaseFileHandler):
-
     """File handler for IASI L2 HDF5 files."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         super(IASIL2HDF5, self).__init__(filename, filename_info,
                                          filetype_info)
 
@@ -94,10 +93,12 @@ class IASIL2HDF5(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self.finfo['start_time']
 
     @property
     def end_time(self):
+        """Get the end time."""
         end_time = dt.datetime.combine(self.start_time.date(),
                                        self.finfo['end_time'].time())
         if end_time < self.start_time:
@@ -105,7 +106,7 @@ class IASIL2HDF5(BaseFileHandler):
         return end_time
 
     def get_dataset(self, key, info):
-        """Load a dataset"""
+        """Load a dataset."""
         with h5py.File(self.filename, 'r') as fid:
             LOGGER.debug('Reading %s.', key['name'])
             if key['name'] in DSET_NAMES:
@@ -160,7 +161,6 @@ def read_geo(fid, key):
 
 def _form_datetimes(days, msecs):
     """Calculate seconds since EPOCH from days and milliseconds for each of IASI scan."""
-
     all_datetimes = []
     for i in range(days.size):
         day = int(days[i])
@@ -169,7 +169,7 @@ def _form_datetimes(days, msecs):
         for j in range(int(VALUES_PER_SCAN_LINE / 4)):
             usec = 1000 * (j * VIEW_TIME_ADJUSTMENT + msec)
             delta = (dt.timedelta(days=day, microseconds=usec))
-            for k in range(4):
+            for _k in range(4):
                 scanline_datetimes.append(delta.total_seconds())
         all_datetimes.append(scanline_datetimes)
 
