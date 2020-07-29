@@ -39,8 +39,10 @@ logger = logging.getLogger(__name__)
 
 
 class MAIAFileHandler(BaseFileHandler):
+    """File handler for Maia files."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         super(MAIAFileHandler, self).__init__(
             filename, filename_info, filetype_info)
         self.finfo = filename_info
@@ -57,6 +59,7 @@ class MAIAFileHandler(BaseFileHandler):
         self.read(self.filename)
 
     def read(self, filename):
+        """Read the file."""
         self.h5 = h5py.File(filename, 'r')
         missing = -9999.
         self.Lat = da.from_array(self.h5[u'DATA/Latitude'], chunks=CHUNK_SIZE) / 10000.
@@ -105,6 +108,7 @@ class MAIAFileHandler(BaseFileHandler):
         self.file_content['ct'] = classif.astype(np.uint8)
 
     def get_platform(self, platform):
+        """Get the platform."""
         if self.file_content['sat_id'] in (14,):
             return "viirs"
         else:
@@ -112,15 +116,16 @@ class MAIAFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self.finfo['start_time']
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self.finfo['end_time']
 
     def get_dataset(self, key, info, out=None):
         """Get a dataset from the file."""
-
         logger.debug("Reading %s.", key['name'])
         values = self.file_content[key['name']]
         selected = np.array(self.selected)

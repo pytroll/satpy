@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE SAR L2 OCN format reader
+"""SAFE SAR L2 OCN format reader.
 
 The OCN data contains various parameters, but mainly the wind speed and direction
 calculated from SAR data and input model data from ECMWF
@@ -40,6 +40,7 @@ class SAFENC(BaseFileHandler):
     """Measurement file reader."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file reader."""
         super(SAFENC, self).__init__(filename, filename_info,
                                      filetype_info)
 
