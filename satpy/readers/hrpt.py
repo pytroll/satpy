@@ -143,9 +143,9 @@ class HRPTFile(BaseFileHandler):
         if self._data is None:
             self.read()
 
-        if key.name in ['latitude', 'longitude']:
+        if key['name'] in ['latitude', 'longitude']:
             lons, lats = self.get_lonlats()
-            if key.name == 'latitude':
+            if key['name'] == 'latitude':
                 return Dataset(lats, id=key)
             else:
                 return Dataset(lons, id=key)
@@ -156,19 +156,19 @@ class HRPTFile(BaseFileHandler):
                                '3b': 2,
                                '4': 3,
                                '5': 4}
-        index = avhrr_channel_index[key.name]
+        index = avhrr_channel_index[key['name']]
         mask = False
-        if key.name in ['3a', '3b'] and self._is3b is None:
+        if key['name'] in ['3a', '3b'] and self._is3b is None:
             ch3a = bfield(self._data["id"]["id"], 10)
             self._is3b = np.logical_not(ch3a)
 
-        if key.name == '3a':
+        if key['name'] == '3a':
             mask = np.tile(self._is3b, (1, 2048))
-        elif key.name == '3b':
+        elif key['name'] == '3b':
             mask = np.tile(np.logical_not(self._is3b), (1, 2048))
 
         data = self._data["image_data"][:, :, index]
-        if key.calibration == 'counts':
+        if key['calibration'] == 'counts':
             return Dataset(data,
                            mask=mask,
                            area=self.get_lonlats(),
@@ -178,12 +178,12 @@ class HRPTFile(BaseFileHandler):
 
         jdays = (np.datetime64(self.start_time) - np.datetime64(str(
             self.year) + '-01-01T00:00:00Z')) / np.timedelta64(1, 'D')
-        if index < 2 or key.name == '3a':
+        if index < 2 or key['name'] == '3a':
             data = calibrate_solar(data, index, self.year, jdays,
                                    pg_spacecraft)
             units = '%'
 
-        if index > 2 or key.name == '3b':
+        if index > 2 or key['name'] == '3b':
             if self.times is None:
                 self.times = time_seconds(self._data["timecode"], self.year)
             line_numbers = (

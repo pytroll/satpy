@@ -69,26 +69,26 @@ class SAFENC(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if key.name in ['owiLat', 'owiLon']:
+        if key['name'] in ['owiLat', 'owiLon']:
             if self.lons is None or self.lats is None:
                 self.lons = self.nc['owiLon']
                 self.lats = self.nc['owiLat']
-            if key.name == 'owiLat':
+            if key['name'] == 'owiLat':
                 res = self.lats
             else:
                 res = self.lons
             res.attrs = info
         else:
-            res = self.nc[key.name]
-            if key.name in ['owiHs', 'owiWl', 'owiDirmet']:
+            res = self.nc[key['name']]
+            if key['name'] in ['owiHs', 'owiWl', 'owiDirmet']:
                 res = xr.DataArray(res, dims=['y', 'x', 'oswPartitions'])
-            elif key.name in ['owiNrcs', 'owiNesz', 'owiNrcsNeszCorr']:
+            elif key['name'] in ['owiNrcs', 'owiNesz', 'owiNrcsNeszCorr']:
                 res = xr.DataArray(res, dims=['y', 'x', 'oswPolarisation'])
-            elif key.name in ['owiPolarisationName']:
+            elif key['name'] in ['owiPolarisationName']:
                 res = xr.DataArray(res, dims=['owiPolarisation'])
-            elif key.name in ['owiCalConstObsi', 'owiCalConstInci']:
+            elif key['name'] in ['owiCalConstObsi', 'owiCalConstInci']:
                 res = xr.DataArray(res, dims=['owiIncSize'])
-            elif key.name.startswith('owi'):
+            elif key['name'].startswith('owi'):
                 res = xr.DataArray(res, dims=['y', 'x'])
             else:
                 res = xr.DataArray(res, dims=['y', 'x'])

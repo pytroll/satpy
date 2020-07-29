@@ -121,17 +121,17 @@ class MAIAFileHandler(BaseFileHandler):
     def get_dataset(self, key, info, out=None):
         """Get a dataset from the file."""
 
-        logger.debug("Reading %s.", key.name)
-        values = self.file_content[key.name]
+        logger.debug("Reading %s.", key['name'])
+        values = self.file_content[key['name']]
         selected = np.array(self.selected)
-        if key.name in ("Latitude", "Longitude"):
+        if key['name'] in ("Latitude", "Longitude"):
             values = values / 10000.
-        if key.name in ('Tsurf', 'CloudTopPres', 'CloudTopTemp'):
+        if key['name'] in ('Tsurf', 'CloudTopPres', 'CloudTopTemp'):
             goods = values > -9998.
             selected = np.array(selected & goods)
-            if key.name in ('Tsurf', "Alt_surface", "CloudTopTemp"):
+            if key['name'] in ('Tsurf', "Alt_surface", "CloudTopTemp"):
                 values = values / 100.
-            if key.name in ("CloudTopPres"):
+            if key['name'] in ("CloudTopPres"):
                 values = values / 10.
         else:
             selected = self.selected
@@ -139,7 +139,7 @@ class MAIAFileHandler(BaseFileHandler):
 
         fill_value = np.nan
 
-        if key.name == 'ct':
+        if key['name'] == 'ct':
             fill_value = 0
             info['_FillValue'] = 0
         ds = DataArray(values, dims=['y', 'x'], attrs=info).where(selected, fill_value)

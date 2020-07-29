@@ -142,7 +142,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         """Return data array shape for item specified."""
-        var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(ds_id['name']))
         if var_path + '/shape' not in self:
             # loading a scalar value
             shape = 1
@@ -156,7 +156,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         shape = self.get_shape(dataset_id, ds_info)
         file_units = ds_info.get('file_units',
                                  self.get(var_path + '/attr/units'))
@@ -178,7 +178,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
         if 'standard_name' not in info:
             sname_path = var_path + '/attr/standard_name'
             info['standard_name'] = self.get(sname_path)
-        if dataset_id.name != 'Quality_Flag':
+        if dataset_id['name'] != 'Quality_Flag':
             anc_vars = info.get('ancillary_variables', [])
             if 'Quality_Flag' not in anc_vars:
                 anc_vars.append('Quality_Flag')
@@ -187,7 +187,7 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data array and metadata for specified dataset."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         metadata = self.get_metadata(dataset_id, ds_info)
         valid_min, valid_max = self[var_path + '/attr/valid_range']
         fill_value = self.get(var_path + '/attr/_FillValue')
@@ -269,12 +269,12 @@ class NUCAPSReader(FileYAMLReader):
                     new_info = ds_info.copy()
                     new_info['pressure_level'] = lvl_num
                     new_info['pressure_index'] = idx
-                    new_info['file_key'] = '{}'.format(ds_id.name)
-                    new_info['name'] = ds_id.name + suffix
+                    new_info['file_key'] = '{}'.format(ds_id['name'])
+                    new_info['name'] = ds_id['name'] + suffix
                     new_ds_id = ds_id._replace(name=new_info['name'])
                     new_info['id'] = new_ds_id
                     self.all_ids[new_ds_id] = new_info
-                    self.pressure_dataset_names[ds_id.name].append(new_info['name'])
+                    self.pressure_dataset_names[ds_id['name']].append(new_info['name'])
 
     def load(self, dataset_keys, previous_datasets=None, pressure_levels=None):
         """Load data from one or more set of files.

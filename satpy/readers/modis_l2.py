@@ -91,7 +91,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get DataArray for specified dataset."""
-        dataset_name = dataset_id.name
+        dataset_name = dataset_id['name']
         if dataset_name in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, dataset_id, dataset_info)
         dataset_name_in_file = dataset_info['file_key']
@@ -101,11 +101,11 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
             byte_dimension = dataset_info['byte_dimension']  # Where the information is stored
             dataset = self._select_hdf_dataset(dataset_name_in_file, byte_dimension)
 
-            byte_information = self._parse_resolution_info(dataset_info['byte'], dataset_id.resolution)
+            byte_information = self._parse_resolution_info(dataset_info['byte'], dataset_id['resolution'])
             # At which bit starts the information
-            bit_start = self._parse_resolution_info(dataset_info['bit_start'], dataset_id.resolution)
+            bit_start = self._parse_resolution_info(dataset_info['bit_start'], dataset_id['resolution'])
             # How many bits store the information
-            bit_count = self._parse_resolution_info(dataset_info['bit_count'], dataset_id.resolution)
+            bit_count = self._parse_resolution_info(dataset_info['bit_count'], dataset_id['resolution'])
 
             # Only one byte: select the byte information
             if isinstance(byte_information, int):
@@ -132,7 +132,7 @@ class ModisL2HDFFileHandler(HDFEOSGeoReader):
             # Apply quality assurance filter
             if 'quality_assurance' in dataset_info:
                 quality_assurance_required = self._parse_resolution_info(
-                    dataset_info['quality_assurance'], dataset_id.resolution
+                    dataset_info['quality_assurance'], dataset_id['resolution']
                 )
                 if quality_assurance_required is True:
                     # Get quality assurance dataset recursively

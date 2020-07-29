@@ -172,7 +172,7 @@ class SAFEXML(BaseFileHandler):
                 continue
             data, low_res_coords = self.read_xml_array(data_items, xml_tag)
 
-        if key.name.endswith('squared'):
+        if key['name'].endswith('squared'):
             data **= 2
 
         data = self.interpolate_xml_array(data, low_res_coords, data.shape)
@@ -312,15 +312,15 @@ class SAFEGRD(BaseFileHandler):
         if self._polarization != key.polarization:
             return
 
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
 
-        if key.name in ['longitude', 'latitude']:
+        if key['name'] in ['longitude', 'latitude']:
             logger.debug('Constructing coordinate arrays.')
 
             if self.lons is None or self.lats is None:
                 self.lons, self.lats, self.alts = self.get_lonlatalts()
 
-            if key.name == 'latitude':
+            if key['name'] == 'latitude':
                 data = self.lats
             else:
                 data = self.lons
