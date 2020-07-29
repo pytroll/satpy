@@ -130,9 +130,9 @@ class GACLACFile(BaseFileHandler):
     def get_dataset(self, key, info):
         """Get the dataset."""
         self.read_raw_data()
-        if key.name in ['latitude', 'longitude']:
+        if key['name'] in ['latitude', 'longitude']:
             # Lats/lons are buffered by the reader
-            if key.name == 'latitude':
+            if key['name'] == 'latitude':
                 _, data = self.reader.get_lonlat()
             else:
                 data, _ = self.reader.get_lonlat()
@@ -141,11 +141,11 @@ class GACLACFile(BaseFileHandler):
             # pixel has a lat/lon coordinate
             xdim = 'x' if self.interpolate_coords else 'x_every_eighth'
             xcoords = None
-        elif key.name in ANGLES:
+        elif key['name'] in ANGLES:
             data = self._get_angle(key)
             xdim = 'x' if self.interpolate_coords else 'x_every_eighth'
             xcoords = None
-        elif key.name == 'qual_flags':
+        elif key['name'] == 'qual_flags':
             data = self.reader.get_qual_flags()
             xdim = 'num_flags'
             xcoords = ['Scan line number',
@@ -155,13 +155,13 @@ class GACLACFile(BaseFileHandler):
                        'Solar contamination of blackbody in channels 3',
                        'Solar contamination of blackbody in channels 4',
                        'Solar contamination of blackbody in channels 5']
-        elif key.name.upper() in self.chn_dict:
+        elif key['name'].upper() in self.chn_dict:
             # Read and calibrate channel data
             data = self._get_channel(key)
             xdim = 'x'
             xcoords = None
         else:
-            raise ValueError('Unknown dataset: {}'.format(key.name))
+            raise ValueError('Unknown dataset: {}'.format(key['name']))
 
         # Update start/end time using the actual scanline timestamps
         times = self.reader.get_times()
@@ -247,8 +247,8 @@ class GACLACFile(BaseFileHandler):
 
     def _get_channel(self, key):
         """Get channel and buffer results."""
-        name = key.name
-        calibration = key.calibration
+        name = key['name']
+        calibration = key['calibration']
         if calibration == 'counts':
             if self.counts is None:
                 counts = self.reader.get_counts()
@@ -277,7 +277,7 @@ class GACLACFile(BaseFileHandler):
                            'solar_zenith_angle': sun_zenith,
                            'solar_azimuth_angle': sun_azi,
                            'sun_sensor_azimuth_difference_angle': rel_azi}
-        return self.angles[key.name]
+        return self.angles[key['name']]
 
     def _strip_invalid_lat(self):
         """Strip scanlines with invalid coordinates in the beginning/end of the orbit.

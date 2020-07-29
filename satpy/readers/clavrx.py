@@ -141,7 +141,7 @@ class CLAVRXFileHandler(HDF4FileHandler):
                 yield True, ds_info
 
     def get_shape(self, dataset_id, ds_info):
-        var_name = ds_info.get('file_key', dataset_id.name)
+        var_name = ds_info.get('file_key', dataset_id['name'])
         return self[var_name + '/shape']
 
     def get_metadata(self, data_arr, ds_info):
@@ -171,10 +171,10 @@ class CLAVRXFileHandler(HDF4FileHandler):
         return i
 
     def get_dataset(self, dataset_id, ds_info):
-        var_name = ds_info.get('file_key', dataset_id.name)
+        var_name = ds_info.get('file_key', dataset_id['name'])
         data = self[var_name]
-        if dataset_id.resolution:
-            data.attrs['resolution'] = dataset_id.resolution
+        if dataset_id['resolution']:
+            data.attrs['resolution'] = dataset_id['resolution']
         data.attrs = self.get_metadata(data, ds_info)
         fill = data.attrs.pop('_FillValue', None)
         factor = data.attrs.pop('scale_factor', None)

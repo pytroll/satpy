@@ -511,7 +511,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         logger.debug("Reading time " + str(datetime.now() - tic))
 
         # Calibrate
-        res = self.calibrate(res, key.calibration)
+        res = self.calibrate(res, key['calibration'])
 
         # Get actual satellite position. For altitude use the ellipsoid radius at the SSP.
         actual_lon = float(self.nav_info['SSP_longitude'])
@@ -528,7 +528,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             wavelength=info['wavelength'],
             resolution='resolution',
             id=key,
-            name=key.name,
+            name=key['name'],
             scheduled_time=self.scheduled_time,
             platform_name=self.platform_name,
             sensor=self.sensor,

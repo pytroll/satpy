@@ -69,7 +69,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
             tuple: (rows, cols)
 
         """
-        var_path = ds_info.get('file_key', '{}'.format(ds_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(ds_id['name']))
         if var_path + '/shape' not in self:
             # loading a scalar value
             shape = 1
@@ -98,7 +98,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Collect various metadata about the specified dataset."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         shape = self.get_shape(dataset_id, ds_info)
         units = self[var_path + '/attr/units']
         info = getattr(self[var_path], 'attrs', {})
@@ -121,7 +121,7 @@ class ACSPOFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load data array and metadata from file on disk."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         metadata = self.get_metadata(dataset_id, ds_info)
         shape = metadata['shape']
         file_shape = self[var_path + '/shape']
