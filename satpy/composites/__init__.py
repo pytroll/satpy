@@ -188,7 +188,12 @@ class CompositorLoader(object):
                         self._process_composite_config(
                             sub_comp_name, sub_conf, composite_type, sensor_id,
                             sensor_deps, composite_config, **kwargs)
-                    key = DataQuery.from_dict(item)
+                    key_item = item.copy()
+                    key_item.pop('prerequisites', None)
+                    key_item.pop('optional_prerequisites', None)
+                    if 'modifiers' in key_item:
+                        key_item['modifiers'] = tuple(key_item['modifiers'])
+                    key = DataQuery.from_dict(key_item)
                     prereqs.append(key)
                 else:
                     prereqs.append(item)
