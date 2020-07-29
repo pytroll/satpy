@@ -355,3 +355,81 @@ class CustomScheduler(object):
             raise RuntimeError("Too many dask computations were scheduled: "
                                "{}".format(self.total_computes))
         return dask.get(dsk, keys, **kwargs)
+
+
+def make_fake_scene(content_dict, daskify=False, area=True,
+                    common_attrs=None):
+    """Create a fake Scene.
+
+    Create a fake Scene object from fake data.  Data are provided in
+    the ``content_dict`` argument.  In ``content_dict``, keys should be
+    strings or DatasetID/DataID, and values may be either numpy.ndarray
+    or xarray.DataArray, in either case with exactly two dimensions.
+    The function will convert each of the numpy.ndarray objects into
+    an xarray.DataArray and assign those as datasets to a Scene object.
+    A fake AreaDefinition will be assigned for each array, unless disabled
+    by passing ``area=False``.  When areas are automatically generated,
+    arrays with the same shape will get the same area.
+
+    This function is exclusively intended for testing purposes.
+
+    If regular ndarrays are passed and the keyword argument daskify is
+    True, DataArrays will be created as dask arrays.  If False (default),
+    regular DataArrays will be created.  When the user passes xarray.DataArray
+    objects then this flag has no effect.
+
+    Args:
+        content_dict (Mapping): Mapping where keys correspond to objects
+            accepted by ``Scene.__setitem__``, i.e. strings or DatasetID,
+            and values may be either ``numpy.ndarray`` or
+            ``xarray.DataArray``.
+        daskify (bool): optional, to use dask when converting
+            ``numpy.ndarray`` to ``xarray.DataArray`.  No effect when the
+            values in ``content_dict`` are already ``xarray.DataArray`.
+        area (bool or BaseDefinition): Can be ``True``, ``False``, or an
+            instance of ``pyresample.geometry.BaseDefinition`` such as
+            ``AreaDefinition`` or ``SwathDefinition``.  If ``True``, which is
+            the default, automatically generate areas.  If ``False``, values
+            will not have assigned areas.  If an instance of
+            ``pyresample.geometry.BaseDefinition``, those instances will be
+            used for all generated fake datasets.  Warning: Passing an area as
+            a string (``area="germ"``) is not supported.
+        common_attrs (Mapping): optional, additional attributes that will
+            be added to every dataset in the scene.
+
+    Returns:
+        Scene object with datasets corresponding to content_dict.
+    """
+    import pyresample
+    import satpy
+    import xarray as xr
+    if common_attrs is None:
+        common_attrs = {}
+    if daskify:
+        import dask.array
+    sc = satpy.Scene()
+    for (did, arr) in content_dict.items():
+        extra_attrs = common_attrs.copy()
+        if isinstance(area, pyresample.geometry.BaseDefinition):
+            extra_attrs["area"] = area
+        elif area:
+            extra_attrs["area"] = pyresample.create_area_def(
+                    "test-area",
+                    {"proj": "eqc", "lat_ts": 0, "lat_0": 0, "lon_0": 0,
+                     "x_0": 0, "y_0": 0, "ellps": "sphere", "units": "m",
+                     "no_defs": None, "type": "crs"},
+                    units="m",
+                    shape=arr.shape,
+                    resolution=1000,
+                    center=(0, 0))
+        if isinstance(arr, xr.DataArray):
+            sc[did] = arr.copy()  # don't change attributes of input
+            sc[did].attrs.update(extra_attrs)
+        else:
+            if daskify:
+                arr = dask.array.from_array(arr)
+            sc[did] = xr.DataArray(
+                    arr,
+                    dims=("y", "x"),
+                    attrs=extra_attrs)
+    return sc

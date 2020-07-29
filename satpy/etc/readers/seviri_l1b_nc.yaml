@@ -5,7 +5,7 @@ reader:
   description: >
     NetCDF4 reader for EUMETSAT MSG SEVIRI Level 1b files.
   sensors: [seviri]
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
   group_keys: ["processing_time", "satid"]
 
 file_types:
