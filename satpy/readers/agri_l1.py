@@ -54,9 +54,9 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset."""
-        logger.debug('Reading in get_dataset %s.', dataset_id.name)
-        file_key = ds_info.get('file_key', dataset_id.name)
-        lut_key = ds_info.get('lut_key', dataset_id.name)
+        logger.debug('Reading in get_dataset %s.', dataset_id['name'])
+        file_key = ds_info.get('file_key', dataset_id['name'])
+        lut_key = ds_info.get('lut_key', dataset_id['name'])
         data = self.get(file_key)
         lut = self.get(lut_key)
         if data.ndim >= 2:
@@ -126,7 +126,7 @@ class HDF_AGRI_L1(HDF5FileHandler):
         """Get the area definition."""
         # Coordination Group for Meteorological Satellites LRIT/HRIT Global Specification
         # https://www.cgms-info.org/documents/cgms-lrit-hrit-global-specification-(v2-8-of-30-oct-2013).pdf
-        res = key.resolution
+        res = key['resolution']
         pdict = {}
         pdict['coff'] = _COFF_list[_resolution_list.index(res)]
         pdict['loff'] = _LOFF_list[_resolution_list.index(res)]
@@ -148,13 +148,13 @@ class HDF_AGRI_L1(HDF5FileHandler):
 
         pdict['a_desc'] = "AGRI {} area".format(self.filename_info['observation_type'])
 
-        if (key.name in b500):
+        if (key['name'] in b500):
             pdict['a_name'] = self.filename_info['observation_type']+'_500m'
             pdict['p_id'] = 'FY-4A, 500m'
-        elif (key.name in b1000):
+        elif (key['name'] in b1000):
             pdict['a_name'] = self.filename_info['observation_type']+'_1000m'
             pdict['p_id'] = 'FY-4A, 1000m'
-        elif (key.name in b2000):
+        elif (key['name'] in b2000):
             pdict['a_name'] = self.filename_info['observation_type']+'_2000m'
             pdict['p_id'] = 'FY-4A, 2000m'
         else:
