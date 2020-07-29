@@ -656,7 +656,6 @@ class DataQuery:
     def filter_dataids(self, dataid_container):
         """Filter DataIDs based on this query."""
         keys = list(filter(self._match_dataid, dataid_container))
-        keys = [dataid for dataid in keys if set(dataid.keys()) & set(self._fields)]
 
         return keys
 
@@ -685,6 +684,8 @@ class DataQuery:
         val = self._dict[key]
         if val == '*':
             return True
+        if isinstance(id_val, tuple):
+            return tuple(val) == id_val
         if not isinstance(val, list):
             val = [val]
         return id_val in val
@@ -743,9 +744,18 @@ class DataQuery:
                     try:
                         distance += dataid_val.distance(val)
                     except AttributeError:
-                        if dataid_val != val:
+                        if not isinstance(val, list):
+                            val = [val]
+                        if dataid_val not in val:
                             distance = np.inf
                             break
+                        elif isinstance(dataid_val, numbers.Number):
+                            # so as to get the highest resolution first
+                            # FIXME: this ought to be clarified, not sure that
+                            # higher resolution is preferable is all cases.
+                            # Moreover this might break with other numerical
+                            # values.
+                            distance += dataid_val
             distances.append(distance)
         distances, dataids = zip(*sorted(zip(distances, sorted_dataids)))
         return dataids, distances

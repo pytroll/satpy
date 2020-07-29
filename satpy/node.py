@@ -403,7 +403,7 @@ class DependencyTree(Node):
         src_node = None
         if isinstance(dataset_key, DataQuery) and dataset_key.get('modifiers'):
             new_dict = dataset_key.to_dict()
-            new_dict['modifiers'] = new_dict['modifiers'][:-1]
+            new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
             new_prereq = DataQuery.from_dict(new_dict)
             src_node, u = self._find_dependencies(new_prereq)
             # Update the requested DatasetQuery with information from the src
