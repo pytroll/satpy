@@ -493,7 +493,8 @@ class DataID(dict):
     def __getattr__(self, key):
         """Support old syntax for getting items."""
         if key in self._id_keys:
-            warnings.warn('Attribute access to DataIDs is deprecated, use key access instead.')
+            warnings.warn('Attribute access to DataIDs is deprecated, use key access instead.',
+                          stacklevel=2)
             return self[key]
         else:
             return super().__getattr__(key)
