@@ -188,6 +188,7 @@ class TestMultiScene(unittest.TestCase):
         groups = {make_dataid(name='odd', wavelength=(1, 2, 3)): ['ds1', 'ds3'],
                   make_dataid(name='even', wavelength=(2, 3, 4)): ['ds2', 'ds4']}
         multi_scene.group(groups)
+
         self.assertSetEqual(multi_scene.shared_dataset_ids, set(groups.keys()))
 
     def test_add_group_aliases(self):
