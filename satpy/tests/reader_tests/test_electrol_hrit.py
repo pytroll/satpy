@@ -160,11 +160,6 @@ class TestHRITGOMSEpiFileHandler(unittest.TestCase):
                 epi['GeometricProcessing']['TimeProcessing'], np.ones(10))
 
 
-class resser:
-    attrs = {}
-    calibration = 'counts'
-
-
 @mock.patch('satpy.readers.electrol_hrit.HRITGOMSFileHandler.__init__', return_value=None)
 @mock.patch('satpy.readers.electrol_hrit.HRITFileHandler.get_dataset', return_value={})
 class TestHRITGOMSFileHandler(unittest.TestCase):

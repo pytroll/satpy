@@ -101,7 +101,7 @@ class TestGenericImage(unittest.TestCase):
         self.scn = scn
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             import shutil
             shutil.rmtree(self.base_dir, ignore_errors=True)
