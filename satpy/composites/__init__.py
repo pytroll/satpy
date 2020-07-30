@@ -862,21 +862,6 @@ class ParallaxCorrector(CompositeBase):
         # get the corrected lon and lat based on cloud top height (km)
         lat_corr, lon_corr = self._parallax_corr(optional_datasets, sat_lon, sat_lat, sat_h, lon, lat)
 
-        import matplotlib.pyplot as plt
-        f, axs = plt.subplots(nrows=1, ncols=2)
-
-        ax = axs[0]
-        m = ax.imshow(lon)
-        plt.colorbar(m, ax=ax, cmap='viridis', shrink=0.5)
-        ax.set_title('original lon')
-
-        ax = axs[1]
-        m = ax.imshow(np.rad2deg(lon_corr))
-        plt.colorbar(m, ax=ax, cmap='viridis', shrink=0.5)
-        ax.set_title('parallax_corrected lon')
-        f.savefig('lon_parallax.png')
-        print('-'*10)
-
         # get indices for the pixels for the original position
         (proj_x, proj_y) = band.attrs['area'].get_proj_coords()
         (x, y) = band.attrs['area'].get_xy_from_proj_coords(proj_x, proj_y)
