@@ -29,6 +29,7 @@ from satpy.tests.utils import make_dataid
 
 
 def new_read_file(instance):
+    """Fake read file."""
     new_ds = xr.Dataset({'ch4': (['num_rows_vis_ir', 'num_columns_vis_ir'], np.random.random((2, 2))),
                          'planned_chan_processing': (["channels_dim"], np.ones(12, dtype=np.int8) * 2)},
                         coords={'num_rows_vis_ir': [1, 2], 'num_columns_vis_ir': [1, 2]})
@@ -49,8 +50,10 @@ def new_read_file(instance):
 
 
 class TestNCSEVIRIFileHandler(unittest.TestCase):
+    """Tester for the file handler."""
 
     def setUp(self):
+        """Set up the test case."""
         with mock.patch.object(NCSEVIRIFileHandler, '_read_file', new=new_read_file):
             self.reader = NCSEVIRIFileHandler(
                 'filename',
