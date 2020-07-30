@@ -125,6 +125,11 @@ to implement a few methods:
  - `__hash__`, `__eq__` and `__ne__` methods
  - a `distance` method the tells how "far" an instance of this class is from it's argument.
 
+An example of such a class is the :class:`WavelengthRange <satpy.dataset.WavelengthRange>` class.
+Through its implementation, it allows us to use the wavelength in a query to find out which of the
+DataID in a list which has its central wavelength closest to that query for example.
+
+
 DataID and DataQuery interactions
 =================================
 
