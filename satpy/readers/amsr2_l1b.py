@@ -15,14 +15,16 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Reader for AMSR2 L1B files in HDF5 format.
-"""
+"""Reader for AMSR2 L1B files in HDF5 format."""
 
 from satpy.readers.hdf5_utils import HDF5FileHandler
 
 
 class AMSR2L1BFileHandler(HDF5FileHandler):
+    """File handler for AMSR2 l1b."""
+
     def get_metadata(self, ds_id, ds_info):
+        """Get the metadata."""
         var_path = ds_info['file_key']
         info = getattr(self[var_path], 'attrs', {})
         info.update(ds_info)

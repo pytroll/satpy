@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Vaisala Global Lightning Dataset 360 reader
+"""Vaisala Global Lightning Dataset 360 reader.
 
 Vaisala Global Lightning Dataset GLD360 is data as a service
 that provides real-time lightning data for accurate and early
@@ -43,6 +43,7 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
     """ASCII reader for Vaisala GDL360 data."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file reader."""
         super(VaisalaGLD360TextFileHandler, self).__init__(filename, filename_info, filetype_info)
 
         names = ['date', 'time', 'latitude', 'longitude', 'power', 'unit']
@@ -56,10 +57,12 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self.data['datetime'].iloc[0]
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self.data['datetime'].iloc[-1]
 
     def get_dataset(self, dataset_id, dataset_info):
