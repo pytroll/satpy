@@ -27,6 +27,7 @@ import dask.array as da
 import numpy as np
 import xarray as xr
 import yaml
+from numpy import sin, cos, tan, arctan, arctan2, sqrt
 
 try:
     from yaml import UnsafeLoader
@@ -741,6 +742,178 @@ class PSPAtmosphericalCorrection(CompositeBase):
         self.apply_modifier_info(band, proj)
 
         return proj
+
+
+class ParallaxCorrector(CompositeBase):
+    """Parallax Corection
+
+    Ref:
+        code: https://github.com/ORAC-CC/orac/blob/master/post_processing/correct_parallax.F90
+        paper: 10.3390/rs12030365 (doi)
+    """
+
+    def _parallax_corr(self, optional_datasets,
+                       sat_lon, sat_lat, sat_h,
+                       lon, lat):
+        """Applying Parallax Correction"""
+        # varius earth radius information
+        radius_eq = 6378.077
+        radius_pole = 6356.577
+        radius_ratio = radius_eq/radius_pole
+
+        # angle conversion to radians
+        sat_lat = np.deg2rad(sat_lat)
+        sat_lon = np.deg2rad(sat_lon)
+        lat = np.deg2rad(lat)
+        lon = np.deg2rad(lon)
+
+        # cartesian coordinates for the satellite
+        # satlat_geod is the geodetic satellite latitude
+        sat_lat_geod = arctan(tan(sat_lat)*radius_ratio**2)
+        xsat = sat_h * cos(sat_lat_geod) * cos(sat_lon)
+        ysat = sat_h * cos(sat_lat_geod) * sin(sat_lon)
+        zsat = sat_h * sin(sat_lat_geod)
+
+        # cartesian coordinates of the surface point
+        lat_geod = arctan(tan(lat)*radius_ratio**2)
+        radius_surf = sqrt(radius_eq**2*cos(lat_geod)**2 + radius_pole**2*sin(lat_geod)**2)
+        xsurf = radius_surf * cos(lat_geod) * cos(lon)
+        ysurf = radius_surf * cos(lat_geod) * sin(lon)
+        zsurf = radius_surf * sin(lat_geod)
+
+        # Satellite minus surface location
+        xdiff = xsat - xsurf
+        ydiff = ysat - ysurf
+        zdiff = zsat - zsurf
+
+        # equation to solve for the line of sight at height Z
+        ob_surf = sqrt(xsurf**2 + ysurf**2 + zsurf**2)
+        axdiff = sqrt(xdiff**2 + ydiff**2 + zdiff**2)
+        cosbeta = -(xdiff*xsurf+ydiff*ysurf+zdiff*zsurf)/(ob_surf*axdiff)
+        aa = 1.
+        bb = -2*ob_surf*cosbeta
+        cc = ob_surf**2 - (ob_surf+optional_datasets[0])**2
+        x = (-bb+sqrt(bb**2-4*aa*cc))/(2*aa)
+
+        # corrected surface coordinates
+        xcorr = xsurf + (x/axdiff)*xdiff
+        ycorr = ysurf + (x/axdiff)*ydiff
+        zcorr = zsurf + (x/axdiff)*zdiff
+
+        # convert back to latitude and longitude
+        latcorr = arctan(zcorr/sqrt(xcorr**2 + ycorr**2))
+        latcorr = np.deg2rad(arctan(tan(latcorr)*radius_ratio**2))
+        loncorr = np.deg2rad(arctan2(ycorr, xcorr))
+
+        return latcorr, loncorr
+
+    def _verify_requirements(self, optional_datasets):
+        """Verify that required cloud microphysics present
+        Can be either cmic_cot/cmic_lwp/cmic_reff or cot/lwp/reff.
+        """
+        cname = {}
+        needs = {'cth': {'CTH',  # AGRI
+                         'CLTH',  # AHI
+                         }
+                 }
+
+        for x in optional_datasets:
+            for (n, p) in needs.items():
+                if x.attrs["name"] in p:
+                    cname[n] = x
+                    continue
+
+        # reise error when missing the CTH
+        missing = needs.keys() - cname.keys()
+        if missing:
+            raise ValueError("Missing cloud top height inputs: " + ", ".join(missing))
+
+        # convert units to km
+        if optional_datasets[0].attrs['units'] == 'm':
+            optional_datasets[0] /= 1e3
+            optional_datasets[0].attrs['units'] = 'km'
+
+    def __call__(self, projectables, optional_datasets, **info):
+        """Get the correction
+
+            Two reasons why we need ir channel dataset
+              1. Usually the resolution of cloud top height (cth) product
+                 has the same resolution as the IR channel data
+              2. IR channel dataset can be used to simpliy estimate the cth
+
+        """
+        # check whether we have enought datasets
+        if len(projectables) != 2:
+            raise ValueError("Expected 2 datasets \
+                              (first: dataset to be corrected, \
+                              second: IR band dataset), \
+                              got %d" %
+                             (len(projectables), ))
+
+        # get the name of "cloud top height" in scene
+        self._verify_requirements(optional_datasets)
+
+        # get the satellites info from the attributes
+        band = projectables[0]
+        lon, lat = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
+        sat_lon, sat_lat, sat_h = get_satpos(band)
+        sat_h /= 1e3  # units: km
+
+        # get the corrected lon and lat based on cloud top height (km)
+        lat_corr, lon_corr = self._parallax_corr(optional_datasets, sat_lon, sat_lat, sat_h, lon, lat)
+
+        import matplotlib.pyplot as plt
+        f, axs = plt.subplots(nrows=1, ncols=2)
+
+        ax = axs[0]
+        m = ax.imshow(lon)
+        plt.colorbar(m, ax=ax, cmap='viridis', shrink=0.5)
+        ax.set_title('original lon')
+
+        ax = axs[1]
+        m = ax.imshow(np.rad2deg(lon_corr))
+        plt.colorbar(m, ax=ax, cmap='viridis', shrink=0.5)
+        ax.set_title('parallax_corrected lon')
+        f.savefig('lon_parallax.png')
+        print('-'*10)
+
+        # get indices for the pixels for the original position
+        (proj_x, proj_y) = band.attrs['area'].get_proj_coords()
+        (x, y) = band.attrs['area'].get_xy_from_proj_coords(proj_x, proj_y)
+
+        # get indices for the pixels at the parallax corrected position
+        x_corr, y_corr = band.attrs['area'].get_xy_from_lonlat(lon_corr.compute(), lat_corr.compute())
+
+        # create the mask based on cth
+        cth = optional_datasets[0]
+        cth = cth.where(cth >= 0).to_masked_array(copy=False)
+
+        # copy to the new data
+        new_proj = xr.full_like(projectables[0], np.nan)
+
+        # copy clear pixel
+        ind = np.where(cth.mask == True)
+        ind_x = xr.DataArray(x[ind])
+        ind_y = xr.DataArray(y[ind])
+        new_proj[ind_x, ind_y].values = projectables[0].isel(x=ind_x, y=ind_y)
+
+        # copy cloudy pixel with new position modified with parallax shift
+        ind = np.where(cth.mask == False)
+        ind_x = xr.DataArray(x[ind])
+        ind_y = xr.DataArray(y[ind])
+        ind_x_corr = xr.DataArray(x_corr[ind])
+        ind_y_corr = xr.DataArray(y_corr[ind])
+        new_proj[ind_x_corr, ind_y_corr].values = projectables[0].isel(x=ind_x, y=ind_y)
+
+        # Mask out data gaps (areas behind the clouds)
+        new_proj.data = np.ma.masked_where(
+            np.isnan(new_proj.data), new_proj.data, copy=False)
+
+        new_proj.attrs = projectables[0].attrs.copy()
+
+        self.apply_modifier_info(band, new_proj)
+
+        return new_proj
 
 
 class CO2Corrector(CompositeBase):
