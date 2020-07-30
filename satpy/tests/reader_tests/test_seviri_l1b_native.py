@@ -296,7 +296,7 @@ class TestNativeMSGArea(unittest.TestCase):
 
         Contains sufficient attributes for NativeMSGFileHandler.get_area_extent to be able to execute.
         """
-        if dataset_id.name == 'HRV':
+        if dataset_id['name'] == 'HRV':
             reference_grid = 'ReferenceGridHRV'
             column_dir_grid_step = 1.0001343488693237
             line_dir_grid_step = 1.0001343488693237
@@ -562,7 +562,7 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
         Mocked NativeMSGFileHandler with sufficient attributes for
         NativeMSGFileHandler._convert_to_radiance and NativeMSGFileHandler.calibrate to be able to execute.
         """
-        if dataset_id.name == 'HRV':
+        if dataset_id['name'] == 'HRV':
             # reference_grid = 'ReferenceGridHRV'
             column_dir_grid_step = 1.0001343488693237
             line_dir_grid_step = 1.0001343488693237
@@ -658,7 +658,7 @@ class TestNativeMSGCalibrationMode(unittest.TestCase):
 
         earth_model = test_dict['earth_model']
         dataset_id = test_dict['dataset_id']
-        index = CHANNEL_INDEX_LIST.index(dataset_id.name)
+        index = CHANNEL_INDEX_LIST.index(dataset_id['name'])
 
         # determine the cal coeffs needed for the expected data calculation
         if cal_mode == 'nominal':

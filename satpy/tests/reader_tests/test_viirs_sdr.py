@@ -555,7 +555,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
         r.create_filehandlers(loadables)
-        self.assertNotIn('I01', [x.name for x in r.available_dataset_ids])
+        self.assertNotIn('I01', [x['name'] for x in r.available_dataset_ids])
         ds = r.load(['I01'])
         self.assertEqual(len(ds), 0)
 

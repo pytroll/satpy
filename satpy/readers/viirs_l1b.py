@@ -98,7 +98,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         """Get shape."""
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id.name))
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id['name']))
         return self.get(var_path + '/shape', 1)
 
     @property
@@ -172,7 +172,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id['name']))
         shape = self.get_shape(dataset_id, ds_info)
         file_units = self._get_dataset_file_units(dataset_id, ds_info, var_path)
 
@@ -198,7 +198,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id['name']))
         metadata = self.get_metadata(dataset_id, ds_info)
 
         valid_min, valid_max, scale_factor, scale_offset = self._get_dataset_valid_range(dataset_id, ds_info, var_path)

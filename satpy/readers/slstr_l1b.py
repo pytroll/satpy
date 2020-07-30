@@ -54,7 +54,7 @@ class NCSLSTRGeo(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
         file_key = info['file_key'].format(view=key['view'].name[0],
                                            stripe=key['stripe'].name)
         try:
@@ -128,8 +128,8 @@ class NCSLSTR1B(BaseFileHandler):
                 self.view != key['view'].name):
             return
 
-        logger.debug('Reading %s.', key.name)
-        if key.calibration == 'brightness_temperature':
+        logger.debug('Reading %s.', key['name'])
+        if key['calibration'] == 'brightness_temperature':
             variable = self.nc['{}_BT_{}{}'.format(self.channel, self.stripe, self.view[0])]
         else:
             variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe, self.view[0])]
@@ -137,9 +137,9 @@ class NCSLSTR1B(BaseFileHandler):
         radiances = variable
         units = variable.attrs['units']
 
-        if key.calibration == 'reflectance':
+        if key['calibration'] == 'reflectance':
             # TODO take into account sun-earth distance
-            solar_flux = self.cal[re.sub('_[^_]*$', '', key.name) + '_solar_irradiances']
+            solar_flux = self.cal[re.sub('_[^_]*$', '', key['name']) + '_solar_irradiances']
             d_index = self.indices['detector_{}{}'.format(self.stripe, self.view[0])]
             idx = 0 if self.view[0] == 'n' else 1   # 0: Nadir view, 1: oblique (check).
 
@@ -291,7 +291,7 @@ class NCSLSTRFlag(BaseFileHandler):
         if (self.stripe != key['stripe'].name or
                 self.view != key['view'].name):
             return
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
         file_key = info['file_key'].format(view=key['view'].name[0],
                                            stripe=key['stripe'].name)
         variable = self.nc[file_key]

@@ -166,4 +166,4 @@ class TestGLML2Reader(unittest.TestCase):
         # only flash_extent_density is available in our tests
         self.assertEqual(len(available_datasets), 1)
         for ds_id in available_datasets:
-            self.assertEqual(ds_id.resolution, 2000)
+            self.assertEqual(ds_id['resolution'], 2000)

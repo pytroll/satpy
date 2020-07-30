@@ -206,8 +206,8 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
-        logger.debug("Getting data for: %s", ds_id.name)
-        file_key = ds_info.get('file_key', ds_id.name)
+        logger.debug("Getting data for: %s", ds_id['name'])
+        file_key = ds_info.get('file_key', ds_id['name'])
         data = self[file_key]
         data.attrs = self.get_metadata(data, ds_info)
         fill_value = data.attrs.get('_FillValue', np.float32(np.nan))
@@ -235,6 +235,6 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         if coords_exist:
             data = data.drop_vars(coords_exist)
 
-        if ds_id.name in ['assembled_lat_bounds', 'assembled_lon_bounds']:
+        if ds_id['name'] in ['assembled_lat_bounds', 'assembled_lon_bounds']:
             data = self.prepare_geo(data)
         return data
