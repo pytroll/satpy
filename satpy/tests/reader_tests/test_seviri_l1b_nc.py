@@ -25,6 +25,7 @@ import numpy as np
 import xarray as xr
 
 from satpy.readers.seviri_l1b_nc import NCSEVIRIFileHandler
+from satpy.tests.utils import make_dataid
 
 
 def new_read_file(instance):
@@ -60,8 +61,7 @@ class TestNCSEVIRIFileHandler(unittest.TestCase):
 
     def test_get_dataset_remove_attrs(self):
         """Test getting the hrv dataset."""
-        dataset_id = mock.MagicMock(calibration='counts')
-        dataset_id.name = 'IR_039'
+        dataset_id = make_dataid(name='IR_039', calibration='counts')
         dataset_info = {'nc_key': 'ch4', 'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
 
         res = self.reader.get_dataset(dataset_id, dataset_info)

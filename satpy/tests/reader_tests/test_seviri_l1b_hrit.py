@@ -135,8 +135,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
     def test_get_dataset(self, calibrate, parent_get_dataset, _get_timestamps):
         """Test getting the hrv dataset."""
-        key = mock.MagicMock(calibration='calibration')
-        key.name = 'HRV'
+        key = make_dataid(name='HRV', calibration='reflectance')
         info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
         timestamps = np.arange(0, 464, dtype='datetime64[ns]')
 
@@ -148,7 +147,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
 
         # Test method calls
         parent_get_dataset.assert_called_with(key, info)
-        calibrate.assert_called_with(parent_get_dataset(), key.calibration)
+        calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
 
         # Test attributes (just check if raw metadata is there and then remove it before checking the remaining
         # attributes)
@@ -182,7 +181,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
     def test_get_dataset_non_fill(self, calibrate, parent_get_dataset, _get_timestamps):
         """Test getting a non-filled hrv dataset."""
-        key = mock.MagicMock(calibration='calibration')
+        key = make_dataid(name='HRV', calibration='reflectance')
         key.name = 'HRV'
         info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
         timestamps = np.arange(0, 464, dtype='datetime64[ns]')
@@ -195,7 +194,7 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
 
         # Test method calls
         parent_get_dataset.assert_called_with(key, info)
-        calibrate.assert_called_with(parent_get_dataset(), key.calibration)
+        calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
 
         # Test attributes (just check if raw metadata is there and then remove it before checking the remaining
         # attributes)
@@ -442,7 +441,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
     @mock.patch('satpy.readers.seviri_l1b_hrit.HRITMSGFileHandler.calibrate')
     def test_get_dataset(self, calibrate, parent_get_dataset, _get_timestamps):
         """Test getting the dataset."""
-        key = mock.MagicMock(calibration='calibration')
+        key = make_dataid(name='VIS006', calibration='reflectance')
         info = {'units': 'units', 'wavelength': 'wavelength', 'standard_name': 'standard_name'}
         timestamps = np.array([1, 2, 3], dtype='datetime64[ns]')
 
@@ -454,7 +453,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
 
         # Test method calls
         parent_get_dataset.assert_called_with(key, info)
-        calibrate.assert_called_with(parent_get_dataset(), key.calibration)
+        calibrate.assert_called_with(parent_get_dataset(), key['calibration'])
 
         # Test attributes (just check if raw metadata is there and then remove it before checking the remaining
         # attributes)
