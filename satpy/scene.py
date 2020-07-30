@@ -362,7 +362,7 @@ class Scene(MetadataObject):
         dep_tree = DependencyTree(self.readers, sensor_comps, mods, available_only=True)
         # ignore inline compositor dependencies starting with '_'
         comps = (comp for comp_dict in sensor_comps.values()
-                 for comp in comp_dict.keys() if not comp.name.startswith('_'))
+                 for comp in comp_dict.keys() if not comp['name'].startswith('_'))
         # make sure that these composites are even create-able by these readers
         all_comps = set(comps)
         # find_dependencies will update the all_comps set with DataIDs
