@@ -201,6 +201,49 @@ def test_dataid():
     assert DataID(default_id_keys_config, wavelength=10) != DataID(default_id_keys_config, name="VIS006")
 
 
+def test_dataid_equal_if_enums_different():
+    """Check that dataids with different enums but same items are equal."""
+    from satpy.dataset import DataID, WavelengthRange, ModifierTuple
+    id_keys_config1 = {'name': None,
+                       'wavelength': {
+                           'type': WavelengthRange,
+                       },
+                       'resolution': None,
+                       'calibration': {
+                           'enum': [
+                               'c1',
+                               'c2',
+                               'c3',
+                           ]
+                       },
+                       'modifiers': {
+                           'default': ModifierTuple(),
+                           'type': ModifierTuple,
+                       },
+                       }
+
+    id_keys_config2 = {'name': None,
+                       'wavelength': {
+                           'type': WavelengthRange,
+                       },
+                       'resolution': None,
+                       'calibration': {
+                           'enum': [
+                               'c1',
+                               'c1.5',
+                               'c2',
+                               'c2.5',
+                               'c3'
+                           ]
+                       },
+                       'modifiers': {
+                           'default': ModifierTuple(),
+                           'type': ModifierTuple,
+                       },
+                       }
+    assert DataID(id_keys_config1, name='ni', calibration='c2') == DataID(id_keys_config2, name="ni", calibration='c2')
+
+
 def test_dataid_copy():
     """Test copying a DataID."""
     from satpy.dataset import DataID, default_id_keys_config as dikc
