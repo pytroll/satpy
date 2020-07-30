@@ -47,7 +47,25 @@ composites:
       same as cloud_phase_distinction
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
-      - name: C14
+      - name: C12
       - name: C02
       - name: C05
     standard_name: cloud_phase_distinction
+
+  snow_fog:
+    description: >
+      Day Snow-Fog RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_DaySnowFog.pdf
+    ## it uses the default used in etc/enhancements/generic.yaml of snow_defaul
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C03
+        modifiers: [sunz_corrected]
+      - name: C05
+        modifiers: [sunz_corrected]
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: C07
+          - name: C12
+    standard_name: snow
