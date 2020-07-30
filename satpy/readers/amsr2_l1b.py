@@ -42,7 +42,7 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
         var_path = ds_info['file_key']
         shape = self[var_path + '/shape']
         if ((ds_info.get('standard_name') == "longitude" or ds_info.get('standard_name') == "latitude") and
-                ds_id.resolution == 10000):
+                ds_id['resolution'] == 10000):
             return shape[0], int(shape[1] / 2)
         return shape
 
@@ -55,7 +55,7 @@ class AMSR2L1BFileHandler(HDF5FileHandler):
         data = self[var_path]
         if ((ds_info.get('standard_name') == "longitude" or
              ds_info.get('standard_name') == "latitude") and
-                ds_id.resolution == 10000):
+                ds_id['resolution'] == 10000):
             # FIXME: Lower frequency channels need CoRegistration parameters applied
             data = data[:, ::2] * self[var_path + "/attr/SCALE FACTOR"]
         else:

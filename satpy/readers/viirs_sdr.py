@@ -220,7 +220,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         # the file)
         if file_units is None:
             if dataset_id.get('calibration') == 'radiance':
-                if "dnb" in dataset_id.name.lower():
+                if "dnb" in dataset_id['name'].lower():
                     return 'W m-2 sr-1'
                 else:
                     return 'W cm-2 sr-1'
@@ -276,7 +276,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             'brightness_temperature': 'BrightnessTemperature',
         }.get(ds_id.get('calibration'))
         var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
-        if ds_id.name in ['dnb_longitude', 'dnb_latitude']:
+        if ds_id['name'] in ['dnb_longitude', 'dnb_latitude']:
             if self.use_tc is True:
                 return var_path + '_TC'
             elif self.use_tc is None and var_path + '_TC' in self.file_content:
@@ -571,7 +571,7 @@ class VIIRSSDRReader(FileYAMLReader):
                if set(fh.datasets) & set(ds_info['dataset_groups'])]
         if not fhs:
             LOG.warning("Required file type '%s' not found or loaded for "
-                        "'%s'", ds_info['file_type'], dsid.name)
+                        "'%s'", ds_info['file_type'], dsid['name'])
         else:
             if len(set(ds_info['dataset_groups']) & set(['GITCO', 'GIMGO', 'GMTCO', 'GMODO'])) > 1:
                 fhs = self.get_right_geo_fhs(dsid, fhs)

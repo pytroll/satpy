@@ -137,7 +137,7 @@ class MERSI2L1B(HDF5FileHandler):
 
             # Converts um^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
-            wave_number = 1. / (dataset_id.wavelength[1] / 1e6)
+            wave_number = 1. / (dataset_id['wavelength'][1] / 1e6)
             # pass the dask array
             bt_data = rad2temp(wave_number, data.data * 1e-5)  # brightness temperature
             if isinstance(bt_data, np.ndarray):

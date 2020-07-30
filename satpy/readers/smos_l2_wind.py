@@ -133,7 +133,7 @@ class SMOSL2WINDFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
-        data = self[ds_id.name]
+        data = self[ds_id['name']]
         data.attrs = self.get_metadata(data, ds_info)
         data = self._remove_time_coordinate(data)
         data = self._roll_dataset_lon_coord(data)

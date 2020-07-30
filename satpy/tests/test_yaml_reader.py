@@ -249,12 +249,12 @@ class TestFileFileYAMLReader(unittest.TestCase):
     def test_all_data_ids(self):
         """Check that all datasets ids are returned."""
         for dataid in self.reader.all_dataset_ids:
-            name = dataid.name.replace('0', '')
-            assert self.config['datasets'][name]['name'] == dataid.name
+            name = dataid['name'].replace('0', '')
+            assert self.config['datasets'][name]['name'] == dataid['name']
             if 'wavelength' in self.config['datasets'][name]:
-                assert self.config['datasets'][name]['wavelength'] == list(dataid.wavelength)[:3]
+                assert self.config['datasets'][name]['wavelength'] == list(dataid['wavelength'])[:3]
             if 'calibration' in self.config['datasets'][name]:
-                assert self.config['datasets'][name]['calibration'] == dataid.calibration
+                assert self.config['datasets'][name]['calibration'] == dataid['calibration']
 
     def test_all_dataset_names(self):
         """Get all dataset names."""

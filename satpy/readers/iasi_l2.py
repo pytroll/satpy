@@ -127,7 +127,7 @@ def read_dataset(fid, key):
         dims = ['y', 'x', 'level']
     else:
         dims = ['y', 'x']
-    data = xr.DataArray(da.from_array(dset.value, chunks=CHUNK_SIZE),
+    data = xr.DataArray(da.from_array(dset[()], chunks=CHUNK_SIZE),
                         name=key['name'], dims=dims).astype(np.float32)
     data = xr.where(data > 1e30, np.nan, data)
 
@@ -142,13 +142,13 @@ def read_geo(fid, key):
     dsid = GEO_NAMES[key['name']]
     add_epoch = False
     if "time" in key['name']:
-        days = fid["/L1C/" + dsid["day"]].value
-        msecs = fid["/L1C/" + dsid["msec"]].value
+        days = fid["/L1C/" + dsid["day"]][()]
+        msecs = fid["/L1C/" + dsid["msec"]][()]
         data = _form_datetimes(days, msecs)
         add_epoch = True
         dtype = np.float64
     else:
-        data = fid["/L1C/" + dsid].value
+        data = fid["/L1C/" + dsid][()]
         dtype = np.float32
     data = xr.DataArray(da.from_array(data, chunks=CHUNK_SIZE),
                         name=key['name'], dims=['y', 'x']).astype(dtype)

@@ -133,7 +133,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     def all_dataset_names(self):
         """Get names of all datasets known to this reader."""
         # remove the duplicates from various calibration and resolutions
-        return set(ds_id.name for ds_id in self.all_dataset_ids)
+        return set(ds_id['name'] for ds_id in self.all_dataset_ids)
 
     @property
     def available_dataset_ids(self):
@@ -145,7 +145,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     @property
     def available_dataset_names(self):
         """Get names of datasets that are loadable by this reader."""
-        return (ds_id.name for ds_id in self.available_dataset_ids)
+        return (ds_id['name'] for ds_id in self.available_dataset_ids)
 
     @property
     @abstractmethod
@@ -724,7 +724,7 @@ class FileYAMLReader(AbstractYAMLReader):
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
             logger.warning("Required file type '%s' not found or loaded for "
-                           "'%s'", ds_info['file_type'], dsid.name)
+                           "'%s'", ds_info['file_type'], dsid['name'])
         else:
             return self.file_handlers[filetype]
 
