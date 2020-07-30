@@ -184,10 +184,16 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
         global_attrs = {
-            '/attr/NOMCenterLat': 0.0, '/attr/NOMCenterLon': 104.7, '/attr/NOMSatHeight': 3.5786E7,
-            '/attr/dEA': 6378.14, '/attr/dObRecFlat': 298.257223563,
-            '/attr/OBIType': 'REGC', '/attr/RegLength': 2.0, '/attr/RegWidth': 5.0,
-            '/attr/Begin Line Number': 0, '/attr/End Line Number': 1,
+            '/attr/NOMCenterLat': np.array(0.0),
+            '/attr/NOMCenterLon': np.array(104.7),
+            '/attr/NOMSatHeight': np.array(3.5786E7),
+            '/attr/dEA': np.array(6378.14),
+            '/attr/dObRecFlat': np.array(298.257223563),
+            '/attr/OBIType': 'REGC',
+            '/attr/RegLength': np.array(2.0),
+            '/attr/RegWidth': np.array(5.0),
+            '/attr/Begin Line Number': np.array(0),
+            '/attr/End Line Number': np.array(1),
             '/attr/Observing Beginning Date': '2019-06-03', '/attr/Observing Beginning Time': '00:30:01.807',
             '/attr/Observing Ending Date': '2019-06-03', '/attr/Observing Ending Time': '00:34:07.572',
             '/attr/Satellite Name': 'FY4A', '/attr/Sensor Identification Code': 'AGRI', '/attr/Sensor Name': 'AGRI',
@@ -240,7 +246,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -286,6 +292,14 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
             else:
                 self.assertEqual('K', res[band_name].attrs['units'])
 
+        # check whether the data type of orbital_parameters is float
+        orbital_parameters = res[band_names[0]].attrs['orbital_parameters']
+        for attr in orbital_parameters:
+            self.assertEqual(type(orbital_parameters[attr]), float)
+        self.assertEqual(orbital_parameters['satellite_nominal_latitude'], 0.)
+        self.assertEqual(orbital_parameters['satellite_nominal_longitude'], 104.7)
+        self.assertEqual(orbital_parameters['satellite_nominal_altitude'], 3.5786E7)
+
     def test_fy4a_counts_calib(self):
         """Test loading data at counts calibration."""
         from satpy import DatasetID
@@ -298,7 +312,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -325,7 +339,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(1, len(files))
+        self.assertEqual(1, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -385,7 +399,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(1, len(files))
+        self.assertEqual(1, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -444,7 +458,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(1, len(files))
+        self.assertEqual(1, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -491,7 +505,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(1, len(files))
+        self.assertEqual(1, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)

@@ -20,7 +20,7 @@
 import os
 from contextlib import suppress
 from tempfile import mkstemp
-from unittest import TestCase, TestLoader, TestSuite
+from unittest import TestCase
 from unittest import mock
 
 import numpy as np

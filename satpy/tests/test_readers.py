@@ -18,9 +18,10 @@
 """Test classes and functions in the readers/__init__.py module."""
 
 import os
-import sys
 import unittest
 from unittest import mock
+
+import pytest
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
@@ -248,6 +249,17 @@ class TestReaderLoader(unittest.TestCase):
         }
         ri = load_readers(filenames=filenames)
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
+    def test_filenames_as_dict_bad_reader(self):
+        """Test loading with filenames dict but one of the readers is bad."""
+        from satpy.readers import load_readers
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+            '__fake__': ['fake.txt'],
+        }
+        self.assertRaisesRegex(ValueError,
+                               r'(?=.*__fake__)(?!.*viirs)(^No reader.+)',
+                               load_readers, filenames=filenames)
 
     def test_filenames_as_dict_with_reader(self):
         """Test loading from a filenames dict with a single reader specified.
@@ -530,6 +542,9 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
         self.assertRaises(ValueError, find_files_and_readers, sensor='viirs')
+        self.assertEqual(
+                find_files_and_readers(sensor='viirs', missing_ok=True),
+                {})
 
     def test_reader_load_failed(self):
         """Test that an exception is raised when a reader can't be loaded."""
@@ -635,11 +650,23 @@ class TestGroupFiles(unittest.TestCase):
             "SVI03_npp_d20180511_t1940321_e1941563_b33872_c20190612032009230105_noac_ops.h5",
             "SVI03_npp_d20180511_t1941575_e1943217_b33872_c20190612032009230105_noac_ops.h5",
         ]
+        self.unknown_files = [
+                "ʌsɔ˙pıʃɐʌuı",
+                "no such"]
 
     def test_no_reader(self):
-        """Test that reader must be provided."""
+        """Test that reader does not need to be provided."""
         from satpy.readers import group_files
-        self.assertRaises(ValueError, group_files, [])
+        # without files it's going to be an empty result
+        assert group_files([]) == []
+        groups = group_files(self.g16_files)
+        self.assertEqual(6, len(groups))
+
+    def test_unknown_files(self):
+        """Test that error is raised on unknown files."""
+        from satpy.readers import group_files
+        with pytest.raises(ValueError):
+            group_files(self.unknown_files, "abi_l1b")
 
     def test_bad_reader(self):
         """Test that reader not existing causes an error."""
@@ -750,3 +777,27 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(6, len(groups[0]['viirs_sdr']))
         # 5 granules * 3 file types
         self.assertEqual(5 * 3, len(groups[1]['viirs_sdr']))
+
+    def test_multi_readers(self):
+        """Test passing multiple readers."""
+        from satpy.readers import group_files
+        groups = group_files(
+                self.g16_files + self.noaa20_files,
+                reader=("abi_l1b", "viirs_sdr"))
+        assert len(groups) == 11
+        # test that they're grouped together when time threshold is huge and
+        # only time is used to group
+        groups = group_files(
+                self.g16_files + self.noaa20_files,
+                reader=("abi_l1b", "viirs_sdr"),
+                group_keys=("start_time",),
+                time_threshold=10**9)
+        assert len(groups) == 1
+        # test that a warning is raised when a string is passed (meaning no
+        # group keys found in common)
+        with pytest.warns(UserWarning):
+            groups = group_files(
+                    self.g16_files + self.noaa20_files,
+                    reader=("abi_l1b", "viirs_sdr"),
+                    group_keys=("start_time"),
+                    time_threshold=10**9)

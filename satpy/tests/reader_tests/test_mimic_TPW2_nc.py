@@ -109,7 +109,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'comp20190619.130000.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)

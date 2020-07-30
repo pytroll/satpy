@@ -173,7 +173,7 @@ class TestNUCAPSReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -359,7 +359,7 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'NUCAPS-sciEDR_am_npp_s20190703223319_e20190703223349_STC_fsr.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
