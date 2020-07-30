@@ -458,7 +458,7 @@ class TestNativeMSGArea(unittest.TestCase):
         calculated, expected = self.prepare_area_defs(
             TEST_AREA_EXTENT_EARTHMODEL1_HRV_RAPIDSCAN
         )
-        print(calculated.area_extent)
+
         assertNumpyArraysEqual(np.array(calculated.area_extent),
                                np.array(expected['Area extent']))
 
