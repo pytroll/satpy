@@ -196,3 +196,16 @@ def test_1088(fake_open_dataset):
     scene[my_id] = scene['C04'].copy()
     resampled = scene.resample('eurol')
     assert resampled[my_id].shape == (2048, 2560)
+
+
+@patch('xarray.open_dataset')
+def test_no_enums(fake_open_dataset):
+    """Check that no enums are inserted in the resulting attrs."""
+    from satpy import Scene
+    from enum import Enum
+    fake_open_dataset.side_effect = generate_fake_abi_xr_dataset
+
+    scene = Scene(abi_file_list, reader='abi_l1b')
+    scene.load(['C04'], calibration='radiance')
+    for value in scene['C04'].attrs.values():
+        assert not isinstance(value, Enum)

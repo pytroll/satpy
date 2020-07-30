@@ -25,7 +25,7 @@ from collections.abc import Collection
 from contextlib import suppress
 from copy import copy, deepcopy
 from datetime import datetime
-from enum import IntEnum
+from enum import IntEnum, Enum
 
 import numpy as np
 
@@ -433,19 +433,7 @@ class DataID(dict):
 
     def __reduce__(self):
         """Reduce the object for pickling."""
-        keyvals = self._replace_enums_with_names(self.to_dict())
-        return (self._unpickle, (self._orig_id_keys, keyvals))
-
-    @staticmethod
-    def _replace_enums_with_names(keyvals):
-        """Remove all enum instances, replacing them with their names."""
-        new_keyvals = dict()
-        for key, val in keyvals.items():
-            try:
-                new_keyvals[key] = val.name
-            except AttributeError:
-                new_keyvals[key] = val
-        return new_keyvals
+        return (self._unpickle, (self._orig_id_keys, self.to_dict()))
 
     def from_dict(self, keyvals):
         """Create a DataID from a dictionary."""
@@ -488,7 +476,13 @@ class DataID(dict):
 
     def to_dict(self):
         """Convert the ID to a dict."""
-        return self._asdict()
+        res_dict = dict()
+        for key, value in self._asdict().items():
+            if isinstance(value, Enum):
+                res_dict[key] = value.name
+            else:
+                res_dict[key] = value
+        return res_dict
 
     def __getattr__(self, key):
         """Support old syntax for getting items."""

@@ -264,9 +264,12 @@ class DatasetDict(dict):
                     value.attrs['name'] = new_name
 
         # update the 'value' with the information contained in the key
+        try:
+            new_info = key.to_dict()
+        except AttributeError:
+            new_info = key
         if isinstance(value_dict, dict):
-            for field in key.keys():
-                value_dict[field] = key.get(field)
+            value_dict.update(new_info)
 
         if hasattr(value, 'attrs'):
             if isinstance(key, DataID):
