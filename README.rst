@@ -1,8 +1,8 @@
 Satpy
 =====
 
-.. image:: https://travis-ci.org/pytroll/satpy.svg?branch=master
-    :target: https://travis-ci.org/pytroll/satpy
+.. image:: https://travis-ci.com/pytroll/satpy.svg?branch=master
+    :target: https://travis-ci.com/pytroll/satpy
 
 .. image:: https://ci.appveyor.com/api/projects/status/a82tm59hldt4ycor/branch/master?svg=true
     :target: https://ci.appveyor.com/project/pytroll/satpy/branch/master

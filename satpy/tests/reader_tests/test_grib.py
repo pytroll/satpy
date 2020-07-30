@@ -173,10 +173,25 @@ class TestGRIBReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'gfs.t18z.sfluxgrbf106.grib2',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
+
+    def test_file_pattern(self):
+        """Test matching of file patterns."""
+        from satpy.readers import load_reader
+
+        filenames = [
+                "quinoa.grb",
+                "tempeh.grb2",
+                "tofu.grib2",
+                "falafel.grib",
+                "S_NWC_NWP_1900-01-01T00:00:00Z_999.grib"]
+
+        r = load_reader(self.reader_configs)
+        files = r.select_files_from_pathnames(filenames)
+        self.assertEqual(len(files), 4)
 
     @mock.patch('satpy.readers.grib.pygrib')
     def test_load_all(self, pg):

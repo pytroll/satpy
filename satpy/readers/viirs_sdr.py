@@ -57,6 +57,7 @@ def _get_invalid_info(granule_data):
     VDNE: value does not exist / processing algorithm did not execute
     SOUB: scaled out-of-bounds / solution not within allowed range
     """
+    msg = None
     if issubclass(granule_data.dtype.type, np.integer):
         msg = ("na:" + str((granule_data == 65535).sum()) +
                " miss:" + str((granule_data == 65534).sum()) +
@@ -293,13 +294,17 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             expanded.rename({expanded.dims[0]: 'y'})
             return expanded
 
-    def concatenate_dataset(self, dataset_group, var_path):
-        """Concatenate dataset."""
-        if 'I' in dataset_group:
+    def _scan_size(self, dataset_group_name):
+        """Get how many rows of data constitute one scanline."""
+        if 'I' in dataset_group_name:
             scan_size = 32
         else:
             scan_size = 16
-        scans_path = 'All_Data/{dataset_group}_All/NumberOfScans'
+        return scan_size
+
+    def concatenate_dataset(self, dataset_group, var_path):
+        """Concatenate dataset."""
+        scan_size = self._scan_size(dataset_group)
         number_of_granules_path = 'Data_Products/{dataset_group}/{dataset_group}_Aggr/attr/AggregateNumberGranules'
         nb_granules_path = number_of_granules_path.format(dataset_group=DATASET_KEYS[dataset_group])
         scans = []
@@ -315,7 +320,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         if variable.size != scans.size:
             for gscans in scans.values:
                 data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + gscans * scan_size)))
-                start_scan += scan_size * 48
+                start_scan += gscans * scan_size
             return xr.concat(data_chunks, 'y')
         else:
             return self.expand_single_values(variable, scans)
@@ -372,6 +377,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
             "end_orbit": self.end_orbit_number,
+            "rows_per_scan": self._scan_size(dataset_group),
         })
         i.update(dataset_id.to_dict())
         data.attrs.update(i)
