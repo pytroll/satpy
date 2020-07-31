@@ -142,3 +142,16 @@ composites:
         modifiers: [nir_reflectance]
       - name: C12
     standard_name: day_microphysics
+
+  day_microphysics_agri:
+    description: >
+      Variations to the Day Microphysics RGB product using the 2.3 micron channel, see the pages 12 and 13 in the references
+    references:
+      Quick Guide: http://www.virtuallab.bom.gov.au/files/3114/7884/4308/NewRGBProductsNov2016RFGmeeting.pdf
+    ## adapted from etc/composites/ahi.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C03
+      - name: C06
+      - name: C12
+    standard_name: day_microphysics_ahi
