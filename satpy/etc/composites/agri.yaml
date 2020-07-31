@@ -155,3 +155,31 @@ composites:
       - name: C06
       - name: C12
     standard_name: day_microphysics_ahi
+
+  cloud_phase:
+    description: >
+      Cloud Phase RGB, for EUMETSAT
+      Day Cloud Phase RGB, for EUMETSAT (https://www.eumetsat.int/website/home/Images/ImageLibrary/DAT_2861499.html)
+      "When we use the NIR2.3 instead of the VIS0.8 on the green beam, we can devise a new RGB product (let us call it 'Day Cloud Phase RGB') that has similar cloud colours than the Natural Colour RGB, but with improved separation of ice and water clouds."
+    references:
+      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/CloudPhaseRGB.pdf
+      Cloud Phase recipe and typical colours: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_IL_18_05_13&RevisionSelectionMethod=LatestReleased&Rendition=Web
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C05
+        modifiers: [sunz_corrected]
+      - name: C06
+        modifiers: [sunz_corrected]
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+    standard_name: natural_color
+
+  cloud_phase_raw:
+    description: >
+      same as cloud_phase
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C05
+      - name: C06
+      - name: C02
+    standard_name: natural_color
