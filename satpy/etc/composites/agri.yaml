@@ -69,3 +69,17 @@ composites:
           - name: C07
           - name: C12
     standard_name: snow
+
+  fire_temperature_awips:
+    description: >
+      Fire Temperature RGB, for GOESR: NASA, NOAA
+    references:
+      CIRA Quick Guide: http://rammb.cira.colostate.edu/training/visit/quick_guides/Fire_Temperature_RGB.pdf
+    ## adapted from etc/composites/viirs.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C07
+      - name: C06
+      - name: C05
+    standard_name: fire_temperature
+    name: fire_temperature_awips
