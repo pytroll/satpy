@@ -183,3 +183,15 @@ composites:
       - name: C06
       - name: C02
     standard_name: natural_color
+
+  color_infrared:
+    description: >
+      Similar to landsat and sentinel 2 combinations for enhance vegetation
+    compositor: !!python/name:satpy.composites.SelfSharpenedRGB
+    prerequisites:
+      - name: C03
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: C02
+        modifiers: [sunz_corrected, rayleigh_corrected]
+      - name: green
+    standard_name: true_color
