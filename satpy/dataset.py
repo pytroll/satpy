@@ -115,7 +115,7 @@ class WavelengthRange(wlklass):
 
     def __str__(self):
         """Format for print out."""
-        return "{0.central}{0.unit} ({0.min}-{0.max}{0.unit})".format(self)
+        return "{0.central} {0.unit} ({0.min}-{0.max} {0.unit})".format(self)
 
     def __contains__(self, other):
         """Check if this range contains *other*."""
