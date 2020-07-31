@@ -111,3 +111,19 @@ composites:
       - name: C02
         modifiers: [sunz_corrected]
     standard_name: land_cloud
+
+  snow:
+    description: >
+      SEVIRI Snow RGB, for EUMETSAT
+    references:
+      EUMETRAIN Quick Guide: http://www.eumetrain.org/rgb_quick_guides/quick_guides/SnowRGB.pdf
+    ## adapted from etc/composites/visir.yaml
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: C03
+        modifiers: [sunz_corrected]
+      - name: C05
+        modifiers: [sunz_corrected]
+      - name: C07
+        modifiers: [nir_reflectance]
+    standard_name: snow
