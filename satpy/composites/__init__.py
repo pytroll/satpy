@@ -807,32 +807,6 @@ class ParallaxCorrector(CompositeBase):
 
         return latcorr, loncorr
 
-    def _verify_requirements(self, optional_datasets):
-        """Verify that required cloud microphysics present
-        Can be either cmic_cot/cmic_lwp/cmic_reff or cot/lwp/reff.
-        """
-        cname = {}
-        needs = {'cth': {'CTH',  # AGRI
-                         'CLTH',  # AHI
-                         }
-                 }
-
-        for x in optional_datasets:
-            for (n, p) in needs.items():
-                if x.attrs["name"] in p:
-                    cname[n] = x
-                    continue
-
-        # reise error when missing the CTH
-        missing = needs.keys() - cname.keys()
-        if missing:
-            raise ValueError("Missing cloud top height inputs: " + ", ".join(missing))
-
-        # convert units to km
-        if optional_datasets[0].attrs['units'] == 'm':
-            optional_datasets[0] /= 1e3
-            optional_datasets[0].attrs['units'] = 'km'
-
     def __call__(self, projectables, optional_datasets, **info):
         """Get the correction
 
@@ -850,8 +824,15 @@ class ParallaxCorrector(CompositeBase):
                               got %d" %
                              (len(projectables), ))
 
-        # get the name of "cloud top height" in scene
-        self._verify_requirements(optional_datasets)
+        # check the input of "cloud top height"
+        da_name = optional_datasets[0].name
+        if da_name not in ['CTH', 'CLTH']:
+            raise ValueError("Missing cloud top height inputs")
+        else:
+            # convert units to km
+            if optional_datasets[0].attrs['units'] == 'm':
+                optional_datasets[0] /= 1e3
+                optional_datasets[0].attrs['units'] = 'km'
 
         # get the satellites info from the attributes
         band = projectables[0]
