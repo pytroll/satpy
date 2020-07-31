@@ -1,0 +1,68 @@
+reader:
+  description: MIRS reader
+  name: mirs
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+  sensors: [amsua-mhs, atms]
+
+file_types:
+  mirs_atms:
+    file_reader: !!python/name:satpy.readers.mirs.MIRSHandler
+    file_patterns:
+      - 'NPR-MIRS-IMG_v{version}_{platform_name}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
+      - 'NPR-MIRS-SND_v{version}_{platform_name}_s{start_time:%Y%m%d%H%M%S}{extra_num1}_e{end_time:%Y%m%d%H%M%S}{extra_num2}_c{creation_time:%Y%m%d%H%M%S}{extra_num3}.nc'
+      - 'IMG_SX.{platform_name}.D{date:%y%j}.S{start_time:%H%M}.E{end_time:%H%M}.B{num}.WE.HR.ORB.nc'
+
+datasets:
+  rain_rate:
+    name: 'rain_rate'
+    file_key: 'RR'
+    file_type: mirs_atms
+    units: 'mm/hr'
+  sfr:
+    name: 'snow_fall_rate'
+    file_key: 'SFR'
+    file_type: mirs_atms
+  latitude:
+    name: 'latitude'
+    file_key: 'Latitude'
+    file_type: mirs_atms
+    units: 'degrees'
+  longitude:
+    name: 'longitude'
+    file_key: 'Longitude'
+    file_type: mirs_atms
+    units: 'degrees'
+  sea_ice:
+    name: 'sea_ice'
+    file_key: 'SIce'
+    file_type: mirs_atms
+    units: '%'
+  snow_cover:
+    name: 'snow_cover'
+    file_key: 'Snow'
+    file_type: mirs_atms
+    units: '1'
+  surface_type:
+    name: 'surface_type'
+    file_key: 'Sfc_type'
+    file_type: mirs_atms
+  tpw:
+    name: 'total_precipitable_water'
+    file_key: 'TPW'
+    file_type: mirs_atms
+    units: 'mm'
+  swe:
+    name: 'snow_water_equivalence'
+    file_key: 'SWE'
+    file_type: mirs_atms
+    units: 'cm'
+  clw:
+    name: 'cloud_liquid_water'
+    file_key: 'CLW'
+    file_type: mirs_atms
+    units: 'mm'
+  tskin:
+    name: 'skin_temperature'
+    file_key: 'TSkin'
+    file_type: mirs_atms
+    units: 'K'
