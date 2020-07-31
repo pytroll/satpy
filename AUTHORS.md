@@ -66,3 +66,4 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
+- [Jorge Bravo (jhbravo)](https://github.com/jhbravo)
