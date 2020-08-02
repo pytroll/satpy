@@ -769,13 +769,13 @@ class ParallaxCorrector(CompositeBase):
 
         # cartesian coordinates for the satellite
         # satlat_geod is the geodetic satellite latitude
-        sat_lat_geod = arctan(tan(sat_lat)*radius_ratio**2)
+        sat_lat_geod = arctan(tan(sat_lat)/radius_ratio**2)
         xsat = sat_h * cos(sat_lat_geod) * cos(sat_lon)
         ysat = sat_h * cos(sat_lat_geod) * sin(sat_lon)
         zsat = sat_h * sin(sat_lat_geod)
 
         # cartesian coordinates of the surface point
-        lat_geod = arctan(tan(lat)*radius_ratio**2)
+        lat_geod = arctan(tan(lat)/radius_ratio**2)
         radius_surf = sqrt(radius_eq**2*cos(lat_geod)**2 + radius_pole**2*sin(lat_geod)**2)
         xsurf = radius_surf * cos(lat_geod) * cos(lon)
         ysurf = radius_surf * cos(lat_geod) * sin(lon)
@@ -802,8 +802,8 @@ class ParallaxCorrector(CompositeBase):
 
         # convert back to latitude and longitude
         latcorr = arctan(zcorr/sqrt(xcorr**2 + ycorr**2))
-        latcorr = np.deg2rad(arctan(tan(latcorr)*radius_ratio**2))
-        loncorr = np.deg2rad(arctan2(ycorr, xcorr))
+        latcorr = np.rad2deg(arctan(tan(latcorr)*radius_ratio**2))
+        loncorr = np.rad2deg(arctan2(ycorr, xcorr))
 
         return latcorr, loncorr
 
