@@ -331,7 +331,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
                 calib_mode, calib_mode_choices))
-        if calib_mode.upper() == 'CUSTOM' and type(custom_calib) is not dict:
+        if calib_mode.upper() == 'CUSTOM' and isinstance(custom_calib, dict):
             raise ValueError('Invalid custom calibration, supply coefficients')
 
         self.calib_mode = calib_mode.upper()
