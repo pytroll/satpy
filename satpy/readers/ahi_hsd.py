@@ -260,7 +260,7 @@ class AHIHSDFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 mask_space=True, calib_mode='nominal'):
+                 mask_space=True, calib_mode='nominal', custom_calib=None):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -301,11 +301,15 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.sensor = 'ahi'
         self.mask_space = mask_space
 
-        calib_mode_choices = ('NOMINAL', 'UPDATE')
+        calib_mode_choices = ('NOMINAL', 'UPDATE', 'CUSTOM')
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
                 calib_mode, calib_mode_choices))
+        if calib_mode.upper() == 'CUSTOM' and custom_calib is None:
+            raise ValueError('Invalid custom calibration, supply coefficients')
+
         self.calib_mode = calib_mode.upper()
+        self.custom_calib = custom_calib
 
     def __del__(self):
         if (self.is_zipped and os.path.exists(self.filename)):
@@ -569,7 +573,6 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def convert_to_radiance(self, data):
         """Calibrate to radiance."""
-
         bnum = self._header["block5"]['band_number'][0]
         # Check calibration mode and select corresponding coefficients
         if self.calib_mode == "UPDATE" and bnum < 7:
@@ -583,6 +586,16 @@ class AHIHSDFileHandler(BaseFileHandler):
         else:
             gain = self._header["block5"]["gain_count2rad_conversion"][0]
             offset = self._header["block5"]["offset_count2rad_conversion"][0]
+        # If using custom calibration from GSICS, apply it here
+        if self.calib_mode == "CUSTOM" and bnum > 6:
+            bnd_idx = bnum - 7
+            try:
+                g2 = self.custom_calib[0][bnd_idx]
+                o2 = self.custom_calib[1][bnd_idx]
+                data = data / g2 + o2
+            except IndexError:
+                logger.info(
+                    "No valid custom coefficients, not applying.")
 
         return (data * gain + offset).clip(0)
 
