@@ -43,8 +43,10 @@ CF_UNITS = {
 
 
 class GRIBFileHandler(BaseFileHandler):
+    """Generic GRIB file handler."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Open grib file and do initial message parsing."""
         super(GRIBFileHandler, self).__init__(filename, filename_info, filetype_info)
 
         self._msg_datasets = {}
@@ -120,7 +122,7 @@ class GRIBFileHandler(BaseFileHandler):
         return self._end_time
 
     def available_datasets(self, configured_datasets=None):
-        """Automatically determine datasets provided by this file"""
+        """Automatically determine datasets provided by this file."""
         # previously configured or provided datasets
         # we can't provide any additional information
         for is_avail, ds_info in (configured_datasets or []):
@@ -157,15 +159,18 @@ class GRIBFileHandler(BaseFileHandler):
             max_lat = lats[-1]
             if min_lat > max_lat:
                 # lats aren't in the order we thought they were, flip them
-                # we also need to flip the data in the data loading section
                 min_lat, max_lat = max_lat, min_lat
             shape = (lats.shape[0], lons.shape[0])
             min_x, min_y = proj(min_lon, min_lat)
             max_x, max_y = proj(max_lon, max_lat)
-            if max_x < min_x and 'over' not in proj_params:
+            if max_x <= min_x:
                 # wrap around
-                proj_params['over'] = True
+                # make 180 longitude the prime meridian
+                # assuming we are going from 0 to 360 longitude
+                proj_params['pm'] = 180
                 proj = Proj(**proj_params)
+                # recompute x/y extents with this new projection
+                min_x, min_y = proj(min_lon, min_lat)
                 max_x, max_y = proj(max_lon, max_lat)
             pixel_size_x = (max_x - min_x) / (shape[1] - 1)
             pixel_size_y = (max_y - min_y) / (shape[0] - 1)
@@ -181,9 +186,10 @@ class GRIBFileHandler(BaseFileHandler):
             # take the corner points only
             lons = lons[([0, 0, -1, -1], [0, -1, 0, -1])]
             lats = lats[([0, 0, -1, -1], [0, -1, 0, -1])]
-            # correct for longitudes over 180
-            lons[lons > 180] -= 360
-
+            # if we have longitudes over 180, assume 0-360
+            if (lons > 180).any():
+                # make 180 longitude the prime meridian
+                proj_params['pm'] = 180
             proj = Proj(**proj_params)
             x, y = proj(lons, lats)
             if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
@@ -219,6 +225,7 @@ class GRIBFileHandler(BaseFileHandler):
             raise RuntimeError("Unknown GRIB projection information")
 
     def get_metadata(self, msg, ds_info):
+        """Get data metadata."""
         model_time = self._convert_datetime(msg, 'dataDate',
                                             'dataTime')
         start_time = self._convert_datetime(msg, 'validityDate',
