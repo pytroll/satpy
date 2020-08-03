@@ -258,29 +258,28 @@ class AHIHSDFileHandler(BaseFileHandler):
     Alternative AHI calibrations are also available, such as GSICS
     coefficients. As such, you can supply custom per-channel calibration
     for the infrared channels by setting calib_mode='custom' and passing
-    custom calibration factors via custom_calib=[slopes, offsets]
-    Where slopes is a list of 1 to 10 floats specifying per-band
-    slope adjustment factors taken from GSICS or similar. These are applied
-    to bands 7 to 16, with the first list value corresponding to band 7.
-    If this list is shorter than the number of bands requested, calibration
-    coefficients will only be applied to those bands with available slopes.
-    Similarly, offsets are passed as a 1 to 10 element list::
+    custom calibration factors via custom_calib={chan: [slo, off]}
+    Where slo and off are per-channel slope and offset coefficients defined by:
+     rad_leo = (rad_geo - off) / slo
+    If using custom coefficients, they must be supplied for *all* bands being
+    loaded. If you do not have coefficients for a particular band, you can
+    set slo=1, off=0:
 
         import satpy
         import glob
 
-        # Applied to bands 7-9
-        my_slopes = [0.998, 0.995, 1.001]
-        my_offsets = [0.12, -.03, 0.01]
+        # Load bands 7, 14 and 15, but we only have coefs for 7+14
+        calib_dict = {'B07': [0.99, 0.002],
+                      'B14': [1.02, -0.18],
+                      'B15': [1.0, 0.0]}
 
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
                             reader_kwargs={'calib_mode':: 'custom'},
-                                           'custom_calib':: [my_slopes,
-                                                             my_offsets])
-        # B10 will not have custom calibration applied.
-        scene.load(['B07', 'B08', 'B09', 'B10'])
+                                           'custom_calib':: calib_dict)
+        # B15 will not have custom calibration applied.
+        scene.load(['B07', 'B14', 'B15'])
 
     By default these updated coefficients are not used.
 
