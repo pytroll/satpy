@@ -290,6 +290,26 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             [7.8, 0]])
         self.assertTrue(np.allclose(rad, rad_exp))
 
+        # Custom calibration
+        # Check good coefficients
+        cust_slo = [.96]
+        cust_off = [.01]
+        fh._header['block5']['band_number'] = [7]
+        fh.calib_mode = 'CUSTOM'
+        fh.custom_calib = [cust_slo, cust_off]
+        rad = fh.calibrate(data=counts, calibration='radiance')
+        rad_exp = np.array([[15.199963, 11.34579633],
+                            [7.49162967, 0]])
+        self.assertTrue(np.allclose(rad, rad_exp))
+
+        # Check out of bounds coefficients
+        # Output should have no custom calib applied
+        fh._header['block5']['band_number'] = [20]
+        rad = fh.calibrate(data=counts, calibration='radiance')
+        rad_exp = np.array([[15.2, 11.5],
+                            [7.8, 0]])
+        self.assertTrue(np.allclose(rad, rad_exp))
+
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._mask_invalid')
