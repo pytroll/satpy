@@ -332,7 +332,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
                 calib_mode, calib_mode_choices))
-        if calib_mode.upper() == 'CUSTOM' and custom_calib is None:
+        if calib_mode.upper() == 'CUSTOM' and type(custom_calib) is not dict:
             raise ValueError('Invalid custom calibration, supply coefficients')
 
         self.calib_mode = calib_mode.upper()
@@ -537,7 +537,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         logger.debug("Reading time " + str(datetime.now() - tic))
 
         # Calibrate
-        res = self.calibrate(res, key.calibration)
+        res = self.calibrate(res, key.name, key.calibration)
 
         # Get actual satellite position. For altitude use the ellipsoid radius at the SSP.
         actual_lon = float(self.nav_info['SSP_longitude'])
@@ -581,7 +581,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         return res
 
-    def calibrate(self, data, calibration):
+    def calibrate(self, data, bname, calibration):
         """Calibrate the data"""
         tic = datetime.now()
 
@@ -589,7 +589,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             return data
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            data = self.convert_to_radiance(data)
+            data = self.convert_to_radiance(data, bname)
         if calibration == 'reflectance':
             data = self._vis_calibrate(data)
         elif calibration == 'brightness_temperature':
@@ -598,7 +598,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return data
 
-    def convert_to_radiance(self, data):
+    def convert_to_radiance(self, data, bname):
         """Calibrate to radiance."""
         bnum = self._header["block5"]['band_number'][0]
         # Check calibration mode and select corresponding coefficients
@@ -614,15 +614,14 @@ class AHIHSDFileHandler(BaseFileHandler):
             gain = self._header["block5"]["gain_count2rad_conversion"][0]
             offset = self._header["block5"]["offset_count2rad_conversion"][0]
         # If using custom calibration from GSICS, apply it here
-        if self.calib_mode == "CUSTOM" and bnum > 6:
-            bnd_idx = bnum - 7
-            try:
-                g2 = self.custom_calib[0][bnd_idx]
-                o2 = self.custom_calib[1][bnd_idx]
-                data = data / g2 + o2
-            except IndexError:
-                logger.info(
-                    "No valid custom coefficients, not applying.")
+        if self.calib_mode == "CUSTOM":
+            if bname in self.custom_calib:
+                g2 = self.custom_calib[bname][0]
+                o2 = self.custom_calib[bname][1]
+                data = (data - o2) / g2
+            else:
+                raise KeyError('Custom calibration selected, but no coefficients '
+                               'were supplied for channel ' + bname)
 
         return (data * gain + offset).clip(0)
 
