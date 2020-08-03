@@ -147,6 +147,8 @@ class TestAHIHSDFileHandler(unittest.TestCase):
             # Check if file handler raises exception for invalid calibration mode
             with self.assertRaises(ValueError):
                 fh = AHIHSDFileHandler('somefile', {'segment': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
+            with self.assertRaises(ValueError):
+                fh = AHIHSDFileHandler('somefile', {'segment': 8, 'total_segments': 10}, None, calib_mode='CUSTOM')
 
             in_fname = 'test_file.bz2'
             fh = AHIHSDFileHandler(in_fname, {'segment': 8, 'total_segments': 10}, None)
