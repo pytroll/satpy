@@ -122,6 +122,10 @@ The parameters to provide in this section are:
       sensors: [seviri]
       reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
 
+Optionally, if you need to customize the `DataID` for this reader, you can provide the
+relevant keys with a `data_identification_keys` item here. See the :doc:`satpy_internals`
+section for more information.
+
 .. _custom_reader_file_types_section:
 
 The ``file_types`` section
@@ -476,7 +480,7 @@ needs to implement a few methods:
    in the example below.
 
  - the ``get_area_def`` method, that takes as single argument the
-   :class:`~satpy.dataset.DatasetID` for which we want
+   :class:`~satpy.dataset.DataID` for which we want
    the area. It should return a :class:`~pyresample.geometry.AreaDefinition`
    object. For data that cannot be geolocated with an area
    definition, the pixel coordinates will be loaded using the
@@ -539,7 +543,7 @@ One way of implementing a file handler is shown below:
             self.nc = None
 
         def get_dataset(self, dataset_id, dataset_info):
-            if dataset_id.calibration != 'radiance':
+            if dataset_id['calibration'] != 'radiance':
                 # TODO: implement calibration to reflectance or brightness temperature
                 return
             if self.nc is None:

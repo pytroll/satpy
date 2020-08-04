@@ -34,7 +34,10 @@ import datetime
 
 
 class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
+    """File handler for NC seviri files."""
+
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         super(NCSEVIRIFileHandler, self).__init__(filename, filename_info, filetype_info)
         self.nc = None
         self.mda = {}
@@ -43,13 +46,16 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self.deltaSt
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self.deltaEnd
 
     def _read_file(self):
+        """Read the file."""
         if self.nc is None:
 
             self.nc = xr.open_dataset(self.filename,
@@ -86,8 +92,8 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.south = int(self.nc.attrs['south_most_line'])
 
     def get_dataset(self, dataset_id, dataset_info):
-
-        channel = dataset_id.name
+        """Get the dataset."""
+        channel = dataset_id['name']
         i = list(CHANNEL_NAMES.values()).index(channel)
 
         if (channel == 'HRV'):
@@ -115,18 +121,18 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # Correct for the scan line order
         dataset = dataset.sel(y=slice(None, None, -1))
 
-        if dataset_id.calibration == 'counts':
+        if dataset_id['calibration'] == 'counts':
             dataset.attrs['_FillValue'] = 0
 
-        if dataset_id.calibration in ['radiance', 'reflectance', 'brightness_temperature']:
+        if dataset_id['calibration'] in ['radiance', 'reflectance', 'brightness_temperature']:
             dataset = dataset.where(dataset != 0).astype('float32')
             dataset = self._convert_to_radiance(dataset, gain, offset)
 
-        if dataset_id.calibration == 'reflectance':
+        if dataset_id['calibration'] == 'reflectance':
             solar_irradiance = CALIB[int(self.platform_id)][channel]["F"]
             dataset = self._vis_calibrate(dataset, solar_irradiance)
 
-        elif dataset_id.calibration == 'brightness_temperature':
+        elif dataset_id['calibration'] == 'brightness_temperature':
             dataset = self._ir_calibrate(dataset, channel, cal_type)
 
         dataset.attrs.update(self.nc[dataset_info['nc_key']].attrs)
@@ -146,14 +152,14 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return dataset
 
     def get_area_def(self, dataset_id):
-
+        """Get the area def."""
         pdict = {}
         pdict['a'] = self.mda['projection_parameters']['a']
         pdict['b'] = self.mda['projection_parameters']['b']
         pdict['h'] = self.mda['projection_parameters']['h']
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
-        if dataset_id.name == 'HRV':
+        if dataset_id['name'] == 'HRV':
             pdict['nlines'] = self.mda['hrv_number_of_lines']
             pdict['ncols'] = self.mda['hrv_number_of_columns']
             pdict['a_name'] = 'geosmsg_hrv'
@@ -171,7 +177,7 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         return area
 
     def get_area_extent(self, dsid):
-
+        """Get the area extent."""
         # following calculations assume grid origin is south-east corner
         # section 7.2.4 of MSG Level 1.5 Image Data Format Description
         origins = {0: 'NW', 1: 'SW', 2: 'SE', 3: 'NE'}
@@ -214,4 +220,6 @@ class NCSEVIRIFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
 
 class NCSEVIRIHRVFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
+    """HRV filehandler."""
+
     pass

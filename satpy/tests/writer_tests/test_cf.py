@@ -23,7 +23,7 @@ import unittest
 from unittest import mock
 from datetime import datetime
 import tempfile
-from satpy import DatasetID
+from satpy.tests.utils import make_dsq
 
 import numpy as np
 
@@ -71,14 +71,12 @@ class TestCFWriter(unittest.TestCase):
         scn['test-array'] = xr.DataArray([1, 2, 3],
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
-                                                    prerequisites=[DatasetID('hej')]))
+                                                    prerequisites=[make_dsq(name='hej')]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
                 self.assertTrue(np.all(f['test-array'][:] == [1, 2, 3]))
-                expected_prereq = ("DatasetID(name='hej', wavelength=None, "
-                                   "resolution=None, polarization=None, "
-                                   "calibration=None, level=None, modifiers=())")
+                expected_prereq = ("DataQuery(name='hej')")
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
@@ -94,7 +92,7 @@ class TestCFWriter(unittest.TestCase):
             scn['test-array'] = xr.DataArray([1, 2, 3],
                                              attrs=dict(start_time=start_time,
                                                         end_time=end_time,
-                                                        prerequisites=[DatasetID('hej')]))
+                                                        prerequisites=[make_dsq(name='hej')]))
 
             comp = {'zlib': True, 'complevel': 9}
             scn.save_datasets(filename='bla', writer='cf', compression=comp)
@@ -123,7 +121,7 @@ class TestCFWriter(unittest.TestCase):
                                          coords=coords,
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
-                                                    prerequisites=[DatasetID('hej')]))
+                                                    prerequisites=[make_dsq(name='hej')]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
@@ -133,9 +131,7 @@ class TestCFWriter(unittest.TestCase):
                 self.assertNotIn('crs', f)
                 self.assertNotIn('_FillValue', f['x'].attrs)
                 self.assertNotIn('_FillValue', f['y'].attrs)
-                expected_prereq = ("DatasetID(name='hej', wavelength=None, "
-                                   "resolution=None, polarization=None, "
-                                   "calibration=None, level=None, modifiers=())")
+                expected_prereq = ("DataQuery(name='hej')")
                 self.assertEqual(f['test-array'].attrs['prerequisites'],
                                  expected_prereq)
 
@@ -502,11 +498,10 @@ class TestCFWriter(unittest.TestCase):
         # Create set of test attributes
         attrs, attrs_expected, attrs_expected_flat = self.get_test_attrs()
         attrs['area'] = 'some_area'
-        attrs['prerequisites'] = [DatasetID('hej')]
+        attrs['prerequisites'] = [make_dsq(name='hej')]
 
         # Adjust expected attributes
-        expected_prereq = ("DatasetID(name='hej', wavelength=None, resolution=None, polarization=None, "
-                           "calibration=None, level=None, modifiers=())")
+        expected_prereq = ("DataQuery(name='hej')")
         update = {'prerequisites': [expected_prereq], 'long_name': attrs['name']}
 
         attrs_expected.update(update)

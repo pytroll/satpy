@@ -18,6 +18,7 @@
 """Tests for the 'mersi2_l1b' reader."""
 import os
 import unittest
+import pytest
 from unittest import mock
 
 import numpy as np
@@ -30,6 +31,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
     def make_test_data(self, dims):
+        """Make test data."""
         return xr.DataArray(da.from_array(np.ones([dim for dim in dims], dtype=np.float32) * 10, [dim for dim in dims]))
 
     def _get_calibration(self, num_scans, rows_per_scan):
@@ -235,6 +237,7 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
 
 class TestMERSI2L1BReader(unittest.TestCase):
     """Test MERSI2 L1B Reader."""
+
     yaml_file = "mersi2_l1b.yaml"
 
     def setUp(self):
@@ -253,7 +256,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_all_resolutions(self):
         """Test loading data when all resolutions are available."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader, get_key
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
@@ -263,7 +266,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -278,11 +281,11 @@ class TestMERSI2L1BReader(unittest.TestCase):
                 num_results = 2
             else:
                 num_results = 3
-            ds_id = DatasetID(name=band_name, resolution=250)
+            ds_id = make_dataid(name=band_name, resolution=250)
             res = get_key(ds_id, available_datasets,
                           num_results=num_results, best=False)
             self.assertEqual(num_results, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
+            ds_id = make_dataid(name=band_name, resolution=1000)
             res = get_key(ds_id, available_datasets,
                           num_results=num_results, best=False)
             self.assertEqual(num_results, len(res))
@@ -316,7 +319,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_counts_calib(self):
         """Test loading data at counts calibration."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
@@ -326,14 +329,14 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
 
         ds_ids = []
         for band_name in ['1', '2', '3', '4', '5', '20', '24', '25']:
-            ds_ids.append(DatasetID(name=band_name, calibration='counts'))
+            ds_ids.append(make_dataid(name=band_name, calibration='counts'))
         res = reader.load(ds_ids)
         self.assertEqual(8, len(res))
         self.assertEqual((2 * 40, 2048 * 2), res['1'].shape)
@@ -371,7 +374,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_rad_calib(self):
         """Test loading data at radiance calibration."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
@@ -381,14 +384,14 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(4, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
 
         ds_ids = []
         for band_name in ['1', '2', '3', '4', '5']:
-            ds_ids.append(DatasetID(name=band_name, calibration='radiance'))
+            ds_ids.append(make_dataid(name=band_name, calibration='radiance'))
         res = reader.load(ds_ids)
         self.assertEqual(5, len(res))
         self.assertEqual((2 * 40, 2048 * 2), res['1'].shape)
@@ -409,7 +412,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader, get_key
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF',
@@ -417,7 +420,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(2, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -432,11 +435,11 @@ class TestMERSI2L1BReader(unittest.TestCase):
                 num_results = 2
             else:
                 num_results = 3
-            ds_id = DatasetID(name=band_name, resolution=250)
-            res = get_key(ds_id, available_datasets,
-                          num_results=num_results, best=False)
-            self.assertEqual(0, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
+            ds_id = make_dataid(name=band_name, resolution=250)
+            with pytest.raises(KeyError):
+                res = get_key(ds_id, available_datasets,
+                              num_results=num_results, best=False)
+            ds_id = make_dataid(name=band_name, resolution=1000)
             res = get_key(ds_id, available_datasets,
                           num_results=num_results, best=False)
             self.assertEqual(num_results, len(res))
@@ -470,7 +473,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
 
     def test_fy3d_250_resolutions(self):
         """Test loading data when only 250m resolutions are available."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers import load_reader, get_key
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
@@ -478,7 +481,7 @@ class TestMERSI2L1BReader(unittest.TestCase):
         ]
         reader = load_reader(self.reader_configs)
         files = reader.select_files_from_pathnames(filenames)
-        self.assertTrue(4, len(files))
+        self.assertEqual(2, len(files))
         reader.create_filehandlers(files)
         # Make sure we have some files
         self.assertTrue(reader.file_handlers)
@@ -493,14 +496,14 @@ class TestMERSI2L1BReader(unittest.TestCase):
                 num_results = 2
             else:
                 num_results = 3
-            ds_id = DatasetID(name=band_name, resolution=250)
+            ds_id = make_dataid(name=band_name, resolution=250)
             res = get_key(ds_id, available_datasets,
                           num_results=num_results, best=False)
             self.assertEqual(num_results, len(res))
-            ds_id = DatasetID(name=band_name, resolution=1000)
-            res = get_key(ds_id, available_datasets,
-                          num_results=num_results, best=False)
-            self.assertEqual(0, len(res))
+            ds_id = make_dataid(name=band_name, resolution=1000)
+            with pytest.raises(KeyError):
+                res = get_key(ds_id, available_datasets,
+                              num_results=num_results, best=False)
 
         res = reader.load(['1', '2', '3', '4', '5', '20', '24', '25'])
         self.assertEqual(6, len(res))

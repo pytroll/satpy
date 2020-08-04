@@ -106,7 +106,7 @@ class TestSEVIRIICAREReader(unittest.TestCase):
             'GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf',
             'GEO_L1B-MSG1_2004-12-29T12-15-00_G_IR108_V1-04.hdf'
         ])
-        self.assertTrue(len(loadables), 2)
+        self.assertEqual(len(loadables), 2)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 

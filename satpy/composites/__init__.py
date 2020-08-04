@@ -36,7 +36,7 @@ except ImportError:
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
-from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
+from satpy.dataset import DataID, DataQuery, MetadataObject, combine_metadata, minimal_default_keys_config
 from satpy.readers import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
@@ -83,6 +83,7 @@ class CompositorLoader(object):
         self.modifiers = {}
         self.compositors = {}
         self.ppp_config_dir = ppp_config_dir
+        self.ds_id_keys = {}
 
     def load_sensor_composites(self, sensor_name):
         """Load all compositor configs for the provided sensor."""
@@ -150,8 +151,15 @@ class CompositorLoader(object):
         return comps, mods
 
     def _process_composite_config(self, composite_name, conf,
-                                  composite_type, sensor_id, composite_config, **kwargs):
-
+                                  composite_type, sensor_id, sensor_deps, composite_config, **kwargs):
+        try:
+            id_keys = conf['composite_identification_keys']
+        except KeyError:
+            try:
+                id_keys = self.ds_id_keys[sensor_deps[-1]]
+            except IndexError:
+                id_keys = minimal_default_keys_config
+        self.ds_id_keys[sensor_id] = id_keys
         compositors = self.compositors[sensor_id]
         modifiers = self.modifiers[sensor_id]
         try:
@@ -175,16 +183,18 @@ class CompositorLoader(object):
                         sub_comp_name = '_' + composite_name + '_dep_{}'.format(dep_num)
                         dep_num += 1
                         # Minimal composite config
-                        sub_conf = {composite_type: {sub_comp_name: item}}
+                        sub_conf = {composite_type: {sub_comp_name: item},
+                                    'composite_identification_keys': minimal_default_keys_config
+                                    }
                         self._process_composite_config(
                             sub_comp_name, sub_conf, composite_type, sensor_id,
-                            composite_config, **kwargs)
-                    else:
-                        # we want this prerequisite to act as a query with
-                        # 'modifiers' being None otherwise it will be an empty
-                        # tuple
-                        item.setdefault('modifiers', None)
-                    key = DatasetID.from_dict(item)
+                            sensor_deps, composite_config, **kwargs)
+                    key_item = item.copy()
+                    key_item.pop('prerequisites', None)
+                    key_item.pop('optional_prerequisites', None)
+                    if 'modifiers' in key_item:
+                        key_item['modifiers'] = tuple(key_item['modifiers'])
+                    key = DataQuery.from_dict(key_item)
                     prereqs.append(key)
                 else:
                     prereqs.append(item)
@@ -192,8 +202,8 @@ class CompositorLoader(object):
 
         if composite_type == 'composites':
             options.update(**kwargs)
-            key = DatasetID.from_dict(options)
-            comp = loader(**options)
+            key = DataID(id_keys, **options)
+            comp = loader(_satpy_id=key, **options)
             compositors[key] = comp
         elif composite_type == 'modifiers':
             modifiers[composite_name] = loader, options
@@ -232,7 +242,8 @@ class CompositorLoader(object):
                 continue
             for composite_name in conf[composite_type]:
                 self._process_composite_config(composite_name, conf,
-                                               composite_type, sensor_id, composite_config, **kwargs)
+                                               composite_type, sensor_id,
+                                               sensor_deps, composite_config, **kwargs)
 
 
 def check_times(projectables):
@@ -303,7 +314,12 @@ class CompositeBase(MetadataObject):
         """Apply the modifier info from *origin* to *destination*."""
         o = getattr(origin, 'attrs', origin)
         d = getattr(destination, 'attrs', destination)
-        for k in DATASET_KEYS:
+
+        try:
+            dataset_keys = self.attrs['_satpy_id'].id_keys.keys()
+        except KeyError:
+            dataset_keys = ['name', 'modifiers']
+        for k in dataset_keys:
             if k == 'modifiers':
                 d[k] = self.attrs[k]
             elif d.get(k) is None:

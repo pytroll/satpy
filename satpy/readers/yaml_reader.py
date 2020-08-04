@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base classes and utilities for all readers configured by YAML files."""
+
 import glob
 import itertools
 import logging
@@ -39,12 +40,11 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DATASET_KEYS, DatasetID
+from satpy.dataset import DataQuery, get_keys_from_config, default_id_keys_config, default_co_keys_config, DataID
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
 from pyresample.geometry import AreaDefinition
-
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +99,6 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         for config_file in config_files:
             with open(config_file) as fd:
                 self.config = recursive_dict_update(self.config, yaml.load(fd, Loader=UnsafeLoader))
-
         self.info = self.config['reader']
         self.name = self.info['name']
         self.file_patterns = []
@@ -114,6 +113,8 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         if 'sensors' in self.info and not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
         self.datasets = self.config.get('datasets', {})
+        self._id_keys = self.info.get('data_identification_keys', default_id_keys_config)
+        self._co_keys = self.info.get('coord_identification_keys', default_co_keys_config)
         self.info['filenames'] = []
         self.all_ids = {}
         self.load_ds_ids_from_config()
@@ -125,18 +126,18 @@ class AbstractYAMLReader(metaclass=ABCMeta):
 
     @property
     def all_dataset_ids(self):
-        """Get DatasetIDs of all datasets known to this reader."""
+        """Get DataIDs of all datasets known to this reader."""
         return self.all_ids.keys()
 
     @property
     def all_dataset_names(self):
         """Get names of all datasets known to this reader."""
         # remove the duplicates from various calibration and resolutions
-        return set(ds_id.name for ds_id in self.all_dataset_ids)
+        return set(ds_id['name'] for ds_id in self.all_dataset_ids)
 
     @property
     def available_dataset_ids(self):
-        """Get DatasetIDs that are loadable by this reader."""
+        """Get DataIDs that are loadable by this reader."""
         logger.warning(
             "Available datasets are unknown, returning all datasets...")
         return self.all_dataset_ids
@@ -144,7 +145,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     @property
     def available_dataset_names(self):
         """Get names of datasets that are loadable by this reader."""
-        return (ds_id.name for ds_id in self.available_dataset_ids)
+        return (ds_id['name'] for ds_id in self.available_dataset_ids)
 
     @property
     @abstractmethod
@@ -230,7 +231,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         return selected_filenames
 
     def get_dataset_key(self, key, **kwargs):
-        """Get the fully qualified `DatasetID` matching `key`.
+        """Get the fully qualified `DataID` matching `key`.
 
         See `satpy.readers.get_key` for more information about kwargs.
 
@@ -246,20 +247,19 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             if 'coordinates' in dataset and \
                     isinstance(dataset['coordinates'], list):
                 dataset['coordinates'] = tuple(dataset['coordinates'])
+            id_keys = get_keys_from_config(self._id_keys, dataset)
+
             # Build each permutation/product of the dataset
             id_kwargs = []
-            for key in DATASET_KEYS:
-                val = dataset.get(key)
-                if key in ["wavelength", "modifiers"] and isinstance(val,
-                                                                     list):
+            for key, idval in id_keys.items():
+                val = dataset.get(key, idval.get('default') if idval is not None else None)
+                val_type = None
+                if idval is not None:
+                    val_type = idval.get('type')
+                if val_type is not None and issubclass(val_type, tuple):
                     # special case: wavelength can be [min, nominal, max]
                     # but is still considered 1 option
-                    # it also needs to be a tuple so it can be used in
-                    # a dictionary key (DatasetID)
-                    id_kwargs.append((tuple(val), ))
-                elif key == "modifiers" and val is None:
-                    # empty modifiers means no modifiers applied
-                    id_kwargs.append((tuple(), ))
+                    id_kwargs.append((val, ))
                 elif isinstance(val, (list, tuple, set)):
                     # this key has multiple choices
                     # (ex. 250 meter, 500 meter, 1000 meter resolutions)
@@ -269,21 +269,20 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                 else:
                     # this key only has one choice so make it a one
                     # item iterable
-                    id_kwargs.append((val, ))
+                    id_kwargs.append((val,))
             for id_params in itertools.product(*id_kwargs):
-                dsid = DatasetID(*id_params)
+                dsid = DataID(id_keys, **dict(zip(id_keys, id_params)))
                 ids.append(dsid)
 
                 # create dataset infos specifically for this permutation
                 ds_info = dataset.copy()
-                for key in DATASET_KEYS:
+                for key in dsid.keys():
                     if isinstance(ds_info.get(key), dict):
-                        ds_info.update(ds_info[key][getattr(dsid, key)])
+                        ds_info.update(ds_info[key][dsid.get(key)])
                     # this is important for wavelength which was converted
                     # to a tuple
-                    ds_info[key] = getattr(dsid, key)
+                    ds_info[key] = dsid.get(key)
                 self.all_ids[dsid] = ds_info
-
         return ids
 
 
@@ -333,7 +332,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     @property
     def available_dataset_ids(self):
-        """Get DatasetIDs that are loadable by this reader."""
+        """Get DataIDs that are loadable by this reader."""
         return self.available_ids.keys()
 
     @property
@@ -623,7 +622,9 @@ class FileYAMLReader(AbstractYAMLReader):
                 ds_info['coordinates'] = tuple(ds_info['coordinates'])
 
             ds_info.setdefault('modifiers', tuple())  # default to no mods
-            ds_id = DatasetID.from_dict(ds_info)
+
+            # Create DataID for this dataset
+            ds_id = DataID(self._id_keys, **ds_info)
             # all datasets
             new_ids[ds_id] = ds_info
             # available datasets
@@ -697,11 +698,13 @@ class FileYAMLReader(AbstractYAMLReader):
         for cinfo in ds_info.get('coordinates', []):
             if not isinstance(cinfo, dict):
                 cinfo = {'name': cinfo}
-
-            cinfo['resolution'] = ds_info['resolution']
-            if 'polarization' in ds_info:
-                cinfo['polarization'] = ds_info['polarization']
-            cid = DatasetID(**cinfo)
+            for key in self._co_keys:
+                if key == 'name':
+                    continue
+                if key in ds_info:
+                    if ds_info[key] is not None:
+                        cinfo[key] = ds_info[key]
+            cid = DataQuery.from_dict(cinfo)
             cids.append(self.get_dataset_key(cid))
 
         return cids
@@ -721,7 +724,7 @@ class FileYAMLReader(AbstractYAMLReader):
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
             logger.warning("Required file type '%s' not found or loaded for "
-                           "'%s'", ds_info['file_type'], dsid.name)
+                           "'%s'", ds_info['file_type'], dsid['name'])
         else:
             return self.file_handlers[filetype]
 
@@ -789,7 +792,7 @@ class FileYAMLReader(AbstractYAMLReader):
             ds = add_crs_xy_coords(ds, area)
         return ds
 
-    def _load_ancillary_variables(self, datasets):
+    def _load_ancillary_variables(self, datasets, **kwargs):
         """Load the ancillary variables of `datasets`."""
         all_av_ids = set()
         for dataset in datasets.values():
@@ -809,28 +812,28 @@ class FileYAMLReader(AbstractYAMLReader):
         if not all_av_ids:
             return
         if loadable_av_ids:
-            self.load(loadable_av_ids, previous_datasets=datasets)
+            self.load(loadable_av_ids, previous_datasets=datasets, **kwargs)
 
         for dataset in datasets.values():
             new_vars = []
             for av_id in dataset.attrs.get('ancillary_variables', []):
-                if isinstance(av_id, DatasetID):
+                if isinstance(av_id, DataID):
                     new_vars.append(datasets[av_id])
                 else:
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
 
     def get_dataset_key(self, key, available_only=False, **kwargs):
-        """Get the fully qualified `DatasetID` matching `key`.
+        """Get the fully qualified `DataID` matching `key`.
 
-        This will first search through available DatasetIDs, datasets that
+        This will first search through available DataIDs, datasets that
         should be possible to load, and fallback to "known" datasets, those
         that are configured but aren't loadable from the provided files.
         Providing ``available_only=True`` will stop this fallback behavior
         and raise a ``KeyError`` exception if no available dataset is found.
 
         Args:
-            key (str, float, DatasetID): Key to search for in this reader.
+            key (str, float, DataID, DataQuery): Key to search for in this reader.
             available_only (bool): Search only loadable datasets for the
                 provided key. Loadable datasets are always searched first,
                 but if ``available_only=False`` (default) then all known
@@ -839,7 +842,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 kwargs.
 
         Returns:
-            Best matching DatasetID to the provided ``key``.
+            Best matching DataID to the provided ``key``.
 
         Raises:
             KeyError: if no key match is found.
@@ -874,7 +877,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 all_datasets[dsid] = ds
                 if dsid in dsids:
                     datasets[dsid] = ds
-        self._load_ancillary_variables(all_datasets)
+        self._load_ancillary_variables(all_datasets, **kwargs)
 
         return datasets
 
@@ -889,7 +892,165 @@ def _load_area_def(dsid, file_handlers):
     return final_area.squeeze()
 
 
-class GEOSegmentYAMLReader(FileYAMLReader):
+def _set_orientation(dataset, upper_right_corner):
+    """Set the orientation of geostationary datasets.
+
+    Allows to flip geostationary imagery when loading the datasets.
+    Example call: scn.load(['VIS008'], upper_right_corner='NE')
+
+    Args:
+        dataset: Dataset to be flipped.
+        upper_right_corner (str): Direction of the upper right corner of the image after flipping.
+                                Possible options are 'NW', 'NE', 'SW', 'SE', or 'native'.
+                                The common upright image orientation corresponds to 'NE'.
+                                Defaults to 'native' (no flipping is applied).
+
+    """
+    # do some checks and early returns
+    if upper_right_corner == 'native':
+        logger.debug("Requested orientation for Dataset {} is 'native' (default). "
+                     "No flipping is applied.".format(dataset.attrs.get('name')))
+        return dataset
+
+    if upper_right_corner not in ['NW', 'NE', 'SE', 'SW', 'native']:
+        raise ValueError("Target orientation for Dataset {} not recognized. "
+                         "Kwarg upper_right_corner should be "
+                         "'NW', 'NE', 'SW', 'SE' or 'native'.".format(dataset.attrs.get('name', 'unknown_name')))
+
+    if 'area' not in dataset.attrs:
+        logger.info("Dataset {} is missing the area attribute "
+                    "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
+        return dataset
+
+    projection_type = _get_projection_type(dataset.attrs['area'])
+    accepted_geos_proj_types = ['Geostationary Satellite (Sweep Y)', 'Geostationary Satellite (Sweep X)']
+    if projection_type not in accepted_geos_proj_types:
+        logger.info("Dataset {} is not in one of the known geostationary projections {} "
+                    "and cannot be flipped.".format(dataset.attrs.get('name', 'unknown_name'),
+                                                    accepted_geos_proj_types))
+        return dataset
+
+    target_eastright, target_northup = _get_target_scene_orientation(upper_right_corner)
+
+    area_extents_to_update = _get_dataset_area_extents_array(dataset.attrs['area'])
+    current_eastright, current_northup = _get_current_scene_orientation(area_extents_to_update)
+
+    if target_northup == current_northup and target_eastright == current_eastright:
+        logger.info("Dataset {} is already in the target orientation "
+                    "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
+        return dataset
+
+    if target_northup != current_northup:
+        dataset, area_extents_to_update = _flip_dataset_data_and_area_extents(dataset, area_extents_to_update,
+                                                                              'upsidedown')
+    if target_eastright != current_eastright:
+        dataset, area_extents_to_update = _flip_dataset_data_and_area_extents(dataset, area_extents_to_update,
+                                                                              'leftright')
+
+    dataset.attrs['area'] = _get_new_flipped_area_definition(dataset.attrs['area'], area_extents_to_update,
+                                                             flip_areadef_stacking=target_northup != current_northup)
+
+    return dataset
+
+
+def _get_projection_type(dataset_area_attr):
+    """Get the projection type from the crs coordinate operation method name."""
+    if isinstance(dataset_area_attr, StackedAreaDefinition):
+        # assumes all AreaDefinitions in a tackedAreaDefinition have the same projection
+        area_crs = dataset_area_attr.defs[0].crs
+    else:
+        area_crs = dataset_area_attr.crs
+
+    return area_crs.coordinate_operation.method_name
+
+
+def _get_target_scene_orientation(upper_right_corner):
+    """Get the target scene orientation from the target upper_right_corner.
+
+    'NE' corresponds to target_eastright and target_northup being True.
+    """
+    if upper_right_corner in ['NW', 'NE']:
+        target_northup = True
+    else:
+        target_northup = False
+
+    if upper_right_corner in ['NE', 'SE']:
+        target_eastright = True
+    else:
+        target_eastright = False
+
+    return target_eastright, target_northup
+
+
+def _get_dataset_area_extents_array(dataset_area_attr):
+    """Get dataset area extents in a numpy array for further flipping."""
+    if isinstance(dataset_area_attr, StackedAreaDefinition):
+        # array of area extents if the Area is a StackedAreaDefinition
+        area_extents_to_update = np.asarray([list(area_def.area_extent) for area_def in dataset_area_attr.defs])
+    else:
+        # array with a single item if Area is in one piece
+        area_extents_to_update = np.asarray([list(dataset_area_attr.area_extent)])
+    return area_extents_to_update
+
+
+def _get_current_scene_orientation(area_extents_to_update):
+    """Get the current scene orientation from the area_extents."""
+    # assumes all AreaDefinitions inside a StackedAreaDefinition have the same orientation
+    current_northup = area_extents_to_update[0, 3] - area_extents_to_update[0, 1] > 0
+    current_eastright = area_extents_to_update[0, 2] - area_extents_to_update[0, 0] > 0
+
+    return current_eastright, current_northup
+
+
+def _flip_dataset_data_and_area_extents(dataset, area_extents_to_update, flip_direction):
+    """Flip the data and area extents array for a dataset."""
+    logger.info("Flipping Dataset {} {}.".format(dataset.attrs.get('name', 'unknown_name'), flip_direction))
+    if flip_direction == 'upsidedown':
+        dataset.data = dataset.data[::-1, :]
+        area_extents_to_update[:, [1, 3]] = area_extents_to_update[:, [3, 1]]
+    elif flip_direction == 'leftright':
+        dataset.data = dataset.data[:, ::-1]
+        area_extents_to_update[:, [0, 2]] = area_extents_to_update[:, [2, 0]]
+    else:
+        raise ValueError("Flip direction not recognized. Should be either 'upsidedown' or 'leftright'.")
+
+    return dataset, area_extents_to_update
+
+
+def _get_new_flipped_area_definition(dataset_area_attr, area_extents_to_update, flip_areadef_stacking):
+    """Get a new area definition with updated area_extents for flipped geostationary datasets."""
+    if len(area_extents_to_update) == 1:
+        # just update the area extents using the AreaDefinition copy method
+        new_area_def = dataset_area_attr.copy(area_extent=area_extents_to_update[0])
+    else:
+        # update the stacked AreaDefinitions singularly
+        new_area_defs_to_stack = []
+        for n_area_def, area_def in enumerate(dataset_area_attr.defs):
+            new_area_defs_to_stack.append(area_def.copy(area_extent=area_extents_to_update[n_area_def]))
+
+        # flip the order of stacking if the area is upside down
+        if flip_areadef_stacking:
+            new_area_defs_to_stack = new_area_defs_to_stack[::-1]
+
+        # regenerate the StackedAreaDefinition
+        new_area_def = StackedAreaDefinition(*new_area_defs_to_stack)
+
+    return new_area_def
+
+
+class GEOFlippableFileYAMLReader(FileYAMLReader):
+    """Reader for flippable geostationary data."""
+
+    def _load_dataset_with_area(self, dsid, coords, upper_right_corner='native', **kwargs):
+        ds = super(GEOFlippableFileYAMLReader, self)._load_dataset_with_area(dsid, coords, **kwargs)
+
+        if ds is not None:
+            ds = _set_orientation(ds, upper_right_corner)
+
+        return ds
+
+
+class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     """Reader for segmented geostationary data.
 
     This reader pads the data to full geostationary disk if necessary.

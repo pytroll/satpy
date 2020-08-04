@@ -130,7 +130,7 @@ class SCMIFileHandler(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading in get_dataset %s.', key.name)
+        logger.debug('Reading in get_dataset %s.', key['name'])
         var_name = info.get('file_key', self.filetype_info.get('file_key'))
         if var_name:
             data = self[var_name]
@@ -147,7 +147,7 @@ class SCMIFileHandler(BaseFileHandler):
         offset = data.attrs.pop('add_offset', 0)
         units = data.attrs.get('units', 1)
         # the '*1' unit is some weird convention added/needed by AWIPS
-        if units in ['1', '*1'] and key.calibration == 'reflectance':
+        if units in ['1', '*1'] and key['calibration'] == 'reflectance':
             data *= 100
             factor *= 100  # used for valid_min/max
             data.attrs['units'] = '%'

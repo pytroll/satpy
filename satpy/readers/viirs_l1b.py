@@ -98,7 +98,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, ds_id, ds_info):
         """Get shape."""
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id.name))
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(ds_id['name']))
         return self.get(var_path + '/shape', 1)
 
     @property
@@ -119,7 +119,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             if file_units == "none":
                 file_units = "1"
 
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.get('calibration') == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             rad_units_path = var_path + '/attr/radiance_units'
             if rad_units_path in self:
                 if file_units is None:
@@ -134,7 +134,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
         return file_units
 
     def _get_dataset_valid_range(self, dataset_id, ds_info, var_path):
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.get('calibration') == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             rad_units_path = var_path + '/attr/radiance_units'
             if rad_units_path in self:
                 # we are getting a reflectance band but we want the radiance values
@@ -172,7 +172,7 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id['name']))
         shape = self.get_shape(dataset_id, ds_info)
         file_units = self._get_dataset_file_units(dataset_id, ds_info, var_path)
 
@@ -198,12 +198,11 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', 'observation_data/{}'.format(dataset_id['name']))
         metadata = self.get_metadata(dataset_id, ds_info)
-        shape = metadata['shape']
 
         valid_min, valid_max, scale_factor, scale_offset = self._get_dataset_valid_range(dataset_id, ds_info, var_path)
-        if dataset_id.calibration == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
+        if dataset_id.get('calibration') == 'radiance' and ds_info['units'] == 'W m-2 um-1 sr-1':
             data = self[var_path]
         elif ds_info.get('units') == '%':
             data = self[var_path]
@@ -217,8 +216,6 @@ class VIIRSL1BFileHandler(NetCDF4FileHandler):
             coords = data.coords
             data.data = self[lut_var_path].data[index_arr.ravel()].reshape(data.shape)
             data = data.assign_coords(**coords)
-        elif shape == 1:
-            data = self[var_path]
         else:
             data = self[var_path]
         data.attrs.update(metadata)

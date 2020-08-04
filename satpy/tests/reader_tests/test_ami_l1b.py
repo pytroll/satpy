@@ -178,8 +178,8 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
 
     def test_get_dataset(self):
         """Test gettting radiance data."""
-        from satpy import DatasetID
-        key = DatasetID(name='VI006', calibration='radiance')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='VI006', calibration='radiance')
         res = self.reader.get_dataset(key, {
             'file_key': 'image_pixel_values',
             'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
@@ -193,16 +193,6 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
         for key, val in exp.items():
             self.assertEqual(val, res.attrs[key])
         self._check_orbital_parameters(res.attrs['orbital_parameters'])
-
-    def test_bad_calibration(self):
-        """Test that asking for a bad calibration fails."""
-        from satpy import DatasetID
-        self.assertRaises(ValueError, self.reader.get_dataset,
-                          DatasetID(name='VI006', calibration='_bad_'),
-                          {'file_key': 'image_pixel_values',
-                           'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
-                           'units': 'W m-2 um-1 sr-1',
-                           })
 
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def(self, adef):
@@ -223,8 +213,8 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
 
     def test_get_dataset_vis(self):
         """Test get visible calibrated data."""
-        from satpy import DatasetID
-        key = DatasetID(name='VI006', calibration='reflectance')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='VI006', calibration='reflectance')
         res = self.reader.get_dataset(key, {
             'file_key': 'image_pixel_values',
             'standard_name': 'toa_bidirectional_reflectance',
@@ -241,8 +231,8 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
 
     def test_get_dataset_counts(self):
         """Test get counts data."""
-        from satpy import DatasetID
-        key = DatasetID(name='VI006', calibration='counts')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='VI006', calibration='counts')
         res = self.reader.get_dataset(key, {
             'file_key': 'image_pixel_values',
             'standard_name': 'counts',
@@ -290,10 +280,10 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
 
     def test_ir_calibrate(self):
         """Test IR calibration."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers.ami_l1b import rad2temp
-        ds_id = DatasetID(name='IR087', wavelength=[8.415, 8.59, 8.765],
-                          calibration='brightness_temperature')
+        ds_id = make_dataid(name='IR087', wavelength=[8.415, 8.59, 8.765],
+                            calibration='brightness_temperature')
         ds_info = {
             'file_key': 'image_pixel_values',
             'wavelength': [8.415, 8.59, 8.765],

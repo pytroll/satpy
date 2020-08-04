@@ -15,6 +15,7 @@ at the pages listed below.
     xarray_migration
     custom_reader
     plugins
+    satpy_internals
 
 Coding guidelines
 =================

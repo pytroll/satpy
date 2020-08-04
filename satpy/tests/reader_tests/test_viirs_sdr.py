@@ -189,7 +189,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -202,10 +202,10 @@ class TestVIIRSSDRReader(unittest.TestCase):
                         filter_parameters={
                             'start_time': datetime(2012, 2, 26)
                         })
-        loadables = r.select_files_from_pathnames([
+        fhs = r.create_filehandlers([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        self.assertTrue(len(loadables), 0)
+        self.assertEqual(len(fhs), 0)
 
     def test_init_end_time_beyond(self):
         """Test basic init with end_time before the provided files."""
@@ -215,10 +215,10 @@ class TestVIIRSSDRReader(unittest.TestCase):
                         filter_parameters={
                             'end_time': datetime(2012, 2, 24)
                         })
-        loadables = r.select_files_from_pathnames([
+        fhs = r.create_filehandlers([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        self.assertTrue(len(loadables), 0)
+        self.assertEqual(len(fhs), 0)
 
     def test_init_start_end_time(self):
         """Test basic init with end_time before the provided files."""
@@ -232,7 +232,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -480,7 +480,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
     def test_load_all_m_radiances(self):
         """Load all M band radiances."""
         from satpy.readers import load_reader
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'SVM01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
@@ -503,22 +503,22 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         ds = r.load([
-            DatasetID(name='M01', calibration='radiance', modifiers=None),
-            DatasetID(name='M02', calibration='radiance', modifiers=None),
-            DatasetID(name='M03', calibration='radiance', modifiers=None),
-            DatasetID(name='M04', calibration='radiance', modifiers=None),
-            DatasetID(name='M05', calibration='radiance', modifiers=None),
-            DatasetID(name='M06', calibration='radiance', modifiers=None),
-            DatasetID(name='M07', calibration='radiance', modifiers=None),
-            DatasetID(name='M08', calibration='radiance', modifiers=None),
-            DatasetID(name='M09', calibration='radiance', modifiers=None),
-            DatasetID(name='M10', calibration='radiance', modifiers=None),
-            DatasetID(name='M11', calibration='radiance', modifiers=None),
-            DatasetID(name='M12', calibration='radiance', modifiers=None),
-            DatasetID(name='M13', calibration='radiance', modifiers=None),
-            DatasetID(name='M14', calibration='radiance', modifiers=None),
-            DatasetID(name='M15', calibration='radiance', modifiers=None),
-            DatasetID(name='M16', calibration='radiance', modifiers=None),
+            make_dsq(name='M01', calibration='radiance'),
+            make_dsq(name='M02', calibration='radiance'),
+            make_dsq(name='M03', calibration='radiance'),
+            make_dsq(name='M04', calibration='radiance'),
+            make_dsq(name='M05', calibration='radiance'),
+            make_dsq(name='M06', calibration='radiance'),
+            make_dsq(name='M07', calibration='radiance'),
+            make_dsq(name='M08', calibration='radiance'),
+            make_dsq(name='M09', calibration='radiance'),
+            make_dsq(name='M10', calibration='radiance'),
+            make_dsq(name='M11', calibration='radiance'),
+            make_dsq(name='M12', calibration='radiance'),
+            make_dsq(name='M13', calibration='radiance'),
+            make_dsq(name='M14', calibration='radiance'),
+            make_dsq(name='M15', calibration='radiance'),
+            make_dsq(name='M16', calibration='radiance'),
                      ])
         self.assertEqual(len(ds), 16)
         for d in ds.values():
@@ -555,7 +555,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
         r.create_filehandlers(loadables)
-        self.assertNotIn('I01', [x.name for x in r.available_dataset_ids])
+        self.assertNotIn('I01', [x['name'] for x in r.available_dataset_ids])
         ds = r.load(['I01'])
         self.assertEqual(len(ds), 0)
 
@@ -610,7 +610,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
     def test_load_all_i_radiances(self):
         """Load all I band radiances."""
         from satpy.readers import load_reader
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
@@ -622,11 +622,11 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ])
         r.create_filehandlers(loadables)
         ds = r.load([
-            DatasetID(name='I01', calibration='radiance', modifiers=None),
-            DatasetID(name='I02', calibration='radiance', modifiers=None),
-            DatasetID(name='I03', calibration='radiance', modifiers=None),
-            DatasetID(name='I04', calibration='radiance', modifiers=None),
-            DatasetID(name='I05', calibration='radiance', modifiers=None),
+            make_dsq(name='I01', calibration='radiance'),
+            make_dsq(name='I02', calibration='radiance'),
+            make_dsq(name='I03', calibration='radiance'),
+            make_dsq(name='I04', calibration='radiance'),
+            make_dsq(name='I05', calibration='radiance'),
         ])
         self.assertEqual(len(ds), 5)
         for d in ds.values():

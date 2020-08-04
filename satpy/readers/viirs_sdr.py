@@ -57,6 +57,7 @@ def _get_invalid_info(granule_data):
     VDNE: value does not exist / processing algorithm did not execute
     SOUB: scaled out-of-bounds / solution not within allowed range
     """
+    msg = None
     if issubclass(granule_data.dtype.type, np.integer):
         msg = ("na:" + str((granule_data == 65535).sum()) +
                " miss:" + str((granule_data == 65534).sum()) +
@@ -218,15 +219,15 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         # Guess the file units if we need to (normally we would get this from
         # the file)
         if file_units is None:
-            if dataset_id.calibration == 'radiance':
-                if "dnb" in dataset_id.name.lower():
+            if dataset_id.get('calibration') == 'radiance':
+                if "dnb" in dataset_id['name'].lower():
                     return 'W m-2 sr-1'
                 else:
                     return 'W cm-2 sr-1'
-            elif dataset_id.calibration == 'reflectance':
+            elif dataset_id.get('calibration') == 'reflectance':
                 # CF compliant unit for dimensionless
                 file_units = "1"
-            elif dataset_id.calibration == 'brightness_temperature':
+            elif dataset_id.get('calibration') == 'brightness_temperature':
                 file_units = "K"
             else:
                 LOG.debug("Unknown units for file key '%s'", dataset_id)
@@ -273,9 +274,9 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             'radiance': 'Radiance',
             'reflectance': 'Reflectance',
             'brightness_temperature': 'BrightnessTemperature',
-        }.get(ds_id.calibration)
+        }.get(ds_id.get('calibration'))
         var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
-        if ds_id.name in ['dnb_longitude', 'dnb_latitude']:
+        if ds_id['name'] in ['dnb_longitude', 'dnb_latitude']:
             if self.use_tc is True:
                 return var_path + '_TC'
             elif self.use_tc is None and var_path + '_TC' in self.file_content:
@@ -319,7 +320,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         if variable.size != scans.size:
             for gscans in scans.values:
                 data_chunks.append(self[var_path].isel(y=slice(start_scan, start_scan + gscans * scan_size)))
-                start_scan += scan_size * 48
+                start_scan += gscans * scan_size
             return xr.concat(data_chunks, 'y')
         else:
             return self.expand_single_values(variable, scans)
@@ -570,7 +571,7 @@ class VIIRSSDRReader(FileYAMLReader):
                if set(fh.datasets) & set(ds_info['dataset_groups'])]
         if not fhs:
             LOG.warning("Required file type '%s' not found or loaded for "
-                        "'%s'", ds_info['file_type'], dsid.name)
+                        "'%s'", ds_info['file_type'], dsid['name'])
         else:
             if len(set(ds_info['dataset_groups']) & set(['GITCO', 'GIMGO', 'GMTCO', 'GMODO'])) > 1:
                 fhs = self.get_right_geo_fhs(dsid, fhs)

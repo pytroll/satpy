@@ -127,7 +127,7 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset as a xarray DataArray."""
-        file_key = ds_info.get('file_key', dataset_id.name)
+        file_key = ds_info.get('file_key', dataset_id['name'])
         data = self.nc[file_key]
         # hold on to attributes for later
         attrs = data.attrs
@@ -151,18 +151,18 @@ class AMIL1bNetCDF(BaseFileHandler):
         gain = self.nc.attrs['DN_to_Radiance_Gain']
         offset = self.nc.attrs['DN_to_Radiance_Offset']
 
-        if dataset_id.calibration in ('radiance', 'reflectance', 'brightness_temperature'):
+        if dataset_id['calibration'] in ('radiance', 'reflectance', 'brightness_temperature'):
             data = gain * data + offset
-        if dataset_id.calibration == 'reflectance':
+        if dataset_id['calibration'] == 'reflectance':
             # depends on the radiance calibration above
             rad_to_alb = self.nc.attrs['Radiance_to_Albedo_c']
             if ds_info.get('units') == '%':
                 rad_to_alb *= 100
             data = data * rad_to_alb
-        elif dataset_id.calibration == 'brightness_temperature':
+        elif dataset_id['calibration'] == 'brightness_temperature':
             data = self._calibrate_ir(dataset_id, data)
-        elif dataset_id.calibration not in ('counts', 'radiance'):
-            raise ValueError("Unknown calibration: '{}'".format(dataset_id.calibration))
+        elif dataset_id['calibration'] not in ('counts', 'radiance'):
+            raise ValueError("Unknown calibration: '{}'".format(dataset_id['calibration']))
 
         for attr_name in ('standard_name', 'units'):
             attrs[attr_name] = ds_info[attr_name]
@@ -178,7 +178,7 @@ class AMIL1bNetCDF(BaseFileHandler):
         if self.calib_mode == 'PYSPECTRAL':
             # depends on the radiance calibration above
             # Convert um to m^-1 (SI units for pyspectral)
-            wn = 1 / (dataset_id.wavelength[1] / 1e6)
+            wn = 1 / (dataset_id['wavelength'][1] / 1e6)
             # Convert cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
             bt_data = rad2temp(wn, data.data * 1e-5)
@@ -201,7 +201,7 @@ class AMIL1bNetCDF(BaseFileHandler):
             hval = self.nc.attrs['Plank_constant_h']
 
             # Compute wavenumber as cm-1
-            wn = (10000 / dataset_id.wavelength[1]) * 100
+            wn = (10000 / dataset_id['wavelength'][1]) * 100
 
             # Convert radiance to effective brightness temperature
             e1 = (2 * hval * cval * cval) * np.power(wn, 3)
