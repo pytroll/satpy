@@ -18,6 +18,49 @@
 """Module for testing the satpy.readers.nc_slstr module."""
 import unittest
 import unittest.mock as mock
+from satpy.dataset import WavelengthRange, ModifierTuple, DataID
+
+local_id_keys_config = {'name': {
+    'required': True,
+},
+    'wavelength': {
+    'type': WavelengthRange,
+},
+    'resolution': None,
+    'calibration': {
+    'enum': [
+        'reflectance',
+        'brightness_temperature',
+        'radiance',
+        'counts'
+    ]
+},
+    'stripe': {
+        'enum': [
+            'a',
+            'b',
+            'c',
+            'i',
+            'f',
+        ]
+    },
+    'view': {
+        'enum': [
+            'nadir',
+            'oblique',
+        ]
+    },
+    'modifiers': {
+    'required': True,
+    'default': ModifierTuple(),
+    'type': ModifierTuple,
+},
+}
+
+
+def make_dataid(**items):
+    """Make a data id."""
+    return DataID(local_id_keys_config, **items)
 
 
 class TestSLSTRReader(unittest.TestCase):
@@ -27,27 +70,30 @@ class TestSLSTRReader(unittest.TestCase):
     def test_instantiate(self, mocked_dataset):
         """Test initialization of file handlers."""
         from satpy.readers.slstr_l1b import NCSLSTR1B, NCSLSTRGeo, NCSLSTRAngles, NCSLSTRFlag
-        from satpy import DatasetID
 
-        ds_id = DatasetID(name='foo')
-        filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo', 'start_time': 0, 'end_time': 0}
-
+        ds_id = make_dataid(name='foo', calibration='radiance', stripe='a', view='nadir')
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo', 'start_time': 0, 'end_time': 0,
+                         'stripe': 'a', 'view': 'n'}
         test = NCSLSTR1B('somedir/S1_radiance_an.nc', filename_info, 'c')
-        assert(test.view == 'n')
+        assert(test.view == 'nadir')
         assert(test.stripe == 'a')
-        test.get_dataset(ds_id, filename_info)
+        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'foo'}))
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo', 'start_time': 0, 'end_time': 0,
+                         'stripe': 'c', 'view': 'o'}
         test = NCSLSTR1B('somedir/S1_radiance_co.nc', filename_info, 'c')
-        assert(test.view == 'o')
+        assert(test.view == 'oblique')
         assert(test.stripe == 'c')
-        test.get_dataset(ds_id, filename_info)
+        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'foo'}))
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
+        filename_info = {'mission_id': 'S3A', 'dataset_name': 'foo', 'start_time': 0, 'end_time': 0,
+                         'stripe': 'a', 'view': 'n'}
         test = NCSLSTRGeo('somedir/S1_radiance_an.nc', filename_info, 'c')
-        test.get_dataset(ds_id, filename_info)
+        test.get_dataset(ds_id, dict(filename_info, **{'file_key': 'foo'}))
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()
 
@@ -58,7 +104,7 @@ class TestSLSTRReader(unittest.TestCase):
         mocked_dataset.reset_mock()
 
         test = NCSLSTRFlag('somedir/S1_radiance_an.nc', filename_info, 'c')
-        assert(test.view == 'n')
+        assert(test.view == 'nadir')
         assert(test.stripe == 'a')
         mocked_dataset.assert_called()
         mocked_dataset.reset_mock()

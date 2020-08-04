@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Satpy Package initializer.
-"""
+"""Satpy Package initializer."""
 
 import os
 from pkg_resources import get_distribution, DistributionNotFound
@@ -47,7 +46,7 @@ else:
 CALIBRATION_ORDER = {cal: idx for idx, cal in enumerate(CALIBRATION_ORDER)}
 
 from satpy.utils import get_logger  # noqa
-from satpy.dataset import DatasetID, DATASET_KEYS  # noqa
+from satpy.dataset import DataID, DataQuery # noqa
 from satpy.readers import (DatasetDict, find_files_and_readers,  # noqa
                            available_readers)  # noqa
 from satpy.writers import available_writers  # noqa
