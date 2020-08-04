@@ -752,13 +752,13 @@ class ParallaxCorrector(CompositeBase):
         paper: 10.3390/rs12030365 (doi)
     """
 
-    def _parallax_corr(self, optional_datasets,
+    def _parallax_corr(self, optional_datasets, a, b,
                        sat_lon, sat_lat, sat_h,
                        lon, lat):
         """Applying Parallax Correction"""
         # varius earth radius information
-        radius_eq = 6378.077
-        radius_pole = 6356.577
+        radius_eq = a/1e3  # km
+        radius_pole = b/1e3  # km
         radius_ratio = radius_eq/radius_pole
 
         # angle conversion to radians
@@ -836,19 +836,24 @@ class ParallaxCorrector(CompositeBase):
 
         # get the satellites info from the attributes
         band = projectables[0]
-        lon, lat = band.attrs['area'].get_lonlats(chunks=band.data.chunks)
+        area = band.attrs['area']
+        lon, lat = area.get_lonlats(chunks=band.data.chunks)
+        a = area.crs.ellipsoid.semi_major_metre
+        b = area.crs.ellipsoid.semi_minor_metre
         sat_lon, sat_lat, sat_h = get_satpos(band)
         sat_h /= 1e3  # units: km
 
         # get the corrected lon and lat based on cloud top height (km)
-        lat_corr, lon_corr = self._parallax_corr(optional_datasets, sat_lon, sat_lat, sat_h, lon, lat)
+        lat_corr, lon_corr = self._parallax_corr(optional_datasets, a, b,
+                                                 sat_lon, sat_lat, sat_h,
+                                                 lon, lat)
 
         # get indices for the pixels for the original position
-        (proj_x, proj_y) = band.attrs['area'].get_proj_coords()
-        (x, y) = band.attrs['area'].get_xy_from_proj_coords(proj_x, proj_y)
+        (proj_x, proj_y) = area.get_proj_coords()
+        (x, y) = area.get_xy_from_proj_coords(proj_x, proj_y)
 
         # get indices for the pixels at the parallax corrected position
-        x_corr, y_corr = band.attrs['area'].get_xy_from_lonlat(lon_corr.compute(), lat_corr.compute())
+        x_corr, y_corr = area.get_xy_from_lonlat(lon_corr.compute(), lat_corr.compute())
 
         # create the mask based on cth
         cth = optional_datasets[0]
