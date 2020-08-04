@@ -592,7 +592,6 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
-
         # Common parameters for both HRV and other channels
         nlines = int(self.mda['number_of_lines'])
         loff = np.float32(self.mda['loff'])
@@ -615,7 +614,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             pdict['scandir'] = 'S2N'
 
         # Compute area definition for non-HRV channels:
-        if dsid.name != 'HRV':
+        if dsid['name'] != 'HRV':
             pdict['loff'] = loff - nlines
             aex = self._get_area_extent(pdict)
             pdict['a_name'] = 'geosmsg'
@@ -672,8 +671,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     def get_dataset(self, key, info):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
-        res = self.calibrate(res, key.calibration)
-        if key.name == 'HRV' and self.fill_hrv:
+        res = self.calibrate(res, key['calibration'])
+        if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
 
         res.attrs['units'] = info['units']

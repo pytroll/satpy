@@ -108,24 +108,24 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
-        if key.name in CHANNEL_NAMES:
+        if key['name'] in CHANNEL_NAMES:
             dataset = self.calibrate(key)
-        elif key.name in ['longitude', 'latitude']:
+        elif key['name'] in ['longitude', 'latitude']:
             if self.lons is None or self.lats is None:
                 self.navigate()
-            if key.name == 'longitude':
+            if key['name'] == 'longitude':
                 dataset = create_xarray(self.lons)
             else:
                 dataset = create_xarray(self.lats)
             dataset.attrs = info
         else:  # Get sun-sat angles
-            if key.name in ANGLES:
-                if isinstance(getattr(self, ANGLES[key.name]), np.ndarray):
-                    dataset = create_xarray(getattr(self, ANGLES[key.name]))
+            if key['name'] in ANGLES:
+                if isinstance(getattr(self, ANGLES[key['name']]), np.ndarray):
+                    dataset = create_xarray(getattr(self, ANGLES[key['name']]))
                 else:
-                    dataset = self.get_angles(key.name)
+                    dataset = self.get_angles(key['name'])
             else:
-                raise ValueError("Not a supported sun-sensor viewing angle: %s", key.name)
+                raise ValueError("Not a supported sun-sensor viewing angle: %s", key['name'])
 
         dataset.attrs.update({'platform_name': self.platform_name,
                               'sensor': self.sensor})
@@ -223,48 +223,48 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                  'counts': '',
                  'radiance': 'W*m-2*sr-1*cm ?'}
 
-        if dataset_id.name in ("3a", "3b") and self._is3b is None:
+        if dataset_id['name'] in ("3a", "3b") and self._is3b is None:
             # Is it 3a or 3b:
             self._is3a = da.bitwise_and(da.from_array(self._data['scnlinbit'],
                                                       chunks=LINE_CHUNK), 3) == 0
             self._is3b = da.bitwise_and(da.from_array(self._data['scnlinbit'],
                                                       chunks=LINE_CHUNK), 3) == 1
 
-        if dataset_id.name == '3a' and not np.any(self._is3a):
+        if dataset_id['name'] == '3a' and not np.any(self._is3a):
             raise ValueError("Empty dataset for channel 3A")
-        if dataset_id.name == '3b' and not np.any(self._is3b):
+        if dataset_id['name'] == '3b' and not np.any(self._is3b):
             raise ValueError("Empty dataset for channel 3B")
 
         try:
-            vis_idx = ['1', '2', '3a'].index(dataset_id.name)
+            vis_idx = ['1', '2', '3a'].index(dataset_id['name'])
             ir_idx = None
         except ValueError:
             vis_idx = None
-            ir_idx = ['3b', '4', '5'].index(dataset_id.name)
+            ir_idx = ['3b', '4', '5'].index(dataset_id['name'])
 
         mask = True
         if vis_idx is not None:
-            coeffs = calib_coeffs.get('ch' + dataset_id.name)
-            if dataset_id.name == '3a':
+            coeffs = calib_coeffs.get('ch' + dataset_id['name'])
+            if dataset_id['name'] == '3a':
                 mask = self._is3a[:, None]
             ds = create_xarray(
                 _vis_calibrate(self._data,
                                vis_idx,
-                               dataset_id.calibration,
+                               dataset_id['calibration'],
                                pre_launch_coeffs,
                                coeffs,
                                mask=mask))
         else:
-            if dataset_id.name == '3b':
+            if dataset_id['name'] == '3b':
                 mask = self._is3b[:, None]
             ds = create_xarray(
                 _ir_calibrate(self._header,
                               self._data,
                               ir_idx,
-                              dataset_id.calibration,
+                              dataset_id['calibration'],
                               mask=mask))
 
-        ds.attrs['units'] = units[dataset_id.calibration]
+        ds.attrs['units'] = units[dataset_id['calibration']]
         ds.attrs.update(dataset_id._asdict())
         return ds
 

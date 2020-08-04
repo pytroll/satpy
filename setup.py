@@ -103,7 +103,8 @@ def _config_data_files(base_dirs, extensions=(".cfg", )):
 
 
 NAME = 'satpy'
-README = open('README.rst', 'r').read()
+with open('README.rst', 'r') as readme:
+    README = readme.read()
 
 setup(name=NAME,
       description='Python package for earth-observing satellite data processing',

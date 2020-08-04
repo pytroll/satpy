@@ -21,7 +21,6 @@ import unittest
 
 
 class TestAHIComposites(unittest.TestCase):
-
     """Test AHI-specific composites."""
 
     def test_load_composite_yaml(self):
