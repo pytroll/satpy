@@ -18,113 +18,161 @@ datasets:
     name: C01
     wavelength: [0.450, 0.470, 0.490]
     calibration: reflectance
-    file_type: abi_l2_cmip_c01
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c01:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C01
 
   CMIP_C02:                           # Cloud Moisture Image Products Channel 2
     name: C02
     wavelength: [0.590, 0.640, 0.690]
     calibration: reflectance
-    file_type: abi_l2_cmip_c02
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c02:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C02
 
   CMIP_C03:                          # Cloud Moisture Image Products Channel 3
     name: C03
     wavelength: [0.8455, 0.865, 0.8845]
     calibration: reflectance
-    file_type: abi_l2_cmip_c03
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c03:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C03
 
   CMIP_C04:                          # Cloud Moisture Image Products Channel 4
     name: C04
     wavelength: [1.3705, 1.378, 1.3855]
     calibration: reflectance
-    file_type: abi_l2_cmip_c04
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c04:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C04
 
   CMIP_C05:                          # Cloud Moisture Image Products Channel 5
     name: C05
     wavelength: [1.580, 1.610, 1.640]
     calibration: reflectance
-    file_type: abi_l2_cmip_c05
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c05:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C05
 
   CMIP_C06:                          # Cloud Moisture Image Products Channel 6
     name: C06
     wavelength: [2.225, 2.250, 2.275]
     calibration: reflectance
-    file_type: abi_l2_cmip_c06
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c06:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C06
 
   CMIP_C07:                          # Cloud Moisture Image Products Channel 7
     name: C07
     wavelength: [3.80, 3.90, 4.00]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c07
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c07:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C07
 
   CMIP_C08:                          # Cloud Moisture Image Products Channel 8
     name: C08
     wavelength: [5.770, 6.185, 6.600]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c08
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c08:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C08
 
   CMIP_C09:                          # Cloud Moisture Image Products Channel 9
     name: C09
     wavelength: [6.75, 6.95, 7.15]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c09
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c09:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C09
 
   CMIP_C10:                          # Cloud Moisture Image Products Channel 10
     name: C10
     wavelength: [7.24, 7.34, 7.44]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c10
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c10:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C10
 
   CMIP_C11:                          # Cloud Moisture Image Products Channel 11
     name: C11
     wavelength: [8.30, 8.50, 8.70]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c11
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c11:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C11
 
   CMIP_C12:                          # Cloud Moisture Image Products Channel 12
     name: C12
     wavelength: [9.42, 9.61, 9.80]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c12
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c12:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C12
 
   CMIP_C13:                          # Cloud Moisture Image Products Channel 13
     name: C13
     wavelength: [10.10, 10.35, 10.60]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c13
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c13:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C13
 
   CMIP_C14:                          # Cloud Moisture Image Products Channel 14
     name: C14
     wavelength: [10.80, 11.20, 11.60]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c14
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c14:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C14
 
   CMIP_C15:                          # Cloud Moisture Image Products Channel 15
     name: C15
     wavelength: [11.80, 12.30, 12.80]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c15
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c15:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C15
 
   CMIP_C16:                          # Cloud Moisture Image Products Channel 16
     name: C16
     wavelength: [13.00, 13.30, 13.60]
     calibration: brightness_temperature
-    file_type: abi_l2_cmip_c16
-    file_key: CMI
+    file_type:
+        abi_l2_cmip_c16:
+            file_key: CMI
+        abi_l2_mcmip:
+            file_key: CMI_C16
 
 # --- Cloud Top Height ---
   cloud_top_height:
@@ -385,6 +433,10 @@ file_types:
   abi_l2_cmip_c16:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
         file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-CMIP{area_code:1s}-{scan_mode:2s}C16_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
+
+  abi_l2_mcmip:
+        file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
+        file_patterns: ['{system_environment:2s}_{mission_id:3s}-L2-MCMIP{scene_abbr:1s}-{scan_mode:2s}_{platform_shortname:3s}_s{start_time:%Y%j%H%M%S%f}_e{end_time:%Y%j%H%M%S%f}_c{creation_time:%Y%j%H%M%S%f}.nc']
 
   abi_l2_acha:
         file_reader: !!python/name:satpy.readers.abi_l2_nc.NC_ABI_L2
