@@ -41,7 +41,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
             fh = AHIHSDFileHandler('somefile',
                                    {'segment': 1, 'total_segments': 1},
-                                   filetype_info={'file_type': 'hsd_b01'})
+                                   filetype_info={'file_type': 'hsd_b01'},
+                                   radiance_correction=None)
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': -591.5,
                             'LFAC': 40932549,
@@ -153,12 +154,6 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                                        {'segment': 8, 'total_segments': 10},
                                        filetype_info={'file_type': 'hsd_b01'},
                                        calib_mode='BAD_MODE')
-            with self.assertRaises(ValueError):
-                fh = AHIHSDFileHandler('somefile',
-                                       {'segment': 8, 'total_segments': 10},
-                                       filetype_info={'file_type': 'hsd_b01'},
-                                       calib_mode='CUSTOM')
-
             in_fname = 'test_file.bz2'
             fh = AHIHSDFileHandler(in_fname,
                                    {'segment': 8, 'total_segments': 10},
@@ -234,6 +229,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         bad_cali = [0.0, 0.0]
         fh = AHIHSDFileHandler(filetype_info={'file_type': 'hsd_b01'})
         fh.calib_mode = 'NOMINAL'
+        fh.radiance_correction = None
         fh.is_zipped = False
         fh._header = {
             'block5': {'band_number': [5],
@@ -304,11 +300,10 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             [7.8, 0]])
         self.assertTrue(np.allclose(rad, rad_exp))
 
-        # Custom calibration
+        # Radiance correction
         # Check good coefficients
-        fh.calib_mode = 'CUSTOM'
-        fh.custom_calib = {'B13': {'slo': 0.95,
-                                   'off': -0.1}}
+        fh.radiance_correction = {'B13': {'slo': 0.95,
+                                          'off': -0.1}}
         fh.band_name = 'B13'
         rad = fh.calibrate(data=counts, calibration='radiance')
         rad_exp = np.array([[15.19961053, 11.30487368],
