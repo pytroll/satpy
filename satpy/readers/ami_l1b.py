@@ -42,7 +42,8 @@ class AMIL1bNetCDF(BaseFileHandler):
     """Base reader for AMI L1B NetCDF4 files."""
 
     def __init__(self, filename, filename_info, filetype_info,
-                 calib_mode='PYSPECTRAL', allow_conditional_pixels=False):
+                 calib_mode='PYSPECTRAL', allow_conditional_pixels=False,
+                 radiance_correction=None):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(AMIL1bNetCDF, self).__init__(filename, filename_info, filetype_info)
         self.nc = xr.open_dataset(self.filename,
@@ -54,12 +55,15 @@ class AMIL1bNetCDF(BaseFileHandler):
         platform_shortname = self.nc.attrs['satellite_name']
         self.platform_name = PLATFORM_NAMES.get(platform_shortname)
         self.sensor = 'ami'
+        self.band_name = filetype_info['file_type'].upper()
         self.allow_conditional_pixels = allow_conditional_pixels
-        calib_mode_choices = ('FILE', 'PYSPECTRAL')
+        calib_mode_choices = ('FILE', 'PYSPECTRAL', 'GSICS')
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
                 calib_mode, calib_mode_choices))
+
         self.calib_mode = calib_mode.upper()
+        self.radiance_correction = radiance_correction
 
     @property
     def start_time(self):
@@ -127,7 +131,7 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Load a dataset as a xarray DataArray."""
-        file_key = ds_info.get('file_key', dataset_id.name)
+        file_key = ds_info.get('file_key', dataset_id['name'])
         data = self.nc[file_key]
         # hold on to attributes for later
         attrs = data.attrs
@@ -151,18 +155,26 @@ class AMIL1bNetCDF(BaseFileHandler):
         gain = self.nc.attrs['DN_to_Radiance_Gain']
         offset = self.nc.attrs['DN_to_Radiance_Offset']
 
-        if dataset_id.calibration in ('radiance', 'reflectance', 'brightness_temperature'):
+        if dataset_id['calibration'] in ('radiance', 'reflectance', 'brightness_temperature'):
             data = gain * data + offset
-        if dataset_id.calibration == 'reflectance':
+            if self.calib_mode == 'GSICS':
+                rad_slope = self.nc['gsics_coeff_slope'][0]
+                rad_offset = self.nc['gsics_coeff_intercept'][0]
+                data = self._apply_rad_correction(data, rad_slope, rad_offset)
+            elif isinstance(self.radiance_correction, dict):
+                rad_slope, rad_offset = self._get_rad_corr_factors()
+                if rad_slope > 0 and rad_slope < 2:
+                    data = self._apply_rad_correction(data, rad_slope, rad_offset)
+        if dataset_id['calibration'] == 'reflectance':
             # depends on the radiance calibration above
             rad_to_alb = self.nc.attrs['Radiance_to_Albedo_c']
             if ds_info.get('units') == '%':
                 rad_to_alb *= 100
             data = data * rad_to_alb
-        elif dataset_id.calibration == 'brightness_temperature':
+        elif dataset_id['calibration'] == 'brightness_temperature':
             data = self._calibrate_ir(dataset_id, data)
-        elif dataset_id.calibration not in ('counts', 'radiance'):
-            raise ValueError("Unknown calibration: '{}'".format(dataset_id.calibration))
+        elif dataset_id['calibration'] not in ('counts', 'radiance'):
+            raise ValueError("Unknown calibration: '{}'".format(dataset_id['calibration']))
 
         for attr_name in ('standard_name', 'units'):
             attrs[attr_name] = ds_info[attr_name]
@@ -178,7 +190,7 @@ class AMIL1bNetCDF(BaseFileHandler):
         if self.calib_mode == 'PYSPECTRAL':
             # depends on the radiance calibration above
             # Convert um to m^-1 (SI units for pyspectral)
-            wn = 1 / (dataset_id.wavelength[1] / 1e6)
+            wn = 1 / (dataset_id['wavelength'][1] / 1e6)
             # Convert cm^-1 (wavenumbers) and (mW/m^2)/(str/cm^-1) (radiance data)
             # to SI units m^-1, mW*m^-3*str^-1.
             bt_data = rad2temp(wn, data.data * 1e-5)
@@ -201,8 +213,7 @@ class AMIL1bNetCDF(BaseFileHandler):
             hval = self.nc.attrs['Plank_constant_h']
 
             # Compute wavenumber as cm-1
-            wn = (10000 / dataset_id.wavelength[1]) * 100
-
+            wn = (10000 / dataset_id['wavelength'][1]) * 100
             # Convert radiance to effective brightness temperature
             e1 = (2 * hval * cval * cval) * np.power(wn, 3)
             e2 = (data.data * 1e-5)
@@ -211,4 +222,21 @@ class AMIL1bNetCDF(BaseFileHandler):
             # Now convert to actual brightness temperature
             bt_data = c0 + c1 * t_eff + c2 * t_eff * t_eff
             data.data = bt_data
+        return data
+
+    def _get_rad_corr_factors(self):
+        """Retrieve radiance correction factors from user-supplied dict."""
+        try:
+            slope = self.radiance_correction[self.band_name]['slo']
+            offset = self.radiance_correction[self.band_name]['off']
+        except KeyError:
+            raise KeyError("You have selected to supply radiance correction "
+                           "factors but have not included any for channel " +
+                           self.band_name)
+        return slope, offset
+
+    def _apply_rad_correction(self, data, slo, off):
+        """Apply GSICS-like correction factors to radiance data."""
+        data = (data - off) / slo
+
         return data
