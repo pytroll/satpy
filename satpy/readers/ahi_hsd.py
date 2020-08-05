@@ -257,8 +257,8 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     Alternative AHI calibrations are also available, such as GSICS
     coefficients. As such, you can supply custom per-channel calibration
-    for the infrared channels by setting calib_mode='custom' and passing
-    custom calibration factors via custom_calib={chan: [slo, off]}
+    by setting calib_mode='custom' and passing custom calibration factors via:
+       custom_calib={chan: ['slo': slope, 'off': offset]}
     Where slo and off are per-channel slope and offset coefficients defined by:
      rad_leo = (rad_geo - off) / slo
     If using custom coefficients, they must be supplied for *all* bands being
@@ -269,9 +269,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         import glob
 
         # Load bands 7, 14 and 15, but we only have coefs for 7+14
-        calib_dict = {'B07': [0.99, 0.002],
-                      'B14': [1.02, -0.18],
-                      'B15': [1.0, 0.0]}
+        calib_dict = {'B07': {'slo': 0.99, 'off': 0.002},
+                      'B14': {'slo': 1.02, 'off': -0.18},
+                      'B15': {'slo': 1.00, 'off': 0.000}}
 
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
@@ -326,7 +326,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.observation_area = np2str(self.basic_info['observation_area'])
         self.sensor = 'ahi'
         self.mask_space = mask_space
-
+        self.band_name = filetype_info['file_type'][4:].upper()
         calib_mode_choices = ('NOMINAL', 'UPDATE', 'CUSTOM')
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
@@ -524,9 +524,14 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Mask space pixels"""
         return data.where(get_geostationary_mask(self.area))
 
+    def _get_custom_calib(self):
+        slope = self.custom_calib[self.band_name]['slo']
+        offset = self.custom_calib[self.band_name]['off']
+
+        return slope, offset
+
     def read_band(self, key, info):
         """Read the data."""
-        # Read data
         tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             header = self._read_header(fp_)
@@ -536,7 +541,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         logger.debug("Reading time " + str(datetime.now() - tic))
 
         # Calibrate
-        res = self.calibrate(res, key.name, key.calibration)
+        res = self.calibrate(res, key.calibration)
 
         # Get actual satellite position. For altitude use the ellipsoid radius at the SSP.
         actual_lon = float(self.nav_info['SSP_longitude'])
@@ -580,7 +585,7 @@ class AHIHSDFileHandler(BaseFileHandler):
 
         return res
 
-    def calibrate(self, data, bname, calibration):
+    def calibrate(self, data, calibration):
         """Calibrate the data"""
         tic = datetime.now()
 
@@ -588,7 +593,7 @@ class AHIHSDFileHandler(BaseFileHandler):
             return data
 
         if calibration in ['radiance', 'reflectance', 'brightness_temperature']:
-            data = self.convert_to_radiance(data, bname)
+            data = self.convert_to_radiance(data)
         if calibration == 'reflectance':
             data = self._vis_calibrate(data)
         elif calibration == 'brightness_temperature':
@@ -597,7 +602,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return data
 
-    def convert_to_radiance(self, data, bname):
+    def convert_to_radiance(self, data):
         """Calibrate to radiance."""
         bnum = self._header["block5"]['band_number'][0]
         # Check calibration mode and select corresponding coefficients
@@ -614,13 +619,12 @@ class AHIHSDFileHandler(BaseFileHandler):
             offset = self._header["block5"]["offset_count2rad_conversion"][0]
         # If using custom calibration from GSICS, apply it here
         if self.calib_mode == "CUSTOM":
-            if bname in self.custom_calib:
-                g2 = self.custom_calib[bname][0]
-                o2 = self.custom_calib[bname][1]
-                data = (data - o2) / g2
+            if self.band_name in self.custom_calib:
+                cust_slope, cust_offset = self._get_custom_calib()
+                data = (data - cust_offset) / cust_slope
             else:
                 raise KeyError('Custom calibration selected, but no coefficients '
-                               'were supplied for channel ' + bname)
+                               'were supplied for channel ' + self.band_name)
 
         return (data * gain + offset).clip(0)
 
