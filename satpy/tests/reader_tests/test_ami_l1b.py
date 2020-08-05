@@ -93,6 +93,8 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
             {
                 'image_pixel_values': counts,
                 'sc_position': sc_position,
+                'gsics_coeff_intercept': [0.1859369],
+                'gsics_coeff_slope': [0.9967594],
             },
             {
                 "satellite_name": "GK-2A",
@@ -125,7 +127,7 @@ class TestAMIL1bNetCDFBase(unittest.TestCase):
 
         self.reader = AMIL1bNetCDF('filename',
                                    {'platform_shortname': 'gk2a'},
-                                   {'filetype': 'info'})
+                                   {'file_type': 'ir087'},)
 
 
 class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
@@ -178,8 +180,8 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
 
     def test_get_dataset(self):
         """Test gettting radiance data."""
-        from satpy import DatasetID
-        key = DatasetID(name='VI006', calibration='radiance')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='VI006', calibration='radiance')
         res = self.reader.get_dataset(key, {
             'file_key': 'image_pixel_values',
             'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
@@ -196,13 +198,14 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
-        from satpy import DatasetID
-        self.assertRaises(ValueError, self.reader.get_dataset,
-                          DatasetID(name='VI006', calibration='_bad_'),
-                          {'file_key': 'image_pixel_values',
-                           'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
-                           'units': 'W m-2 um-1 sr-1',
-                           })
+        from satpy.tests.utils import make_dataid
+        with self.assertRaises(ValueError):
+            ds_id = make_dataid(name='VI006', calibration='_bad_')
+            ds_info = {'file_key': 'image_pixel_values',
+                       'standard_name': 'toa_outgoing_radiance_per_unit_wavelength',
+                       'units': 'W m-2 um-1 sr-1',
+                       }
+            self.reader.get_dataset(ds_id, ds_info)
 
     @mock.patch('satpy.readers.abi_base.geometry.AreaDefinition')
     def test_get_area_def(self, adef):
@@ -223,8 +226,8 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
 
     def test_get_dataset_vis(self):
         """Test get visible calibrated data."""
-        from satpy import DatasetID
-        key = DatasetID(name='VI006', calibration='reflectance')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='VI006', calibration='reflectance')
         res = self.reader.get_dataset(key, {
             'file_key': 'image_pixel_values',
             'standard_name': 'toa_bidirectional_reflectance',
@@ -241,8 +244,8 @@ class TestAMIL1bNetCDF(TestAMIL1bNetCDFBase):
 
     def test_get_dataset_counts(self):
         """Test get counts data."""
-        from satpy import DatasetID
-        key = DatasetID(name='VI006', calibration='counts')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='VI006', calibration='counts')
         res = self.reader.get_dataset(key, {
             'file_key': 'image_pixel_values',
             'standard_name': 'counts',
@@ -290,10 +293,10 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
 
     def test_ir_calibrate(self):
         """Test IR calibration."""
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         from satpy.readers.ami_l1b import rad2temp
-        ds_id = DatasetID(name='IR087', wavelength=[8.415, 8.59, 8.765],
-                          calibration='brightness_temperature')
+        ds_id = make_dataid(name='IR087', wavelength=[8.415, 8.59, 8.765],
+                            calibration='brightness_temperature')
         ds_info = {
             'file_key': 'image_pixel_values',
             'wavelength': [8.415, 8.59, 8.765],
@@ -318,3 +321,34 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.04)
         # make sure the attributes from the file are in the data array
         self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
+
+        # test GSICS coefficients
+        self.reader.calib_mode = 'GSICS'
+        expected = np.array([[238.036797, 238.007106, 237.977396, 237.947668, 237.91792],
+                             [237.888154, 237.85837, 237.828566, 237.798743, 237.768902]])
+        with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
+            res = self.reader.get_dataset(ds_id, ds_info)
+            r2t_mock.assert_not_called()
+        # file coefficients are pretty close, give some wiggle room
+        np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
+        # make sure the attributes from the file are in the data array
+        self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
+
+        # test custom coefficients
+        self.reader.calib_mode = 'FILE'
+        self.reader.radiance_correction = {'IR087': {'slo': 0.99669,
+                                                     'off': 0.16907}}
+        expected = np.array([[238.073713, 238.044043, 238.014354, 237.984647, 237.954921],
+                             [237.925176, 237.895413, 237.865631, 237.835829, 237.806009]])
+        with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
+            res = self.reader.get_dataset(ds_id, ds_info)
+            r2t_mock.assert_not_called()
+        # file coefficients are pretty close, give some wiggle room
+        np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
+        # make sure the attributes from the file are in the data array
+        self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
+
+        # Check passing a bad channel to custom calibrator raises exception
+        self.reader.band_name = 'IR105'
+        with self.assertRaises(KeyError):
+            res = self.reader.get_dataset(ds_id, ds_info)
