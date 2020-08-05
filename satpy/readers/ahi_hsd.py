@@ -276,8 +276,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
-                            reader_kwargs={'calib_mode':: 'custom'},
-                                           'custom_calib':: calib_dict)
+                            reader_kwargs={'radiance_correction':: calib_dict)
         # B15 will not have custom calibration applied.
         scene.load(['B07', 'B14', 'B15'])
 
@@ -286,7 +285,8 @@ class AHIHSDFileHandler(BaseFileHandler):
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 mask_space=True, calib_mode='nominal', custom_calib=None):
+                 mask_space=True, calib_mode='nominal',
+                 radiance_correction=None):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -327,15 +327,13 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.sensor = 'ahi'
         self.mask_space = mask_space
         self.band_name = filetype_info['file_type'][4:].upper()
-        calib_mode_choices = ('NOMINAL', 'UPDATE', 'CUSTOM')
+        calib_mode_choices = ('NOMINAL', 'UPDATE')
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
                 calib_mode, calib_mode_choices))
-        if calib_mode.upper() == 'CUSTOM' and not isinstance(custom_calib, dict):
-            raise ValueError('Invalid custom calibration, supply coefficients as dict')
 
         self.calib_mode = calib_mode.upper()
-        self.custom_calib = custom_calib
+        self.radiance_correction = radiance_correction
 
     def __del__(self):
         """Delete the object."""
@@ -529,11 +527,17 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Mask space pixels."""
         return data.where(get_geostationary_mask(self.area))
 
-    def _get_custom_calib(self):
-        slope = self.custom_calib[self.band_name]['slo']
-        offset = self.custom_calib[self.band_name]['off']
+    def _get_rad_corr_factors(self):
+        slope = self.radiance_correction[self.band_name]['slo']
+        offset = self.radiance_correction[self.band_name]['off']
 
         return slope, offset
+
+    def _apply_rad_correction(self, data, slo, off):
+        """Apply GSICS-like correction factors to radiance data."""
+        data = (data - off) / slo
+
+        return data
 
     def read_band(self, key, info):
         """Read the data."""
@@ -622,14 +626,10 @@ class AHIHSDFileHandler(BaseFileHandler):
         else:
             gain = self._header["block5"]["gain_count2rad_conversion"][0]
             offset = self._header["block5"]["offset_count2rad_conversion"][0]
-        # If using custom calibration from GSICS, apply it here
-        if self.calib_mode == "CUSTOM":
-            if self.band_name in self.custom_calib:
-                cust_slope, cust_offset = self._get_custom_calib()
-                data = (data - cust_offset) / cust_slope
-            else:
-                raise KeyError('Custom calibration selected, but no coefficients '
-                               'were supplied for channel ' + self.band_name)
+        # If using radiance correction factors from GSICS or similar, apply here
+        if isinstance(self.radiance_correction, dict):
+            cust_slope, cust_offset = self._get_rad_corr_factors()
+            data = self._apply_rad_correction(data, cust_slope, cust_offset)
 
         return (data * gain + offset).clip(0)
 
