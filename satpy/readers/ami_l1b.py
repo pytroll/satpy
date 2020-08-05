@@ -201,13 +201,9 @@ class AMIL1bNetCDF(BaseFileHandler):
         if dataset_id['calibration'] in ('radiance', 'reflectance', 'brightness_temperature'):
             data = gain * data + offset
             if self.calib_mode == 'GSICS':
-                rad_slope = self.nc['gsics_coeff_slope'][0]
-                rad_offset = self.nc['gsics_coeff_intercept'][0]
-                data = self._apply_rad_correction(data, rad_slope, rad_offset)
+                data = self._apply_gsics_rad_correction(data)
             elif isinstance(self.radiance_correction, dict):
-                rad_slope, rad_offset = self._get_rad_corr_factors()
-                if rad_slope > 0 and rad_slope < 2:
-                    data = self._apply_rad_correction(data, rad_slope, rad_offset)
+                data = self._apply_user_rad_correction(data)
         if dataset_id['calibration'] == 'reflectance':
             # depends on the radiance calibration above
             rad_to_alb = self.nc.attrs['Radiance_to_Albedo_c']
@@ -278,8 +274,21 @@ class AMIL1bNetCDF(BaseFileHandler):
                            self.band_name)
         return slope, offset
 
+
+    def _apply_gsics_rad_correction(self, data):
+        """Retrieve GSICS factors from L1 file and apply to radiance."""
+        rad_slope = self.nc['gsics_coeff_slope'][0]
+        rad_offset = self.nc['gsics_coeff_intercept'][0]
+        data = self._apply_rad_correction(data, rad_slope, rad_offset)
+        return data
+
+    def _apply_user_rad_correction(self, data):
+        """Retrieve user-supplied radiance correction and apply."""
+        rad_slope, rad_offset = self._get_rad_corr_factors()
+        data = self._apply_rad_correction(data, rad_slope, rad_offset)
+        return data
+
     def _apply_rad_correction(self, data, slo, off):
         """Apply GSICS-like correction factors to radiance data."""
         data = (data - off) / slo
-
         return data
