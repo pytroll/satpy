@@ -256,9 +256,9 @@ class AHIHSDFileHandler(BaseFileHandler):
         scene.load([0.6])
 
     Alternative AHI calibrations are also available, such as GSICS
-    coefficients. As such, you can supply custom per-channel calibration
-    by setting calib_mode='custom' and passing custom calibration factors via:
-       custom_calib={chan: ['slo': slope, 'off': offset]}
+    coefficients. As such, you can supply custom per-channel correction
+    by setting calib_mode='custom' and passing correction factors via:
+       radiance_correction={'chan': ['slo': slope, 'off': offset]}
     Where slo and off are per-channel slope and offset coefficients defined by:
      rad_leo = (rad_geo - off) / slo
     If using custom coefficients, they must be supplied for *all* bands being
@@ -277,7 +277,7 @@ class AHIHSDFileHandler(BaseFileHandler):
         scene = satpy.Scene(filenames,
                             reader='ahi_hsd',
                             reader_kwargs={'radiance_correction':: calib_dict)
-        # B15 will not have custom calibration applied.
+        # B15 will not have custom radiance correction applied.
         scene.load(['B07', 'B14', 'B15'])
 
     By default these updated coefficients are not used.
