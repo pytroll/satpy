@@ -40,7 +40,7 @@ PLATFORM_NAMES = {
 
 class AMIL1bNetCDF(BaseFileHandler):
     """Base reader for AMI L1B NetCDF4 files.
-    
+
     AMI data contains GSICS adjustment factors for the IR bands.
     By default, these are not applied. If you wish to apply them then you must
     set the calibration mode appropriately:
@@ -56,7 +56,7 @@ class AMIL1bNetCDF(BaseFileHandler):
     In addition, the GSICS website (and other sources) also supply radiance
     correction coefficients like so:
     radiance_corr = (radiance_orig - corr_offset) / corr_slope
-    
+
     If you wish to supply such coefficients, pass 'radiance_correction' and a
     dictionary containing per-channel slopes and offsets as a reader_kwarg:
        radiance_correction={'chan': ['slo': slope, 'off': offset]}
