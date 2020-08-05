@@ -149,7 +149,7 @@ class TestGEOCATReader(unittest.TestCase):
                            'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
 
@@ -169,7 +169,7 @@ class TestGEOCATReader(unittest.TestCase):
                            'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
         self.assertIsInstance(datasets['variable1'].attrs['area'], AreaDefinition)
@@ -190,7 +190,7 @@ class TestGEOCATReader(unittest.TestCase):
                            'variable3'])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
-            self.assertIs(v.attrs['calibration'], None)
+            assert 'calibration' not in v.attrs
             self.assertEqual(v.attrs['units'], '1')
         self.assertIsNotNone(datasets['variable3'].attrs.get('flag_meanings'))
         self.assertIsInstance(datasets['variable1'].attrs['area'], AreaDefinition)
