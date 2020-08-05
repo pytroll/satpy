@@ -39,7 +39,9 @@ class TestAHIHSDNavigation(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler('somefile', {'segment': 1, 'total_segments': 1}, None)
+            fh = AHIHSDFileHandler('somefile',
+                                   {'segment': 1, 'total_segments': 1},
+                                   filetype_info={'file_type': 'hsd_b01'})
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': -591.5,
                             'LFAC': 40932549,
@@ -86,7 +88,8 @@ class TestAHIHSDNavigation(unittest.TestCase):
         np2str.side_effect = lambda x: x
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
-            fh = AHIHSDFileHandler('somefile', {'segment': 8, 'total_segments': 10}, None)
+            fh = AHIHSDFileHandler('somefile', {'segment': 8, 'total_segments': 10},
+                                   filetype_info={'file_type': 'hsd_b01'})
             fh.proj_info = {'CFAC': 40932549,
                             'COFF': 5500.5,
                             'LFAC': 40932549,
@@ -146,12 +149,20 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         with mock.patch('satpy.readers.ahi_hsd.open', m, create=True):
             # Check if file handler raises exception for invalid calibration mode
             with self.assertRaises(ValueError):
-                fh = AHIHSDFileHandler('somefile', {'segment': 8, 'total_segments': 10}, None, calib_mode='BAD_MODE')
+                fh = AHIHSDFileHandler('somefile',
+                                       {'segment': 8, 'total_segments': 10},
+                                       filetype_info={'file_type': 'hsd_b01'},
+                                       calib_mode='BAD_MODE')
             with self.assertRaises(ValueError):
-                fh = AHIHSDFileHandler('somefile', {'segment': 8, 'total_segments': 10}, None, calib_mode='CUSTOM')
+                fh = AHIHSDFileHandler('somefile',
+                                       {'segment': 8, 'total_segments': 10},
+                                       filetype_info={'file_type': 'hsd_b01'},
+                                       calib_mode='CUSTOM')
 
             in_fname = 'test_file.bz2'
-            fh = AHIHSDFileHandler(in_fname, {'segment': 8, 'total_segments': 10}, None)
+            fh = AHIHSDFileHandler(in_fname,
+                                   {'segment': 8, 'total_segments': 10},
+                                   filetype_info={'file_type': 'hsd_b01'})
 
             # Check that the filename is altered for bz2 format files
             self.assertNotEqual(in_fname, fh.filename)
@@ -220,7 +231,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         def_cali = [-0.0037, 15.20]
         upd_cali = [-0.0074, 30.40]
         bad_cali = [0.0, 0.0]
-        fh = AHIHSDFileHandler()
+        fh = AHIHSDFileHandler(filetype_info={'file_type': 'hsd_b01'})
         fh.calib_mode = 'NOMINAL'
         fh.is_zipped = False
         fh._header = {
@@ -240,30 +251,26 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         }
 
         # Counts
-        self.assertEqual(fh.calibrate(data=123, bname='B13',
-                         calibration='counts'), 123)
+        self.assertEqual(fh.calibrate(data=123, calibration='counts'), 123)
 
         # Radiance
         counts = da.array(np.array([[0., 1000.],
                                     [2000., 5000.]]))
         rad_exp = np.array([[15.2, 11.5],
                             [7.8, 0]])
-        rad = fh.calibrate(data=counts,  bname='B13',
-                           calibration='radiance')
+        rad = fh.calibrate(data=counts, calibration='radiance')
         self.assertTrue(np.allclose(rad, rad_exp))
 
         # Brightness Temperature
         bt_exp = np.array([[330.978979, 310.524688],
                            [285.845017, np.nan]])
-        bt = fh.calibrate(data=counts, bname='B13',
-                          calibration='brightness_temperature')
+        bt = fh.calibrate(data=counts, calibration='brightness_temperature')
         np.testing.assert_allclose(bt, bt_exp)
 
         # Reflectance
         refl_exp = np.array([[2.92676, 2.214325],
                              [1.50189, 0.]])
-        refl = fh.calibrate(data=counts, bname='B13',
-                            calibration='reflectance')
+        refl = fh.calibrate(data=counts, calibration='reflectance')
         self.assertTrue(np.allclose(refl, refl_exp))
 
         # Updated calibration
@@ -271,8 +278,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         fh.calib_mode = 'UPDATE'
         rad_exp = np.array([[30.4, 23.0],
                             [15.6, 0.]])
-        rad = fh.calibrate(data=counts, bname='B13',
-                           calibration='radiance')
+        rad = fh.calibrate(data=counts, calibration='radiance')
         self.assertTrue(np.allclose(rad, rad_exp))
 
         # Case for no updated calibration available (older data)
@@ -291,8 +297,7 @@ class TestAHIHSDFileHandler(unittest.TestCase):
                             'cali_gain_count2rad_conversion': [bad_cali[0]],
                             'cali_offset_count2rad_conversion': [bad_cali[1]]},
         }
-        rad = fh.calibrate(data=counts, bname='B13',
-                           calibration='radiance')
+        rad = fh.calibrate(data=counts, calibration='radiance')
         rad_exp = np.array([[15.2, 11.5],
                             [7.8, 0]])
         self.assertTrue(np.allclose(rad, rad_exp))
@@ -300,17 +305,18 @@ class TestAHIHSDFileHandler(unittest.TestCase):
         # Custom calibration
         # Check good coefficients
         fh.calib_mode = 'CUSTOM'
-        fh.custom_calib = {'B13': [0.95, -0.1]}
-        rad = fh.calibrate(data=counts, bname='B13',
-                           calibration='radiance')
+        fh.custom_calib = {'B13': {'slo': 0.95,
+                                   'off': -0.1}}
+        fh.band_name = 'B13'
+        rad = fh.calibrate(data=counts, calibration='radiance')
         rad_exp = np.array([[15.19961053, 11.30487368],
                             [7.41013684, 0]])
         self.assertTrue(np.allclose(rad, rad_exp))
 
         # Check out of bounds coefficients
         with self.assertRaises(KeyError):
-            rad = fh.calibrate(data=counts, bname='B10',
-                               calibration='radiance')
+            fh.band_name = 'B10'
+            rad = fh.calibrate(data=counts, calibration='radiance')
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')
