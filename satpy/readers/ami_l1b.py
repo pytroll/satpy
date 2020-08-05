@@ -73,10 +73,11 @@ class AMIL1bNetCDF(BaseFileHandler):
                       'IR087': {'slo': 1.02, 'off': -0.18},
                       'IR133': {'slo': 1.00, 'off': 0.000}}
 
-        filenames = glob.glob('*FLDK*.dat')
+        filenames = glob.glob('*.nc')
         scene = satpy.Scene(filenames,
-                            reader='ahi_hsd',
-                            reader_kwargs={'radiance_correction':: calib_dict)
+                            reader='ami_l1b',
+                            reader_kwargs={'radiance_correction':: calib_dict,
+                                           'calib_mode':: 'file')
         # IR133 will not have radiance correction applied.
         scene.load(['WV063', 'IR087', 'IR133'])
 
