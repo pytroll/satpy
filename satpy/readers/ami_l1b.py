@@ -274,7 +274,6 @@ class AMIL1bNetCDF(BaseFileHandler):
                            self.band_name)
         return slope, offset
 
-
     def _apply_gsics_rad_correction(self, data):
         """Retrieve GSICS factors from L1 file and apply to radiance."""
         rad_slope = self.nc['gsics_coeff_slope'][0]
