@@ -56,7 +56,7 @@ class VIIRSActiveFiresFileHandler(NetCDF4FileHandler):
             Dask DataArray: Data
 
         """
-        key = dsinfo.get('file_key', dsid.name).format(variable_prefix=self.prefix)
+        key = dsinfo.get('file_key', dsid['name']).format(variable_prefix=self.prefix)
         data = self[key]
         # rename "phoney dims"
         data = data.rename(dict(zip(data.dims, ['y', 'x'])))
@@ -119,7 +119,7 @@ class VIIRSActiveFiresTextFileHandler(BaseFileHandler):
 
     def get_dataset(self, dsid, dsinfo):
         """Get requested data as DataArray."""
-        ds = self[dsid.name].to_dask_array(lengths=True)
+        ds = self[dsid['name']].to_dask_array(lengths=True)
         data = xr.DataArray(ds, dims=("y",), attrs={"platform_name": self.platform_name, "sensor": "VIIRS"})
         for key in ('units', 'standard_name', 'flag_meanings', 'flag_values', '_FillValue'):
             # we only want to add information that isn't present already

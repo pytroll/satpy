@@ -103,7 +103,7 @@ class GenericImageFileHandler(BaseFileHandler):
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
         logger.debug("Reading %s.", key)
-        return self.file_content[key.name]
+        return self.file_content[key['name']]
 
 
 def mask_image_data(data):

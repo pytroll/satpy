@@ -22,7 +22,7 @@ from io import StringIO
 import numpy as np
 
 from satpy.readers.vaisala_gld360 import VaisalaGLD360TextFileHandler
-from satpy.dataset import DatasetID
+from satpy.tests.utils import make_dataid
 
 import unittest
 
@@ -32,7 +32,6 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
 
     def test_vaisala_gld360(self):
         """Test basic functionality for vaisala file handler."""
-
         expected = np.array([12.3,  13.2, -31.])
 
         filename = StringIO(
@@ -48,7 +47,7 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
         )
 
         filename.close()
-        dataset_id = DatasetID('power')
+        dataset_id = make_dataid(name='power')
         dataset_info = {'units': 'kA'}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
 
