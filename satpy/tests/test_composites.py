@@ -502,15 +502,15 @@ class TestInlineComposites(unittest.TestCase):
         comps = cl_.compositors
         # Check that "fog" product has all its prerequisites defined
         keys = comps['visir'].keys()
-        fog = [comps['visir'][dsid] for dsid in keys if "fog" == dsid.name][0]
-        self.assertEqual(fog.attrs['prerequisites'][0], '_fog_dep_0')
-        self.assertEqual(fog.attrs['prerequisites'][1], '_fog_dep_1')
+        fog = [comps['visir'][dsid] for dsid in keys if "fog" == dsid['name']][0]
+        self.assertEqual(fog.attrs['prerequisites'][0]['name'], '_fog_dep_0')
+        self.assertEqual(fog.attrs['prerequisites'][1]['name'], '_fog_dep_1')
         self.assertEqual(fog.attrs['prerequisites'][2], 10.8)
 
         # Check that the sub-composite dependencies use wavelengths
         # (numeric values)
         keys = comps['visir'].keys()
-        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid.name]
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid['name']]
         self.assertEqual(comps['visir'][fog_dep_ids[0]].attrs['prerequisites'],
                          [12.0, 10.8])
         self.assertEqual(comps['visir'][fog_dep_ids[1]].attrs['prerequisites'],
@@ -522,7 +522,7 @@ class TestInlineComposites(unittest.TestCase):
         cl_.load_sensor_composites('seviri')
         comps = cl_.compositors
         keys = comps['seviri'].keys()
-        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid.name]
+        fog_dep_ids = [dsid for dsid in keys if "fog_dep" in dsid['name']]
         self.assertEqual(comps['seviri'][fog_dep_ids[0]].attrs['prerequisites'],
                          ['IR_120', 'IR_108'])
         self.assertEqual(comps['seviri'][fog_dep_ids[1]].attrs['prerequisites'],

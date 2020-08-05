@@ -55,10 +55,10 @@ class SAFEMSIL1C(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self._channel != key.name:
+        if self._channel != key['name']:
             return
 
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
         # FIXME: get this from MTD_MSIL1C.xml
         quantification_value = 10000.
         jp2 = glymur.Jp2k(self.filename)
@@ -96,7 +96,7 @@ class SAFEMSIL1C(BaseFileHandler):
 
     def get_area_def(self, dsid):
         """Get the area def."""
-        if self._channel != dsid.name:
+        if self._channel != dsid['name']:
             return
         return self._mda.get_area_def(dsid)
 
@@ -132,9 +132,9 @@ class SAFEMSIMDXML(BaseFileHandler):
             CRS = None
         geocoding = self.root.find('.//Tile_Geocoding')
         epsg = geocoding.find('HORIZONTAL_CS_CODE').text
-        rows = int(geocoding.find('Size[@resolution="' + str(dsid.resolution) + '"]/NROWS').text)
-        cols = int(geocoding.find('Size[@resolution="' + str(dsid.resolution) + '"]/NCOLS').text)
-        geoposition = geocoding.find('Geoposition[@resolution="' + str(dsid.resolution) + '"]')
+        rows = int(geocoding.find('Size[@resolution="' + str(dsid['resolution']) + '"]/NROWS').text)
+        cols = int(geocoding.find('Size[@resolution="' + str(dsid['resolution']) + '"]/NCOLS').text)
+        geoposition = geocoding.find('Geoposition[@resolution="' + str(dsid['resolution']) + '"]')
         ulx = float(geoposition.find('ULX').text)
         uly = float(geoposition.find('ULY').text)
         xdim = float(geoposition.find('XDIM').text)
@@ -212,7 +212,7 @@ class SAFEMSIMDXML(BaseFileHandler):
         darr = darr.ffill('x')
         angles = darr.data
 
-        res = self.interpolate_angles(angles, key.resolution)
+        res = self.interpolate_angles(angles, key['resolution'])
 
         proj = DataArray(res, dims=['y', 'x'])
         proj.attrs = info.copy()

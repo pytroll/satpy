@@ -87,7 +87,7 @@ class VIRR_L1B(HDF5FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Create DataArray from file content for `dataset_id`."""
-        file_key = self.geolocation_prefix + ds_info.get('file_key', dataset_id.name)
+        file_key = self.geolocation_prefix + ds_info.get('file_key', dataset_id['name'])
         if self.platform_id == 'FY3B':
             file_key = file_key.replace('Data/', '')
         data = self[file_key]

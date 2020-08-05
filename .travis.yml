@@ -65,6 +65,7 @@ install:
 script:
 - pytest --cov=satpy satpy/tests
 - coverage run -a --source=satpy -m behave satpy/tests/features --tags=-download
+- if [ "$TRAVIS_EVENT_TYPE" == "cron" ]; then coverage run -a --source=satpy -m behave satpy/tests/features; fi
 after_success:
 - if [[ $PYTHON_VERSION == 3.8 ]]; then coveralls; codecov; fi
 deploy:

@@ -250,7 +250,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         pdict['h'] = self.mda['projection_parameters']['h']
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
-        if dataset_id.name == 'HRV':
+        if dataset_id['name'] == 'HRV':
             pdict['nlines'] = self.mda['hrv_number_of_lines']
             pdict['ncols'] = self.mda['hrv_number_of_columns']
             pdict['a_name'] = 'geos_seviri_hrv'
@@ -316,7 +316,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         elif earth_model == 1:
             ns_offset = -0.5
             we_offset = 0.5
-            if dataset_id.name == 'HRV':
+            if dataset_id['name'] == 'HRV':
                 ns_offset = -1.5
                 we_offset = 1.5
         else:
@@ -324,7 +324,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 'Unrecognised Earth model: {}'.format(earth_model)
             )
 
-        if dataset_id.name == 'HRV':
+        if dataset_id['name'] == 'HRV':
             grid_origin = data15hd['ImageDescription']['ReferenceGridHRV']['GridOrigin']
             center_point = (HRV_NUM_COLUMNS / 2) - 2
             coeff = 3
@@ -352,7 +352,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         # The HRV channel in full disk mode comes in two separate areas, and each area has its own area extent stored
         # in the trailer.
         # In Rapid Scanning mode, only the "Lower" area (typically over Europe) is acquired and included in the files.
-        if (dataset_id.name == 'HRV') and (self.mda['is_full_disk'] or is_rapid_scan):
+        if (dataset_id['name'] == 'HRV') and (self.mda['is_full_disk'] or is_rapid_scan):
 
             # get actual navigation parameters from trailer data
             data15tr = self.trailer['15TRAILER']
@@ -412,9 +412,9 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
-        if dataset_id.name not in self.mda['channel_list']:
-            raise KeyError('Channel % s not available in the file' % dataset_id.name)
-        elif dataset_id.name not in ['HRV']:
+        if dataset_id['name'] not in self.mda['channel_list']:
+            raise KeyError('Channel % s not available in the file' % dataset_id['name'])
+        elif dataset_id['name'] not in ['HRV']:
             shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
 
             # Check if there is only 1 channel in the list as a change
@@ -422,7 +422,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             if len(self.mda['channel_list']) == 1:
                 raw = self.dask_array['visir']['line_data']
             else:
-                i = self.mda['channel_list'].index(dataset_id.name)
+                i = self.mda['channel_list'].index(dataset_id['name'])
                 raw = self.dask_array['visir']['line_data'][:, i, :]
 
             data = dec10216(raw.flatten())
@@ -468,8 +468,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         tic = datetime.now()
 
         data15hdr = self.header['15_DATA_HEADER']
-        calibration = dataset_id.calibration
-        channel = dataset_id.name
+        calibration = dataset_id['calibration']
+        channel = dataset_id['name']
 
         # even though all the channels may not be present in the file,
         # the header does have calibration coefficients for all the channels
