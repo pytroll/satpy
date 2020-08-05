@@ -191,7 +191,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def get_shape(self, dataset_id, ds_info):
         """Get shape."""
-        var_name = ds_info.get('file_key', dataset_id.name)
+        var_name = ds_info.get('file_key', dataset_id['name'])
         return self[var_name + '/shape']
 
     def _first_good_nav(self, lon_arr, lat_arr):
@@ -235,7 +235,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
             raise NotImplementedError("Don't know how to get the Area Definition for this file")
 
         platform = self.get_platform(self['/attr/Platform_Name'])
-        res = self._calc_area_resolution(dsid.resolution)
+        res = self._calc_area_resolution(dsid['resolution'])
         proj = self._get_proj(platform, float(self['/attr/Subsatellite_Longitude']))
         area_name = '{} {} Area at {}m'.format(
             platform,
@@ -257,7 +257,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get metadata."""
-        var_name = ds_info.get('file_key', dataset_id.name)
+        var_name = ds_info.get('file_key', dataset_id['name'])
         shape = self.get_shape(dataset_id, ds_info)
         info = getattr(self[var_name], 'attrs', {})
         info['shape'] = shape
@@ -269,7 +269,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
         info['sensor'] = self.get_sensor(self['/attr/Sensor_Name'])
         info['platform_name'] = self.get_platform(self['/attr/Platform_Name'])
-        info['resolution'] = dataset_id.resolution
+        info['resolution'] = dataset_id['resolution']
         if var_name == 'pixel_longitude':
             info['standard_name'] = 'longitude'
         elif var_name == 'pixel_latitude':
@@ -279,7 +279,7 @@ class GEOCATFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info):
         """Get dataset."""
-        var_name = ds_info.get('file_key', dataset_id.name)
+        var_name = ds_info.get('file_key', dataset_id['name'])
         # FUTURE: Metadata retrieval may be separate
         info = self.get_metadata(dataset_id, ds_info)
         data = self[var_name]

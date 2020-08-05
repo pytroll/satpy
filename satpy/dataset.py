@@ -15,15 +15,212 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Dataset objects."""
+"""Dataset identifying objects."""
 
 import logging
 import numbers
+import warnings
 from collections import namedtuple
 from collections.abc import Collection
+from contextlib import suppress
+from copy import copy, deepcopy
 from datetime import datetime
+from enum import IntEnum, Enum
+
+import numpy as np
 
 logger = logging.getLogger(__name__)
+
+
+class ValueList(IntEnum):
+    """A static value list."""
+
+    @classmethod
+    def convert(cls, value):
+        """Convert value to an instance of this class."""
+        try:
+            return cls[value]
+        except KeyError:
+            raise ValueError('{} invalid value for {}'.format(value, cls))
+
+    def __eq__(self, other):
+        """Check equality."""
+        return self.name == other
+
+    def __ne__(self, other):
+        """Check non-equality."""
+        return self.name != other
+
+    def __hash__(self):
+        """Hash the object."""
+        return hash(self.name)
+
+    def __repr__(self):
+        """Represent the values."""
+        return '<' + str(self) + '>'
+
+
+try:
+    wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))
+except NameError:  # python 3.6
+    wlklass = namedtuple("WavelengthRange", "min central max unit")
+    wlklass.__new__.__defaults__ = ('µm',)
+
+
+class WavelengthRange(wlklass):
+    """A named tuple for wavelength ranges.
+
+    The elements of the range are min, central and max values, and optionally a unit
+    (defaults to µm). No clever unit conversion is done here, it's just used for checking
+    that two ranges are comparable.
+    """
+
+    def __eq__(self, other):
+        """Return if two wavelengths are equal.
+
+        Args:
+            other (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+
+        Return:
+            True if other is a scalar and min <= other <= max, or if other is
+            a tuple equal to self, False otherwise.
+        """
+        if other is None:
+            return False
+        elif isinstance(other, numbers.Number):
+            return other in self
+        elif isinstance(other, (tuple, list)) and len(other) == 3:
+            return self[:3] == other
+        return super().__eq__(other)
+
+    def __ne__(self, other):
+        """Return the opposite of `__eq__`."""
+        return not self == other
+
+    def __lt__(self, other):
+        """Compare to another wavelength."""
+        if other is None:
+            return False
+        return super().__lt__(other)
+
+    def __gt__(self, other):
+        """Compare to another wavelength."""
+        if other is None:
+            return True
+        return super().__gt__(other)
+
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
+
+    def __str__(self):
+        """Format for print out."""
+        return "{0.central} {0.unit} ({0.min}-{0.max} {0.unit})".format(self)
+
+    def __contains__(self, other):
+        """Check if this range contains *other*."""
+        if other is None:
+            return False
+        elif isinstance(other, numbers.Number):
+            return self.min <= other <= self.max
+        with suppress(AttributeError):
+            if self.unit != other.unit:
+                raise NotImplementedError("Can't compare wavelength ranges with different units.")
+            return self.min <= other.min and self.max >= other.max
+        return False
+
+    def distance(self, value):
+        """Get the distance from value."""
+        if self == value:
+            try:
+                return abs(value.central - self.central)
+            except AttributeError:
+                if isinstance(value, (tuple, list)):
+                    return abs(value[1] - self.central)
+                return abs(value - self.central)
+        else:
+            return np.inf
+
+    @classmethod
+    def convert(cls, wl):
+        """Convert `wl` to this type if possible."""
+        if isinstance(wl, (tuple, list)):
+            return cls(*wl)
+        return wl
+
+
+class ModifierTuple(tuple):
+    """A tuple holder for modifiers."""
+
+    @classmethod
+    def convert(cls, modifiers):
+        """Convert `modifiers` to this type if possible."""
+        if modifiers is None:
+            return None
+        elif not isinstance(modifiers, (cls, tuple, list)):
+            raise TypeError("'DataID' modifiers must be a tuple or None, "
+                            "not {}".format(type(modifiers)))
+        return cls(modifiers)
+
+    def __eq__(self, other):
+        """Check equality."""
+        if isinstance(other, list):
+            other = tuple(other)
+        return super().__eq__(other)
+
+    def __ne__(self, other):
+        """Check non-equality."""
+        if isinstance(other, list):
+            other = tuple(other)
+        return super().__ne__(other)
+
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
+
+
+#: Default ID keys DataArrays.
+default_id_keys_config = {'name': {
+                              'required': True,
+                          },
+                          'wavelength': {
+                              'type': WavelengthRange,
+                          },
+                          'resolution': {
+                              'transitive': True,
+                              },
+                          'calibration': {
+                              'enum': [
+                                  'reflectance',
+                                  'brightness_temperature',
+                                  'radiance',
+                                  'counts'
+                                  ]
+                          },
+                          'modifiers': {
+                              'default': ModifierTuple(),
+                              'type': ModifierTuple,
+                          },
+                          }
+
+
+#: Default ID keys for coordinate DataArrays.
+default_co_keys_config = {'name': {
+                              'required': True,
+                          },
+                          'resolution': {
+                              'transitive': True,
+                          }
+                          }
+
+#: Minimal ID keys for DataArrays, for example composites.
+minimal_default_keys_config = {'name': {
+                                  'required': True,
+                              },
+                               'resolution': {
+                                   'transitive': True,
+                               }
+                              }
 
 
 class MetadataObject(object):
@@ -35,8 +232,12 @@ class MetadataObject(object):
 
     @property
     def id(self):
-        """Return the DatasetID of the object."""
-        return DatasetID.from_dict(self.attrs)
+        """Return the DataID of the object."""
+        try:
+            return self.attrs['_satpy_id']
+        except KeyError:
+            id_keys = self.attrs.get('_satpy_id_keys', minimal_default_keys_config)
+            return DataID(id_keys, **self.attrs)
 
 
 def average_datetimes(dt_list):
@@ -107,6 +308,19 @@ def combine_metadata(*metadata_objects, **kwargs):
     return shared_info
 
 
+def get_keys_from_config(common_id_keys, config):
+    """Gather keys for a new DataID from the ones available in configured dataset."""
+    id_keys = {}
+    for key, val in common_id_keys.items():
+        if key in config:
+            id_keys[key] = val
+        elif val is not None and (val.get('required') is True or val.get('default') is not None):
+            id_keys[key] = val
+    if not id_keys:
+        raise ValueError('Metadata does not contain enough information to create a DataID.')
+    return id_keys
+
+
 def _share_metadata_key(k, values, average_times):
     """Combine metadata. Helper for combine_metadata, decide if key is shared."""
     any_arrays = any([hasattr(val, "__array__") for val in values])
@@ -149,163 +363,415 @@ def _share_metadata_key_list_arrays(values):
     return True
 
 
-DATASET_KEYS = ("name", "wavelength", "resolution", "polarization",
-                "calibration", "level", "modifiers")
-DatasetID = namedtuple("DatasetID", " ".join(DATASET_KEYS))
-DatasetID.__new__.__defaults__ = (None, None, None, None, None, None, tuple())
+class DataID(dict):
+    """Identifier for all `DataArray` objects.
 
-
-class DatasetID(DatasetID):
-    """Identifier for all `Dataset` objects.
-
-    DatasetID is a namedtuple that holds identifying and classifying
-    information about a Dataset. There are two identifying elements,
-    ``name`` and ``wavelength``. These can be used to generically refer to a
-    Dataset. The other elements of a DatasetID are meant to further
-    distinguish a Dataset from the possible variations it may have. For
-    example multiple Datasets may be called by one ``name`` but may exist
-    in multiple resolutions or with different calibrations such as "radiance"
-    and "reflectance". If an element is `None` then it is considered not
-    applicable.
-
-    A DatasetID can also be used in Satpy to query for a Dataset. This way
-    a fully qualified DatasetID can be found even if some of the DatasetID
-    elements are unknown. In this case a `None` signifies something that is
-    unknown or not applicable to the requested Dataset.
-
-    Args:
-        name (str): String identifier for the Dataset
-        wavelength (float, tuple): Single float wavelength when querying for
-                                   a Dataset. Otherwise 3-element tuple of
-                                   floats specifying the minimum, nominal,
-                                   and maximum wavelength for a Dataset.
-                                   `None` if not applicable.
-        resolution (int, float): Per data pixel/area resolution. If resolution
-                                 varies across the Dataset then nadir view
-                                 resolution is preferred. Usually this is in
-                                 meters, but for lon/lat gridded data angle
-                                 degrees may be used.
-        polarization (str): 'V' or 'H' polarizations of a microwave channel.
-                            `None` if not applicable.
-        calibration (str): String identifying the calibration level of the
-                           Dataset (ex. 'radiance', 'reflectance', etc).
-                           `None` if not applicable.
-        level (int, float): Pressure/altitude level of the dataset. This is
-                            typically in hPa, but may be in inverse meters
-                            for altitude datasets (1/meters).
-        modifiers (tuple): Tuple of strings identifying what corrections or
-                           other modifications have been performed on this
-                           Dataset (ex. 'sunz_corrected', 'rayleigh_corrected',
-                           etc). `None` or empty tuple if not applicable.
-
+    DataID is a dict that holds identifying and classifying
+    information about a DataArray.
     """
 
-    def __new__(cls, *args, **kwargs):
-        """Create new DatasetID."""
-        ret = super(DatasetID, cls).__new__(cls, *args, **kwargs)
-        if ret.modifiers is not None and not isinstance(ret.modifiers, tuple):
-            raise TypeError("'DatasetID' modifiers must be a tuple or None, "
-                            "not {}".format(type(ret.modifiers)))
-        return ret
+    def __init__(self, id_keys, **keyval_dict):
+        """Init the DataID.
+
+        The *id_keys* dictionary has to be formed as described in :doc:`satpy_internals`.
+        The other keyword arguments are values to be assigned to the keys. Note that
+        `None` isn't a valid value and will simply be ignored.
+        """
+        self._hash = None
+        self._orig_id_keys = id_keys
+        self._id_keys = self.fix_id_keys(id_keys or {})
+        if keyval_dict:
+            curated = self.convert_dict(keyval_dict)
+        else:
+            curated = {}
+        super(DataID, self).__init__(curated)
 
     @staticmethod
-    def name_match(a, b):
-        """Return if two string names are equal.
+    def fix_id_keys(id_keys):
+        """Flesh out enums in the id keys as gotten from a config."""
+        new_id_keys = id_keys.copy()
+        for key, val in id_keys.items():
+            if not val:
+                continue
+            if 'enum' in val and 'type' in val:
+                raise ValueError('Cannot have both type and enum for the same id key.')
+            new_val = copy(val)
+            if 'enum' in val:
+                new_val['type'] = ValueList(key, ' '.join(new_val.pop('enum')))
+            new_id_keys[key] = new_val
+        return new_id_keys
 
-        Args:
-            a (str): DatasetID.name or other string
-            b (str): DatasetID.name or other string
-
-        """
-        return a == b
-
-    @staticmethod
-    def wavelength_match(a, b):
-        """Return if two wavelengths are equal.
-
-        Args:
-            a (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
-            b (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
-
-        """
-        if type(a) == (type(b) or
-                       isinstance(a, numbers.Number) and
-                       isinstance(b, numbers.Number)):
-            return a == b
-        elif a is None or b is None:
-            return False
-        elif isinstance(a, (list, tuple)) and len(a) == 3:
-            return a[0] <= b <= a[2]
-        elif isinstance(b, (list, tuple)) and len(b) == 3:
-            return b[0] <= a <= b[2]
-        else:
-            raise ValueError("Can only compare wavelengths of length 1 or 3")
-
-    def _comparable(self):
-        """Get a comparable version of the DatasetID.
-
-        Without this DatasetIDs often raise an exception when compared in
-        Python 3 due to None not being comparable with other types.
-        """
-        return self._replace(
-            name='' if self.name is None else self.name,
-            wavelength=tuple() if self.wavelength is None else self.wavelength,
-            resolution=0 if self.resolution is None else self.resolution,
-            polarization='' if self.polarization is None else self.polarization,
-            calibration='' if self.calibration is None else self.calibration,
-        )
-
-    def __lt__(self, other):
-        """Less than."""
-        """Compare DatasetIDs with special handling of `None` values"""
-        # modifiers should never be None when sorted, should be tuples
-        if isinstance(other, DatasetID):
-            other = other._comparable()
-        return super(DatasetID, self._comparable()).__lt__(other)
-
-    def __eq__(self, other):
-        """Check for equality."""
-        if isinstance(other, str):
-            return self.name_match(self.name, other)
-        elif isinstance(other, numbers.Number) or \
-                isinstance(other, (tuple, list)) and len(other) == 3:
-            return self.wavelength_match(self.wavelength, other)
-        else:
-            return super(DatasetID, self).__eq__(other)
-
-    def __hash__(self):
-        """Generate the hash of the ID."""
-        return tuple.__hash__(self)
+    def convert_dict(self, keyvals):
+        """Convert a dictionary's values to the types defined in this object's id_keys."""
+        curated = {}
+        if not keyvals:
+            return curated
+        for key, val in self._id_keys.items():
+            if val is not None:
+                if key in keyvals or val.get('default') is not None or val.get('required'):
+                    curated_val = keyvals.get(key, val.get('default'))
+                    if 'required' in val and curated_val is None:
+                        raise ValueError('Required field {} missing.'.format(key))
+                    if 'type' in val:
+                        curated[key] = val['type'].convert(curated_val)
+                    elif curated_val is not None:
+                        curated[key] = curated_val
+            else:
+                try:
+                    curated_val = keyvals[key]
+                except KeyError:
+                    pass
+                else:
+                    if curated_val is not None:
+                        curated[key] = curated_val
+        return curated
 
     @classmethod
-    def from_dict(cls, d, **kwargs):
-        """Convert a dict to an ID."""
-        args = []
-        for k in DATASET_KEYS:
-            val = kwargs.get(k, d.get(k))
-            # force modifiers to tuple
-            if k == 'modifiers' and val is not None:
-                val = tuple(val)
-            args.append(val)
+    def _unpickle(cls, id_keys, keyval):
+        """Create a new instance of the DataID after pickling."""
+        return cls(id_keys, **keyval)
 
-        return cls(*args)
+    def __reduce__(self):
+        """Reduce the object for pickling."""
+        return (self._unpickle, (self._orig_id_keys, self.to_dict()))
+
+    def from_dict(self, keyvals):
+        """Create a DataID from a dictionary."""
+        return self.__class__(self._id_keys, **keyvals)
+
+    @classmethod
+    def from_dataarray(cls, array, default_keys=minimal_default_keys_config):
+        """Get the DataID using the dataarray attributes."""
+        if '_satpy_id' in array.attrs:
+            return array.attrs['_satpy_id']
+        return cls.new_id_from_dataarray(array, default_keys)
+
+    @classmethod
+    def new_id_from_dataarray(cls, array, default_keys=minimal_default_keys_config):
+        """Create a new DataID from a dataarray's attributes."""
+        try:
+            id_keys = array.attrs['_satpy_id'].id_keys
+        except KeyError:
+            id_keys = array.attrs.get('_satpy_id_keys', default_keys)
+        return cls(id_keys, **array.attrs)
+
+    @property
+    def id_keys(self):
+        """Get the id_keys."""
+        return deepcopy(self._id_keys)
+
+    def create_dep_filter(self, query):
+        """Remove the required fields from *query*."""
+        try:
+            new_query = query.to_dict()
+        except AttributeError:
+            new_query = query.copy()
+        for key, val in self._id_keys.items():
+            if val and (val.get('transitive') is not True):
+                new_query.pop(key, None)
+        return DataQuery.from_dict(new_query)
+
+    def _asdict(self):
+        return dict(self.items())
+
+    def to_dict(self):
+        """Convert the ID to a dict."""
+        res_dict = dict()
+        for key, value in self._asdict().items():
+            if isinstance(value, Enum):
+                res_dict[key] = value.name
+            else:
+                res_dict[key] = value
+        return res_dict
+
+    def __getattr__(self, key):
+        """Support old syntax for getting items."""
+        if key in self._id_keys:
+            warnings.warn('Attribute access to DataIDs is deprecated, use key access instead.',
+                          stacklevel=2)
+            return self[key]
+        else:
+            return super().__getattr__(key)
+
+    def __deepcopy__(self, memo=None):
+        """Copy this object.
+
+        Returns self as it's immutable.
+        """
+        return self
+
+    def __copy__(self):
+        """Copy this object.
+
+        Returns self as it's immutable.
+        """
+        return self
+
+    def __repr__(self):
+        """Represent the id."""
+        items = ("{}={}".format(key, repr(val)) for key, val in self.items())
+        return self.__class__.__name__ + "(" + ", ".join(items) + ")"
+
+    def _replace(self, **kwargs):
+        """Make a new instance with replaced items."""
+        info = dict(self.items())
+        info.update(kwargs)
+        return self.from_dict(info)
+
+    def __hash__(self):
+        """Hash the object."""
+        if self._hash is None:
+            self._hash = hash(tuple(sorted(self.items())))
+        return self._hash
+
+    def _immutable(self, *args, **kws):
+        """Raise and error."""
+        raise TypeError('Cannot change a DataID')
+
+    def __lt__(self, other):
+        """Check lesser than."""
+        list_self, list_other = [], []
+        for key in self._id_keys:
+            if key not in self and key not in other:
+                continue
+            elif key in self and key in other:
+                list_self.append(self[key])
+                list_other.append(other[key])
+            elif key in self:
+                val = self[key]
+                list_self.append(val)
+                if isinstance(val, numbers.Number):
+                    list_other.append(0)
+                elif isinstance(val, str):
+                    list_other.append('')
+                elif isinstance(val, tuple):
+                    list_other.append(tuple())
+                else:
+                    raise NotImplementedError("Don't know how to generalize " + str(type(val)))
+            elif key in other:
+                val = other[key]
+                list_other.append(val)
+                if isinstance(val, numbers.Number):
+                    list_self.append(0)
+                elif isinstance(val, str):
+                    list_self.append('')
+                elif isinstance(val, tuple):
+                    list_self.append(tuple())
+                else:
+                    raise NotImplementedError("Don't know how to generalize " + str(type(val)))
+        return tuple(list_self) < tuple(list_other)
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+    pop = _immutable
+    popitem = _immutable
+    clear = _immutable
+    update = _immutable
+    setdefault = _immutable
+
+
+class DataQuery:
+    """The data query object.
+
+    A DataQuery can be used in Satpy to query for a Dataset. This way
+    a fully qualified DataID can be found even if some of the DataID
+    elements are unknown. In this case a `*` signifies something that is
+    unknown or not applicable to the requested Dataset.
+    """
+
+    def __init__(self, **kwargs):
+        """Initialize the query."""
+        self._dict = kwargs.copy()
+        self._fields = tuple(self._dict.keys())
+        self._values = tuple(self._dict.values())
+
+    def __getitem__(self, key):
+        """Get an item."""
+        return self._dict[key]
+
+    def __eq__(self, other):
+        """Compare the DataQuerys.
+
+        A DataQuery is considered equal to another DataQuery or DataID
+        if they have common keys that have equal values.
+        """
+        sdict = self._asdict()
+        try:
+            odict = other._asdict()
+        except AttributeError:
+            return False
+        common_keys = False
+        for key, val in sdict.items():
+            if key in odict:
+                common_keys = True
+                if odict[key] != val and val is not None:
+                    return False
+        return common_keys
+
+    def __hash__(self):
+        """Hash."""
+        fields = []
+        values = []
+        for field, value in sorted(self._dict.items()):
+            if value != '*':
+                fields.append(field)
+                if isinstance(value, (list, set)):
+                    value = tuple(value)
+                values.append(value)
+        return hash(tuple(zip(fields, values)))
+
+    def get(self, key, default=None):
+        """Get an item."""
+        return self._dict.get(key, default)
+
+    @classmethod
+    def from_dict(cls, the_dict):
+        """Convert a dict to an ID."""
+        return cls(**the_dict)
+
+    def _asdict(self):
+        return dict(zip(self._fields, self._values))
 
     def to_dict(self, trim=True):
         """Convert the ID to a dict."""
         if trim:
             return self._to_trimmed_dict()
         else:
-            return dict(zip(DATASET_KEYS, self))
+            return self._asdict()
 
     def _to_trimmed_dict(self):
-        return {key: getattr(self, key) for key in DATASET_KEYS
-                if getattr(self, key) is not None}
+        return {key: val for key, val in self._dict.items()
+                if val != '*'}
+
+    def __repr__(self):
+        """Represent the query."""
+        items = ("{}={}".format(key, repr(val)) for key, val in zip(self._fields, self._values))
+        return self.__class__.__name__ + "(" + ", ".join(items) + ")"
+
+    def filter_dataids(self, dataid_container):
+        """Filter DataIDs based on this query."""
+        keys = list(filter(self._match_dataid, dataid_container))
+
+        return keys
+
+    def _match_dataid(self, dataid):
+        """Match the dataid with the current query."""
+        if self._shares_required_keys(dataid):
+            keys_to_check = set(dataid.keys()) & set(self._fields)
+        else:
+            keys_to_check = set(dataid._id_keys.keys()) & set(self._fields)
+        if not keys_to_check:
+            return False
+        return all(self._match_query_value(key, dataid.get(key)) for key in keys_to_check)
+
+    def _shares_required_keys(self, dataid):
+        """Check if dataid shares required keys with the current query."""
+        for key, val in dataid._id_keys.items():
+            try:
+                if val.get('required', False):
+                    if key in self._fields:
+                        return True
+            except AttributeError:
+                continue
+        return False
+
+    def _match_query_value(self, key, id_val):
+        val = self._dict[key]
+        if val == '*':
+            return True
+        if isinstance(id_val, tuple) and isinstance(val, (tuple, list)):
+            return tuple(val) == id_val
+        if not isinstance(val, list):
+            val = [val]
+        return id_val in val
+
+    def sort_dataids(self, dataids):
+        """Sort the DataIDs based on this query.
+
+        Returns the sorted dataids and the list of distances.
+
+        The sorting is performed based on the types of the keys to search on
+        (as they are defined in the DataIDs from `dataids`).
+        If that type defines a `distance` method, then it is used to find how
+        'far' the DataID is from the current query.
+        If the type is a number, a simple subtraction is performed.
+        For other types, the distance is 0 if the values are identical, np.inf
+        otherwise.
+
+        For example, with the default DataID, we use the following criteria:
+
+        1. Central wavelength is nearest to the `key` wavelength if
+           specified.
+        2. Least modified dataset if `modifiers` is `None` in `key`.
+           Otherwise, the modifiers are ignored.
+        3. Highest calibration if `calibration` is `None` in `key`.
+           Calibration priority is chosen by `satpy.CALIBRATION_ORDER`.
+        4. Best resolution (smallest number) if `resolution` is `None`
+           in `key`. Otherwise, the resolution is ignored.
+
+        """
+        distances = []
+        sorted_dataids = []
+        big_distance = 100000
+        keys = set(self._dict.keys())
+        for dataid in dataids:
+            keys |= set(dataid.keys())
+        for dataid in sorted(dataids):
+            sorted_dataids.append(dataid)
+            distance = 0
+            for key in keys:
+                val = self._dict.get(key, '*')
+                if val == '*':
+                    try:
+                        # for enums
+                        distance += dataid.get(key).value
+                    except AttributeError:
+                        if isinstance(dataid.get(key), numbers.Number):
+                            distance += dataid.get(key)
+                        elif isinstance(dataid.get(key), tuple):
+                            distance += len(dataid.get(key))
+                else:
+                    try:
+                        dataid_val = dataid[key]
+                    except KeyError:
+                        distance += big_distance
+                        break
+                    try:
+                        distance += dataid_val.distance(val)
+                    except AttributeError:
+                        if not isinstance(val, list):
+                            val = [val]
+                        if dataid_val not in val:
+                            distance = np.inf
+                            break
+                        elif isinstance(dataid_val, numbers.Number):
+                            # so as to get the highest resolution first
+                            # FIXME: this ought to be clarified, not sure that
+                            # higher resolution is preferable is all cases.
+                            # Moreover this might break with other numerical
+                            # values.
+                            distance += dataid_val
+            distances.append(distance)
+        distances, dataids = zip(*sorted(zip(distances, sorted_dataids)))
+        return dataids, distances
 
 
-def create_filtered_dsid(dataset_key, **dfilter):
-    """Create a DatasetID matching *dataset_key* and *dfilter*.
+class DatasetID:
+    """Deprecated datasetid."""
 
-    If a proprety is specified in both *dataset_key* and *dfilter*, the former
+    def __init__(self, *args, **kwargs):
+        """Fake init."""
+        raise TypeError("DatasetID should not be used directly")
+
+    def from_dict(self, *args, **kwargs):
+        """Fake fun."""
+        raise TypeError("DatasetID should not be used directly")
+
+
+def create_filtered_query(dataset_key, filter_query):
+    """Create a DataQuery matching *dataset_key* and *filter_query*.
+
+    If a property is specified in both *dataset_key* and *filter_query*, the former
     has priority.
 
     """
@@ -316,10 +782,14 @@ def create_filtered_dsid(dataset_key, **dfilter):
             ds_dict = {'name': dataset_key}
         elif isinstance(dataset_key, numbers.Number):
             ds_dict = {'wavelength': dataset_key}
-    for key, value in dfilter.items():
-        if value is not None:
-            ds_dict.setdefault(key, value)
-    return DatasetID.from_dict(ds_dict)
+        else:
+            raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
+    if filter_query is not None:
+        for key, value in filter_query._dict.items():
+            if value != '*':
+                ds_dict.setdefault(key, value)
+
+    return DataQuery.from_dict(ds_dict)
 
 
 def dataset_walker(datasets):
@@ -341,14 +811,9 @@ def replace_anc(dataset, parent_dataset):
     """Replace *dataset* the *parent_dataset*'s `ancillary_variables` field."""
     if parent_dataset is None:
         return
-    current_dsid = DatasetID.from_dict(dataset.attrs)
+    id_keys = parent_dataset.attrs.get('_satpy_id_keys', dataset.attrs.get('_satpy_id_keys'))
+    current_dataid = DataID(id_keys, **dataset.attrs)
     for idx, ds in enumerate(parent_dataset.attrs['ancillary_variables']):
-        if current_dsid == DatasetID.from_dict(ds.attrs):
+        if current_dataid == DataID(id_keys, **ds.attrs):
             parent_dataset.attrs['ancillary_variables'][idx] = dataset
             return
-
-
-class Dataset(object):
-    """Placeholder for the deprecated class."""
-
-    pass

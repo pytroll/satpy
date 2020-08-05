@@ -103,8 +103,8 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, ds_id, info):
         """Load dataset designated by the given key from file."""
-        logger.debug("Getting data for: %s", ds_id.name)
-        file_key = info.get('file_key', ds_id.name)
+        logger.debug("Getting data for: %s", ds_id['name'])
+        file_key = info.get('file_key', ds_id['name'])
         data = np.flipud(self[file_key])
         data = xr.DataArray(data, dims=['y', 'x'])
         data.attrs = self.get_metadata(data, info)
