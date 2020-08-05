@@ -39,7 +39,49 @@ PLATFORM_NAMES = {
 
 
 class AMIL1bNetCDF(BaseFileHandler):
-    """Base reader for AMI L1B NetCDF4 files."""
+    """Base reader for AMI L1B NetCDF4 files.
+    
+    AMI data contains GSICS adjustment factors for the IR bands.
+    By default, these are not applied. If you wish to apply them then you must
+    set the calibration mode appropriately:
+        import satpy
+        import glob
+
+        filenames = glob.glob('*FLDK*.dat')
+        scene = satpy.Scene(filenames,
+                            reader='ahi_hsd',
+                            reader_kwargs={'calib_mode':: 'gsics'})
+        scene.load(['B13'])
+
+    In addition, the GSICS website (and other sources) also supply radiance
+    correction coefficients like so:
+    radiance_corr = (radiance_orig - corr_offset) / corr_slope
+    
+    If you wish to supply such coefficients, pass 'radiance_correction' and a
+    dictionary containing per-channel slopes and offsets as a reader_kwarg:
+       radiance_correction={'chan': ['slo': slope, 'off': offset]}
+    Where slo and off are slope and offset coefficients described above.
+    If using correction coefficients, they must be supplied for *all* bands
+    being loaded. If you do not have coefficients for a particular band, then
+    you should set slo=1, off=0 for that band. For example:
+
+        import satpy
+        import glob
+
+        # Load bands 7, 14 and 15, but we only have coefs for 7+14
+        calib_dict = {'WV063': {'slo': 0.99, 'off': 0.002},
+                      'IR087': {'slo': 1.02, 'off': -0.18},
+                      'IR133': {'slo': 1.00, 'off': 0.000}}
+
+        filenames = glob.glob('*FLDK*.dat')
+        scene = satpy.Scene(filenames,
+                            reader='ahi_hsd',
+                            reader_kwargs={'radiance_correction':: calib_dict)
+        # IR133 will not have radiance correction applied.
+        scene.load(['WV063', 'IR087', 'IR133'])
+
+    By default these updated coefficients are not used.
+    """
 
     def __init__(self, filename, filename_info, filetype_info,
                  calib_mode='PYSPECTRAL', allow_conditional_pixels=False,
