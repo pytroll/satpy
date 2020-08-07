@@ -307,23 +307,23 @@ class TestHelpers(unittest.TestCase):
         res = hf.apply_rad_correction(1.0, slope, offset)
         np.testing.assert_allclose(2.2, res)
 
-    def get_user_calibration_factors(self):
+    def test_get_user_calibration_factors(self):
         """Test the retrieval of user-supplied calibration factors."""
         radcor_dict = {'WV063': {'slope': 1.015,
                                  'offset': -0.0556},
                        'IR108': {'slo': 1.015,
                                  'off': -0.0556}}
         # Test that correct values are returned from the dict
-        slope, offset = hf.get_generic_rad_corr_factors('WV063', radcor_dict)
+        slope, offset = hf.get_user_calibration_factors('WV063', radcor_dict)
         self.assertEqual(slope, 1.015)
         self.assertEqual(offset, -0.0556)
 
         # Test that channels not present in dict return 1.0, 0.0
         with self.assertWarns(UserWarning):
-            slope, offset = hf.get_generic_rad_corr_factors('IR097', radcor_dict)
+            slope, offset = hf.get_user_calibration_factors('IR097', radcor_dict)
         self.assertEqual(slope, 1.)
         self.assertEqual(offset, 0.)
 
         # Check that incorrect dict keys throw an error
         with self.assertRaises(KeyError):
-            hf.get_generic_rad_corr_factors('IR108', radcor_dict)
+            hf.get_user_calibration_factors('IR108', radcor_dict)
