@@ -288,7 +288,7 @@ def reduce_mda(mda, max_size=100):
     return reduced
 
 
-def get_generic_rad_corr_factors(band_name, correction_dict):
+def get_user_calibration_factors(band_name, correction_dict):
     """Retrieve radiance correction factors from user-supplied dict."""
     if band_name in correction_dict:
         try:
@@ -300,10 +300,10 @@ def get_generic_rad_corr_factors(band_name, correction_dict):
     else:
         # If coefficients not present, warn user and use slope=1, offset=0
         warnings.warn("WARNING: You have selected radiance correction but "
-                      " have not supplied coefficients for channel " + 
+                      " have not supplied coefficients for channel " +
                       band_name)
         return 1., 0.
-        
+
     return slope, offset
 
 
