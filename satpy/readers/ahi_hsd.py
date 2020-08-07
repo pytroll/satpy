@@ -280,7 +280,18 @@ class AHIHSDFileHandler(BaseFileHandler):
         # B15 will not have custom radiance correction applied.
         scene.load(['B07', 'B14', 'B15'])
 
-    By default these updated coefficients are not used.
+    By default, user-supplied calibrations / corrections are applied to the
+    radiance data in accordance with the GSICS standard defined in the
+    equation above. However, user-supplied gain and offset values for
+    converting digital number into radiance via Rad = DN * gain + offset are
+    also possible. To supply your own factors, supply a user calibration dict
+    using `type: 'DN'` as follows::
+        calib_dict = {'B07': {'slope': 0.0037, 'offset': 18.5},
+                      'B14': {'slope': -0.002, 'offset': 22.8},
+                      'type': 'DN'}
+    You can also explicitly select radiance correction with `'type': 'RAD'`
+    but this is not necessary as it is the default option if you supply your
+    own correction coefficients.
 
     """
 
