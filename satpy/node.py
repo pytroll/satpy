@@ -17,9 +17,8 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Nodes to build trees."""
 
-from satpy import DatasetDict
 from satpy.dataset import DataID, DataQuery, ModifierTuple
-from satpy.readers import TooManyResults
+from satpy.readers import TooManyResults, get_key
 from satpy.utils import get_logger
 from satpy.dataset import create_filtered_query
 
@@ -28,7 +27,7 @@ LOG = get_logger(__name__)
 EMPTY_LEAF_NAME = "__EMPTY_LEAF_SENTINEL__"
 
 
-class Node(object):
+class Node:
     """A node object."""
 
     def __init__(self, name, data=None):
@@ -133,7 +132,7 @@ class Node(object):
         return res
 
 
-class DependencyTree(Node):
+class DependencyTree:
     """Structure to discover and store `Dataset` dependencies.
 
     Used primarily by the `Scene` object to organize dependency finding.
@@ -170,15 +169,14 @@ class DependencyTree(Node):
         self.compositors = compositors
         self.modifiers = modifiers
         self._available_only = available_only
-        # we act as the root node of the tree
-        super(DependencyTree, self).__init__(None)
+        self._root = Node(None)
 
         # keep a flat dictionary of nodes contained in the tree for better
         # __contains__
-        self._all_nodes = DatasetDict()
+        self._all_nodes = _DataIDContainer()
 
     def leaves(self, nodes=None, unique=True):
-        """Get the leaves of the tree starting at this root.
+        """Get the leaves of the tree starting at the root.
 
         Args:
             nodes (iterable): limit leaves for these node names
@@ -189,7 +187,7 @@ class DependencyTree(Node):
 
         """
         if nodes is None:
-            return super(DependencyTree, self).leaves(unique=unique)
+            return self._root.leaves(unique=unique)
 
         res = list()
         for child_id in nodes:
@@ -211,7 +209,7 @@ class DependencyTree(Node):
 
         """
         if nodes is None:
-            return super(DependencyTree, self).trunk(unique=unique)
+            return self._root.trunk(unique=unique)
 
         res = list()
         for child_id in nodes:
@@ -236,12 +234,13 @@ class DependencyTree(Node):
     def add_leaf(self, ds_id, parent=None):
         """Add a leaf to the tree."""
         if parent is None:
-            parent = self
+            parent = self._root
         try:
             node = self[ds_id]
         except KeyError:
             node = Node(ds_id)
         self.add_child(parent, node)
+        return node
 
     def copy(self):
         """Copy this node tree.
@@ -253,9 +252,9 @@ class DependencyTree(Node):
         any datasets not already existing in the dependency tree.
         """
         new_tree = DependencyTree({}, self.compositors, self.modifiers)
-        for c in self.children:
+        for c in self._root.children:
             c = c.copy(node_cache=new_tree._all_nodes)
-            new_tree.add_child(new_tree, c)
+            new_tree.add_child(new_tree._root, c)
         return new_tree
 
     def __contains__(self, item):
@@ -268,11 +267,15 @@ class DependencyTree(Node):
 
     def contains(self, item):
         """Check contains when we know the *exact* DataID or DataQuery."""
-        return super(DatasetDict, self._all_nodes).__contains__(item)
+        return super(_DataIDContainer, self._all_nodes).__contains__(item)
 
     def getitem(self, item):
         """Get Node when we know the *exact* DataID or DataQuery."""
-        return super(DatasetDict, self._all_nodes).__getitem__(item)
+        return super(_DataIDContainer, self._all_nodes).__getitem__(item)
+
+    def __str__(self):
+        """Render the dependency tree as a string."""
+        return self._root.display()
 
     def get_compositor(self, key):
         """Get a compositor."""
@@ -527,6 +530,48 @@ class DependencyTree(Node):
                 unknown_datasets.update(unknowns)
                 continue
 
-            self.add_child(self, n)
+            self.add_child(self._root, n)
 
         return unknown_datasets
+
+
+class _DataIDContainer(dict):
+    """Special dictionary object that can handle dict operations based on dataset name, wavelength, or DataID.
+
+    Note: Internal dictionary keys are `DataID` objects.
+
+    """
+
+    def keys(self):
+        """Give currently contained keys."""
+        # sort keys so things are a little more deterministic (.keys() is not)
+        return sorted(super(_DataIDContainer, self).keys())
+
+    def get_key(self, match_key):
+        """Get multiple fully-specified keys that match the provided query.
+
+        Args:
+            match_key (DataID): DataID or DataQuery of query parameters to use for
+                                searching. Can also be a string representing the
+                                dataset name or a number representing the dataset
+                                wavelength.
+
+        """
+        return get_key(match_key, self.keys())
+
+    def __getitem__(self, item):
+        """Get item from container."""
+        try:
+            # short circuit - try to get the object without more work
+            return super(_DataIDContainer, self).__getitem__(item)
+        except KeyError:
+            key = self.get_key(item)
+            return super(_DataIDContainer, self).__getitem__(key)
+
+    def __contains__(self, item):
+        """Check if item exists in container."""
+        try:
+            key = self.get_key(item)
+        except KeyError:
+            return False
+        return super(_DataIDContainer, self).__contains__(key)
