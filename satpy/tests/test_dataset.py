@@ -138,6 +138,18 @@ class TestCombineMetadata(unittest.TestCase):
               ]
         assert "quality" not in combine_metadata(*dts6)
 
+    def test_combine_identical_numpy_scalars(self):
+        """Test combining idendical fill values."""
+        from satpy.dataset import combine_metadata
+        test_metadata = [{'_FillValue': np.uint16(42)}, {'_FillValue': np.uint16(42)}]
+        assert combine_metadata(*test_metadata) == {'_FillValue': 42}
+
+    def test_combine_empty_metadata(self):
+        """Test combining empty metadata."""
+        from satpy.dataset import combine_metadata
+        test_metadata = [{}, {}]
+        assert combine_metadata(*test_metadata) == {}
+
 
 def test_dataid():
     """Test the DataID object."""
