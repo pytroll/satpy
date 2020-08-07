@@ -68,6 +68,9 @@ class NUCAPSFileHandler(NetCDF4FileHandler):
 
     def __init__(self, *args, **kwargs):
         """Initialize file handler."""
+        # remove kwargs that reader instance used that file handler does not
+        kwargs.pop('mask_surface', None)
+        kwargs.pop('mask_quality', None)
         kwargs.setdefault('xarray_kwargs', {}).setdefault(
             'decode_times', False)
         super(NUCAPSFileHandler, self).__init__(*args, **kwargs)

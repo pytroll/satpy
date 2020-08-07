@@ -178,6 +178,18 @@ class TestNUCAPSReader(unittest.TestCase):
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
+    def test_init_with_kwargs(self):
+        """Test basic init with extra parameters."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'NUCAPS-EDR_v1r0_npp_s201603011158009_e201603011158307_c201603011222270.nc',
+        ])
+        self.assertEqual(len(loadables), 1)
+        r.create_filehandlers(loadables, fh_kwargs={'mask_surface': True})
+        # make sure we have some files
+        self.assertTrue(r.file_handlers)
+
     def test_load_nonpressure_based(self):
         """Test loading all channels that aren't based on pressure"""
         from satpy.readers import load_reader
