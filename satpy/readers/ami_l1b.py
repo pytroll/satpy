@@ -25,6 +25,7 @@ import xarray as xr
 import dask.array as da
 import pyproj
 
+from satpy.readers.utils import get_generic_rad_corr_factors, apply_rad_correction
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 from satpy.readers.file_handlers import BaseFileHandler
@@ -58,20 +59,17 @@ class AMIL1bNetCDF(BaseFileHandler):
     radiance_corr = (radiance_orig - corr_offset) / corr_slope
 
     If you wish to supply such coefficients, pass 'radiance_correction' and a
-    dictionary containing per-channel slopes and offsets as a reader_kwarg:
-       radiance_correction={'chan': ['slo': slope, 'off': offset]}
-    Where slo and off are slope and offset coefficients described above.
-    If using correction coefficients, they must be supplied for *all* bands
-    being loaded. If you do not have coefficients for a particular band, then
-    you should set slo=1, off=0 for that band. For example:
+    dictionary containing per-channel slopes and offsets as a reader_kwarg::
+       radiance_correction={'chan': {'slope': slope, 'offset': offset}}
+    If you do not have coefficients for a particular band, then by default the
+    slope will be set to 1 .and the offset to 0.::
 
         import satpy
         import glob
 
         # Load bands 7, 14 and 15, but we only have coefs for 7+14
-        calib_dict = {'WV063': {'slo': 0.99, 'off': 0.002},
-                      'IR087': {'slo': 1.02, 'off': -0.18},
-                      'IR133': {'slo': 1.00, 'off': 0.000}}
+        calib_dict = {'WV063': {'slope': 0.99, 'offset': 0.002},
+                      'IR087': {'slope': 1.02, 'offset': -0.18}}
 
         filenames = glob.glob('*.nc')
         scene = satpy.Scene(filenames,
@@ -81,7 +79,8 @@ class AMIL1bNetCDF(BaseFileHandler):
         # IR133 will not have radiance correction applied.
         scene.load(['WV063', 'IR087', 'IR133'])
 
-    By default these updated coefficients are not used.
+    By default these updated coefficients are not used. In most cases, setting
+    `calib_mode` to `file` is required in order to use external coefficients.
     """
 
     def __init__(self, filename, filename_info, filetype_info,
@@ -263,31 +262,16 @@ class AMIL1bNetCDF(BaseFileHandler):
             data.data = bt_data
         return data
 
-    def _get_rad_corr_factors(self):
-        """Retrieve radiance correction factors from user-supplied dict."""
-        try:
-            slope = self.radiance_correction[self.band_name]['slo']
-            offset = self.radiance_correction[self.band_name]['off']
-        except KeyError:
-            raise KeyError("You have selected to supply radiance correction "
-                           "factors but have not included any for channel " +
-                           self.band_name)
-        return slope, offset
-
     def _apply_gsics_rad_correction(self, data):
         """Retrieve GSICS factors from L1 file and apply to radiance."""
         rad_slope = self.nc['gsics_coeff_slope'][0]
         rad_offset = self.nc['gsics_coeff_intercept'][0]
-        data = self._apply_rad_correction(data, rad_slope, rad_offset)
+        data = apply_rad_correction(data, rad_slope, rad_offset)
         return data
 
     def _apply_user_rad_correction(self, data):
         """Retrieve user-supplied radiance correction and apply."""
-        rad_slope, rad_offset = self._get_rad_corr_factors()
-        data = self._apply_rad_correction(data, rad_slope, rad_offset)
-        return data
-
-    def _apply_rad_correction(self, data, slo, off):
-        """Apply GSICS-like correction factors to radiance data."""
-        data = (data - off) / slo
+        rad_slope, rad_offset = get_generic_rad_corr_factors(self.band_name,
+                                                             self.radiance_correction)
+        data = apply_rad_correction(data, rad_slope, rad_offset)
         return data
