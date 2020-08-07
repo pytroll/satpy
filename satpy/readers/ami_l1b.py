@@ -25,7 +25,7 @@ import xarray as xr
 import dask.array as da
 import pyproj
 
-from satpy.readers.utils import get_generic_rad_corr_factors, apply_rad_correction
+from satpy.readers.utils import get_user_calibration_factors, apply_rad_correction
 from satpy.readers._geos_area import get_area_definition, get_area_extent
 from pyspectral.blackbody import blackbody_wn_rad2temp as rad2temp
 from satpy.readers.file_handlers import BaseFileHandler
@@ -271,7 +271,7 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     def _apply_user_rad_correction(self, data):
         """Retrieve user-supplied radiance correction and apply."""
-        rad_slope, rad_offset = get_generic_rad_corr_factors(self.band_name,
+        rad_slope, rad_offset = get_user_calibration_factors(self.band_name,
                                                              self.radiance_correction)
         data = apply_rad_correction(data, rad_slope, rad_offset)
         return data
