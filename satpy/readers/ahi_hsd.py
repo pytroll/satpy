@@ -44,7 +44,9 @@ import os
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file, get_geostationary_mask, \
-                                np2str, get_earth_radius
+                                np2str, get_earth_radius, \
+                                get_generic_rad_corr_factors, \
+                                apply_rad_correction
 from satpy.readers._geos_area import get_area_extent, get_area_definition
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
@@ -259,19 +261,18 @@ class AHIHSDFileHandler(BaseFileHandler):
     coefficients. As such, you can supply custom per-channel correction
     by setting calib_mode='custom' and passing correction factors via:
        radiance_correction={'chan': ['slo': slope, 'off': offset]}
-    Where slo and off are per-channel slope and offset coefficients defined by:
+    Where slo and off are per-channel slope and offset coefficients defined by::
      rad_leo = (rad_geo - off) / slo
-    If using custom coefficients, they must be supplied for *all* bands being
-    loaded. If you do not have coefficients for a particular band, you can
-    set slo=1, off=0:
+    If you do not have coefficients for a particular band, then by default the
+    slope will be set to 1 .and the offset to 0.::
 
         import satpy
         import glob
 
         # Load bands 7, 14 and 15, but we only have coefs for 7+14
-        calib_dict = {'B07': {'slo': 0.99, 'off': 0.002},
-                      'B14': {'slo': 1.02, 'off': -0.18},
-                      'B15': {'slo': 1.00, 'off': 0.000}}
+        calib_dict = {'B07': {'slope': 0.99, 'offset': 0.002},
+                      'B14': {'slope': 1.02, 'offset': -0.18},
+                      'B15': {'slope': 1.00, 'offset': 0.000}}
 
         filenames = glob.glob('*FLDK*.dat')
         scene = satpy.Scene(filenames,
@@ -527,18 +528,6 @@ class AHIHSDFileHandler(BaseFileHandler):
         """Mask space pixels."""
         return data.where(get_geostationary_mask(self.area))
 
-    def _get_rad_corr_factors(self):
-        slope = self.radiance_correction[self.band_name]['slo']
-        offset = self.radiance_correction[self.band_name]['off']
-
-        return slope, offset
-
-    def _apply_rad_correction(self, data, slo, off):
-        """Apply GSICS-like correction factors to radiance data."""
-        data = (data - off) / slo
-
-        return data
-
     def read_band(self, key, info):
         """Read the data."""
         tic = datetime.now()
@@ -628,8 +617,9 @@ class AHIHSDFileHandler(BaseFileHandler):
             offset = self._header["block5"]["offset_count2rad_conversion"][0]
         # If using radiance correction factors from GSICS or similar, apply here
         if isinstance(self.radiance_correction, dict):
-            cust_slope, cust_offset = self._get_rad_corr_factors()
-            data = self._apply_rad_correction(data, cust_slope, cust_offset)
+            user_slope, user_offset = get_generic_rad_corr_factors(self.band_name,
+                                                                   self.radiance_correction)
+            data = apply_rad_correction(data, user_slope, user_offset)
 
         return (data * gain + offset).clip(0)
 
