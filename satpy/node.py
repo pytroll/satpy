@@ -550,10 +550,10 @@ class _DataIDContainer(dict):
             return (k.get('name') for k in keys)
         elif wavelengths:
             return (k.get('wavelength') for k in keys)
-        else:
-            return keys
 
-    def get_key(self, match_key, num_results=1, best=True, **dfilter):
+        return keys
+
+    def get_key(self, match_key):
         """Get multiple fully-specified keys that match the provided query.
 
         Args:
@@ -563,14 +563,9 @@ class _DataIDContainer(dict):
                                 accepted. Can also be a string representing the
                                 dataset name or a number representing the dataset
                                 wavelength.
-            num_results (int): Number of results to return. If `0` return all,
-                               if `1` return only that element, otherwise
-                               return a list of matching keys.
-            **dfilter (dict): See `get_key` function for more information.
 
         """
-        return get_key(match_key, self.keys(), num_results=num_results,
-                       best=best, **dfilter)
+        return get_key(match_key, self.keys())
 
     def __getitem__(self, item):
         """Get item from container."""
