@@ -265,8 +265,8 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
     """Test IR specific things about the AMI reader."""
 
     def setUp(self):
-        from satpy.tests.utils import make_dataid
         """Create test data for IR calibration tests."""
+        from satpy.tests.utils import make_dataid
         count_data = (np.arange(10).reshape((2, 5))) + 7000
         count_data = count_data.astype(np.uint16)
         count = xr.DataArray(
