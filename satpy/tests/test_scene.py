@@ -1883,29 +1883,6 @@ class TestSceneLoading(unittest.TestCase):
         available_comp_ids = scene.available_composite_ids()
         self.assertIn(make_cid(name='static_image'), available_comp_ids)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
-    @mock.patch('satpy.scene.Scene._create_reader_instances')
-    def test_empty_node_copy(self, cri, cl):
-        """Test copying a dependency tree while preserving the empty node identical."""
-        import satpy.scene
-        from satpy.tests.utils import FakeReader, test_composites
-        cri.return_value = {'fake_reader': FakeReader(
-            'fake_reader', 'fake_sensor')}
-        comps, mods = test_composites('fake_sensor')
-        cl.return_value = (comps, mods)
-        scene = satpy.scene.Scene(filenames=['bla'],
-                                  base_dir='bli',
-                                  reader='fake_reader')
-
-        # Check dependency tree nodes
-        # initialize the dep tree without loading the data
-        scene._dependency_tree.find_dependencies({'comp19'})
-        sc2 = scene.copy()
-        self.assertIs(scene._dependency_tree.children[0].children[0].children[1], scene._dependency_tree.empty_node)
-        self.assertIs(scene._dependency_tree.children[0].children[0].children[1], sc2._dependency_tree.empty_node)
-        self.assertIs(sc2._dependency_tree.children[0].children[0].children[1], scene._dependency_tree.empty_node)
-        self.assertIs(sc2._dependency_tree.children[0].children[0].children[1], sc2._dependency_tree.empty_node)
-
 
 class TestSceneResampling(unittest.TestCase):
     """Test resampling a Scene to another Scene object."""
