@@ -344,8 +344,8 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         """Test IR radiance adjustment using user-supplied coefs."""
         from satpy.readers.ami_l1b import rad2temp
         self.reader.calib_mode = 'FILE'
-        self.reader.radiance_correction = {'IR087': {'slope': 0.99669,
-                                                     'offset': 0.16907}}
+        self.reader.user_calibration = {'IR087': {'slope': 0.99669,
+                                                  'offset': 0.16907}}
         expected = np.array([[238.073713, 238.044043, 238.014354, 237.984647, 237.954921],
                              [237.925176, 237.895413, 237.865631, 237.835829, 237.806009]])
         with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
