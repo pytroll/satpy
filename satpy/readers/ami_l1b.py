@@ -201,7 +201,7 @@ class AMIL1bNetCDF(BaseFileHandler):
             data = gain * data + offset
             if self.calib_mode == 'GSICS':
                 data = self._apply_gsics_rad_correction(data)
-            elif isinstance(self.radiance_correction, dict):
+            elif isinstance(self.user_calibration, dict):
                 data = self._apply_user_rad_correction(data)
         if dataset_id['calibration'] == 'reflectance':
             # depends on the radiance calibration above
@@ -272,6 +272,6 @@ class AMIL1bNetCDF(BaseFileHandler):
     def _apply_user_rad_correction(self, data):
         """Retrieve user-supplied radiance correction and apply."""
         rad_slope, rad_offset = get_user_calibration_factors(self.band_name,
-                                                             self.radiance_correction)
+                                                             self.user_calibration)
         data = apply_rad_correction(data, rad_slope, rad_offset)
         return data
