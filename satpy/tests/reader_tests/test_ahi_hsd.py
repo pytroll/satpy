@@ -302,18 +302,13 @@ class TestAHIHSDFileHandler(unittest.TestCase):
 
         # Radiance correction
         # Check good coefficients
-        fh.radiance_correction = {'B13': {'slo': 0.95,
-                                          'off': -0.1}}
+        fh.radiance_correction = {'B13': {'slope': 0.95,
+                                          'offset': -0.1}}
         fh.band_name = 'B13'
         rad = fh.calibrate(data=counts, calibration='radiance')
         rad_exp = np.array([[15.19961053, 11.30487368],
                             [7.41013684, 0]])
         self.assertTrue(np.allclose(rad, rad_exp))
-
-        # Check out of bounds coefficients
-        with self.assertRaises(KeyError):
-            fh.band_name = 'B10'
-            rad = fh.calibrate(data=counts, calibration='radiance')
 
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_header')
     @mock.patch('satpy.readers.ahi_hsd.AHIHSDFileHandler._read_data')

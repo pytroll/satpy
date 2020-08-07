@@ -265,6 +265,7 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
     """Test IR specific things about the AMI reader."""
 
     def setUp(self):
+        from satpy.tests.utils import make_dataid
         """Create test data for IR calibration tests."""
         count_data = (np.arange(10).reshape((2, 5))) + 7000
         count_data = count_data.astype(np.uint16)
@@ -289,22 +290,21 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
                 'ground_sample_distance_ns': 1.4e-05,
             }
         )
-        super(TestAMIL1bNetCDFIRCal, self).setUp(counts=count)
-
-    def test_ir_calibrate(self):
-        """Test IR calibration."""
-        from satpy.tests.utils import make_dataid
-        from satpy.readers.ami_l1b import rad2temp
-        ds_id = make_dataid(name='IR087', wavelength=[8.415, 8.59, 8.765],
-                            calibration='brightness_temperature')
-        ds_info = {
+        self.ds_id = make_dataid(name='IR087', wavelength=[8.415, 8.59, 8.765],
+                                 calibration='brightness_temperature')
+        self.ds_info = {
             'file_key': 'image_pixel_values',
             'wavelength': [8.415, 8.59, 8.765],
             'standard_name': 'toa_brightness_temperature',
             'units': 'K',
         }
+        super(TestAMIL1bNetCDFIRCal, self).setUp(counts=count)
+
+    def test_default_calibrate(self):
+        """Test default (pyspectral) IR calibration."""
+        from satpy.readers.ami_l1b import rad2temp
         with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
-            res = self.reader.get_dataset(ds_id, ds_info)
+            res = self.reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_called_once()
         expected = np.array([[238.34385135, 238.31443527, 238.28500087, 238.25554813, 238.22607701],
                              [238.1965875, 238.16707956, 238.13755317, 238.10800829, 238.07844489]])
@@ -312,43 +312,46 @@ class TestAMIL1bNetCDFIRCal(TestAMIL1bNetCDFBase):
         # make sure the attributes from the file are in the data array
         self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
 
-        # test builtin coefficients
+    def test_infile_calibrate(self):
+        """Test IR calibration using in-file coefficients."""
+        from satpy.readers.ami_l1b import rad2temp
         self.reader.calib_mode = 'FILE'
         with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
-            res = self.reader.get_dataset(ds_id, ds_info)
+            res = self.reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
+        expected = np.array([[238.34385135, 238.31443527, 238.28500087, 238.25554813, 238.22607701],
+                             [238.1965875, 238.16707956, 238.13755317, 238.10800829, 238.07844489]])
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.04)
         # make sure the attributes from the file are in the data array
         self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
 
-        # test GSICS coefficients
+    def test_gsics_radiance_corr(self):
+        """Test IR radiance adjustment using in-file GSICS coefs."""
+        from satpy.readers.ami_l1b import rad2temp
         self.reader.calib_mode = 'GSICS'
         expected = np.array([[238.036797, 238.007106, 237.977396, 237.947668, 237.91792],
                              [237.888154, 237.85837, 237.828566, 237.798743, 237.768902]])
         with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
-            res = self.reader.get_dataset(ds_id, ds_info)
+            res = self.reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
         # make sure the attributes from the file are in the data array
         self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
 
-        # test custom coefficients
+    def test_user_radiance_corr(self):
+        """Test IR radiance adjustment using user-supplied coefs."""
+        from satpy.readers.ami_l1b import rad2temp
         self.reader.calib_mode = 'FILE'
-        self.reader.radiance_correction = {'IR087': {'slo': 0.99669,
-                                                     'off': 0.16907}}
+        self.reader.radiance_correction = {'IR087': {'slope': 0.99669,
+                                                     'offset': 0.16907}}
         expected = np.array([[238.073713, 238.044043, 238.014354, 237.984647, 237.954921],
                              [237.925176, 237.895413, 237.865631, 237.835829, 237.806009]])
         with mock.patch('satpy.readers.ami_l1b.rad2temp', wraps=rad2temp) as r2t_mock:
-            res = self.reader.get_dataset(ds_id, ds_info)
+            res = self.reader.get_dataset(self.ds_id, self.ds_info)
             r2t_mock.assert_not_called()
         # file coefficients are pretty close, give some wiggle room
         np.testing.assert_allclose(res.data.compute(), expected, equal_nan=True, atol=0.01)
         # make sure the attributes from the file are in the data array
         self.assertEqual(res.attrs['standard_name'], 'toa_brightness_temperature')
-
-        # Check passing a bad channel to custom calibrator raises exception
-        self.reader.band_name = 'IR105'
-        with self.assertRaises(KeyError):
-            res = self.reader.get_dataset(ds_id, ds_info)
