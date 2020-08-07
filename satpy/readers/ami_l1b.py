@@ -58,9 +58,9 @@ class AMIL1bNetCDF(BaseFileHandler):
     correction coefficients like so:
     radiance_corr = (radiance_orig - corr_offset) / corr_slope
 
-    If you wish to supply such coefficients, pass 'radiance_correction' and a
+    If you wish to supply such coefficients, pass 'user_calibration' and a
     dictionary containing per-channel slopes and offsets as a reader_kwarg::
-       radiance_correction={'chan': {'slope': slope, 'offset': offset}}
+       user_calibration={'chan': {'slope': slope, 'offset': offset}}
     If you do not have coefficients for a particular band, then by default the
     slope will be set to 1 .and the offset to 0.::
 
@@ -74,7 +74,7 @@ class AMIL1bNetCDF(BaseFileHandler):
         filenames = glob.glob('*.nc')
         scene = satpy.Scene(filenames,
                             reader='ami_l1b',
-                            reader_kwargs={'radiance_correction':: calib_dict,
+                            reader_kwargs={'user_calibration':: calib_dict,
                                            'calib_mode':: 'file')
         # IR133 will not have radiance correction applied.
         scene.load(['WV063', 'IR087', 'IR133'])
@@ -85,7 +85,7 @@ class AMIL1bNetCDF(BaseFileHandler):
 
     def __init__(self, filename, filename_info, filetype_info,
                  calib_mode='PYSPECTRAL', allow_conditional_pixels=False,
-                 radiance_correction=None):
+                 user_calibration=None):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
         super(AMIL1bNetCDF, self).__init__(filename, filename_info, filetype_info)
         self.nc = xr.open_dataset(self.filename,
@@ -105,7 +105,7 @@ class AMIL1bNetCDF(BaseFileHandler):
                 calib_mode, calib_mode_choices))
 
         self.calib_mode = calib_mode.upper()
-        self.radiance_correction = radiance_correction
+        self.user_calibration = user_calibration
 
     @property
     def start_time(self):
