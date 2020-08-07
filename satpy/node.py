@@ -542,25 +542,17 @@ class _DataIDContainer(dict):
 
     """
 
-    def keys(self, names=False, wavelengths=False):
+    def keys(self):
         """Give currently contained keys."""
         # sort keys so things are a little more deterministic (.keys() is not)
-        keys = sorted(super(_DataIDContainer, self).keys())
-        if names:
-            return (k.get('name') for k in keys)
-        elif wavelengths:
-            return (k.get('wavelength') for k in keys)
-
-        return keys
+        return sorted(super(_DataIDContainer, self).keys())
 
     def get_key(self, match_key):
         """Get multiple fully-specified keys that match the provided query.
 
         Args:
-            match_key (DataID): DataID of query parameters to use for
-                                searching. Any parameter that is `None`
-                                is considered a wild card and any match is
-                                accepted. Can also be a string representing the
+            match_key (DataID): DataID or DataQuery of query parameters to use for
+                                searching. Can also be a string representing the
                                 dataset name or a number representing the dataset
                                 wavelength.
 
