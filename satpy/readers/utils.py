@@ -15,7 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Helper functions for area extent calculations."""
+"""Helper functions for satpy readers."""
 
 import logging
 
@@ -26,6 +26,7 @@ import os
 import shutil
 import numpy as np
 import pyproj
+import warnings
 from io import BytesIO
 from subprocess import Popen, PIPE
 from pyresample.geometry import AreaDefinition
@@ -285,3 +286,28 @@ def reduce_mda(mda, max_size=100):
         elif not (isinstance(val, np.ndarray) and val.size > max_size):
             reduced[key] = val
     return reduced
+
+
+def get_user_calibration_factors(band_name, correction_dict):
+    """Retrieve radiance correction factors from user-supplied dict."""
+    if band_name in correction_dict:
+        try:
+            slope = correction_dict[band_name]['slope']
+            offset = correction_dict[band_name]['offset']
+        except KeyError:
+            raise KeyError("Incorrect correction factor dictionary. You must "
+                           "supply 'slope' and 'offset' keys.")
+    else:
+        # If coefficients not present, warn user and use slope=1, offset=0
+        warnings.warn("WARNING: You have selected radiance correction but "
+                      " have not supplied coefficients for channel " +
+                      band_name)
+        return 1., 0.
+
+    return slope, offset
+
+
+def apply_rad_correction(data, slope, offset):
+    """Apply GSICS-like correction factors to radiance data."""
+    data = (data - offset) / slope
+    return data
