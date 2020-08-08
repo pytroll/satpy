@@ -36,7 +36,13 @@ See the :doc:`../install` section for basic installation instructions. When
 it comes time to install Satpy it should be installed from a clone of the git
 repository and in development mode so that local file changes are
 automatically reflected in the python environment. We highly recommend making
-a separate conda environment or virtualenv for development.
+a separate conda environment or virtualenv for development. For example, you 
+can do this using conda_::
+
+  conda create -n satpy-dev python=3.8
+  conda activate satpy-dev
+
+.. _conda: https://conda.io/
 
 First, if you plan on contributing back to the project you should
 `fork the repository <https://help.github.com/articles/fork-a-repo/>`_ and
