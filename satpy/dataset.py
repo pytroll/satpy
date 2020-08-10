@@ -59,7 +59,7 @@ def combine_metadata(*metadata_objects, average_times=True):
     the returned dictionary.  By default any keys with the word 'time'
     in them and consisting of datetime objects will be averaged. This
     is to handle cases where data were observed at almost the same time
-    but not exactly.  In the interest of time, arrays are compared by
+    but not exactly.  In the interest of time, lazy arrays are compared by
     object identity rather than by their contents.
 
     Args:
