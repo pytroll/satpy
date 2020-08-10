@@ -323,7 +323,7 @@ def get_keys_from_config(common_id_keys, config):
 
 def _share_metadata_key(k, values, average_times):
     """Combine metadata. Helper for combine_metadata, decide if key is shared."""
-    any_arrays = any([hasattr(val, "__array__") for val in values])
+    any_arrays = any([_is_array(val) for val in values])
     # in the real world, the `ancillary_variables` attribute may be
     # List[xarray.DataArray], this means our values are now
     # List[List[xarray.DataArray]].
@@ -332,7 +332,7 @@ def _share_metadata_key(k, values, average_times):
     # checked any_arrays so this false positive should have no impact
     list_of_arrays = any(
             [isinstance(val, Collection) and len(val) > 0 and
-             all([hasattr(subval, "__array__")
+             all([_is_array(subval)
                  for subval in val])
              for val in values])
     if any_arrays:
@@ -344,6 +344,11 @@ def _share_metadata_key(k, values, average_times):
     elif all(val == values[0] for val in values[1:]):
         return True
     return False
+
+
+def _is_array(val):
+    """Check if val is an array."""
+    return hasattr(val, "__array__") and not np.isscalar(val)
 
 
 def _share_metadata_key_array(values):
