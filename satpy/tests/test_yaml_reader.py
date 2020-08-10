@@ -562,7 +562,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
             # need to copy this because the dataset infos will be modified
             _orig_ids = {key: val.copy() for key, val in orig_ids.items()}
             with patch.dict(self.reader.all_ids, _orig_ids, clear=True), \
-                    patch.dict(self.reader.available_ids, {}, clear=True):
+                 patch.dict(self.reader.available_ids, {}, clear=True):
                 # Add a file handler with resolution property
                 fh = MagicMock(filetype_info={'file_type': ftype},
                                resolution=resol)
@@ -746,19 +746,11 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
 class TestGEOSegmentYAMLReader(unittest.TestCase):
     """Test GEOSegmentYAMLReader."""
 
-    def setUp(self):
-        """Add setup for GEOSegmentYAMLReader."""
-        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
-        GEOSegmentYAMLReader.__bases__ = (MagicMock,)
-        self.reader = GEOSegmentYAMLReader()
-
-    def test_get_expected_segments(self):
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.FileYAMLReader, "create_filehandlers")
+    def test_get_expected_segments(self, cfh):
         """Test that expected segments can come from the filename."""
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
-        cfh = MagicMock()
-        # Hacky: This is setting an attribute on the MagicMock *class*
-        #        not on a MagicMock instance
-        GEOSegmentYAMLReader.__bases__[0].create_filehandlers = cfh
 
         fake_fh = MagicMock()
         fake_fh.filename_info = {}
@@ -791,22 +783,22 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         es = created_fhs['ft1'][0].filetype_info['expected_segments']
         self.assertEqual(es, 3)
 
-        # undo the hacky-ness
-        del GEOSegmentYAMLReader.__bases__[0].create_filehandlers
-
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader.FileYAMLReader._load_dataset')
     @patch('satpy.readers.yaml_reader.xr')
     @patch('satpy.readers.yaml_reader._find_missing_segments')
     def test_load_dataset(self, mss, xr, parent_load_dataset):
         """Test _load_dataset()."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
         # Projectable is None
         mss.return_value = [0, 0, 0, False, None]
         with self.assertRaises(KeyError):
-            res = self.reader._load_dataset(None, None, None)
+            res = reader._load_dataset(None, None, None)
         # Failure is True
         mss.return_value = [0, 0, 0, True, 0]
         with self.assertRaises(KeyError):
-            res = self.reader._load_dataset(None, None, None)
+            res = reader._load_dataset(None, None, None)
 
         # Setup input, and output of mocked functions
         counter = 9
@@ -826,7 +818,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         file_handlers = MagicMock()
 
         # No missing segments
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(res.attrs is file_handlers[0].combine_info.return_value)
         self.assertTrue(empty_segment not in slice_list)
 
@@ -835,7 +827,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 8
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[4] is empty_segment)
 
         # The last segment is missing
@@ -844,7 +836,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 8
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[-1] is empty_segment)
 
         # The last two segments are missing
@@ -853,7 +845,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 7
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[-1] is empty_segment)
         self.assertTrue(slice_list[-2] is empty_segment)
 
@@ -863,7 +855,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 9
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[0] is empty_segment)
 
         # The first two segments are missing
@@ -873,31 +865,35 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 9
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[0] is empty_segment)
         self.assertTrue(slice_list[1] is empty_segment)
 
         # Disable padding
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers,
-                                        pad_data=False)
+        res = reader._load_dataset(dataid, ds_info, file_handlers,
+                                   pad_data=False)
         parent_load_dataset.assert_called_once_with(dataid, ds_info,
                                                     file_handlers)
 
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader._load_area_def')
     @patch('satpy.readers.yaml_reader._stack_area_defs')
     @patch('satpy.readers.yaml_reader._pad_earlier_segments_area')
     @patch('satpy.readers.yaml_reader._pad_later_segments_area')
     def test_load_area_def(self, pesa, plsa, sad, parent_load_area_def):
         """Test _load_area_def()."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
+
         dataid = MagicMock()
         file_handlers = MagicMock()
-        self.reader._load_area_def(dataid, file_handlers)
+        reader._load_area_def(dataid, file_handlers)
         pesa.assert_called_once()
         plsa.assert_called_once()
         sad.assert_called_once()
         parent_load_area_def.assert_not_called()
         # Disable padding
-        self.reader._load_area_def(dataid, file_handlers, pad_data=False)
+        reader._load_area_def(dataid, file_handlers, pad_data=False)
         parent_load_area_def.assert_called_once_with(dataid, file_handlers)
 
     @patch('satpy.readers.yaml_reader.AreaDefinition')
