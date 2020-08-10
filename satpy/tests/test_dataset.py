@@ -218,7 +218,7 @@ class TestCombineMetadata(unittest.TestCase):
         assert result == expected
 
     def test_combine_one_metadata_object(self):
-        """Test with real data."""
+        """Test combining one metadata object."""
         mda_objects = ({'_FillValue': np.nan,
                         'valid_range': np.array([0., 0.00032], dtype=np.float32),
                         'ancillary_variables': ['cpp_status_flag',
