@@ -95,13 +95,8 @@ def _get_valid_dicts(metadata_objects):
 
 
 def _shared_keys(info_dicts):
-    shared_keys = None
-    for metadata_dict in info_dicts:
-        if shared_keys is None:
-            shared_keys = set(metadata_dict.keys())
-        else:
-            shared_keys &= set(metadata_dict.keys())
-    return shared_keys
+    key_sets = (set(metadata_dict.keys()) for metadata_dict in info_dicts)
+    return reduce(set.intersection, key_sets)
 
 
 def _combined_shared_info(shared_keys, info_dicts, average_times):
