@@ -80,8 +80,8 @@ def combine_metadata(*metadata_objects, average_times=True):
 
 
 def _get_valid_dicts(metadata_objects):
+    """Get the valid dictionaries matching the metadata_objects."""
     info_dicts = []
-    # grab all of the dictionary objects provided and make a set of the shared keys
     for metadata_object in metadata_objects:
         if isinstance(metadata_object, dict):
             metadata_dict = metadata_object
@@ -194,9 +194,9 @@ def _is_all_arrays(value):
     return all([_is_array(sub_value) for sub_value in value])
 
 
-def _all_list_of_arrays_equal(values):
-    """Check that the list of arrays are equal."""
-    for array_list in zip(*values):
+def _all_list_of_arrays_equal(array_lists):
+    """Check that the lists of arrays are equal."""
+    for array_list in zip(*array_lists):
         if not _all_arrays_equal(array_list):
             return False
     return True
