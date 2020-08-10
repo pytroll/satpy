@@ -27,6 +27,7 @@ from copy import copy, deepcopy
 from datetime import datetime
 from enum import IntEnum, Enum
 from functools import reduce, partial
+from operator import is_
 
 import numpy as np
 
@@ -173,10 +174,7 @@ def _all_arrays_equal(arrays):
 
 def _all_identical(values):
     """Check that the identities of all values are the same."""
-    for val in values[1:]:
-        if val is not values[0]:
-            return False
-    return True
+    return reduce(is_, values)
 
 
 def _contains_collections_of_arrays(values):
