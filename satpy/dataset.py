@@ -130,9 +130,9 @@ def average_datetimes(datetime_list):
 
 def _are_values_combinable(values):
     """Check if the *values* can be combined."""
-    if _contains_arrays(values):
+    if _contain_arrays(values):
         return _all_arrays_equal(values)
-    elif _contains_collections_of_arrays(values):
+    elif _contain_collections_of_arrays(values):
         # in the real world, the `ancillary_variables` attribute may be
         # List[xarray.DataArray], this means our values are now
         # List[List[xarray.DataArray]].
@@ -143,7 +143,7 @@ def _are_values_combinable(values):
     return _all_values_equal(values)
 
 
-def _contains_arrays(values):
+def _contain_arrays(values):
     return any([_is_array(value) for value in values])
 
 
@@ -172,7 +172,7 @@ def _all_identical(values):
     return reduce(is_, values)
 
 
-def _contains_collections_of_arrays(values):
+def _contain_collections_of_arrays(values):
     return any(
         [_is_non_empty_collection(value) and
          _is_all_arrays(value)
