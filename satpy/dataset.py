@@ -27,7 +27,7 @@ from copy import copy, deepcopy
 from datetime import datetime
 from enum import IntEnum, Enum
 from functools import reduce, partial
-from operator import is_
+from operator import is_, eq
 
 import numpy as np
 
@@ -199,7 +199,7 @@ def _all_values_equal(values):
     try:
         return reduce(nan_allclose, values)
     except TypeError:
-        return all(val == values[0] for val in values[1:])
+        return reduce(eq, values)
 
 
 def get_keys_from_config(common_id_keys, config):
