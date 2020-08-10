@@ -77,7 +77,7 @@ def combine_metadata(*metadata_objects, average_times=True):
 
     shared_keys = _shared_keys(info_dicts)
 
-    return _combined_shared_info(shared_keys, info_dicts, average_times)
+    return _combine_shared_info(shared_keys, info_dicts, average_times)
 
 
 def _get_valid_dicts(metadata_objects):
@@ -99,7 +99,7 @@ def _shared_keys(info_dicts):
     return reduce(set.intersection, key_sets)
 
 
-def _combined_shared_info(shared_keys, info_dicts, average_times):
+def _combine_shared_info(shared_keys, info_dicts, average_times):
     shared_info = {}
     for key in shared_keys:
         values = [info[key] for info in info_dicts]
