@@ -167,6 +167,7 @@ class TestCombineMetadata(unittest.TestCase):
         """Test combining values that are numpy arrays."""
         from satpy.dataset import combine_metadata
         test_metadata = [{'valid_range': np.array([0., 0.00032], dtype=np.float32)},
+                         {'valid_range': np.array([0., 0.00032], dtype=np.float32)},
                          {'valid_range': np.array([0., 0.00032], dtype=np.float32)}]
         result = combine_metadata(*test_metadata)
         assert np.allclose(result['valid_range'], np.array([0., 0.00032], dtype=np.float32))

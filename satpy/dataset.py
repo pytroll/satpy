@@ -160,16 +160,22 @@ def _all_arrays_equal(arrays):
 
     If the arrays are lazy, just check if they have the same identity.
     """
-    result = reduce(nan_allclose, arrays)
-    if hasattr(result, 'compute'):
+    if hasattr(arrays[0], 'compute'):
         return _all_identical(arrays)
     else:
-        return result
+        return _pairwise_all(nan_allclose, arrays)
+
+
+def _pairwise_all(func, values):
+    for value in values[1:]:
+        if not func(values[0], value):
+            return False
+    return True
 
 
 def _all_identical(values):
     """Check that the identities of all values are the same."""
-    return reduce(is_, values)
+    return _pairwise_all(is_, values)
 
 
 def _contain_collections_of_arrays(values):
@@ -197,9 +203,9 @@ def _all_list_of_arrays_equal(array_lists):
 
 def _all_values_equal(values):
     try:
-        return reduce(nan_allclose, values)
+        return _pairwise_all(nan_allclose, values)
     except TypeError:
-        return reduce(eq, values)
+        return _pairwise_all(eq, values)
 
 
 def get_keys_from_config(common_id_keys, config):
