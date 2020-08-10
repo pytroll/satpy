@@ -562,7 +562,7 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
             # need to copy this because the dataset infos will be modified
             _orig_ids = {key: val.copy() for key, val in orig_ids.items()}
             with patch.dict(self.reader.all_ids, _orig_ids, clear=True), \
-                 patch.dict(self.reader.available_ids, {}, clear=True):
+                    patch.dict(self.reader.available_ids, {}, clear=True):
                 # Add a file handler with resolution property
                 fh = MagicMock(filetype_info={'file_type': ftype},
                                resolution=resol)
