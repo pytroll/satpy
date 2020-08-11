@@ -1184,8 +1184,8 @@ def _pad_later_segments_area(file_handlers, dsid):
         except ValueError:
             logger.debug("Padding to full disk with segment nr. %d", segment)
 
-            new_height_proj_coord, new_height_px = _get_new_area_extent_heights(area, seg_size, segment,
-                                                                                padding_fci_scene)
+            new_height_proj_coord, new_height_px = _get_new_areadef_heights(area, seg_size, segment,
+                                                                            padding_fci_scene)
             new_ll_y = area.area_extent[1] + new_height_proj_coord
             new_ur_y = area.area_extent[1]
             fill_extent = (area.area_extent[0], new_ll_y,
@@ -1213,7 +1213,7 @@ def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
         logger.debug("Padding segment %d to full disk.",
                      segment)
 
-        new_height_proj_coord, new_height_px = _get_new_area_extent_heights(area, seg_size, segment, padding_fci_scene)
+        new_height_proj_coord, new_height_px = _get_new_areadef_heights(area, seg_size, segment, padding_fci_scene)
         new_ll_y = area.area_extent[3]
         new_ur_y = area.area_extent[3] - new_height_proj_coord
         fill_extent = (area.area_extent[0], new_ll_y,
@@ -1262,13 +1262,16 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
     return counter, expected_segments, slice_list, failure, projectable
 
 
-def _get_new_area_extent_heights(previous_area, previous_seg_size, segment_n, padding_fci_scene):
-    """Get the area extent heights in meters (projection coordinates) and pixels."""
+def _get_new_areadef_heights(previous_area, previous_seg_size, segment_n, padding_fci_scene):
+    """Get the area definition heights in projection coordinates and pixels for the new padded segment."""
     if padding_fci_scene:
+        # retrieve the chunk/segment pixel height
         new_height_px = _get_FCI_L1c_FDHSI_chunk_height(previous_seg_size[1], segment_n)
+        # scale the previous vertical area extent using the new pixel height
         new_height_proj_coord = (previous_area.area_extent[1] - previous_area.area_extent[3]) * new_height_px / \
             previous_seg_size[0]
     else:
+        # all other cases have constant segment size, so reuse the previous segment heights
         new_height_px = previous_seg_size[0]
         new_height_proj_coord = previous_area.area_extent[1] - previous_area.area_extent[3]
     return new_height_proj_coord, new_height_px
@@ -1301,6 +1304,7 @@ def _get_FCI_L1c_FDHSI_chunk_height(chunk_width, chunk_n):
         else:
             chunk_height = 139
     else:
-        raise ValueError("FCI L1c FDHSI chunk width not recognized. Must be either 5568 or 11136.")
+        raise ValueError("FCI L1c FDHSI chunk width {} not recognized. Must be either 5568 or 11136.".format(
+            chunk_width))
 
     return chunk_height
