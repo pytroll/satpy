@@ -746,25 +746,18 @@ class TestGEOFlippableFileYAMLReader(unittest.TestCase):
 class TestGEOSegmentYAMLReader(unittest.TestCase):
     """Test GEOSegmentYAMLReader."""
 
-    def setUp(self):
-        """Add setup for GEOSegmentYAMLReader."""
-        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
-        GEOSegmentYAMLReader.__bases__ = (MagicMock,)
-        self.reader = GEOSegmentYAMLReader()
-
-    def test_get_expected_segments(self):
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch.object(yr.FileYAMLReader, "create_filehandlers")
+    def test_get_expected_segments(self, cfh):
         """Test that expected segments can come from the filename."""
         from satpy.readers.yaml_reader import GEOSegmentYAMLReader
-        cfh = MagicMock()
-        # Hacky: This is setting an attribute on the MagicMock *class*
-        #        not on a MagicMock instance
-        GEOSegmentYAMLReader.__bases__[0].create_filehandlers = cfh
+        reader = GEOSegmentYAMLReader()
 
         fake_fh = MagicMock()
         fake_fh.filename_info = {}
         fake_fh.filetype_info = {}
         cfh.return_value = {'ft1': [fake_fh]}
-        reader = GEOSegmentYAMLReader()
+
         # default (1)
         created_fhs = reader.create_filehandlers(['fake.nc'])
         es = created_fhs['ft1'][0].filetype_info['expected_segments']
@@ -791,22 +784,30 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         es = created_fhs['ft1'][0].filetype_info['expected_segments']
         self.assertEqual(es, 3)
 
-        # undo the hacky-ness
-        del GEOSegmentYAMLReader.__bases__[0].create_filehandlers
+        # check correct FCI chunk number reading into segment
+        fake_fh.filename_info = {'count_in_repeat_cycle': 5}
+        created_fhs = reader.create_filehandlers(['fake.nc'])
+        es = created_fhs['ft1'][0].filename_info['segment']
+        self.assertEqual(es, 5)
 
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
+    @patch('satpy.readers.yaml_reader._get_empty_segment_with_height')
     @patch('satpy.readers.yaml_reader.FileYAMLReader._load_dataset')
     @patch('satpy.readers.yaml_reader.xr')
     @patch('satpy.readers.yaml_reader._find_missing_segments')
-    def test_load_dataset(self, mss, xr, parent_load_dataset):
+    def test_load_dataset(self, mss, xr, parent_load_dataset, geswh):
         """Test _load_dataset()."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
+
         # Projectable is None
         mss.return_value = [0, 0, 0, False, None]
         with self.assertRaises(KeyError):
-            res = self.reader._load_dataset(None, None, None)
+            res = reader._load_dataset(None, None, None)
         # Failure is True
         mss.return_value = [0, 0, 0, True, 0]
         with self.assertRaises(KeyError):
-            res = self.reader._load_dataset(None, None, None)
+            res = reader._load_dataset(None, None, None)
 
         # Setup input, and output of mocked functions
         counter = 9
@@ -826,7 +827,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         file_handlers = MagicMock()
 
         # No missing segments
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(res.attrs is file_handlers[0].combine_info.return_value)
         self.assertTrue(empty_segment not in slice_list)
 
@@ -835,7 +836,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 8
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[4] is empty_segment)
 
         # The last segment is missing
@@ -844,7 +845,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 8
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[-1] is empty_segment)
 
         # The last two segments are missing
@@ -853,7 +854,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 7
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[-1] is empty_segment)
         self.assertTrue(slice_list[-2] is empty_segment)
 
@@ -863,7 +864,7 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 9
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[0] is empty_segment)
 
         # The first two segments are missing
@@ -873,31 +874,73 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         counter = 9
         mss.return_value = (counter, expected_segments, slice_list,
                             failure, projectable)
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers)
+        res = reader._load_dataset(dataid, ds_info, file_handlers)
         self.assertTrue(slice_list[0] is empty_segment)
         self.assertTrue(slice_list[1] is empty_segment)
 
+        # Check that new FCI empty segment is generated if missing in the middle and at the end
+        fake_fh = MagicMock()
+        fake_fh.filename_info = {}
+        fake_fh.filetype_info = {'file_type': 'fci_l1c_fdhsi'}
+        empty_segment.shape = (140, 5568)
+        slice_list[4] = None
+        counter = 7
+        mss.return_value = (counter, expected_segments, slice_list,
+                            failure, projectable)
+        res = reader._load_dataset(dataid, ds_info, [fake_fh])
+        assert 2 == geswh.call_count
+
         # Disable padding
-        res = self.reader._load_dataset(dataid, ds_info, file_handlers,
-                                        pad_data=False)
+        res = reader._load_dataset(dataid, ds_info, file_handlers,
+                                   pad_data=False)
         parent_load_dataset.assert_called_once_with(dataid, ds_info,
                                                     file_handlers)
 
+    def test_get_empty_segment_with_height(self):
+        """Test _get_empty_segment_with_height()."""
+        import xarray as xr
+        import numpy as np
+        from satpy.readers.yaml_reader import _get_empty_segment_with_height as geswh
+
+        dim = 'y'
+
+        # check expansion of empty segment
+        empty_segment = xr.DataArray(np.ones((139, 5568)), dims=['y', 'x'])
+        new_height = 140
+        new_empty_segment = geswh(empty_segment, new_height, dim)
+        assert new_empty_segment.shape == (140, 5568)
+
+        # check reduction of empty segment
+        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=['y', 'x'])
+        new_height = 139
+        new_empty_segment = geswh(empty_segment, new_height, dim)
+        assert new_empty_segment.shape == (139, 5568)
+
+        # check that empty segment is not modified if it has the right height already
+        empty_segment = xr.DataArray(np.ones((140, 5568)), dims=['y', 'x'])
+        new_height = 140
+        new_empty_segment = geswh(empty_segment, new_height, dim)
+        assert new_empty_segment is empty_segment
+
+    @patch.object(yr.FileYAMLReader, "__init__", lambda x: None)
     @patch('satpy.readers.yaml_reader._load_area_def')
     @patch('satpy.readers.yaml_reader._stack_area_defs')
     @patch('satpy.readers.yaml_reader._pad_earlier_segments_area')
     @patch('satpy.readers.yaml_reader._pad_later_segments_area')
     def test_load_area_def(self, pesa, plsa, sad, parent_load_area_def):
         """Test _load_area_def()."""
+        from satpy.readers.yaml_reader import GEOSegmentYAMLReader
+        reader = GEOSegmentYAMLReader()
+
         dataid = MagicMock()
         file_handlers = MagicMock()
-        self.reader._load_area_def(dataid, file_handlers)
+        reader._load_area_def(dataid, file_handlers)
         pesa.assert_called_once()
         plsa.assert_called_once()
         sad.assert_called_once()
         parent_load_area_def.assert_not_called()
         # Disable padding
-        self.reader._load_area_def(dataid, file_handlers, pad_data=False)
+        reader._load_area_def(dataid, file_handlers, pad_data=False)
         parent_load_area_def.assert_called_once_with(dataid, file_handlers)
 
     @patch('satpy.readers.yaml_reader.AreaDefinition')
@@ -927,6 +970,37 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         AreaDefinition.assert_called_once_with(*expected_call)
 
     @patch('satpy.readers.yaml_reader.AreaDefinition')
+    def test_pad_later_segments_area_for_FCI_padding(self, AreaDefinition):
+        """Test _pad_later_segments_area() in the FCI padding case."""
+        from satpy.readers.yaml_reader import _pad_later_segments_area as plsa
+
+        seg1_area = MagicMock()
+        seg1_area.proj_dict = 'proj_dict'
+        seg1_area.area_extent = [0, 1000, 200, 500]
+        seg1_area.shape = [556, 11136]
+        get_area_def = MagicMock()
+        get_area_def.return_value = seg1_area
+        fh_1 = MagicMock()
+        filetype_info = {'expected_segments': 2,
+                         'file_type': 'fci_l1c_fdhsi'}
+        filename_info = {'segment': 1}
+        fh_1.filetype_info = filetype_info
+        fh_1.filename_info = filename_info
+        fh_1.get_area_def = get_area_def
+        file_handlers = [fh_1]
+        dataid = 'dataid'
+        res = plsa(file_handlers, dataid)
+        self.assertEqual(len(res), 2)
+
+        # the previous chunk size is 556, which is exactly double the size of the FCI chunk 2 size (278)
+        # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
+        # The new area extent lower-left row is therefore 1000+250=1250
+        seg2_extent = (0, 1250, 200, 1000)
+        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 11136, 278,
+                         seg2_extent)
+        AreaDefinition.assert_called_once_with(*expected_call)
+
+    @patch('satpy.readers.yaml_reader.AreaDefinition')
     def test_pad_earlier_segments_area(self, AreaDefinition):
         """Test _pad_earlier_segments_area()."""
         from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
@@ -950,6 +1024,38 @@ class TestGEOSegmentYAMLReader(unittest.TestCase):
         self.assertEqual(len(res), 2)
         seg1_extent = (0, 500, 200, 0)
         expected_call = ('fill', 'fill', 'fill', 'proj_dict', 500, 200,
+                         seg1_extent)
+        AreaDefinition.assert_called_once_with(*expected_call)
+
+    @patch('satpy.readers.yaml_reader.AreaDefinition')
+    def test_pad_earlier_segments_area_for_FCI_padding(self, AreaDefinition):
+        """Test _pad_earlier_segments_area() for the FCI case."""
+        from satpy.readers.yaml_reader import _pad_earlier_segments_area as pesa
+
+        seg2_area = MagicMock()
+        seg2_area.proj_dict = 'proj_dict'
+        seg2_area.area_extent = [0, 1000, 200, 500]
+        seg2_area.shape = [278, 5568]
+        get_area_def = MagicMock()
+        get_area_def.return_value = seg2_area
+        fh_2 = MagicMock()
+        filetype_info = {'expected_segments': 2,
+                         'file_type': 'fci_l1c_fdhsi'}
+        filename_info = {'segment': 2}
+        fh_2.filetype_info = filetype_info
+        fh_2.filename_info = filename_info
+        fh_2.get_area_def = get_area_def
+        file_handlers = [fh_2]
+        dataid = 'dataid'
+        area_defs = {2: seg2_area}
+        res = pesa(file_handlers, dataid, area_defs)
+        self.assertEqual(len(res), 2)
+
+        # the previous chunk size is 278, which is exactly double the size of the FCI chunk 1 size (139)
+        # therefore, the new vertical area extent should be half of the previous size (1000-500)/2=250.
+        # The new area extent lower-left row is therefore 500-250=250
+        seg1_extent = (0, 500, 200, 250)
+        expected_call = ('fill', 'fill', 'fill', 'proj_dict', 5568, 139,
                          seg1_extent)
         AreaDefinition.assert_called_once_with(*expected_call)
 
