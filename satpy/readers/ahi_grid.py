@@ -85,32 +85,29 @@ class AHIGriddedFileHandler(BaseFileHandler):
         """Initialize the reader."""
         super(AHIGriddedFileHandler, self).__init__(filename, filename_info,
                                                     filetype_info)
-        self.is_zipped = False
         self._unzipped = unzip_file(self.filename)
         # Assume file is not zipped
         if self._unzipped:
             # But if it is, set the filename to point to unzipped temp file
-            self.is_zipped = True
             self.filename = self._unzipped
         # Get the band name, needed for finding area and dimensions
         self.product_name = filetype_info['file_type']
         self.areaname = filename_info['area']
+        self.sensor = 'ahi'
         self.res = AHI_CHANNEL_RES[self.product_name[:3]]
         if self.areaname == 'fld':
             self.nlines = AHI_FULLDISK_SIZES[self.res]['y_size']
             self.ncols = AHI_FULLDISK_SIZES[self.res]['x_size']
+        else:
+            raise NotImplementedError("Only full disk data is supported.")
 
         # Set up directory path for the LUTs
         app_dirs = AppDirs('ahi_gridded_luts', 'satpy', '1.0.1')
         self.lut_dir = os.path.expanduser(app_dirs.user_data_dir) + '/'
 
-        self.sensor = 'ahi'
-        self.lons = None
-        self.lats = None
-
     def __del__(self):
         """Delete the object."""
-        if (self.is_zipped and os.path.exists(self.filename)):
+        if (self._unzipped and os.path.exists(self.filename)):
             os.remove(self.filename)
 
     def _calibrate(self, data):
@@ -119,7 +116,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         # First, check that the LUT is available. If not, download it.
         lut_file = self.lut_dir + self.product_name
         if not os.path.exists(lut_file):
-            self._download_luts()
+            self._get_luts()
         try:
             # Load file, it has 2 columns: DN + Refl/BT. We only need latter.
             lut = np.loadtxt(lut_file)[:, 1]
@@ -131,45 +128,57 @@ class AHIGriddedFileHandler(BaseFileHandler):
         data = np.where(data < lut_len - 1, data, np.nan)
         return lut[data.astype(np.uint16)]
 
-    def _download_luts(self):
-        """LUTs are needed for count->REFL/BT conversion. Download them."""
+    def _download_luts(self, file_name):
+        """LUTs are stored on an FTP server, this function downloads them."""
         from ftplib import FTP
+        # Set up an FTP connection (anonymous) and download
+        ftp = FTP(AHI_REMOTE_LUTS[0])
+        ftp.login('anonymous', 'anonymous')
+        ftp.cwd(AHI_REMOTE_LUTS[1])
+        with open(file_name, 'wb') as _fp:
+            ftp.retrbinary("RETR " + AHI_REMOTE_LUTS[2], _fp.write)
+
+    def _untar_luts(self, tarred_file, outdir):
+        """Downloaded LUTs are a compressed tarball, uncompress here."""
+        import tarfile
+
+        # Create a temporary directory for the LUT download
+        tar = tarfile.open(tarred_file)
+        tar.extractall(outdir)
+        tar.close()
+        os.remove(tarred_file)
+
+    def _get_luts(self):
+        """LUTs are needed for count->REFL/BT conversion. Download them."""
         import tempfile
         import shutil
-        import tarfile
         import pathlib
 
         # Check that the LUT directory exists
         pathlib.Path(self.lut_dir).mkdir(parents=True, exist_ok=True)
 
         # There is one LUT for each channel
-        flist = ['ext.01', 'vis.01', 'vis.02', 'vis.03',
-                 'sir.01', 'sir.02', 'tir.01', 'tir.02',
-                 'tir.03', 'tir.04', 'tir.05', 'tir.06',
-                 'tir.07', 'tir.08', 'tir.09', 'tir.10']
+        file_list = ['ext.01', 'vis.01', 'vis.02', 'vis.03',
+                     'sir.01', 'sir.02', 'tir.01', 'tir.02',
+                     'tir.03', 'tir.04', 'tir.05', 'tir.06',
+                     'tir.07', 'tir.08', 'tir.09', 'tir.10']
 
-        # Create a temporary directory for the LUT download
-        tdir = tempfile.gettempdir()
-        fname = tdir + 'tmp.tgz'
         logger.info("Download AHI LUTs files and store in directory %s",
                     self.lut_dir)
+        tempdir = tempfile.gettempdir()
+        fname = os.path.join(tempdir, 'tmp.tgz')
+        # Download the LUTs
+        self._download_luts(fname)
 
-        # Set up an FTP connection (anonymous) and download
-        ftp = FTP(AHI_REMOTE_LUTS[0])
-        ftp.login('anonymous', 'anonymous')
-        ftp.cwd(AHI_REMOTE_LUTS[1])
-        with open(fname, 'wb') as _fp:
-            ftp.retrbinary("RETR " + AHI_REMOTE_LUTS[2], _fp.write)
+        # The file is tarred, untar and remove the downloaded file
+        self._untar_luts(fname, tempdir)
 
-        # The file is tarred, here we untar and then remove the downloaded file
-        tar = tarfile.open(fname)
-        tar.extractall(tdir)
-        tar.close()
-        os.remove(fname)
+        lut_dl_dir = os.path.join(tempdir, 'count2tbb/')
+
         # Loop over the LUTs and copy to the correct location
-        for tf in flist:
-            shutil.move(tdir + '/count2tbb/' + tf, self.lut_dir + tf)
-        shutil.rmtree(tdir + '/count2tbb/')
+        for lutfile in file_list:
+            shutil.move(os.path.join(lut_dl_dir, lutfile), os.path.join(self.lut_dir, lutfile))
+        shutil.rmtree(lut_dl_dir)
 
     def get_dataset(self, key, info):
         """Get the dataset."""
