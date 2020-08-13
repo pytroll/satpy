@@ -65,7 +65,7 @@ AHI_FULLDISK_EXTENT = [85., -60., 205., 60.]
 AHI_CHANNEL_RES = {'vis': 0.01,
                    'ext': 0.005,
                    'sir': 0.02,
-                   'tir': 0.02}            
+                   'tir': 0.02}
 
 # List of LUT filenames
 AHI_LUT_NAMES = ['ext.01', 'vis.01', 'vis.02', 'vis.03',
