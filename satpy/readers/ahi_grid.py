@@ -158,7 +158,8 @@ class AHIGriddedFileHandler(BaseFileHandler):
         ftp = FTP(AHI_REMOTE_LUTS[0])
         ftp.login('anonymous', 'anonymous')
         ftp.cwd(AHI_REMOTE_LUTS[1])
-        ftp.retrbinary("RETR " + AHI_REMOTE_LUTS[2], open(fname, 'wb').write)
+        with open(fname, 'wb') as _fp:
+            ftp.retrbinary("RETR " + AHI_REMOTE_LUTS[2], _fp.write)
 
         # The file is tarred, here we untar and then remove the downloaded file
         tar = tarfile.open(fname)
