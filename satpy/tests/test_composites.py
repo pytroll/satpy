@@ -676,21 +676,26 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
 class TestColormapCompositor(unittest.TestCase):
     """Test the ColormapCompositor."""
 
-    def test_build_colormap(self):
-        """Test colormap building."""
+    def setUp(self):
+        """Set up the test case."""
         from satpy.composites import ColormapCompositor
-        cmap_comp = ColormapCompositor('test_cmap_compositor')
-        palette = np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]])
-        cmap, sqpal = cmap_comp.build_colormap(palette, np.uint8, {})
-        self.assertTrue(np.allclose(cmap.values, [0, 1]))
-        self.assertTrue(np.allclose(sqpal, palette / 255.0))
+        self.colormap_compositor = ColormapCompositor('test_cmap_compositor')
 
+    def test_build_colormap_with_int_data_and_without_meanings(self):
+        """Test colormap building."""
+        palette = np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]])
+        colormap, squeezed_palette = self.colormap_compositor.build_colormap(palette, np.uint8, {})
+        self.assertTrue(np.allclose(colormap.values, [0, 1]))
+        self.assertTrue(np.allclose(squeezed_palette, palette / 255.0))
+
+    def test_build_colormap_with_int_data_and_with_meanings(self):
+        """Test colormap building."""
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=['value', 'band'])
         palette.attrs['palette_meanings'] = [2, 3, 4]
-        cmap, sqpal = cmap_comp.build_colormap(palette, np.uint8, {})
-        self.assertTrue(np.allclose(cmap.values, [2, 3, 4]))
-        self.assertTrue(np.allclose(sqpal, palette / 255.0))
+        colormap, squeezed_palette = self.colormap_compositor.build_colormap(palette, np.uint8, {})
+        self.assertTrue(np.allclose(colormap.values, [2, 3, 4]))
+        self.assertTrue(np.allclose(squeezed_palette, palette / 255.0))
 
 
 class TestPaletteCompositor(unittest.TestCase):
@@ -713,6 +718,52 @@ class TestPaletteCompositor(unittest.TestCase):
                         [[1., 0.498039, 0.],
                          [0., 0.498039, 1.]]])
         self.assertTrue(np.allclose(res, exp))
+
+
+class TestColorizeCompositor(unittest.TestCase):
+    """Test the ColorizeCompositor."""
+
+    def test_colorize_no_fill(self):
+        """Test colorizing."""
+        from satpy.composites import ColorizeCompositor
+        cmap_comp = ColorizeCompositor('test_color_compositor')
+        palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
+                               dims=['value', 'band'])
+        palette.attrs['palette_meanings'] = [2, 3, 4]
+
+        data = xr.DataArray(np.array([[4, 3, 2],
+                                      [2, 3, 4]],
+                                     dtype=np.uint8),
+                            dims=['y', 'x'])
+        res = cmap_comp([data, palette])
+        exp = np.array([[[1., 0.498039, 0.],
+                         [0., 0.498039, 1.]],
+                        [[1., 0.498039, 0.],
+                         [0., 0.498039, 1.]],
+                        [[1., 0.498039, 0.],
+                         [0., 0.498039, 1.]]])
+        self.assertTrue(np.allclose(res, exp, atol=1e-4))
+
+    def test_colorize_with_interpolation(self):
+        """Test colorizing with interpolation."""
+        from satpy.composites import ColorizeCompositor
+        cmap_comp = ColorizeCompositor('test_color_compositor')
+        palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
+                               dims=['value', 'band'])
+        palette.attrs['palette_meanings'] = [2, 3, 4]
+
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2.5],
+                                                    [2, 3.2, 4]])),
+                            dims=['y', 'x'],
+                            attrs={'valid_range': np.array([2, 4])})
+        res = cmap_comp([data, palette])
+        exp = np.array([[[1.0000149, 0.49804664, 0.24907766],
+                         [0., 0.59844028, 1.0000149]],
+                        [[1.00005405, 0.49806613, 0.24902255],
+                         [0., 0.59846373, 1.00005405]],
+                        [[1.00001585, 0.49804711, 0.24896771],
+                         [0., 0.59844073, 1.00001585]]])
+        self.assertTrue(np.allclose(res, exp, atol=1e-4))
 
 
 class TestCloudTopHeightCompositor(unittest.TestCase):

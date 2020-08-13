@@ -975,14 +975,14 @@ class ColormapCompositor(GenericCompositor):
 
         """
         from trollimage.colormap import Colormap
-        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
         set_range = True
         if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
             set_range = False
             meanings = palette.attrs['palette_meanings']
-            iterator = zip(meanings, sqpalette)
+            iterator = zip(meanings, squeezed_palette)
         else:
-            iterator = enumerate(sqpalette[:-1])
+            iterator = enumerate(squeezed_palette[:-1])
 
         if dtype == np.dtype('uint8'):
             tups = [(val, tuple(tup))
@@ -1003,7 +1003,7 @@ class ColormapCompositor(GenericCompositor):
             raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
                                  " in order to be displayable with an attached color-palette!")
 
-        return colormap, sqpalette
+        return colormap, squeezed_palette
 
 
 class ColorizeCompositor(ColormapCompositor):
@@ -1015,23 +1015,28 @@ class ColorizeCompositor(ColormapCompositor):
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
 
-        # TODO: support datasets with palette to delegate this to the image
-        # writer.
-
         data, palette = projectables
         colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
-        r, g, b = colormap.colorize(np.asanyarray(data))
-        r[data.mask] = palette[-1][0]
-        g[data.mask] = palette[-1][1]
-        b[data.mask] = palette[-1][2]
-        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
+        channels = colormap.colorize(data.data.squeeze())
+        fill_value = data.attrs.get('_FillValue', np.nan)
+        if np.isnan(fill_value):
+            mask = data.notnull()
+        else:
+            mask = data != data.attrs['_FillValue']
+        r = xr.DataArray(channels[0, :, :].reshape(data.shape),
+                         dims=data.dims, coords=data.coords,
+                         attrs=data.attrs).where(mask)
+        g = xr.DataArray(channels[1, :, :].reshape(data.shape),
+                         dims=data.dims, coords=data.coords,
+                         attrs=data.attrs).where(mask)
+        b = xr.DataArray(channels[2, :, :].reshape(data.shape),
+                         dims=data.dims, coords=data.coords,
+                         attrs=data.attrs).where(mask)
 
-        # r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
-        # g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
-        # b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
-        #
-        # return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
+        res = super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
+        res.attrs['_FillValue'] = np.nan
+        return res
 
 
 class PaletteCompositor(ColormapCompositor):
@@ -1047,8 +1052,9 @@ class PaletteCompositor(ColormapCompositor):
         data, palette = projectables
         colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
-        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
-        channels = palette[channels]
+        channels, colors = colormap.palettize(data.data.squeeze())
+        channels = channels.map_blocks(self._insert_palette_colors, palette, dtype=palette.dtype,
+                                       new_axis=2, chunks=list(channels.chunks) + [palette.shape[1]])
         fill_value = data.attrs.get('_FillValue', np.nan)
         if np.isnan(fill_value):
             mask = data.notnull()
@@ -1067,6 +1073,11 @@ class PaletteCompositor(ColormapCompositor):
         res = super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
+
+    @staticmethod
+    def _insert_palette_colors(channels, palette):
+        channels = palette[channels]
+        return channels
 
 
 class DayNightCompositor(GenericCompositor):
