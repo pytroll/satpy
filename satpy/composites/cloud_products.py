@@ -35,16 +35,16 @@ class CloudTopHeightCompositor(ColormapCompositor):
         else:
             palette_indices = range(len(palette))
 
-        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
         tups = [(val, tuple(tup))
-                for (val, tup) in zip(palette_indices, sqpalette)]
+                for (val, tup) in zip(palette_indices, squeezed_palette)]
         colormap = Colormap(*tups)
         if 'palette_meanings' not in palette.attrs:
             sf = info.get('scale_factor', np.array(1))
             colormap.set_range(
                 *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
 
-        return colormap, sqpalette
+        return colormap, squeezed_palette
 
     def __call__(self, projectables, **info):
         """Create the composite."""
@@ -53,13 +53,12 @@ class CloudTopHeightCompositor(ColormapCompositor):
                              (len(projectables), ))
         data, palette, status = projectables
         colormap, palette = self.build_colormap(palette, data.attrs)
-        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
-        channels = palette[channels]
+        channels = colormap.colorize(np.asanyarray(data))
         mask_nan = data.notnull()
         mask_cloud_free = (status + 1) % 2
         chans = []
-        for idx in range(channels.shape[-1]):
-            chan = xr.DataArray(channels[:, :, idx].reshape(data.shape),
+        for idx in range(channels.shape[0]):
+            chan = xr.DataArray(channels[idx, :, :].reshape(data.shape),
                                 dims=data.dims, coords=data.coords,
                                 attrs=data.attrs).where(mask_nan)
             # Set cloud-free pixels as black
