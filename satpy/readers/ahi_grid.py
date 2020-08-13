@@ -50,6 +50,7 @@ AHI_REMOTE_LUTS = ['hmwr829gr.cr.chiba-u.ac.jp',
                    '/gridded/FD/support/',
                    'count2tbb_v101.tgz']
 
+# Full disk image sizes for each spatial resolution
 AHI_FULLDISK_SIZES = {0.005: {'x_size': 24000,
                               'y_size': 24000},
                       0.01: {'x_size': 12000,
@@ -57,12 +58,20 @@ AHI_FULLDISK_SIZES = {0.005: {'x_size': 24000,
                       0.02: {'x_size': 6000,
                              'y_size': 6000}}
 
+# Geographic extent of the full disk area in degrees
 AHI_FULLDISK_EXTENT = [85., -60., 205., 60.]
 
+# Resolutions of each channel type
 AHI_CHANNEL_RES = {'vis': 0.01,
                    'ext': 0.005,
                    'sir': 0.02,
-                   'tir': 0.02}
+                   'tir': 0.02}              
+
+# List of LUT filenames
+AHI_LUT_NAMES = ['ext.01', 'vis.01', 'vis.02', 'vis.03',
+                 'sir.01', 'sir.02', 'tir.01', 'tir.02',
+                 'tir.03', 'tir.04', 'tir.05', 'tir.06',
+                 'tir.07', 'tir.08', 'tir.09', 'tir.10']
 
 logger = logging.getLogger('ahi_grid')
 
@@ -157,12 +166,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
         # Check that the LUT directory exists
         pathlib.Path(self.lut_dir).mkdir(parents=True, exist_ok=True)
 
-        # There is one LUT for each channel
-        file_list = ['ext.01', 'vis.01', 'vis.02', 'vis.03',
-                     'sir.01', 'sir.02', 'tir.01', 'tir.02',
-                     'tir.03', 'tir.04', 'tir.05', 'tir.06',
-                     'tir.07', 'tir.08', 'tir.09', 'tir.10']
-
         logger.info("Download AHI LUTs files and store in directory %s",
                     self.lut_dir)
         tempdir = tempfile.gettempdir()
@@ -176,7 +179,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         lut_dl_dir = os.path.join(tempdir, 'count2tbb/')
 
         # Loop over the LUTs and copy to the correct location
-        for lutfile in file_list:
+        for lutfile in AHI_LUT_NAMES:
             shutil.move(os.path.join(lut_dl_dir, lutfile), os.path.join(self.lut_dir, lutfile))
         shutil.rmtree(lut_dl_dir)
 
