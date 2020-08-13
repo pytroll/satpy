@@ -259,7 +259,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                 if val_type is not None and issubclass(val_type, tuple):
                     # special case: wavelength can be [min, nominal, max]
                     # but is still considered 1 option
-                    id_kwargs.append((val, ))
+                    id_kwargs.append((val,))
                 elif isinstance(val, (list, tuple, set)):
                     # this key has multiple choices
                     # (ex. 250 meter, 500 meter, 1000 meter resolutions)
@@ -1081,6 +1081,9 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
                 ts = fh.filename_info.get('total_segments', 1)
                 # if the YAML has segments explicitly specified then use that
                 fh.filetype_info.setdefault('expected_segments', ts)
+                # add segment key-values for FCI filehandlers
+                if 'segment' not in fh.filename_info:
+                    fh.filename_info['segment'] = fh.filename_info.get('count_in_repeat_cycle', 1)
         return created_fhs
 
     @staticmethod
@@ -1097,13 +1100,28 @@ class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
+        padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
+
         empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
             if sli is None:
-                slice_list[i] = empty_segment
+                if padding_fci_scene:
+                    slice_list[i] = _get_empty_segment_with_height(empty_segment,
+                                                                   _get_FCI_L1c_FDHSI_chunk_height(
+                                                                       empty_segment.shape[1], i + 1),
+                                                                   dim=dim)
+                else:
+                    slice_list[i] = empty_segment
 
         while expected_segments > counter:
-            slice_list.append(empty_segment)
+            if padding_fci_scene:
+                slice_list.append(_get_empty_segment_with_height(empty_segment,
+                                                                 _get_FCI_L1c_FDHSI_chunk_height(
+                                                                     empty_segment.shape[1], counter + 1),
+                                                                 dim=dim))
+            else:
+                slice_list.append(empty_segment)
+
             counter += 1
 
         if dim not in slice_list[0].dims:
@@ -1156,6 +1174,8 @@ def _pad_later_segments_area(file_handlers, dsid):
     available_segments = [int(fh.filename_info.get('segment', 1)) for
                           fh in file_handlers]
     area_defs = {}
+    padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
+
     for segment in range(available_segments[0], expected_segments + 1):
         try:
             idx = available_segments.index(segment)
@@ -1163,13 +1183,15 @@ def _pad_later_segments_area(file_handlers, dsid):
             area = fh.get_area_def(dsid)
         except ValueError:
             logger.debug("Padding to full disk with segment nr. %d", segment)
-            ext_diff = area.area_extent[1] - area.area_extent[3]
-            new_ll_y = area.area_extent[1] + ext_diff
+
+            new_height_proj_coord, new_height_px = _get_new_areadef_heights(area, seg_size, segment,
+                                                                            padding_fci_scene)
+            new_ll_y = area.area_extent[1] + new_height_proj_coord
             new_ur_y = area.area_extent[1]
             fill_extent = (area.area_extent[0], new_ll_y,
                            area.area_extent[2], new_ur_y)
             area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
-                                  seg_size[1], seg_size[0],
+                                  seg_size[1], new_height_px,
                                   fill_extent)
 
         area_defs[segment] = area
@@ -1185,17 +1207,20 @@ def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
     area = file_handlers[0].get_area_def(dsid)
     seg_size = area.shape
     proj_dict = area.proj_dict
+    padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
+
     for segment in range(available_segments[0] - 1, 0, -1):
         logger.debug("Padding segment %d to full disk.",
                      segment)
-        ext_diff = area.area_extent[1] - area.area_extent[3]
+
+        new_height_proj_coord, new_height_px = _get_new_areadef_heights(area, seg_size, segment, padding_fci_scene)
         new_ll_y = area.area_extent[3]
-        new_ur_y = area.area_extent[3] - ext_diff
+        new_ur_y = area.area_extent[3] - new_height_proj_coord
         fill_extent = (area.area_extent[0], new_ll_y,
                        area.area_extent[2], new_ur_y)
         area = AreaDefinition('fill', 'fill', 'fill',
                               proj_dict,
-                              seg_size[1], seg_size[0],
+                              seg_size[1], new_height_px,
                               fill_extent)
         area_defs[segment] = area
         seg_size = area.shape
@@ -1235,3 +1260,51 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
         slice_list.append(None)
 
     return counter, expected_segments, slice_list, failure, projectable
+
+
+def _get_new_areadef_heights(previous_area, previous_seg_size, segment_n, padding_fci_scene):
+    """Get the area definition heights in projection coordinates and pixels for the new padded segment."""
+    if padding_fci_scene:
+        # retrieve the chunk/segment pixel height
+        new_height_px = _get_FCI_L1c_FDHSI_chunk_height(previous_seg_size[1], segment_n)
+        # scale the previous vertical area extent using the new pixel height
+        new_height_proj_coord = (previous_area.area_extent[1] - previous_area.area_extent[3]) * new_height_px / \
+            previous_seg_size[0]
+    else:
+        # all other cases have constant segment size, so reuse the previous segment heights
+        new_height_px = previous_seg_size[0]
+        new_height_proj_coord = previous_area.area_extent[1] - previous_area.area_extent[3]
+    return new_height_proj_coord, new_height_px
+
+
+def _get_empty_segment_with_height(empty_segment, new_height, dim):
+    """Get a new empty segment with the specified height."""
+    if empty_segment.shape[0] > new_height:
+        # if current empty segment is too tall, slice the DataArray
+        return empty_segment[:new_height, :]
+    elif empty_segment.shape[0] < new_height:
+        # if current empty segment is too short, concatenate a slice of the DataArray
+        return xr.concat([empty_segment, empty_segment[:new_height - empty_segment.shape[0], :]], dim=dim)
+    else:
+        return empty_segment
+
+
+def _get_FCI_L1c_FDHSI_chunk_height(chunk_width, chunk_n):
+    """Get the height in pixels of a FCI L1c FDHSI chunk given the chunk width and number (starting from 1)."""
+    if chunk_width == 11136:
+        # 1km resolution case
+        if chunk_n in [3, 5, 8, 10, 13, 15, 18, 20, 23, 25, 28, 30, 33, 35, 38, 40]:
+            chunk_height = 279
+        else:
+            chunk_height = 278
+    elif chunk_width == 5568:
+        # 2km resolution case
+        if chunk_n in [5, 10, 15, 20, 25, 30, 35, 40]:
+            chunk_height = 140
+        else:
+            chunk_height = 139
+    else:
+        raise ValueError("FCI L1c FDHSI chunk width {} not recognized. Must be either 5568 or 11136.".format(
+            chunk_width))
+
+    return chunk_height
