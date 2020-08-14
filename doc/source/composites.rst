@@ -404,7 +404,7 @@ image) for both of the static images::
       standard_name: static_day
       operations:
       - name: stretch
-        method: *stretchfun
+        method: !!python/name:satpy.enhancements.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]
