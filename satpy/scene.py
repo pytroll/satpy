@@ -371,7 +371,7 @@ class Scene:
         # make sure that these composites are even create-able by these readers
         all_comps = set(comps)
         # find_dependencies will update the all_comps set with DataIDs
-        dep_tree.find_dependencies(all_comps)
+        dep_tree.populate_with_keys(all_comps)
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & all_comps)
@@ -967,12 +967,13 @@ class Scene:
                           polarization=polarization,
                           resolution=resolution,
                           level=level)
-        unknown = self._dependency_tree.find_dependencies(needed_datasets,
-                                                          query)
-        self._wishlist |= needed_datasets
+
+        unknown = self._dependency_tree.populate_with_keys(needed_datasets,
+                                                           query)
         if unknown:
             unknown_str = ", ".join(map(str, unknown))
             raise KeyError("Unknown datasets: {}".format(unknown_str))
+        self._wishlist |= needed_datasets
 
         self._read(**kwargs)
         if generate:

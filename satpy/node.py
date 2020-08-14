@@ -357,24 +357,24 @@ class DependencyTree:
 
         """
         prereq_ids = []
-        unknowns = set()
+        unknown_datasets = set()
         if not prereqs and not skip:
             # this composite has no required prerequisites
             prereqs = [None]
         for prereq in prereqs:
-            n, u = self._find_dependencies(prereq, query=query)
-            if u:
-                unknowns.update(u)
+            node, unknowns = self._create_node_for_key(prereq, query=query)
+            if unknowns:
+                unknown_datasets.update(unknowns)
                 if skip:
-                    u_str = ", ".join([str(x) for x in u])
+                    u_str = ", ".join([str(x) for x in unknowns])
                     LOG.debug('Skipping optional %s: Unknown dataset %s',
                               str(prereq), u_str)
             else:
-                prereq_ids.append(n)
-                self.add_child(parent, n)
-        return prereq_ids, unknowns
+                prereq_ids.append(node)
+                self.add_child(parent, node)
+        return prereq_ids, unknown_datasets
 
-    def _update_modifier_id(self, query, dep_key):
+    def _promote_query_to_modified_dataid(self, query, dep_key):
         """Promote a query to an id based on the dataset it will modify (dep).
 
         Typical use case is requesting a modified dataset (orig_key). This
@@ -403,20 +403,13 @@ class DependencyTree:
         # NOTE: This function can not find a modifier that performs
         # one or more modifications if it has modifiers see if we can find
         # the unmodified version first
-        src_node = None
-        if isinstance(dataset_key, DataQuery) and dataset_key.get('modifiers'):
-            new_dict = dataset_key.to_dict()
-            new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
-            new_prereq = DataQuery.from_dict(new_dict)
-            src_node, u = self._find_dependencies(new_prereq)
-            # Update the requested DatasetQuery with information from the src
-            if src_node is not None:
-                dataset_key = self._update_modifier_id(dataset_key,
-                                                       src_node.name)
-            if u:
-                return None, u
-        elif isinstance(dataset_key, str):
-            dataset_key = DataQuery(name=dataset_key)
+
+        src_node, unknowns = self._create_implicit_dependency_node(dataset_key)
+        if src_node is not None:
+            dataset_key = self._promote_query_to_modified_dataid(dataset_key, src_node.name)
+        elif unknowns:
+            return None, unknowns
+
         try:
             compositor = self.get_compositor(dataset_key)
         except KeyError:
@@ -429,6 +422,7 @@ class DependencyTree:
             root.data[1].append(src_node)
 
         query = cid.create_dep_filter(dataset_key)
+
         # 2.1 get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
         prereqs, unknowns = self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)
@@ -446,7 +440,20 @@ class DependencyTree:
 
         return root, set()
 
-    def _find_dependencies(self, dataset_key, query=None):
+    def _create_implicit_dependency_node(self, dataset_key):
+        if self._is_modified_key(dataset_key):
+            new_prereq = dataset_key._create_less_modified_query()
+            src_node, unknowns = self._create_node_for_key(new_prereq)
+            return src_node, unknowns
+        else:
+            return None, None
+
+    @staticmethod
+    def _is_modified_key(dataset_key):
+        modifiers_ = isinstance(dataset_key, DataQuery) and dataset_key.get('modifiers')
+        return modifiers_
+
+    def _create_node_for_key(self, dataset_key, query=None):
         """Find the dependencies for *dataset_key*.
 
         Args:
@@ -460,10 +467,7 @@ class DependencyTree:
         # Special case: No required dependencies for this composite
         if dataset_key is None:
             return self.empty_node, set()
-        if query is None:
-            dsq = dataset_key
-        else:
-            dsq = create_filtered_query(dataset_key, query)
+        dsq = create_filtered_query(dataset_key, query)
         # 0 check if the *exact* dataset is already loaded
         try:
             node = self.getitem(dsq)
@@ -507,11 +511,11 @@ class DependencyTree:
 
         return node, unknowns
 
-    def find_dependencies(self, dataset_keys, query=None):
-        """Create the dependency tree.
+    def populate_with_keys(self, dataset_keys: set, query=None):
+        """Populate the dependency tree.
 
         Args:
-            dataset_keys (iterable): Strings, DataIDs, DataQuerys to find dependencies for
+            dataset_keys (set): Strings, DataIDs, DataQuerys to find dependencies for
             query (DataQuery): Additional filter parameters. See
                               `satpy.readers.get_key` for more details.
 
@@ -520,17 +524,21 @@ class DependencyTree:
 
         """
         unknown_datasets = set()
+        known_nodes = list()
         for key in dataset_keys.copy():
-            n, unknowns = self._find_dependencies(key, query)
+            node, unknowns = self._create_node_for_key(key, query)
 
-            dataset_keys.discard(key)  # remove old non-DataID
-            if n is not None:
-                dataset_keys.add(n.name)  # add equivalent DataID
+            if node is not None:
+                known_nodes.append(node)
+                self.add_child(self._root, node)
             if unknowns:
                 unknown_datasets.update(unknowns)
                 continue
 
-            self.add_child(self._root, n)
+        for key in dataset_keys.copy():
+            dataset_keys.discard(key)
+        for node in known_nodes:
+            dataset_keys.add(node.name)
 
         return unknown_datasets
 

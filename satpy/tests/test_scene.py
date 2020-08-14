@@ -1483,7 +1483,7 @@ class TestSceneLoading(unittest.TestCase):
 
         # Check dependency tree nodes
         # initialize the dep tree without loading the data
-        scene._dependency_tree.find_dependencies({'comp19'})
+        scene._dependency_tree.populate_with_keys({'comp19'})
         this_node = scene._dependency_tree['comp19']
         shared_dep_id = make_dataid(name='ds5', modifiers=('res_change',))
         shared_dep_expected_node = scene._dependency_tree[shared_dep_id]
@@ -1767,7 +1767,7 @@ class TestSceneLoading(unittest.TestCase):
         # initialize the dep tree without loading the data
         ds1_mod_id = make_dsq(name='ds1', modifiers=('mod_wl',))
         ds3_mod_id = make_dsq(name='ds3', modifiers=('mod_wl',))
-        scene._dependency_tree.find_dependencies({ds1_mod_id, ds3_mod_id})
+        scene._dependency_tree.populate_with_keys({ds1_mod_id, ds3_mod_id})
         ds1_mod_node = scene._dependency_tree[ds1_mod_id]
         ds3_mod_node = scene._dependency_tree[ds3_mod_id]
         ds1_mod_dep_node = ds1_mod_node.data[1][1]
