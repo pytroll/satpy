@@ -678,8 +678,12 @@ class DataQuery:
         """Convert a dict to an ID."""
         return cls(**the_dict)
 
+    def items(self):
+        """Get the items of this query."""
+        return self._dict.items()
+
     def _asdict(self):
-        return dict(zip(self._fields, self._values))
+        return self._dict.copy()
 
     def to_dict(self, trim=True):
         """Convert the ID to a dict."""
@@ -804,6 +808,11 @@ class DataQuery:
         distances, dataids = zip(*sorted(zip(distances, sorted_dataids)))
         return dataids, distances
 
+    def _create_less_modified_query(self):
+        new_dict = self.to_dict()
+        new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
+        return DataQuery.from_dict(new_dict)
+
 
 class DatasetID:
     """Deprecated datasetid."""
@@ -824,6 +833,20 @@ def create_filtered_query(dataset_key, filter_query):
     has priority.
 
     """
+    ds_dict = _create_id_dict_from_any_key(dataset_key)
+    _update_dict_with_filter_query(ds_dict, filter_query)
+
+    return DataQuery.from_dict(ds_dict)
+
+
+def _update_dict_with_filter_query(ds_dict, filter_query):
+    if filter_query is not None:
+        for key, value in filter_query.items():
+            if value != '*':
+                ds_dict.setdefault(key, value)
+
+
+def _create_id_dict_from_any_key(dataset_key):
     try:
         ds_dict = dataset_key.to_dict()
     except AttributeError:
@@ -833,12 +856,7 @@ def create_filtered_query(dataset_key, filter_query):
             ds_dict = {'wavelength': dataset_key}
         else:
             raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
-    if filter_query is not None:
-        for key, value in filter_query._dict.items():
-            if value != '*':
-                ds_dict.setdefault(key, value)
-
-    return DataQuery.from_dict(ds_dict)
+    return ds_dict
 
 
 def dataset_walker(datasets):
