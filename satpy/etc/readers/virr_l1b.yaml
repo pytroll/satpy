@@ -9,7 +9,7 @@ file_types:
         file_reader: !!python/name:satpy.readers.virr_l1b.VIRR_L1B
         file_patterns:
         - 'tf{creation_time:%Y%j%H%M%S}.{platform_id}-L_VIRRX_L1B.HDF'
-        geolocation_prefix:
+        geolocation_prefix: ''
     virr_geoxx:
         file_reader: !!python/name:satpy.readers.virr_l1b.VIRR_L1B
         file_patterns:
