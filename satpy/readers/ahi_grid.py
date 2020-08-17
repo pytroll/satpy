@@ -116,7 +116,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     def __del__(self):
         """Delete the object."""
-        if (self._unzipped and os.path.exists(self.filename)):
+        if self._unzipped and os.path.exists(self.filename):
             os.remove(self.filename)
 
     def _calibrate(self, data):
@@ -195,6 +195,8 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
         if self.areaname == 'fld':
             area_extent = AHI_FULLDISK_EXTENT
+        else:
+            raise NotImplementedError("Reader only supports full disk data.")
 
         proj_param = 'EPSG:4326'
 
