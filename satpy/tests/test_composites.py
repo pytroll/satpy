@@ -709,7 +709,7 @@ class TestPaletteCompositor(unittest.TestCase):
                                dims=['value', 'band'])
         palette.attrs['palette_meanings'] = [2, 3, 4]
 
-        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8), dims=['y', 'x'])
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)), dims=['y', 'x'])
         res = cmap_comp([data, palette])
         exp = np.array([[[1., 0.498039, 0.],
                          [0., 0.498039, 1.]],
@@ -781,13 +781,13 @@ class TestCloudTopHeightCompositor(unittest.TestCase):
         data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8),
                             dims=['y', 'x'])
         res = cmap_comp([data, palette, status])
-        exp = np.array([[[0., 0.49803922, 0.],
-                         [0., 0.49803922, np.nan]],
-                        [[0., 0.49803922, 0.],
-                         [0., 0.49803922, np.nan]],
-                        [[0., 0.49803922, 0.],
-                         [0., 0.49803922, np.nan]]])
-        np.testing.assert_allclose(res, exp)
+        exp = np.array([[[0., 0.498, 0.],
+                         [0., 0.498, np.nan]],
+                        [[0., 0.498, 0.],
+                         [0., 0.498, np.nan]],
+                        [[0., 0.498, 0.],
+                         [0., 0.498, np.nan]]])
+        np.testing.assert_allclose(res, exp, atol=1e-4)
 
 
 class TestPrecipCloudsCompositor(unittest.TestCase):
