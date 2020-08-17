@@ -18,12 +18,11 @@
 """Compositors for cloud products."""
 
 import numpy as np
-import xarray as xr
 
-from satpy.composites import GenericCompositor
+from satpy.composites import GenericCompositor, ColormapCompositor
 
 
-class CloudTopHeightCompositor(GenericCompositor):
+class CloudTopHeightCompositor(ColormapCompositor):
     """Colorize with a palette, put cloud-free pixels as black."""
 
     @staticmethod
@@ -54,17 +53,15 @@ class CloudTopHeightCompositor(GenericCompositor):
         data, palette, status = projectables
         colormap, palette = self.build_colormap(palette, data.attrs)
         channels = colormap.colorize(np.asanyarray(data))
-        mask_nan = data.notnull()
-        mask_cloud_free = (status + 1) % 2
+        not_nan = np.logical_and(data.notnull(), status != status.attrs['_FillValue'])
+        not_cloud_free = np.logical_or((status + 1) % 2, status == status.attrs['_FillValue'])
         chans = []
-        for idx in range(channels.shape[0]):
-            chan = xr.DataArray(channels[idx, :, :].reshape(data.shape),
-                                dims=data.dims, coords=data.coords,
-                                attrs=data.attrs).where(mask_nan)
+        for channel in channels:
+            chan = self._create_masked_dataarray_like(channel, data, not_nan)
             # Set cloud-free pixels as black
-            chans.append(chan.where(mask_cloud_free, 0).where(status != status.attrs['_FillValue']))
+            chans.append(chan.where(not_cloud_free, 0))
 
-        res = super(CloudTopHeightCompositor, self).__call__(chans, **data.attrs)
+        res = GenericCompositor.__call__(self, chans, **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
 
