@@ -20,10 +20,10 @@
 import numpy as np
 import xarray as xr
 
-from satpy.composites import GenericCompositor, ColormapCompositor
+from satpy.composites import GenericCompositor
 
 
-class CloudTopHeightCompositor(ColormapCompositor):
+class CloudTopHeightCompositor(GenericCompositor):
     """Colorize with a palette, put cloud-free pixels as black."""
 
     @staticmethod
