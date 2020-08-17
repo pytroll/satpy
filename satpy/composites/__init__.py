@@ -1010,14 +1010,17 @@ class ColormapCompositor(GenericCompositor):
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
-
         data, palette = projectables
+
         colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
         channels = self._apply_colormap(colormap, data, palette)
-        mask = self._get_mask_from_data(data)
-        channels = [self._create_masked_dataarray_like(channel, data, mask) for channel in channels]
-        res = super(ColormapCompositor, self).__call__(channels, **data.attrs)
+        return self._create_composite_from_channels(channels, data)
+
+    def _create_composite_from_channels(self, channels, template):
+        mask = self._get_mask_from_data(template)
+        channels = [self._create_masked_dataarray_like(channel, template, mask) for channel in channels]
+        res = super(ColormapCompositor, self).__call__(channels, **template.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
 
