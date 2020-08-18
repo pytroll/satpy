@@ -76,3 +76,19 @@ class TestDependencyTree(unittest.TestCase):
         """Test that dependency tree instantiation preserves the uniqueness of the empty node."""
         new_dependency_tree = DependencyTree(None, None, None)
         assert self.dependency_tree.empty_node is new_dependency_tree.empty_node
+
+
+class TestMissingDependencies(unittest.TestCase):
+    """Test the MissingDependencies exception."""
+
+    def test_new_missing_dependencies(self):
+        """Test new MissingDependencies."""
+        from satpy.node import MissingDependencies
+        error = MissingDependencies('bla')
+        assert error.missing_dependencies == 'bla'
+
+    def test_new_missing_dependencies_with_message(self):
+        """Test new MissingDependencies with a message."""
+        from satpy.node import MissingDependencies
+        error = MissingDependencies('bla', "This is a message")
+        assert 'This is a message' in str(error)

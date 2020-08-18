@@ -24,7 +24,7 @@ from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
 from satpy.dataset import (DataQuery, DataID, dataset_walker,
                            replace_anc, combine_metadata)
-from satpy.node import DependencyTree
+from satpy.node import DependencyTree, MissingDependencies
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
@@ -371,7 +371,10 @@ class Scene:
         # make sure that these composites are even create-able by these readers
         all_comps = set(comps)
         # find_dependencies will update the all_comps set with DataIDs
-        dep_tree.populate_with_keys(all_comps)
+        try:
+            dep_tree.populate_with_keys(all_comps)
+        except MissingDependencies:
+            pass
         available_comps = set(x.name for x in dep_tree.trunk())
         # get rid of modified composites that are in the trunk
         return sorted(available_comps & all_comps)
@@ -967,12 +970,12 @@ class Scene:
                           polarization=polarization,
                           resolution=resolution,
                           level=level)
-
-        unknown = self._dependency_tree.populate_with_keys(needed_datasets,
-                                                           query)
-        if unknown:
-            unknown_str = ", ".join(map(str, unknown))
+        try:
+            self._dependency_tree.populate_with_keys(needed_datasets, query)
+        except MissingDependencies as err:
+            unknown_str = ", ".join(map(str, err.missing_dependencies))
             raise KeyError("Unknown datasets: {}".format(unknown_str))
+
         self._wishlist |= needed_datasets
 
         self._read(**kwargs)
