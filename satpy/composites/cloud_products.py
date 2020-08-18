@@ -53,8 +53,8 @@ class CloudTopHeightCompositor(ColormapCompositor):
         data, palette, status = projectables
         colormap, palette = self.build_colormap(palette, data.attrs)
         channels = colormap.colorize(np.asanyarray(data))
-        not_nan = np.logical_and(data.notnull(), status != status.attrs['_FillValue'])
-        not_cloud_free = np.logical_or((status + 1) % 2, status == status.attrs['_FillValue'])
+        not_nan = np.logical_and(self._get_mask_from_data(data), status != status.attrs['_FillValue'])
+        not_cloud_free = np.logical_or((status + 1) % 2, np.logical_not(not_nan))
         chans = []
         for channel in channels:
             chan = self._create_masked_dataarray_like(channel, data, not_nan)
