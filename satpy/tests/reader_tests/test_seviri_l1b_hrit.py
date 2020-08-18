@@ -29,6 +29,7 @@ from satpy.readers.seviri_l1b_hrit import (HRITMSGFileHandler, HRITMSGPrologueFi
 from satpy.readers.seviri_base import CHANNEL_NAMES, VIS_CHANNELS
 from satpy.tests.utils import make_dataid
 
+from numpy import testing as npt
 
 def new_get_hd(instance, hdr_info):
     """Generate some metadata."""
@@ -253,10 +254,10 @@ class TestHRITMSGFileHandlerHRV(unittest.TestCase):
         self.assertEqual(proj_dict['units'], 'm')
         self.reader.fill_hrv = False
         area = self.reader.get_area_def(make_dataid(name='HRV'))
-        self.assertEqual(area.defs[0].area_extent,
-                         (-22017598561055.01, -2926674655354.9604, 23564847539690.22, 77771774058.38356))
-        self.assertEqual(area.defs[1].area_extent,
-                         (-30793529275853.656, -3720765401003.719, 14788916824891.568, -2926674655354.9604))
+        npt.assert_allclose(area.defs[0].area_extent,
+                            (-22017598561055.01, -2926674655354.9604, 23564847539690.22, 77771774058.38356))
+        npt.assert_allclose(area.defs[1].area_extent,
+                            (-30793529275853.656, -3720765401003.719, 14788916824891.568, -2926674655354.9604))
 
 
 class TestHRITMSGFileHandler(unittest.TestCase):
