@@ -7,12 +7,19 @@ reader:
   sensors: [seviri]
   default_channels: [HRV, IR_016, IR_039, IR_087, IR_097, IR_108, IR_120, IR_134, VIS006, VIS008, WV_062, WV_073]
   reader: !!python/name:satpy.readers.yaml_reader.GEOFlippableFileYAMLReader
+  # file pattern keys to sort files by with 'satpy.utils.group_files'
+  group_keys: ['end_time', 'satid']
 
 file_types:
   native_msg:
     file_reader: !!python/name:satpy.readers.seviri_l1b_native.NativeMSGFileHandler ''
-    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z-{order_id:s}.nat',
-                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{processing_time1:%Y%m%d%H%M%S.%f}000Z']
+    file_patterns: ['{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{processing_time:%Y%m%d%H%M%S}-{order_id:s}.nat',
+                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{end_time:%Y%m%d%H%M%S.%f}000Z-{order_id:s}.nat',
+                    '{satid:4s}-{instr:4s}-MSG{product_level:2d}-0100-NA-{end_time:%Y%m%d%H%M%S.%f}000Z'
+                    ]
+    # Note: the end_time value in the SEVIRI native filenames is officially called Nominal Image Time (SNIT field in
+    # the 15_MAIN_PRODUCT_HEADER) marking the time where the product is defined to be valid. This time always matches
+    # the scan acquisition end time (SSST in 15_MAIN_PRODUCT_HEADER).
 
 datasets:
   HRV:
