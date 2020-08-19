@@ -38,7 +38,8 @@ class TestAHIGriddedArea(unittest.TestCase):
 
         self.AHI_FULLDISK_EXTENT = [85., -60., 205., 60.]
 
-    def make_fh(self, filetype, area='fld'):
+    @staticmethod
+    def make_fh(filetype, area='fld'):
         """Create a test file handler."""
         m = mock.mock_open()
         with mock.patch('satpy.readers.ahi_grid.open', m, create=True):
@@ -151,6 +152,7 @@ class TestAHIGriddedFileCalibration(unittest.TestCase):
 class TestAHIGriddedFileHandler(unittest.TestCase):
     """Test case for the file reading."""
 
+    @staticmethod
     def new_unzip(fname):
         """Fake unzipping."""
         if fname[-3:] == 'bz2':

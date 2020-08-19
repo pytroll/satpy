@@ -137,7 +137,8 @@ class AHIGriddedFileHandler(BaseFileHandler):
         data = np.where(data < lut_len - 1, data, np.nan)
         return lut[data.astype(np.uint16)]
 
-    def _download_luts(self, file_name):
+    @staticmethod
+    def _download_luts(file_name):
         """LUTs are stored on an FTP server, this function downloads them."""
         from ftplib import FTP
         # Set up an FTP connection (anonymous) and download
@@ -147,7 +148,8 @@ class AHIGriddedFileHandler(BaseFileHandler):
         with open(file_name, 'wb') as _fp:
             ftp.retrbinary("RETR " + AHI_REMOTE_LUTS[2], _fp.write)
 
-    def _untar_luts(self, tarred_file, outdir):
+    @staticmethod
+    def _untar_luts(tarred_file, outdir):
         """Downloaded LUTs are a compressed tarball, uncompress here."""
         import tarfile
         tar = tarfile.open(tarred_file)
