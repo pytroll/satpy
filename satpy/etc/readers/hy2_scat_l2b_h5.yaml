@@ -1,13 +1,13 @@
 reader:
   description: Generic Eumetsat HY2 L2B H5 Wind field Reader
   name: hy2_scat_l2b_h5
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [scatterometer]
   default_datasets:
 
 file_types:
   hy2_scat_l2b_h5:
-    file_reader: !!python/name:satpy.readers.hy2_scat_l2b_h5.HY2SCATL2BH5FileHandler ''
+    file_reader: !!python/name:satpy.readers.hy2_scat_l2b_h5.HY2SCATL2BH5FileHandler
     file_patterns: ['W_XX-EUMETSAT-Darmstadt,SURFACE+SATELLITE,{platform_name}+SM_C_EUMP_{start_date:%Y%m%d------}_{orbit_number}_o_250_{product_level}.h5']
 
 datasets:

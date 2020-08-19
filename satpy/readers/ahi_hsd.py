@@ -44,7 +44,9 @@ import os
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
 from satpy.readers.utils import unzip_file, get_geostationary_mask, \
-                                np2str, get_earth_radius
+                                np2str, get_earth_radius, \
+                                get_user_calibration_factors, \
+                                apply_rad_correction
 from satpy.readers._geos_area import get_area_extent, get_area_definition
 
 AHI_CHANNEL_NAMES = ("1", "2", "3", "4", "5",
@@ -255,12 +257,47 @@ class AHIHSDFileHandler(BaseFileHandler):
                             reader_kwargs={'calib_mode':: 'update'})
         scene.load([0.6])
 
-    By default these updated coefficients are not used.
+    Alternative AHI calibrations are also available, such as GSICS
+    coefficients. As such, you can supply custom per-channel correction
+    by setting calib_mode='custom' and passing correction factors via:
+       user_calibration={'chan': ['slope': slope, 'offset': offset]}
+    Where slo and off are per-channel slope and offset coefficients defined by::
+     rad_leo = (rad_geo - off) / slo
+    If you do not have coefficients for a particular band, then by default the
+    slope will be set to 1 .and the offset to 0.::
+
+        import satpy
+        import glob
+
+        # Load bands 7, 14 and 15, but we only have coefs for 7+14
+        calib_dict = {'B07': {'slope': 0.99, 'offset': 0.002},
+                      'B14': {'slope': 1.02, 'offset': -0.18}}
+
+        filenames = glob.glob('*FLDK*.dat')
+        scene = satpy.Scene(filenames,
+                            reader='ahi_hsd',
+                            reader_kwargs={'user_calibration':: calib_dict)
+        # B15 will not have custom radiance correction applied.
+        scene.load(['B07', 'B14', 'B15'])
+
+    By default, user-supplied calibrations / corrections are applied to the
+    radiance data in accordance with the GSICS standard defined in the
+    equation above. However, user-supplied gain and offset values for
+    converting digital number into radiance via Rad = DN * gain + offset are
+    also possible. To supply your own factors, supply a user calibration dict
+    using `type: 'DN'` as follows::
+        calib_dict = {'B07': {'slope': 0.0037, 'offset': 18.5},
+                      'B14': {'slope': -0.002, 'offset': 22.8},
+                      'type': 'DN'}
+    You can also explicitly select radiance correction with `'type': 'RAD'`
+    but this is not necessary as it is the default option if you supply your
+    own correction coefficients.
 
     """
 
     def __init__(self, filename, filename_info, filetype_info,
-                 mask_space=True, calib_mode='nominal'):
+                 mask_space=True, calib_mode='nominal',
+                 user_calibration=None):
         """Initialize the reader."""
         super(AHIHSDFileHandler, self).__init__(filename, filename_info,
                                                 filetype_info)
@@ -300,12 +337,14 @@ class AHIHSDFileHandler(BaseFileHandler):
         self.observation_area = np2str(self.basic_info['observation_area'])
         self.sensor = 'ahi'
         self.mask_space = mask_space
-
+        self.band_name = filetype_info['file_type'][4:].upper()
         calib_mode_choices = ('NOMINAL', 'UPDATE')
         if calib_mode.upper() not in calib_mode_choices:
             raise ValueError('Invalid calibration mode: {}. Choose one of {}'.format(
                 calib_mode, calib_mode_choices))
+
         self.calib_mode = calib_mode.upper()
+        self.user_calibration = user_calibration
 
     def __del__(self):
         """Delete the object."""
@@ -501,7 +540,6 @@ class AHIHSDFileHandler(BaseFileHandler):
 
     def read_band(self, key, info):
         """Read the data."""
-        # Read data
         tic = datetime.now()
         with open(self.filename, "rb") as fp_:
             header = self._read_header(fp_)
@@ -577,18 +615,39 @@ class AHIHSDFileHandler(BaseFileHandler):
         bnum = self._header["block5"]['band_number'][0]
         # Check calibration mode and select corresponding coefficients
         if self.calib_mode == "UPDATE" and bnum < 7:
-            gain = self._header['calibration']["cali_gain_count2rad_conversion"][0]
-            offset = self._header['calibration']["cali_offset_count2rad_conversion"][0]
-            if gain == 0 and offset == 0:
+            dn_gain = self._header['calibration']["cali_gain_count2rad_conversion"][0]
+            dn_offset = self._header['calibration']["cali_offset_count2rad_conversion"][0]
+            if dn_gain == 0 and dn_offset == 0:
                 logger.info(
                     "No valid updated coefficients, fall back to default values.")
-                gain = self._header["block5"]["gain_count2rad_conversion"][0]
-                offset = self._header["block5"]["offset_count2rad_conversion"][0]
+                dn_gain = self._header["block5"]["gain_count2rad_conversion"][0]
+                dn_offset = self._header["block5"]["offset_count2rad_conversion"][0]
         else:
-            gain = self._header["block5"]["gain_count2rad_conversion"][0]
-            offset = self._header["block5"]["offset_count2rad_conversion"][0]
+            dn_gain = self._header["block5"]["gain_count2rad_conversion"][0]
+            dn_offset = self._header["block5"]["offset_count2rad_conversion"][0]
 
-        return (data * gain + offset).clip(0)
+        # Assume no user correction
+        correction_type = None
+        if isinstance(self.user_calibration, dict):
+            # Check if we have DN correction coeffs
+            if 'type' in self.user_calibration:
+                correction_type = self.user_calibration['type']
+            else:
+                # If not, assume radiance correction
+                correction_type = 'RAD'
+            if correction_type == 'DN':
+                # Replace file calibration with user calibration
+                dn_gain, dn_offset = get_user_calibration_factors(self.band_name,
+                                                                  self.user_calibration)
+            elif correction_type == 'RAD':
+                user_slope, user_offset = get_user_calibration_factors(self.band_name,
+                                                                       self.user_calibration)
+
+        data = (data * dn_gain + dn_offset).clip(0)
+        # If using radiance correction factors from GSICS or similar, apply here
+        if correction_type == 'RAD':
+            data = apply_rad_correction(data, user_slope, user_offset)
+        return data
 
     def _vis_calibrate(self, data):
         """Visible channel calibration only."""

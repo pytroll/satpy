@@ -73,6 +73,16 @@ class TestDataID(unittest.TestCase):
 class TestCombineMetadata(unittest.TestCase):
     """Test how metadata is combined."""
 
+    def setUp(self):
+        """Set up the test case."""
+        self.datetime_dts = (
+            {'start_time': datetime(2018, 2, 1, 11, 58, 0)},
+            {'start_time': datetime(2018, 2, 1, 11, 59, 0)},
+            {'start_time': datetime(2018, 2, 1, 12, 0, 0)},
+            {'start_time': datetime(2018, 2, 1, 12, 1, 0)},
+            {'start_time': datetime(2018, 2, 1, 12, 2, 0)},
+        )
+
     def test_average_datetimes(self):
         """Test the average_datetimes helper function."""
         from satpy.dataset import average_datetimes
@@ -86,19 +96,16 @@ class TestCombineMetadata(unittest.TestCase):
         ret = average_datetimes(dts)
         self.assertEqual(dts[2], ret)
 
-    def test_combine_times(self):
-        """Test the combine_metadata with times."""
+    def test_combine_times_with_averaging(self):
+        """Test the combine_metadata with times with averaging."""
         from satpy.dataset import combine_metadata
-        dts = (
-            {'start_time': datetime(2018, 2, 1, 11, 58, 0)},
-            {'start_time': datetime(2018, 2, 1, 11, 59, 0)},
-            {'start_time': datetime(2018, 2, 1, 12, 0, 0)},
-            {'start_time': datetime(2018, 2, 1, 12, 1, 0)},
-            {'start_time': datetime(2018, 2, 1, 12, 2, 0)},
-        )
-        ret = combine_metadata(*dts)
-        self.assertEqual(dts[2]['start_time'], ret['start_time'])
-        ret = combine_metadata(*dts, average_times=False)
+        ret = combine_metadata(*self.datetime_dts)
+        self.assertEqual(self.datetime_dts[2]['start_time'], ret['start_time'])
+
+    def test_combine_times_without_averaging(self):
+        """Test the combine_metadata with times without averaging."""
+        from satpy.dataset import combine_metadata
+        ret = combine_metadata(*self.datetime_dts, average_times=False)
         # times are not equal so don't include it in the final result
         self.assertNotIn('start_time', ret)
 
@@ -137,6 +144,107 @@ class TestCombineMetadata(unittest.TestCase):
                 object()
               ]
         assert "quality" not in combine_metadata(*dts6)
+
+    def test_combine_identical_numpy_scalars(self):
+        """Test combining idendical fill values."""
+        from satpy.dataset import combine_metadata
+        test_metadata = [{'_FillValue': np.uint16(42)}, {'_FillValue': np.uint16(42)}]
+        assert combine_metadata(*test_metadata) == {'_FillValue': 42}
+
+    def test_combine_empty_metadata(self):
+        """Test combining empty metadata."""
+        from satpy.dataset import combine_metadata
+        test_metadata = [{}, {}]
+        assert combine_metadata(*test_metadata) == {}
+
+    def test_combine_nans(self):
+        """Test combining nan fill values."""
+        from satpy.dataset import combine_metadata
+        test_metadata = [{'_FillValue': np.nan}, {'_FillValue': np.nan}]
+        assert combine_metadata(*test_metadata) == {'_FillValue': np.nan}
+
+    def test_combine_numpy_arrays(self):
+        """Test combining values that are numpy arrays."""
+        from satpy.dataset import combine_metadata
+        test_metadata = [{'valid_range': np.array([0., 0.00032], dtype=np.float32)},
+                         {'valid_range': np.array([0., 0.00032], dtype=np.float32)},
+                         {'valid_range': np.array([0., 0.00032], dtype=np.float32)}]
+        result = combine_metadata(*test_metadata)
+        assert np.allclose(result['valid_range'], np.array([0., 0.00032], dtype=np.float32))
+
+    def test_combine_dask_arrays(self):
+        """Test combining values that are dask arrays."""
+        from satpy.dataset import combine_metadata
+        import dask.array as da
+        test_metadata = [{'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))},
+                         {'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))}]
+        result = combine_metadata(*test_metadata)
+        assert 'valid_range' not in result
+
+    def test_combine_real_world_mda(self):
+        """Test with real data."""
+        mda_objects = ({'_FillValue': np.nan,
+                        'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                        'ancillary_variables': ['cpp_status_flag',
+                                                'cpp_conditions',
+                                                'cpp_quality',
+                                                'cpp_reff_pal',
+                                                '-'],
+                        'platform_name': 'NOAA-20',
+                        'sensor': {'viirs'}},
+                       {'_FillValue': np.nan,
+                        'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                        'ancillary_variables': ['cpp_status_flag',
+                                                'cpp_conditions',
+                                                'cpp_quality',
+                                                'cpp_reff_pal',
+                                                '-'],
+                        'platform_name': 'NOAA-20',
+                        'sensor': {'viirs'}})
+
+        expected = {'_FillValue': np.nan,
+                    'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                    'ancillary_variables': ['cpp_status_flag',
+                                            'cpp_conditions',
+                                            'cpp_quality',
+                                            'cpp_reff_pal',
+                                            '-'],
+                    'platform_name': 'NOAA-20',
+                    'sensor': {'viirs'}}
+
+        from satpy.dataset import combine_metadata
+        result = combine_metadata(*mda_objects)
+        assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
+        assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
+        assert result == expected
+
+    def test_combine_one_metadata_object(self):
+        """Test combining one metadata object."""
+        mda_objects = ({'_FillValue': np.nan,
+                        'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                        'ancillary_variables': ['cpp_status_flag',
+                                                'cpp_conditions',
+                                                'cpp_quality',
+                                                'cpp_reff_pal',
+                                                '-'],
+                        'platform_name': 'NOAA-20',
+                        'sensor': {'viirs'}},)
+
+        expected = {'_FillValue': np.nan,
+                    'valid_range': np.array([0., 0.00032], dtype=np.float32),
+                    'ancillary_variables': ['cpp_status_flag',
+                                            'cpp_conditions',
+                                            'cpp_quality',
+                                            'cpp_reff_pal',
+                                            '-'],
+                    'platform_name': 'NOAA-20',
+                    'sensor': {'viirs'}}
+
+        from satpy.dataset import combine_metadata
+        result = combine_metadata(*mda_objects)
+        assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
+        assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
+        assert result == expected
 
 
 def test_dataid():
