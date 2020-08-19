@@ -318,43 +318,58 @@ class DependencyTree:
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
-    def _get_compositor_prereqs(self, parent, prereqs, skip=False,
-                                query=None):
+    def _get_compositor_prereqs(self, parent, prereqs, query=None):
         """Determine prerequisite Nodes for a composite.
 
         Args:
             parent (Node): Compositor node to add these prerequisites under
             prereqs (sequence): Strings (names), floats (wavelengths), or
                                 DataQuerys to analyze.
-            skip (bool, optional): If True, prerequisites are considered
-                                   optional if they can't be found and a
-                                   debug message is logged. If False (default),
-                                   the missing prerequisites are not logged
-                                   and are expected to be handled by the
-                                   caller.
 
         """
         prereq_ids = []
         unknown_datasets = set()
-        if not prereqs and not skip:
+        if not prereqs:
             # this composite has no required prerequisites
             prereq_ids.append(self.empty_node)
             self.add_child(parent, self.empty_node)
-            return prereq_ids, unknown_datasets
+            return prereq_ids
 
         for prereq in prereqs:
             try:
                 node = self._create_subtree_for_key(prereq, query=query)
             except MissingDependencies as unknown:
                 unknown_datasets.update(unknown.missing_dependencies)
-                if skip:
-                    u_str = ", ".join([str(x) for x in unknown.missing_dependencies])
-                    LOG.debug('Skipping optional %s: Unknown dataset %s',
-                              str(prereq), u_str)
+
             else:
                 prereq_ids.append(node)
                 self.add_child(parent, node)
-        return prereq_ids, unknown_datasets
+        if unknown_datasets:
+            raise MissingDependencies(unknown_datasets)
+        return prereq_ids
+
+    def _get_compositor_optional_prereqs(self, parent, prereqs, query=None):
+        """Determine optional prerequisite Nodes for a composite.
+
+        Args:
+            parent (Node): Compositor node to add these prerequisites under
+            prereqs (sequence): Strings (names), floats (wavelengths), or
+                                DataQuerys to analyze.
+
+        """
+        prereq_ids = []
+
+        for prereq in prereqs:
+            try:
+                node = self._create_subtree_for_key(prereq, query=query)
+            except MissingDependencies as unknown:
+                u_str = ", ".join([str(x) for x in unknown.missing_dependencies])
+                LOG.debug('Skipping optional %s: Unknown dataset %s',
+                          str(prereq), u_str)
+            else:
+                prereq_ids.append(node)
+                self.add_child(parent, node)
+        return prereq_ids
 
     def _promote_query_to_modified_dataid(self, query, dep_key):
         """Promote a query to an id based on the dataset it will modify (dep).
@@ -405,20 +420,13 @@ class DependencyTree:
 
         # 2.1 get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
-        prereqs, unknowns = self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)
-        if unknowns:
-            # Should we remove all of the unknown nodes that were found ?
-            # if there is an unknown prerequisite are we in trouble?
-            raise MissingDependencies(unknowns)
+        prereqs = self._get_compositor_prereqs(root, compositor.attrs['prerequisites'], query=query)
         root.data[1].extend(prereqs)
 
         # Get the optionals
         LOG.trace("Looking for optional prerequisites for: {}".format(dataset_key))
-        try:
-            optional_prereqs, _ = self._get_compositor_prereqs(
-                root, compositor.attrs['optional_prerequisites'], skip=True, query=query)
-        except MissingDependencies:
-            pass
+        optional_prereqs = self._get_compositor_optional_prereqs(
+                root, compositor.attrs['optional_prerequisites'], query=query)
         root.data[2].extend(optional_prereqs)
 
         return root
