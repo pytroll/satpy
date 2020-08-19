@@ -1,7 +1,7 @@
 reader:
   description: Generic Eumetsat Scatsat-1 L2B Wind field Reader
   name: scatsat1_l2b
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [scatterometer]
   default_datasets:
 
@@ -38,5 +38,5 @@ datasets:
 
 file_types:
   scatsat:
-    file_reader: !!python/name:satpy.readers.scatsat1_l2b.SCATSAT1L2BFileHandler ''
+    file_reader: !!python/name:satpy.readers.scatsat1_l2b.SCATSAT1L2BFileHandler
     file_patterns: ['S1L2B{start_date:%Y%j}_{start_orbit}_{end_orbit}_{direction}_{cell_spacing}_{prod_date}T{prod_time}_{version}.h5']

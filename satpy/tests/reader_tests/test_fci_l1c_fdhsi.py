@@ -313,7 +313,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader.create_filehandlers(loadables)
         res = reader.load(
                 [make_dataid(name=name, calibration="counts") for name in
-                    self._chans["solar"] + self._chans["terran"]])
+                    self._chans["solar"] + self._chans["terran"]], pad_data=False)
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
             assert res[ch].shape == (200*2, 11136)
@@ -342,7 +342,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader.create_filehandlers(loadables)
         res = reader.load(
                 [make_dataid(name=name, calibration="radiance") for name in
-                    self._chans["solar"] + self._chans["terran"]])
+                    self._chans["solar"] + self._chans["terran"]], pad_data=False)
         assert 16 == len(res)
         for ch in self._chans["solar"] + self._chans["terran"]:
             assert res[ch].shape == (200, 11136)
@@ -371,7 +371,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader.create_filehandlers(loadables)
         res = reader.load(
                 [make_dataid(name=name, calibration="reflectance") for name in
-                    self._chans["solar"]])
+                    self._chans["solar"]], pad_data=False)
         assert 8 == len(res)
         for ch in self._chans["solar"]:
             assert res[ch].shape == (200, 11136)
@@ -396,7 +396,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         with caplog.at_level(logging.WARNING):
             res = reader.load(
                     [make_dataid(name=name, calibration="brightness_temperature") for
-                        name in self._chans["terran"]])
+                        name in self._chans["terran"]], pad_data=False)
             assert caplog.text == ""
         for ch in self._chans["terran"]:
             assert res[ch].shape == (200, 11136)
@@ -435,7 +435,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
-        res = reader.load(["ir_123_pixel_quality"])
+        res = reader.load(["ir_123_pixel_quality"], pad_data=False)
         assert res["ir_123_pixel_quality"].attrs["name"] == "ir_123_pixel_quality"
 
     def test_platform_name(self, reader_configs):
@@ -455,7 +455,7 @@ class TestFCIL1CFDHSIReaderGoodData(TestFCIL1CFDHSIReader):
         reader = load_reader(reader_configs)
         loadables = reader.select_files_from_pathnames(filenames)
         reader.create_filehandlers(loadables)
-        res = reader.load(["ir_123"])
+        res = reader.load(["ir_123"], pad_data=False)
         assert res["ir_123"].attrs["platform_name"] == "MTG-I1"
 
     def test_excs(self, reader_configs):
@@ -506,7 +506,7 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
         with caplog.at_level("ERROR"):
             reader.load([make_dataid(
                     name="ir_123",
-                    calibration="brightness_temperature")])
+                    calibration="brightness_temperature")], pad_data=False)
             assert "cannot produce brightness temperature" in caplog.text
 
     def test_handling_bad_data_vis(self, reader_configs, caplog):
@@ -526,5 +526,5 @@ class TestFCIL1CFDHSIReaderBadData(TestFCIL1CFDHSIReader):
         with caplog.at_level("ERROR"):
             reader.load([make_dataid(
                     name="vis_04",
-                    calibration="reflectance")])
+                    calibration="reflectance")], pad_data=False)
             assert "cannot produce reflectance" in caplog.text

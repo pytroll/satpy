@@ -520,7 +520,8 @@ class MultiScene(object):
         else:
             log.debug("Child thread died successfully")
 
-    def _simple_frame_compute(self, writers, frame_keys, frames_to_write):
+    @staticmethod
+    def _simple_frame_compute(writers, frame_keys, frames_to_write):
         """Compute frames the plain dask way."""
         for frame_arrays in frames_to_write:
             for frame_key, product_frame in zip(frame_keys, frame_arrays):
@@ -546,7 +547,7 @@ class MultiScene(object):
             scenes = list(scenes)
             info_scenes.append(scenes[-1])
 
-        available_ds = [first_scene.datasets.get(ds) for ds in first_scene.wishlist]
+        available_ds = [first_scene.get(ds) for ds in first_scene.wishlist]
         available_ds = [DataID.from_dataarray(ds) for ds in available_ds if ds is not None]
         dataset_ids = datasets or available_ds
 

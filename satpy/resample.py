@@ -49,7 +49,7 @@ argument and defaults to ``nearest``:
 .. code-block:: python
 
     >>> scn = Scene(...)
-    >>> euro_scn = global_scene.resample('euro4', resampler='nearest')
+    >>> euro_scn = scn.resample('euro4', resampler='nearest')
 
 .. warning::
 
@@ -106,7 +106,7 @@ areas that can be passed to the resample method::
 
     >>> from pyresample.geometry import AreaDefinition
     >>> my_area = AreaDefinition(...)
-    >>> local_scene = global_scene.resample(my_area)
+    >>> local_scene = scn.resample(my_area)
 
 Create dynamic area definition
 ------------------------------
