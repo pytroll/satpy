@@ -150,8 +150,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
     def _untar_luts(self, tarred_file, outdir):
         """Downloaded LUTs are a compressed tarball, uncompress here."""
         import tarfile
-
-        # Create a temporary directory for the LUT download
         tar = tarfile.open(tarred_file)
         tar.extractall(outdir)
         tar.close()
@@ -192,7 +190,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
         This is fixed, but not defined in the file. So we must
         generate it ourselves with some assumptions."""
-
         if self.areaname == 'fld':
             area_extent = AHI_FULLDISK_EXTENT
         else:
@@ -211,17 +208,21 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
         return area
 
+    def _read_data(self, fp_):
+        """Read raw binary data from file."""
+        return da.from_array(np.memmap(self.filename,
+                                       offset=fp_.tell(),
+                                       dtype='>u2',
+                                       shape=(self.nlines, self.ncols),
+                                       mode='r'),
+                             chunks=CHUNK_SIZE)
+
     def read_band(self, key, info):
         """Read the data."""
         tic = datetime.now()
 
         with open(self.filename, "rb") as fp_:
-            res = da.from_array(np.memmap(self.filename,
-                                          offset=fp_.tell(),
-                                          dtype='>u2',
-                                          shape=(self.nlines, self.ncols),
-                                          mode='r'),
-                                chunks=CHUNK_SIZE)
+            res = self._read_data(fp_)
         logger.debug("Reading time " + str(datetime.now() - tic))
 
         # Calibrate
@@ -232,7 +233,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
             units=info['units'],
             standard_name=info['standard_name'],
             wavelength=info['wavelength'],
-            resolution='resolution',
+            resolution=info['resolution'],
             id=key,
             name=key['name'],
             sensor=self.sensor,
@@ -247,6 +248,11 @@ class AHIGriddedFileHandler(BaseFileHandler):
             return data
         elif calib == 'reflectance' or calib == 'brightness_temperature':
             data = self._calibrate(data)
+        else:
+            raise NotImplementedError("ERROR: Unsupported calibration.",
+                                      "Only counts, reflectance and ",
+                                      "brightness_temperature calibration",
+                                      "are supported.")
 
         logger.debug("Calibration time " + str(datetime.now() - tic))
         return data
