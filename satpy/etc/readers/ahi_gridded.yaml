@@ -2,7 +2,7 @@
 #  - Himawari-8/9 Grided data website: http://www.cr.chiba-u.jp/databases/GEO/H8_9/FD/index_jp.html
 
 reader:
-  name: ahi_grid
+  name: ahi_gridded
   short_name: AHI Gridded
   long_name: Himawari AHI Level 1b (gridded)
   description: Reader for the JMA Himawari AHI Level 1 data in gridded format
@@ -242,66 +242,66 @@ datasets:
 
 file_types:
   vis.01:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.vis.01.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.vis.01.{area}.geoss.bz2']
   vis.02:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.vis.02.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.vis.02.{area}.geoss.bz2']
   ext.01:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.ext.01.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.ext.01.{area}.geoss.bz2']
   vis.03:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.vis.03.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.vis.03.{area}.geoss.bz2']
   sir.01:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.sir.01.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.sir.01.{area}.geoss.bz2']
   sir.02:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.sir.02.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.sir.02.{area}.geoss.bz2']
   tir.05:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.05.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.05.{area}.geoss.bz2']
   tir.06:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.06.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.06.{area}.geoss.bz2']
   tir.07:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.07.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.07.{area}.geoss.bz2']
   tir.08:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.08.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.08.{area}.geoss.bz2']
   tir.09:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.09.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.09.{area}.geoss.bz2']
   tir.10:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.10.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.10.{area}.geoss.bz2']
   tir.01:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.01.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.01.{area}.geoss.bz2']
   tir.02:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.02.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.02.{area}.geoss.bz2']
   tir.03:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.03.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.03.{area}.geoss.bz2']
   tir.04:
-    file_reader: !!python/name:satpy.readers.ahi_grid.AHIGriddedFileHandler
+    file_reader: !!python/name:satpy.readers.ahi_gridded.AHIGriddedFileHandler
     file_patterns: ['{start_time:%Y%m%d%H%M}.tir.04.{area}.geoss',
                     '{start_time:%Y%m%d%H%M}.tir.04.{area}.geoss.bz2']
