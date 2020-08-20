@@ -642,11 +642,8 @@ class NIRReflectance(CompositeBase):
         LOG.info('Getting reflective part of %s', _nir.attrs['name'])
         reflectance = self._get_reflectance_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
 
-        proj = xr.DataArray(reflectance, dims=_nir.dims,
-                            coords=_nir.coords, attrs=_nir.attrs.copy())
+        proj = self._create_modified_dataarray(reflectance, base_dataarray=_nir)
         proj.attrs['units'] = '%'
-        proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
-        self.apply_modifier_info(_nir, proj)
         return proj
 
     @staticmethod
@@ -675,6 +672,13 @@ class NIRReflectance(CompositeBase):
             lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
             sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
         return sun_zenith
+
+    def _create_modified_dataarray(self, reflectance, base_dataarray):
+        proj = xr.DataArray(reflectance, dims=base_dataarray.dims,
+                            coords=base_dataarray.coords, attrs=base_dataarray.attrs.copy())
+        proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
+        self.apply_modifier_info(base_dataarray, proj)
+        return proj
 
     def _get_reflectance_as_dask(self, da_nir, da_tb11, da_tb13_4, da_sun_zenith, metadata):
         """Calculate 3.x reflectance in % with pyspectral from dask arrays."""
@@ -729,13 +733,10 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
 
         LOG.info('Getting emissive part of %s', _nir.attrs['name'])
-        reflectance = self._get_emissivity_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
+        emissivity = self._get_emissivity_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
 
-        proj = xr.DataArray(reflectance, dims=_nir.dims,
-                            coords=_nir.coords, attrs=_nir.attrs.copy())
+        proj = self._create_modified_dataarray(emissivity, base_dataarray=_nir)
         proj.attrs['units'] = 'K'
-        proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
-        self.apply_modifier_info(_nir, proj)
         return proj
 
     def _get_emissivity_as_dask(self, da_nir, da_tb11, da_tb13_4, da_sun_zenith, metadata):
