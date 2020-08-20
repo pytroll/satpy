@@ -619,67 +619,81 @@ class NIRReflectance(CompositeBase):
                 case the default threshold defined in Pyspectral will be used.
 
         """
-        self.sunz_threshold = sunz_threshold
-        super(NIRReflectance, self).__init__(sunz_threshold=sunz_threshold, **kwargs)
+        self.sun_zenith_threshold = sunz_threshold
+        self._reflectance_3x_calculator = None
+        super(NIRReflectance, self).__init__(**kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the reflectance part of an NIR channel.
 
         Not supposed to be used for wavelength outside [3, 4] µm.
-
         """
-        self._init_refl3x(projectables)
-        _nir, _ = projectables
         projectables = self.match_data_arrays(projectables)
+        return self._get_reflectance_as_dataarray(projectables, optional_datasets)
 
-        refl = self._get_reflectance(projectables, optional_datasets) * 100
-        proj = xr.DataArray(refl, dims=_nir.dims,
-                            coords=_nir.coords, attrs=_nir.attrs)
+    def _get_reflectance_as_dataarray(self, projectables, optional_datasets):
+        """Get the reflectance as a dataarray."""
+        _nir, _tb11 = projectables
+        da_nir = _nir.data
+        da_tb11 = _tb11.data
+        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
+        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
 
+        LOG.info('Getting reflective part of %s', _nir.attrs['name'])
+        reflectance = self._get_reflectance_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
+
+        proj = xr.DataArray(reflectance, dims=_nir.dims,
+                            coords=_nir.coords, attrs=_nir.attrs.copy())
         proj.attrs['units'] = '%'
-        proj.attrs['sunz_threshold'] = self.sunz_threshold
+        proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
         self.apply_modifier_info(_nir, proj)
         return proj
 
-    def _init_refl3x(self, projectables):
-        """Initialize the 3.x reflectance derivations."""
-        if not Calculator:
-            LOG.info("Couldn't load pyspectral")
-            raise ImportError("No module named pyspectral.near_infrared_reflectance")
-        _nir, _tb11 = projectables
-        if self.sunz_threshold is not None:
-            self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'],
-                                      sunz_threshold=self.sunz_threshold)
-        else:
-            self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'])
-            self.sunz_threshold = self._refl3x.sunz_threshold
-
-    def _get_reflectance(self, projectables, optional_datasets):
-        """Calculate 3.x reflectance with pyspectral."""
-        _nir, _tb11 = projectables
-        LOG.info('Getting reflective part of %s', _nir.attrs['name'])
-        da_nir = _nir.data
-        da_tb11 = _tb11.data
-        sun_zenith = None
+    @staticmethod
+    def _get_tb13_4_from_optionals(optional_datasets):
         tb13_4 = None
-
         for dataset in optional_datasets:
             wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
             if (dataset.attrs.get('units') == 'K' and
                     wavelengths[0] <= 13.4 <= wavelengths[2]):
                 tb13_4 = dataset.data
-            elif ("standard_name" in dataset.attrs and
-                  dataset.attrs["standard_name"] == "solar_zenith_angle"):
+        return tb13_4
+
+    @staticmethod
+    def _get_sun_zenith_from_provided_data(projectables, optional_datasets):
+        """Get the sunz from available data or compute it if unavailable."""
+        sun_zenith = None
+
+        for dataset in optional_datasets:
+            if dataset.attrs.get("standard_name") == "solar_zenith_angle":
                 sun_zenith = dataset.data
 
-        # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             if sun_zenith_angle is None:
-                raise ImportError("No module named pyorbital.astronomy")
+                raise ImportError("Module pyorbital.astronomy needed to compute sun zenith angles.")
+            _nir = projectables[0]
             lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
             sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
+        return sun_zenith
 
-        return self._refl3x.reflectance_from_tbs(sun_zenith, da_nir, da_tb11, tb_ir_co2=tb13_4)
+    def _get_reflectance_as_dask(self, da_nir, da_tb11, da_tb13_4, da_sun_zenith, metadata):
+        """Calculate 3.x reflectance in % with pyspectral from dask arrays."""
+        reflectance_3x_calculator = self._init_reflectance_calculator(metadata)
+        return reflectance_3x_calculator.reflectance_from_tbs(da_sun_zenith, da_nir, da_tb11, tb_ir_co2=da_tb13_4) * 100
+
+    def _init_reflectance_calculator(self, metadata):
+        """Initialize the 3.x reflectance derivations."""
+        if not Calculator:
+            LOG.info("Couldn't load pyspectral")
+            raise ImportError("No module named pyspectral.near_infrared_reflectance")
+
+        if self.sun_zenith_threshold is not None:
+            reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'],
+                                                   sunz_threshold=self.sun_zenith_threshold)
+        else:
+            reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'])
+            self.sun_zenith_threshold = reflectance_3x_calculator.sunz_threshold
+        return reflectance_3x_calculator
 
 
 class NIREmissivePartFromReflectance(NIRReflectance):
@@ -704,7 +718,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
 
         """
         projectables = self.match_data_arrays(projectables)
-        self._init_refl3x(projectables)
+        self._init_reflectance_calculator(projectables)
         # Derive the sun-zenith angles, and use the nir and thermal ir
         # brightness tempertures and derive the reflectance using
         # PySpectral. The reflectance is stored internally in PySpectral and
@@ -712,11 +726,11 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         _ = self._get_reflectance(projectables, optional_datasets)
         _nir, _ = projectables
 
-        emis = self._refl3x.emissive_part_3x()
+        emis = self._reflectance_3x_calculator.emissive_part_3x()
         proj = xr.DataArray(emis, attrs=_nir.attrs, dims=_nir.dims, coords=_nir.coords)
 
         proj.attrs['units'] = 'K'
-        proj.attrs['sunz_threshold'] = self.sunz_threshold
+        proj.attrs['sun_zenith_threshold'] = self.sunz_threshold
         self.apply_modifier_info(_nir, proj)
         return proj
 
