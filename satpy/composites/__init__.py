@@ -718,21 +718,34 @@ class NIREmissivePartFromReflectance(NIRReflectance):
 
         """
         projectables = self.match_data_arrays(projectables)
-        self._init_reflectance_calculator(projectables)
-        # Derive the sun-zenith angles, and use the nir and thermal ir
-        # brightness tempertures and derive the reflectance using
-        # PySpectral. The reflectance is stored internally in PySpectral and
-        # needs to be derived first in order to get the emissive part.
-        _ = self._get_reflectance(projectables, optional_datasets)
-        _nir, _ = projectables
+        return self._get_emissivity_as_dataarray(projectables, optional_datasets)
 
-        emis = self._reflectance_3x_calculator.emissive_part_3x()
-        proj = xr.DataArray(emis, attrs=_nir.attrs, dims=_nir.dims, coords=_nir.coords)
+    def _get_emissivity_as_dataarray(self, projectables, optional_datasets):
+        """Get the emissivity as a dataarray."""
+        _nir, _tb11 = projectables
+        da_nir = _nir.data
+        da_tb11 = _tb11.data
+        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
+        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
 
+        LOG.info('Getting emissive part of %s', _nir.attrs['name'])
+        reflectance = self._get_emissivity_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
+
+        proj = xr.DataArray(reflectance, dims=_nir.dims,
+                            coords=_nir.coords, attrs=_nir.attrs.copy())
         proj.attrs['units'] = 'K'
-        proj.attrs['sun_zenith_threshold'] = self.sunz_threshold
+        proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
         self.apply_modifier_info(_nir, proj)
         return proj
+
+    def _get_emissivity_as_dask(self, da_nir, da_tb11, da_tb13_4, da_sun_zenith, metadata):
+        """Get the emissivity from pyspectral."""
+        reflectance_3x_calculator = self._init_reflectance_calculator(metadata)
+        # Use the nir and thermal ir brightness temperatures and derive the reflectance using
+        # PySpectral. The reflectance is stored internally in PySpectral and
+        # needs to be derived first in order to get the emissive part.
+        reflectance_3x_calculator.reflectance_from_tbs(da_sun_zenith, da_nir, da_tb11, tb_ir_co2=da_tb13_4)
+        return reflectance_3x_calculator.emissive_part_3x()
 
 
 class PSPAtmosphericalCorrection(CompositeBase):
