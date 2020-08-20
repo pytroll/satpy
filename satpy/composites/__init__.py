@@ -647,8 +647,12 @@ class NIRReflectance(CompositeBase):
             LOG.info("Couldn't load pyspectral")
             raise ImportError("No module named pyspectral.near_infrared_reflectance")
         _nir, _tb11 = projectables
-        self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'],
-                                  sunz_threshold=self.sunz_threshold)
+        if self.sunz_threshold is not None:
+            self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'],
+                                      sunz_threshold=self.sunz_threshold)
+        else:
+            self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'])
+            self.sunz_threshold = self._refl3x.sunz_threshold
 
     def _get_reflectance(self, projectables, optional_datasets):
         """Calculate 3.x reflectance with pyspectral."""

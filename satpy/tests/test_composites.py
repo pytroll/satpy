@@ -532,80 +532,92 @@ class TestInlineComposites(unittest.TestCase):
 class TestNIRReflectance(unittest.TestCase):
     """Test NIR reflectance compositor."""
 
+    def setUp(self):
+        """Set up the test case for the NIRReflectance compositor."""
+        nir_arr = np.random.random((2, 2))
+        self.nir = xr.DataArray(da.from_array(nir_arr), dims=['y', 'x'])
+        self.platform = 'Meteosat-11'
+        self.sensor = 'seviri'
+        self.chan_name = 'IR_039'
+        self.nir.attrs['platform_name'] = self.platform
+        self.nir.attrs['sensor'] = self.sensor
+        self.nir.attrs['name'] = self.chan_name
+        self.get_lonlats = mock.MagicMock()
+        self.lons, self.lats = 1, 2
+        self.get_lonlats.return_value = (self.lons, self.lats)
+        area = mock.MagicMock(get_lonlats=self.get_lonlats)
+        self.nir.attrs['area'] = area
+        self.start_time = 1
+        self.nir.attrs['start_time'] = self.start_time
+        ir_arr = 100 * np.random.random((2, 2))
+        self.ir_ = xr.DataArray(da.from_array(ir_arr), dims=['y', 'x'])
+        self.ir_.attrs['area'] = area
+        self.sunz_arr = 100 * np.random.random((2, 2))
+        self.sunz = xr.DataArray(da.from_array(self.sunz_arr), dims=['y', 'x'])
+        self.sunz.attrs['standard_name'] = 'solar_zenith_angle'
+        self.sunz.attrs['area'] = area
+        refl_arr = np.random.random((2, 2))
+        refl = da.from_array(refl_arr)
+        self.refl_from_tbs = mock.MagicMock()
+        self.refl_from_tbs.return_value = refl
+
     @mock.patch('satpy.composites.sun_zenith_angle')
     @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
     @mock.patch('satpy.composites.Calculator')
     def test_compositor(self, calculator, apply_modifier_info, sza):
         """Test NIR reflectance compositor."""
-        import numpy as np
-        import xarray as xr
-        import dask.array as da
-        refl_arr = np.random.random((2, 2))
-        refl = da.from_array(refl_arr)
-        refl_from_tbs = mock.MagicMock()
-        refl_from_tbs.return_value = refl
         calculator.return_value = mock.MagicMock(
-            reflectance_from_tbs=refl_from_tbs)
+            reflectance_from_tbs=self.refl_from_tbs)
 
         from satpy.composites import NIRReflectance
-
-        nir_arr = np.random.random((2, 2))
-        nir = xr.DataArray(da.from_array(nir_arr), dims=['y', 'x'])
-        platform = 'Meteosat-11'
-        sensor = 'seviri'
-        chan_name = 'IR_039'
-        nir.attrs['platform_name'] = platform
-        nir.attrs['sensor'] = sensor
-        nir.attrs['name'] = chan_name
-        get_lonlats = mock.MagicMock()
-        lons, lats = 1, 2
-        get_lonlats.return_value = (lons, lats)
-        area = mock.MagicMock(get_lonlats=get_lonlats)
-        nir.attrs['area'] = area
-        start_time = 1
-        nir.attrs['start_time'] = start_time
-        ir_arr = 100 * np.random.random((2, 2))
-        ir_ = xr.DataArray(da.from_array(ir_arr), dims=['y', 'x'])
-        ir_.attrs['area'] = area
-        sunz_arr = 100 * np.random.random((2, 2))
-        sunz = xr.DataArray(da.from_array(sunz_arr), dims=['y', 'x'])
-        sunz.attrs['standard_name'] = 'solar_zenith_angle'
-        sunz.attrs['area'] = area
-        sunz2 = da.from_array(sunz_arr)
+        sunz2 = da.from_array(self.sunz_arr)
         sza.return_value = sunz2
 
         comp = NIRReflectance(name='test')
         info = {'modifiers': None}
-        res = comp([nir, ir_], optional_datasets=[sunz], **info)
+        res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
         self.assertEqual(res.attrs['units'], '%')
-        self.assertEqual(res.attrs['platform_name'], platform)
-        self.assertEqual(res.attrs['sensor'], sensor)
-        self.assertEqual(res.attrs['name'], chan_name)
-        self.assertEqual(res.attrs['sunz_threshold'], None)
+        self.assertEqual(res.attrs['platform_name'], self.platform)
+        self.assertEqual(res.attrs['sensor'], self.sensor)
+        self.assertEqual(res.attrs['name'], self.chan_name)
+        assert res.attrs['sunz_threshold'] is not None
         calculator.assert_called()
-        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039', sunz_threshold=None)
-        self.assertTrue(apply_modifier_info.call_args[0][0] is nir)
+        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039')
+        self.assertTrue(apply_modifier_info.call_args[0][0] is self.nir)
         self.assertTrue(comp._refl3x is calculator.return_value)
-        refl_from_tbs.reset_mock()
+        self.refl_from_tbs.reset_mock()
 
-        res = comp([nir, ir_], optional_datasets=[], **info)
-        get_lonlats.assert_called()
-        sza.assert_called_with(start_time, lons, lats)
-        refl_from_tbs.assert_called_with(sunz2, nir.data, ir_.data, tb_ir_co2=None)
-        refl_from_tbs.reset_mock()
+        res = comp([self.nir, self.ir_], optional_datasets=[], **info)
+        self.get_lonlats.assert_called()
+        sza.assert_called_with(self.start_time, self.lons, self.lats)
+        self.refl_from_tbs.assert_called_with(sunz2, self.nir.data, self.ir_.data, tb_ir_co2=None)
+        self.refl_from_tbs.reset_mock()
 
         co2_arr = np.random.random((2, 2))
         co2 = xr.DataArray(da.from_array(co2_arr), dims=['y', 'x'])
         co2.attrs['wavelength'] = [12.0, 13.0, 14.0]
         co2.attrs['units'] = 'K'
-        res = comp([nir, ir_], optional_datasets=[co2], **info)
-        refl_from_tbs.assert_called_with(sunz2, nir.data, ir_.data, tb_ir_co2=co2.data)
+        res = comp([self.nir, self.ir_], optional_datasets=[co2], **info)
+        self.refl_from_tbs.assert_called_with(sunz2, self.nir.data, self.ir_.data, tb_ir_co2=co2.data)
 
         comp = NIRReflectance(name='test', sunz_threshold=84.0)
         info = {'modifiers': None}
-        res = comp([nir, ir_], optional_datasets=[sunz], **info)
+        res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
         self.assertEqual(res.attrs['sunz_threshold'], 84.0)
         calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039', sunz_threshold=84.0)
+
+    @mock.patch('satpy.composites.sun_zenith_angle')
+    @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.composites.Calculator')
+    def test_sunz_threshold_default_value_is_not_none(self, calculator, apply_modifier_info, sza):
+        """Check that sunz_threshold is not None."""
+        from satpy.composites import NIRReflectance
+        comp = NIRReflectance(name='test', sunz_threshold=None)
+        info = {'modifiers': None}
+        calculator.return_value = mock.MagicMock(
+            reflectance_from_tbs=self.refl_from_tbs)
+        comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
+        assert comp.sunz_threshold is not None
 
 
 class TestNIREmissivePartFromReflectance(unittest.TestCase):
