@@ -620,7 +620,6 @@ class NIRReflectance(CompositeBase):
 
         """
         self.sun_zenith_threshold = sunz_threshold
-        self._reflectance_3x_calculator = None
         super(NIRReflectance, self).__init__(**kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **info):
