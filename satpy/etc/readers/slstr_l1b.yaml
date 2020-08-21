@@ -11,17 +11,19 @@ reader:
     wavelength:
       type: !!python/name:satpy.dataset.WavelengthRange
     resolution:
-      transitive: true
+      transitive: false
     calibration:
       enum:
           - reflectance
           - brightness_temperature
           - radiance
           - counts
+      transitive: true
     view:
       enum:
         - nadir
         - oblique
+      transitive: true
     stripe:
       enum:
         - a
@@ -36,11 +38,12 @@ reader:
     name:
       required: true
     resolution:
-      transitive: true
+      transitive: false
     view:
       enum:
         - nadir
         - oblique
+      transitive: true
     stripe:
       enum:
         - a

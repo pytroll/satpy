@@ -114,7 +114,7 @@ def test_datasets():
         make_dataid(name='ds5', resolution=250),
         make_dataid(name='ds5', resolution=500),
         make_dataid(name='ds5', resolution=1000),
-        make_dataid(name='ds6', wavelength=(0.1, 0.2, 0.3), resolution=250),
+        make_dataid(name='ds6', wavelength=(0.1, 0.2, 0.3), resolution=250, calibration='reflectance'),
         make_dataid(name='ds7', wavelength=(0.4, 0.5, 0.6)),
         make_dataid(name='ds8', wavelength=(0.7, 0.8, 0.9)),
         make_dataid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
