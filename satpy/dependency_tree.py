@@ -310,20 +310,16 @@ class DependencyTree:
                 raise KeyError("Can't find anything called {}".format(str(dataset_key)))
 
         root = CompositorNode(compositor)
-        # composite_id = root.name
-
-        # prerequisite_filter = composite_id.create_filter_query_without_required_fields(dataset_key)
-        prerequisite_filter = None
 
         # 2.1 get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
-        prereqs = self._create_required_subtrees(root, compositor.attrs['prerequisites'], query=prerequisite_filter)
+        prereqs = self._create_required_subtrees(root, compositor.attrs['prerequisites'])
         root.add_required_nodes(prereqs)
 
         # Get the optionals
         LOG.trace("Looking for optional prerequisites for: {}".format(dataset_key))
         optional_prereqs = self._create_optional_subtrees(
-                root, compositor.attrs['optional_prerequisites'], query=prerequisite_filter)
+                root, compositor.attrs['optional_prerequisites'])
         root.add_optional_nodes(optional_prereqs)
 
         return root
@@ -386,7 +382,7 @@ class DependencyTree:
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
-    def _create_required_subtrees(self, parent, prereqs, query=None):
+    def _create_required_subtrees(self, parent, prereqs):
         """Determine required prerequisite Nodes for a composite.
 
         Args:
@@ -395,12 +391,12 @@ class DependencyTree:
                                 DataQuerys or Nodes to analyze.
 
         """
-        prereq_nodes, unknown_datasets = self._create_prerequisite_subtrees(parent, prereqs, query)
+        prereq_nodes, unknown_datasets = self._create_prerequisite_subtrees(parent, prereqs)
         if unknown_datasets:
             raise MissingDependencies(unknown_datasets)
         return prereq_nodes
 
-    def _create_optional_subtrees(self, parent, prereqs, query=None):
+    def _create_optional_subtrees(self, parent, prereqs):
         """Determine optional prerequisite Nodes for a composite.
 
         Args:
@@ -409,7 +405,7 @@ class DependencyTree:
                                 DataQuerys to analyze.
 
         """
-        prereq_nodes, unknown_datasets = self._create_prerequisite_subtrees(parent, prereqs, query)
+        prereq_nodes, unknown_datasets = self._create_prerequisite_subtrees(parent, prereqs)
 
         for prereq, unknowns in unknown_datasets.items():
             u_str = ", ".join([str(x) for x in unknowns])
@@ -418,7 +414,7 @@ class DependencyTree:
 
         return prereq_nodes
 
-    def _create_prerequisite_subtrees(self, parent, prereqs, query=None):
+    def _create_prerequisite_subtrees(self, parent, prereqs):
         """Determine prerequisite Nodes for a composite.
 
         Args:
@@ -440,7 +436,7 @@ class DependencyTree:
                 if isinstance(prereq, Node):
                     node = prereq
                 else:
-                    node = self._create_subtree_for_key(prereq, query=query)
+                    node = self._create_subtree_for_key(prereq)
             except MissingDependencies as unknown:
                 unknown_datasets[prereq] = unknown.missing_dependencies
 
