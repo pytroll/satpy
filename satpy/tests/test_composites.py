@@ -734,21 +734,26 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
 class TestColormapCompositor(unittest.TestCase):
     """Test the ColormapCompositor."""
 
-    def test_build_colormap(self):
-        """Test colormap building."""
+    def setUp(self):
+        """Set up the test case."""
         from satpy.composites import ColormapCompositor
-        cmap_comp = ColormapCompositor('test_cmap_compositor')
-        palette = np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]])
-        cmap, sqpal = cmap_comp.build_colormap(palette, np.uint8, {})
-        self.assertTrue(np.allclose(cmap.values, [0, 1]))
-        self.assertTrue(np.allclose(sqpal, palette / 255.0))
+        self.colormap_compositor = ColormapCompositor('test_cmap_compositor')
 
+    def test_build_colormap_with_int_data_and_without_meanings(self):
+        """Test colormap building."""
+        palette = np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]])
+        colormap, squeezed_palette = self.colormap_compositor.build_colormap(palette, np.uint8, {})
+        self.assertTrue(np.allclose(colormap.values, [0, 1]))
+        self.assertTrue(np.allclose(squeezed_palette, palette / 255.0))
+
+    def test_build_colormap_with_int_data_and_with_meanings(self):
+        """Test colormap building."""
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=['value', 'band'])
         palette.attrs['palette_meanings'] = [2, 3, 4]
-        cmap, sqpal = cmap_comp.build_colormap(palette, np.uint8, {})
-        self.assertTrue(np.allclose(cmap.values, [2, 3, 4]))
-        self.assertTrue(np.allclose(sqpal, palette / 255.0))
+        colormap, squeezed_palette = self.colormap_compositor.build_colormap(palette, np.uint8, {})
+        self.assertTrue(np.allclose(colormap.values, [2, 3, 4]))
+        self.assertTrue(np.allclose(squeezed_palette, palette / 255.0))
 
 
 class TestPaletteCompositor(unittest.TestCase):
@@ -762,7 +767,7 @@ class TestPaletteCompositor(unittest.TestCase):
                                dims=['value', 'band'])
         palette.attrs['palette_meanings'] = [2, 3, 4]
 
-        data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8), dims=['y', 'x'])
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)), dims=['y', 'x'])
         res = cmap_comp([data, palette])
         exp = np.array([[[1., 0.498039, 0.],
                          [0., 0.498039, 1.]],
@@ -773,28 +778,99 @@ class TestPaletteCompositor(unittest.TestCase):
         self.assertTrue(np.allclose(res, exp))
 
 
-class TestCloudTopHeightCompositor(unittest.TestCase):
-    """Test the CloudTopHeightCompositor."""
+class TestColorizeCompositor(unittest.TestCase):
+    """Test the ColorizeCompositor."""
 
-    def test_call(self):
-        """Test the CloudTopHeight composite generation."""
-        from satpy.composites.cloud_products import CloudTopHeightCompositor
-        cmap_comp = CloudTopHeightCompositor('test_cmap_compositor')
+    def test_colorize_no_fill(self):
+        """Test colorizing."""
+        from satpy.composites import ColorizeCompositor
+        colormap_composite = ColorizeCompositor('test_color_compositor')
         palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
                                dims=['value', 'band'])
         palette.attrs['palette_meanings'] = [2, 3, 4]
+
+        data = xr.DataArray(np.array([[4, 3, 2],
+                                      [2, 3, 4]],
+                                     dtype=np.uint8),
+                            dims=['y', 'x'])
+        res = colormap_composite([data, palette])
+        exp = np.array([[[1., 0.498039, 0.],
+                         [0., 0.498039, 1.]],
+                        [[1., 0.498039, 0.],
+                         [0., 0.498039, 1.]],
+                        [[1., 0.498039, 0.],
+                         [0., 0.498039, 1.]]])
+        self.assertTrue(np.allclose(res, exp, atol=1e-4))
+
+    def test_colorize_with_interpolation(self):
+        """Test colorizing with interpolation."""
+        from satpy.composites import ColorizeCompositor
+        colormap_composite = ColorizeCompositor('test_color_compositor')
+        palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
+                               dims=['value', 'band'])
+        palette.attrs['palette_meanings'] = [2, 3, 4]
+
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2.5],
+                                                    [2, 3.2, 4]])),
+                            dims=['y', 'x'],
+                            attrs={'valid_range': np.array([2, 4])})
+        res = colormap_composite([data, palette])
+        exp = np.array([[[1.0000149, 0.49804664, 0.24907766],
+                         [0., 0.59844028, 1.0000149]],
+                        [[1.00005405, 0.49806613, 0.24902255],
+                         [0., 0.59846373, 1.00005405]],
+                        [[1.00001585, 0.49804711, 0.24896771],
+                         [0., 0.59844073, 1.00001585]]])
+        self.assertTrue(np.allclose(res, exp, atol=1e-4))
+
+
+class TestCloudTopHeightCompositor(unittest.TestCase):
+    """Test the CloudTopHeightCompositor."""
+
+    def setUp(self):
+        """Set up the test case."""
+        from satpy.composites.cloud_products import CloudTopHeightCompositor
+        self.colormap_composite = CloudTopHeightCompositor('test_cmap_compositor')
+        self.palette = xr.DataArray(np.array([[0, 0, 0], [127, 127, 127], [255, 255, 255]]),
+                                    dims=['value', 'band'])
+        self.palette.attrs['palette_meanings'] = [2, 3, 4]
+
+        self.exp = np.array([[[0., 0.498, 0.],
+                              [0., 0.498, np.nan]],
+                             [[0., 0.498, 0.],
+                              [0., 0.498, np.nan]],
+                             [[0., 0.498, 0.],
+                              [0., 0.498, np.nan]]])
+
+    def test_call_numpy_with_invalid_value_in_status(self):
+        """Test the CloudTopHeight composite generation."""
         status = xr.DataArray(np.array([[1, 0, 1], [1, 0, 65535]]), dims=['y', 'x'],
                               attrs={'_FillValue': 65535})
         data = xr.DataArray(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8),
                             dims=['y', 'x'])
-        res = cmap_comp([data, palette, status])
-        exp = np.array([[[0., 0.49803922, 0.],
-                         [0., 0.49803922, np.nan]],
-                        [[0., 0.49803922, 0.],
-                         [0., 0.49803922, np.nan]],
-                        [[0., 0.49803922, 0.],
-                         [0., 0.49803922, np.nan]]])
-        np.testing.assert_allclose(res, exp)
+        res = self.colormap_composite([data, self.palette, status])
+
+        np.testing.assert_allclose(res, self.exp, atol=1e-4)
+
+    def test_call_dask_with_invalid_value_in_status(self):
+        """Test the CloudTopHeight composite generation."""
+        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 65535]])), dims=['y', 'x'],
+                              attrs={'_FillValue': 65535})
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 4]], dtype=np.uint8)),
+                            dims=['y', 'x'])
+        res = self.colormap_composite([data, self.palette, status])
+
+        np.testing.assert_allclose(res, self.exp, atol=1e-4)
+
+    def test_call_dask_with_invalid_value_in_data(self):
+        """Test the CloudTopHeight composite generation."""
+        status = xr.DataArray(da.from_array(np.array([[1, 0, 1], [1, 0, 1]])), dims=['y', 'x'],
+                              attrs={'_FillValue': 65535})
+        data = xr.DataArray(da.from_array(np.array([[4, 3, 2], [2, 3, 99]], dtype=np.uint8)),
+                            dims=['y', 'x'],
+                            attrs={'_FillValue': 99})
+        res = self.colormap_composite([data, self.palette, status])
+        np.testing.assert_allclose(res, self.exp, atol=1e-4)
 
 
 class TestPrecipCloudsCompositor(unittest.TestCase):
@@ -803,7 +879,7 @@ class TestPrecipCloudsCompositor(unittest.TestCase):
     def test_call(self):
         """Test the precip composite generation."""
         from satpy.composites.cloud_products import PrecipCloudsRGB
-        cmap_comp = PrecipCloudsRGB('test_precip_compositor')
+        colormap_compositor = PrecipCloudsRGB('test_precip_compositor')
 
         data_light = xr.DataArray(np.array([[80, 70, 60, 0], [20, 30, 40, 255]], dtype=np.uint8),
                                   dims=['y', 'x'], attrs={'_FillValue': 255})
@@ -813,7 +889,7 @@ class TestPrecipCloudsCompositor(unittest.TestCase):
                                     dims=['y', 'x'], attrs={'_FillValue': 255})
         data_flags = xr.DataArray(np.array([[0, 0, 4, 0], [0, 0, 0, 0]], dtype=np.uint8),
                                   dims=['y', 'x'])
-        res = cmap_comp([data_light, data_moderate, data_intense, data_flags])
+        res = colormap_compositor([data_light, data_moderate, data_intense, data_flags])
 
         exp = np.array([[[0.24313725, 0.18235294, 0.12156863, np.nan],
                          [0.12156863, 0.18235294, 0.24313725, np.nan]],
@@ -1524,6 +1600,7 @@ class TestNaturalEnhCompositor(unittest.TestCase):
 
         def temp_func(*args):
             return args[0]
+
         match_data_arrays.side_effect = temp_func
         comp = NaturalEnh("foo", ch16_w=self.ch16_w, ch08_w=self.ch08_w,
                           ch06_w=self.ch06_w)

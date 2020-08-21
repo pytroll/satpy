@@ -18,7 +18,6 @@
 """Compositors for cloud products."""
 
 import numpy as np
-import xarray as xr
 
 from satpy.composites import GenericCompositor, ColormapCompositor
 
@@ -35,16 +34,16 @@ class CloudTopHeightCompositor(ColormapCompositor):
         else:
             palette_indices = range(len(palette))
 
-        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
         tups = [(val, tuple(tup))
-                for (val, tup) in zip(palette_indices, sqpalette)]
+                for (val, tup) in zip(palette_indices, squeezed_palette)]
         colormap = Colormap(*tups)
         if 'palette_meanings' not in palette.attrs:
             sf = info.get('scale_factor', np.array(1))
             colormap.set_range(
                 *(np.array(info['valid_range']) * sf + info.get('add_offset', 0)))
 
-        return colormap, sqpalette
+        return colormap, squeezed_palette
 
     def __call__(self, projectables, **info):
         """Create the composite."""
@@ -53,19 +52,16 @@ class CloudTopHeightCompositor(ColormapCompositor):
                              (len(projectables), ))
         data, palette, status = projectables
         colormap, palette = self.build_colormap(palette, data.attrs)
-        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
-        channels = palette[channels]
-        mask_nan = data.notnull()
-        mask_cloud_free = (status + 1) % 2
+        channels = colormap.colorize(np.asanyarray(data))
+        not_nan = np.logical_and(self._get_mask_from_data(data), status != status.attrs['_FillValue'])
+        not_cloud_free = np.logical_or((status + 1) % 2, np.logical_not(not_nan))
         chans = []
-        for idx in range(channels.shape[-1]):
-            chan = xr.DataArray(channels[:, :, idx].reshape(data.shape),
-                                dims=data.dims, coords=data.coords,
-                                attrs=data.attrs).where(mask_nan)
+        for channel in channels:
+            chan = self._create_masked_dataarray_like(channel, data, not_nan)
             # Set cloud-free pixels as black
-            chans.append(chan.where(mask_cloud_free, 0).where(status != status.attrs['_FillValue']))
+            chans.append(chan.where(not_cloud_free, 0))
 
-        res = super(CloudTopHeightCompositor, self).__call__(chans, **data.attrs)
+        res = GenericCompositor.__call__(self, chans, **data.attrs)
         res.attrs['_FillValue'] = np.nan
         return res
 
