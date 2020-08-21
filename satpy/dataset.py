@@ -376,7 +376,7 @@ default_id_keys_config = {'name': {
                               'type': WavelengthRange,
                           },
                           'resolution': {
-                              'transitive': True,
+                              'transitive': False,
                               },
                           'calibration': {
                               'enum': [
@@ -384,7 +384,8 @@ default_id_keys_config = {'name': {
                                   'brightness_temperature',
                                   'radiance',
                                   'counts'
-                                  ]
+                                  ],
+                              'transitive': True,
                           },
                           'modifiers': {
                               'default': ModifierTuple(),

@@ -168,6 +168,36 @@ class DependencyTree:
         """Render the dependency tree as a string."""
         return self._root.display()
 
+    def populate_with_keys(self, dataset_keys: set, query=None):
+        """Populate the dependency tree.
+
+        Args:
+            dataset_keys (set): Strings, DataIDs, DataQuerys to find dependencies for
+            query (DataQuery): Additional filter parameters. See
+                              `satpy.readers.get_key` for more details.
+
+        Returns:
+            (Node, set): Root node of the dependency tree and a set of unknown datasets
+
+        """
+        unknown_datasets = list()
+        known_nodes = list()
+        for key in dataset_keys.copy():
+            try:
+                node = self._create_subtree_for_key(key, query)
+            except MissingDependencies as unknown:
+                unknown_datasets.append(unknown.missing_dependencies)
+            else:
+                known_nodes.append(node)
+                self.add_child(self._root, node)
+
+        for key in dataset_keys.copy():
+            dataset_keys.discard(key)
+        for node in known_nodes:
+            dataset_keys.add(node.name)
+        if unknown_datasets:
+            raise MissingDependencies(unknown_datasets)
+
     def _create_subtree_for_key(self, dataset_key, query=None):
         """Find the dependencies for *dataset_key*.
 
@@ -310,16 +340,19 @@ class DependencyTree:
                 raise KeyError("Can't find anything called {}".format(str(dataset_key)))
 
         root = CompositorNode(compositor)
+        composite_id = root.name
+
+        prerequisite_filter = composite_id.create_filter_query_without_required_fields(dataset_key)
 
         # 2.1 get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
-        prereqs = self._create_required_subtrees(root, compositor.attrs['prerequisites'])
+        prereqs = self._create_required_subtrees(root, compositor.attrs['prerequisites'], query=prerequisite_filter)
         root.add_required_nodes(prereqs)
 
         # Get the optionals
         LOG.trace("Looking for optional prerequisites for: {}".format(dataset_key))
         optional_prereqs = self._create_optional_subtrees(
-                root, compositor.attrs['optional_prerequisites'])
+                root, compositor.attrs['optional_prerequisites'], query=prerequisite_filter)
         root.add_optional_nodes(optional_prereqs)
 
         return root
@@ -382,7 +415,7 @@ class DependencyTree:
 
         raise KeyError("Could not find modifier '{}'".format(modifier))
 
-    def _create_required_subtrees(self, parent, prereqs):
+    def _create_required_subtrees(self, parent, prereqs, query=None):
         """Determine required prerequisite Nodes for a composite.
 
         Args:
@@ -391,12 +424,12 @@ class DependencyTree:
                                 DataQuerys or Nodes to analyze.
 
         """
-        prereq_nodes, unknown_datasets = self._create_prerequisite_subtrees(parent, prereqs)
+        prereq_nodes, unknown_datasets = self._create_prerequisite_subtrees(parent, prereqs, query)
         if unknown_datasets:
             raise MissingDependencies(unknown_datasets)
         return prereq_nodes
 
-    def _create_optional_subtrees(self, parent, prereqs):
+    def _create_optional_subtrees(self, parent, prereqs, query=None):
         """Determine optional prerequisite Nodes for a composite.
 
         Args:
@@ -405,7 +438,7 @@ class DependencyTree:
                                 DataQuerys to analyze.
 
         """
-        prereq_nodes, unknown_datasets = self._create_prerequisite_subtrees(parent, prereqs)
+        prereq_nodes, unknown_datasets = self._create_prerequisite_subtrees(parent, prereqs, query)
 
         for prereq, unknowns in unknown_datasets.items():
             u_str = ", ".join([str(x) for x in unknowns])
@@ -414,7 +447,7 @@ class DependencyTree:
 
         return prereq_nodes
 
-    def _create_prerequisite_subtrees(self, parent, prereqs):
+    def _create_prerequisite_subtrees(self, parent, prereqs, query=None):
         """Determine prerequisite Nodes for a composite.
 
         Args:
@@ -436,7 +469,7 @@ class DependencyTree:
                 if isinstance(prereq, Node):
                     node = prereq
                 else:
-                    node = self._create_subtree_for_key(prereq)
+                    node = self._create_subtree_for_key(prereq, query=query)
             except MissingDependencies as unknown:
                 unknown_datasets[prereq] = unknown.missing_dependencies
 
@@ -445,36 +478,6 @@ class DependencyTree:
                 self.add_child(parent, node)
 
         return prereq_nodes, unknown_datasets
-
-    def populate_with_keys(self, dataset_keys: set, query=None):
-        """Populate the dependency tree.
-
-        Args:
-            dataset_keys (set): Strings, DataIDs, DataQuerys to find dependencies for
-            query (DataQuery): Additional filter parameters. See
-                              `satpy.readers.get_key` for more details.
-
-        Returns:
-            (Node, set): Root node of the dependency tree and a set of unknown datasets
-
-        """
-        unknown_datasets = list()
-        known_nodes = list()
-        for key in dataset_keys.copy():
-            try:
-                node = self._create_subtree_for_key(key, query)
-            except MissingDependencies as unknown:
-                unknown_datasets.append(unknown.missing_dependencies)
-            else:
-                known_nodes.append(node)
-                self.add_child(self._root, node)
-
-        for key in dataset_keys.copy():
-            dataset_keys.discard(key)
-        for node in known_nodes:
-            dataset_keys.add(node.name)
-        if unknown_datasets:
-            raise MissingDependencies(unknown_datasets)
 
 
 class _DataIDContainer(dict):
