@@ -1006,14 +1006,14 @@ class ColormapCompositor(GenericCompositor):
 
         """
         from trollimage.colormap import Colormap
-        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
         set_range = True
         if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
             set_range = False
             meanings = palette.attrs['palette_meanings']
-            iterator = zip(meanings, sqpalette)
+            iterator = zip(meanings, squeezed_palette)
         else:
-            iterator = enumerate(sqpalette[:-1])
+            iterator = enumerate(squeezed_palette[:-1])
 
         if dtype == np.dtype('uint8'):
             tups = [(val, tuple(tup))
@@ -1034,70 +1034,66 @@ class ColormapCompositor(GenericCompositor):
             raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
                                  " in order to be displayable with an attached color-palette!")
 
-        return colormap, sqpalette
-
-
-class ColorizeCompositor(ColormapCompositor):
-    """A compositor colorizing the data, interpolating the palette colors when needed."""
+        return colormap, squeezed_palette
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
-
-        # TODO: support datasets with palette to delegate this to the image
-        # writer.
-
         data, palette = projectables
+
         colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
-        r, g, b = colormap.colorize(np.asanyarray(data))
-        r[data.mask] = palette[-1][0]
-        g[data.mask] = palette[-1][1]
-        b[data.mask] = palette[-1][2]
-        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
+        channels = self._apply_colormap(colormap, data, palette)
+        return self._create_composite_from_channels(channels, data)
 
-        # r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
-        # g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
-        # b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
-        #
-        # return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
+    def _create_composite_from_channels(self, channels, template):
+        mask = self._get_mask_from_data(template)
+        channels = [self._create_masked_dataarray_like(channel, template, mask) for channel in channels]
+        res = super(ColormapCompositor, self).__call__(channels, **template.attrs)
+        res.attrs['_FillValue'] = np.nan
+        return res
 
-
-class PaletteCompositor(ColormapCompositor):
-    """A compositor colorizing the data, not interpolating the palette colors."""
-
-    def __call__(self, projectables, **info):
-        """Generate the composite."""
-        if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
-
-        # TODO: support datasets with palette to delegate this to the image
-        # writer.
-        data, palette = projectables
-        colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
-
-        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
-        channels = palette[channels]
+    @staticmethod
+    def _get_mask_from_data(data):
         fill_value = data.attrs.get('_FillValue', np.nan)
         if np.isnan(fill_value):
             mask = data.notnull()
         else:
             mask = data != data.attrs['_FillValue']
-        r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask)
-        g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask)
-        b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask)
+        return mask
 
-        res = super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
-        res.attrs['_FillValue'] = np.nan
-        return res
+    @staticmethod
+    def _create_masked_dataarray_like(array, template, mask):
+        return xr.DataArray(array.reshape(template.shape),
+                            dims=template.dims, coords=template.coords,
+                            attrs=template.attrs).where(mask)
+
+
+class ColorizeCompositor(ColormapCompositor):
+    """A compositor colorizing the data, interpolating the palette colors when needed."""
+
+    @staticmethod
+    def _apply_colormap(colormap, data, palette):
+        del palette
+        return colormap.colorize(data.data.squeeze())
+
+
+class PaletteCompositor(ColormapCompositor):
+    """A compositor colorizing the data, not interpolating the palette colors."""
+
+    @staticmethod
+    def _apply_colormap(colormap, data, palette):
+        channels, colors = colormap.palettize(data.data.squeeze())
+        channels = channels.map_blocks(_insert_palette_colors, palette, dtype=palette.dtype,
+                                       new_axis=2, chunks=list(channels.chunks) + [palette.shape[1]])
+        return [channels[:, :, i] for i in range(channels.shape[2])]
+
+
+def _insert_palette_colors(channels, palette):
+    channels = palette[channels]
+    return channels
 
 
 class DayNightCompositor(GenericCompositor):
