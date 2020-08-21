@@ -123,6 +123,9 @@ def test_datasets():
         make_dataid(name='ds11', resolution=1000),
         make_dataid(name='ds12', resolution=500),
         make_dataid(name='ds12', resolution=1000),
+        make_dataid(name='B02', wavelength=(30.49, 30.51, 30.53), resolution=1000),
+        make_dataid(name='B03', wavelength=(30.62, 30.64, 30.66), resolution=500),
+        make_dataid(name='B04', wavelength=(30.83, 30.85, 30.87), resolution=1000),
     ]
     return d
 
@@ -247,6 +250,8 @@ def test_composites(sensor_name):
                                                    make_dsq(name='ds5', resolution=500)], []),
         make_cid(name='comp25', resolution=1000): ([make_dsq(name='comp24', resolution=1000),
                                                     make_dsq(name='ds5', resolution=1000)], []),
+        make_cid(name='ahi_green'): ([make_dsq(wavelength=30.5, modifiers=('sunz_corr', 'rayleigh_corr')),
+                                      make_dsq(wavelength=30.85, modifiers=('sunz_corr',))], [])
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -260,6 +265,8 @@ def test_composites(sensor_name):
         'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
         'mod_opt_only': ([], ['ds2']),
         'mod_wl': ([make_dsq(wavelength=0.2, modifiers=('mod1',))], []),
+        'sunz_corr': ([], ['sunz_angles_NOPE']),
+        'rayleigh_corr': ([make_dsq(wavelength=30.64, modifiers=('sunz_corr',))], [])
     }
     comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
     mods = {sensor_name: dict((k, _create_fake_modifiers(k, *v)) for k, v in mods.items())}

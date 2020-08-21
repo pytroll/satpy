@@ -310,9 +310,10 @@ class DependencyTree:
                 raise KeyError("Can't find anything called {}".format(str(dataset_key)))
 
         root = CompositorNode(compositor)
-        composite_id = root.name
+        # composite_id = root.name
 
-        prerequisite_filter = composite_id.create_filter_query_without_required_fields(dataset_key)
+        # prerequisite_filter = composite_id.create_filter_query_without_required_fields(dataset_key)
+        prerequisite_filter = None
 
         # 2.1 get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
