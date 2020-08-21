@@ -509,7 +509,7 @@ class DataID(dict):
         """Get the id_keys."""
         return deepcopy(self._id_keys)
 
-    def create_dep_filter(self, query):
+    def create_filter_query_without_required_fields(self, query):
         """Remove the required fields from *query*."""
         try:
             new_query = query.to_dict()
@@ -617,6 +617,26 @@ class DataID(dict):
     clear = _immutable
     update = _immutable
     setdefault = _immutable
+
+    def _find_modifiers_key(self):
+        for key, val in self.items():
+            if isinstance(val, ModifierTuple):
+                return key
+        raise KeyError
+
+    def create_less_modified_query(self):
+        """Create a query with one less modifier."""
+        new_dict = self.to_dict()
+        new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
+        return DataQuery.from_dict(new_dict)
+
+    def is_modified(self):
+        """Check if this is modified."""
+        try:
+            key = self._find_modifiers_key()
+        except KeyError:
+            return False
+        return bool(self[key])
 
 
 class DataQuery:
@@ -808,10 +828,15 @@ class DataQuery:
         distances, dataids = zip(*sorted(zip(distances, sorted_dataids)))
         return dataids, distances
 
-    def _create_less_modified_query(self):
+    def create_less_modified_query(self):
+        """Create a query with one less modifier."""
         new_dict = self.to_dict()
         new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
         return DataQuery.from_dict(new_dict)
+
+    def is_modified(self):
+        """Check if this is modified."""
+        return bool(self._dict.get('modifiers'))
 
 
 class DatasetID:

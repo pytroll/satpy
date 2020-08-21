@@ -24,7 +24,8 @@ from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
 from satpy.dataset import (DataQuery, DataID, dataset_walker,
                            replace_anc, combine_metadata)
-from satpy.node import DependencyTree, MissingDependencies
+from satpy.node import MissingDependencies
+from satpy.dependency_tree import DependencyTree
 from satpy.readers import DatasetDict, load_readers
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)

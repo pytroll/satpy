@@ -19,7 +19,7 @@
 
 import unittest
 from satpy.tests.utils import make_cid, make_dataid
-from satpy.node import DependencyTree
+from satpy.dependency_tree import DependencyTree
 
 
 class TestDependencyTree(unittest.TestCase):
