@@ -10,6 +10,7 @@ The following people have made contributions to this project:
 - [Trygve Aspenes (TAlonglong)](https://github.com/TAlonglong)
 - [Talfan Barnie (TalfanBarnie)](https://github.com/TalfanBarnie)
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
+- [Ray Bell (raybellwaves)](https://github.com/raybellwaves)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)
@@ -66,4 +67,3 @@ The following people have made contributions to this project:
 - [praerien (praerien)](https://github.com/praerien)
 - [Xin Zhang (zxdawn)](https://github.com/zxdawn)
 - [Yufei Zhu (yufeizhu600)](https://github.com/yufeizhu600)
-- [Ray Bell (raybellwaves)](https://github.com/raybellwaves)
