@@ -54,7 +54,7 @@ ANGLES = ('sensor_zenith_angle', 'sensor_azimuth_angle', 'solar_zenith_angle',
 class GACLACFile(BaseFileHandler):
     """Reader for GAC and LAC data."""
 
-    def __init__(self, filename, filename_info, filetype_info,
+    def __init__(self, filename, filename_info, filetype_info, file_system=None
                  start_line=None, end_line=None, strip_invalid_coords=True,
                  interpolate_coords=True, **reader_kwargs):
         """Init the file handler.
@@ -71,7 +71,7 @@ class GACLACFile(BaseFileHandler):
 
         """
         super(GACLACFile, self).__init__(
-            filename, filename_info, filetype_info)
+            filename, filename_info, filetype_info, file_system=file_system)
 
         self.start_line = start_line
         self.end_line = end_line
@@ -123,7 +123,8 @@ class GACLACFile(BaseFileHandler):
                 interpolate_coords=self.interpolate_coords,
                 creation_site=self.creation_site,
                 **self.reader_kwargs)
-            self.reader.read(self.filename)
+            with self.open_file() as fileobj:
+                self.reader.read(filename, fileobj=fileobj)
             if np.all(self.reader.mask):
                 raise ValueError('All data is masked out')
 

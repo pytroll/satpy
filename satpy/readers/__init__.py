@@ -704,7 +704,7 @@ def find_files_and_readers(start_time=None, end_time=None, base_dir=None,
 
 
 def load_readers(filenames=None, reader=None, reader_kwargs=None,
-                 ppp_config_dir=None):
+                 ppp_config_dir=None, file_system=None):
     """Create specified readers and assign files to them.
 
     Args:
@@ -764,7 +764,9 @@ def load_readers(filenames=None, reader=None, reader_kwargs=None,
             continue
         loadables = reader_instance.select_files_from_pathnames(readers_files)
         if loadables:
-            reader_instance.create_filehandlers(loadables, fh_kwargs=reader_kwargs_without_filter)
+            reader_instance.create_filehandlers(loadables,
+                                                fh_kwargs=reader_kwargs_without_filter,
+                                                file_system=file_system)
             reader_instances[reader_instance.name] = reader_instance
             remaining_filenames -= set(loadables)
         if not remaining_filenames:

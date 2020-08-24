@@ -72,7 +72,8 @@ class Scene:
                  sensor=None,
                  start_time=None,
                  end_time=None,
-                 area=None):
+                 area=None,
+                 file_system=None):
         """Initialize Scene with Reader and Compositor objects.
 
         To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
@@ -91,6 +92,7 @@ class Scene:
                                       Shortcut for `reader_kwargs['filter_parameters']`.
             reader_kwargs (dict): Keyword arguments to pass to specific reader instances.
             ppp_config_dir (str): The directory containing the configuration files for satpy.
+            file_system (FileSystem) an implementation of fsspec.AbstractFileSystem
             base_dir (str): (DEPRECATED) The directory to search for files containing the
                             data to load. If *filenames* is also provided,
                             this is ignored.
@@ -122,6 +124,7 @@ class Scene:
                 sensor=sensor,
                 ppp_config_dir=self._ppp_config_dir,
                 reader_kwargs=reader_kwargs,
+                fs=file_system
             )
         elif start_time or end_time or area:
             import warnings
@@ -148,7 +151,8 @@ class Scene:
 
         self._readers = self._create_reader_instances(filenames=filenames,
                                                       reader=reader,
-                                                      reader_kwargs=reader_kwargs)
+                                                      reader_kwargs=reader_kwargs,
+                                                      file_system=file_system)
         self.attrs.update(self._compute_metadata_from_readers())
         self._datasets = DatasetDict()
         self._composite_loader = CompositorLoader(self._ppp_config_dir)
@@ -193,12 +197,14 @@ class Scene:
     def _create_reader_instances(self,
                                  filenames=None,
                                  reader=None,
-                                 reader_kwargs=None):
+                                 reader_kwargs=None,
+                                 file_system=None):
         """Find readers and return their instances."""
         return load_readers(filenames=filenames,
                             reader=reader,
                             reader_kwargs=reader_kwargs,
-                            ppp_config_dir=self._ppp_config_dir)
+                            ppp_config_dir=self._ppp_config_dir,
+                            file_system=file_system)
 
     @property
     def start_time(self):

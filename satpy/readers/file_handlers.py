@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (c) 2017-2019 Satpy developers
 #
 # This file is part of satpy.
@@ -22,6 +21,7 @@ from abc import ABCMeta
 import numpy as np
 from pathlib import PurePath
 
+from fsspec.implementations.local import LocalFileSystem
 from pyresample.geometry import SwathDefinition
 from satpy.dataset import combine_metadata
 
@@ -29,7 +29,7 @@ from satpy.dataset import combine_metadata
 class BaseFileHandler(metaclass=ABCMeta):
     """Base file handler."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info, file_system=None):
         """Initialize file handler."""
         if isinstance(filename, PurePath):
             self.filename = str(filename)
@@ -39,6 +39,7 @@ class BaseFileHandler(metaclass=ABCMeta):
         self.filename_info = filename_info
         self.filetype_info = filetype_info
         self.metadata = filename_info.copy()
+        self.file_system = file_system or LocalFileSystem()
 
     def __str__(self):
         """Customize __str__."""
@@ -258,3 +259,11 @@ class BaseFileHandler(metaclass=ABCMeta):
                 yield is_avail, ds_info
                 continue
             yield self.file_type_matches(ds_info['file_type']), ds_info
+
+    def open_file(self, **kwargs):
+        """Open filename from file_system.
+
+        Additional parameters may be given depeding on the FileSystem and BufferedFile
+        implementations derived from the fsspec base classes, e.g. cache options.
+        """
+        return self.file_system.open(self.filename, **kwargs)
