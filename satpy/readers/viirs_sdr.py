@@ -365,8 +365,14 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         file_units = self.get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
+        print(var_path, factor_var_path)
+        print(factors, file_units, output_units)
+        print(ds_info)
         factors = self.adjust_scaling_factors(factors, file_units, output_units)
-        data = self.scale_swath_data(data, factors)
+        print("After:")
+        print(factors)
+        if factors is not None:
+            data = self.scale_swath_data(data, factors)
 
         i = getattr(data, 'attrs', {})
         i.update(ds_info)

@@ -460,6 +460,7 @@ datasets:
     standard_name: solar_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
+    units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/SolarZenithAngle'
@@ -468,6 +469,7 @@ datasets:
     standard_name: lunar_zenith_angle
     resolution: 743
     coordinates: [dnb_longitude, dnb_latitude]
+    units: degrees
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/LunarZenithAngle'
@@ -494,6 +496,7 @@ datasets:
     file_type: generic_file
     dataset_groups: [GDNBO]
     file_key: 'All_Data/{dataset_group}_All/MoonIllumFraction'
+    units: '1'
 
 file_types:
   generic_file:
