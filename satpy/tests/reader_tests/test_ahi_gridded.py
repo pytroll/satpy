@@ -22,7 +22,9 @@ from unittest import mock
 import numpy as np
 import dask.array as da
 from pyresample.geometry import AreaDefinition
-from satpy.readers.ahi_gridded import AHIGriddedFileHandler
+from satpy.readers.ahi_gridded import AHIGriddedFileHandler, AHI_LUT_NAMES
+import os
+import tempfile
 
 
 class TestAHIGriddedArea(unittest.TestCase):
@@ -79,11 +81,7 @@ class TestAHIGriddedArea(unittest.TestCase):
 
         tmp_fh = self.make_fh('vis.01')
         tmp_fh.get_area_def(None)
-        self.assertEqual(tmp_fh.area.area_extent, good_area.area_extent)
-        self.assertEqual(tmp_fh.area.area_id, good_area.area_id)
-        self.assertEqual(tmp_fh.area.description, good_area.description)
-        self.assertEqual(tmp_fh.area.area_extent, good_area.area_extent)
-        self.assertEqual(tmp_fh.area.proj_str, good_area.proj_str)
+        self.assertEqual(tmp_fh.area, good_area)
 
     def test_bad_area(self):
         """"Ensure an error is raised for an usupported area."""
@@ -212,6 +210,21 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
 
 class TestAHIGriddedLUTs(unittest.TestCase):
     """Test case for the downloading and preparing LUTs."""
+
+    def mocked_ftp_dl(fname):
+        """Fake download of LUT tar file by creating a local tar."""
+        import tempfile
+        import tarfile
+        import os
+
+        with tarfile.open(fname, "w:gz") as tar_handle:
+            for namer in AHI_LUT_NAMES:
+                tmpf = os.path.join(tempfile.tempdir, namer)
+                with open(tmpf, 'w') as tmp_fid:
+                    tmp_fid.write("TEST\n")
+                tar_handle.add(tmpf, arcname='count2tbb/'+namer)
+                os.remove(tmpf)
+
     def setUp(self):
         """Create a test file handler."""
         m = mock.mock_open()
@@ -231,6 +244,26 @@ class TestAHIGriddedLUTs(unittest.TestCase):
         self.key = key
         self.info = info
 
+    def tearDown(self):
+        """Remove files and directories created by the tests."""
+        for lut_name in AHI_LUT_NAMES:
+            tmp_filename = os.path.join(self.fh.lut_dir, lut_name)
+            if os.path.isfile(tmp_filename):
+                os.remove(tmp_filename)
+        if os.path.isdir(self.fh.lut_dir):
+            os.rmdir(self.fh.lut_dir)
+
+    @mock.patch('satpy.readers.ahi_gridded.AHIGriddedFileHandler._download_luts',
+                mock.MagicMock(side_effect=mocked_ftp_dl))
+    def test_get_luts(self):
+        """Check that the function to download LUTs operates successfully."""
+        tempdir = tempfile.gettempdir()
+        print(self.fh.lut_dir)
+        self.fh._get_luts()
+        self.assertFalse(os.path.exists(os.path.join(tempdir, 'count2tbb/')))
+        for lut_name in AHI_LUT_NAMES:
+            self.assertTrue(os.path.isfile(os.path.join(self.fh.lut_dir, lut_name)))
+
     @mock.patch('ftplib.FTP')
     def test_download_luts(self, mock_ftp):
         """Test that the FTP library is called for downloading LUTS."""
@@ -238,25 +271,3 @@ class TestAHIGriddedLUTs(unittest.TestCase):
         with mock.patch('satpy.readers.ahi_gridded.open', m, create=True):
             self.fh._download_luts('/test_file')
             mock_ftp.assert_called()
-
-    @mock.patch('os.remove')
-    def test_untar_luts(self, mock_remove):
-        """Test that the untar library is used correctly."""
-        m = mock.MagicMock()
-        with mock.patch('tarfile.open', m, create=True):
-            self.fh._untar_luts('/test_file', '/test_dir/')
-            m.assert_called()
-            mock_remove.assert_called()
-
-    @mock.patch('os.path.join')
-    @mock.patch('shutil.rmtree')
-    @mock.patch('shutil.move')
-    @mock.patch('satpy.readers.ahi_gridded.AHIGriddedFileHandler._untar_luts')
-    @mock.patch('satpy.readers.ahi_gridded.AHIGriddedFileHandler._download_luts')
-    @mock.patch('tempfile.gettempdir')
-    @mock.patch('pathlib.Path')
-    def test_get_luts(self, *mocks):
-        """Check that the function to download LUTs operates successfully."""
-        self.fh._get_luts()
-        mocks[2].assert_called()
-        mocks[3].assert_called()
