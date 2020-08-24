@@ -231,7 +231,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
         with open(self.filename, "rb") as fp_:
             res = self._read_data(fp_)
-        logger.debug("Reading time " + str(datetime.now() - tic))
 
         # Calibrate
         res = self.calibrate(res, key['calibration'])
