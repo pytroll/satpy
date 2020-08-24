@@ -227,7 +227,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     def read_band(self, key, info):
         """Read the data."""
-        tic = datetime.now()
 
         with open(self.filename, "rb") as fp_:
             res = self._read_data(fp_)
@@ -250,7 +249,6 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     def calibrate(self, data, calib):
         """Calibrate the data."""
-        tic = datetime.now()
         if calib == 'counts':
             return data
         elif calib == 'reflectance' or calib == 'brightness_temperature':
