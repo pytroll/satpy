@@ -146,6 +146,11 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     file_content[k] = lon_data
                     file_content[k] = np.repeat([file_content[k]], DEFAULT_FILE_SHAPE[0], axis=0)
                     file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
+                for k in ["SolarZenithAngle"]:
+                    k = prefix3 + "/" + k
+                    file_content[k] = lon_data  # close enough to SZA
+                    file_content[k] = np.repeat([file_content[k]], DEFAULT_FILE_SHAPE[0], axis=0)
+                    file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
 
         final_content.update(file_content)
 
@@ -483,6 +488,28 @@ class TestVIIRSSDRReader(unittest.TestCase):
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
 
+    def test_load_dnb_sza_no_factors(self):
+        """Load DNB solar zenith angle with no scaling factors.
+
+        The angles in VIIRS SDRs should never have scaling factors so we test
+        it that way.
+
+        """
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        r.create_filehandlers(loadables, {'include_factors': False})
+        ds = r.load(['dnb_solar_zenith_angle'])
+        self.assertEqual(len(ds), 1)
+        for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
+            self.assertEqual(d.attrs['units'], 'degrees')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
+            self.assertIn('area', d.attrs)
+            self.assertIsNotNone(d.attrs['area'])
+
     def test_load_all_m_radiances(self):
         """Load all M band radiances."""
         from satpy.readers import load_reader
@@ -691,7 +718,6 @@ class FakeHDF5FileHandlerAggr(FakeHDF5FileHandler):
     def __init__(self, filename, filename_info, filetype_info):
         """Create fake aggregated file handler."""
         super(FakeHDF5FileHandlerAggr, self).__init__(filename, filename_info, filetype_info)
-        self.datasets = filename_info['datasets'].split('-')
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
