@@ -112,6 +112,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         # Set up directory path for the LUTs
         app_dirs = AppDirs('ahi_gridded_luts', 'satpy', '1.0.1')
         self.lut_dir = os.path.expanduser(app_dirs.user_data_dir) + '/'
+        self.area = None
 
     def __del__(self):
         """Delete the object."""
