@@ -119,8 +119,8 @@ class AHIGriddedFileHandler(BaseFileHandler):
         if self._unzipped and os.path.exists(self.filename):
             os.remove(self.filename)
 
-    def _calibrate(self, data):
-        """Load calibration from LUT and apply."""
+    def _load_lut(self):
+        """Determine if LUT is available and, if not, download it."""
 
         # First, check that the LUT is available. If not, download it.
         lut_file = self.lut_dir + self.product_name
@@ -131,6 +131,12 @@ class AHIGriddedFileHandler(BaseFileHandler):
             lut = np.loadtxt(lut_file)[:, 1]
         except FileNotFoundError:
             raise FileNotFoundError("No LUT file found:", lut_file)
+        return lut
+
+    def _calibrate(self, data):
+        """Load calibration from LUT and apply."""
+
+        lut = self._load_lut()
 
         # LUT may truncate NaN values, so manually set those in data
         lut_len = len(lut)
@@ -139,7 +145,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     @staticmethod
     def _download_luts(file_name):
-        """LUTs are stored on an FTP server, this function downloads them."""
+        """Download LUTs from remote FTP server."""
         from ftplib import FTP
         # Set up an FTP connection (anonymous) and download
         ftp = FTP(AHI_REMOTE_LUTS[0])
@@ -150,7 +156,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
 
     @staticmethod
     def _untar_luts(tarred_file, outdir):
-        """Downloaded LUTs are a compressed tarball, uncompress here."""
+        """Uncompress downloaded LUTs, which are a tarball."""
         import tarfile
         tar = tarfile.open(tarred_file)
         tar.extractall(outdir)
@@ -158,7 +164,7 @@ class AHIGriddedFileHandler(BaseFileHandler):
         os.remove(tarred_file)
 
     def _get_luts(self):
-        """LUTs are needed for count->REFL/BT conversion. Download them."""
+        """Download the LUTs needed for count->Refl/BT conversion."""
         import tempfile
         import shutil
         import pathlib
@@ -256,5 +262,4 @@ class AHIGriddedFileHandler(BaseFileHandler):
                                       "brightness_temperature calibration",
                                       "are supported.")
 
-        logger.debug("Calibration time " + str(datetime.now() - tic))
         return data
