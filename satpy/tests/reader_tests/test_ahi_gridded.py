@@ -24,6 +24,7 @@ import dask.array as da
 from pyresample.geometry import AreaDefinition
 from satpy.readers.ahi_gridded import AHIGriddedFileHandler, AHI_LUT_NAMES
 import os
+import shutil
 import tempfile
 
 
@@ -251,7 +252,7 @@ class TestAHIGriddedLUTs(unittest.TestCase):
             if os.path.isfile(tmp_filename):
                 os.remove(tmp_filename)
         if os.path.isdir(self.fh.lut_dir):
-            os.rmdir(self.fh.lut_dir)
+            shutil.rmtree(self.fh.lut_dir)
 
     @mock.patch('satpy.readers.ahi_gridded.AHIGriddedFileHandler._download_luts',
                 mock.MagicMock(side_effect=mocked_ftp_dl))
