@@ -117,7 +117,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         """Initialize file handler."""
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
-        super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info, **kwargs)
 
     def __getitem__(self, item):
         """Get item."""
@@ -254,7 +254,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
         if factors is None:
-            return None
+            factors = np.array([1, 0], dtype=np.float32)
+            factors = xr.DataArray(da.from_array(factors, chunks=1))
         factors = factors.where(factors != -999., np.float32(np.nan))
 
         if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
@@ -365,9 +366,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         file_units = self.get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
         factors = self.adjust_scaling_factors(factors, file_units, output_units)
-
-        if factors is not None:
-            data = self.scale_swath_data(data, factors)
+        data = self.scale_swath_data(data, factors)
 
         i = getattr(data, 'attrs', {})
         i.update(ds_info)

@@ -66,11 +66,10 @@ DATASET_KEYS = {'GDNBO': 'VIIRS-DNB-GEO',
 class FakeHDF5FileHandler2(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
-    def __init__(self, filename, filename_info, filetype_info, use_tc=None):
+    def __init__(self, filename, filename_info, filetype_info, include_factors=True):
         """Create fake file handler."""
+        self.include_factors = include_factors
         super(FakeHDF5FileHandler2, self).__init__(filename, filename_info, filetype_info)
-        self.datasets = filename_info['datasets'].split('-')
-        self.use_tc = use_tc
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
@@ -127,7 +126,8 @@ class FakeHDF5FileHandler2(FakeHDF5FileHandler):
                     k = prefix3 + "/" + k
                     file_content[k] = DEFAULT_FILE_DATA.copy()
                     file_content[k + "/shape"] = DEFAULT_FILE_SHAPE
-                    file_content[k + "Factors"] = DEFAULT_FILE_FACTORS.copy()
+                    if self.include_factors:
+                        file_content[k + "Factors"] = DEFAULT_FILE_FACTORS.copy()
             elif filename[0] == 'G':
                 if filename[:5] in ['GMODO', 'GIMGO']:
                     lon_data = np.linspace(15, 55, DEFAULT_FILE_SHAPE[1]).astype(DEFAULT_FILE_DTYPE)
@@ -269,6 +269,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      ])
         self.assertEqual(len(ds), 11)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
             self.assertEqual(d.attrs['rows_per_scan'], 16)
@@ -314,6 +315,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
 
         self.assertEqual(len(ds), 11)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
             self.assertEqual(d.attrs['rows_per_scan'], 16)
@@ -353,6 +355,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      ])
         self.assertEqual(len(ds), 11)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
             self.assertEqual(d.attrs['rows_per_scan'], 16)
@@ -382,7 +385,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'GMTCO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             'GMODO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        r.create_filehandlers(loadables)
+        r.create_filehandlers(loadables, {'use_tc': False})
         ds = r.load(['M01',
                      'M02',
                      'M03',
@@ -397,6 +400,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      ])
         self.assertEqual(len(ds), 11)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
             self.assertEqual(d.attrs['rows_per_scan'], 16)
@@ -425,7 +429,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
             'SVM11_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
             'GMODO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
         ])
-        r.create_filehandlers(loadables)
+        r.create_filehandlers(loadables, {'use_tc': None})
         ds = r.load(['M01',
                      'M02',
                      'M03',
@@ -440,6 +444,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      ])
         self.assertEqual(len(ds), 11)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
             self.assertEqual(d.attrs['rows_per_scan'], 16)
@@ -471,6 +476,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      ])
         self.assertEqual(len(ds), 5)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'brightness_temperature')
             self.assertEqual(d.attrs['units'], 'K')
             self.assertEqual(d.attrs['rows_per_scan'], 16)
@@ -522,6 +528,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      ])
         self.assertEqual(len(ds), 16)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'radiance')
             self.assertEqual(d.attrs['units'], 'W m-2 um-1 sr-1')
             self.assertEqual(d.attrs['rows_per_scan'], 16)
@@ -540,6 +547,44 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ds = r.load(['DNB'])
         self.assertEqual(len(ds), 1)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
+            data = d.values
+            # default scale factors are 2 and offset 1
+            # multiply DNB by 10000 should mean the first value of 0 should be:
+            # data * factor * 10000 + offset * 10000
+            # 0 * 2 * 10000 + 1 * 10000 => 10000
+            self.assertEqual(data[0, 0], 10000)
+            # the second value of 1 should be:
+            # 1 * 2 * 10000 + 1 * 10000 => 30000
+            self.assertEqual(data[0, 1], 30000)
+            self.assertEqual(d.attrs['calibration'], 'radiance')
+            self.assertEqual(d.attrs['units'], 'W m-2 sr-1')
+            self.assertEqual(d.attrs['rows_per_scan'], 16)
+            self.assertIn('area', d.attrs)
+            self.assertIsNotNone(d.attrs['area'])
+
+    def test_load_dnb_no_factors(self):
+        """Load DNB dataset with no provided scale factors."""
+        from satpy.readers import load_reader
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'SVDNB_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+            'GDNBO_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5',
+        ])
+        r.create_filehandlers(loadables, {'include_factors': False})
+        ds = r.load(['DNB'])
+        self.assertEqual(len(ds), 1)
+        for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
+            data = d.values
+            # no scale factors, default factor 1 and offset 0
+            # multiply DNB by 10000 should mean the first value of 0 should be:
+            # data * factor * 10000 + offset * 10000
+            # 0 * 1 * 10000 + 0 * 10000 => 0
+            self.assertEqual(data[0, 0], 0)
+            # the second value of 1 should be:
+            # 1 * 1 * 10000 + 0 * 10000 => 10000
+            self.assertEqual(data[0, 1], 10000)
             self.assertEqual(d.attrs['calibration'], 'radiance')
             self.assertEqual(d.attrs['units'], 'W m-2 sr-1')
             self.assertEqual(d.attrs['rows_per_scan'], 16)
@@ -576,6 +621,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      ])
         self.assertEqual(len(ds), 3)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'reflectance')
             self.assertEqual(d.attrs['units'], '%')
             self.assertEqual(d.attrs['rows_per_scan'], 32)
@@ -601,6 +647,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
                      ])
         self.assertEqual(len(ds), 2)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'brightness_temperature')
             self.assertEqual(d.attrs['units'], 'K')
             self.assertEqual(d.attrs['rows_per_scan'], 32)
@@ -630,6 +677,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         ])
         self.assertEqual(len(ds), 5)
         for d in ds.values():
+            self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'radiance')
             self.assertEqual(d.attrs['units'], 'W m-2 um-1 sr-1')
             self.assertEqual(d.attrs['rows_per_scan'], 32)
@@ -640,11 +688,10 @@ class TestVIIRSSDRReader(unittest.TestCase):
 class FakeHDF5FileHandlerAggr(FakeHDF5FileHandler):
     """Swap-in HDF5 File Handler."""
 
-    def __init__(self, filename, filename_info, filetype_info, use_tc=None):
+    def __init__(self, filename, filename_info, filetype_info):
         """Create fake aggregated file handler."""
         super(FakeHDF5FileHandlerAggr, self).__init__(filename, filename_info, filetype_info)
         self.datasets = filename_info['datasets'].split('-')
-        self.use_tc = use_tc
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content."""
