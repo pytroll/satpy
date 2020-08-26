@@ -248,26 +248,43 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         data = data * factors[:, 0] + factors[:, 1]
         return data
 
-    def adjust_scaling_factors(self, factors, file_units, output_units):
-        """Adjust scaling factors."""
-        if file_units == output_units:
-            LOG.debug("File units and output units are the same (%s)", file_units)
-            return factors
+    @staticmethod
+    def _scale_factors_for_units(factors, file_units, output_units):
+        if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
+            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
+                      file_units, output_units)
+            factors = factors * 10000.
+        elif file_units == "1" and output_units == "%":
+            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
+                      file_units, output_units)
+            factors = factors * 100.
+        else:
+            LOG.debug("Not sure how to perform unit conversion '%s' to '%s'",
+                      file_units, output_units)
+        return factors
+
+    @staticmethod
+    def _get_valid_scaling_factors(factors):
         if factors is None:
             factors = np.array([1, 0], dtype=np.float32)
             factors = xr.DataArray(da.from_array(factors, chunks=1))
-        factors = factors.where(factors != -999., np.float32(np.nan))
-
-        if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors = factors * 10000.
-            return factors
-        elif file_units == "1" and output_units == "%":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors = factors * 100.
-            return factors
         else:
+            factors = factors.where(factors != -999., np.float32(np.nan))
+        return factors
+
+    def _adjust_scaling_factors(self, factors, file_units, output_units):
+        """Adjust scaling factors ."""
+        if file_units == output_units:
+            LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
+        factors = self._get_valid_scaling_factors(factors)
+        return self._scale_factors_for_units(factors, file_units, output_units)
+
+    def _get_scaling_factors(self, file_units, output_units, factor_var_path):
+        """Get file scaling factors and scale according to expected units."""
+        factors = self.get(factor_var_path)
+        factors = self._adjust_scaling_factors(factors, file_units, output_units)
+        return factors
 
     def _generate_file_key(self, ds_id, ds_info, factors=False):
         var_path = ds_info.get('file_key', 'All_Data/{dataset_group}_All/{calibration}')
@@ -359,20 +376,18 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         data = self.concatenate_dataset(dataset_group, var_path)
         data = self.mask_fill_values(data, ds_info)
-        factors = self.get(factor_var_path)
-        if factors is None:
-            LOG.debug("No scaling factors found for %s", dataset_id)
-
         file_units = self.get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
-        factors = self.adjust_scaling_factors(factors, file_units, output_units)
+        factors = self._get_scaling_factors(file_units, output_units, factor_var_path)
         if factors is not None:
             data = self.scale_swath_data(data, factors)
+        else:
+            LOG.debug("No scaling factors found for %s", dataset_id)
 
         i = getattr(data, 'attrs', {})
         i.update(ds_info)
         i.update({
-            "units": ds_info.get("units", file_units),
+            "units": output_units,
             "platform_name": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
