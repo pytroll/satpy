@@ -646,7 +646,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'radiance')
-            self.assertEqual(d.attrs['units'], 'W m-2 um-1 sr-1')
+            self.assertEqual(d.attrs['units'], 'W m-2 µm-1 sr-1')
             self.assertEqual(d.attrs['rows_per_scan'], 16)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
@@ -775,7 +775,7 @@ class TestVIIRSSDRReader(unittest.TestCase):
         for d in ds.values():
             self.assertTrue(np.issubdtype(d.dtype, np.float32))
             self.assertEqual(d.attrs['calibration'], 'radiance')
-            self.assertEqual(d.attrs['units'], 'W m-2 um-1 sr-1')
+            self.assertEqual(d.attrs['units'], 'W m-2 µm-1 sr-1')
             self.assertEqual(d.attrs['rows_per_scan'], 32)
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])

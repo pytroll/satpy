@@ -220,8 +220,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         # the file)
         if file_units is None:
             if dataset_id.get('calibration') == 'radiance':
-                if "dnb" in dataset_id['name'].lower():
-                    return 'W m-2 sr-1'
+                if "dnb" not in dataset_id['name'].lower():
+                    return 'W m-2 µm-1 sr-1'
                 else:
                     return 'W cm-2 sr-1'
             elif dataset_id.get('calibration') == 'reflectance':
@@ -229,6 +229,12 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
                 file_units = "1"
             elif dataset_id.get('calibration') == 'brightness_temperature':
                 file_units = "K"
+            elif ds_info.get('standard_name') == 'longitude':
+                file_units = "degrees_east"
+            elif ds_info.get('standard_name') == 'latitude':
+                file_units = "degrees_north"
+            elif 'angle' in ds_info.get('standard_name'):
+                file_units = 'degrees'
             else:
                 LOG.debug("Unknown units for file key '%s'", dataset_id)
 
@@ -259,8 +265,8 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
                       file_units, output_units)
             factors = factors * 100.
         else:
-            LOG.debug("Not sure how to perform unit conversion '%s' to '%s'",
-                      file_units, output_units)
+            raise ValueError("Don't know how to convert '{}' to '{}'".format(
+                file_units, output_units))
         return factors
 
     @staticmethod
