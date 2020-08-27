@@ -76,7 +76,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   I02:
     name: I02
     wavelength: [0.845, 0.865, 0.884]
@@ -91,7 +91,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   I03:
     name: I03
     wavelength: [1.580, 1.610, 1.640]
@@ -106,7 +106,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   I04:
     name: I04
     wavelength: [3.580, 3.740, 3.900]
@@ -120,7 +120,7 @@ datasets:
         units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   I05:
     name: I05
     wavelength: [10.500, 11.450, 12.300]
@@ -134,7 +134,7 @@ datasets:
         units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M01:
     name: M01
     wavelength: [0.402, 0.412, 0.422]
@@ -149,7 +149,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M02:
     name: M02
     wavelength: [0.436, 0.445, 0.454]
@@ -164,7 +164,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M03:
     name: M03
     wavelength: [0.478, 0.488, 0.498]
@@ -179,7 +179,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M04:
     name: M04
     wavelength: [0.545, 0.555, 0.565]
@@ -194,7 +194,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M05:
     name: M05
     wavelength: [0.662, 0.672, 0.682]
@@ -209,7 +209,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M06:
     name: M06
     wavelength: [0.739, 0.746, 0.754]
@@ -224,7 +224,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M07:
     name: M07
     wavelength: [0.846, 0.865, 0.885]
@@ -239,7 +239,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M08:
     name: M08
     wavelength: [1.230, 1.240, 1.250]
@@ -254,7 +254,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M09:
     name: M09
     wavelength: [1.371, 1.378, 1.386]
@@ -269,7 +269,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M10:
     name: M10
     wavelength: [1.580, 1.610, 1.640]
@@ -284,7 +284,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M11:
     name: M11
     wavelength: [2.225, 2.250, 2.275]
@@ -299,7 +299,7 @@ datasets:
         units: "%"
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M12:
     name: M12
     wavelength: [3.610, 3.700, 3.790]
@@ -313,7 +313,7 @@ datasets:
         units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M13:
     name: M13
     wavelength: [3.973, 4.050, 4.128]
@@ -327,7 +327,7 @@ datasets:
         units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M14:
     name: M14
     wavelength: [8.400, 8.550, 8.700]
@@ -341,7 +341,7 @@ datasets:
         units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M15:
     name: M15
     wavelength: [10.263, 10.763, 11.263]
@@ -355,7 +355,7 @@ datasets:
         units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
   M16:
     name: M16
     wavelength: [11.538, 12.013, 12.489]
@@ -369,7 +369,7 @@ datasets:
         units: K
       radiance:
         standard_name: toa_outgoing_radiance_per_unit_wavelength
-        units: W m-2 um-1 sr-1
+        units: W m-2 µm-1 sr-1
 
   I_SOLZ:
     name: solar_zenith_angle
