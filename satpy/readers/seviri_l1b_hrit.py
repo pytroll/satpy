@@ -751,7 +751,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             else:
                 coefs = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
                 int_gain = coefs['GSICSCalCoeff'][band_idx]
-                int_offset = coefs['GSICSOffsetCount'][band_idx]
+                int_offset = coefs['GSICSOffsetCount'][band_idx] * int_gain
 
             # b) Internal or external? External takes precedence.
             gain = self.ext_calib_coefs.get(self.channel_name, {}).get('gain', int_gain)

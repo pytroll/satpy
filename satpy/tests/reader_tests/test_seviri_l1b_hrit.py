@@ -407,6 +407,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                 gain, offset = nominal_gain[ch_id - 1], nominal_offset[ch_id - 1]
             else:
                 gain, offset = gsics_gain[ch_id - 1], gsics_offset[ch_id - 1]
+                offset = offset * gain
 
             reader.channel_name = ch_name
             reader.mda['spectral_channel_id'] = ch_id
@@ -425,6 +426,7 @@ class TestHRITMSGFileHandler(unittest.TestCase):
                 gain, offset = coefs[ch_name]['gain'], coefs[ch_name]['offset']
             elif ch_name not in VIS_CHANNELS:
                 gain, offset = gsics_gain[ch_id - 1], gsics_offset[ch_id - 1]
+                offset = offset * gain
             else:
                 gain, offset = nominal_gain[ch_id - 1], nominal_offset[ch_id - 1]
 
