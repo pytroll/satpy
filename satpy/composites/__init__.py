@@ -213,7 +213,7 @@ class CompositorLoader(object):
 
         conf = {}
         for composite_config in composite_configs:
-            with open(composite_config) as conf_file:
+            with open(composite_config, 'r', encoding='utf-8') as conf_file:
                 conf = recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
         try:
             sensor_name = conf['sensor_name']

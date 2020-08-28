@@ -97,7 +97,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         self.config = {}
         self.config_files = config_files
         for config_file in config_files:
-            with open(config_file) as fd:
+            with open(config_file, 'r', encoding='utf-8') as fd:
                 self.config = recursive_dict_update(self.config, yaml.load(fd, Loader=UnsafeLoader))
         self.info = self.config['reader']
         self.name = self.info['name']

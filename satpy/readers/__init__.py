@@ -500,7 +500,7 @@ def read_reader_config(config_files, loader=UnsafeLoader):
     conf = {}
     LOG.debug('Reading %s', str(config_files))
     for config_file in config_files:
-        with open(config_file) as fd:
+        with open(config_file, 'r', encoding='utf-8') as fd:
             conf.update(yaml.load(fd.read(), Loader=loader))
 
     try:
