@@ -257,7 +257,8 @@ class TestMERSI2L1BReader(unittest.TestCase):
     def test_fy3d_all_resolutions(self):
         """Test loading data when all resolutions are available."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader, get_key
+        from satpy.readers import load_reader
+        from satpy.dataset import get_key
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF',
@@ -413,7 +414,8 @@ class TestMERSI2L1BReader(unittest.TestCase):
     def test_fy3d_1km_resolutions(self):
         """Test loading data when only 1km resolutions are available."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader, get_key
+        from satpy.readers import load_reader
+        from satpy.dataset import get_key
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_1000M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_GEO1K_L1B.HDF',
@@ -474,7 +476,8 @@ class TestMERSI2L1BReader(unittest.TestCase):
     def test_fy3d_250_resolutions(self):
         """Test loading data when only 250m resolutions are available."""
         from satpy.tests.utils import make_dataid
-        from satpy.readers import load_reader, get_key
+        from satpy.readers import load_reader
+        from satpy.dataset import get_key
         filenames = [
             'tf2019071182739.FY3D-X_MERSI_0250M_L1B.HDF',
             'tf2019071182739.FY3D-X_MERSI_GEOQK_L1B.HDF',
