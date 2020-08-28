@@ -350,9 +350,9 @@ class ZLevel(zlklass):
         """
         if other is None:
             return False
-        elif isinstance(other, numbers.Number):
-            return self == self.convert(other)
-        elif isinstance(other, (tuple, list)) and len(other) == 1:
+        is_scalar = isinstance(other, numbers.Number)
+        is_single_seq = isinstance(other, (tuple, list)) and len(other) == 1
+        if is_scalar or is_single_seq:
             return self == self.convert(other)
         return super().__eq__(other)
 
