@@ -20,7 +20,7 @@
 import os
 import unittest
 from unittest import mock
-from satpy.dataset import WavelengthRange, ModifierTuple, DataID
+from satpy.dataset import WavelengthRange, ModifierTuple, DataID, get_key
 
 import pytest
 
@@ -62,7 +62,7 @@ class TestDatasetDict(unittest.TestCase):
 
     def setUp(self):
         """Create a test DatasetDict."""
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         self.regular_dict = regular_dict = {
             make_dataid(name="test",
                         wavelength=(0, 0.5, 1),
@@ -93,13 +93,13 @@ class TestDatasetDict(unittest.TestCase):
 
     def test_init_noargs(self):
         """Test DatasetDict init with no arguments."""
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         d = DatasetDict()
         self.assertIsInstance(d, dict)
 
     def test_init_dict(self):
         """Test DatasetDict init with a regular dict argument."""
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         regular_dict = {make_dataid(name="test", wavelength=(0, 0.5, 1)): "1", }
         d = DatasetDict(regular_dict)
         self.assertEqual(d, regular_dict)
@@ -136,7 +136,6 @@ class TestDatasetDict(unittest.TestCase):
 
     def test_get_key(self):
         """Test 'get_key' special functions."""
-        from satpy.readers import get_key
         from satpy.dataset import DataQuery
         d = self.test_dict
         res1 = get_key(make_dataid(name='test4'), d, calibration='radiance')

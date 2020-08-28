@@ -46,8 +46,8 @@ else:
 CALIBRATION_ORDER = {cal: idx for idx, cal in enumerate(CALIBRATION_ORDER)}
 
 from satpy.utils import get_logger  # noqa
-from satpy.dataset import DataID, DataQuery # noqa
-from satpy.readers import (DatasetDict, find_files_and_readers,  # noqa
+from satpy.dataset import DataID, DataQuery, DatasetDict  # noqa
+from satpy.readers import (find_files_and_readers,  # noqa
                            available_readers)  # noqa
 from satpy.writers import available_writers  # noqa
 from satpy.scene import Scene  # noqa

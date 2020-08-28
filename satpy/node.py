@@ -17,8 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Nodes to build trees."""
 
-from satpy.dataset import DataID, DataQuery, ModifierTuple
-from satpy.readers import TooManyResults, get_key
+from satpy.dataset import DataID, DataQuery, ModifierTuple, get_key, TooManyResults
 from satpy.utils import get_logger
 from satpy.dataset import create_filtered_query
 
