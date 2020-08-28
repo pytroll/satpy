@@ -212,31 +212,41 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             'sensor_name', default).format(dataset_group=dataset_group)
         return self[sensor_path].lower()
 
-    def get_file_units(self, dataset_id, ds_info):
-        """Get file units."""
-        file_units = ds_info.get("file_units")
-
-        # Guess the file units if we need to (normally we would get this from
-        # the file)
-        if file_units is None:
-            if dataset_id.get('calibration') == 'radiance':
-                if "dnb" not in dataset_id['name'].lower():
-                    return 'W m-2 um-1 sr-1'
-                else:
-                    return 'W cm-2 sr-1'
-            elif dataset_id.get('calibration') == 'reflectance':
-                # CF compliant unit for dimensionless
-                file_units = "1"
-            elif dataset_id.get('calibration') == 'brightness_temperature':
-                file_units = "K"
-            elif ds_info.get('standard_name') == 'longitude':
-                file_units = "degrees_east"
-            elif ds_info.get('standard_name') == 'latitude':
-                file_units = "degrees_north"
-            elif 'angle' in ds_info.get('standard_name'):
-                file_units = 'degrees'
+    @staticmethod
+    def _get_file_units_by_calibration(dataset_id):
+        file_units = None
+        if dataset_id.get('calibration') == 'radiance':
+            if "dnb" not in dataset_id['name'].lower():
+                file_units = 'W m-2 um-1 sr-1'
             else:
-                LOG.debug("Unknown units for file key '%s'", dataset_id)
+                file_units = 'W cm-2 sr-1'
+        elif dataset_id.get('calibration') == 'reflectance':
+            # CF compliant unit for dimensionless
+            file_units = "1"
+        elif dataset_id.get('calibration') == 'brightness_temperature':
+            file_units = "K"
+        return file_units
+
+    @staticmethod
+    def _get_file_units_by_standard_name(ds_info):
+        file_units = None
+        if ds_info.get('standard_name') == 'longitude':
+            file_units = "degrees_east"
+        elif ds_info.get('standard_name') == 'latitude':
+            file_units = "degrees_north"
+        elif 'angle' in ds_info.get('standard_name'):
+            file_units = 'degrees'
+        return file_units
+
+    def get_file_units(self, dataset_id, ds_info):
+        """Get file units from metadata or make an educated guess."""
+        file_units = ds_info.get("file_units")
+        if file_units is None:
+            file_units = self._get_file_units_by_calibration(dataset_id)
+        if file_units is None:
+            file_units = self._get_file_units_by_standard_name(ds_info)
+        if file_units is None:
+            LOG.debug("Unknown units for file key '%s'", dataset_id)
 
         return file_units
 
