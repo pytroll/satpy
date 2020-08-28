@@ -32,6 +32,7 @@ from datetime import datetime
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.readers.utils import ZLevel
 from satpy.dataset import DataQuery
 import pygrib
 
@@ -73,16 +74,27 @@ class GRIBFileHandler(BaseFileHandler):
         except (RuntimeError, KeyError):
             raise IOError("Unknown GRIB file format: {}".format(self.filename))
 
+    @staticmethod
+    def _get_msg_item(msg, key, default=None):
+        try:
+            # pygrib returns RuntimeError if a key is missing
+            return msg[key]
+        except (RuntimeError, KeyError):
+            return default
+
     def _analyze_messages(self, grib_file):
         grib_file.seek(0)
         for idx, msg in enumerate(grib_file):
+            press_units = self._get_msg_item(msg, 'pressureUnits', 'hPa')
             msg_id = DataQuery(name=msg['shortName'],
-                               level=msg['level'],
+                               level=ZLevel(msg['level'], press_units),
+                               type_of_level=self._get_msg_item(msg, 'typeOfLevel'),
                                modifiers=tuple())
             ds_info = {
                 'message': idx + 1,
-                'name': msg['shortName'],
-                'level': msg['level'],
+                'name': msg_id['name'],
+                'level': msg_id['level'],
+                'type_of_level': msg_id['type_of_level'],
                 'file_type': self.filetype_info['file_type'],
             }
             self._msg_datasets[msg_id] = ds_info
@@ -229,10 +241,7 @@ class GRIBFileHandler(BaseFileHandler):
         start_time = self._convert_datetime(msg, 'validityDate',
                                             'validityTime')
         end_time = start_time
-        try:
-            center_description = msg['centreDescription']
-        except (RuntimeError, KeyError):
-            center_description = None
+        center_description = self._get_msg_item(msg, 'centreDescription')
         ds_info.update({
             'filename': self.filename,
             'shortName': msg['shortName'],
