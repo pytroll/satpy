@@ -279,6 +279,7 @@ class WavelengthRange(wlklass):
         Return:
             True if other is a scalar and min <= other <= max, or if other is
             a tuple equal to self, False otherwise.
+
         """
         if other is None:
             return False
@@ -1112,5 +1113,3 @@ class DatasetDict(dict):
         except KeyError:
             key = self.get_key(key)
             return super(DatasetDict, self).__delitem__(key)
-
-
