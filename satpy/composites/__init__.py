@@ -35,8 +35,7 @@ except ImportError:
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
-from satpy.dataset import DataID, DataQuery, MetadataObject, combine_metadata, minimal_default_keys_config
-from satpy.readers import DatasetDict
+from satpy.dataset import DataID, DataQuery, MetadataObject, combine_metadata, minimal_default_keys_config, DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
 
