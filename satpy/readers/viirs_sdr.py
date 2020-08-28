@@ -221,7 +221,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         if file_units is None:
             if dataset_id.get('calibration') == 'radiance':
                 if "dnb" not in dataset_id['name'].lower():
-                    return 'W m-2 µm-1 sr-1'
+                    return 'W m-2 um-1 sr-1'
                 else:
                     return 'W cm-2 sr-1'
             elif dataset_id.get('calibration') == 'reflectance':
