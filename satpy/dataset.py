@@ -61,9 +61,9 @@ class ValueList(IntEnum):
 
 
 try:
-    wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))
+    wlklass = namedtuple("WavelengthRange", "min central max units", defaults=('µm',))
 except NameError:  # python 3.6
-    wlklass = namedtuple("WavelengthRange", "min central max unit")
+    wlklass = namedtuple("WavelengthRange", "min central max units")
     wlklass.__new__.__defaults__ = ('µm',)
 
 
@@ -84,6 +84,7 @@ class WavelengthRange(wlklass):
         Return:
             True if other is a scalar and min <= other <= max, or if other is
             a tuple equal to self, False otherwise.
+
         """
         if other is None:
             return False
@@ -115,7 +116,7 @@ class WavelengthRange(wlklass):
 
     def __str__(self):
         """Format for print out."""
-        return "{0.central} {0.unit} ({0.min}-{0.max} {0.unit})".format(self)
+        return "{0.central} {0.units} ({0.min}-{0.max} {0.units})".format(self)
 
     def __contains__(self, other):
         """Check if this range contains *other*."""
@@ -124,7 +125,7 @@ class WavelengthRange(wlklass):
         elif isinstance(other, numbers.Number):
             return self.min <= other <= self.max
         with suppress(AttributeError):
-            if self.unit != other.unit:
+            if self.units != other.units:
                 raise NotImplementedError("Can't compare wavelength ranges with different units.")
             return self.min <= other.min and self.max >= other.max
         return False
