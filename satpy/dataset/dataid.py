@@ -630,18 +630,6 @@ class DataQuery:
         return dataids, distances
 
 
-class DatasetID:
-    """Deprecated datasetid."""
-
-    def __init__(self, *args, **kwargs):
-        """Fake init."""
-        raise TypeError("DatasetID should not be used directly")
-
-    def from_dict(self, *args, **kwargs):
-        """Fake fun."""
-        raise TypeError("DatasetID should not be used directly")
-
-
 def create_filtered_query(dataset_key, filter_query):
     """Create a DataQuery matching *dataset_key* and *filter_query*.
 
