@@ -178,5 +178,3 @@ def _all_values_equal(values):
         return _pairwise_all(nan_allclose, values)
     except TypeError:
         return _pairwise_all(eq, values)
-
-
