@@ -32,6 +32,11 @@ class MissingDependencies(RuntimeError):
         super().__init__(*args, **kwargs)
         self.missing_dependencies = missing_dependencies
 
+    def __str__(self):
+        """Return the string representation of the exception."""
+        unknown_str = ", ".join(map(str, self.missing_dependencies))
+        return "Unknown datasets: {}".format(unknown_str)
+
 
 class Node:
     """A node object."""

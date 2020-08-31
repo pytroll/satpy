@@ -974,8 +974,7 @@ class Scene:
         try:
             self._dependency_tree.populate_with_keys(needed_datasets, query)
         except MissingDependencies as err:
-            unknown_str = ", ".join(map(str, err.missing_dependencies))
-            raise KeyError("Unknown datasets: {}".format(unknown_str))
+            raise KeyError(str(err))
 
         self._wishlist |= needed_datasets
 
