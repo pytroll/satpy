@@ -759,6 +759,19 @@ class DataQuery:
             val = [val]
         return id_val in val
 
+    def sort_dataids_with_preference(self, all_ids, preference):
+        """Sort `all_ids` given a sorting `preference` (DataQuery or None)."""
+        try:
+            res = preference.to_dict()
+        except AttributeError:
+            res = dict()
+        res.update(self.to_dict())
+        optimistic_query = DataQuery.from_dict(res)
+        sorted_ids, distances = optimistic_query.sort_dataids(all_ids)
+        if distances[0] == np.inf:  # nothing matches the optimistic query
+            sorted_ids, distances = self.sort_dataids(all_ids)
+        return sorted_ids, distances
+
     def sort_dataids(self, dataids):
         """Sort the DataIDs based on this query.
 
@@ -779,7 +792,9 @@ class DataQuery:
         2. Least modified dataset if `modifiers` is `None` in `key`.
            Otherwise, the modifiers are ignored.
         3. Highest calibration if `calibration` is `None` in `key`.
-           Calibration priority is chosen by `satpy.CALIBRATION_ORDER`.
+           Calibration priority is the order of the calibration list defined as
+           reflectance, brightness temperature, radiance counts if not overridden in the
+           reader configuration.
         4. Best resolution (smallest number) if `resolution` is `None`
            in `key`. Otherwise, the resolution is ignored.
 

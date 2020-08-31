@@ -17,9 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for the dependency tree class and dependencies."""
 
+import os
 import unittest
-from satpy.tests.utils import make_cid, make_dataid
+
 from satpy.dependency_tree import DependencyTree
+from satpy.tests.utils import make_cid, make_dataid
 
 
 class TestDependencyTree(unittest.TestCase):
@@ -92,3 +94,34 @@ class TestMissingDependencies(unittest.TestCase):
         from satpy.node import MissingDependencies
         error = MissingDependencies('bla', "This is a message")
         assert 'This is a message' in str(error)
+
+
+class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
+    """Test that MODIS situations where the same channel is available at multiple resolution works."""
+
+    def test_overview(self):
+        """Set up the test case."""
+        from satpy.config import PACKAGE_CONFIG_PATH
+        from satpy.readers.yaml_reader import FileYAMLReader
+        config_file = os.path.join(PACKAGE_CONFIG_PATH, 'readers', 'modis_l1b.yaml')
+        self.reader_instance = FileYAMLReader([config_file])
+        from satpy import DataQuery
+        from satpy.composites import SunZenithCorrector, GenericCompositor
+        from satpy.readers import DatasetDict
+        overview = {'_satpy_id': make_dataid(name='overview'),
+                    'name': 'overview',
+                    'optional_prerequisites': [],
+                    'prerequisites': [DataQuery(name='1', modifiers=('sunz_corrected',)),
+                                      DataQuery(name='2', modifiers=('sunz_corrected',)),
+                                      DataQuery(name='31')],
+                    'standard_name': 'overview'}
+        compositors = {'modis': DatasetDict()}
+        compositors['modis']['overview'] = GenericCompositor(**overview)
+        modifiers = {'modis': {'sunz_corrected': (SunZenithCorrector,
+                                                  {'optional_prerequisites': ['solar_zenith_angle'],
+                                                   'name': 'sunz_corrected',
+                                                   'prerequisites': []})}}
+        dep_tree = DependencyTree({'modis_l1b': self.reader_instance}, compositors, modifiers)
+        dep_tree.populate_with_keys({'overview'}, DataQuery(resolution=1000))
+        for key in dep_tree._all_nodes.keys():
+            assert key.get('resolution', 1000) == 1000

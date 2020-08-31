@@ -17,49 +17,23 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Implementation of a dependency tree."""
 
+import numpy as np
+
 from satpy.dataset import create_filtered_query, ModifierTuple
 from satpy.node import CompositorNode
 from satpy.node import Node, EMPTY_LEAF_NAME, MissingDependencies, LOG
 from satpy.readers import TooManyResults, get_key
 
 
-class DependencyTree:
-    """Structure to discover and store `Dataset` dependencies.
-
-    Used primarily by the `Scene` object to organize dependency finding.
-    Dependencies are stored used a series of `Node` objects which this
-    class is a subclass of.
-
-    """
+class Tree:
+    """A tree implementation."""
 
     # simplify future logic by only having one "sentinel" empty node
     # making it a class attribute ensures it is the same across instances
     empty_node = Node(EMPTY_LEAF_NAME)
 
-    def __init__(self, readers, compositors, modifiers, available_only=False):
-        """Collect Dataset generating information.
-
-        Collect the objects that generate and have information about Datasets
-        including objects that may depend on certain Datasets being generated.
-        This includes readers, compositors, and modifiers.
-
-        Args:
-            readers (dict): Reader name -> Reader Object
-            compositors (dict): Sensor name -> Composite ID -> Composite Object
-            modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options)
-            available_only (bool): Whether only reader's available/loadable
-                datasets should be used when searching for dependencies (True)
-                or use all known/configured datasets regardless of whether the
-                necessary files were provided to the reader (False).
-                Note that when ``False`` loadable variations of a dataset will
-                have priority over other known variations.
-                Default is ``False``.
-
-        """
-        self.readers = readers
-        self.compositors = compositors
-        self.modifiers = modifiers
-        self._available_only = available_only
+    def __init__(self):
+        """Set up the tree."""
         self._root = Node(None)
 
         # keep a flat dictionary of nodes contained in the tree for better
@@ -133,21 +107,6 @@ class DependencyTree:
         self.add_child(parent, node)
         return node
 
-    def copy(self):
-        """Copy this node tree.
-
-        Note all references to readers are removed. This is meant to avoid
-        tree copies accessing readers that would return incompatible (Area)
-        data. Theoretically it should be possible for tree copies to request
-        compositor or modifier information as long as they don't depend on
-        any datasets not already existing in the dependency tree.
-        """
-        new_tree = DependencyTree({}, self.compositors, self.modifiers)
-        for c in self._root.children:
-            c = c.copy(node_cache=new_tree._all_nodes)
-            new_tree.add_child(new_tree._root, c)
-        return new_tree
-
     def __contains__(self, item):
         """Check if a item is in the tree."""
         return item in self._all_nodes
@@ -168,6 +127,57 @@ class DependencyTree:
         """Render the dependency tree as a string."""
         return self._root.display()
 
+
+class DependencyTree(Tree):
+    """Structure to discover and store `Dataset` dependencies.
+
+    Used primarily by the `Scene` object to organize dependency finding.
+    Dependencies are stored used a series of `Node` objects which this
+    class is a subclass of.
+
+    """
+
+    def __init__(self, readers, compositors, modifiers, available_only=False):
+        """Collect Dataset generating information.
+
+        Collect the objects that generate and have information about Datasets
+        including objects that may depend on certain Datasets being generated.
+        This includes readers, compositors, and modifiers.
+
+        Args:
+            readers (dict): Reader name -> Reader Object
+            compositors (dict): Sensor name -> Composite ID -> Composite Object
+            modifiers (dict): Sensor name -> Modifier name -> (Modifier Class, modifier options)
+            available_only (bool): Whether only reader's available/loadable
+                datasets should be used when searching for dependencies (True)
+                or use all known/configured datasets regardless of whether the
+                necessary files were provided to the reader (False).
+                Note that when ``False`` loadable variations of a dataset will
+                have priority over other known variations.
+                Default is ``False``.
+
+        """
+        super().__init__()
+        self.readers = readers
+        self.compositors = compositors
+        self.modifiers = modifiers
+        self._available_only = available_only
+
+    def copy(self):
+        """Copy this node tree.
+
+        Note all references to readers are removed. This is meant to avoid
+        tree copies accessing readers that would return incompatible (Area)
+        data. Theoretically it should be possible for tree copies to request
+        compositor or modifier information as long as they don't depend on
+        any datasets not already existing in the dependency tree.
+        """
+        new_tree = DependencyTree({}, self.compositors, self.modifiers)
+        for c in self._root.children:
+            c = c.copy(node_cache=new_tree._all_nodes)
+            new_tree.add_child(new_tree._root, c)
+        return new_tree
+
     def populate_with_keys(self, dataset_keys: set, query=None):
         """Populate the dependency tree.
 
@@ -184,7 +194,8 @@ class DependencyTree:
         known_nodes = list()
         for key in dataset_keys.copy():
             try:
-                node = self._create_subtree_for_key(key, query)
+                dsq = create_filtered_query(key, query)
+                node = self._create_subtree_for_key(dsq, query)
             except MissingDependencies as unknown:
                 unknown_datasets.append(unknown.missing_dependencies)
             else:
@@ -209,10 +220,9 @@ class DependencyTree:
                                `satpy.readers.get_key` for more details.
 
         """
-        dsq = create_filtered_query(dataset_key, query)
         # 0 check if the *exact* dataset is already loaded
         try:
-            node = self._get_subtree_for_existing_key(dsq)
+            node = self._get_subtree_for_existing_key(dataset_key)
         except MissingDependencies:
             # exact dataset isn't loaded, let's load it below
             pass
@@ -221,9 +231,9 @@ class DependencyTree:
 
         # 1 try to get *best* dataset from reader
         try:
-            node = self._create_subtree_from_reader(dsq)
+            node = self._create_subtree_from_reader(dataset_key, query)
         except TooManyResults:
-            LOG.warning("Too many possible datasets to load for {}".format(dsq))
+            LOG.warning("Too many possible datasets to load for {}".format(dataset_key))
             raise MissingDependencies({dataset_key})
         except MissingDependencies:
             pass
@@ -232,7 +242,7 @@ class DependencyTree:
 
         # 2 try to find a composite by name (any version of it is good enough)
         try:
-            node = self._get_subtree_for_existing_name(dsq)
+            node = self._get_subtree_for_existing_name(dataset_key)
         except MissingDependencies:
             pass
         else:
@@ -240,7 +250,7 @@ class DependencyTree:
 
         # 3 try to find a composite that matches
         try:
-            node = self._create_subtree_from_compositors(dsq)
+            node = self._create_subtree_from_compositors(dataset_key, query)
         except MissingDependencies:
             raise
         else:
@@ -255,17 +265,17 @@ class DependencyTree:
             LOG.trace("Exact dataset {} isn't loaded, will try reader...".format(dsq))
             raise MissingDependencies({dsq})
 
-    def _create_subtree_from_reader(self, dsq):
+    def _create_subtree_from_reader(self, dataset_key, query):
         try:
-            node = self._find_reader_dataset(dsq)
+            node = self._find_reader_node(dataset_key, query)
         except MissingDependencies:
-            LOG.trace("Could not find dataset in reader: {}".format(dsq))
+            LOG.trace("Could not find dataset in reader: {}".format(dataset_key))
             raise
         else:
-            LOG.trace("Found reader provided dataset:\n\tRequested: {}\n\tFound: {}".format(dsq, node.name))
+            LOG.trace("Found reader provided dataset:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node.name))
             return node
 
-    def _find_reader_dataset(self, dataset_key):
+    def _find_reader_node(self, dataset_key, query):
         """Attempt to find a `DataID` in the available readers.
 
         Args:
@@ -275,27 +285,68 @@ class DependencyTree:
                 available readers.
 
         """
-        too_many = False
+        matching_ids = self._find_matching_ids_in_readers(dataset_key)
+        result = self._get_unique_matching_id(matching_ids, dataset_key, query)
+
+        for reader_name, ids in matching_ids.items():
+            if result in ids:
+                data = {'reader_name': reader_name}
+                break
+        else:
+            raise RuntimeError("Data ID disappeared.")
+
+        result = self._get_unique_node_from_id(result, data)
+        return result
+
+    def _find_matching_ids_in_readers(self, dataset_key):
+        matching_ids = {}
         for reader_name, reader_instance in self.readers.items():
+            matching_ids[reader_name] = []
             try:
-                ds_id = reader_instance.get_dataset_key(dataset_key, available_only=self._available_only)
-            except TooManyResults:
-                LOG.trace("Too many datasets matching key {} in reader {}".format(dataset_key, reader_name))
-                too_many = True
-                continue
+                ds_ids = reader_instance.get_dataset_key(dataset_key, available_only=self._available_only,
+                                                         num_results=0, best=False)
             except KeyError:
                 LOG.trace("Can't find dataset %s in reader %s", str(dataset_key), reader_name)
                 continue
-            LOG.trace("Found {} in reader {} when asking for {}".format(str(ds_id), reader_name, repr(dataset_key)))
+            matching_ids[reader_name].extend(ds_ids)
+        return matching_ids
+
+    def _get_unique_matching_id(self, matching_ids, dataset_key, query):
+        """Get unique matching id from `matching_ids`, for a given `dataset_key` and some optional `query`."""
+        all_ids = sum(matching_ids.values(), [])
+        if len(all_ids) == 0:
+            raise MissingDependencies({dataset_key})
+        elif len(all_ids) == 1:
+            result = all_ids[0]
+        else:
+            sorted_ids, distances = dataset_key.sort_dataids_with_preference(all_ids, query)
             try:
-                # now that we know we have the exact DataID see if we have already created a Node for it
-                return self.getitem(ds_id)
-            except KeyError:
-                # we haven't created a node yet, create it now
-                return Node(ds_id, {'reader_name': reader_name})
-        if too_many:
-            raise TooManyResults("Too many keys matching: {}".format(dataset_key))
-        raise MissingDependencies({dataset_key})
+                result = self._get_unique_id_from_sorted_ids(sorted_ids, distances)
+            except TooManyResults:
+                LOG.trace("Too many datasets matching key {} in readers {}".format(dataset_key, matching_ids.keys()))
+                raise TooManyResults("Too many keys matching: {}".format(dataset_key))
+            except MissingDependencies:
+                raise MissingDependencies({dataset_key})
+        return result
+
+    @staticmethod
+    def _get_unique_id_from_sorted_ids(sorted_ids, distances):
+        if distances[0] != np.inf:
+            if distances[0] != distances[1]:
+                result = sorted_ids[0]
+            else:
+                raise TooManyResults
+        else:
+            raise MissingDependencies
+        return result
+
+    def _get_unique_node_from_id(self, result, data):
+        try:
+            # now that we know we have the exact DataID see if we have already created a Node for it
+            return self.getitem(result)
+        except KeyError:
+            # we haven't created a node yet, create it now
+            return Node(result, data)
 
     def _get_subtree_for_existing_name(self, dsq):
         try:
@@ -310,23 +361,23 @@ class DependencyTree:
             LOG.trace("Composite hasn't been loaded yet, will load: {}".format(dsq))
             raise MissingDependencies({dsq})
 
-    def _create_subtree_from_compositors(self, dsq):
+    def _create_subtree_from_compositors(self, dataset_key, query):
         try:
-            node = self._find_compositor(dsq)
-            LOG.trace("Found composite:\n\tRequested: {}\n\tFound: {}".format(dsq, node and node.name))
+            node = self._find_compositor(dataset_key, query)
+            LOG.trace("Found composite:\n\tRequested: {}\n\tFound: {}".format(dataset_key, node and node.name))
         except KeyError:
-            LOG.trace("Composite not found: {}".format(dsq))
-            raise MissingDependencies({dsq})
+            LOG.trace("Composite not found: {}".format(dataset_key))
+            raise MissingDependencies({dataset_key})
         return node
 
-    def _find_compositor(self, dataset_key):
+    def _find_compositor(self, dataset_key, query):
         """Find the compositor object for the given dataset_key."""
         # NOTE: This function can not find a modifier that performs
         # one or more modifications if it has modifiers see if we can find
         # the unmodified version first
 
         if dataset_key.is_modified():
-            implicit_dependency_node = self._create_implicit_dependency_subtree(dataset_key)
+            implicit_dependency_node = self._create_implicit_dependency_subtree(dataset_key, query)
             dataset_key = self._promote_query_to_modified_dataid(dataset_key, implicit_dependency_node.name)
             try:
                 compositor = self.get_modifier(dataset_key)
@@ -344,22 +395,25 @@ class DependencyTree:
 
         prerequisite_filter = composite_id.create_filter_query_without_required_fields(dataset_key)
 
-        # 2.1 get the prerequisites
+        # Get the prerequisites
         LOG.trace("Looking for composite prerequisites for: {}".format(dataset_key))
-        prereqs = self._create_required_subtrees(root, compositor.attrs['prerequisites'], query=prerequisite_filter)
+        prereqs = [create_filtered_query(prereq, prerequisite_filter) if not isinstance(prereq, Node) else prereq
+                   for prereq in compositor.attrs['prerequisites']]
+        prereqs = self._create_required_subtrees(root, prereqs, query=query)
         root.add_required_nodes(prereqs)
 
         # Get the optionals
         LOG.trace("Looking for optional prerequisites for: {}".format(dataset_key))
-        optional_prereqs = self._create_optional_subtrees(
-                root, compositor.attrs['optional_prerequisites'], query=prerequisite_filter)
-        root.add_optional_nodes(optional_prereqs)
+        optionals = [create_filtered_query(prereq, prerequisite_filter) if not isinstance(prereq, Node) else prereq
+                     for prereq in compositor.attrs['optional_prerequisites']]
+        optionals = self._create_optional_subtrees(root, optionals, query=query)
+        root.add_optional_nodes(optionals)
 
         return root
 
-    def _create_implicit_dependency_subtree(self, dataset_key):
+    def _create_implicit_dependency_subtree(self, dataset_key, query):
         new_prereq = dataset_key.create_less_modified_query()
-        src_node = self._create_subtree_for_key(new_prereq)
+        src_node = self._create_subtree_for_key(new_prereq, query)
         return src_node
 
     def _promote_query_to_modified_dataid(self, query, dep_key):
