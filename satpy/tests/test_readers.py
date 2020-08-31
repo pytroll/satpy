@@ -20,7 +20,8 @@
 import os
 import unittest
 from unittest import mock
-from satpy.dataset import WavelengthRange, ModifierTuple, DataID, get_key
+from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
+from satpy.dataset.data_dict import get_key
 
 import pytest
 

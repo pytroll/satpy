@@ -19,8 +19,8 @@
 from datetime import datetime
 from unittest import mock
 
-from satpy.dataset import (DataID, DataQuery, default_id_keys_config,
-                           minimal_default_keys_config)
+from satpy.dataset import DataID, DataQuery
+from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.readers.yaml_reader import FileYAMLReader
 
 

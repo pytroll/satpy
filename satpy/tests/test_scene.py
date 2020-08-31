@@ -1754,7 +1754,7 @@ class TestSceneLoading(unittest.TestCase):
         """
         import satpy.scene
         from satpy.tests.utils import FakeReader, test_composites
-        from satpy.dataset import WavelengthRange
+        from satpy.dataset.dataid import WavelengthRange
         cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')

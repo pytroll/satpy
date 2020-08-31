@@ -243,7 +243,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         """Test loading data when all resolutions are available."""
         from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader
-        from satpy.dataset import get_key
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_0500M_V0001.HDF',
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_1000M_V0001.HDF',
@@ -340,7 +340,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         """Test loading data when only 4km resolutions are available."""
         from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader
-        from satpy.dataset import get_key
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_4000M_V0001.HDF',
         ]
@@ -396,7 +396,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         """Test loading data when only 2km resolutions are available."""
         from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader
-        from satpy.dataset import get_key
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_2000M_V0001.HDF',
         ]
@@ -452,7 +452,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         """Test loading data when only 1km resolutions are available."""
         from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader
-        from satpy.dataset import get_key
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_1000M_V0001.HDF',
         ]
@@ -496,7 +496,7 @@ class Test_HDF_AGRI_L1_cal(unittest.TestCase):
         """Test loading data when only 500m resolutions are available."""
         from satpy.tests.utils import make_dsq
         from satpy.readers import load_reader
-        from satpy.dataset import get_key
+        from satpy.dataset.data_dict import get_key
         filenames = [
             'FY4A-_AGRI--_N_REGC_1047E_L1-_FDI-_MULT_NOM_20190603003000_20190603003416_0500M_V0001.HDF',
         ]

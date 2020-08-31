@@ -17,9 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Nodes to build trees."""
 
-from satpy.dataset import DataID, DataQuery, ModifierTuple, get_key, TooManyResults
+from satpy.dataset import DataID, DataQuery
+from satpy.dataset.data_dict import TooManyResults, get_key
+from satpy.dataset.dataid import create_filtered_query, ModifierTuple
 from satpy.utils import get_logger
-from satpy.dataset import create_filtered_query
 
 LOG = get_logger(__name__)
 # Empty leaf used for marking composites with no prerequisites
