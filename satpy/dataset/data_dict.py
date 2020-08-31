@@ -264,5 +264,3 @@ class DatasetDict(dict):
         except KeyError:
             key = self.get_key(key)
             return super(DatasetDict, self).__delitem__(key)
-
-
