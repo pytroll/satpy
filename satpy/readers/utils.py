@@ -24,12 +24,15 @@ import tempfile
 import bz2
 import os
 import shutil
+import numbers
 import numpy as np
 import pyproj
 import warnings
+from collections import namedtuple
 from io import BytesIO
 from subprocess import Popen, PIPE
 from pyresample.geometry import AreaDefinition
+
 
 from satpy import CHUNK_SIZE
 
@@ -311,3 +314,70 @@ def apply_rad_correction(data, slope, offset):
     """Apply GSICS-like correction factors to radiance data."""
     data = (data - offset) / slope
     return data
+
+
+try:
+    zlklass = namedtuple("ZLevel", "value units", defaults=('hPa',))
+except NameError:  # python 3.6
+    zlklass = namedtuple("ZLevel", "min central max unit")
+    zlklass.__new__.__defaults__ = ('hPa',)
+
+
+class ZLevel(zlklass):
+    """Container for level information in a DataID."""
+
+    @classmethod
+    def convert(cls, zlevel):
+        """Convert `zlevel` to this type if possible."""
+        if isinstance(zlevel, (tuple, list)):
+            return cls(*zlevel)
+        elif isinstance(zlevel, numbers.Number):
+            return cls(zlevel)
+        return zlevel
+
+    def __eq__(self, other):
+        """Return if two levels are the same.
+
+        Args:
+            other (ZLevel, tuple, list, or scalar): Another ZLevel object, a
+                scalar level value, or a tuple/list with either a scalar or
+                (value, units_str).
+
+        Return:
+            True if other is a scalar and equals this value or if other is
+            a tuple equal to self, False otherwise.
+
+        """
+        if other is None:
+            return False
+        is_scalar = isinstance(other, numbers.Number)
+        is_single_seq = isinstance(other, (tuple, list)) and len(other) == 1
+        if is_scalar or is_single_seq:
+            return self == self.convert(other)
+        return super().__eq__(other)
+
+    def __ne__(self, other):
+        """Return the opposite of `__eq__`."""
+        return not self == other
+
+    def __lt__(self, other):
+        """Compare to another level."""
+        if other is None:
+            return False
+        # compare using units first
+        return self[::-1].__lt__(other[::-1])
+
+    def __gt__(self, other):
+        """Compare to another level."""
+        if other is None:
+            return True
+        # compare using units first
+        return self[::-1].__gt__(other[::-1])
+
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
+
+    def __str__(self):
+        """Format for print out."""
+        return "{0.value} {0.units}".format(self)

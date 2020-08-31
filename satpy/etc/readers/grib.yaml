@@ -7,7 +7,10 @@ reader:
     name:
       required: true
     level:
+      type: !!python/name:satpy.readers.utils.ZLevel
+    type_of_level:
     resolution:
+      transitive: False
     modifiers:
       default: []
       type: !!python/name:satpy.dataset.ModifierTuple
