@@ -99,15 +99,18 @@ class TestMissingDependencies(unittest.TestCase):
 class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
     """Test that MODIS situations where the same channel is available at multiple resolution works."""
 
-    def test_overview(self):
-        """Set up the test case."""
+    def test_modis_overview_1000m(self):
+        """Test a modis overview dependency calculation with resolution fixed to 1000m."""
         from satpy.config import PACKAGE_CONFIG_PATH
         from satpy.readers.yaml_reader import FileYAMLReader
-        config_file = os.path.join(PACKAGE_CONFIG_PATH, 'readers', 'modis_l1b.yaml')
-        self.reader_instance = FileYAMLReader([config_file])
+
         from satpy import DataQuery
         from satpy.composites import SunZenithCorrector, GenericCompositor
         from satpy.readers import DatasetDict
+
+        config_file = os.path.join(PACKAGE_CONFIG_PATH, 'readers', 'modis_l1b.yaml')
+        self.reader_instance = FileYAMLReader([config_file])
+
         overview = {'_satpy_id': make_dataid(name='overview'),
                     'name': 'overview',
                     'optional_prerequisites': [],
@@ -117,6 +120,7 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
                     'standard_name': 'overview'}
         compositors = {'modis': DatasetDict()}
         compositors['modis']['overview'] = GenericCompositor(**overview)
+
         modifiers = {'modis': {'sunz_corrected': (SunZenithCorrector,
                                                   {'optional_prerequisites': ['solar_zenith_angle'],
                                                    'name': 'sunz_corrected',
