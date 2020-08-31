@@ -18,5 +18,5 @@
 
 from .dataid import DataID, DataQuery, ModifierTuple  # noqa
 from .data_dict import get_key, DatasetDict  # noqa
-from .metadata import MetadataObject, combine_metadata  # noqa
+from .metadata import combine_metadata  # noqa
 from .anc_vars import dataset_walker, replace_anc  # noqa

@@ -35,7 +35,7 @@ except ImportError:
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
-from satpy.dataset import DataID, DataQuery, MetadataObject, combine_metadata
+from satpy.dataset import DataID, DataQuery, combine_metadata
 from satpy.dataset.dataid import minimal_default_keys_config
 from satpy import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
@@ -285,7 +285,7 @@ def sub_arrays(proj1, proj2):
     return res
 
 
-class CompositeBase(MetadataObject):
+class CompositeBase:
     """Base class for all compositors and modifiers."""
 
     def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
@@ -294,7 +294,16 @@ class CompositeBase(MetadataObject):
         kwargs["name"] = name
         kwargs["prerequisites"] = prerequisites or []
         kwargs["optional_prerequisites"] = optional_prerequisites or []
-        super(CompositeBase, self).__init__(**kwargs)
+        self.attrs = kwargs
+
+    @property
+    def id(self):
+        """Return the DataID of the object."""
+        try:
+            return self.attrs['_satpy_id']
+        except KeyError:
+            id_keys = self.attrs.get('_satpy_id_keys', minimal_default_keys_config)
+            return DataID(id_keys, **self.attrs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
         """Generate a composite."""

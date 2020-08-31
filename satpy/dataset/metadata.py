@@ -21,24 +21,6 @@ from datetime import datetime
 from functools import reduce, partial
 from operator import is_, eq
 import numpy as np
-from .dataid import minimal_default_keys_config, DataID
-
-
-class MetadataObject(object):
-    """A general metadata object."""
-
-    def __init__(self, **attributes):
-        """Initialize the class with *attributes*."""
-        self.attrs = attributes
-
-    @property
-    def id(self):
-        """Return the DataID of the object."""
-        try:
-            return self.attrs['_satpy_id']
-        except KeyError:
-            id_keys = self.attrs.get('_satpy_id_keys', minimal_default_keys_config)
-            return DataID(id_keys, **self.attrs)
 
 
 def combine_metadata(*metadata_objects, average_times=True):
