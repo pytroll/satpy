@@ -319,7 +319,7 @@ def apply_rad_correction(data, slope, offset):
 try:
     zlklass = namedtuple("ZLevel", "value units", defaults=('hPa',))
 except NameError:  # python 3.6
-    zlklass = namedtuple("Zlevel", "min central max unit")
+    zlklass = namedtuple("ZLevel", "min central max unit")
     zlklass.__new__.__defaults__ = ('hPa',)
 
 
