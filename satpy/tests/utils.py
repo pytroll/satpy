@@ -385,7 +385,7 @@ def make_fake_scene(content_dict, daskify=False, area=True,
 
     Create a fake Scene object from fake data.  Data are provided in
     the ``content_dict`` argument.  In ``content_dict``, keys should be
-    strings or DatasetID/DataID, and values may be either numpy.ndarray
+    strings or DataID, and values may be either numpy.ndarray
     or xarray.DataArray, in either case with exactly two dimensions.
     The function will convert each of the numpy.ndarray objects into
     an xarray.DataArray and assign those as datasets to a Scene object.
@@ -402,7 +402,7 @@ def make_fake_scene(content_dict, daskify=False, area=True,
 
     Args:
         content_dict (Mapping): Mapping where keys correspond to objects
-            accepted by ``Scene.__setitem__``, i.e. strings or DatasetID,
+            accepted by ``Scene.__setitem__``, i.e. strings or DataID,
             and values may be either ``numpy.ndarray`` or
             ``xarray.DataArray``.
         daskify (bool): optional, to use dask when converting
