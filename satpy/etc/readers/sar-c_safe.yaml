@@ -8,13 +8,15 @@ reader:
     name:
       required: true
     polarization:
-    resolution:
       transitive: true
+    resolution:
+      transitive: false
     calibration:
       enum:
         - gamma
         - sigma_nought
         - beta_nought
+      transitive: true
     modifiers:
       default: []
       type: !!python/name:satpy.dataset.ModifierTuple
@@ -23,8 +25,9 @@ reader:
     name:
       required: true
     polarization:
-    resolution:
       transitive: true
+    resolution:
+      transitive: false
 
 file_types:
     safe_measurement:
