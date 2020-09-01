@@ -22,8 +22,7 @@ Options for loading:
  - pre_launch_coeffs (False): use pre-launch coefficients if True, operational
    otherwise (if available).
 
-http://research.metoffice.gov.uk/research/interproj/nwpsaf/aapp/
-NWPSAF-MF-UD-003_Formats.pdf
+http://research.metoffice.gov.uk/research/interproj/nwpsaf/aapp/NWPSAF-MF-UD-003_Formats.pdf
 """
 
 import logging
@@ -85,12 +84,33 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self.sensor = 'avhrr-3'
         self.read()
 
+        self.active_channels = self._get_active_channels()
+
         self.platform_name = PLATFORM_NAMES.get(self._header['satid'][0], None)
 
         if self.platform_name is None:
             raise ValueError("Unsupported platform ID: %d" % self.header['satid'])
 
         self.sunz, self.satz, self.azidiff = None, None, None
+
+    def _get_active_channels(self):
+        status_1 = self._header['inststat1']
+        change_line = self._header['statchrecnb']
+        if change_line > 0:
+            status_2 = self._header['inststat2']
+        else:
+            status_2 = status_1
+        bits_channels = ((13, '1'),
+                         (12, '2'),
+                         (11, '3a'),
+                         (10, '3b'),
+                         (9, '4'),
+                         (8, '5'))
+        activated = dict()
+        for bit, channel_name in bits_channels:
+            activated[channel_name] = bool((status_1 >> bit & 1) | status_2 >> bit & 1)
+
+        return activated
 
     @property
     def start_time(self):
@@ -109,7 +129,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
         if key['name'] in CHANNEL_NAMES:
-            dataset = self.calibrate(key)
+            if self.active_channels[key['name']]:
+                dataset = self.calibrate(key)
+            else:
+                return None
         elif key['name'] in ['longitude', 'latitude']:
             if self.lons is None or self.lats is None:
                 self.navigate()
@@ -149,6 +172,11 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
 
         self._header = header
         self._data = data
+
+    def available_datasets(self, configured_datasets=None):
+        """Get the available datasets."""
+        for _, mda in configured_datasets:
+            yield self.active_channels[mda['name']], mda
 
     def get_angles(self, angle_id):
         """Get sun-satellite viewing angles."""
@@ -229,11 +257,6 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                                                       chunks=LINE_CHUNK), 3) == 0
             self._is3b = da.bitwise_and(da.from_array(self._data['scnlinbit'],
                                                       chunks=LINE_CHUNK), 3) == 1
-
-        if dataset_id['name'] == '3a' and not np.any(self._is3a):
-            raise ValueError("Empty dataset for channel 3A")
-        if dataset_id['name'] == '3b' and not np.any(self._is3b):
-            raise ValueError("Empty dataset for channel 3B")
 
         try:
             vis_idx = ['1', '2', '3a'].index(dataset_id['name'])
