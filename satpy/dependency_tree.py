@@ -207,7 +207,7 @@ class DependencyTree(Tree):
         for node in known_nodes:
             dataset_keys.add(node.name)
         if unknown_datasets:
-            raise MissingDependencies(unknown_datasets)
+            raise MissingDependencies(unknown_datasets, "Unknown datasets:")
 
     def _create_subtree_for_key(self, dataset_key, query=None):
         """Find the dependencies for *dataset_key*.
