@@ -22,7 +22,7 @@ Options for loading:
  - pre_launch_coeffs (False): use pre-launch coefficients if True, operational
    otherwise (if available).
 
-http://research.metoffice.gov.uk/research/interproj/nwpsaf/aapp/NWPSAF-MF-UD-003_Formats.pdf
+https://nwp-saf.eumetsat.int/site/download/documentation/aapp/NWPSAF-MF-UD-003_Formats_v8.0.pdf
 """
 
 import logging
