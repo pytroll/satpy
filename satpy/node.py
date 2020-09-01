@@ -34,8 +34,9 @@ class MissingDependencies(RuntimeError):
 
     def __str__(self):
         """Return the string representation of the exception."""
+        prefix = super().__str__()
         unknown_str = ", ".join(map(str, self.missing_dependencies))
-        return "Unknown datasets: {}".format(unknown_str)
+        return "{} {}".format(prefix, unknown_str)
 
 
 class Node:
