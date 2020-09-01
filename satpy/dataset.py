@@ -376,7 +376,7 @@ default_id_keys_config = {'name': {
                               'type': WavelengthRange,
                           },
                           'resolution': {
-                              'transitive': True,
+                              'transitive': False,
                               },
                           'calibration': {
                               'enum': [
@@ -384,7 +384,8 @@ default_id_keys_config = {'name': {
                                   'brightness_temperature',
                                   'radiance',
                                   'counts'
-                                  ]
+                                  ],
+                              'transitive': True,
                           },
                           'modifiers': {
                               'default': ModifierTuple(),
@@ -509,7 +510,7 @@ class DataID(dict):
         """Get the id_keys."""
         return deepcopy(self._id_keys)
 
-    def create_dep_filter(self, query):
+    def create_filter_query_without_required_fields(self, query):
         """Remove the required fields from *query*."""
         try:
             new_query = query.to_dict()
@@ -618,6 +619,26 @@ class DataID(dict):
     update = _immutable
     setdefault = _immutable
 
+    def _find_modifiers_key(self):
+        for key, val in self.items():
+            if isinstance(val, ModifierTuple):
+                return key
+        raise KeyError
+
+    def create_less_modified_query(self):
+        """Create a query with one less modifier."""
+        new_dict = self.to_dict()
+        new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
+        return DataQuery.from_dict(new_dict)
+
+    def is_modified(self):
+        """Check if this is modified."""
+        try:
+            key = self._find_modifiers_key()
+        except KeyError:
+            return False
+        return bool(self[key])
+
 
 class DataQuery:
     """The data query object.
@@ -678,8 +699,12 @@ class DataQuery:
         """Convert a dict to an ID."""
         return cls(**the_dict)
 
+    def items(self):
+        """Get the items of this query."""
+        return self._dict.items()
+
     def _asdict(self):
-        return dict(zip(self._fields, self._values))
+        return self._dict.copy()
 
     def to_dict(self, trim=True):
         """Convert the ID to a dict."""
@@ -734,6 +759,19 @@ class DataQuery:
             val = [val]
         return id_val in val
 
+    def sort_dataids_with_preference(self, all_ids, preference):
+        """Sort `all_ids` given a sorting `preference` (DataQuery or None)."""
+        try:
+            res = preference.to_dict()
+        except AttributeError:
+            res = dict()
+        res.update(self.to_dict())
+        optimistic_query = DataQuery.from_dict(res)
+        sorted_ids, distances = optimistic_query.sort_dataids(all_ids)
+        if distances[0] == np.inf:  # nothing matches the optimistic query
+            sorted_ids, distances = self.sort_dataids(all_ids)
+        return sorted_ids, distances
+
     def sort_dataids(self, dataids):
         """Sort the DataIDs based on this query.
 
@@ -754,7 +792,9 @@ class DataQuery:
         2. Least modified dataset if `modifiers` is `None` in `key`.
            Otherwise, the modifiers are ignored.
         3. Highest calibration if `calibration` is `None` in `key`.
-           Calibration priority is chosen by `satpy.CALIBRATION_ORDER`.
+           Calibration priority is the order of the calibration list defined as
+           reflectance, brightness temperature, radiance counts if not overridden in the
+           reader configuration.
         4. Best resolution (smallest number) if `resolution` is `None`
            in `key`. Otherwise, the resolution is ignored.
 
@@ -804,6 +844,16 @@ class DataQuery:
         distances, dataids = zip(*sorted(zip(distances, sorted_dataids)))
         return dataids, distances
 
+    def create_less_modified_query(self):
+        """Create a query with one less modifier."""
+        new_dict = self.to_dict()
+        new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
+        return DataQuery.from_dict(new_dict)
+
+    def is_modified(self):
+        """Check if this is modified."""
+        return bool(self._dict.get('modifiers'))
+
 
 class DatasetID:
     """Deprecated datasetid."""
@@ -824,6 +874,20 @@ def create_filtered_query(dataset_key, filter_query):
     has priority.
 
     """
+    ds_dict = _create_id_dict_from_any_key(dataset_key)
+    _update_dict_with_filter_query(ds_dict, filter_query)
+
+    return DataQuery.from_dict(ds_dict)
+
+
+def _update_dict_with_filter_query(ds_dict, filter_query):
+    if filter_query is not None:
+        for key, value in filter_query.items():
+            if value != '*':
+                ds_dict.setdefault(key, value)
+
+
+def _create_id_dict_from_any_key(dataset_key):
     try:
         ds_dict = dataset_key.to_dict()
     except AttributeError:
@@ -833,12 +897,7 @@ def create_filtered_query(dataset_key, filter_query):
             ds_dict = {'wavelength': dataset_key}
         else:
             raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
-    if filter_query is not None:
-        for key, value in filter_query._dict.items():
-            if value != '*':
-                ds_dict.setdefault(key, value)
-
-    return DataQuery.from_dict(ds_dict)
+    return ds_dict
 
 
 def dataset_walker(datasets):
