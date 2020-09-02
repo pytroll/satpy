@@ -671,7 +671,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     def get_dataset(self, key, info):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
-        res = self.calibrate(res, key['calibration'])
+        res = self.calibrate(res, key['calibration'], 'sun-earth_distance_corrected' in key.get('modifiers', []))
         if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
 
@@ -732,7 +732,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             data_list.append(data_upper)
         return xr.DataArray(da.vstack(data_list), dims=('y', 'x'))
 
-    def calibrate(self, data, calibration):
+    def calibrate(self, data, calibration, sun_earth_corrected):
         """Calibrate the data."""
         tic = datetime.now()
         channel_name = self.channel_name
@@ -768,7 +768,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
         if calibration == 'reflectance':
             solar_irradiance = CALIB[self.platform_id][channel_name]["F"]
-            res = self._vis_calibrate(res, solar_irradiance)
+            res = self._vis_calibrate(res, solar_irradiance, sun_earth_corrected)
 
         elif calibration == 'brightness_temperature':
             cal_type = self.prologue['ImageDescription'][

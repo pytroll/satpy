@@ -40,7 +40,8 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DataQuery, get_keys_from_config, default_id_keys_config, default_co_keys_config, DataID
+from satpy.dataset import DataQuery, get_keys_from_config, default_id_keys_config, default_co_keys_config, DataID, \
+    ModifierTuple
 from satpy.readers import DatasetDict, get_key
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
@@ -257,9 +258,12 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                 if idval is not None:
                     val_type = idval.get('type')
                 if val_type is not None and issubclass(val_type, tuple):
-                    # special case: wavelength can be [min, nominal, max]
-                    # but is still considered 1 option
-                    id_kwargs.append((val,))
+                    if val_type == ModifierTuple and val:
+                        id_kwargs.append(tuple(val))
+                    else:
+                        # special case: wavelength can be [min, nominal, max]
+                        # but is still considered 1 option
+                        id_kwargs.append((val,))
                 elif isinstance(val, (list, tuple, set)):
                     # this key has multiple choices
                     # (ex. 250 meter, 500 meter, 1000 meter resolutions)

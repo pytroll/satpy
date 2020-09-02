@@ -182,6 +182,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_HRV, HRIT_HRV_C]
+    modifiers: [[], [sun-earth_distance_corrected]]
 
   IR_016:
     name: IR_016
@@ -310,6 +311,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_VIS006, HRIT_VIS006_C]
+    modifiers: [[], [sun-earth_distance_corrected]]
 
   VIS008:
     name: VIS008
@@ -326,6 +328,7 @@ datasets:
         standard_name: counts
         units: count
     file_type: [HRIT_VIS008, HRIT_VIS008_C]
+    modifiers: [[], [sun-earth_distance_corrected]]
 
   WV_062:
     name: WV_062
