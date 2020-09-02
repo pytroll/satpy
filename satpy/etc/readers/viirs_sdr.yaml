@@ -65,7 +65,7 @@ datasets:
   I01:
     name: I01
     wavelength: [0.600, 0.640, 0.680]
-    modifiers: [sunz_corrected_iband]
+    modifiers: [[sunz_corrected_iband]]
     dataset_groups: [SVI01]
     file_type: generic_file
     resolution: 371
@@ -81,7 +81,7 @@ datasets:
   I02:
     name: I02
     wavelength: [0.845, 0.865, 0.884]
-    modifiers: [sunz_corrected_iband]
+    modifiers: [[sunz_corrected_iband]]
     dataset_groups: [SVI02]
     file_type: generic_file
     resolution: 371
@@ -97,7 +97,7 @@ datasets:
   I03:
     name: I03
     wavelength: [1.580, 1.610, 1.640]
-    modifiers: [sunz_corrected_iband]
+    modifiers: [[sunz_corrected_iband]]
     dataset_groups: [SVI03]
     file_type: generic_file
     resolution: 371
@@ -141,7 +141,7 @@ datasets:
   M01:
     name: M01
     wavelength: [0.402, 0.412, 0.422]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM01]
     file_type: generic_file
     resolution: 742
@@ -157,7 +157,7 @@ datasets:
   M02:
     name: M02
     wavelength: [0.436, 0.445, 0.454]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM02]
     file_type: generic_file
     resolution: 742
@@ -173,7 +173,7 @@ datasets:
   M03:
     name: M03
     wavelength: [0.478, 0.488, 0.498]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM03]
     file_type: generic_file
     resolution: 742
@@ -189,7 +189,7 @@ datasets:
   M04:
     name: M04
     wavelength: [0.545, 0.555, 0.565]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM04]
     file_type: generic_file
     resolution: 742
@@ -205,7 +205,7 @@ datasets:
   M05:
     name: M05
     wavelength: [0.662, 0.672, 0.682]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM05]
     file_type: generic_file
     resolution: 742
@@ -221,7 +221,7 @@ datasets:
   M06:
     name: M06
     wavelength: [0.739, 0.746, 0.754]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM06]
     file_type: generic_file
     resolution: 742
@@ -237,7 +237,7 @@ datasets:
   M07:
     name: M07
     wavelength: [0.846, 0.865, 0.885]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM07]
     file_type: generic_file
     resolution: 742
@@ -253,7 +253,7 @@ datasets:
   M08:
     name: M08
     wavelength: [1.230, 1.240, 1.250]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM08]
     file_type: generic_file
     resolution: 742
@@ -269,7 +269,7 @@ datasets:
   M09:
     name: M09
     wavelength: [1.371, 1.378, 1.386]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM09]
     file_type: generic_file
     resolution: 742
@@ -285,7 +285,7 @@ datasets:
   M10:
     name: M10
     wavelength: [1.580, 1.610, 1.640]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM10]
     file_type: generic_file
     resolution: 742
@@ -301,7 +301,7 @@ datasets:
   M11:
     name: M11
     wavelength: [2.225, 2.250, 2.275]
-    modifiers: [sunz_corrected]
+    modifiers: [[sunz_corrected]]
     dataset_groups: [SVM11]
     file_type: generic_file
     resolution: 742
