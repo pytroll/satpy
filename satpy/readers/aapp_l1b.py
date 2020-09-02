@@ -171,7 +171,10 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
     def available_datasets(self, configured_datasets=None):
         """Get the available datasets."""
         for _, mda in configured_datasets:
-            yield self.active_channels[mda['name']], mda
+            if mda['name'] in CHANNEL_NAMES:
+                yield self.active_channels[mda['name']], mda
+            else:
+                yield True, mda
 
     def get_angles(self, angle_id):
         """Get sun-satellite viewing angles."""
