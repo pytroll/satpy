@@ -183,7 +183,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         name_to_variable = dict(zip(ANGLES, (satz, sunz, azidiff)))
         return create_xarray(name_to_variable[angle_id])
 
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=10)
     def _get_all_interpolated_angles(self):
         sunz40km, satz40km, azidiff40km = self._get_tiepoint_angles_in_degrees()
         return self._interpolate_arrays(sunz40km, satz40km, azidiff40km)
@@ -231,7 +231,7 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         else:
             raise KeyError("Coordinate {} unknown.".format(coordinate_id))
 
-    @functools.lru_cache
+    @functools.lru_cache(maxsize=10)
     def _get_all_interpolated_coordinates(self):
         lons40km, lats40km = self._get_coordinates_in_degrees()
         return self._interpolate_arrays(lons40km, lats40km)
