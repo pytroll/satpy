@@ -31,7 +31,6 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
     def setUp(self):
         """Set up the test case."""
         self._header = np.zeros(1, dtype=_HEADERTYPE)
-        self._data = np.zeros(3, dtype=_SCANTYPE)
         self._header['satid'][0] = 13
         self._header['radtempcnv'][0] = [[267194, -171669, 1002811],
                                          [930310,  -59084, 1001600],
@@ -43,6 +42,7 @@ class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
         # 3b is on, 3a is off
         self._header['inststat2'][0] = 0b1111101100000000
 
+        self._data = np.zeros(3, dtype=_SCANTYPE)
         self._data['scnlinyr'][:] = 2020
         self._data['scnlindy'][:] = 8
         self._data['scnlintime'][0] = 30195225
@@ -156,7 +156,6 @@ class TestAAPPL1BChannel3AMissing(unittest.TestCase):
     def setUp(self):
         """Set up the test case."""
         self._header = np.zeros(1, dtype=_HEADERTYPE)
-        self._data = np.zeros(3, dtype=_SCANTYPE)
         self._header['satid'][0] = 13
         self._header['radtempcnv'][0] = [[267194, -171669, 1002811],
                                          [930310, -59084, 1001600],
@@ -167,6 +166,7 @@ class TestAAPPL1BChannel3AMissing(unittest.TestCase):
         self._header['statchrecnb'][0] = 0
         self._header['inststat2'][0] = 0b0
 
+        self._data = np.zeros(3, dtype=_SCANTYPE)
         self._data['scnlinyr'][:] = 2020
         self._data['scnlindy'][:] = 8
         self._data['scnlintime'][0] = 30195225
