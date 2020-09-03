@@ -251,7 +251,7 @@ class ValueList(IntEnum):
 
 try:
     wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))
-except NameError:  # python 3.6
+except TypeError:  # python 3.6
     wlklass = namedtuple("WavelengthRange", "min central max unit")
     wlklass.__new__.__defaults__ = ('µm',)
 
