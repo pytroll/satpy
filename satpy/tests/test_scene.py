@@ -735,7 +735,7 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list), len(r.all_ids))
         id_list = scene.all_dataset_ids(composites=True)
         self.assertEqual(len(id_list),
-                         len(r.all_ids) + 28)
+                         len(r.all_ids) + 29)
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
@@ -1483,7 +1483,9 @@ class TestSceneLoading(unittest.TestCase):
 
         # Check dependency tree nodes
         # initialize the dep tree without loading the data
-        scene._dependency_tree.find_dependencies({'comp19'})
+
+        scene._dependency_tree.populate_with_keys({'comp19'})
+
         this_node = scene._dependency_tree['comp19']
         shared_dep_id = make_dataid(name='ds5', modifiers=('res_change',))
         shared_dep_expected_node = scene._dependency_tree[shared_dep_id]
@@ -1718,6 +1720,23 @@ class TestSceneLoading(unittest.TestCase):
 
     @mock.patch('satpy.composites.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
+    def test_load_green(self, cri, cl):
+        """Test loading ahi_green."""
+        import satpy.scene
+        from satpy.tests.utils import FakeReader, test_composites
+        cri.return_value = {'fake_reader': FakeReader('fake_reader', 'fake_sensor')}
+        comps, mods = test_composites('fake_sensor')
+        cl.return_value = (comps, mods)
+        scene = satpy.scene.Scene(filenames=['bla'],
+                                  base_dir='bli',
+                                  reader='fake_reader')
+        scene.load(['ahi_green'])
+        loaded_ids = list(scene._datasets.keys())
+        assert len(loaded_ids) == 1
+        assert loaded_ids[0] == make_cid(name='ahi_green')
+
+    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_no_generate_comp10(self, cri, cl):
         """Test generating a composite after loading."""
         import satpy.scene
@@ -1767,7 +1786,9 @@ class TestSceneLoading(unittest.TestCase):
         # initialize the dep tree without loading the data
         ds1_mod_id = make_dsq(name='ds1', modifiers=('mod_wl',))
         ds3_mod_id = make_dsq(name='ds3', modifiers=('mod_wl',))
-        scene._dependency_tree.find_dependencies({ds1_mod_id, ds3_mod_id})
+
+        scene._dependency_tree.populate_with_keys({ds1_mod_id, ds3_mod_id})
+
         ds1_mod_node = scene._dependency_tree[ds1_mod_id]
         ds3_mod_node = scene._dependency_tree[ds3_mod_id]
         ds1_mod_dep_node = ds1_mod_node.data[1][1]

@@ -72,6 +72,24 @@ class TestDataID(unittest.TestCase):
         with pytest.raises(ValueError):
             DataID(dikc, name='C05', calibration='_bad_')
 
+    def test_is_modified(self):
+        """Test that modifications are detected properly."""
+        from satpy.dataset import DataID, default_id_keys_config as dikc
+        d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
+        d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
+
+        assert d1.is_modified()
+        assert not d2.is_modified()
+
+    def test_create_less_modified_query(self):
+        """Test that modifications are popped correctly."""
+        from satpy.dataset import DataID, default_id_keys_config as dikc
+        d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
+        d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
+
+        assert not d1.create_less_modified_query()['modifiers']
+        assert not d2.create_less_modified_query()['modifiers']
+
 
 class TestCombineMetadata(unittest.TestCase):
     """Test how metadata is combined."""
@@ -374,18 +392,39 @@ def test_dataid_pickle():
     assert did == pickle.loads(pickle.dumps(did))
 
 
-def test_dataquery():
-    """Test DataQuery objects."""
-    from satpy.dataset import DataQuery
+class TestDataQuery:
+    """Test case for data queries."""
 
-    DataQuery(name='cheese_shops')
+    def test_dataquery(self):
+        """Test DataQuery objects."""
+        from satpy.dataset import DataQuery
 
-    # Check repr
-    did = DataQuery(name='VIS008', resolution=111)
-    assert repr(did) == "DataQuery(name='VIS008', resolution=111)"
+        DataQuery(name='cheese_shops')
 
-    # Check inequality
-    assert DataQuery(wavelength=10) != DataQuery(name="VIS006")
+        # Check repr
+        did = DataQuery(name='VIS008', resolution=111)
+        assert repr(did) == "DataQuery(name='VIS008', resolution=111)"
+
+        # Check inequality
+        assert DataQuery(wavelength=10) != DataQuery(name="VIS006")
+
+    def test_is_modified(self):
+        """Test that modifications are detected properly."""
+        from satpy.dataset import DataQuery
+        d1 = DataQuery(name="a", wavelength=0.2, modifiers=('hej',))
+        d2 = DataQuery(name="a", wavelength=0.2, modifiers=tuple())
+
+        assert d1.is_modified()
+        assert not d2.is_modified()
+
+    def test_create_less_modified_query(self):
+        """Test that modifications are popped correctly."""
+        from satpy.dataset import DataQuery
+        d1 = DataQuery(name="a", wavelength=0.2, modifiers=('hej',))
+        d2 = DataQuery(name="a", wavelength=0.2, modifiers=tuple())
+
+        assert not d1.create_less_modified_query()['modifiers']
+        assert not d2.create_less_modified_query()['modifiers']
 
 
 def test_id_query_interactions():

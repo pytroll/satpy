@@ -888,11 +888,11 @@ class FileYAMLReader(AbstractYAMLReader):
 
         """
         try:
-            return get_key(key, self.available_ids.keys(), **kwargs)
+            return get_key(key, self.available_dataset_ids, **kwargs)
         except KeyError:
             if available_only:
                 raise
-            return get_key(key, self.all_ids.keys(), **kwargs)
+            return get_key(key, self.all_dataset_ids, **kwargs)
 
     def load(self, dataset_keys, previous_datasets=None, **kwargs):
         """Load `dataset_keys`.
