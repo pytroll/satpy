@@ -149,6 +149,7 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     """Get the bbox in lon/lats of the valid pixels inside *geos_area*.
 
     Args:
+      geos_area: The geostationary area to analyse.
       nb_points: Number of points on the polygon
 
     """
@@ -311,3 +312,17 @@ def apply_rad_correction(data, slope, offset):
     """Apply GSICS-like correction factors to radiance data."""
     data = (data - offset) / slope
     return data
+
+
+def apply_earthsun_distance_correction(utc_date, reflectance):
+    """Correct reflectance data to account for changing Earth-Sun distance."""
+    from pyorbital.astronomy import sun_earth_distance_correction
+    se_dist = sun_earth_distance_correction(utc_date)
+    return reflectance * se_dist * se_dist
+
+
+def remove_earthsun_distance_correction(utc_date, reflectance):
+    """Remove the sun-earth distance correction."""
+    from pyorbital.astronomy import sun_earth_distance_correction
+    se_dist = sun_earth_distance_correction(utc_date)
+    return reflectance / (se_dist * se_dist)
