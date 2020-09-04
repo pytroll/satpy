@@ -355,13 +355,13 @@ class TestHelpers(unittest.TestCase):
         np.testing.assert_allclose(out_refl, exp_refl)
 
         with self.assertRaises(AttributeError):
-            out_refl = hf.apply_earthsun_distance_correction(in_refl)
+            hf.apply_earthsun_distance_correction(in_refl)
 
     def test_remove_sunearth_corr(self):
         """Test the removal of the sun-earth distance correction."""
         test_date = datetime(2020, 8, 15, 13, 0, 40)
         in_refl_arr = np.array([10.50514689, 21.01029379, 42.02058758,
-                            1.05051469, 102.95043957, 52.52573447])
+                                1.05051469, 102.95043957, 52.52573447])
         exp_refl = np.array([10., 20., 40., 1., 98., 50.])
 
         # Check case that array has a start time attr
@@ -382,4 +382,4 @@ class TestHelpers(unittest.TestCase):
         np.testing.assert_allclose(out_refl, exp_refl)
 
         with self.assertRaises(AttributeError):
-            out_refl = hf.remove_earthsun_distance_correction(in_refl)
+            hf.remove_earthsun_distance_correction(in_refl)
