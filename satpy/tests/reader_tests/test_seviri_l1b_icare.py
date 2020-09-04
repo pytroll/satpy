@@ -71,10 +71,7 @@ class FakeHDF4FileHandler2(FakeHDF4FileHandler):
                 for a in ['_FillValue', 'scale_factor', 'add_offset']:
                     if key + '/attr/' + a in file_content:
                         attrs[a] = file_content[key + '/attr/' + a]
-                if val.ndim > 1:
-                    file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
-                else:
-                    file_content[key] = DataArray(val, attrs=attrs)
+                file_content[key] = DataArray(val, dims=('fakeDim0', 'fakeDim1'), attrs=attrs)
         if 'y' not in file_content['Normalized_Radiance'].dims:
             file_content['Normalized_Radiance'] = file_content['Normalized_Radiance'].rename({'fakeDim0': 'x',
                                                                                               'fakeDim1': 'y'})
@@ -98,6 +95,20 @@ class TestSEVIRIICAREReader(unittest.TestCase):
     def tearDown(self):
         """Stop wrapping the HDF4 file handler."""
         self.p.stop()
+
+    def compare_areas(self, v):
+        test_area = {'area_id': 'geosmsg',
+                     'width': 10,
+                     'height': 300,
+                     'area_extent': (-5567248.2834071,
+                                     -5570248.6866857,
+                                     -5537244.2506213,
+                                     -4670127.7031114)}
+        self.assertEqual(v.attrs['area'].area_id, test_area['area_id'])
+        self.assertEqual(v.attrs['area'].width, test_area['width'])
+        self.assertEqual(v.attrs['area'].height, test_area['height'])
+        np.testing.assert_almost_equal(v.attrs['area'].area_extent,
+                                       test_area['area_extent'])
 
     def test_init(self):
         """Test basic init with no extra parameters."""
@@ -137,24 +148,60 @@ class TestSEVIRIICAREReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['calibration'], 'brightness_temperature')
 
-    def test_area_def(self):
+    def test_area_def_lores(self):
         """Test loading all datasets from an area of interest file."""
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
-            'GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf',
+            'GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf'
         ])
         r.create_filehandlers(loadables)
         datasets = r.load(['VIS008'])
-        test_area = {'area_id': 'geosmsg',
-                     'width': 10,
-                     'height': 300,
-                     'area_extent': (-5567248.2834071,
-                                     -5570248.6866857,
-                                     -5537244.2506213,
-                                     -4670127.7031114)}
         for v in datasets.values():
-            self.assertEqual(v.attrs['area'].area_id, test_area['area_id'])
-            self.assertEqual(v.attrs['area'].width, test_area['width'])
-            self.assertEqual(v.attrs['area'].height, test_area['height'])
-            np.testing.assert_almost_equal(v.attrs['area'].area_extent,
-                                           test_area['area_extent'])
+            self.compare_areas(v)
+            self.assertEqual(v.attrs['area'].proj_id, 'msg_lowres')
+
+    def test_area_def_hires(self):
+        """Test loading all datasets from an area of interest file."""
+        r = load_reader(self.reader_configs)
+        loadables = r.select_files_from_pathnames([
+            'GEO_L1B-MSG1_2004-12-29T12-15-00_G_HRV_V1-04.hdf',
+        ])
+        r.create_filehandlers(loadables)
+        datasets = r.load(['HRV'])
+        for v in datasets.values():
+            self.compare_areas(v)
+            self.assertEqual(v.attrs['area'].proj_id, 'msg_hires')
+
+    def test_sensor_names(self):
+        """Check satellite name conversion is correct, including error case"""
+        file_data = FakeHDF4FileHandler2.get_test_content(mock.MagicMock(),
+                                                          mock.MagicMock(),
+                                                          mock.MagicMock(),
+                                                          mock.MagicMock())
+        sensor_list = {'Meteosat-08': 'MSG1/SEVIRI',
+                       'Meteosat-09': 'MSG2/SEVIRI',
+                       'Meteosat-10': 'MSG3/SEVIRI',
+                       'Meteosat-11': 'MSG4/SEVIRI'}
+        with mock.patch('satpy.tests.reader_tests.test_seviri_l1b_icare.'
+                        'FakeHDF4FileHandler2.get_test_content') as patched_func:
+            for sat in sensor_list.keys():
+                file_data['/attr/Sensors'] = sensor_list[sat]
+                patched_func.return_value = file_data
+                plat, sens = self.p.target(mock.MagicMock(),
+                                           mock.MagicMock(),
+                                           mock.MagicMock()).sensor_name
+                self.assertEqual(plat, sat)
+
+            with self.assertRaises(NameError):
+                file_data['/attr/Sensors'] = 'BADSAT/NOSENSE'
+                patched_func.return_value = file_data
+                plat, sens = self.p.target(mock.MagicMock(),
+                                           mock.MagicMock(),
+                                           mock.MagicMock()).sensor_name
+
+    def test_bad_bandname(self):
+        """Check reader raises an error if a band bandname is passed."""
+        with self.assertRaises(NameError):
+            self.p.target(mock.MagicMock(),
+                          mock.MagicMock(),
+                          mock.MagicMock())._get_dsname({'name': 'badband'})
