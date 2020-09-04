@@ -502,7 +502,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
         if calibration == 'reflectance':
             solar_irradiance = CALIB[self.platform_id][channel]["F"]
-            res = self._vis_calibrate(res, solar_irradiance)
+            res = self._vis_calibrate(res, solar_irradiance, self.start_time)
 
         elif calibration == 'brightness_temperature':
             cal_type = data15hdr['ImageDescription'][

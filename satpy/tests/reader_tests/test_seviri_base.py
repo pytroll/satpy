@@ -59,3 +59,8 @@ class SeviriBaseTest(unittest.TestCase):
                              np.datetime64('2016-03-04 13:00:00.001'),
                              np.datetime64('2016-03-05 14:00:00.002')])
         self.assertTrue(np.all(get_cds_time(days=days, msecs=msecs) == expected))
+
+        days = 21246
+        msecs = 12*3600*1000
+        expected = np.datetime64('2016-03-03 12:00:00.000')
+        self.assertTrue(get_cds_time(days=days, msecs=msecs) == expected)
