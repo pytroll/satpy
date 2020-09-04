@@ -163,7 +163,7 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
 
         self.handler = SEVIRICalibrationHandler()
         self.handler.platform_id = PLATFORM_ID
-        self.handler.start_time  = datetime(2020, 8, 15, 13, 0, 40)
+        self.handler.start_time = datetime(2020, 8, 15, 13, 0, 40)
 
     def test_convert_to_radiance(self):
         """Test the conversion from counts to radiance method"""
