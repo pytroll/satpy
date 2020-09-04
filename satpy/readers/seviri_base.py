@@ -27,6 +27,7 @@ import numpy as np
 from numpy.polynomial.chebyshev import Chebyshev
 import dask.array as da
 
+from satpy.readers.utils import apply_earthsun_distance_correction
 from satpy.readers.eum_base import (time_cds_short,
                                     issue_revision)
 
@@ -371,9 +372,10 @@ class SEVIRICalibrationHandler(object):
         return ((C2 * wavenumber) /
                 np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
-    def _vis_calibrate(self, data, solar_irradiance):
+    def _vis_calibrate(self, data, solar_irradiance, time):
         """Calibrate to reflectance."""
-        return np.pi * data * 100.0 / solar_irradiance
+        reflectance = np.pi * data * 100.0 / solar_irradiance
+        return apply_earthsun_distance_correction(time, reflectance)
 
 
 def chebyshev(coefs, time, domain):
