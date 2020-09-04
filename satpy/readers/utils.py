@@ -314,15 +314,31 @@ def apply_rad_correction(data, slope, offset):
     return data
 
 
-def apply_earthsun_distance_correction(utc_date, reflectance):
+def apply_earthsun_distance_correction(reflectance, utc_date=None):
     """Correct reflectance data to account for changing Earth-Sun distance."""
     from pyorbital.astronomy import sun_earth_distance_correction
+    if utc_date is None:
+        try:
+            utc_date = reflectance.start_time
+        except AttributeError:
+            try:
+                utc_date = reflectance.scheduled_time
+            except AttributeError:
+                raise
     se_dist = sun_earth_distance_correction(utc_date)
     return reflectance * se_dist * se_dist
 
 
-def remove_earthsun_distance_correction(utc_date, reflectance):
+def remove_earthsun_distance_correction(reflectance, utc_date=None):
     """Remove the sun-earth distance correction."""
     from pyorbital.astronomy import sun_earth_distance_correction
+    if utc_date is None:
+        try:
+            utc_date = reflectance.start_time
+        except AttributeError:
+            try:
+                utc_date = reflectance.scheduled_time
+            except AttributeError:
+                raise
     se_dist = sun_earth_distance_correction(utc_date)
     return reflectance / (se_dist * se_dist)

@@ -163,6 +163,7 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
 
         self.handler = SEVIRICalibrationHandler()
         self.handler.platform_id = PLATFORM_ID
+        self.handler.start_time  = datetime(2020, 8, 15, 13, 0, 40)
 
     def test_convert_to_radiance(self):
         """Test the conversion from counts to radiance method"""
@@ -188,10 +189,8 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
                                        CHANNEL_NAME, CAL_TYPEBAD)
 
     def test_vis_calibrate(self):
-        test_date = datetime(2020, 8, 15, 13, 0, 40)
         result = self.handler._vis_calibrate(VIS008_RADIANCE,
-                                             VIS008_SOLAR_IRRADIANCE,
-                                             test_date)
+                                             VIS008_SOLAR_IRRADIANCE)
         assertNumpyArraysEqual(result, VIS008_REFLECTANCE)
 
     def tearDown(self):

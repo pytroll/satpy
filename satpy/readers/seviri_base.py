@@ -372,10 +372,10 @@ class SEVIRICalibrationHandler(object):
         return ((C2 * wavenumber) /
                 np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
-    def _vis_calibrate(self, data, solar_irradiance, time):
+    def _vis_calibrate(self, data, solar_irradiance):
         """Calibrate to reflectance."""
         reflectance = np.pi * data * 100.0 / solar_irradiance
-        return apply_earthsun_distance_correction(time, reflectance)
+        return apply_earthsun_distance_correction(reflectance, self.start_time)
 
 
 def chebyshev(coefs, time, domain):
