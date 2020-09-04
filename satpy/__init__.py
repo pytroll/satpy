@@ -27,24 +27,6 @@ except DistributionNotFound:
 
 CHUNK_SIZE = int(os.getenv('PYTROLL_CHUNK_SIZE', 4096))
 
-# Order of "highest" calibration from highest to lowest
-DEFAULT_CALIBRATION_ORDER = [
-    'brightness_temperature',
-    'reflectance',
-    'radiance',
-    'counts',
-    'gamma',
-    'sigma_nought',
-    'beta_nought',
-]
-CALIBRATION_ORDER = os.getenv('PYTROLL_CALIBRATION_ORDER', None)
-if CALIBRATION_ORDER is None:
-    CALIBRATION_ORDER = DEFAULT_CALIBRATION_ORDER
-else:
-    CALIBRATION_ORDER = [x.strip() for x in CALIBRATION_ORDER.split(' ')]
-# convert to a dictionary of priority for faster access (0 higher priority)
-CALIBRATION_ORDER = {cal: idx for idx, cal in enumerate(CALIBRATION_ORDER)}
-
 from satpy.utils import get_logger  # noqa
 from satpy.dataset import DataID, DataQuery  # noqa
 from satpy.dataset.data_dict import DatasetDict  # noqa
