@@ -74,7 +74,7 @@ class TestDataID(unittest.TestCase):
 
     def test_is_modified(self):
         """Test that modifications are detected properly."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -83,7 +83,7 @@ class TestDataID(unittest.TestCase):
 
     def test_create_less_modified_query(self):
         """Test that modifications are popped correctly."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
