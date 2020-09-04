@@ -319,10 +319,10 @@ def apply_earthsun_distance_correction(reflectance, utc_date=None):
     from pyorbital.astronomy import sun_earth_distance_correction
     if utc_date is None:
         try:
-            utc_date = reflectance.start_time
+            utc_date = reflectance.attrs['start_time']
         except AttributeError:
             try:
-                utc_date = reflectance.scheduled_time
+                utc_date = reflectance.attrs['scheduled_time']
             except AttributeError:
                 raise
     se_dist = sun_earth_distance_correction(utc_date)
@@ -334,10 +334,10 @@ def remove_earthsun_distance_correction(reflectance, utc_date=None):
     from pyorbital.astronomy import sun_earth_distance_correction
     if utc_date is None:
         try:
-            utc_date = reflectance.start_time
+            utc_date = reflectance.attrs['start_time']
         except AttributeError:
             try:
-                utc_date = reflectance.scheduled_time
+                utc_date = reflectance.attrs['scheduled_time']
             except AttributeError:
                 raise
     se_dist = sun_earth_distance_correction(utc_date)
