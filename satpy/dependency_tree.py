@@ -20,9 +20,8 @@
 import numpy as np
 
 from satpy.dataset import create_filtered_query, ModifierTuple
-from satpy.node import CompositorNode
-from satpy.node import Node, EMPTY_LEAF_NAME, MissingDependencies, LOG
-from satpy.readers import TooManyResults, get_key
+from satpy.dataset.data_dict import TooManyResults, get_key
+from satpy.node import CompositorNode, Node, EMPTY_LEAF_NAME, MissingDependencies, LOG
 
 
 class Tree:

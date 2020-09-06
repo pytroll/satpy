@@ -26,7 +26,8 @@ from satpy.dataset import (DataQuery, DataID, dataset_walker,
                            replace_anc, combine_metadata)
 from satpy.node import MissingDependencies
 from satpy.dependency_tree import DependencyTree
-from satpy.readers import DatasetDict, load_readers
+from satpy.readers import load_readers
+from satpy.dataset import DatasetDict
 from satpy.resample import (resample_dataset,
                             prepare_resampler, get_area_def)
 from satpy.writers import load_writer
