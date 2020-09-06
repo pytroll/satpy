@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Classes and functions related to a dictionary with DataID keys."""
 
 import numpy as np
 from .dataid import DataID, create_filtered_query, minimal_default_keys_config
@@ -24,24 +25,6 @@ class TooManyResults(KeyError):
     """Special exception when one key maps to multiple items in the container."""
 
     pass
-
-
-def filter_keys_by_dataset_query(dquery, key_container):
-    """Filer provided key iterable by the provided `DataQuery`.
-
-    Note: The `modifiers` attribute of `did` should be `None` to allow for
-          **any** modifier in the results.
-
-    Args:
-        dquery (DataQuery): Query parameters to match in the `key_container`.
-        key_container (iterable): Set, list, tuple, or dict of `DataID`
-                                  keys.
-
-    Returns (list): List of keys matching the provided parameters in no
-                    specific order.
-
-    """
-    return dquery.filter_dataids(key_container)
 
 
 def get_best_dataset_key(key, choices):
@@ -119,7 +102,7 @@ def get_key(key, key_container, num_results=1, best=True, query=None,
     """
     key = create_filtered_query(key, query)
 
-    res = filter_keys_by_dataset_query(key, key_container)
+    res = key.filter_dataids(key_container)
     if not res:
         raise KeyError("No dataset matching '{}' found".format(str(key)))
 
