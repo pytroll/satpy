@@ -240,6 +240,10 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                             'end_time': datetime(2000, 1, 2),
                                         })
 
+    def test_deprecated_passing_config_files(self):
+        """Test that we get an exception when config files are passed to inti."""
+        self.assertRaises(ValueError, yr.FileYAMLReader, '/path/to/some/file.yaml')
+
     def test_all_data_ids(self):
         """Check that all datasets ids are returned."""
         for dataid in self.reader.all_dataset_ids:
