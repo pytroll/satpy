@@ -131,6 +131,10 @@ class AbstractYAMLReader(metaclass=ABCMeta):
 
     def __init__(self, config_dict):
         """Load information from YAML configuration file about how to read data files."""
+        if isinstance(config_dict, str):
+            raise ValueError("Passing config files to create a Reader is "
+                             "deprecated. Use ReaderClass.from_config_files "
+                             "instead.")
         self.config = config_dict
         self.info = self.config['reader']
         self.name = self.info['name']
