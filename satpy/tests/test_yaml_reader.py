@@ -373,6 +373,20 @@ class TestFileFileYAMLReader(unittest.TestCase):
 
         self.assertEqual(0, len(self.reader.select_files_from_pathnames([])))
 
+    def test_select_from_pathnames_with_byte_mode(self):
+        """Check select_files_from_pathnames when given a URL with #mode=bytes added."""
+        filelist = [
+            'http://someurl.com/a001.bla#mode=bytes',
+            'http://someurl.com/a002.bla#mode=bytes',
+            'http://someurl.com/abcd.bla#mode=bytes',
+            'http://someurl.com/k001.bla#mode=bytes',
+            'http://someurl.com/a003.bli#mode=bytes',
+            ]
+
+        res = self.reader.select_files_from_pathnames(filelist)
+        for expected in filelist[:3]:
+            self.assertIn(expected, res)
+
     def test_select_from_directory(self):
         """Check select_files_from_directory."""
         filelist = ['a001.bla', 'a002.bla', 'abcd.bla', 'k001.bla', 'a003.bli']
