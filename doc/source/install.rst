@@ -29,7 +29,7 @@ dependencies:
 
 .. code-block:: bash
 
-    $ pip install "satpy[all]"
+    $ pip install "satpy[complete]"
 
 Conda-based Installation
 ========================
