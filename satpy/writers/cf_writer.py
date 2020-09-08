@@ -114,10 +114,6 @@ from satpy.writers import Writer
 from satpy.writers.utils import flatten_dict
 
 from distutils.version import LooseVersion
-import pyproj
-if LooseVersion(pyproj.__version__) < LooseVersion('2.4.1'):
-    # technically 2.2, but important bug fixes in 2.4.1
-    raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
 
 
 logger = logging.getLogger(__name__)
@@ -147,6 +143,10 @@ CF_VERSION = 'CF-1.7'
 
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
+    import pyproj
+    if LooseVersion(pyproj.__version__) < LooseVersion('2.4.1'):
+        # technically 2.2, but important bug fixes in 2.4.1
+        raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
     # let pyproj do the heavily lifting
     # pyproj 2.0+ required
     grid_mapping = area.crs.to_cf()
