@@ -24,7 +24,7 @@ import unittest
 from datetime import datetime
 from unittest import mock
 
-from satpy.dataset import DataID, ModifierTuple, WavelengthRange
+from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
 
 DEFAULT_SHAPE = (5, 10)
 

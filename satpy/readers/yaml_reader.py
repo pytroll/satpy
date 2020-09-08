@@ -40,8 +40,9 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DataQuery, get_keys_from_config, default_id_keys_config, default_co_keys_config, DataID
-from satpy.readers import DatasetDict, get_key
+from satpy.dataset import DataQuery, DataID, get_key
+from satpy.dataset.dataid import get_keys_from_config, default_id_keys_config, default_co_keys_config
+from satpy import DatasetDict
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
 from pyresample.geometry import AreaDefinition
@@ -84,6 +85,42 @@ def _match_filenames(filenames, pattern):
     return matching
 
 
+def _verify_reader_info_assign_config_files(config, config_files):
+    try:
+        reader_info = config['reader']
+    except KeyError:
+        raise KeyError(
+            "Malformed config file {}: missing reader 'reader'".format(
+                config_files))
+    else:
+        reader_info['config_files'] = config_files
+
+
+def load_yaml_configs(*config_files, loader=UnsafeLoader):
+    """Merge a series of YAML reader configuration files.
+
+    Args:
+        *config_files (str): One or more pathnames
+            to YAML-based reader configuration files that will be merged
+            to create a single configuration.
+        loader: Yaml loader object to load the YAML with. Defaults to
+            `UnsafeLoader`.
+
+    Returns: dict
+        Dictionary representing the entire YAML configuration with the
+        addition of `config['reader']['config_files']` (the list of
+        YAML pathnames that were merged).
+
+    """
+    config = {}
+    logger.debug('Reading %s', str(config_files))
+    for config_file in config_files:
+        with open(config_file, 'r', encoding='utf-8') as fd:
+            config = recursive_dict_update(config, yaml.load(fd, Loader=loader))
+    _verify_reader_info_assign_config_files(config, config_files)
+    return config
+
+
 class AbstractYAMLReader(metaclass=ABCMeta):
     """Base class for all readers that use YAML configuration files.
 
@@ -92,13 +129,13 @@ class AbstractYAMLReader(metaclass=ABCMeta):
 
     """
 
-    def __init__(self, config_files):
+    def __init__(self, config_dict):
         """Load information from YAML configuration file about how to read data files."""
-        self.config = {}
-        self.config_files = config_files
-        for config_file in config_files:
-            with open(config_file, 'r', encoding='utf-8') as fd:
-                self.config = recursive_dict_update(self.config, yaml.load(fd, Loader=UnsafeLoader))
+        if isinstance(config_dict, str):
+            raise ValueError("Passing config files to create a Reader is "
+                             "deprecated. Use ReaderClass.from_config_files "
+                             "instead.")
+        self.config = config_dict
         self.info = self.config['reader']
         self.name = self.info['name']
         self.file_patterns = []
@@ -118,6 +155,12 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         self.info['filenames'] = []
         self.all_ids = {}
         self.load_ds_ids_from_config()
+
+    @classmethod
+    def from_config_files(cls, *config_files, **reader_kwargs):
+        """Create a reader instance from one or more YAML configuration files."""
+        config_dict = load_yaml_configs(*config_files)
+        return config_dict['reader']['reader'](config_dict, **reader_kwargs)
 
     @property
     def sensor_names(self):
@@ -299,12 +342,12 @@ class FileYAMLReader(AbstractYAMLReader):
     """
 
     def __init__(self,
-                 config_files,
+                 config_dict,
                  filter_parameters=None,
                  filter_filenames=True,
                  **kwargs):
         """Set up initial internal storage for loading file data."""
-        super(FileYAMLReader, self).__init__(config_files)
+        super(FileYAMLReader, self).__init__(config_dict)
 
         self.file_handlers = {}
         self.available_ids = {}

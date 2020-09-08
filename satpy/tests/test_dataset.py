@@ -31,7 +31,10 @@ class TestDataID(unittest.TestCase):
 
     def test_basic_init(self):
         """Test basic ways of creating a DataID."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc, minimal_default_keys_config as mdkc
+        from satpy.dataset.dataid import (
+            DataID,
+            default_id_keys_config as dikc,
+            minimal_default_keys_config as mdkc)
 
         did = DataID(dikc, name="a")
         assert did['name'] == 'a'
@@ -50,12 +53,12 @@ class TestDataID(unittest.TestCase):
 
     def test_init_bad_modifiers(self):
         """Test that modifiers are a tuple."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         self.assertRaises(TypeError, DataID, dikc, name="a", modifiers="str")
 
     def test_compare_no_wl(self):
         """Compare fully qualified wavelength ID to no wavelength ID."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3))
         d2 = DataID(dikc, name="a", wavelength=None)
 
@@ -65,13 +68,13 @@ class TestDataID(unittest.TestCase):
 
     def test_bad_calibration(self):
         """Test that asking for a bad calibration fails."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         with pytest.raises(ValueError):
             DataID(dikc, name='C05', calibration='_bad_')
 
     def test_is_modified(self):
         """Test that modifications are detected properly."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -80,7 +83,7 @@ class TestDataID(unittest.TestCase):
 
     def test_create_less_modified_query(self):
         """Test that modifications are popped correctly."""
-        from satpy.dataset import DataID, default_id_keys_config as dikc
+        from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
         d1 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=('hej',))
         d2 = DataID(dikc, name="a", wavelength=(0.1, 0.2, 0.3), modifiers=tuple())
 
@@ -103,7 +106,7 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_average_datetimes(self):
         """Test the average_datetimes helper function."""
-        from satpy.dataset import average_datetimes
+        from satpy.dataset.metadata import average_datetimes
         dts = (
             datetime(2018, 2, 1, 11, 58, 0),
             datetime(2018, 2, 1, 11, 59, 0),
@@ -116,20 +119,20 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_times_with_averaging(self):
         """Test the combine_metadata with times with averaging."""
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         ret = combine_metadata(*self.datetime_dts)
         self.assertEqual(self.datetime_dts[2]['start_time'], ret['start_time'])
 
     def test_combine_times_without_averaging(self):
         """Test the combine_metadata with times without averaging."""
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         ret = combine_metadata(*self.datetime_dts, average_times=False)
         # times are not equal so don't include it in the final result
         self.assertNotIn('start_time', ret)
 
     def test_combine_arrays(self):
         """Test the combine_metadata with arrays."""
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         from numpy import arange, ones
         from xarray import DataArray
         dts = [
@@ -165,25 +168,25 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_identical_numpy_scalars(self):
         """Test combining idendical fill values."""
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{'_FillValue': np.uint16(42)}, {'_FillValue': np.uint16(42)}]
         assert combine_metadata(*test_metadata) == {'_FillValue': 42}
 
     def test_combine_empty_metadata(self):
         """Test combining empty metadata."""
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{}, {}]
         assert combine_metadata(*test_metadata) == {}
 
     def test_combine_nans(self):
         """Test combining nan fill values."""
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{'_FillValue': np.nan}, {'_FillValue': np.nan}]
         assert combine_metadata(*test_metadata) == {'_FillValue': np.nan}
 
     def test_combine_numpy_arrays(self):
         """Test combining values that are numpy arrays."""
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         test_metadata = [{'valid_range': np.array([0., 0.00032], dtype=np.float32)},
                          {'valid_range': np.array([0., 0.00032], dtype=np.float32)},
                          {'valid_range': np.array([0., 0.00032], dtype=np.float32)}]
@@ -192,7 +195,7 @@ class TestCombineMetadata(unittest.TestCase):
 
     def test_combine_dask_arrays(self):
         """Test combining values that are dask arrays."""
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         import dask.array as da
         test_metadata = [{'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))},
                          {'valid_range': da.from_array(np.array([0., 0.00032], dtype=np.float32))}]
@@ -230,7 +233,7 @@ class TestCombineMetadata(unittest.TestCase):
                     'platform_name': 'NOAA-20',
                     'sensor': {'viirs'}}
 
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         result = combine_metadata(*mda_objects)
         assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
         assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
@@ -258,7 +261,7 @@ class TestCombineMetadata(unittest.TestCase):
                     'platform_name': 'NOAA-20',
                     'sensor': {'viirs'}}
 
-        from satpy.dataset import combine_metadata
+        from satpy.dataset.metadata import combine_metadata
         result = combine_metadata(*mda_objects)
         assert np.allclose(result.pop('_FillValue'), expected.pop('_FillValue'), equal_nan=True)
         assert np.allclose(result.pop('valid_range'), expected.pop('valid_range'))
@@ -267,7 +270,7 @@ class TestCombineMetadata(unittest.TestCase):
 
 def test_dataid():
     """Test the DataID object."""
-    from satpy.dataset import DataID, WavelengthRange, ModifierTuple, ValueList
+    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple, ValueList
 
     # Check that enum is translated to type.
     did = make_dataid()
@@ -329,7 +332,7 @@ def test_dataid():
 
 def test_dataid_equal_if_enums_different():
     """Check that dataids with different enums but same items are equal."""
-    from satpy.dataset import DataID, WavelengthRange, ModifierTuple
+    from satpy.dataset.dataid import DataID, WavelengthRange, ModifierTuple
     id_keys_config1 = {'name': None,
                        'wavelength': {
                            'type': WavelengthRange,
@@ -372,7 +375,7 @@ def test_dataid_equal_if_enums_different():
 
 def test_dataid_copy():
     """Test copying a DataID."""
-    from satpy.dataset import DataID, default_id_keys_config as dikc
+    from satpy.dataset.dataid import DataID, default_id_keys_config as dikc
     from copy import deepcopy
 
     did = DataID(dikc, name="a", resolution=1000)
@@ -426,7 +429,7 @@ class TestDataQuery:
 
 def test_id_query_interactions():
     """Test interactions between DataIDs and DataQuery's."""
-    from satpy.dataset import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
+    from satpy.dataset.dataid import DataQuery, DataID, WavelengthRange, ModifierTuple, minimal_default_keys_config
 
     default_id_keys_config = {'name': {
                                 'required': True,
@@ -509,7 +512,7 @@ def test_id_query_interactions():
 
 def test_wavelength_range():
     """Test the wavelength range object."""
-    from satpy.dataset import WavelengthRange
+    from satpy.dataset.dataid import WavelengthRange
 
     wr = WavelengthRange(1, 2, 3)
     assert 1.2 == wr

@@ -1773,7 +1773,7 @@ class TestSceneLoading(unittest.TestCase):
         """
         import satpy.scene
         from satpy.tests.utils import FakeReader, test_composites
-        from satpy.dataset import WavelengthRange
+        from satpy.dataset.dataid import WavelengthRange
         cri.return_value = {'fake_reader': FakeReader(
             'fake_reader', 'fake_sensor')}
         comps, mods = test_composites('fake_sensor')
@@ -1878,7 +1878,7 @@ class TestSceneLoading(unittest.TestCase):
         """Test Scene available composites when composites don't have a dependency."""
         from satpy.tests.utils import FakeReader, test_composites
         import satpy.scene
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
 
         def _test(self, sensor_names):
             if not self.compositors:
