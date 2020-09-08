@@ -1633,7 +1633,8 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(r.load.call_count, 1)
         loaded_ids = list(scene._datasets.keys())
         self.assertEqual(len(loaded_ids), 1)
-        with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
+        with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+                               wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
             scene.load(['ds1'])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene._datasets.keys())
@@ -1643,7 +1644,8 @@ class TestSceneLoading(unittest.TestCase):
                           loaded_ids)
             # m.assert_called_once_with(set([scene._dependency_tree['ds1']]))
             m.assert_called_once_with(set())
-        with mock.patch.object(scene, '_read_composites', wraps=scene._read_composites) as m:
+        with mock.patch.object(scene, '_generate_composites_nodes_from_loaded_datasets',
+                               wraps=scene._generate_composites_nodes_from_loaded_datasets) as m:
             scene.load(['ds1'])
             self.assertEqual(r.load.call_count, 2)
             loaded_ids = list(scene._datasets.keys())
@@ -1756,7 +1758,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(scene._datasets), 2)
         self.assertEqual(len(scene.missing_datasets), 1)
 
-        scene._generate_composites()
+        scene._generate_composites_from_loaded_datasets()
         self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in scene._wishlist))
         self.assertIn('comp10', scene._datasets)
         self.assertEqual(len(scene.missing_datasets), 0)
@@ -2144,7 +2146,7 @@ class TestSceneResampling(unittest.TestCase):
         self.assertEqual(len(scene._datasets), 2)
         self.assertEqual(len(scene.missing_datasets), 1)
 
-        new_scn._generate_composites()
+        new_scn._generate_composites_from_loaded_datasets()
         self.assertTrue(any(ds_id['name'] == 'comp10' for ds_id in new_scn._wishlist))
         self.assertIn('comp10', new_scn)
         self.assertEqual(len(new_scn.missing_datasets), 0)

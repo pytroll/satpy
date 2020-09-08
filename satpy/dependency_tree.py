@@ -21,7 +21,7 @@ import numpy as np
 
 from satpy.dataset import create_filtered_query, ModifierTuple
 from satpy.dataset.data_dict import TooManyResults, get_key
-from satpy.node import CompositorNode, Node, EMPTY_LEAF_NAME, MissingDependencies, LOG
+from satpy.node import CompositorNode, Node, EMPTY_LEAF_NAME, MissingDependencies, LOG, ReaderNode
 
 
 class Tree:
@@ -285,29 +285,25 @@ class DependencyTree(Tree):
 
         """
         matching_ids = self._find_matching_ids_in_readers(dataset_key)
-        result = self._get_unique_matching_id(matching_ids, dataset_key, query)
+        unique_id = self._get_unique_matching_id(matching_ids, dataset_key, query)
 
         for reader_name, ids in matching_ids.items():
-            if result in ids:
-                data = {'reader_name': reader_name}
-                break
+            if unique_id in ids:
+                return self._get_unique_reader_node_from_id(unique_id, reader_name)
         else:
             raise RuntimeError("Data ID disappeared.")
 
-        result = self._get_unique_node_from_id(result, data)
-        return result
-
     def _find_matching_ids_in_readers(self, dataset_key):
         matching_ids = {}
-        for reader_name, reader_instance in self.readers.items():
-            matching_ids[reader_name] = []
+        for file_handler_name, reader_instance in self.readers.items():
+            matching_ids[file_handler_name] = []
             try:
                 ds_ids = reader_instance.get_dataset_key(dataset_key, available_only=self._available_only,
                                                          num_results=0, best=False)
             except KeyError:
-                LOG.trace("Can't find dataset %s in reader %s", str(dataset_key), reader_name)
+                LOG.trace("Can't find dataset %s in reader %s", str(dataset_key), file_handler_name)
                 continue
-            matching_ids[reader_name].extend(ds_ids)
+            matching_ids[file_handler_name].extend(ds_ids)
         return matching_ids
 
     def _get_unique_matching_id(self, matching_ids, dataset_key, query):
@@ -339,13 +335,13 @@ class DependencyTree(Tree):
             raise MissingDependencies
         return result
 
-    def _get_unique_node_from_id(self, result, data):
+    def _get_unique_reader_node_from_id(self, unique_id, reader_name):
         try:
             # now that we know we have the exact DataID see if we have already created a Node for it
-            return self.getitem(result)
+            return self.getitem(unique_id)
         except KeyError:
             # we haven't created a node yet, create it now
-            return Node(result, data)
+            return ReaderNode(unique_id, reader_name)
 
     def _get_subtree_for_existing_name(self, dsq):
         try:
