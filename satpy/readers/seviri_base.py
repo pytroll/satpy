@@ -373,7 +373,11 @@ class SEVIRICalibrationHandler(object):
                 np.log((1.0 / data) * C1 * wavenumber ** 3 + 1.0))
 
     def _vis_calibrate(self, data, solar_irradiance):
-        """Calibrate to reflectance."""
+        """Calibrate to reflectance.
+
+        This uses the method described in Conversion from radiances to
+        reflectances for SEVIRI warm channels:
+        https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&RevisionSelectionMethod=LatestReleased&Rendition=Web"""
         reflectance = np.pi * data * 100.0 / solar_irradiance
         return apply_earthsun_distance_correction(reflectance, self.start_time)
 
