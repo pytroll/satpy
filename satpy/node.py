@@ -81,11 +81,14 @@ class Node:
         if self.name is EMPTY_LEAF_NAME:
             return self
 
-        s = Node(self.name, self.data)
+        s = self._copy_name_and_data()
         for c in self.children:
             c = c.copy(node_cache=node_cache)
             s.add_child(c)
         return s
+
+    def _copy_name_and_data(self):
+        return Node(self.name, self.data)
 
     def add_child(self, obj):
         """Add a child to the node."""
@@ -98,7 +101,7 @@ class Node:
 
     def __repr__(self):
         """Generate a representation of the node."""
-        return "<Node ({})>".format(repr(self.name))
+        return "<{} ({})>".format(self.__class__.__name__, repr(self.name))
 
     def __eq__(self, other):
         """Check equality."""
@@ -168,3 +171,30 @@ class CompositorNode(Node):
     def optional_nodes(self):
         """Get the optional nodes."""
         return self.data[2]
+
+    @property
+    def compositor(self):
+        """Get the compositor."""
+        return self.data[0]
+
+    def _copy_name_and_data(self):
+        new_node = CompositorNode(self.compositor)
+        new_node.add_required_nodes(self.required_nodes)
+        new_node.add_optional_nodes(self.optional_nodes)
+        return new_node
+
+
+class ReaderNode(Node):
+    """Implementation of a storage-based node."""
+
+    def __init__(self, unique_id, reader_name):
+        """Set up the node."""
+        super().__init__(unique_id, data={'reader_name': reader_name})
+
+    def _copy_name_and_data(self):
+        return ReaderNode(self.name, self.data['reader_name'])
+
+    @property
+    def reader_name(self):
+        """Get the name of the reader."""
+        return self.data['reader_name']

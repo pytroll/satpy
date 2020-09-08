@@ -24,7 +24,7 @@ from satpy.composites import CompositorLoader, IncompatibleAreas
 from satpy.config import get_environ_config_dir
 from satpy.dataset import (DataQuery, DataID, dataset_walker,
                            replace_anc, combine_metadata)
-from satpy.node import MissingDependencies
+from satpy.node import MissingDependencies, ReaderNode, CompositorNode
 from satpy.dependency_tree import DependencyTree
 from satpy.readers import load_readers
 from satpy.dataset import DatasetDict
@@ -707,295 +707,6 @@ class Scene:
         """Check if the dataset is in the scene."""
         return name in self._datasets
 
-    def _read_datasets(self, dataset_nodes, **kwargs):
-        """Read the given datasets from file."""
-        # Sort requested datasets by reader
-        reader_datasets = {}
-
-        for node in dataset_nodes:
-            ds_id = node.name
-            # if we already have this node loaded or the node was assigned
-            # by the user (node data is None) then don't try to load from a
-            # reader
-            if ds_id in self._datasets or not isinstance(node.data, dict):
-                continue
-            reader_name = node.data.get('reader_name')
-            if reader_name is None:
-                # This shouldn't be possible
-                raise RuntimeError("Dependency tree has a corrupt node.")
-            reader_datasets.setdefault(reader_name, set()).add(ds_id)
-
-        # load all datasets for one reader at a time
-        loaded_datasets = DatasetDict()
-        for reader_name, ds_ids in reader_datasets.items():
-            reader_instance = self._readers[reader_name]
-            new_datasets = reader_instance.load(ds_ids, **kwargs)
-            loaded_datasets.update(new_datasets)
-        self._datasets.update(loaded_datasets)
-        return loaded_datasets
-
-    def _get_prereq_datasets(self, comp_id, prereq_nodes, keepables, skip=False):
-        """Get a composite's prerequisites, generating them if needed.
-
-        Args:
-            comp_id (DataID): DataID for the composite whose
-                                 prerequisites are being collected.
-            prereq_nodes (sequence of Nodes): Prerequisites to collect
-            keepables (set): `set` to update if any prerequisites can't
-                             be loaded at this time (see
-                             `_generate_composite`).
-            skip (bool): If True, consider prerequisites as optional and
-                         only log when they are missing. If False,
-                         prerequisites are considered required and will
-                         raise an exception and log a warning if they can't
-                         be collected. Defaults to False.
-
-        Raises:
-            KeyError: If required (skip=False) prerequisite can't be collected.
-
-        """
-        prereq_datasets = []
-        delayed_gen = False
-        for prereq_node in prereq_nodes:
-            prereq_id = prereq_node.name
-            if prereq_id not in self._datasets and prereq_id not in keepables \
-                    and not prereq_node.is_leaf:
-                self._generate_composite(prereq_node, keepables)
-
-            if prereq_node is self._dependency_tree.empty_node:
-                # empty sentinel node - no need to load it
-                continue
-            elif prereq_id in self._datasets:
-                prereq_datasets.append(self._datasets[prereq_id])
-            elif not prereq_node.is_leaf and prereq_id in keepables:
-                delayed_gen = True
-                continue
-            elif not skip:
-                LOG.debug("Missing prerequisite for '{}': '{}'".format(
-                    comp_id, prereq_id))
-                raise KeyError("Missing composite prerequisite for"
-                               " '{}': '{}'".format(comp_id, prereq_id))
-            else:
-                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
-
-        if delayed_gen:
-            keepables.add(comp_id)
-            keepables.update([x.name for x in prereq_nodes])
-            LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
-            if not skip:
-                LOG.debug("Delayed prerequisite for '{}': '{}'".format(comp_id, prereq_id))
-                raise DelayedGeneration(
-                    "Delayed composite prerequisite for "
-                    "'{}': '{}'".format(comp_id, prereq_id))
-            else:
-                LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
-
-        return prereq_datasets
-
-    def _generate_composite(self, comp_node, keepables):
-        """Collect all composite prereqs and create the specified composite.
-
-        Args:
-            comp_node (Node): Composite Node to generate a Dataset for
-            keepables (set): `set` to update if any datasets are needed
-                             when generation is continued later. This can
-                             happen if generation is delayed to incompatible
-                             areas which would require resampling first.
-
-        """
-        if comp_node.name in self._datasets:
-            # already loaded
-            return
-        compositor, prereqs, optional_prereqs = comp_node.data
-
-        try:
-            delayed_prereq = False
-            prereq_datasets = self._get_prereq_datasets(
-                comp_node.name,
-                prereqs,
-                keepables,
-            )
-        except DelayedGeneration:
-            # if we are missing a required dependency that could be generated
-            # later then we need to wait to return until after we've also
-            # processed the optional dependencies
-            delayed_prereq = True
-        except KeyError:
-            # we are missing a hard requirement that will never be available
-            # there is no need to "keep" optional dependencies
-            return
-
-        optional_datasets = self._get_prereq_datasets(
-            comp_node.name,
-            optional_prereqs,
-            keepables,
-            skip=True
-        )
-
-        # we are missing some prerequisites
-        # in the future we may be able to generate this composite (delayed)
-        # so we need to hold on to successfully loaded prerequisites and
-        # optional prerequisites
-        if delayed_prereq:
-            preservable_datasets = set(self._datasets.keys())
-            prereq_ids = set(p.name for p in prereqs)
-            opt_prereq_ids = set(p.name for p in optional_prereqs)
-            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
-            return
-
-        try:
-            composite = compositor(prereq_datasets,
-                                   optional_datasets=optional_datasets,
-                                   **self.attrs)
-            cid = DataID.new_id_from_dataarray(composite)
-            self._datasets[cid] = composite
-
-            # update the node with the computed DataID
-            if comp_node.name in self._wishlist:
-                self._wishlist.remove(comp_node.name)
-                self._wishlist.add(cid)
-            comp_node.name = cid
-        except IncompatibleAreas:
-            LOG.debug("Delaying generation of %s because of incompatible areas", str(compositor.id))
-            preservable_datasets = set(self._datasets.keys())
-            prereq_ids = set(p.name for p in prereqs)
-            opt_prereq_ids = set(p.name for p in optional_prereqs)
-            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
-            # even though it wasn't generated keep a list of what
-            # might be needed in other compositors
-            keepables.add(comp_node.name)
-            return
-
-    def _read_composites(self, compositor_nodes):
-        """Read (generate) composites."""
-        keepables = set()
-        for item in compositor_nodes:
-            self._generate_composite(item, keepables)
-        return keepables
-
-    def _read(self, nodes=None, **kwargs):
-        """Load datasets from the necessary reader.
-
-        Args:
-            nodes (iterable): DependencyTree Node objects
-            **kwargs: Keyword arguments to pass to the reader's `load` method.
-
-        Returns:
-            DatasetDict of loaded datasets
-
-        """
-        if nodes is None:
-            required_nodes = self._wishlist - set(self._datasets.keys())
-            nodes = self._dependency_tree.leaves(nodes=required_nodes)
-        return self._read_datasets(nodes, **kwargs)
-
-    def _generate_composites(self, nodes=None):
-        """Compute all the composites contained in `requirements`."""
-        if nodes is None:
-            required_nodes = self._wishlist - set(self._datasets.keys())
-            nodes = set(self._dependency_tree.trunk(nodes=required_nodes)) - set(self._datasets.keys())
-        return self._read_composites(nodes)
-
-    def _remove_failed_datasets(self, keepables):
-        keepables = keepables or set()
-        # remove reader datasets that couldn't be loaded so they aren't
-        # attempted again later
-        for n in self.missing_datasets:
-            if n not in keepables:
-                self._wishlist.discard(n)
-
-    def unload(self, keepables=None):
-        """Unload all unneeded datasets.
-
-        Datasets are considered unneeded if they weren't directly requested
-        or added to the Scene by the user or they are no longer needed to
-        generate composites that have yet to be generated.
-
-        Args:
-            keepables (iterable): DataIDs to keep whether they are needed
-                                  or not.
-
-        """
-        to_del = [ds_id for ds_id, projectable in self._datasets.items()
-                  if ds_id not in self._wishlist and (not keepables or ds_id
-                                                      not in keepables)]
-        for ds_id in to_del:
-            LOG.debug("Unloading dataset: %r", ds_id)
-            del self._datasets[ds_id]
-
-    def load(self, wishlist, calibration='*', resolution='*',
-             polarization='*', level='*', generate=True, unload=True,
-             **kwargs):
-        """Read and generate requested datasets.
-
-        When the `wishlist` contains `DataQuery` objects they can either be
-        fully-specified `DataQuery` objects with every parameter specified
-        or they can not provide certain parameters and the "best" parameter
-        will be chosen. For example, if a dataset is available in multiple
-        resolutions and no resolution is specified in the wishlist's DataQuery
-        then the highest (smallest number) resolution will be chosen.
-
-        Loaded `DataArray` objects are created and stored in the Scene object.
-
-        Args:
-            wishlist (iterable): List of names (str), wavelengths (float),
-                                 DataQuery objects or DataID of the requested
-                                 datasets to load. See `available_dataset_ids()`
-                                 for what datasets are available.
-            calibration (list, str): Calibration levels to limit available
-                                     datasets. This is a shortcut to
-                                     having to list each DataQuery/DataID in
-                                     `wishlist`.
-            resolution (list | float): Resolution to limit available datasets.
-                                       This is a shortcut similar to
-                                       calibration.
-            polarization (list | str): Polarization ('V', 'H') to limit
-                                       available datasets. This is a shortcut
-                                       similar to calibration.
-            level (list | str): Pressure level to limit available datasets.
-                                Pressure should be in hPa or mb. If an
-                                altitude is used it should be specified in
-                                inverse meters (1/m). The units of this
-                                parameter ultimately depend on the reader.
-            generate (bool): Generate composites from the loaded datasets
-                             (default: True)
-            unload (bool): Unload datasets that were required to generate
-                           the requested datasets (composite dependencies)
-                           but are no longer needed.
-
-        """
-        if isinstance(wishlist, str):
-            raise TypeError("'load' expects a list of datasets, got a string.")
-        dataset_keys = set(wishlist)
-        needed_datasets = (self._wishlist | dataset_keys) - set(self._datasets.keys())
-        query = DataQuery(calibration=calibration,
-                          polarization=polarization,
-                          resolution=resolution,
-                          level=level)
-        try:
-            self._dependency_tree.populate_with_keys(needed_datasets, query)
-        except MissingDependencies as err:
-            raise KeyError(str(err))
-
-        self._wishlist |= needed_datasets
-
-        self._read(**kwargs)
-        if generate:
-            keepables = self._generate_composites()
-        else:
-            # don't lose datasets we loaded to try to generate composites
-            keepables = set(self._datasets.keys()) | self._wishlist
-        if self.missing_datasets:
-            # copy the set of missing datasets because they won't be valid
-            # after they are removed in the next line
-            missing = self.missing_datasets.copy()
-            self._remove_failed_datasets(keepables)
-            missing_str = ", ".join(str(x) for x in missing)
-            LOG.warning("The following datasets were not created and may require "
-                        "resampling to be generated: {}".format(missing_str))
-        if unload:
-            self.unload(keepables=keepables)
-
     def _slice_data(self, source_area, slices, dataset):
         """Slice the data to reduce it."""
         slice_x, slice_y = slices
@@ -1125,7 +836,7 @@ class Scene:
         # regenerate anything from the wishlist that needs it (combining
         # multiple resolutions, etc.)
         if generate:
-            keepables = new_scn._generate_composites()
+            keepables = new_scn._generate_composites_from_loaded_datasets()
         else:
             # don't lose datasets that we may need later for generating
             # composites
@@ -1135,7 +846,7 @@ class Scene:
             # copy the set of missing datasets because they won't be valid
             # after they are removed in the next line
             missing = new_scn.missing_datasets.copy()
-            new_scn._remove_failed_datasets(keepables)
+            new_scn.remove_failed_datasets(keepables)
             missing_str = ", ".join(str(x) for x in missing)
             LOG.warning(
                 "The following datasets "
@@ -1230,14 +941,10 @@ class Scene:
         Returns: :class:`xarray.Dataset`
 
         """
-        if datasets is not None:
-            datasets = [self[ds] for ds in datasets]
-        else:
-            datasets = [self._datasets.get(ds) for ds in self._wishlist]
-            datasets = [ds for ds in datasets if ds is not None]
+        dataarrays = self._get_actual_dataarrays(datasets)
 
-        ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in datasets if i.attrs.get('area') is not None}
-        mdata = combine_metadata(*tuple(i.attrs for i in datasets))
+        ds_dict = {i.attrs['name']: i.rename(i.attrs['name']) for i in dataarrays if i.attrs.get('area') is not None}
+        mdata = combine_metadata(*tuple(i.attrs for i in dataarrays))
         if mdata.get('area') is None or not isinstance(mdata['area'], SwathDefinition):
             # either don't know what the area is or we have an AreaDefinition
             ds = xr.merge(ds_dict.values())
@@ -1247,13 +954,19 @@ class Scene:
             if not isinstance(lons, DataArray):
                 lons = DataArray(lons, dims=('y', 'x'))
                 lats = DataArray(lats, dims=('y', 'x'))
-            # ds_dict['longitude'] = lons
-            # ds_dict['latitude'] = lats
             ds = xr.Dataset(ds_dict, coords={"latitude": (["y", "x"], lats),
                                              "longitude": (["y", "x"], lons)})
 
         ds.attrs = mdata
         return ds
+
+    def _get_actual_dataarrays(self, datasets):
+        if datasets is not None:
+            dataarrays = [self[ds] for ds in datasets]
+        else:
+            dataarrays = [self._datasets.get(ds) for ds in self._wishlist]
+            dataarrays = [ds for ds in dataarrays if ds is not None]
+        return dataarrays
 
     def images(self):
         """Generate images for all the datasets from the scene."""
@@ -1347,25 +1060,22 @@ class Scene:
             close any objects that have a "close" method.
 
         """
-        if datasets is not None:
-            datasets = [self[ds] for ds in datasets]
-        else:
-            datasets = [self._datasets.get(ds) for ds in self._wishlist]
-            datasets = [ds for ds in datasets if ds is not None]
-        if not datasets:
+        dataarrays = self._get_actual_dataarrays(datasets)
+        if not dataarrays:
             raise RuntimeError("None of the requested datasets have been "
                                "generated or could not be loaded. Requested "
                                "composite inputs may need to have matching "
                                "dimensions (eg. through resampling).")
-        if writer is None and filename is None:
-            writer = 'geotiff'
-        elif writer is None:
-            writer = self._get_writer_by_ext(os.path.splitext(filename)[1])
+        if writer is None:
+            if filename is None:
+                writer = 'geotiff'
+            else:
+                writer = self._get_writer_by_ext(os.path.splitext(filename)[1])
         writer, save_kwargs = load_writer(writer,
                                           ppp_config_dir=self._ppp_config_dir,
                                           filename=filename,
                                           **kwargs)
-        return writer.save_datasets(datasets, compute=compute, **save_kwargs)
+        return writer.save_datasets(dataarrays, compute=compute, **save_kwargs)
 
     @staticmethod
     def _get_writer_by_ext(extension):
@@ -1391,3 +1101,300 @@ class Scene:
         mapping = {".tiff": "geotiff", ".tif": "geotiff", ".nc": "cf",
                    ".mitiff": "mitiff"}
         return mapping.get(extension.lower(), 'simple_image')
+
+    def remove_failed_datasets(self, keepables):
+        """Remove the datasets that we couldn't create."""
+        keepables = keepables or set()
+        # remove reader datasets that couldn't be loaded so they aren't
+        # attempted again later
+        for n in self.missing_datasets:
+            if n not in keepables:
+                self._wishlist.discard(n)
+
+    def unload(self, keepables=None):
+        """Unload all unneeded datasets.
+
+        Datasets are considered unneeded if they weren't directly requested
+        or added to the Scene by the user or they are no longer needed to
+        generate composites that have yet to be generated.
+
+        Args:
+            keepables (iterable): DataIDs to keep whether they are needed
+                                  or not.
+
+        """
+        to_del = [ds_id for ds_id, projectable in self._datasets.items()
+                  if ds_id not in self._wishlist and (not keepables or ds_id
+                                                      not in keepables)]
+        for ds_id in to_del:
+            LOG.debug("Unloading dataset: %r", ds_id)
+            del self._datasets[ds_id]
+
+    def load(self, wishlist, calibration='*', resolution='*',
+             polarization='*', level='*', generate=True, unload=True,
+             **kwargs):
+        """Read and generate requested datasets.
+
+        When the `wishlist` contains `DataQuery` objects they can either be
+        fully-specified `DataQuery` objects with every parameter specified
+        or they can not provide certain parameters and the "best" parameter
+        will be chosen. For example, if a dataset is available in multiple
+        resolutions and no resolution is specified in the wishlist's DataQuery
+        then the highest (smallest number) resolution will be chosen.
+
+        Loaded `DataArray` objects are created and stored in the Scene object.
+
+        Args:
+            wishlist (iterable): List of names (str), wavelengths (float),
+                                 DataQuery objects or DataID of the requested
+                                 datasets to load. See `available_dataset_ids()`
+                                 for what datasets are available.
+            calibration (list, str): Calibration levels to limit available
+                                     datasets. This is a shortcut to
+                                     having to list each DataQuery/DataID in
+                                     `wishlist`.
+            resolution (list | float): Resolution to limit available datasets.
+                                       This is a shortcut similar to
+                                       calibration.
+            polarization (list | str): Polarization ('V', 'H') to limit
+                                       available datasets. This is a shortcut
+                                       similar to calibration.
+            level (list | str): Pressure level to limit available datasets.
+                                Pressure should be in hPa or mb. If an
+                                altitude is used it should be specified in
+                                inverse meters (1/m). The units of this
+                                parameter ultimately depend on the reader.
+            generate (bool): Generate composites from the loaded datasets
+                             (default: True)
+            unload (bool): Unload datasets that were required to generate
+                           the requested datasets (composite dependencies)
+                           but are no longer needed.
+
+        """
+        if isinstance(wishlist, str):
+            raise TypeError("'load' expects a list of datasets, got a string.")
+        dataset_keys = set(wishlist)
+        needed_datasets = (self._wishlist | dataset_keys) - set(self._datasets.keys())
+        self._update_dependency_tree(needed_datasets, calibration, polarization, resolution, level)
+
+        self._wishlist |= needed_datasets
+
+        self._read_datasets_from_storage(**kwargs)
+        if generate:
+            keepables = self._generate_composites_from_loaded_datasets()
+        else:
+            # don't lose datasets we loaded to try to generate composites
+            keepables = set(self._datasets.keys()) | self._wishlist
+        if self.missing_datasets:
+            # copy the set of missing datasets because they won't be valid
+            # after they are removed in the next line
+            missing = self.missing_datasets.copy()
+            self.remove_failed_datasets(keepables)
+            missing_str = ", ".join(str(x) for x in missing)
+            LOG.warning("The following datasets were not created and may require "
+                        "resampling to be generated: {}".format(missing_str))
+        if unload:
+            self.unload(keepables=keepables)
+
+    def _update_dependency_tree(self, needed_datasets, calibration, polarization, resolution, level):
+        query = DataQuery(calibration=calibration,
+                          polarization=polarization,
+                          resolution=resolution,
+                          level=level)
+        try:
+            self._dependency_tree.populate_with_keys(needed_datasets, query)
+        except MissingDependencies as err:
+            raise KeyError(str(err))
+
+    def _read_datasets_from_storage(self, **kwargs):
+        """Load datasets from the necessary reader.
+
+        Args:
+            **kwargs: Keyword arguments to pass to the reader's `load` method.
+
+        Returns:
+            DatasetDict of loaded datasets
+
+        """
+        nodes = self._dependency_tree.leaves(nodes=self.missing_datasets)
+        return self._read_dataset_nodes_from_storage(nodes, **kwargs)
+
+    def _read_dataset_nodes_from_storage(self, reader_nodes, **kwargs):
+        """Read the given dataset nodes from storage."""
+        # Sort requested datasets by reader
+        reader_datasets = self._sort_dataset_nodes_by_reader(reader_nodes)
+        loaded_datasets = self._load_datasets_by_readers(reader_datasets, **kwargs)
+        self._datasets.update(loaded_datasets)
+        return loaded_datasets
+
+    def _sort_dataset_nodes_by_reader(self, reader_nodes):
+        reader_datasets = {}
+        for node in reader_nodes:
+            ds_id = node.name
+            # if we already have this node loaded or the node was assigned
+            # by the user (node data is None) then don't try to load from a
+            # reader
+            if ds_id in self._datasets or not isinstance(node, ReaderNode):
+                continue
+            reader_name = node.reader_name
+            if reader_name is None:
+                # This shouldn't be possible
+                raise RuntimeError("Dependency tree has a corrupt node.")
+            reader_datasets.setdefault(reader_name, set()).add(ds_id)
+        return reader_datasets
+
+    def _load_datasets_by_readers(self, reader_datasets, **kwargs):
+        # load all datasets for one reader at a time
+        loaded_datasets = DatasetDict()
+        for reader_name, ds_ids in reader_datasets.items():
+            reader_instance = self._readers[reader_name]
+            new_datasets = reader_instance.load(ds_ids, **kwargs)
+            loaded_datasets.update(new_datasets)
+        return loaded_datasets
+
+    def _generate_composites_from_loaded_datasets(self):
+        """Compute all the composites contained in `requirements`."""
+        nodes = set(self._dependency_tree.trunk(nodes=self.missing_datasets)) - set(self._datasets.keys())
+        return self._generate_composites_nodes_from_loaded_datasets(nodes)
+
+    def _generate_composites_nodes_from_loaded_datasets(self, compositor_nodes):
+        """Read (generate) composites."""
+        keepables = set()
+        for node in compositor_nodes:
+            self._generate_composite(node, keepables)
+        return keepables
+
+    def _generate_composite(self, comp_node, keepables):
+        """Collect all composite prereqs and create the specified composite.
+
+        Args:
+            comp_node (Node): Composite Node to generate a Dataset for
+            keepables (set): `set` to update if any datasets are needed
+                             when generation is continued later. This can
+                             happen if generation is delayed to incompatible
+                             areas which would require resampling first.
+
+        """
+        if comp_node.name in self._datasets:
+            # already loaded
+            return
+
+        compositor = comp_node.compositor
+        prereqs = comp_node.required_nodes
+        optional_prereqs = comp_node.optional_nodes
+
+        try:
+            delayed_prereq = False
+            prereq_datasets = self._get_prereq_datasets(
+                comp_node.name,
+                prereqs,
+                keepables,
+            )
+        except DelayedGeneration:
+            # if we are missing a required dependency that could be generated
+            # later then we need to wait to return until after we've also
+            # processed the optional dependencies
+            delayed_prereq = True
+        except KeyError:
+            # we are missing a hard requirement that will never be available
+            # there is no need to "keep" optional dependencies
+            return
+
+        optional_datasets = self._get_prereq_datasets(
+            comp_node.name,
+            optional_prereqs,
+            keepables,
+            skip=True
+        )
+
+        # we are missing some prerequisites
+        # in the future we may be able to generate this composite (delayed)
+        # so we need to hold on to successfully loaded prerequisites and
+        # optional prerequisites
+        if delayed_prereq:
+            preservable_datasets = set(self._datasets.keys())
+            prereq_ids = set(p.name for p in prereqs)
+            opt_prereq_ids = set(p.name for p in optional_prereqs)
+            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
+            return
+
+        try:
+            composite = compositor(prereq_datasets,
+                                   optional_datasets=optional_datasets,
+                                   **self.attrs)
+            cid = DataID.new_id_from_dataarray(composite)
+            self._datasets[cid] = composite
+
+            # update the node with the computed DataID
+            if comp_node.name in self._wishlist:
+                self._wishlist.remove(comp_node.name)
+                self._wishlist.add(cid)
+            comp_node.name = cid
+        except IncompatibleAreas:
+            LOG.debug("Delaying generation of %s because of incompatible areas", str(compositor.id))
+            preservable_datasets = set(self._datasets.keys())
+            prereq_ids = set(p.name for p in prereqs)
+            opt_prereq_ids = set(p.name for p in optional_prereqs)
+            keepables |= preservable_datasets & (prereq_ids | opt_prereq_ids)
+            # even though it wasn't generated keep a list of what
+            # might be needed in other compositors
+            keepables.add(comp_node.name)
+            return
+
+    def _get_prereq_datasets(self, comp_id, prereq_nodes, keepables, skip=False):
+        """Get a composite's prerequisites, generating them if needed.
+
+        Args:
+            comp_id (DataID): DataID for the composite whose
+                                 prerequisites are being collected.
+            prereq_nodes (sequence of Nodes): Prerequisites to collect
+            keepables (set): `set` to update if any prerequisites can't
+                             be loaded at this time (see
+                             `_generate_composite`).
+            skip (bool): If True, consider prerequisites as optional and
+                         only log when they are missing. If False,
+                         prerequisites are considered required and will
+                         raise an exception and log a warning if they can't
+                         be collected. Defaults to False.
+
+        Raises:
+            KeyError: If required (skip=False) prerequisite can't be collected.
+
+        """
+        prereq_datasets = []
+        delayed_gen = False
+        for prereq_node in prereq_nodes:
+            prereq_id = prereq_node.name
+            if prereq_id not in self._datasets and prereq_id not in keepables \
+                    and isinstance(prereq_node, CompositorNode):
+                self._generate_composite(prereq_node, keepables)
+
+            if prereq_node is self._dependency_tree.empty_node:
+                # empty sentinel node - no need to load it
+                continue
+            elif prereq_id in self._datasets:
+                prereq_datasets.append(self._datasets[prereq_id])
+            elif isinstance(prereq_node, CompositorNode) and prereq_id in keepables:
+                delayed_gen = True
+                continue
+            elif not skip:
+                LOG.debug("Missing prerequisite for '{}': '{}'".format(
+                    comp_id, prereq_id))
+                raise KeyError("Missing composite prerequisite for"
+                               " '{}': '{}'".format(comp_id, prereq_id))
+            else:
+                LOG.debug("Missing optional prerequisite for {}: {}".format(comp_id, prereq_id))
+
+        if delayed_gen:
+            keepables.add(comp_id)
+            keepables.update([x.name for x in prereq_nodes])
+            LOG.debug("Delaying generation of %s because of dependency's delayed generation: %s", comp_id, prereq_id)
+            if not skip:
+                LOG.debug("Delayed prerequisite for '{}': '{}'".format(comp_id, prereq_id))
+                raise DelayedGeneration(
+                    "Delayed composite prerequisite for "
+                    "'{}': '{}'".format(comp_id, prereq_id))
+            else:
+                LOG.debug("Delayed optional prerequisite for {}: {}".format(comp_id, prereq_id))
+
+        return prereq_datasets
