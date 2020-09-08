@@ -290,8 +290,8 @@ class DependencyTree(Tree):
         for reader_name, ids in matching_ids.items():
             if unique_id in ids:
                 return self._get_unique_reader_node_from_id(unique_id, reader_name)
-        else:
-            raise RuntimeError("Data ID disappeared.")
+
+        raise RuntimeError("Data ID disappeared.")
 
     def _find_matching_ids_in_readers(self, dataset_key):
         matching_ids = {}
