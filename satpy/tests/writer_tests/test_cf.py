@@ -955,6 +955,18 @@ class TestCFWriter(unittest.TestCase):
         self.assertDictContainsSubset({'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'},
                                       lon.attrs)
 
+    def test_init_with_old_pyproj(self):
+        """Test that cf_writer can still be loaded with pyproj 1.9.6."""
+        import pyproj # noqa 401
+        import sys
+        import importlib
+        old_version = sys.modules['pyproj'].__version__
+        sys.modules['pyproj'].__version__ = "1.9.6"
+        importlib.reload(sys.modules['satpy.writers.cf_writer'])
+        # Tear down
+        sys.modules['pyproj'].__version__ = old_version
+        importlib.reload(sys.modules['satpy.writers.cf_writer'])
+
 
 def suite():
     """Test suite for this writer's tests."""
