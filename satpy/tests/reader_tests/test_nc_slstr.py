@@ -18,7 +18,7 @@
 """Module for testing the satpy.readers.nc_slstr module."""
 import unittest
 import unittest.mock as mock
-from satpy.dataset import WavelengthRange, ModifierTuple, DataID
+from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
 
 local_id_keys_config = {'name': {
     'required': True,

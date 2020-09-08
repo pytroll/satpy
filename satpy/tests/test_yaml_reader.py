@@ -150,9 +150,7 @@ class DummyReader(BaseFileHandler):
 class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
     """Test units from FileYAMLReader with multiple readers."""
 
-    @patch('satpy.readers.yaml_reader.recursive_dict_update')
-    @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
-    def setUp(self, _, rec_up):  # pylint: disable=arguments-differ
+    def setUp(self):
         """Prepare a reader instance with a fake config."""
         patterns = ['a{something:3s}.bla',
                     'a0{something:2s}.bla']
@@ -176,9 +174,8 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
                                  'lats': {'name': 'lats',
                                           'file_type': 'ftype2'}}}
 
-        rec_up.return_value = res_dict
         self.config = res_dict
-        self.reader = yr.FileYAMLReader([__file__],
+        self.reader = yr.FileYAMLReader(self.config,
                                         filter_parameters={
                                             'start_time': datetime(2000, 1, 1),
                                             'end_time': datetime(2000, 1, 2)})
@@ -213,9 +210,7 @@ class TestFileFileYAMLReaderMultiplePatterns(unittest.TestCase):
 class TestFileFileYAMLReader(unittest.TestCase):
     """Test units from FileYAMLReader."""
 
-    @patch('satpy.readers.yaml_reader.recursive_dict_update')
-    @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
-    def setUp(self, _, rec_up):  # pylint: disable=arguments-differ
+    def setUp(self):
         """Prepare a reader instance with a fake config."""
         patterns = ['a{something:3s}.bla']
         res_dict = {'reader': {'name': 'fake',
@@ -238,13 +233,16 @@ class TestFileFileYAMLReader(unittest.TestCase):
                                  'lats': {'name': 'lats',
                                           'file_type': 'ftype2'}}}
 
-        rec_up.return_value = res_dict
         self.config = res_dict
-        self.reader = yr.FileYAMLReader([__file__],
+        self.reader = yr.FileYAMLReader(res_dict,
                                         filter_parameters={
                                             'start_time': datetime(2000, 1, 1),
                                             'end_time': datetime(2000, 1, 2),
                                         })
+
+    def test_deprecated_passing_config_files(self):
+        """Test that we get an exception when config files are passed to inti."""
+        self.assertRaises(ValueError, yr.FileYAMLReader, '/path/to/some/file.yaml')
 
     def test_all_data_ids(self):
         """Check that all datasets ids are returned."""
@@ -486,9 +484,7 @@ class TestFileFileYAMLReader(unittest.TestCase):
 class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
     """Test units from FileYAMLReader with multiple file types."""
 
-    @patch('satpy.readers.yaml_reader.recursive_dict_update')
-    @patch('satpy.readers.yaml_reader.yaml', spec=yr.yaml)
-    def setUp(self, _, rec_up):  # pylint: disable=arguments-differ
+    def setUp(self):
         """Prepare a reader instance with a fake config."""
         # Example: GOES netCDF data
         #   a) From NOAA CLASS: ftype1, including coordinates
@@ -527,9 +523,8 @@ class TestFileFileYAMLReaderMultipleFileTypes(unittest.TestCase):
                                  'lats': {'name': 'lats',
                                           'file_type': ['ftype1', 'ftype3']}}}
 
-        rec_up.return_value = res_dict
         self.config = res_dict
-        self.reader = yr.FileYAMLReader([__file__])
+        self.reader = yr.FileYAMLReader(self.config)
 
     def test_update_ds_ids_from_file_handlers(self):
         """Test updating existing dataset IDs with information from the file."""

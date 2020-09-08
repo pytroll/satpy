@@ -19,8 +19,8 @@
 from datetime import datetime
 from unittest import mock
 
-from satpy.dataset import (DataID, DataQuery, default_id_keys_config,
-                           minimal_default_keys_config)
+from satpy.dataset import DataID, DataQuery
+from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.readers.yaml_reader import FileYAMLReader
 
 
@@ -298,11 +298,8 @@ class FakeReader(FileYAMLReader):
         be disabled by specifying `filter_datasets=False`.
 
         """
-        with mock.patch('satpy.readers.yaml_reader.recursive_dict_update') as rdu, \
-                mock.patch('satpy.readers.yaml_reader.open'), \
-                mock.patch('satpy.readers.yaml_reader.yaml.load'):
-            rdu.return_value = {'reader': {'name': name}, 'file_types': {}}
-            super(FakeReader, self).__init__(['fake.yaml'])
+        reader_config = {'reader': {'name': name, 'config_files': ['fake.yaml']}, 'file_types': {}}
+        super(FakeReader, self).__init__(reader_config)
 
         if start_time is None:
             start_time = datetime.utcnow()
