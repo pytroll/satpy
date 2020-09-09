@@ -923,12 +923,10 @@ class TestCFWriter(unittest.TestCase):
         self.assertEqual(set(res.coords), {'longitude', 'latitude'})
         lat = res['latitude']
         lon = res['longitude']
-        self.assertTrue(np.all(lat.data == lats_ref))
-        self.assertTrue(np.all(lon.data == lons_ref))
-        self.assertDictContainsSubset({'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'},
-                                      lat.attrs)
-        self.assertDictContainsSubset({'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'},
-                                      lon.attrs)
+        np.testing.assert_array_equal(lat.data, lats_ref)
+        np.testing.assert_array_equal(lon.data, lons_ref)
+        assert {'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'}.items() <= lat.attrs.items()
+        assert {'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'}.items() <= lon.attrs.items()
 
         area = pyresample.geometry.AreaDefinition(
             'seviri',
@@ -948,21 +946,21 @@ class TestCFWriter(unittest.TestCase):
         self.assertEqual(set(res.coords), {'longitude', 'latitude'})
         lat = res['latitude']
         lon = res['longitude']
-        self.assertTrue(np.all(lat.data == lats_ref))
-        self.assertTrue(np.all(lon.data == lons_ref))
-        self.assertDictContainsSubset({'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'},
-                                      lat.attrs)
-        self.assertDictContainsSubset({'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'},
-                                      lon.attrs)
+        np.testing.assert_array_equal(lat.data, lats_ref)
+        np.testing.assert_array_equal(lon.data, lons_ref)
+        assert {'name': 'latitude', 'standard_name': 'latitude', 'units': 'degrees_north'}.items() <= lat.attrs.items()
+        assert {'name': 'longitude', 'standard_name': 'longitude', 'units': 'degrees_east'}.items() <= lon.attrs.items()
 
-
-def suite():
-    """Test suite for this writer's tests."""
-    loader = unittest.TestLoader()
-    mysuite = unittest.TestSuite()
-    mysuite.addTest(loader.loadTestsFromTestCase(TestCFWriter))
-    return mysuite
-
-
-if __name__ == "__main__":
-    unittest.main()
+    def test_load_module_with_old_pyproj(self):
+        """Test that cf_writer can still be loaded with pyproj 1.9.6."""
+        import pyproj # noqa 401
+        import sys
+        import importlib
+        old_version = sys.modules['pyproj'].__version__
+        sys.modules['pyproj'].__version__ = "1.9.6"
+        try:
+            importlib.reload(sys.modules['satpy.writers.cf_writer'])
+        finally:
+            # Tear down
+            sys.modules['pyproj'].__version__ = old_version
+            importlib.reload(sys.modules['satpy.writers.cf_writer'])
