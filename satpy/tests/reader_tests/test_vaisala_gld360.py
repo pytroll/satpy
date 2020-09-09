@@ -59,19 +59,19 @@ class TestVaisalaGLD360TextFileHandler(unittest.TestCase):
         np.testing.assert_allclose(result, expected_power, rtol=1e-05)
 
         # test lat
-        dataset_id = DatasetID('latitude')
+        dataset_id = make_dataid('latitude')
         dataset_info = {}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
         np.testing.assert_allclose(result, expected_lat, rtol=1e-05)
 
         # test lon
-        dataset_id = DatasetID('longitude')
+        dataset_id = make_dataid('longitude')
         dataset_info = {}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
         np.testing.assert_allclose(result, expected_lon, rtol=1e-05)
 
         # test time
-        dataset_id = DatasetID('time')
+        dataset_id = make_dataid('time')
         dataset_info = {}
         result = self.handler.get_dataset(dataset_id, dataset_info).values
         np.testing.assert_array_equal(result, expected_time)
