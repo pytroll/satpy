@@ -1197,6 +1197,7 @@ def enhance2dataset(dset):
 def add_bands(data, bands):
     """Add bands so that they match *bands*."""
     # Add R, G and B bands, remove L band
+    bands = bands.compute()
     if 'L' in data['bands'].data and 'R' in bands.data:
         lum = data.sel(bands='L')
         # Keep 'A' if it was present

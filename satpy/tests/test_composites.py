@@ -1071,7 +1071,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={'bands': ['R', 'G', 'B']})
         res = add_bands(data, new_bands)
         res_bands = ['R', 'G', 'B']
-        self.assertEqual(res.mode, ''.join(res_bands))
+        self.assertEqual(res.attrs['mode'], ''.join(res_bands))
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
 
@@ -1082,7 +1082,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={'bands': ['R', 'G', 'B', 'A']})
         res = add_bands(data, new_bands)
         res_bands = ['R', 'G', 'B', 'A']
-        self.assertEqual(res.mode, ''.join(res_bands))
+        self.assertEqual(res.attrs['mode'], ''.join(res_bands))
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
 
@@ -1093,7 +1093,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={'bands': ['R', 'G', 'B']})
         res = add_bands(data, new_bands)
         res_bands = ['R', 'G', 'B', 'A']
-        self.assertEqual(res.mode, ''.join(res_bands))
+        self.assertEqual(res.attrs['mode'], ''.join(res_bands))
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
 
@@ -1105,7 +1105,7 @@ class TestAddBands(unittest.TestCase):
                                  coords={'bands': ['R', 'G', 'B', 'A']})
         res = add_bands(data, new_bands)
         res_bands = ['R', 'G', 'B', 'A']
-        self.assertEqual(res.mode, ''.join(res_bands))
+        self.assertEqual(res.attrs['mode'], ''.join(res_bands))
         np.testing.assert_array_equal(res.bands, res_bands)
         np.testing.assert_array_equal(res.coords['bands'], res_bands)
 
