@@ -19,6 +19,7 @@
 
 import unittest
 import numpy as np
+import xarray as xr
 from datetime import datetime
 from satpy.readers.seviri_base import SEVIRICalibrationHandler
 
@@ -79,6 +80,7 @@ VIS008_RADIANCE = np.array([[0.62234485,  0.59405649,  0.59405649,  0.59405649, 
                             [0.76378691,  0.79207528,  0.79207528,  0.76378691,  0.79207528],
                             [3.30974245,  3.33803129,  3.33803129,  3.25316572,  3.47947311],
                             [7.52471399,  7.83588648,  8.2602129,  8.57138538,  8.99571133]], dtype=np.float32)
+VIS008_RADIANCE = xr.DataArray(VIS008_RADIANCE)
 
 VIS008_REFLECTANCE = np.array([[2.8066392, 2.6790648, 2.6790648, 2.6790648,
                                 2.6790648],
@@ -192,6 +194,7 @@ class TestSEVIRICalibrationHandler(unittest.TestCase):
         result = self.handler._vis_calibrate(VIS008_RADIANCE,
                                              VIS008_SOLAR_IRRADIANCE)
         assertNumpyArraysEqual(result, VIS008_REFLECTANCE)
+        self.assertTrue(result.sun_earth_distance_correction_applied)
 
     def tearDown(self):
         pass
