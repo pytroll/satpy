@@ -16,6 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Base classes and utilities for all readers configured by YAML files."""
+
 import glob
 import itertools
 import logging
@@ -39,12 +40,12 @@ from pyresample.geometry import StackedAreaDefinition, SwathDefinition
 from pyresample.boundary import AreaDefBoundary, Boundary
 from satpy.resample import get_area_def
 from satpy.config import recursive_dict_update
-from satpy.dataset import DATASET_KEYS, DatasetID
-from satpy.readers import DatasetDict, get_key
+from satpy.dataset import DataQuery, DataID, get_key
+from satpy.dataset.dataid import get_keys_from_config, default_id_keys_config, default_co_keys_config
+from satpy import DatasetDict
 from satpy.resample import add_crs_xy_coords
 from trollsift.parser import globify, parse
 from pyresample.geometry import AreaDefinition
-
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,42 @@ def _match_filenames(filenames, pattern):
     return matching
 
 
+def _verify_reader_info_assign_config_files(config, config_files):
+    try:
+        reader_info = config['reader']
+    except KeyError:
+        raise KeyError(
+            "Malformed config file {}: missing reader 'reader'".format(
+                config_files))
+    else:
+        reader_info['config_files'] = config_files
+
+
+def load_yaml_configs(*config_files, loader=UnsafeLoader):
+    """Merge a series of YAML reader configuration files.
+
+    Args:
+        *config_files (str): One or more pathnames
+            to YAML-based reader configuration files that will be merged
+            to create a single configuration.
+        loader: Yaml loader object to load the YAML with. Defaults to
+            `UnsafeLoader`.
+
+    Returns: dict
+        Dictionary representing the entire YAML configuration with the
+        addition of `config['reader']['config_files']` (the list of
+        YAML pathnames that were merged).
+
+    """
+    config = {}
+    logger.debug('Reading %s', str(config_files))
+    for config_file in config_files:
+        with open(config_file, 'r', encoding='utf-8') as fd:
+            config = recursive_dict_update(config, yaml.load(fd, Loader=loader))
+    _verify_reader_info_assign_config_files(config, config_files)
+    return config
+
+
 class AbstractYAMLReader(metaclass=ABCMeta):
     """Base class for all readers that use YAML configuration files.
 
@@ -92,14 +129,13 @@ class AbstractYAMLReader(metaclass=ABCMeta):
 
     """
 
-    def __init__(self, config_files):
+    def __init__(self, config_dict):
         """Load information from YAML configuration file about how to read data files."""
-        self.config = {}
-        self.config_files = config_files
-        for config_file in config_files:
-            with open(config_file) as fd:
-                self.config = recursive_dict_update(self.config, yaml.load(fd, Loader=UnsafeLoader))
-
+        if isinstance(config_dict, str):
+            raise ValueError("Passing config files to create a Reader is "
+                             "deprecated. Use ReaderClass.from_config_files "
+                             "instead.")
+        self.config = config_dict
         self.info = self.config['reader']
         self.name = self.info['name']
         self.file_patterns = []
@@ -114,9 +150,17 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         if 'sensors' in self.info and not isinstance(self.info['sensors'], (list, tuple)):
             self.info['sensors'] = [self.info['sensors']]
         self.datasets = self.config.get('datasets', {})
+        self._id_keys = self.info.get('data_identification_keys', default_id_keys_config)
+        self._co_keys = self.info.get('coord_identification_keys', default_co_keys_config)
         self.info['filenames'] = []
         self.all_ids = {}
         self.load_ds_ids_from_config()
+
+    @classmethod
+    def from_config_files(cls, *config_files, **reader_kwargs):
+        """Create a reader instance from one or more YAML configuration files."""
+        config_dict = load_yaml_configs(*config_files)
+        return config_dict['reader']['reader'](config_dict, **reader_kwargs)
 
     @property
     def sensor_names(self):
@@ -125,18 +169,18 @@ class AbstractYAMLReader(metaclass=ABCMeta):
 
     @property
     def all_dataset_ids(self):
-        """Get DatasetIDs of all datasets known to this reader."""
+        """Get DataIDs of all datasets known to this reader."""
         return self.all_ids.keys()
 
     @property
     def all_dataset_names(self):
         """Get names of all datasets known to this reader."""
         # remove the duplicates from various calibration and resolutions
-        return set(ds_id.name for ds_id in self.all_dataset_ids)
+        return set(ds_id['name'] for ds_id in self.all_dataset_ids)
 
     @property
     def available_dataset_ids(self):
-        """Get DatasetIDs that are loadable by this reader."""
+        """Get DataIDs that are loadable by this reader."""
         logger.warning(
             "Available datasets are unknown, returning all datasets...")
         return self.all_dataset_ids
@@ -144,7 +188,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
     @property
     def available_dataset_names(self):
         """Get names of datasets that are loadable by this reader."""
-        return (ds_id.name for ds_id in self.available_dataset_ids)
+        return (ds_id['name'] for ds_id in self.available_dataset_ids)
 
     @property
     @abstractmethod
@@ -230,7 +274,7 @@ class AbstractYAMLReader(metaclass=ABCMeta):
         return selected_filenames
 
     def get_dataset_key(self, key, **kwargs):
-        """Get the fully qualified `DatasetID` matching `key`.
+        """Get the fully qualified `DataID` matching `key`.
 
         See `satpy.readers.get_key` for more information about kwargs.
 
@@ -246,20 +290,19 @@ class AbstractYAMLReader(metaclass=ABCMeta):
             if 'coordinates' in dataset and \
                     isinstance(dataset['coordinates'], list):
                 dataset['coordinates'] = tuple(dataset['coordinates'])
+            id_keys = get_keys_from_config(self._id_keys, dataset)
+
             # Build each permutation/product of the dataset
             id_kwargs = []
-            for key in DATASET_KEYS:
-                val = dataset.get(key)
-                if key in ["wavelength", "modifiers"] and isinstance(val,
-                                                                     list):
+            for key, idval in id_keys.items():
+                val = dataset.get(key, idval.get('default') if idval is not None else None)
+                val_type = None
+                if idval is not None:
+                    val_type = idval.get('type')
+                if val_type is not None and issubclass(val_type, tuple):
                     # special case: wavelength can be [min, nominal, max]
                     # but is still considered 1 option
-                    # it also needs to be a tuple so it can be used in
-                    # a dictionary key (DatasetID)
-                    id_kwargs.append((tuple(val), ))
-                elif key == "modifiers" and val is None:
-                    # empty modifiers means no modifiers applied
-                    id_kwargs.append((tuple(), ))
+                    id_kwargs.append((val,))
                 elif isinstance(val, (list, tuple, set)):
                     # this key has multiple choices
                     # (ex. 250 meter, 500 meter, 1000 meter resolutions)
@@ -269,21 +312,20 @@ class AbstractYAMLReader(metaclass=ABCMeta):
                 else:
                     # this key only has one choice so make it a one
                     # item iterable
-                    id_kwargs.append((val, ))
+                    id_kwargs.append((val,))
             for id_params in itertools.product(*id_kwargs):
-                dsid = DatasetID(*id_params)
+                dsid = DataID(id_keys, **dict(zip(id_keys, id_params)))
                 ids.append(dsid)
 
                 # create dataset infos specifically for this permutation
                 ds_info = dataset.copy()
-                for key in DATASET_KEYS:
+                for key in dsid.keys():
                     if isinstance(ds_info.get(key), dict):
-                        ds_info.update(ds_info[key][getattr(dsid, key)])
+                        ds_info.update(ds_info[key][dsid.get(key)])
                     # this is important for wavelength which was converted
                     # to a tuple
-                    ds_info[key] = getattr(dsid, key)
+                    ds_info[key] = dsid.get(key)
                 self.all_ids[dsid] = ds_info
-
         return ids
 
 
@@ -300,12 +342,12 @@ class FileYAMLReader(AbstractYAMLReader):
     """
 
     def __init__(self,
-                 config_files,
+                 config_dict,
                  filter_parameters=None,
                  filter_filenames=True,
                  **kwargs):
         """Set up initial internal storage for loading file data."""
-        super(FileYAMLReader, self).__init__(config_files)
+        super(FileYAMLReader, self).__init__(config_dict)
 
         self.file_handlers = {}
         self.available_ids = {}
@@ -333,7 +375,7 @@ class FileYAMLReader(AbstractYAMLReader):
 
     @property
     def available_dataset_ids(self):
-        """Get DatasetIDs that are loadable by this reader."""
+        """Get DataIDs that are loadable by this reader."""
         return self.available_ids.keys()
 
     @property
@@ -623,7 +665,9 @@ class FileYAMLReader(AbstractYAMLReader):
                 ds_info['coordinates'] = tuple(ds_info['coordinates'])
 
             ds_info.setdefault('modifiers', tuple())  # default to no mods
-            ds_id = DatasetID.from_dict(ds_info)
+
+            # Create DataID for this dataset
+            ds_id = DataID(self._id_keys, **ds_info)
             # all datasets
             new_ids[ds_id] = ds_info
             # available datasets
@@ -697,11 +741,13 @@ class FileYAMLReader(AbstractYAMLReader):
         for cinfo in ds_info.get('coordinates', []):
             if not isinstance(cinfo, dict):
                 cinfo = {'name': cinfo}
-
-            cinfo['resolution'] = ds_info['resolution']
-            if 'polarization' in ds_info:
-                cinfo['polarization'] = ds_info['polarization']
-            cid = DatasetID(**cinfo)
+            for key in self._co_keys:
+                if key == 'name':
+                    continue
+                if key in ds_info:
+                    if ds_info[key] is not None:
+                        cinfo[key] = ds_info[key]
+            cid = DataQuery.from_dict(cinfo)
             cids.append(self.get_dataset_key(cid))
 
         return cids
@@ -721,7 +767,7 @@ class FileYAMLReader(AbstractYAMLReader):
         filetype = self._preferred_filetype(ds_info['file_type'])
         if filetype is None:
             logger.warning("Required file type '%s' not found or loaded for "
-                           "'%s'", ds_info['file_type'], dsid.name)
+                           "'%s'", ds_info['file_type'], dsid['name'])
         else:
             return self.file_handlers[filetype]
 
@@ -789,7 +835,7 @@ class FileYAMLReader(AbstractYAMLReader):
             ds = add_crs_xy_coords(ds, area)
         return ds
 
-    def _load_ancillary_variables(self, datasets):
+    def _load_ancillary_variables(self, datasets, **kwargs):
         """Load the ancillary variables of `datasets`."""
         all_av_ids = set()
         for dataset in datasets.values():
@@ -809,28 +855,28 @@ class FileYAMLReader(AbstractYAMLReader):
         if not all_av_ids:
             return
         if loadable_av_ids:
-            self.load(loadable_av_ids, previous_datasets=datasets)
+            self.load(loadable_av_ids, previous_datasets=datasets, **kwargs)
 
         for dataset in datasets.values():
             new_vars = []
             for av_id in dataset.attrs.get('ancillary_variables', []):
-                if isinstance(av_id, DatasetID):
+                if isinstance(av_id, DataID):
                     new_vars.append(datasets[av_id])
                 else:
                     new_vars.append(av_id)
             dataset.attrs['ancillary_variables'] = new_vars
 
     def get_dataset_key(self, key, available_only=False, **kwargs):
-        """Get the fully qualified `DatasetID` matching `key`.
+        """Get the fully qualified `DataID` matching `key`.
 
-        This will first search through available DatasetIDs, datasets that
+        This will first search through available DataIDs, datasets that
         should be possible to load, and fallback to "known" datasets, those
         that are configured but aren't loadable from the provided files.
         Providing ``available_only=True`` will stop this fallback behavior
         and raise a ``KeyError`` exception if no available dataset is found.
 
         Args:
-            key (str, float, DatasetID): Key to search for in this reader.
+            key (str, float, DataID, DataQuery): Key to search for in this reader.
             available_only (bool): Search only loadable datasets for the
                 provided key. Loadable datasets are always searched first,
                 but if ``available_only=False`` (default) then all known
@@ -839,18 +885,18 @@ class FileYAMLReader(AbstractYAMLReader):
                 kwargs.
 
         Returns:
-            Best matching DatasetID to the provided ``key``.
+            Best matching DataID to the provided ``key``.
 
         Raises:
             KeyError: if no key match is found.
 
         """
         try:
-            return get_key(key, self.available_ids.keys(), **kwargs)
+            return get_key(key, self.available_dataset_ids, **kwargs)
         except KeyError:
             if available_only:
                 raise
-            return get_key(key, self.all_ids.keys(), **kwargs)
+            return get_key(key, self.all_dataset_ids, **kwargs)
 
     def load(self, dataset_keys, previous_datasets=None, **kwargs):
         """Load `dataset_keys`.
@@ -874,7 +920,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 all_datasets[dsid] = ds
                 if dsid in dsids:
                     datasets[dsid] = ds
-        self._load_ancillary_variables(all_datasets)
+        self._load_ancillary_variables(all_datasets, **kwargs)
 
         return datasets
 
@@ -889,7 +935,165 @@ def _load_area_def(dsid, file_handlers):
     return final_area.squeeze()
 
 
-class GEOSegmentYAMLReader(FileYAMLReader):
+def _set_orientation(dataset, upper_right_corner):
+    """Set the orientation of geostationary datasets.
+
+    Allows to flip geostationary imagery when loading the datasets.
+    Example call: scn.load(['VIS008'], upper_right_corner='NE')
+
+    Args:
+        dataset: Dataset to be flipped.
+        upper_right_corner (str): Direction of the upper right corner of the image after flipping.
+                                Possible options are 'NW', 'NE', 'SW', 'SE', or 'native'.
+                                The common upright image orientation corresponds to 'NE'.
+                                Defaults to 'native' (no flipping is applied).
+
+    """
+    # do some checks and early returns
+    if upper_right_corner == 'native':
+        logger.debug("Requested orientation for Dataset {} is 'native' (default). "
+                     "No flipping is applied.".format(dataset.attrs.get('name')))
+        return dataset
+
+    if upper_right_corner not in ['NW', 'NE', 'SE', 'SW', 'native']:
+        raise ValueError("Target orientation for Dataset {} not recognized. "
+                         "Kwarg upper_right_corner should be "
+                         "'NW', 'NE', 'SW', 'SE' or 'native'.".format(dataset.attrs.get('name', 'unknown_name')))
+
+    if 'area' not in dataset.attrs:
+        logger.info("Dataset {} is missing the area attribute "
+                    "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
+        return dataset
+
+    projection_type = _get_projection_type(dataset.attrs['area'])
+    accepted_geos_proj_types = ['Geostationary Satellite (Sweep Y)', 'Geostationary Satellite (Sweep X)']
+    if projection_type not in accepted_geos_proj_types:
+        logger.info("Dataset {} is not in one of the known geostationary projections {} "
+                    "and cannot be flipped.".format(dataset.attrs.get('name', 'unknown_name'),
+                                                    accepted_geos_proj_types))
+        return dataset
+
+    target_eastright, target_northup = _get_target_scene_orientation(upper_right_corner)
+
+    area_extents_to_update = _get_dataset_area_extents_array(dataset.attrs['area'])
+    current_eastright, current_northup = _get_current_scene_orientation(area_extents_to_update)
+
+    if target_northup == current_northup and target_eastright == current_eastright:
+        logger.info("Dataset {} is already in the target orientation "
+                    "and will not be flipped.".format(dataset.attrs.get('name', 'unknown_name')))
+        return dataset
+
+    if target_northup != current_northup:
+        dataset, area_extents_to_update = _flip_dataset_data_and_area_extents(dataset, area_extents_to_update,
+                                                                              'upsidedown')
+    if target_eastright != current_eastright:
+        dataset, area_extents_to_update = _flip_dataset_data_and_area_extents(dataset, area_extents_to_update,
+                                                                              'leftright')
+
+    dataset.attrs['area'] = _get_new_flipped_area_definition(dataset.attrs['area'], area_extents_to_update,
+                                                             flip_areadef_stacking=target_northup != current_northup)
+
+    return dataset
+
+
+def _get_projection_type(dataset_area_attr):
+    """Get the projection type from the crs coordinate operation method name."""
+    if isinstance(dataset_area_attr, StackedAreaDefinition):
+        # assumes all AreaDefinitions in a tackedAreaDefinition have the same projection
+        area_crs = dataset_area_attr.defs[0].crs
+    else:
+        area_crs = dataset_area_attr.crs
+
+    return area_crs.coordinate_operation.method_name
+
+
+def _get_target_scene_orientation(upper_right_corner):
+    """Get the target scene orientation from the target upper_right_corner.
+
+    'NE' corresponds to target_eastright and target_northup being True.
+    """
+    if upper_right_corner in ['NW', 'NE']:
+        target_northup = True
+    else:
+        target_northup = False
+
+    if upper_right_corner in ['NE', 'SE']:
+        target_eastright = True
+    else:
+        target_eastright = False
+
+    return target_eastright, target_northup
+
+
+def _get_dataset_area_extents_array(dataset_area_attr):
+    """Get dataset area extents in a numpy array for further flipping."""
+    if isinstance(dataset_area_attr, StackedAreaDefinition):
+        # array of area extents if the Area is a StackedAreaDefinition
+        area_extents_to_update = np.asarray([list(area_def.area_extent) for area_def in dataset_area_attr.defs])
+    else:
+        # array with a single item if Area is in one piece
+        area_extents_to_update = np.asarray([list(dataset_area_attr.area_extent)])
+    return area_extents_to_update
+
+
+def _get_current_scene_orientation(area_extents_to_update):
+    """Get the current scene orientation from the area_extents."""
+    # assumes all AreaDefinitions inside a StackedAreaDefinition have the same orientation
+    current_northup = area_extents_to_update[0, 3] - area_extents_to_update[0, 1] > 0
+    current_eastright = area_extents_to_update[0, 2] - area_extents_to_update[0, 0] > 0
+
+    return current_eastright, current_northup
+
+
+def _flip_dataset_data_and_area_extents(dataset, area_extents_to_update, flip_direction):
+    """Flip the data and area extents array for a dataset."""
+    logger.info("Flipping Dataset {} {}.".format(dataset.attrs.get('name', 'unknown_name'), flip_direction))
+    if flip_direction == 'upsidedown':
+        dataset.data = dataset.data[::-1, :]
+        area_extents_to_update[:, [1, 3]] = area_extents_to_update[:, [3, 1]]
+    elif flip_direction == 'leftright':
+        dataset.data = dataset.data[:, ::-1]
+        area_extents_to_update[:, [0, 2]] = area_extents_to_update[:, [2, 0]]
+    else:
+        raise ValueError("Flip direction not recognized. Should be either 'upsidedown' or 'leftright'.")
+
+    return dataset, area_extents_to_update
+
+
+def _get_new_flipped_area_definition(dataset_area_attr, area_extents_to_update, flip_areadef_stacking):
+    """Get a new area definition with updated area_extents for flipped geostationary datasets."""
+    if len(area_extents_to_update) == 1:
+        # just update the area extents using the AreaDefinition copy method
+        new_area_def = dataset_area_attr.copy(area_extent=area_extents_to_update[0])
+    else:
+        # update the stacked AreaDefinitions singularly
+        new_area_defs_to_stack = []
+        for n_area_def, area_def in enumerate(dataset_area_attr.defs):
+            new_area_defs_to_stack.append(area_def.copy(area_extent=area_extents_to_update[n_area_def]))
+
+        # flip the order of stacking if the area is upside down
+        if flip_areadef_stacking:
+            new_area_defs_to_stack = new_area_defs_to_stack[::-1]
+
+        # regenerate the StackedAreaDefinition
+        new_area_def = StackedAreaDefinition(*new_area_defs_to_stack)
+
+    return new_area_def
+
+
+class GEOFlippableFileYAMLReader(FileYAMLReader):
+    """Reader for flippable geostationary data."""
+
+    def _load_dataset_with_area(self, dsid, coords, upper_right_corner='native', **kwargs):
+        ds = super(GEOFlippableFileYAMLReader, self)._load_dataset_with_area(dsid, coords, **kwargs)
+
+        if ds is not None:
+            ds = _set_orientation(ds, upper_right_corner)
+
+        return ds
+
+
+class GEOSegmentYAMLReader(GEOFlippableFileYAMLReader):
     """Reader for segmented geostationary data.
 
     This reader pads the data to full geostationary disk if necessary.
@@ -920,6 +1124,9 @@ class GEOSegmentYAMLReader(FileYAMLReader):
                 ts = fh.filename_info.get('total_segments', 1)
                 # if the YAML has segments explicitly specified then use that
                 fh.filetype_info.setdefault('expected_segments', ts)
+                # add segment key-values for FCI filehandlers
+                if 'segment' not in fh.filename_info:
+                    fh.filename_info['segment'] = fh.filename_info.get('count_in_repeat_cycle', 1)
         return created_fhs
 
     @staticmethod
@@ -936,13 +1143,28 @@ class GEOSegmentYAMLReader(FileYAMLReader):
             raise KeyError(
                 "Could not load {} from any provided files".format(dsid))
 
+        padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
+
         empty_segment = xr.full_like(projectable, np.nan)
         for i, sli in enumerate(slice_list):
             if sli is None:
-                slice_list[i] = empty_segment
+                if padding_fci_scene:
+                    slice_list[i] = _get_empty_segment_with_height(empty_segment,
+                                                                   _get_FCI_L1c_FDHSI_chunk_height(
+                                                                       empty_segment.shape[1], i + 1),
+                                                                   dim=dim)
+                else:
+                    slice_list[i] = empty_segment
 
         while expected_segments > counter:
-            slice_list.append(empty_segment)
+            if padding_fci_scene:
+                slice_list.append(_get_empty_segment_with_height(empty_segment,
+                                                                 _get_FCI_L1c_FDHSI_chunk_height(
+                                                                     empty_segment.shape[1], counter + 1),
+                                                                 dim=dim))
+            else:
+                slice_list.append(empty_segment)
+
             counter += 1
 
         if dim not in slice_list[0].dims:
@@ -995,6 +1217,8 @@ def _pad_later_segments_area(file_handlers, dsid):
     available_segments = [int(fh.filename_info.get('segment', 1)) for
                           fh in file_handlers]
     area_defs = {}
+    padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
+
     for segment in range(available_segments[0], expected_segments + 1):
         try:
             idx = available_segments.index(segment)
@@ -1002,13 +1226,15 @@ def _pad_later_segments_area(file_handlers, dsid):
             area = fh.get_area_def(dsid)
         except ValueError:
             logger.debug("Padding to full disk with segment nr. %d", segment)
-            ext_diff = area.area_extent[1] - area.area_extent[3]
-            new_ll_y = area.area_extent[1] + ext_diff
+
+            new_height_proj_coord, new_height_px = _get_new_areadef_heights(area, seg_size, segment,
+                                                                            padding_fci_scene)
+            new_ll_y = area.area_extent[1] + new_height_proj_coord
             new_ur_y = area.area_extent[1]
             fill_extent = (area.area_extent[0], new_ll_y,
                            area.area_extent[2], new_ur_y)
             area = AreaDefinition('fill', 'fill', 'fill', area.proj_dict,
-                                  seg_size[1], seg_size[0],
+                                  seg_size[1], new_height_px,
                                   fill_extent)
 
         area_defs[segment] = area
@@ -1024,17 +1250,20 @@ def _pad_earlier_segments_area(file_handlers, dsid, area_defs):
     area = file_handlers[0].get_area_def(dsid)
     seg_size = area.shape
     proj_dict = area.proj_dict
+    padding_fci_scene = file_handlers[0].filetype_info.get('file_type') == 'fci_l1c_fdhsi'
+
     for segment in range(available_segments[0] - 1, 0, -1):
         logger.debug("Padding segment %d to full disk.",
                      segment)
-        ext_diff = area.area_extent[1] - area.area_extent[3]
+
+        new_height_proj_coord, new_height_px = _get_new_areadef_heights(area, seg_size, segment, padding_fci_scene)
         new_ll_y = area.area_extent[3]
-        new_ur_y = area.area_extent[3] - ext_diff
+        new_ur_y = area.area_extent[3] - new_height_proj_coord
         fill_extent = (area.area_extent[0], new_ll_y,
                        area.area_extent[2], new_ur_y)
         area = AreaDefinition('fill', 'fill', 'fill',
                               proj_dict,
-                              seg_size[1], seg_size[0],
+                              seg_size[1], new_height_px,
                               fill_extent)
         area_defs[segment] = area
         seg_size = area.shape
@@ -1074,3 +1303,51 @@ def _find_missing_segments(file_handlers, ds_info, dsid):
         slice_list.append(None)
 
     return counter, expected_segments, slice_list, failure, projectable
+
+
+def _get_new_areadef_heights(previous_area, previous_seg_size, segment_n, padding_fci_scene):
+    """Get the area definition heights in projection coordinates and pixels for the new padded segment."""
+    if padding_fci_scene:
+        # retrieve the chunk/segment pixel height
+        new_height_px = _get_FCI_L1c_FDHSI_chunk_height(previous_seg_size[1], segment_n)
+        # scale the previous vertical area extent using the new pixel height
+        new_height_proj_coord = (previous_area.area_extent[1] - previous_area.area_extent[3]) * new_height_px / \
+            previous_seg_size[0]
+    else:
+        # all other cases have constant segment size, so reuse the previous segment heights
+        new_height_px = previous_seg_size[0]
+        new_height_proj_coord = previous_area.area_extent[1] - previous_area.area_extent[3]
+    return new_height_proj_coord, new_height_px
+
+
+def _get_empty_segment_with_height(empty_segment, new_height, dim):
+    """Get a new empty segment with the specified height."""
+    if empty_segment.shape[0] > new_height:
+        # if current empty segment is too tall, slice the DataArray
+        return empty_segment[:new_height, :]
+    elif empty_segment.shape[0] < new_height:
+        # if current empty segment is too short, concatenate a slice of the DataArray
+        return xr.concat([empty_segment, empty_segment[:new_height - empty_segment.shape[0], :]], dim=dim)
+    else:
+        return empty_segment
+
+
+def _get_FCI_L1c_FDHSI_chunk_height(chunk_width, chunk_n):
+    """Get the height in pixels of a FCI L1c FDHSI chunk given the chunk width and number (starting from 1)."""
+    if chunk_width == 11136:
+        # 1km resolution case
+        if chunk_n in [3, 5, 8, 10, 13, 15, 18, 20, 23, 25, 28, 30, 33, 35, 38, 40]:
+            chunk_height = 279
+        else:
+            chunk_height = 278
+    elif chunk_width == 5568:
+        # 2km resolution case
+        if chunk_n in [5, 10, 15, 20, 25, 30, 35, 40]:
+            chunk_height = 140
+        else:
+            chunk_height = 139
+    else:
+        raise ValueError("FCI L1c FDHSI chunk width {} not recognized. Must be either 5568 or 11136.".format(
+            chunk_width))
+
+    return chunk_height

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2016-2017 Satpy developers
+# Copyright (c) 2016-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -15,8 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""SAFE MSI L1C reader.
-"""
+"""SAFE MSI L1C reader."""
 
 import logging
 
@@ -41,8 +40,10 @@ PLATFORMS = {'S2A': "Sentinel-2A",
 
 
 class SAFEMSIL1C(BaseFileHandler):
+    """File handler for SAFE MSI files (jp2)."""
 
     def __init__(self, filename, filename_info, filetype_info, mda):
+        """Init the reader."""
         super(SAFEMSIL1C, self).__init__(filename, filename_info,
                                          filetype_info)
 
@@ -54,10 +55,10 @@ class SAFEMSIL1C(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self._channel != key.name:
+        if self._channel != key['name']:
             return
 
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
         # FIXME: get this from MTD_MSIL1C.xml
         quantification_value = 10000.
         jp2 = glymur.Jp2k(self.filename)
@@ -85,21 +86,26 @@ class SAFEMSIL1C(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get the end time."""
         return self._start_time
 
     def get_area_def(self, dsid):
-        if self._channel != dsid.name:
+        """Get the area def."""
+        if self._channel != dsid['name']:
             return
         return self._mda.get_area_def(dsid)
 
 
 class SAFEMSIMDXML(BaseFileHandler):
+    """File handle for sentinel 2 safe XML manifest."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the reader."""
         super(SAFEMSIMDXML, self).__init__(filename, filename_info,
                                            filetype_info)
         self._start_time = filename_info['observation_time']
@@ -110,29 +116,39 @@ class SAFEMSIMDXML(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get start time."""
         return self._start_time
 
     @property
     def end_time(self):
+        """Get end time."""
         return self._start_time
 
     def get_area_def(self, dsid):
         """Get the area definition of the dataset."""
+        try:
+            from pyproj import CRS
+        except ImportError:
+            CRS = None
         geocoding = self.root.find('.//Tile_Geocoding')
         epsg = geocoding.find('HORIZONTAL_CS_CODE').text
-        rows = int(geocoding.find('Size[@resolution="' + str(dsid.resolution) + '"]/NROWS').text)
-        cols = int(geocoding.find('Size[@resolution="' + str(dsid.resolution) + '"]/NCOLS').text)
-        geoposition = geocoding.find('Geoposition[@resolution="' + str(dsid.resolution) + '"]')
+        rows = int(geocoding.find('Size[@resolution="' + str(dsid['resolution']) + '"]/NROWS').text)
+        cols = int(geocoding.find('Size[@resolution="' + str(dsid['resolution']) + '"]/NCOLS').text)
+        geoposition = geocoding.find('Geoposition[@resolution="' + str(dsid['resolution']) + '"]')
         ulx = float(geoposition.find('ULX').text)
         uly = float(geoposition.find('ULY').text)
         xdim = float(geoposition.find('XDIM').text)
         ydim = float(geoposition.find('YDIM').text)
         area_extent = (ulx, uly + rows * ydim, ulx + cols * xdim, uly)
+        if CRS is not None:
+            proj = CRS(epsg)
+        else:
+            proj = {'init': epsg}
         area = geometry.AreaDefinition(
                     self.tile,
                     "On-the-fly area",
                     self.tile,
-                    {'init': epsg},
+                    proj,
                     cols,
                     rows,
                     area_extent)
@@ -145,6 +161,7 @@ class SAFEMSIMDXML(BaseFileHandler):
         return res.reshape(xcoord.shape)
 
     def interpolate_angles(self, angles, resolution):
+        """Interpolate the angles."""
         # FIXME: interpolate in cartesian coordinates if the lons or lats are
         # problematic
         from geotiepoints.multilinear import MultilinearInterpolator
@@ -185,7 +202,6 @@ class SAFEMSIMDXML(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get the dataset refered to by `key`."""
-
         angles = self._get_coarse_dataset(key, info)
         if angles is None:
             return
@@ -196,7 +212,7 @@ class SAFEMSIMDXML(BaseFileHandler):
         darr = darr.ffill('x')
         angles = darr.data
 
-        res = self.interpolate_angles(angles, key.resolution)
+        res = self.interpolate_angles(angles, key['resolution'])
 
         proj = DataArray(res, dims=['y', 'x'])
         proj.attrs = info.copy()
