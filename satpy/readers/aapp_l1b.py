@@ -22,20 +22,19 @@ Options for loading:
  - pre_launch_coeffs (False): use pre-launch coefficients if True, operational
    otherwise (if available).
 
-http://research.metoffice.gov.uk/research/interproj/nwpsaf/aapp/
-NWPSAF-MF-UD-003_Formats.pdf
+https://nwp-saf.eumetsat.int/site/download/documentation/aapp/NWPSAF-MF-UD-003_Formats_v8.0.pdf
 """
-
+import functools
 import logging
 from datetime import datetime, timedelta
 
+import dask.array as da
 import numpy as np
 import xarray as xr
-
-import dask.array as da
 from dask import delayed
-from satpy.readers.file_handlers import BaseFileHandler
+
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
 
 LINE_CHUNK = CHUNK_SIZE ** 2 // 2048
 
@@ -43,9 +42,9 @@ logger = logging.getLogger(__name__)
 
 CHANNEL_NAMES = ['1', '2', '3a', '3b', '4', '5']
 
-ANGLES = {'sensor_zenith_angle': 'satz',
-          'solar_zenith_angle': 'sunz',
-          'sun_sensor_azimuth_difference_angle': 'azidiff'}
+ANGLES = ['sensor_zenith_angle',
+          'solar_zenith_angle',
+          'sun_sensor_azimuth_difference_angle']
 
 PLATFORM_NAMES = {4: 'NOAA-15',
                   2: 'NOAA-16',
@@ -79,18 +78,40 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self._is3b = None
         self._is3a = None
         self._shape = None
-        self.lons = None
-        self.lats = None
         self.area = None
         self.sensor = 'avhrr-3'
         self.read()
+
+        self.active_channels = self._get_active_channels()
 
         self.platform_name = PLATFORM_NAMES.get(self._header['satid'][0], None)
 
         if self.platform_name is None:
             raise ValueError("Unsupported platform ID: %d" % self.header['satid'])
 
-        self.sunz, self.satz, self.azidiff = None, None, None
+    def _get_active_channels(self):
+        status = self._get_channel_binary_status_from_header()
+        return self._convert_binary_channel_status_to_activation_dict(status)
+
+    def _get_channel_binary_status_from_header(self):
+        status = self._header['inststat1'].item()
+        change_line = self._header['statchrecnb']
+        if change_line > 0:
+            status |= self._header['inststat2'].item()
+        return status
+
+    @staticmethod
+    def _convert_binary_channel_status_to_activation_dict(status):
+        bits_channels = ((13, '1'),
+                         (12, '2'),
+                         (11, '3a'),
+                         (10, '3b'),
+                         (9, '4'),
+                         (8, '5'))
+        activated = dict()
+        for bit, channel_name in bits_channels:
+            activated[channel_name] = bool(status >> bit & 1)
+        return activated
 
     @property
     def start_time(self):
@@ -109,35 +130,32 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
         if key['name'] in CHANNEL_NAMES:
-            dataset = self.calibrate(key)
+            if self.active_channels[key['name']]:
+                dataset = self.calibrate(key)
+            else:
+                return None
         elif key['name'] in ['longitude', 'latitude']:
-            if self.lons is None or self.lats is None:
-                self.navigate()
-            if key['name'] == 'longitude':
-                dataset = create_xarray(self.lons)
-            else:
-                dataset = create_xarray(self.lats)
+            dataset = self.navigate(key['name'])
             dataset.attrs = info
-        else:  # Get sun-sat angles
-            if key['name'] in ANGLES:
-                if isinstance(getattr(self, ANGLES[key['name']]), np.ndarray):
-                    dataset = create_xarray(getattr(self, ANGLES[key['name']]))
-                else:
-                    dataset = self.get_angles(key['name'])
-            else:
-                raise ValueError("Not a supported sun-sensor viewing angle: %s", key['name'])
+        elif key['name'] in ANGLES:
+            dataset = self.get_angles(key['name'])
+        else:
+            raise ValueError("Not a supported dataset: %s", key['name'])
 
+        self._update_dataset_attributes(dataset, key, info)
+
+        if not self._shape:
+            self._shape = dataset.shape
+
+        return dataset
+
+    def _update_dataset_attributes(self, dataset, key, info):
         dataset.attrs.update({'platform_name': self.platform_name,
                               'sensor': self.sensor})
         dataset.attrs.update(key.to_dict())
         for meta_key in ('standard_name', 'units'):
             if meta_key in info:
                 dataset.attrs.setdefault(meta_key, info[meta_key])
-
-        if not self._shape:
-            self._shape = dataset.shape
-
-        return dataset
 
     def read(self):
         """Read the data."""
@@ -150,65 +168,78 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
         self._header = header
         self._data = data
 
+    def available_datasets(self, configured_datasets=None):
+        """Get the available datasets."""
+        for _, mda in configured_datasets:
+            if mda['name'] in CHANNEL_NAMES:
+                yield self.active_channels[mda['name']], mda
+            else:
+                yield True, mda
+
     def get_angles(self, angle_id):
         """Get sun-satellite viewing angles."""
+        sunz, satz, azidiff = self._get_all_interpolated_angles()
+
+        name_to_variable = dict(zip(ANGLES, (satz, sunz, azidiff)))
+        return create_xarray(name_to_variable[angle_id])
+
+    @functools.lru_cache(maxsize=10)
+    def _get_all_interpolated_angles(self):
+        sunz40km, satz40km, azidiff40km = self._get_tiepoint_angles_in_degrees()
+        return self._interpolate_arrays(sunz40km, satz40km, azidiff40km)
+
+    def _get_tiepoint_angles_in_degrees(self):
         sunz40km = self._data["ang"][:, :, 0] * 1e-2
         satz40km = self._data["ang"][:, :, 1] * 1e-2
         azidiff40km = self._data["ang"][:, :, 2] * 1e-2
+        return sunz40km, satz40km, azidiff40km
 
+    def _interpolate_arrays(self, *input_arrays):
+        lines = input_arrays[0].shape[0]
         try:
-            from geotiepoints.interpolator import Interpolator
+            interpolator = self._create_40km_interpolator(lines, *input_arrays)
         except ImportError:
-            logger.warning("Could not interpolate sun-sat angles, "
-                           "python-geotiepoints missing.")
-            self.sunz, self.satz, self.azidiff = sunz40km, satz40km, azidiff40km
+            logger.warning("Could not interpolate, python-geotiepoints missing.")
+            output_arrays = input_arrays
         else:
-            cols40km = np.arange(24, 2048, 40)
-            cols1km = np.arange(2048)
-            lines = sunz40km.shape[0]
-            rows40km = np.arange(lines)
-            rows1km = np.arange(lines)
+            output_delayed = delayed(interpolator.interpolate, nout=3)()
+            output_arrays = [da.from_delayed(out_array, (lines, 2048), in_array.dtype)
+                             for in_array, out_array in zip(input_arrays, output_delayed)]
+        return output_arrays
 
-            along_track_order = 1
-            cross_track_order = 3
+    @staticmethod
+    def _create_40km_interpolator(lines, *arrays_40km):
+        from geotiepoints.interpolator import Interpolator
+        cols40km = np.arange(24, 2048, 40)
+        cols1km = np.arange(2048)
+        rows40km = np.arange(lines)
+        rows1km = np.arange(lines)
+        along_track_order = 1
+        cross_track_order = 3
+        satint = Interpolator(
+            arrays_40km, (rows40km, cols40km),
+            (rows1km, cols1km), along_track_order, cross_track_order)
+        return satint
 
-            satint = Interpolator(
-                [sunz40km, satz40km, azidiff40km], (rows40km, cols40km),
-                (rows1km, cols1km), along_track_order, cross_track_order)
-            self.sunz, self.satz, self.azidiff = delayed(satint.interpolate, nout=3)()
-            self.sunz = da.from_delayed(self.sunz, (lines, 2048), sunz40km.dtype)
-            self.satz = da.from_delayed(self.satz, (lines, 2048), satz40km.dtype)
-            self.azidiff = da.from_delayed(self.azidiff, (lines, 2048), azidiff40km.dtype)
-
-        return create_xarray(getattr(self, ANGLES[angle_id]))
-
-    def navigate(self):
+    def navigate(self, coordinate_id):
         """Get the longitudes and latitudes of the scene."""
+        lons, lats = self._get_all_interpolated_coordinates()
+        if coordinate_id == 'longitude':
+            return create_xarray(lons)
+        elif coordinate_id == 'latitude':
+            return create_xarray(lats)
+        else:
+            raise KeyError("Coordinate {} unknown.".format(coordinate_id))
+
+    @functools.lru_cache(maxsize=10)
+    def _get_all_interpolated_coordinates(self):
+        lons40km, lats40km = self._get_coordinates_in_degrees()
+        return self._interpolate_arrays(lons40km, lats40km)
+
+    def _get_coordinates_in_degrees(self):
         lons40km = self._data["pos"][:, :, 1] * 1e-4
         lats40km = self._data["pos"][:, :, 0] * 1e-4
-
-        try:
-            from geotiepoints import SatelliteInterpolator
-        except ImportError:
-            logger.warning("Could not interpolate lon/lats, "
-                           "python-geotiepoints missing.")
-            self.lons, self.lats = lons40km, lats40km
-        else:
-            cols40km = np.arange(24, 2048, 40)
-            cols1km = np.arange(2048)
-            lines = lons40km.shape[0]
-            rows40km = np.arange(lines)
-            rows1km = np.arange(lines)
-
-            along_track_order = 1
-            cross_track_order = 3
-
-            satint = SatelliteInterpolator(
-                (lons40km, lats40km), (rows40km, cols40km), (rows1km, cols1km),
-                along_track_order, cross_track_order)
-            self.lons, self.lats = delayed(satint.interpolate, nout=2)()
-            self.lons = da.from_delayed(self.lons, (lines, 2048), lons40km.dtype)
-            self.lats = da.from_delayed(self.lats, (lines, 2048), lats40km.dtype)
+        return lons40km, lats40km
 
     def calibrate(self,
                   dataset_id,
@@ -229,11 +260,6 @@ class AVHRRAAPPL1BFile(BaseFileHandler):
                                                       chunks=LINE_CHUNK), 3) == 0
             self._is3b = da.bitwise_and(da.from_array(self._data['scnlinbit'],
                                                       chunks=LINE_CHUNK), 3) == 1
-
-        if dataset_id['name'] == '3a' and not np.any(self._is3a):
-            raise ValueError("Empty dataset for channel 3A")
-        if dataset_id['name'] == '3b' and not np.any(self._is3b):
-            raise ValueError("Empty dataset for channel 3B")
 
         try:
             vis_idx = ['1', '2', '3a'].index(dataset_id['name'])
