@@ -976,7 +976,7 @@ class TestCFWriter(unittest.TestCase):
                                          dims=('y', 'x'),
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
-                                                    prerequisites=[make_dsq('hej')]))
+                                                    prerequisites=[make_dsq(name='hej')]))
         with TempFile() as filename:
             scn.save_datasets(filename=filename, writer='cf')
             with xr.open_dataset(filename) as f:
@@ -994,7 +994,7 @@ class TestCFWriter(unittest.TestCase):
                                          dims=('y', 'x'),
                                          attrs=dict(start_time=start_time,
                                                     end_time=end_time,
-                                                    prerequisites=[make_dsq('hej')]))
+                                                    prerequisites=[make_dsq(name='hej')]))
         header_attrs = {}
         header_attrs['history'] = 'TEST add history',
         header_attrs['Conventions'] = 'CF-1.7, ACDD-1.3'
