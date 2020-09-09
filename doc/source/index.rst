@@ -99,6 +99,9 @@ the base Satpy installation.
     * - Himawari 8 and 9 AHI data in HRIT format
       - `ahi_hrit`
       - Nominal
+    * - Himawari 8 and 9 AHI data in Gridded NetCDF format
+      - `ahi_l1b_gridded_nc`
+      - Nominal
     * - MTSAT-1R JAMI data in JMA HRIT format
       - `jami_hrit`
       - Beta

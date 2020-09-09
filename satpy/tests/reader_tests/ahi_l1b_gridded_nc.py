@@ -15,14 +15,14 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""The ahi_gridded reader tests package."""
+"""The ahi_l1b_gridded_nc reader tests package."""
 
 import unittest
 from unittest import mock
 import numpy as np
 import dask.array as da
 from pyresample.geometry import AreaDefinition
-from satpy.readers.ahi_gridded import AHIGriddedFileHandler, AHI_LUT_NAMES
+from satpy.readers.ahi_l1b_gridded_nc import AHIGriddedFileHandler, AHI_LUT_NAMES
 import os
 import shutil
 import tempfile
@@ -45,7 +45,7 @@ class TestAHIGriddedArea(unittest.TestCase):
     def make_fh(filetype, area='fld'):
         """Create a test file handler."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_gridded.open', m, create=True):
+        with mock.patch('satpy.readers.ahi_l1b_gridded_nc.open', m, create=True):
             fh = AHIGriddedFileHandler('somefile',
                                        {'area': area},
                                        filetype_info={'file_type': filetype})
@@ -100,16 +100,16 @@ class TestAHIGriddedFileCalibration(unittest.TestCase):
     def setUp(self):
         """Create a test file handler."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_gridded.open', m, create=True):
+        with mock.patch('satpy.readers.ahi_l1b_gridded_nc.open', m, create=True):
             in_fname = 'test_file'
             fh = AHIGriddedFileHandler(in_fname,
                                        {'area': 'fld'},
                                        filetype_info={'file_type': 'tir.01'})
             self.fh = fh
 
-    @mock.patch('satpy.readers.ahi_gridded.AHIGriddedFileHandler._get_luts')
-    @mock.patch('satpy.readers.ahi_gridded.os.path.exists')
-    @mock.patch('satpy.readers.ahi_gridded.np.loadtxt')
+    @mock.patch('satpy.readers.ahi_l1b_gridded_nc.AHIGriddedFileHandler._get_luts')
+    @mock.patch('satpy.readers.ahi_l1b_gridded_nc.os.path.exists')
+    @mock.patch('satpy.readers.ahi_l1b_gridded_nc.np.loadtxt')
     def test_calibrate(self, np_loadtxt, os_exist, get_luts):
         """Test the calibration modes of AHI using the LUTs"""
         load_return = np.squeeze(np.dstack([np.arange(0, 2048, 1),
@@ -157,12 +157,12 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
         else:
             return fname
 
-    @mock.patch('satpy.readers.ahi_gridded.unzip_file',
+    @mock.patch('satpy.readers.ahi_l1b_gridded_nc.unzip_file',
                 mock.MagicMock(side_effect=new_unzip))
     def setUp(self):
         """Create a test file handler."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_gridded.open', m, create=True):
+        with mock.patch('satpy.readers.ahi_l1b_gridded_nc.open', m, create=True):
             in_fname = 'test_file.bz2'
             fh = AHIGriddedFileHandler(in_fname,
                                        {'area': 'fld'},
@@ -181,17 +181,17 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
         self.key = key
         self.info = info
 
-    @mock.patch('satpy.readers.ahi_gridded.np.memmap')
+    @mock.patch('satpy.readers.ahi_l1b_gridded_nc.np.memmap')
     def test_dataread(self, memmap):
         """Check that a dask array is returned from the read function."""
         test_arr = np.zeros((10, 10))
         memmap.return_value = test_arr
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_gridded.open', m, create=True):
+        with mock.patch('satpy.readers.ahi_l1b_gridded_nc.open', m, create=True):
             res = self.fh._read_data(mock.MagicMock())
             np.testing.assert_allclose(res, da.from_array(test_arr))
 
-    @mock.patch('satpy.readers.ahi_gridded.AHIGriddedFileHandler._read_data')
+    @mock.patch('satpy.readers.ahi_l1b_gridded_nc.AHIGriddedFileHandler._read_data')
     def test_get_dataset(self, mocked_read):
         """Check that a good dataset is returned on request."""
         m = mock.mock_open()
@@ -199,7 +199,7 @@ class TestAHIGriddedFileHandler(unittest.TestCase):
         out_data = np.array([[100., 300., 500.],
                              [800., 1500., 2040.]])
         mocked_read.return_value = out_data
-        with mock.patch('satpy.readers.ahi_gridded.open', m, create=True):
+        with mock.patch('satpy.readers.ahi_l1b_gridded_nc.open', m, create=True):
             res = self.fh.get_dataset(self.key, self.info)
             mocked_read.assert_called()
             # Check output data is correct
@@ -229,7 +229,7 @@ class TestAHIGriddedLUTs(unittest.TestCase):
     def setUp(self):
         """Create a test file handler."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_gridded.open', m, create=True):
+        with mock.patch('satpy.readers.ahi_l1b_gridded_nc.open', m, create=True):
             in_fname = 'test_file'
             fh = AHIGriddedFileHandler(in_fname,
                                        {'area': 'fld'},
@@ -254,7 +254,7 @@ class TestAHIGriddedLUTs(unittest.TestCase):
         if os.path.isdir(self.fh.lut_dir):
             shutil.rmtree(self.fh.lut_dir)
 
-    @mock.patch('satpy.readers.ahi_gridded.AHIGriddedFileHandler._download_luts',
+    @mock.patch('satpy.readers.ahi_l1b_gridded_nc.AHIGriddedFileHandler._download_luts',
                 mock.MagicMock(side_effect=mocked_ftp_dl))
     def test_get_luts(self):
         """Check that the function to download LUTs operates successfully."""
@@ -269,6 +269,6 @@ class TestAHIGriddedLUTs(unittest.TestCase):
     def test_download_luts(self, mock_ftp):
         """Test that the FTP library is called for downloading LUTS."""
         m = mock.mock_open()
-        with mock.patch('satpy.readers.ahi_gridded.open', m, create=True):
+        with mock.patch('satpy.readers.ahi_l1b_gridded_nc.open', m, create=True):
             self.fh._download_luts('/test_file')
             mock_ftp.assert_called()
