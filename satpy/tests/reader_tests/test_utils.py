@@ -25,7 +25,6 @@ import xarray as xr
 import numpy as np
 import numpy.testing
 import pyresample.geometry
-from xarray import DataArray
 
 from satpy.readers import utils as hf
 
@@ -344,8 +343,8 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
                                        'scheduled_time': self.test_date})
 
         corr_refl = xr.DataArray(np.array([10.50514689, 21.01029379,
-                                42.02058758, 1.05051469,
-                                102.95043957, 52.52573447]),
+                                           42.02058758, 1.05051469,
+                                           102.95043957, 52.52573447]),
                                  attrs={'start_time': self.test_date,
                                         'scheduled_time': self.test_date})
         self.raw_refl = raw_refl
@@ -377,7 +376,6 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
         del tmp_array.attrs['start_time']
         with self.assertRaises(KeyError):
             hf.get_array_date(tmp_array, None)
-
 
     def test_apply_sunearth_corr(self):
         """Test the correction of reflectances with sun-earth distance."""

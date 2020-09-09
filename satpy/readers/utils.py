@@ -324,8 +324,9 @@ def get_array_date(scn_data, utc_date=None):
                 utc_date = scn_data.attrs['scheduled_time']
             except KeyError:
                 raise KeyError('Scene has no start_time '
-                                     'or scheduled_time attribute.')
+                               'or scheduled_time attribute.')
     return utc_date
+
 
 def apply_earthsun_distance_correction(reflectance, utc_date=None):
     """Correct reflectance data to account for changing Earth-Sun distance."""
