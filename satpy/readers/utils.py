@@ -314,23 +314,23 @@ def apply_rad_correction(data, slope, offset):
     return data
 
 
-def _get_array_date(scn_data, utc_date=None):
+def get_array_date(scn_data, utc_date=None):
     """Get start time from a channel data array."""
     if utc_date is None:
         try:
             utc_date = scn_data.attrs['start_time']
-        except AttributeError:
+        except KeyError:
             try:
                 utc_date = scn_data.attrs['scheduled_time']
-            except AttributeError:
-                raise AttributeError('Scene has no start_time '
+            except KeyError:
+                raise KeyError('Scene has no start_time '
                                      'or scheduled_time attribute.')
     return utc_date
 
 def apply_earthsun_distance_correction(reflectance, utc_date=None):
     """Correct reflectance data to account for changing Earth-Sun distance."""
     from pyorbital.astronomy import sun_earth_distance_correction
-    utc_date = _get_array_date(reflectance, utc_date)
+    utc_date = get_array_date(reflectance, utc_date)
     sun_earth_dist = sun_earth_distance_correction(utc_date)
 
     return reflectance * sun_earth_dist * sun_earth_dist
@@ -339,7 +339,7 @@ def apply_earthsun_distance_correction(reflectance, utc_date=None):
 def remove_earthsun_distance_correction(reflectance, utc_date=None):
     """Remove the sun-earth distance correction."""
     from pyorbital.astronomy import sun_earth_distance_correction
-    utc_date = _get_array_date(reflectance, utc_date)
+    utc_date = get_array_date(reflectance, utc_date)
     sun_earth_dist = sun_earth_distance_correction(utc_date)
 
     return reflectance / (sun_earth_dist * sun_earth_dist)

@@ -25,6 +25,7 @@ import xarray as xr
 import numpy as np
 import numpy.testing
 import pyresample.geometry
+from xarray import DataArray
 
 from satpy.readers import utils as hf
 
@@ -330,56 +331,62 @@ class TestHelpers(unittest.TestCase):
         with self.assertRaises(KeyError):
             hf.get_user_calibration_factors('IR108', radcor_dict)
 
+
+class TestSunEarthDistanceCorrection(unittest.TestCase):
+    """Tests for applying Sun-Earth distance correction to reflectance."""
+
+    def setUp(self):
+        """"Create input / output arrays for the tests."""
+        self.test_date = datetime(2020, 8, 15, 13, 0, 40)
+
+        raw_refl = xr.DataArray(np.array([10., 20., 40., 1., 98., 50.]),
+                                attrs={'start_time': self.test_date,
+                                       'scheduled_time': self.test_date})
+
+        corr_refl = xr.DataArray(np.array([10.50514689, 21.01029379,
+                                42.02058758, 1.05051469,
+                                102.95043957, 52.52573447]),
+                                 attrs={'start_time': self.test_date,
+                                        'scheduled_time': self.test_date})
+        self.raw_refl = raw_refl
+        self.corr_refl = corr_refl
+
+    def test_get_utc_time(self):
+        """Test the retrieval of scene time from a dataset."""
+        # First check correct time is returned with 'start_time'
+        tmp_array = self.raw_refl.copy()
+        del tmp_array.attrs['scheduled_time']
+        utc_time = hf.get_array_date(tmp_array, None)
+        self.assertEqual(utc_time, self.test_date)
+
+        # Now check correct time is returned with 'scheduled_time'
+        tmp_array = self.raw_refl.copy()
+        del tmp_array.attrs['start_time']
+        utc_time = hf.get_array_date(tmp_array, None)
+        self.assertEqual(utc_time, self.test_date)
+
+        # Now check correct time is returned with utc_date passed
+        tmp_array = self.raw_refl.copy()
+        new_test_date = datetime(2019, 2, 1, 15, 2, 12)
+        utc_time = hf.get_array_date(tmp_array, new_test_date)
+        self.assertEqual(utc_time, new_test_date)
+
+        # Finally, ensure error is raised if no datetime is available
+        tmp_array = self.raw_refl.copy()
+        del tmp_array.attrs['scheduled_time']
+        del tmp_array.attrs['start_time']
+        with self.assertRaises(KeyError):
+            hf.get_array_date(tmp_array, None)
+
+
     def test_apply_sunearth_corr(self):
         """Test the correction of reflectances with sun-earth distance."""
-        test_date = datetime(2020, 8, 15, 13, 0, 40)
-        in_refl_arr = np.array([10., 20., 40., 1., 98., 50.])
-        exp_refl = np.array([10.50514689, 21.01029379, 42.02058758,
-                             1.05051469, 102.95043957, 52.52573447])
 
-        # Check case that array has a start time attr
-        in_refl = xr.DataArray(in_refl_arr,
-                               attrs={'start_time': test_date})
-        out_refl = hf.apply_earthsun_distance_correction(in_refl)
-        np.testing.assert_allclose(out_refl, exp_refl)
-
-        # Check case that array has a scheduled time attr
-        in_refl = xr.DataArray(in_refl_arr,
-                               attrs={'scheduled_time': test_date})
-        out_refl = hf.apply_earthsun_distance_correction(in_refl)
-        np.testing.assert_allclose(out_refl, exp_refl)
-
-        # Check case that we pass time
-        in_refl = xr.DataArray(in_refl_arr)
-        out_refl = hf.apply_earthsun_distance_correction(in_refl, test_date)
-        np.testing.assert_allclose(out_refl, exp_refl)
-
-        with self.assertRaises(AttributeError):
-            hf.apply_earthsun_distance_correction(in_refl)
+        out_refl = hf.apply_earthsun_distance_correction(self.raw_refl)
+        np.testing.assert_allclose(out_refl, self.corr_refl)
 
     def test_remove_sunearth_corr(self):
         """Test the removal of the sun-earth distance correction."""
-        test_date = datetime(2020, 8, 15, 13, 0, 40)
-        in_refl_arr = np.array([10.50514689, 21.01029379, 42.02058758,
-                                1.05051469, 102.95043957, 52.52573447])
-        exp_refl = np.array([10., 20., 40., 1., 98., 50.])
 
-        # Check case that array has a start time attr
-        in_refl = xr.DataArray(in_refl_arr,
-                               attrs={'start_time': test_date})
-        out_refl = hf.remove_earthsun_distance_correction(in_refl)
-        np.testing.assert_allclose(out_refl, exp_refl)
-
-        # Check case that array has a scheduled time attr
-        in_refl = xr.DataArray(in_refl_arr,
-                               attrs={'scheduled_time': test_date})
-        out_refl = hf.remove_earthsun_distance_correction(in_refl)
-        np.testing.assert_allclose(out_refl, exp_refl)
-
-        # Check case that we pass time
-        in_refl = xr.DataArray(in_refl_arr)
-        out_refl = hf.remove_earthsun_distance_correction(in_refl, test_date)
-        np.testing.assert_allclose(out_refl, exp_refl)
-
-        with self.assertRaises(AttributeError):
-            hf.remove_earthsun_distance_correction(in_refl)
+        out_refl = hf.remove_earthsun_distance_correction(self.corr_refl)
+        np.testing.assert_allclose(out_refl, self.raw_refl)
