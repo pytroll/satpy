@@ -382,9 +382,11 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
 
         out_refl = hf.apply_earthsun_distance_correction(self.raw_refl)
         np.testing.assert_allclose(out_refl, self.corr_refl)
+        self.assertTrue(out_refl.attrs['sun_earth_distance_correction_applied'])
 
     def test_remove_sunearth_corr(self):
         """Test the removal of the sun-earth distance correction."""
 
         out_refl = hf.remove_earthsun_distance_correction(self.corr_refl)
         np.testing.assert_allclose(out_refl, self.raw_refl)
+        self.assertFalse(out_refl.attrs['sun_earth_distance_correction_applied'])
