@@ -1,4 +1,13 @@
 enhancements:
+  # data comes out of the compositor normalized to 0-1
+  # this makes sure that we aren't dependent on the default dynamic stretch
+  # which would have the same end result
+  dynamic_dnb:
+    name: dynamic_dnb
+    operations:
+      - name: linear_stretch
+        method: !!python/name:satpy.enhancements.stretch
+        kwargs: {stretch: 'crude', min_stretch: 0.0, max_stretch: 1.0}
   water_detection:
     name: WaterDetection
     operations:

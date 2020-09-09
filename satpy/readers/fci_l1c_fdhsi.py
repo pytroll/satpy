@@ -66,7 +66,7 @@ supports the pixel quality, obtained by prepending the channel name such as
     change.  Currently, for each channel, the pixel quality is available by
     ``<chan>_pixel_quality``.  In the future, they will likely all be called
     ``pixel_quality`` and disambiguated by a to-be-decided property in the
-    `DatasetID`.
+    `DataID`.
 
 .. _RADTOBR: https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_EFFECT_RAD_TO_BRIGHTNESS&RevisionSelectionMethod=LatestReleased&Rendition=Web
 .. _PUG: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_DMT_719113&RevisionSelectionMethod=LatestReleased&Rendition=Web
@@ -137,14 +137,14 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def get_dataset(self, key, info=None):
         """Load a dataset."""
-        logger.debug('Reading {} from {}'.format(key.name, self.filename))
-        if "pixel_quality" in key.name:
+        logger.debug('Reading {} from {}'.format(key['name'], self.filename))
+        if "pixel_quality" in key['name']:
             return self._get_dataset_quality(key, info=info)
-        elif any(lb in key.name for lb in {"vis_", "ir_", "nir_", "wv_"}):
+        elif any(lb in key['name'] for lb in {"vis_", "ir_", "nir_", "wv_"}):
             return self._get_dataset_measurand(key, info=info)
         else:
             raise ValueError("Unknown dataset key, not a channel or quality: "
-                             f"{key.name:s}")
+                             f"{key['name']:s}")
 
     def _get_dataset_measurand(self, key, info=None):
         """Load dataset corresponding to channel measurement.
@@ -155,7 +155,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         """
         # Get the dataset
         # Get metadata for given dataset
-        measured = self.get_channel_measured_group_path(key.name)
+        measured = self.get_channel_measured_group_path(key['name'])
         data = self[measured + "/effective_radiance"]
 
         attrs = data.attrs.copy()
@@ -165,7 +165,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             "FillValue",
             default_fillvals.get(data.dtype.str[1:], np.nan))
         vr = attrs.get("valid_range", [-np.inf, np.inf])
-        if key.calibration == "counts":
+        if key['calibration'] == "counts":
             attrs["_FillValue"] = fv
             nfv = fv
         else:
@@ -189,7 +189,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         # https://github.com/pytroll/satpy/issues/1171.
         if "pixel_quality" in attrs["ancillary_variables"]:
             attrs["ancillary_variables"] = attrs["ancillary_variables"].replace(
-                    "pixel_quality", key.name + "_pixel_quality")
+                    "pixel_quality", key['name'] + "_pixel_quality")
         else:
             raise ValueError(
                 "Unexpected value for attribute ancillary_variables, "
@@ -205,7 +205,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
                 self["/attr/platform"], self["/attr/platform"])
 
         # remove unpacking parameters for calibrated data
-        if key.calibration in ['brightness_temperature', 'reflectance']:
+        if key['calibration'] in ['brightness_temperature', 'reflectance']:
             res.attrs.pop("add_offset")
             res.attrs.pop("warm_add_offset")
             res.attrs.pop("scale_factor")
@@ -226,11 +226,11 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         necessary.
         """
         # FIXME: replace by .removesuffix after we drop support for Python < 3.9
-        if key.name.endswith("_pixel_quality"):
-            chan_lab = key.name[:-len("_pixel_quality")]
+        if key['name'].endswith("_pixel_quality"):
+            chan_lab = key['name'][:-len("_pixel_quality")]
         else:
             raise ValueError("Quality label must end with pixel_quality, got "
-                             f"{key.name:s}")
+                             f"{key['name']:s}")
         grp_path = self.get_channel_measured_group_path(chan_lab)
         dv_path = grp_path + "/pixel_quality"
         data = self[dv_path]
@@ -244,12 +244,19 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calc_area_extent(self, key):
         """Calculate area extent for a dataset."""
+        # if a user requests a pixel quality before the channel data, the
+        # yaml-reader will ask the area extent of the pixel quality field,
+        # which will ultimately end up here
+        if key['name'].endswith("_pixel_quality"):
+            lab = key['name'][:-len("_pixel_quality")]
+        else:
+            lab = key['name']
         # Get metadata for given dataset
-        measured = self.get_channel_measured_group_path(key.name)
+        measured = self.get_channel_measured_group_path(lab)
         # Get start/end line and column of loaded swath.
         nlines, ncols = self[measured + "/effective_radiance/shape"]
 
-        logger.debug('Channel {} resolution: {}'.format(key.name, ncols))
+        logger.debug('Channel {} resolution: {}'.format(lab, ncols))
         logger.debug('Row/Cols: {} / {}'.format(nlines, ncols))
 
         # Calculate full globe line extent
@@ -257,7 +264,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         ext = {}
         for c in "xy":
-            c_radian = self["data/{:s}/measured/{:s}".format(key.name, c)]
+            c_radian = self["data/{:s}/measured/{:s}".format(lab, c)]
             c_radian_num = c_radian[:] * c_radian.scale_factor + c_radian.add_offset
 
             # FCI defines pixels by centroids (Example Products for Pytroll
@@ -288,8 +295,8 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
         """Calculate on-fly area definition for 0 degree geos-projection for a dataset."""
         # assumption: channels with same resolution should have same area
         # cache results to improve performance
-        if key.resolution in self._cache.keys():
-            return self._cache[key.resolution]
+        if key['resolution'] in self._cache:
+            return self._cache[key['resolution']]
 
         a = float(self["data/mtg_geos_projection/attr/semi_major_axis"])
         b = float(self["data/mtg_geos_projection/attr/semi_minor_axis"])
@@ -320,22 +327,22 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
             nlines,
             area_extent)
 
-        self._cache[key.resolution] = area
+        self._cache[key['resolution']] = area
         return area
 
     def calibrate(self, data, key):
         """Calibrate data."""
-        if key.calibration == "counts":
+        if key['calibration'] == "counts":
             # from package description, this just means not applying add_offset
             # and scale_factor
             data.attrs["units"] = "1"
-        elif key.calibration in ['brightness_temperature', 'reflectance', 'radiance']:
+        elif key['calibration'] in ['brightness_temperature', 'reflectance', 'radiance']:
             data = self.calibrate_counts_to_physical_quantity(data, key)
         else:
             logger.error(
                 "Received unknown calibration key.  Expected "
                 "'brightness_temperature', 'reflectance' or 'radiance', got "
-                + key.calibration + ".")
+                + key['calibration'] + ".")
 
         return data
 
@@ -345,9 +352,9 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
         data = self.calibrate_counts_to_rad(data, key)
 
-        if key.calibration == 'brightness_temperature':
+        if key['calibration'] == 'brightness_temperature':
             data = self.calibrate_rad_to_bt(data, key)
-        elif key.calibration == 'reflectance':
+        elif key['calibration'] == 'reflectance':
             data = self.calibrate_rad_to_refl(data, key)
 
         return data
@@ -355,7 +362,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
     def calibrate_counts_to_rad(self, data, key):
         """Calibrate counts to radiances."""
         radiance_units = data.attrs["units"]
-        if key.name == 'ir_38':
+        if key['name'] == 'ir_38':
             data = xr.where(((2 ** 12 - 1 < data) & (data <= 2 ** 13 - 1)),
                             (data * data.attrs.get("warm_scale_factor", 1) +
                              data.attrs.get("warm_add_offset", 0)),
@@ -372,7 +379,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calibrate_rad_to_bt(self, radiance, key):
         """IR channel calibration."""
-        measured = self.get_channel_measured_group_path(key.name)
+        measured = self.get_channel_measured_group_path(key['name'])
 
         # using the method from RADTOBR and PUG
         vc = self[measured + "/radiance_to_bt_conversion_coefficient_wavenumber"]
@@ -403,7 +410,7 @@ class FCIFDHSIFileHandler(NetCDF4FileHandler):
 
     def calibrate_rad_to_refl(self, radiance, key):
         """VIS channel calibration."""
-        measured = self.get_channel_measured_group_path(key.name)
+        measured = self.get_channel_measured_group_path(key['name'])
 
         cesi = self[measured + "/channel_effective_solar_irradiance"]
 

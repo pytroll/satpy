@@ -2,6 +2,14 @@
 Composites
 ==========
 
+Composites are defined as arrays of data that are created by processing and/or
+combining one or multiple data arrays (prerequisites) together.
+
+Composites are generated in satpy using Compositor classes. The attributes of the
+resulting composites are usually a combination of the prerequisites' attributes and
+the key/values of the DataID used to identify it.
+
+
 Built-in Compositors
 ====================
 
@@ -396,11 +404,13 @@ image) for both of the static images::
       standard_name: static_day
       operations:
       - name: stretch
-        method: *stretchfun
+        method: !!python/name:satpy.enhancements.stretch
         kwargs:
           stretch: crude
           min_stretch: [0, 0, 0]
           max_stretch: [255, 255, 255]
+
+.. _enhancing-the-images:
 
 Enhancing the images
 ====================
@@ -428,7 +438,7 @@ Enhancing the images
     - palettize
     - three_d_effect
     - btemp_threshold
-    
+
 .. todo::
 
     Should this be in another file/page?

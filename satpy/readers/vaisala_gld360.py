@@ -67,7 +67,7 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Load a dataset."""
-        xarr = xr.DataArray(da.from_array(self.data[dataset_id.name],
+        xarr = xr.DataArray(da.from_array(self.data[dataset_id['name']],
                                           chunks=CHUNK_SIZE), dims=["y"])
 
         # Add time, longitude, and latitude as non-dimensional y-coordinates
@@ -75,7 +75,7 @@ class VaisalaGLD360TextFileHandler(BaseFileHandler):
         xarr['longitude'] = ('y', self.data['longitude'])
         xarr['latitude'] = ('y', self.data['latitude'])
 
-        if dataset_id.name == 'power':
+        if dataset_id['name'] == 'power':
             # Check that units in the file match the unit specified in the
             # reader yaml-file
             if not (self.data.unit == dataset_info['units']).all():

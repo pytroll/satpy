@@ -35,8 +35,9 @@ except ImportError:
 
 from satpy.config import CONFIG_PATH, config_search_paths, recursive_dict_update
 from satpy.config import get_environ_ancpath, get_entry_points_config_dirs
-from satpy.dataset import DATASET_KEYS, DatasetID, MetadataObject, combine_metadata
-from satpy.readers import DatasetDict
+from satpy.dataset import DataID, DataQuery, combine_metadata
+from satpy.dataset.dataid import minimal_default_keys_config
+from satpy import DatasetDict
 from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get_satpos
 from satpy.writers import get_enhanced_image
 
@@ -82,6 +83,7 @@ class CompositorLoader(object):
         self.modifiers = {}
         self.compositors = {}
         self.ppp_config_dir = ppp_config_dir
+        self.ds_id_keys = {}
 
     def load_sensor_composites(self, sensor_name):
         """Load all compositor configs for the provided sensor."""
@@ -149,8 +151,15 @@ class CompositorLoader(object):
         return comps, mods
 
     def _process_composite_config(self, composite_name, conf,
-                                  composite_type, sensor_id, composite_config, **kwargs):
-
+                                  composite_type, sensor_id, sensor_deps, composite_config, **kwargs):
+        try:
+            id_keys = conf['composite_identification_keys']
+        except KeyError:
+            try:
+                id_keys = self.ds_id_keys[sensor_deps[-1]]
+            except IndexError:
+                id_keys = minimal_default_keys_config
+        self.ds_id_keys[sensor_id] = id_keys
         compositors = self.compositors[sensor_id]
         modifiers = self.modifiers[sensor_id]
         try:
@@ -174,16 +183,18 @@ class CompositorLoader(object):
                         sub_comp_name = '_' + composite_name + '_dep_{}'.format(dep_num)
                         dep_num += 1
                         # Minimal composite config
-                        sub_conf = {composite_type: {sub_comp_name: item}}
+                        sub_conf = {composite_type: {sub_comp_name: item},
+                                    'composite_identification_keys': minimal_default_keys_config
+                                    }
                         self._process_composite_config(
                             sub_comp_name, sub_conf, composite_type, sensor_id,
-                            composite_config, **kwargs)
-                    else:
-                        # we want this prerequisite to act as a query with
-                        # 'modifiers' being None otherwise it will be an empty
-                        # tuple
-                        item.setdefault('modifiers', None)
-                    key = DatasetID.from_dict(item)
+                            sensor_deps, composite_config, **kwargs)
+                    key_item = item.copy()
+                    key_item.pop('prerequisites', None)
+                    key_item.pop('optional_prerequisites', None)
+                    if 'modifiers' in key_item:
+                        key_item['modifiers'] = tuple(key_item['modifiers'])
+                    key = DataQuery.from_dict(key_item)
                     prereqs.append(key)
                 else:
                     prereqs.append(item)
@@ -191,8 +202,8 @@ class CompositorLoader(object):
 
         if composite_type == 'composites':
             options.update(**kwargs)
-            key = DatasetID.from_dict(options)
-            comp = loader(**options)
+            key = DataID(id_keys, **options)
+            comp = loader(_satpy_id=key, **options)
             compositors[key] = comp
         elif composite_type == 'modifiers':
             modifiers[composite_name] = loader, options
@@ -203,7 +214,7 @@ class CompositorLoader(object):
 
         conf = {}
         for composite_config in composite_configs:
-            with open(composite_config) as conf_file:
+            with open(composite_config, 'r', encoding='utf-8') as conf_file:
                 conf = recursive_dict_update(conf, yaml.load(conf_file, Loader=UnsafeLoader))
         try:
             sensor_name = conf['sensor_name']
@@ -231,7 +242,8 @@ class CompositorLoader(object):
                 continue
             for composite_name in conf[composite_type]:
                 self._process_composite_config(composite_name, conf,
-                                               composite_type, sensor_id, composite_config, **kwargs)
+                                               composite_type, sensor_id,
+                                               sensor_deps, composite_config, **kwargs)
 
 
 def check_times(projectables):
@@ -273,7 +285,7 @@ def sub_arrays(proj1, proj2):
     return res
 
 
-class CompositeBase(MetadataObject):
+class CompositeBase:
     """Base class for all compositors and modifiers."""
 
     def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
@@ -282,7 +294,16 @@ class CompositeBase(MetadataObject):
         kwargs["name"] = name
         kwargs["prerequisites"] = prerequisites or []
         kwargs["optional_prerequisites"] = optional_prerequisites or []
-        super(CompositeBase, self).__init__(**kwargs)
+        self.attrs = kwargs
+
+    @property
+    def id(self):
+        """Return the DataID of the object."""
+        try:
+            return self.attrs['_satpy_id']
+        except KeyError:
+            id_keys = self.attrs.get('_satpy_id_keys', minimal_default_keys_config)
+            return DataID(id_keys, **self.attrs)
 
     def __call__(self, datasets, optional_datasets=None, **info):
         """Generate a composite."""
@@ -302,7 +323,12 @@ class CompositeBase(MetadataObject):
         """Apply the modifier info from *origin* to *destination*."""
         o = getattr(origin, 'attrs', origin)
         d = getattr(destination, 'attrs', destination)
-        for k in DATASET_KEYS:
+
+        try:
+            dataset_keys = self.attrs['_satpy_id'].id_keys.keys()
+        except KeyError:
+            dataset_keys = ['name', 'modifiers']
+        for k in dataset_keys:
             if k == 'modifiers':
                 d[k] = self.attrs[k]
             elif d.get(k) is None:
@@ -603,63 +629,84 @@ class NIRReflectance(CompositeBase):
                 case the default threshold defined in Pyspectral will be used.
 
         """
-        self.sunz_threshold = sunz_threshold
-        super(NIRReflectance, self).__init__(sunz_threshold=sunz_threshold, **kwargs)
+        self.sun_zenith_threshold = sunz_threshold
+        super(NIRReflectance, self).__init__(**kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **info):
         """Get the reflectance part of an NIR channel.
 
         Not supposed to be used for wavelength outside [3, 4] µm.
-
         """
-        self._init_refl3x(projectables)
-        _nir, _ = projectables
         projectables = self.match_data_arrays(projectables)
+        return self._get_reflectance_as_dataarray(projectables, optional_datasets)
 
-        refl = self._get_reflectance(projectables, optional_datasets) * 100
-        proj = xr.DataArray(refl, dims=_nir.dims,
-                            coords=_nir.coords, attrs=_nir.attrs)
-
-        proj.attrs['units'] = '%'
-        proj.attrs['sunz_threshold'] = self.sunz_threshold
-        self.apply_modifier_info(_nir, proj)
-        return proj
-
-    def _init_refl3x(self, projectables):
-        """Initialize the 3.x reflectance derivations."""
-        if not Calculator:
-            LOG.info("Couldn't load pyspectral")
-            raise ImportError("No module named pyspectral.near_infrared_reflectance")
+    def _get_reflectance_as_dataarray(self, projectables, optional_datasets):
+        """Get the reflectance as a dataarray."""
         _nir, _tb11 = projectables
-        self._refl3x = Calculator(_nir.attrs['platform_name'], _nir.attrs['sensor'], _nir.attrs['name'],
-                                  sunz_threshold=self.sunz_threshold)
-
-    def _get_reflectance(self, projectables, optional_datasets):
-        """Calculate 3.x reflectance with pyspectral."""
-        _nir, _tb11 = projectables
-        LOG.info('Getting reflective part of %s', _nir.attrs['name'])
         da_nir = _nir.data
         da_tb11 = _tb11.data
-        sun_zenith = None
-        tb13_4 = None
+        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
+        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
 
+        LOG.info('Getting reflective part of %s', _nir.attrs['name'])
+        reflectance = self._get_reflectance_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
+
+        proj = self._create_modified_dataarray(reflectance, base_dataarray=_nir)
+        proj.attrs['units'] = '%'
+        return proj
+
+    @staticmethod
+    def _get_tb13_4_from_optionals(optional_datasets):
+        tb13_4 = None
         for dataset in optional_datasets:
             wavelengths = dataset.attrs.get('wavelength', [100., 0, 0])
             if (dataset.attrs.get('units') == 'K' and
                     wavelengths[0] <= 13.4 <= wavelengths[2]):
                 tb13_4 = dataset.data
-            elif ("standard_name" in dataset.attrs and
-                  dataset.attrs["standard_name"] == "solar_zenith_angle"):
+        return tb13_4
+
+    @staticmethod
+    def _get_sun_zenith_from_provided_data(projectables, optional_datasets):
+        """Get the sunz from available data or compute it if unavailable."""
+        sun_zenith = None
+
+        for dataset in optional_datasets:
+            if dataset.attrs.get("standard_name") == "solar_zenith_angle":
                 sun_zenith = dataset.data
 
-        # Check if the sun-zenith angle was provided:
         if sun_zenith is None:
             if sun_zenith_angle is None:
-                raise ImportError("No module named pyorbital.astronomy")
+                raise ImportError("Module pyorbital.astronomy needed to compute sun zenith angles.")
+            _nir = projectables[0]
             lons, lats = _nir.attrs["area"].get_lonlats(chunks=_nir.data.chunks)
             sun_zenith = sun_zenith_angle(_nir.attrs['start_time'], lons, lats)
+        return sun_zenith
 
-        return self._refl3x.reflectance_from_tbs(sun_zenith, da_nir, da_tb11, tb_ir_co2=tb13_4)
+    def _create_modified_dataarray(self, reflectance, base_dataarray):
+        proj = xr.DataArray(reflectance, dims=base_dataarray.dims,
+                            coords=base_dataarray.coords, attrs=base_dataarray.attrs.copy())
+        proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
+        self.apply_modifier_info(base_dataarray, proj)
+        return proj
+
+    def _get_reflectance_as_dask(self, da_nir, da_tb11, da_tb13_4, da_sun_zenith, metadata):
+        """Calculate 3.x reflectance in % with pyspectral from dask arrays."""
+        reflectance_3x_calculator = self._init_reflectance_calculator(metadata)
+        return reflectance_3x_calculator.reflectance_from_tbs(da_sun_zenith, da_nir, da_tb11, tb_ir_co2=da_tb13_4) * 100
+
+    def _init_reflectance_calculator(self, metadata):
+        """Initialize the 3.x reflectance derivations."""
+        if not Calculator:
+            LOG.info("Couldn't load pyspectral")
+            raise ImportError("No module named pyspectral.near_infrared_reflectance")
+
+        if self.sun_zenith_threshold is not None:
+            reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'],
+                                                   sunz_threshold=self.sun_zenith_threshold)
+        else:
+            reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'])
+            self.sun_zenith_threshold = reflectance_3x_calculator.sunz_threshold
+        return reflectance_3x_calculator
 
 
 class NIREmissivePartFromReflectance(NIRReflectance):
@@ -684,21 +731,31 @@ class NIREmissivePartFromReflectance(NIRReflectance):
 
         """
         projectables = self.match_data_arrays(projectables)
-        self._init_refl3x(projectables)
-        # Derive the sun-zenith angles, and use the nir and thermal ir
-        # brightness tempertures and derive the reflectance using
+        return self._get_emissivity_as_dataarray(projectables, optional_datasets)
+
+    def _get_emissivity_as_dataarray(self, projectables, optional_datasets):
+        """Get the emissivity as a dataarray."""
+        _nir, _tb11 = projectables
+        da_nir = _nir.data
+        da_tb11 = _tb11.data
+        da_tb13_4 = self._get_tb13_4_from_optionals(optional_datasets)
+        da_sun_zenith = self._get_sun_zenith_from_provided_data(projectables, optional_datasets)
+
+        LOG.info('Getting emissive part of %s', _nir.attrs['name'])
+        emissivity = self._get_emissivity_as_dask(da_nir, da_tb11, da_tb13_4, da_sun_zenith, _nir.attrs)
+
+        proj = self._create_modified_dataarray(emissivity, base_dataarray=_nir)
+        proj.attrs['units'] = 'K'
+        return proj
+
+    def _get_emissivity_as_dask(self, da_nir, da_tb11, da_tb13_4, da_sun_zenith, metadata):
+        """Get the emissivity from pyspectral."""
+        reflectance_3x_calculator = self._init_reflectance_calculator(metadata)
+        # Use the nir and thermal ir brightness temperatures and derive the reflectance using
         # PySpectral. The reflectance is stored internally in PySpectral and
         # needs to be derived first in order to get the emissive part.
-        _ = self._get_reflectance(projectables, optional_datasets)
-        _nir, _ = projectables
-
-        emis = self._refl3x.emissive_part_3x()
-        proj = xr.DataArray(emis, attrs=_nir.attrs, dims=_nir.dims, coords=_nir.coords)
-
-        proj.attrs['units'] = 'K'
-        proj.attrs['sunz_threshold'] = self.sunz_threshold
-        self.apply_modifier_info(_nir, proj)
-        return proj
+        reflectance_3x_calculator.reflectance_from_tbs(da_sun_zenith, da_nir, da_tb11, tb_ir_co2=da_tb13_4)
+        return reflectance_3x_calculator.emissive_part_3x()
 
 
 class PSPAtmosphericalCorrection(CompositeBase):
@@ -959,14 +1016,14 @@ class ColormapCompositor(GenericCompositor):
 
         """
         from trollimage.colormap import Colormap
-        sqpalette = np.asanyarray(palette).squeeze() / 255.0
+        squeezed_palette = np.asanyarray(palette).squeeze() / 255.0
         set_range = True
         if hasattr(palette, 'attrs') and 'palette_meanings' in palette.attrs:
             set_range = False
             meanings = palette.attrs['palette_meanings']
-            iterator = zip(meanings, sqpalette)
+            iterator = zip(meanings, squeezed_palette)
         else:
-            iterator = enumerate(sqpalette[:-1])
+            iterator = enumerate(squeezed_palette[:-1])
 
         if dtype == np.dtype('uint8'):
             tups = [(val, tuple(tup))
@@ -987,70 +1044,66 @@ class ColormapCompositor(GenericCompositor):
             raise AttributeError("Data needs to have either a valid_range or be of type uint8" +
                                  " in order to be displayable with an attached color-palette!")
 
-        return colormap, sqpalette
-
-
-class ColorizeCompositor(ColormapCompositor):
-    """A compositor colorizing the data, interpolating the palette colors when needed."""
+        return colormap, squeezed_palette
 
     def __call__(self, projectables, **info):
         """Generate the composite."""
         if len(projectables) != 2:
             raise ValueError("Expected 2 datasets, got %d" %
                              (len(projectables), ))
-
-        # TODO: support datasets with palette to delegate this to the image
-        # writer.
-
         data, palette = projectables
+
         colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
 
-        r, g, b = colormap.colorize(np.asanyarray(data))
-        r[data.mask] = palette[-1][0]
-        g[data.mask] = palette[-1][1]
-        b[data.mask] = palette[-1][2]
-        raise NotImplementedError("This compositor wasn't fully converted to dask yet.")
+        channels = self._apply_colormap(colormap, data, palette)
+        return self._create_composite_from_channels(channels, data)
 
-        # r = Dataset(r, copy=False, mask=data.mask, **data.attrs)
-        # g = Dataset(g, copy=False, mask=data.mask, **data.attrs)
-        # b = Dataset(b, copy=False, mask=data.mask, **data.attrs)
-        #
-        # return super(ColorizeCompositor, self).__call__((r, g, b), **data.attrs)
+    def _create_composite_from_channels(self, channels, template):
+        mask = self._get_mask_from_data(template)
+        channels = [self._create_masked_dataarray_like(channel, template, mask) for channel in channels]
+        res = super(ColormapCompositor, self).__call__(channels, **template.attrs)
+        res.attrs['_FillValue'] = np.nan
+        return res
 
-
-class PaletteCompositor(ColormapCompositor):
-    """A compositor colorizing the data, not interpolating the palette colors."""
-
-    def __call__(self, projectables, **info):
-        """Generate the composite."""
-        if len(projectables) != 2:
-            raise ValueError("Expected 2 datasets, got %d" % (len(projectables),))
-
-        # TODO: support datasets with palette to delegate this to the image
-        # writer.
-        data, palette = projectables
-        colormap, palette = self.build_colormap(palette, data.dtype, data.attrs)
-
-        channels, colors = colormap.palettize(np.asanyarray(data.squeeze()))
-        channels = palette[channels]
+    @staticmethod
+    def _get_mask_from_data(data):
         fill_value = data.attrs.get('_FillValue', np.nan)
         if np.isnan(fill_value):
             mask = data.notnull()
         else:
             mask = data != data.attrs['_FillValue']
-        r = xr.DataArray(channels[:, :, 0].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask)
-        g = xr.DataArray(channels[:, :, 1].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask)
-        b = xr.DataArray(channels[:, :, 2].reshape(data.shape),
-                         dims=data.dims, coords=data.coords,
-                         attrs=data.attrs).where(mask)
+        return mask
 
-        res = super(PaletteCompositor, self).__call__((r, g, b), **data.attrs)
-        res.attrs['_FillValue'] = np.nan
-        return res
+    @staticmethod
+    def _create_masked_dataarray_like(array, template, mask):
+        return xr.DataArray(array.reshape(template.shape),
+                            dims=template.dims, coords=template.coords,
+                            attrs=template.attrs).where(mask)
+
+
+class ColorizeCompositor(ColormapCompositor):
+    """A compositor colorizing the data, interpolating the palette colors when needed."""
+
+    @staticmethod
+    def _apply_colormap(colormap, data, palette):
+        del palette
+        return colormap.colorize(data.data.squeeze())
+
+
+class PaletteCompositor(ColormapCompositor):
+    """A compositor colorizing the data, not interpolating the palette colors."""
+
+    @staticmethod
+    def _apply_colormap(colormap, data, palette):
+        channels, colors = colormap.palettize(data.data.squeeze())
+        channels = channels.map_blocks(_insert_palette_colors, palette, dtype=palette.dtype,
+                                       new_axis=2, chunks=list(channels.chunks) + [palette.shape[1]])
+        return [channels[:, :, i] for i in range(channels.shape[2])]
+
+
+def _insert_palette_colors(channels, palette):
+    channels = palette[channels]
+    return channels
 
 
 class DayNightCompositor(GenericCompositor):
@@ -1521,20 +1574,23 @@ class StaticImageCompositor(GenericCompositor):
     If the filename passed to this compositor is not valid then
     the SATPY_ANCPATH environment variable will be checked to see
     if the image is located there
+
+    Environment variables in the filename are automatically expanded
     """
 
     def __init__(self, name, filename=None, area=None, **kwargs):
         """Collect custom configuration values.
 
         Args:
-            filename (str): Filename of the image to load
+            filename (str): Filename of the image to load, environment
+                            variables are expanded
             area (str): Name of area definition for the image.  Optional
                         for images with built-in area definitions (geotiff)
 
         """
         if filename is None:
             raise ValueError("No image configured for static image compositor")
-        self.filename = filename
+        self.filename = os.path.expandvars(filename)
         self.area = None
         if area is not None:
             from satpy.resample import get_area_def
