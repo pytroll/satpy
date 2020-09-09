@@ -47,7 +47,6 @@ from satpy.readers.seviri_l1b_native_hdr import (GSDTRecords, native_header,
                                                  native_trailer)
 from satpy.readers._geos_area import get_area_definition
 
-
 logger = logging.getLogger('native_msg')
 
 
@@ -59,7 +58,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     kwargs = {"calib_mode": "gsics",}
     """
 
-    def __init__(self, filename, filename_info, filetype_info,  calib_mode='nominal'):
+    def __init__(self, filename, filename_info, filetype_info, calib_mode='nominal'):
         """Initialize the reader."""
         super(NativeMSGFileHandler, self).__init__(filename,
                                                    filename_info,
@@ -146,7 +145,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
     def _get_memmap(self):
         """Get the memory map for the SEVIRI data."""
         with open(self.filename) as fp:
-
             data_dtype = self._get_data_dtype()
             hdr_size = native_header.itemsize
 
@@ -174,11 +172,11 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         self.mda['platform_name'] = "Meteosat-" + SATNUM[self.platform_id]
 
         equator_radius = data15hd['GeometricProcessing'][
-            'EarthModel']['EquatorialRadius'] * 1000.
+                             'EarthModel']['EquatorialRadius'] * 1000.
         north_polar_radius = data15hd[
-            'GeometricProcessing']['EarthModel']['NorthPolarRadius'] * 1000.
+                                 'GeometricProcessing']['EarthModel']['NorthPolarRadius'] * 1000.
         south_polar_radius = data15hd[
-            'GeometricProcessing']['EarthModel']['SouthPolarRadius'] * 1000.
+                                 'GeometricProcessing']['EarthModel']['SouthPolarRadius'] * 1000.
         polar_radius = (north_polar_radius + south_polar_radius) * 0.5
         ssp_lon = data15hd['ImageDescription'][
             'ProjectionDescription']['LongitudeOfSSP']
@@ -239,7 +237,6 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                      self.mda['number_of_lines'])
 
         with open(self.filename) as fp:
-
             fp.seek(hdr_size + data_size)
             data = np.fromfile(fp, dtype=native_trailer, count=1)
 
@@ -253,7 +250,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         pdict['h'] = self.mda['projection_parameters']['h']
         pdict['ssp_lon'] = self.mda['projection_parameters']['ssp_longitude']
 
-        if dataset_id.name == 'HRV':
+        if dataset_id['name'] == 'HRV':
             pdict['nlines'] = self.mda['hrv_number_of_lines']
             pdict['ncols'] = self.mda['hrv_number_of_columns']
             pdict['a_name'] = 'geos_seviri_hrv'
@@ -319,7 +316,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         elif earth_model == 1:
             ns_offset = -0.5
             we_offset = 0.5
-            if dataset_id.name == 'HRV':
+            if dataset_id['name'] == 'HRV':
                 ns_offset = -1.5
                 we_offset = 1.5
         else:
@@ -327,7 +324,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
                 'Unrecognised Earth model: {}'.format(earth_model)
             )
 
-        if dataset_id.name == 'HRV':
+        if dataset_id['name'] == 'HRV':
             grid_origin = data15hd['ImageDescription']['ReferenceGridHRV']['GridOrigin']
             center_point = (HRV_NUM_COLUMNS / 2) - 2
             coeff = 3
@@ -349,13 +346,35 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             )
             raise NotImplementedError(msg)
 
-        # When dealing with HRV channel and full disk, area extent is
-        # in two pieces
-        if (dataset_id.name == 'HRV') and self.mda['is_full_disk']:
+        # check if data is in Rapid Scanning Service mode (RSS)
+        is_rapid_scan = self.trailer['15TRAILER']['ImageProductionStats']['ActualScanningSummary']['ReducedScan']
+
+        # The HRV channel in full disk mode comes in two separate areas, and each area has its own area extent stored
+        # in the trailer.
+        # In Rapid Scanning mode, only the "Lower" area (typically over Europe) is acquired and included in the files.
+        if (dataset_id['name'] == 'HRV') and (self.mda['is_full_disk'] or is_rapid_scan):
 
             # get actual navigation parameters from trailer data
             data15tr = self.trailer['15TRAILER']
             HRV_bounds = data15tr['ImageProductionStats']['ActualL15CoverageHRV']
+
+            # lower window
+            lower_north_line = HRV_bounds['LowerNorthLineActual']
+            lower_west_column = HRV_bounds['LowerWestColumnActual']
+            lower_south_line = HRV_bounds['LowerSouthLineActual']
+            lower_east_column = HRV_bounds['LowerEastColumnActual']
+
+            lower_area_extent = self._calculate_area_extent(
+                center_point, lower_north_line, lower_east_column,
+                lower_south_line, lower_west_column, we_offset,
+                ns_offset, column_step, line_step
+            )
+
+            if is_rapid_scan:
+                return lower_area_extent
+
+            lower_nlines = lower_north_line - lower_south_line + 1
+            lower_ncols = lower_west_column - lower_east_column + 1
 
             # upper window
             upper_north_line = HRV_bounds['UpperNorthLineActual']
@@ -372,26 +391,10 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             upper_nlines = upper_north_line - upper_south_line + 1
             upper_ncols = upper_west_column - upper_east_column + 1
 
-            # lower window
-            lower_north_line = HRV_bounds['LowerNorthLineActual']
-            lower_west_column = HRV_bounds['LowerWestColumnActual']
-            lower_south_line = HRV_bounds['LowerSouthLineActual']
-            lower_east_column = HRV_bounds['LowerEastColumnActual']
-
-            lower_area_extent = self._calculate_area_extent(
-                center_point, lower_north_line, lower_east_column,
-                lower_south_line, lower_west_column, we_offset,
-                ns_offset, column_step, line_step
-            )
-
-            lower_nlines = lower_north_line - lower_south_line + 1
-            lower_ncols = lower_west_column - lower_east_column + 1
-
             return [upper_area_extent, lower_area_extent, upper_nlines, upper_ncols, lower_nlines, lower_ncols]
 
-        # Otherwise area extent is in one piece, corner points are
-        # the same as for VISIR channels, HRV channel is having
-        # three times the amount of columns and rows
+        # If the data was ordered in a defined ROI, the area extent is in one piece, the corner points are
+        # the same as for VISIR channels, and the HRV channel is having three times the amount of columns and rows.
         else:
 
             north = coeff * int(sec15hd['NorthLineSelectedRectangle']['Value'])
@@ -409,9 +412,9 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
 
     def get_dataset(self, dataset_id, dataset_info):
         """Get the dataset."""
-        if dataset_id.name not in self.mda['channel_list']:
-            raise KeyError('Channel % s not available in the file' % dataset_id.name)
-        elif dataset_id.name not in ['HRV']:
+        if dataset_id['name'] not in self.mda['channel_list']:
+            raise KeyError('Channel % s not available in the file' % dataset_id['name'])
+        elif dataset_id['name'] not in ['HRV']:
             shape = (self.mda['number_of_lines'], self.mda['number_of_columns'])
 
             # Check if there is only 1 channel in the list as a change
@@ -419,7 +422,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             if len(self.mda['channel_list']) == 1:
                 raw = self.dask_array['visir']['line_data']
             else:
-                i = self.mda['channel_list'].index(dataset_id.name)
+                i = self.mda['channel_list'].index(dataset_id['name'])
                 raw = self.dask_array['visir']['line_data'][:, i, :]
 
             data = dec10216(raw.flatten())
@@ -440,13 +443,7 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
             data0 = dec10216(raw0.flatten())
             data0 = data0.reshape(shape_layer)
 
-            data = np.zeros(shape)
-            idx = range(0, shape[0], 3)
-            data[idx, :] = data0
-            idx = range(1, shape[0], 3)
-            data[idx, :] = data1
-            idx = range(2, shape[0], 3)
-            data[idx, :] = data2
+            data = np.stack((data0, data1, data2), axis=1).reshape(shape)
 
         xarr = xr.DataArray(data, dims=['y', 'x']).where(data != 0).astype(np.float32)
 
@@ -471,8 +468,8 @@ class NativeMSGFileHandler(BaseFileHandler, SEVIRICalibrationHandler):
         tic = datetime.now()
 
         data15hdr = self.header['15_DATA_HEADER']
-        calibration = dataset_id.calibration
-        channel = dataset_id.name
+        calibration = dataset_id['calibration']
+        channel = dataset_id['name']
 
         # even though all the channels may not be present in the file,
         # the header does have calibration coefficients for all the channels

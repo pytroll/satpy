@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2017-2018 Satpy developers
+# Copyright (c) 2017-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -128,6 +128,10 @@ class TestNetCDF4FileHandler(unittest.TestCase):
             self.assertEqual(file_handler[ds + '/attr/test_attr_int'], 0)
             self.assertEqual(file_handler[ds + '/attr/test_attr_float'], 1.2)
 
+        test_group = file_handler['test_group']
+        self.assertTupleEqual(test_group['ds1_i'].shape, (10, 100))
+        self.assertTupleEqual(test_group['ds1_i'].dims, ('rows', 'cols'))
+
         self.assertEqual(file_handler['/attr/test_attr_str'], 'test_string')
         self.assertEqual(file_handler['/attr/test_attr_str_arr'], 'test_string2')
         self.assertEqual(file_handler['/attr/test_attr_int'], 0)
@@ -143,8 +147,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         self.assertEqual(file_handler["ds2_sc"], 42)
 
     def test_caching(self):
-        """Test that caching works as intended.
-        """
+        """Test that caching works as intended."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
         h = NetCDF4FileHandler("test.nc", {}, {}, cache_var_size=1000,
                                cache_handle=True)
@@ -166,8 +169,7 @@ class TestNetCDF4FileHandler(unittest.TestCase):
         self.assertFalse(h.file_handle.isopen())
 
     def test_filenotfound(self):
-        """Test that error is raised when file not found
-        """
+        """Test that error is raised when file not found."""
         from satpy.readers.netcdf_utils import NetCDF4FileHandler
 
         with self.assertRaises(IOError):

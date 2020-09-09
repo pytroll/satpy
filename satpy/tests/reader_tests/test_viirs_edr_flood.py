@@ -94,7 +94,7 @@ class TestVIIRSEDRFloodReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'WATER_VIIRS_Prj_SVI_npp_d20180824_t1828213_e1839433_b35361_cspp_dev_10_300_01.hdf'
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.assertTrue(r.file_handlers)
 

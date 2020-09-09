@@ -252,12 +252,12 @@ class TestVIIRSComposites(unittest.TestCase):
         import dask.array as da
         import numpy as np
         from satpy.composites.viirs import ReflectanceCorrector
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
-            DatasetID(name='satellite_azimuth_angle'),
-            DatasetID(name='satellite_zenith_angle'),
-            DatasetID(name='solar_azimuth_angle'),
-            DatasetID(name='solar_zenith_angle')], name='C01', prerequisites=[],
+            make_dsq(name='satellite_azimuth_angle'),
+            make_dsq(name='satellite_zenith_angle'),
+            make_dsq(name='solar_azimuth_angle'),
+            make_dsq(name='solar_zenith_angle')], name='C01', prerequisites=[],
                                        wavelength=(0.45, 0.47, 0.49), resolution=1000, calibration='reflectance',
                                        modifiers=('sunz_corrected', 'rayleigh_corrected_crefl',), sensor='abi')
 
@@ -269,13 +269,12 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(ref_cor.attrs['sensor'], 'abi')
         self.assertEqual(ref_cor.attrs['prerequisites'], [])
         self.assertEqual(ref_cor.attrs['optional_prerequisites'], [
-            DatasetID(name='satellite_azimuth_angle'),
-            DatasetID(name='satellite_zenith_angle'),
-            DatasetID(name='solar_azimuth_angle'),
-            DatasetID(name='solar_zenith_angle')])
+            make_dsq(name='satellite_azimuth_angle'),
+            make_dsq(name='satellite_zenith_angle'),
+            make_dsq(name='solar_azimuth_angle'),
+            make_dsq(name='solar_zenith_angle')])
 
         area, dnb = self.data_area_ref_corrector()
-        print(dnb.compute())
         c01 = xr.DataArray(dnb,
                            dims=('y', 'x'),
                            attrs={'satellite_longitude': -89.5, 'satellite_latitude': 0.0,
@@ -327,12 +326,12 @@ class TestVIIRSComposites(unittest.TestCase):
         import numpy as np
         import datetime
         from satpy.composites.viirs import ReflectanceCorrector
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         ref_cor = ReflectanceCorrector(dem_filename='_fake.hdf', optional_prerequisites=[
-         DatasetID(name='satellite_azimuth_angle'),
-         DatasetID(name='satellite_zenith_angle'),
-         DatasetID(name='solar_azimuth_angle'),
-         DatasetID(name='solar_zenith_angle')],
+         make_dsq(name='satellite_azimuth_angle'),
+         make_dsq(name='satellite_zenith_angle'),
+         make_dsq(name='solar_azimuth_angle'),
+         make_dsq(name='solar_zenith_angle')],
                                        name='I01', prerequisites=[], wavelength=(0.6, 0.64, 0.68), resolution=371,
                                        calibration='reflectance', modifiers=('sunz_corrected_iband',
                                                                              'rayleigh_corrected_crefl_iband'),
@@ -346,10 +345,10 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(ref_cor.attrs['sensor'], 'viirs')
         self.assertEqual(ref_cor.attrs['prerequisites'], [])
         self.assertEqual(ref_cor.attrs['optional_prerequisites'], [
-            DatasetID(name='satellite_azimuth_angle'),
-            DatasetID(name='satellite_zenith_angle'),
-            DatasetID(name='solar_azimuth_angle'),
-            DatasetID(name='solar_zenith_angle')])
+            make_dsq(name='satellite_azimuth_angle'),
+            make_dsq(name='satellite_zenith_angle'),
+            make_dsq(name='solar_azimuth_angle'),
+            make_dsq(name='solar_zenith_angle')])
 
         area, dnb = self.data_area_ref_corrector()
 
@@ -405,11 +404,11 @@ class TestVIIRSComposites(unittest.TestCase):
         import numpy as np
         import datetime
         from satpy.composites.viirs import ReflectanceCorrector
-        from satpy import DatasetID
-        sataa_did = DatasetID(name='satellite_azimuth_angle')
-        satza_did = DatasetID(name='satellite_zenith_angle')
-        solaa_did = DatasetID(name='solar_azimuth_angle')
-        solza_did = DatasetID(name='solar_zenith_angle')
+        from satpy.tests.utils import make_dsq
+        sataa_did = make_dsq(name='satellite_azimuth_angle')
+        satza_did = make_dsq(name='satellite_zenith_angle')
+        solaa_did = make_dsq(name='solar_azimuth_angle')
+        solza_did = make_dsq(name='solar_zenith_angle')
         ref_cor = ReflectanceCorrector(
             dem_filename='_fake.hdf', optional_prerequisites=[sataa_did, satza_did, solaa_did, solza_did], name='1',
             prerequisites=[], wavelength=(0.62, 0.645, 0.67), resolution=250, calibration='reflectance',
@@ -422,10 +421,10 @@ class TestVIIRSComposites(unittest.TestCase):
         self.assertEqual(ref_cor.attrs['sensor'], 'modis')
         self.assertEqual(ref_cor.attrs['prerequisites'], [])
         self.assertEqual(ref_cor.attrs['optional_prerequisites'], [
-            DatasetID(name='satellite_azimuth_angle'),
-            DatasetID(name='satellite_zenith_angle'),
-            DatasetID(name='solar_azimuth_angle'),
-            DatasetID(name='solar_zenith_angle')])
+            make_dsq(name='satellite_azimuth_angle'),
+            make_dsq(name='satellite_zenith_angle'),
+            make_dsq(name='solar_azimuth_angle'),
+            make_dsq(name='solar_zenith_angle')])
 
         area, dnb = self.data_area_ref_corrector()
 
