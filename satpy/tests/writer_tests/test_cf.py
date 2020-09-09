@@ -964,3 +964,43 @@ class TestCFWriter(unittest.TestCase):
             # Tear down
             sys.modules['pyproj'].__version__ = old_version
             importlib.reload(sys.modules['satpy.writers.cf_writer'])
+
+    def test_global_attr_default_history_and_Conventions(self):
+        """Test saving global attributes history and Conventions"""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        scn['test-array'] = xr.DataArray([[1, 2, 3]],
+                                         dims=('y', 'x'),
+                                         attrs=dict(start_time=start_time,
+                                                    end_time=end_time,
+                                                    prerequisites=[make_dsq(name='hej')]))
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf')
+            with xr.open_dataset(filename) as f:
+                self.assertEqual(f.attrs['Conventions'], 'CF-1.7')
+                self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
+
+    def test_global_attr_history_and_Conventions(self):
+        """Test saving global attributes history and Conventions"""
+        from satpy import Scene
+        import xarray as xr
+        scn = Scene()
+        start_time = datetime(2018, 5, 30, 10, 0)
+        end_time = datetime(2018, 5, 30, 10, 15)
+        scn['test-array'] = xr.DataArray([[1, 2, 3]],
+                                         dims=('y', 'x'),
+                                         attrs=dict(start_time=start_time,
+                                                    end_time=end_time,
+                                                    prerequisites=[make_dsq(name='hej')]))
+        header_attrs = {}
+        header_attrs['history'] = 'TEST add history',
+        header_attrs['Conventions'] = 'CF-1.7, ACDD-1.3'
+        with TempFile() as filename:
+            scn.save_datasets(filename=filename, writer='cf', header_attrs=header_attrs)
+            with xr.open_dataset(filename) as f:
+                self.assertEqual(f.attrs['Conventions'], 'CF-1.7, ACDD-1.3')
+                self.assertIn('TEST add history\n', f.attrs['history'])
+                self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
