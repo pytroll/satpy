@@ -610,10 +610,18 @@ class CFWriter(Writer):
             if flatten_attrs:
                 header_attrs = flatten_dict(header_attrs)
             root.attrs = encode_attrs_nc(header_attrs)
-        root.attrs['history'] = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
+        _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
+        if 'history' in root.attrs:
+            if isinstance(root.attrs['history'], list):
+                root.attrs['history'] = ''.join(root.attrs['history'])
+            root.attrs['history'] += '\n' + _history_create
+        else:
+            root.attrs['history'] = _history_create
+
         if groups is None:
             # Groups are not CF-1.7 compliant
-            root.attrs['Conventions'] = CF_VERSION
+            if 'Conventions' not in root.attrs:
+                root.attrs['Conventions'] = CF_VERSION
 
         # Remove satpy-specific kwargs
         satpy_kwargs = ['overlay', 'decorate', 'config_files']
