@@ -155,10 +155,9 @@ class TestSEVIRIICAREReader(unittest.TestCase):
             'GEO_L1B-MSG1_2004-12-29T12-15-00_G_VIS08_V1-04.hdf'
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['VIS008'])
-        for v in datasets.values():
-            self.compare_areas(v)
-            self.assertEqual(v.attrs['area'].proj_id, 'msg_lowres')
+        ds = r.load(['VIS008'])
+        self.compare_areas(ds['VIS008'])
+        self.assertEqual(ds['VIS008'].attrs['area'].proj_id, 'msg_lowres')
 
     def test_area_def_hires(self):
         """Test loading all datasets from an area of interest file."""
@@ -167,10 +166,9 @@ class TestSEVIRIICAREReader(unittest.TestCase):
             'GEO_L1B-MSG1_2004-12-29T12-15-00_G_HRV_V1-04.hdf',
         ])
         r.create_filehandlers(loadables)
-        datasets = r.load(['HRV'])
-        for v in datasets.values():
-            self.compare_areas(v)
-            self.assertEqual(v.attrs['area'].proj_id, 'msg_hires')
+        ds = r.load(['HRV'])
+        self.compare_areas(ds['HRV'])
+        self.assertEqual(ds['HRV'].attrs['area'].proj_id, 'msg_hires')
 
     def test_sensor_names(self):
         """Check satellite name conversion is correct, including error case"""
@@ -184,20 +182,21 @@ class TestSEVIRIICAREReader(unittest.TestCase):
                        'Meteosat-11': 'MSG4/SEVIRI'}
         with mock.patch('satpy.tests.reader_tests.test_seviri_l1b_icare.'
                         'FakeHDF4FileHandler2.get_test_content') as patched_func:
+
+            def _run_target():
+                patched_func.return_value = file_data
+                return self.p.target(mock.MagicMock(),
+                                     mock.MagicMock(),
+                                     mock.MagicMock()).sensor_name
+
             for sat in sensor_list.keys():
                 file_data['/attr/Sensors'] = sensor_list[sat]
-                patched_func.return_value = file_data
-                plat, sens = self.p.target(mock.MagicMock(),
-                                           mock.MagicMock(),
-                                           mock.MagicMock()).sensor_name
+                plat, sens = _run_target()
                 self.assertEqual(plat, sat)
 
             with self.assertRaises(NameError):
                 file_data['/attr/Sensors'] = 'BADSAT/NOSENSE'
-                patched_func.return_value = file_data
-                plat, sens = self.p.target(mock.MagicMock(),
-                                           mock.MagicMock(),
-                                           mock.MagicMock()).sensor_name
+                plat, sens = _run_target()
 
     def test_bad_bandname(self):
         """Check reader raises an error if a band bandname is passed."""
