@@ -169,17 +169,20 @@ def area2lonlat(dataarray):
     area = dataarray.attrs['area']
     ignore_dims = {dim: 0 for dim in dataarray.dims if dim not in ['x', 'y']}
     chunks = getattr(dataarray.isel(**ignore_dims), 'chunks', None)
-    lons, lats = area.get_lonlats(chunks=chunks)
-    dataarray['longitude'] = xr.DataArray(lons, dims=['y', 'x'],
-                                          attrs={'name': "longitude",
-                                                 'standard_name': "longitude",
-                                                 'units': 'degrees_east'},
-                                          name='longitude')
-    dataarray['latitude'] = xr.DataArray(lats, dims=['y', 'x'],
-                                         attrs={'name': "latitude",
-                                                'standard_name': "latitude",
-                                                'units': 'degrees_north'},
-                                         name='latitude')
+    if ('lat' in dataarray and 'lon' in dataarray) or ('latitude' in dataarray and 'longitude' in dataarray):
+        pass  # lat/lon already included
+    else:
+        lons, lats = area.get_lonlats(chunks=chunks)
+        dataarray['longitude'] = xr.DataArray(lons, dims=['y', 'x'],
+                                              attrs={'name': "longitude",
+                                                     'standard_name': "longitude",
+                                                     'units': 'degrees_east'},
+                                              name='longitude')
+        dataarray['latitude'] = xr.DataArray(lats, dims=['y', 'x'],
+                                             attrs={'name': "latitude",
+                                                    'standard_name': "latitude",
+                                                    'units': 'degrees_north'},
+                                             name='latitude')
     return dataarray
 
 
