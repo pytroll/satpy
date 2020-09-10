@@ -856,13 +856,7 @@ class BilinearResampler(BaseResampler):
             filename = self._create_cache_filename(cache_dir,
                                                    prefix='bil_lut-',
                                                    **kwargs)
-            try:
-                fid = zarr.open(filename, 'r')
-                for val in BIL_COORDINATES.keys():
-                    cache = np.array(fid[val])
-                    setattr(self.resampler, val, cache)
-            except ValueError:
-                raise IOError
+            self.resampler.load_bil_info(filename)
         else:
             raise IOError
 
@@ -876,15 +870,7 @@ class BilinearResampler(BaseResampler):
             if os.path.exists(filename):
                 _move_existing_caches(cache_dir, filename)
             LOG.info('Saving BIL neighbour info to %s', filename)
-            zarr_out = xr.Dataset()
-            for idx_name, coord in BIL_COORDINATES.items():
-                var = getattr(self.resampler, idx_name)
-                if isinstance(var, np.ndarray):
-                    var = da.from_array(var, chunks=CHUNK_SIZE)
-                else:
-                    var = var.rechunk(CHUNK_SIZE)
-                zarr_out[idx_name] = (coord, var)
-            zarr_out.to_zarr(filename)
+            self.resampler.save_bil_info(filename)
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
