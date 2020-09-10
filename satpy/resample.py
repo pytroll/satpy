@@ -856,7 +856,7 @@ class BilinearResampler(BaseResampler):
             filename = self._create_cache_filename(cache_dir,
                                                    prefix='bil_lut-',
                                                    **kwargs)
-            self.resampler.load_bil_info(filename)
+            self.resampler.load_resampling_info(filename)
         else:
             raise IOError
 
@@ -870,7 +870,7 @@ class BilinearResampler(BaseResampler):
             if os.path.exists(filename):
                 _move_existing_caches(cache_dir, filename)
             LOG.info('Saving BIL neighbour info to %s', filename)
-            self.resampler.save_bil_info(filename)
+            self.resampler.save_resampling_info(filename)
 
     def compute(self, data, fill_value=None, **kwargs):
         """Resample the given data using bilinear interpolation."""
