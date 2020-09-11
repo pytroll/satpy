@@ -334,7 +334,7 @@ def apply_earthsun_distance_correction(reflectance, utc_date=None):
     utc_date = get_array_date(reflectance, utc_date)
     sun_earth_dist = sun_earth_distance_correction(utc_date)
 
-    reflectance.values = reflectance.values * sun_earth_dist * sun_earth_dist
+    reflectance = reflectance * sun_earth_dist * sun_earth_dist
     reflectance.attrs['sun_earth_distance_correction_applied'] = True
     reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
     return reflectance
@@ -348,5 +348,5 @@ def remove_earthsun_distance_correction(reflectance, utc_date=None):
 
     reflectance.attrs['sun_earth_distance_correction_applied'] = False
     reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
-    reflectance.values = reflectance.values / (sun_earth_dist * sun_earth_dist)
+    reflectance = reflectance / (sun_earth_dist * sun_earth_dist)
     return reflectance
