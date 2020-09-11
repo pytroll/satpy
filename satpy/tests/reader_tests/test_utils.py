@@ -17,15 +17,16 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Testing of helper functions."""
 
+import os
 import unittest
 from datetime import datetime
 from unittest import mock
-import os
-import xarray as xr
+
+import dask.array as da
 import numpy as np
 import numpy.testing
 import pyresample.geometry
-
+import xarray as xr
 from satpy.readers import utils as hf
 
 
@@ -335,16 +336,16 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
     """Tests for applying Sun-Earth distance correction to reflectance."""
 
     def setUp(self):
-        """"Create input / output arrays for the tests."""
+        """Create input / output arrays for the tests."""
         self.test_date = datetime(2020, 8, 15, 13, 0, 40)
 
-        raw_refl = xr.DataArray(np.array([10., 20., 40., 1., 98., 50.]),
+        raw_refl = xr.DataArray(da.from_array([10., 20., 40., 1., 98., 50.]),
                                 attrs={'start_time': self.test_date,
                                        'scheduled_time': self.test_date})
 
-        corr_refl = xr.DataArray(np.array([10.50514689, 21.01029379,
-                                           42.02058758, 1.05051469,
-                                           102.95043957, 52.52573447]),
+        corr_refl = xr.DataArray(da.from_array([10.50514689, 21.01029379,
+                                                42.02058758, 1.05051469,
+                                                102.95043957, 52.52573447]),
                                  attrs={'start_time': self.test_date,
                                         'scheduled_time': self.test_date})
         self.raw_refl = raw_refl
@@ -379,14 +380,14 @@ class TestSunEarthDistanceCorrection(unittest.TestCase):
 
     def test_apply_sunearth_corr(self):
         """Test the correction of reflectances with sun-earth distance."""
-
         out_refl = hf.apply_earthsun_distance_correction(self.raw_refl)
         np.testing.assert_allclose(out_refl, self.corr_refl)
         self.assertTrue(out_refl.attrs['sun_earth_distance_correction_applied'])
+        assert isinstance(out_refl.data, da.Array)
 
     def test_remove_sunearth_corr(self):
         """Test the removal of the sun-earth distance correction."""
-
         out_refl = hf.remove_earthsun_distance_correction(self.corr_refl)
         np.testing.assert_allclose(out_refl, self.raw_refl)
         self.assertFalse(out_refl.attrs['sun_earth_distance_correction_applied'])
+        assert isinstance(out_refl.data, da.Array)
