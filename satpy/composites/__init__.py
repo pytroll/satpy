@@ -286,7 +286,18 @@ def sub_arrays(proj1, proj2):
 
 
 class CompositeBase:
-    """Base class for all compositors and modifiers."""
+    """Base class for all compositors.
+
+    A compositor in Satpy is a class that takes in zero or more input
+    DataArrays and produces a new DataArray with its own identifier (name).
+    The result of a compositor is typically a brand new "product" that
+    represents something different than the inputs that went into the
+    operation.
+
+    See the :class:`~satpy.composites.ModifierBase` class for information
+    on the similar concept of "modifiers".
+
+    """
 
     def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
         """Initialise the compositor."""
@@ -329,7 +340,7 @@ class CompositeBase:
         except KeyError:
             dataset_keys = ['name', 'modifiers']
         for k in dataset_keys:
-            if k == 'modifiers':
+            if k == 'modifiers' and k in self.attrs:
                 d[k] = self.attrs[k]
             elif d.get(k) is None:
                 if self.attrs.get(k) is not None:
@@ -387,8 +398,32 @@ class CompositeBase:
         return self.match_data_arrays(data_arrays)
 
 
-class SunZenithCorrectorBase(CompositeBase):
-    """Base class for sun zenith correction."""
+class ModifierBase(CompositeBase):
+    """Base class for all modifiers.
+
+    A modifier in Satpy is a class that takes one input DataArray to be
+    changed along with zero or more other input DataArrays used to perform
+    these changes. The result of a modifier typically has a lot of the same
+    metadata (name, units, etc) as the original DataArray, but the data is
+    different. A modified DataArray can be differentiated from the original
+    DataArray by the `modifiers` property of its `DataID`.
+
+    See the :class:`~satpy.composites.CompositeBase` class for information
+    on the similar concept of "compositors".
+
+    """
+
+    def __init__(self, name, prerequisites=None, optional_prerequisites=None, **kwargs):
+        """Initialise the compositor."""
+        # Required info
+        kwargs["name"] = name
+        kwargs["prerequisites"] = prerequisites or []
+        kwargs["optional_prerequisites"] = optional_prerequisites or []
+        self.attrs = kwargs
+
+
+class SunZenithCorrectorBase(ModifierBase):
+    """Base class for sun zenith correction modifiers."""
 
     coszen = WeakValueDictionary()
 
@@ -532,7 +567,7 @@ class EffectiveSolarPathLengthCorrector(SunZenithCorrectorBase):
         return atmospheric_path_length_correction(proj, coszen, limit=self.correction_limit, max_sza=self.max_sza)
 
 
-class PSPRayleighReflectance(CompositeBase):
+class PSPRayleighReflectance(ModifierBase):
     """Pyspectral-based rayleigh corrector for visible channels."""
 
     _rayleigh_cache = WeakValueDictionary()
@@ -616,7 +651,7 @@ class PSPRayleighReflectance(CompositeBase):
         return proj
 
 
-class NIRReflectance(CompositeBase):
+class NIRReflectance(ModifierBase):
     """Get the reflective part of NIR bands."""
 
     def __init__(self, sunz_threshold=None, **kwargs):
@@ -720,6 +755,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
                 the near infrared reflectance. Above this angle the derivation
                 will assume this sun-zenith everywhere. Default None, in which
                 case the default threshold defined in Pyspectral will be used.
+
         """
         self.sunz_threshold = sunz_threshold
         super(NIREmissivePartFromReflectance, self).__init__(sunz_threshold=sunz_threshold, **kwargs)
@@ -758,7 +794,7 @@ class NIREmissivePartFromReflectance(NIRReflectance):
         return reflectance_3x_calculator.emissive_part_3x()
 
 
-class PSPAtmosphericalCorrection(CompositeBase):
+class PSPAtmosphericalCorrection(ModifierBase):
     """Correct for atmospheric effects."""
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -800,7 +836,7 @@ class PSPAtmosphericalCorrection(CompositeBase):
         return proj
 
 
-class CO2Corrector(CompositeBase):
+class CO2Corrector(ModifierBase):
     """Correct for CO2."""
 
     def __call__(self, projectables, optional_datasets=None, **info):
