@@ -2,7 +2,7 @@ sensor_name: visir/abi
 
 modifiers:
   rayleigh_corrected_crefl:
-    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
     optional_prerequisites:
       - name: satellite_azimuth_angle
@@ -11,7 +11,7 @@ modifiers:
       - name: solar_zenith_angle
 
   rayleigh_corrected_500m:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: midlatitude summer
     aerosol_type: marine_tropical_aerosol
     prerequisites:
