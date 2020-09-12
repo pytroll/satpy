@@ -2,7 +2,7 @@ sensor_name: visir/viirs
 
 modifiers:
   rayleigh_corrected_crefl:
-    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
     optional_prerequisites:
     - name: satellite_azimuth_angle
@@ -15,7 +15,7 @@ modifiers:
       resolution: 742
 
   rayleigh_corrected_crefl_iband:
-    compositor: !!python/name:satpy.composites.viirs.ReflectanceCorrector
+    modifier: !!python/name:satpy.composites.viirs.ReflectanceCorrector
     dem_filename: CMGDEM.hdf
     optional_prerequisites:
     - name: satellite_azimuth_angle
@@ -28,7 +28,7 @@ modifiers:
       resolution: 371
 
   rayleigh_corrected_iband:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
@@ -46,7 +46,7 @@ modifiers:
       resolution: 371
 
   rayleigh_corrected:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: rayleigh_only
     prerequisites:
@@ -64,7 +64,7 @@ modifiers:
       resolution: 742
 
   rayleigh_corrected_marine_tropical:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: marine_tropical_aerosol
     prerequisites:
@@ -82,7 +82,7 @@ modifiers:
       resolution: 742
 
   rayleigh_corrected_land:
-    compositor: !!python/name:satpy.composites.PSPRayleighReflectance
+    modifier: !!python/name:satpy.modifiers.PSPRayleighReflectance
     atmosphere: us-standard
     aerosol_type: continental_average_aerosol
     prerequisites:
@@ -100,19 +100,19 @@ modifiers:
       resolution: 742
 
   sunz_corrected:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
     prerequisites:
     - name: solar_zenith_angle
       resolution: 742
 
   sunz_corrected_iband:
-    compositor: !!python/name:satpy.composites.SunZenithCorrector
+    modifier: !!python/name:satpy.modifiers.SunZenithCorrector
     prerequisites:
     - name: solar_zenith_angle
       resolution: 371
 
   nir_emissive_lowres:
-    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    modifier: !!python/name:satpy.modifiers.NIREmissivePartFromReflectance
     prerequisites:
     - M15
     optional_prerequisites:
@@ -120,7 +120,7 @@ modifiers:
       resolution: 742
 
   nir_emissive_hires:
-    compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
+    modifier: !!python/name:satpy.modifiers.NIREmissivePartFromReflectance
     prerequisites:
     - I05
     optional_prerequisites:
@@ -128,7 +128,7 @@ modifiers:
       resolution: 371
 
   nir_reflectance_lowres:
-    compositor: !!python/name:satpy.composites.NIRReflectance
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
     prerequisites:
     - M15
     optional_prerequisites:
@@ -136,7 +136,7 @@ modifiers:
       resolution: 742
 
   nir_reflectance_hires:
-    compositor: !!python/name:satpy.composites.NIRReflectance
+    modifier: !!python/name:satpy.modifiers.NIRReflectance
     prerequisites:
     - I05
     optional_prerequisites:

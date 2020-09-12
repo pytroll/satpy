@@ -262,7 +262,7 @@ class TestSunZenithCorrector(unittest.TestCase):
 
     def test_basic_default_not_provided(self):
         """Test default limits when SZA isn't provided."""
-        from satpy.composites import SunZenithCorrector
+        from satpy.modifiers import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
         res = comp((self.ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
@@ -276,28 +276,29 @@ class TestSunZenithCorrector(unittest.TestCase):
 
     def test_basic_lims_not_provided(self):
         """Test custom limits when SZA isn't provided."""
-        from satpy.composites import SunZenithCorrector
+        from satpy.modifiers import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         res = comp((self.ds1,), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
     def test_basic_default_provided(self):
         """Test default limits when SZA is provided."""
-        from satpy.composites import SunZenithCorrector
+        from satpy.modifiers import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple())
         res = comp((self.ds1, self.sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[22.401667, 22.31777], [22.437503, 22.353533]]))
 
     def test_basic_lims_provided(self):
         """Test custom limits when SZA is provided."""
-        from satpy.composites import SunZenithCorrector
+        from satpy.modifiers import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         res = comp((self.ds1, self.sza), test_attr='test')
         np.testing.assert_allclose(res.values, np.array([[66.853262, 68.168939], [66.30742, 67.601493]]))
 
     def test_imcompatible_areas(self):
         """Test sunz correction on incompatible areas."""
-        from satpy.composites import SunZenithCorrector, IncompatibleAreas
+        from satpy.composites import IncompatibleAreas
+        from satpy.modifiers import SunZenithCorrector
         comp = SunZenithCorrector(name='sza_test', modifiers=tuple(), correction_limit=90)
         with pytest.raises(IncompatibleAreas):
             comp((self.ds2, self.sza), test_attr='test')
@@ -574,15 +575,15 @@ class TestNIRReflectance(unittest.TestCase):
         else:
             return self.refl
 
-    @mock.patch('satpy.composites.sun_zenith_angle')
-    @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
-    @mock.patch('satpy.composites.Calculator')
+    @mock.patch('satpy.modifiers.sun_zenith_angle')
+    @mock.patch('satpy.modifiers.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.modifiers.Calculator')
     def test_provide_sunz_no_co2(self, calculator, apply_modifier_info, sza):
         """Test NIR reflectance compositor provided only sunz."""
         calculator.return_value = mock.MagicMock(
             reflectance_from_tbs=self.refl_from_tbs)
         sza.return_value = self.da_sunz
-        from satpy.composites import NIRReflectance
+        from satpy.modifiers import NIRReflectance
 
         comp = NIRReflectance(name='test')
         info = {'modifiers': None}
@@ -593,15 +594,15 @@ class TestNIRReflectance(unittest.TestCase):
         assert res.attrs['sun_zenith_threshold'] is not None
         assert np.allclose(res.data, self.refl * 100).compute()
 
-    @mock.patch('satpy.composites.sun_zenith_angle')
-    @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
-    @mock.patch('satpy.composites.Calculator')
+    @mock.patch('satpy.modifiers.sun_zenith_angle')
+    @mock.patch('satpy.modifiers.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.modifiers.Calculator')
     def test_no_sunz_no_co2(self, calculator, apply_modifier_info, sza):
         """Test NIR reflectance compositor with minimal parameters."""
         calculator.return_value = mock.MagicMock(
             reflectance_from_tbs=self.refl_from_tbs)
         sza.return_value = self.da_sunz
-        from satpy.composites import NIRReflectance
+        from satpy.modifiers import NIRReflectance
 
         comp = NIRReflectance(name='test')
         info = {'modifiers': None}
@@ -612,14 +613,14 @@ class TestNIRReflectance(unittest.TestCase):
         self.refl_from_tbs.assert_called_with(self.da_sunz, self.nir.data, self.ir_.data, tb_ir_co2=None)
         assert np.allclose(res.data, self.refl * 100).compute()
 
-    @mock.patch('satpy.composites.sun_zenith_angle')
-    @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
-    @mock.patch('satpy.composites.Calculator')
+    @mock.patch('satpy.modifiers.sun_zenith_angle')
+    @mock.patch('satpy.modifiers.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.modifiers.Calculator')
     def test_no_sunz_with_co2(self, calculator, apply_modifier_info, sza):
         """Test NIR reflectance compositor provided extra co2 info."""
         calculator.return_value = mock.MagicMock(
             reflectance_from_tbs=self.refl_from_tbs)
-        from satpy.composites import NIRReflectance
+        from satpy.modifiers import NIRReflectance
         sza.return_value = self.da_sunz
 
         comp = NIRReflectance(name='test')
@@ -633,14 +634,14 @@ class TestNIRReflectance(unittest.TestCase):
         self.refl_from_tbs.assert_called_with(self.da_sunz, self.nir.data, self.ir_.data, tb_ir_co2=co2.data)
         assert np.allclose(res.data, self.refl_with_co2 * 100).compute()
 
-    @mock.patch('satpy.composites.sun_zenith_angle')
-    @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
-    @mock.patch('satpy.composites.Calculator')
+    @mock.patch('satpy.modifiers.sun_zenith_angle')
+    @mock.patch('satpy.modifiers.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.modifiers.Calculator')
     def test_provide_sunz_and_threshold(self, calculator, apply_modifier_info, sza):
         """Test NIR reflectance compositor provided sunz and a sunz threshold."""
         calculator.return_value = mock.MagicMock(
             reflectance_from_tbs=self.refl_from_tbs)
-        from satpy.composites import NIRReflectance
+        from satpy.modifiers import NIRReflectance
         sza.return_value = self.da_sunz
 
         comp = NIRReflectance(name='test', sunz_threshold=84.0)
@@ -650,12 +651,12 @@ class TestNIRReflectance(unittest.TestCase):
         self.assertEqual(res.attrs['sun_zenith_threshold'], 84.0)
         calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039', sunz_threshold=84.0)
 
-    @mock.patch('satpy.composites.sun_zenith_angle')
-    @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
-    @mock.patch('satpy.composites.Calculator')
+    @mock.patch('satpy.modifiers.sun_zenith_angle')
+    @mock.patch('satpy.modifiers.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.modifiers.Calculator')
     def test_sunz_threshold_default_value_is_not_none(self, calculator, apply_modifier_info, sza):
         """Check that sun_zenith_threshold is not None."""
-        from satpy.composites import NIRReflectance
+        from satpy.modifiers import NIRReflectance
 
         comp = NIRReflectance(name='test', sunz_threshold=None)
         info = {'modifiers': None}
@@ -669,9 +670,9 @@ class TestNIRReflectance(unittest.TestCase):
 class TestNIREmissivePartFromReflectance(unittest.TestCase):
     """Test the NIR Emissive part from reflectance compositor."""
 
-    @mock.patch('satpy.composites.sun_zenith_angle')
-    @mock.patch('satpy.composites.NIREmissivePartFromReflectance.apply_modifier_info')
-    @mock.patch('satpy.composites.Calculator')
+    @mock.patch('satpy.modifiers.sun_zenith_angle')
+    @mock.patch('satpy.modifiers.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.modifiers.Calculator')
     def test_compositor(self, calculator, apply_modifier_info, sza):
         """Test the NIR emissive part from reflectance compositor."""
         import numpy as np
@@ -691,7 +692,7 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
         emissive_part.return_value = emissive
         calculator.return_value = mock.MagicMock(emissive_part_3x=emissive_part)
 
-        from satpy.composites import NIREmissivePartFromReflectance
+        from satpy.modifiers import NIREmissivePartFromReflectance
 
         comp = NIREmissivePartFromReflectance(name='test', sunz_threshold=86.0)
         info = {'modifiers': None}
@@ -1308,11 +1309,11 @@ class TestPSPAtmosphericalCorrection(unittest.TestCase):
         """Unpatch in-class imports."""
         self.module_patcher.stop()
 
-    @mock.patch('satpy.composites.PSPAtmosphericalCorrection.apply_modifier_info')
-    @mock.patch('satpy.composites.get_satpos')
+    @mock.patch('satpy.modifiers.PSPAtmosphericalCorrection.apply_modifier_info')
+    @mock.patch('satpy.modifiers.get_satpos')
     def test_call(self, get_satpos, *mocks):
         """Test atmospherical correction."""
-        from satpy.composites import PSPAtmosphericalCorrection
+        from satpy.modifiers import PSPAtmosphericalCorrection
 
         # Patch methods
         get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
@@ -1353,10 +1354,10 @@ class TestPSPRayleighReflectance(unittest.TestCase):
         """Unpatch in-class imports."""
         self.module_patcher.stop()
 
-    @mock.patch('satpy.composites.get_satpos')
+    @mock.patch('satpy.modifiers.get_satpos')
     def test_get_angles(self, get_satpos):
         """Test sun and satellite angle calculation."""
-        from satpy.composites import PSPRayleighReflectance
+        from satpy.modifiers import PSPRayleighReflectance
 
         # Patch methods
         get_satpos.return_value = 'sat_lon', 'sat_lat', 12345678
