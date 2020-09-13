@@ -441,7 +441,7 @@ class DependencyTree(Tree):
 
     def get_compositor(self, key):
         """Get a compositor."""
-        for sensor_name in sorted(self.compositors.keys()):
+        for sensor_name in sorted(self.compositors):
             try:
                 return self.compositors[sensor_name][key]
             except KeyError:
@@ -453,7 +453,7 @@ class DependencyTree(Tree):
         """Get a modifer."""
         # create a DataID for the compositor we are generating
         modifier = comp_id['modifiers'][-1]
-        for sensor_name in sorted(self.modifiers.keys()):
+        for sensor_name in sorted(self.modifiers):
             modifiers = self.modifiers[sensor_name]
             compositors = self.compositors[sensor_name]
             if modifier not in modifiers:
