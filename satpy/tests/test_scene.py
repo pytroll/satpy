@@ -715,7 +715,7 @@ class TestScene(unittest.TestCase):
         name_list = scene.available_dataset_names(composites=True)
         self.assertListEqual(name_list, [])
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_all_datasets_one_reader(self, cri, cl):
         """Test all datasets for one reader."""
@@ -737,7 +737,7 @@ class TestScene(unittest.TestCase):
         self.assertEqual(len(id_list),
                          len(r.all_ids) + 29)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_all_datasets_multiple_reader(self, cri, cl):
         """Test all datasets for multiple readers."""
@@ -762,7 +762,7 @@ class TestScene(unittest.TestCase):
         # composites that use these two datasets => 10
         self.assertEqual(len(id_list), 2 + 10)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_available_datasets_one_reader(self, cri, cl):
         """Test the available datasets for one reader."""
@@ -784,7 +784,7 @@ class TestScene(unittest.TestCase):
         # ds1, comp1, comp14, comp16, static_image
         self.assertEqual(len(id_list), 5)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_available_composite_ids_missing_available(self, cri, cl):
         """Test available_composite_ids when a composites dep is missing."""
@@ -809,7 +809,7 @@ class TestScene(unittest.TestCase):
 class TestSceneLoading(unittest.TestCase):
     """Test the Scene objects `.load` method."""
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_str(self, cri, cl):
         """Test passing a string to Scene.load."""
@@ -824,7 +824,7 @@ class TestSceneLoading(unittest.TestCase):
                                   reader='fake_reader')
         self.assertRaises(TypeError, scene.load, 'ds1')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_no_exist(self, cri, cl):
         """Test loading a dataset that doesn't exist."""
@@ -840,7 +840,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertRaises(KeyError, scene.load, [
                           'im_a_dataset_that_doesnt_exist'])
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_no_exist2(self, cri, cl):
         """Test loading a dataset that doesn't exist then another load."""
@@ -910,7 +910,7 @@ class TestSceneLoading(unittest.TestCase):
             self.assertFalse(
                 m.called, "Reader.load was called again when loading something that's already loaded")
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_ds1_unknown_modifier(self, cri, cl):
         """Test loading one dataset with no loaded compositors."""
@@ -926,7 +926,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertRaises(KeyError, scene.load,
                           [make_dataid(name='ds1', modifiers=('_fake_bad_mod_',))])
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_ds4_cal(self, cri, cl):
         """Test loading a dataset that has two calibration variations."""
@@ -944,7 +944,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(loaded_ids), 1)
         self.assertEqual(loaded_ids[0]['calibration'], 'reflectance')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_ds5_best_resolution(self, cri, cl):
         """Test loading a dataset has multiple resolutions available."""
@@ -963,7 +963,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(loaded_ids[0]['name'], 'ds5')
         self.assertEqual(loaded_ids[0]['resolution'], 250)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_ds5_multiple_resolution(self, cri, cl):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
@@ -985,7 +985,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(loaded_ids[1]['name'], 'ds5')
         self.assertEqual(loaded_ids[1]['resolution'], 1000)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_ds5_resolution_list(self, cri, cl):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
@@ -1004,7 +1004,7 @@ class TestSceneLoading(unittest.TestCase):
         assert loaded_ids[0]['name'] == 'ds5'
         assert loaded_ids[0]['resolution'] == 500
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_ds5_empty_modifiers(self, cri, cl):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
@@ -1022,7 +1022,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['name'] == 'ds5'
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_ds5_missing_best_resolution(self, cri, cl):
         """Test loading a dataset that has multiple resolutions but the best isn't available."""
@@ -1047,7 +1047,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(loaded_ids[0]['name'], 'ds5')
         self.assertEqual(loaded_ids[0]['resolution'], 500)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_ds6_wl(self, cri, cl):
         """Test loading a dataset by wavelength."""
@@ -1065,7 +1065,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(loaded_ids), 1)
         self.assertEqual(loaded_ids[0]['name'], 'ds6')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_ds9_fail_load(self, cri, cl):
         """Test loading a dataset that will fail during load."""
@@ -1082,7 +1082,7 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene._datasets.keys())
         self.assertEqual(len(loaded_ids), 0)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp1(self, cri, cl):
         """Test loading a composite with one required prereq."""
@@ -1100,7 +1100,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp1')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp4(self, cri, cl):
         """Test loading a composite that depends on a composite."""
@@ -1118,7 +1118,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp4')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_multiple_resolutions(self, cri, cl):
         """Test loading a dataset has multiple resolutions available with different resolutions."""
@@ -1142,7 +1142,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(loaded_ids[1]['name'], 'comp25')
         self.assertEqual(loaded_ids[1]['resolution'], 1000)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_same_subcomposite(self, cri, cl):
         """Test loading a composite and one of it's subcomposites at the same time."""
@@ -1164,7 +1164,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(loaded_ids[1]['name'], 'comp25')
         self.assertEqual(loaded_ids[1]['resolution'], 500)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp5(self, cri, cl):
         """Test loading a composite that has an optional prerequisite."""
@@ -1182,7 +1182,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp5')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp6(self, cri, cl):
         """Test loading a composite that has an optional composite prerequisite."""
@@ -1200,7 +1200,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(loaded_ids), 1)
         assert loaded_ids[0] == make_cid(name='comp6')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp8(self, cri, cl):
         """Test loading a composite that has a non-existent prereq."""
@@ -1215,7 +1215,7 @@ class TestSceneLoading(unittest.TestCase):
                                   reader='fake_reader')
         self.assertRaises(KeyError, scene.load, ['comp8'])
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp9(self, cri, cl):
         """Test loading a composite that has a non-existent optional prereq."""
@@ -1234,7 +1234,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp9')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp10(self, cri, cl):
         """Test loading a composite that depends on a modified dataset."""
@@ -1253,7 +1253,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp10')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp11(self, cri, cl):
         """Test loading a composite that depends all wavelengths."""
@@ -1272,7 +1272,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp11')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp12(self, cri, cl):
         """Test loading a composite that depends all wavelengths that get modified."""
@@ -1291,7 +1291,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp12')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp13(self, cri, cl):
         """Test loading a composite that depends on a modified dataset where the resolution changes."""
@@ -1310,7 +1310,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp13')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp14(self, cri, cl):
         """Test loading a composite that updates the DataID during generation."""
@@ -1329,7 +1329,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['name'] == 'comp14'
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp15(self, cri, cl):
         """Test loading a composite whose prerequisites can't be loaded.
@@ -1351,7 +1351,7 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 0
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp16(self, cri, cl):
         """Test loading a composite whose opt prereq can't be loaded.
@@ -1374,7 +1374,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['name'] == 'comp16'
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp17(self, cri, cl):
         """Test loading a composite that depends on a composite that won't load."""
@@ -1392,7 +1392,7 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 0
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp18(self, cri, cl):
         """Test loading a composite that depends on a incompatible area modified dataset."""
@@ -1423,7 +1423,7 @@ class TestSceneLoading(unittest.TestCase):
                                   modifiers=('mod1',)),
                       scene._datasets)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp18_2(self, cri, cl):
         """Test loading a composite that depends on a incompatible area modified dataset.
@@ -1460,7 +1460,7 @@ class TestSceneLoading(unittest.TestCase):
                                   modifiers=('mod1',)),
                       scene._datasets)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp19(self, cri, cl):
         """Test loading a composite that shares a dep with a dependency.
@@ -1503,7 +1503,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp19')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_multiple_comps(self, cri, cl):
         """Test loading multiple composites."""
@@ -1521,7 +1521,7 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 9
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_multiple_comps_separate(self, cri, cl):
         """Test loading multiple composites, one at a time."""
@@ -1546,7 +1546,7 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene._datasets.keys())
         assert len(loaded_ids) == 9
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_modified(self, cri, cl):
         """Test loading a modified dataset."""
@@ -1564,7 +1564,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0]['modifiers'] == ('mod1', 'mod2')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_multiple_modified(self, cri, cl):
         """Test loading multiple modified datasets."""
@@ -1590,7 +1590,7 @@ class TestSceneLoading(unittest.TestCase):
                 self.assertEqual(i['name'], 'ds2')
                 self.assertTupleEqual(i['modifiers'], ('mod2', 'mod1'))
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_dataset_after_composite(self, cri, cl):
         """Test load composite followed by other datasets."""
@@ -1616,7 +1616,7 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene._datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_dataset_after_composite2(self, cri, cl):
         """Test load complex composite followed by other datasets."""
@@ -1661,7 +1661,7 @@ class TestSceneLoading(unittest.TestCase):
         loaded_ids = list(scene._datasets.keys())
         self.assertEqual(len(loaded_ids), 2)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp20(self, cri, cl):
         """Test loading composite with optional modifier dependencies."""
@@ -1680,7 +1680,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp20')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp21(self, cri, cl):
         """Test loading composite with bad optional modifier dependencies."""
@@ -1699,7 +1699,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp21')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp22(self, cri, cl):
         """Test loading composite with only optional modifier dependencies."""
@@ -1718,7 +1718,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='comp22')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_green(self, cri, cl):
         """Test loading ahi_green."""
@@ -1735,7 +1735,7 @@ class TestSceneLoading(unittest.TestCase):
         assert len(loaded_ids) == 1
         assert loaded_ids[0] == make_cid(name='ahi_green')
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_no_generate_comp10(self, cri, cl):
         """Test generating a composite after loading."""
@@ -1761,7 +1761,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertIn('comp10', scene._datasets)
         self.assertEqual(len(scene.missing_datasets), 0)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_modified_with_wl_dep(self, cri, cl):
         """Test modifying a dataset with a modifier with modified deps.
@@ -1810,7 +1810,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertIn(ds1_mod_id, scene._datasets)
         self.assertIn(ds3_mod_id, scene._datasets)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors', autospec=True)
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_comp11_and_23(self, cri, cl):
         """Test loading two composites that depend on similar wavelengths."""
@@ -1852,7 +1852,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertIn('comp11', scene)
         self.assertIn('comp23', scene)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors', autospec=True)
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_load_too_many(self, cri, cl):
         """Test dependency tree if too many reader keys match."""
@@ -1872,7 +1872,7 @@ class TestSceneLoading(unittest.TestCase):
         self.assertEqual(len(avail_comps), 1)
         self.assertRaises(KeyError, scene.load, [0.21])
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors', autospec=True)
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors', autospec=True)
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_available_comps_no_deps(self, cri, cl):
         """Test Scene available composites when composites don't have a dependency."""
@@ -1913,7 +1913,7 @@ class TestSceneResampling(unittest.TestCase):
         return dataset.copy()
 
     @mock.patch('satpy.scene.resample_dataset')
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_resample_scene_copy(self, cri, cl, rs):
         """Test that the Scene is properly copied during resampling.
@@ -1967,7 +1967,7 @@ class TestSceneResampling(unittest.TestCase):
         assert loaded_ids[1] == make_cid(name='new_ds')
 
     @mock.patch('satpy.scene.resample_dataset')
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_resample_reduce_data_toggle(self, cri, cl, rs):
         """Test that the Scene can be reduced or not reduced during resampling."""
@@ -2030,7 +2030,7 @@ class TestSceneResampling(unittest.TestCase):
             self.assertEqual(slice_data.call_count, 2 * 3)
             self.assertTrue(get_area_slices.called_once)
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_resample_ancillary(self, cri, cl):
         """Test that the Scene reducing data does not affect final output."""
@@ -2062,7 +2062,7 @@ class TestSceneResampling(unittest.TestCase):
         new_scene = scene.resample(dst_area)
         self.assertIs(new_scene['comp20'], new_scene['comp19'].attrs['ancillary_variables'][0])
 
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_resample_reduce_data(self, cri, cl):
         """Test that the Scene reducing data does not affect final output."""
@@ -2096,7 +2096,7 @@ class TestSceneResampling(unittest.TestCase):
         self.assertTupleEqual(new_scene3['comp19'].shape, (2, 2, 3))
 
     @mock.patch('satpy.scene.resample_dataset')
-    @mock.patch('satpy.composites.CompositorLoader.load_compositors')
+    @mock.patch('satpy.composites.config_loader.CompositorLoader.load_compositors')
     @mock.patch('satpy.scene.Scene._create_reader_instances')
     def test_no_generate_comp10(self, cri, cl, rs):
         """Test generating a composite after loading."""
