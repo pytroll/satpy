@@ -420,7 +420,7 @@ class TestInlineComposites(unittest.TestCase):
 
     def test_inline_composites(self):
         """Test that inline composites are working."""
-        from satpy.composites import CompositorLoader
+        from satpy.composites.config_loader import CompositorLoader
         cl_ = CompositorLoader()
         cl_.load_sensor_composites('visir')
         comps = cl_.compositors
