@@ -143,6 +143,10 @@ class DependencyTree(Tree):
         including objects that may depend on certain Datasets being generated.
         This includes readers, compositors, and modifiers.
 
+        Composites and modifiers are defined per-sensor. If multiple sensors
+        are available, compositors and modifiers are searched for in
+        sensor alphabetical order.
+
         Args:
             readers (dict): Reader name -> Reader Object
             compositors (dict): Sensor name -> Composite ID -> Composite Object
