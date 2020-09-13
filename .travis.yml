@@ -14,6 +14,7 @@ env:
         - SETUP_CMD='test'
         - CONDA_CHANNELS='conda-forge'
         - CONDA_CHANNEL_PRIORITY='strict'
+        - MAMBA=True
         - UNSTABLE_DEPS=False
 matrix:
   include:
@@ -21,6 +22,9 @@ matrix:
     os: linux
   - env: PYTHON_VERSION=3.8
     os: osx
+    language: generic
+  - env: PYTHON_VERSION=3.8
+    os: windows
     language: generic
   - env: PYTHON_VERSION=3.7
     os: linux
