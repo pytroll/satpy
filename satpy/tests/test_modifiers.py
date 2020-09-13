@@ -17,12 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for modifiers in modifiers/__init__.py."""
 
-import os
 import unittest
 from datetime import datetime
 from unittest import mock
 
-import dask
 import dask.array as da
 import numpy as np
 import pytest
