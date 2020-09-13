@@ -62,7 +62,7 @@ class IncompatibleTimes(Exception):
 
 
 class CompositorLoader(object):
-    """Read composites using the configuration files on disk."""
+    """Read compositors and modifiers using the configuration files on disk."""
 
     def __init__(self, ppp_config_dir=None):
         """Initialize the compositor loader."""
@@ -71,7 +71,8 @@ class CompositorLoader(object):
         self.modifiers = {}
         self.compositors = {}
         self.ppp_config_dir = ppp_config_dir
-        self.ds_id_keys = {}
+        # sensor -> { dict of DataID key information }
+        self._sensor_dataid_keys = {}
 
     def load_sensor_composites(self, sensor_name):
         """Load all compositor configs for the provided sensor."""
@@ -138,71 +139,114 @@ class CompositorLoader(object):
                 mods[sensor_name] = self.modifiers[sensor_name].copy()
         return comps, mods
 
-    def _process_composite_config(self, composite_name, conf,
-                                  composite_type, sensor_id, sensor_deps, composite_config, **kwargs):
+    def _convert_inline_dep_info_to_data_query(self, dep_info):
+        key_item = dep_info.copy()
+        key_item.pop('prerequisites', None)
+        key_item.pop('optional_prerequisites', None)
+        if 'modifiers' in key_item:
+            key_item['modifiers'] = tuple(key_item['modifiers'])
+        key = DataQuery.from_dict(key_item)
+        return key
+
+    def _get_modifier_loader_options_from_config(self, modifier_name, configured_mods):
+        try:
+            options = configured_mods[modifier_name]
+            loader = options.pop('modifier', None)
+            if loader is None:
+                loader = options.pop('compositor')
+                warnings.warn("Modifier '{}' uses deprecated 'compositor' "
+                              "key to point to Python class, replace "
+                              "with 'modifier'.".format(modifier_name))
+        except KeyError:
+            raise ValueError("'modifier' {} missing or empty. Option keys = {}".format(
+                modifier_name, str(options.keys())))
+        options['name'] = modifier_name
+        return loader, options
+
+    def _process_modifier_config(self, modifier_name, configured_mods, sensor_modifiers):
+        loader, options = self._get_modifier_loader_options_from_config(modifier_name, configured_mods)
+        for prereq_type in ['prerequisites', 'optional_prerequisites']:
+            prereqs = []
+            for dep_info in options.get(prereq_type, []):
+                if not isinstance(dep_info, dict):
+                    prereqs.append(dep_info)
+                    continue
+                prereq_key = self._convert_inline_dep_info_to_data_query(dep_info)
+                prereqs.append(prereq_key)
+            options[prereq_type] = prereqs
+        sensor_modifiers[modifier_name] = loader, options
+
+    def _load_config_modifiers(self, conf, loaded_modifiers):
+        composite_type = 'modifiers'
+        if composite_type not in conf:
+            return
+        configured_modifiers = conf[composite_type]
+        for modifier_name in configured_modifiers:
+            self._process_modifier_config(modifier_name, configured_modifiers,
+                                           loaded_modifiers)
+
+    def _handle_inline_comp_dep(self, dep_info, dep_num, parent_name, sensor_composites, id_keys):
+        # Create an unique temporary name for the composite
+        sub_comp_name = '_' + parent_name + '_dep_{}'.format(dep_num)
+        # Minimal composite config
+        sub_configured_comps = {sub_comp_name: dep_info}
+        self._process_composite_config(
+            sub_comp_name, sub_configured_comps, sensor_composites, minimal_default_keys_config)
+
+    def _get_compositor_loader_options_from_config(self, composite_name, configured_comps):
+        # FIXME: options is used before it might be available
+        # FIXME: Why not just pass the options when we start calling this stuff?
+        try:
+            options = configured_comps[composite_name]
+            loader = options.pop('compositor')
+        except KeyError:
+            raise ValueError("'compositor' {} missing or empty. Option keys = {}".format(
+                composite_name, str(options.keys())))
+        options['name'] = composite_name
+        return loader, options
+
+    def _process_composite_config(self, composite_name, configured_comps,
+                                  sensor_composites, id_keys):
+        loader, options = self._get_compositor_loader_options_from_config(composite_name, configured_comps)
+        dep_num = -1
+        for prereq_type in ['prerequisites', 'optional_prerequisites']:
+            prereqs = []
+            for dep_info in options.get(prereq_type, []):
+                dep_num += 1
+                if not isinstance(dep_info, dict):
+                    prereqs.append(dep_info)
+                    continue
+                elif 'compositor' in dep_info:
+                    self._handle_inline_comp_dep(
+                        dep_info, dep_num, composite_name, sensor_composites,
+                        id_keys)
+                prereq_key = self._convert_inline_dep_info_to_data_query(dep_info)
+                prereqs.append(prereq_key)
+            options[prereq_type] = prereqs
+
+        key = DataID(id_keys, **options)
+        comp = loader(_satpy_id=key, **options)
+        sensor_composites[key] = comp
+
+    def _load_config_composites(self, conf, loaded_compositors, sensor_id_keys):
+        composite_type = 'composites'
+        if composite_type not in conf:
+            return
+        configured_modifiers = conf[composite_type]
+        for composite_name in configured_modifiers:
+            self._process_composite_config(composite_name, configured_modifiers,
+                                           loaded_compositors, sensor_id_keys)
+
+    def _get_sensor_id_keys(self, conf, sensor_id, sensor_deps):
         try:
             id_keys = conf['composite_identification_keys']
         except KeyError:
             try:
-                id_keys = self.ds_id_keys[sensor_deps[-1]]
+                id_keys = self._sensor_dataid_keys[sensor_deps[-1]]
             except IndexError:
                 id_keys = minimal_default_keys_config
-        self.ds_id_keys[sensor_id] = id_keys
-        compositors = self.compositors[sensor_id]
-        modifiers = self.modifiers[sensor_id]
-        try:
-            options = conf[composite_type][composite_name]
-            if composite_type == 'modifiers':
-                loader = options.pop('modifier', None)
-                if loader is None:
-                    loader = options.pop('compositor')
-                    warnings.warn("Modifier '%s' uses deprecated 'compositor' "
-                                  "key to point to Python class, replace "
-                                  "with 'modifier'.")
-            else:
-                loader = options.pop('compositor')
-        except KeyError:
-            if composite_name in compositors or composite_name in modifiers:
-                return conf
-            raise ValueError("'compositor' missing or empty in {0}. Option keys = {1}".format(
-                composite_config, str(options.keys())))
-
-        options['name'] = composite_name
-        for prereq_type in ['prerequisites', 'optional_prerequisites']:
-            prereqs = []
-            dep_num = 0
-            for item in options.get(prereq_type, []):
-                if isinstance(item, dict):
-                    # Handle in-line composites
-                    if 'compositor' in item:
-                        # Create an unique temporary name for the composite
-                        sub_comp_name = '_' + composite_name + '_dep_{}'.format(dep_num)
-                        dep_num += 1
-                        # Minimal composite config
-                        sub_conf = {composite_type: {sub_comp_name: item},
-                                    'composite_identification_keys': minimal_default_keys_config
-                                    }
-                        self._process_composite_config(
-                            sub_comp_name, sub_conf, composite_type, sensor_id,
-                            sensor_deps, composite_config, **kwargs)
-                    key_item = item.copy()
-                    key_item.pop('prerequisites', None)
-                    key_item.pop('optional_prerequisites', None)
-                    if 'modifiers' in key_item:
-                        key_item['modifiers'] = tuple(key_item['modifiers'])
-                    key = DataQuery.from_dict(key_item)
-                    prereqs.append(key)
-                else:
-                    prereqs.append(item)
-            options[prereq_type] = prereqs
-
-        if composite_type == 'composites':
-            options.update(**kwargs)
-            key = DataID(id_keys, **options)
-            comp = loader(_satpy_id=key, **options)
-            compositors[key] = comp
-        elif composite_type == 'modifiers':
-            modifiers[composite_name] = loader, options
+        self._sensor_dataid_keys[sensor_id] = id_keys
+        return id_keys
 
     def _load_config(self, composite_configs, **kwargs):
         if not isinstance(composite_configs, (list, tuple)):
@@ -233,13 +277,18 @@ class CompositorLoader(object):
             compositors.update(self.compositors[sensor_deps[-1]])
             modifiers.update(self.modifiers[sensor_deps[-1]])
 
-        for composite_type in ['modifiers', 'composites']:
-            if composite_type not in conf:
-                continue
-            for composite_name in conf[composite_type]:
-                self._process_composite_config(composite_name, conf,
-                                               composite_type, sensor_id,
-                                               sensor_deps, composite_config, **kwargs)
+        id_keys = self._get_sensor_id_keys(conf, sensor_id, sensor_deps)
+        try:
+            self._load_config_modifiers(conf, modifiers)
+        except (ValueError, KeyError):
+            raise RuntimeError("Failed to load modifiers from config "
+                               "'{}'".format(composite_config))
+
+        try:
+            self._load_config_composites(conf, compositors, id_keys)
+        except (ValueError, KeyError):
+            raise RuntimeError("Failed to load composites from config "
+                               "'{}'".format(composite_config))
 
 
 def check_times(projectables):
@@ -1103,6 +1152,7 @@ class SandwichCompositor(GenericCompositor):
         return super(SandwichCompositor, self).__call__(rgb_img, *args, **kwargs)
 
 
+# TODO: Turn this into a weighted RGB compositor
 class NaturalEnh(GenericCompositor):
     """Enhanced version of natural color composite by Simon Proud.
 
