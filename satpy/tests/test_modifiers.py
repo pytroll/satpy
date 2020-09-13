@@ -146,8 +146,7 @@ class TestNIRReflectance(unittest.TestCase):
         del sun_zenith, da_nir, da_tb11
         if tb_ir_co2 is not None:
             return self.refl_with_co2
-        else:
-            return self.refl
+        return self.refl
 
     @mock.patch('satpy.modifiers.sun_zenith_angle')
     @mock.patch('satpy.modifiers.NIRReflectance.apply_modifier_info')
