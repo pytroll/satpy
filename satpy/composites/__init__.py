@@ -263,7 +263,7 @@ class CompositorLoader(object):
             sensor_name = conf['sensor_name']
         except KeyError:
             LOG.debug('No "sensor_name" tag found in %s, skipping.',
-                      composite_config)
+                      composite_configs)
             return
 
         sensor_id = sensor_name.split('/')[-1]
@@ -285,13 +285,13 @@ class CompositorLoader(object):
             self._load_config_modifiers(conf, modifiers)
         except (ValueError, KeyError):
             raise RuntimeError("Failed to load modifiers from config "
-                               "'{}'".format(composite_config))
+                               "'{}'".format(composite_configs))
 
         try:
             self._load_config_composites(conf, compositors, id_keys)
         except (ValueError, KeyError):
             raise RuntimeError("Failed to load composites from config "
-                               "'{}'".format(composite_config))
+                               "'{}'".format(composite_configs))
 
 
 def check_times(projectables):
