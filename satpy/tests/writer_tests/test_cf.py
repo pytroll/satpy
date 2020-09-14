@@ -664,6 +664,48 @@ class TestCFWriter(unittest.TestCase):
         self.assertNotIn('var1_acq_time', res['var1'].coords)
         self.assertNotIn('var2_acq_time', res['var2'].coords)
 
+    def test_dataset_is_projection_coords(self):
+        """Test the dataset_is_projection_coords function."""
+        import xarray as xr
+        from satpy.writers.cf_writer import dataset_is_projection_coords
+        data = [[1, 2], [3, 4]]
+        y = [1, 2]
+        x = [1, 2]
+        datasets = {'var1': xr.DataArray(data=data,
+                                         dims=('y', 'x'),
+                                         coords={'y': y, 'x': x}),
+                    'var2': xr.DataArray(data=data,
+                                         dims=('y', 'x'),
+                                         coords={'y': y, 'x': x}),
+                    'latitude': xr.DataArray(data=data,
+                                             dims=('y', 'x'),
+                                             coords={'y': y, 'x': x})}
+        datasets['latitude'].attrs['standard_name'] = 'latitude'
+        datasets['var1'].attrs['standard_name'] = 'dummy'
+        self.assertTrue(dataset_is_projection_coords(datasets['latitude']))
+        self.assertFalse(dataset_is_projection_coords(datasets['var1']))
+
+    def test_has_projection_coords(self):
+        """Test the has_projection_coords function."""
+        import xarray as xr
+        from satpy.writers.cf_writer import has_projection_coords
+        data = [[1, 2], [3, 4]]
+        y = [1, 2]
+        x = [1, 2]
+        datasets = {'var1': xr.DataArray(data=data,
+                                         dims=('y', 'x'),
+                                         coords={'y': y, 'x': x}),
+                    'var2': xr.DataArray(data=data,
+                                         dims=('y', 'x'),
+                                         coords={'y': y, 'x': x})}
+        datasets['var1'].attrs['standard_name'] = 'dummy'
+        self.assertFalse(has_projection_coords(datasets))
+        datasets['latitude'] = xr.DataArray(data=data,
+                                            dims=('y', 'x'),
+                                            coords={'y': y, 'x': x})
+        datasets['latitude'].attrs['standard_name'] = 'latitude'
+        self.assertTrue(has_projection_coords(datasets))
+
     def test_area2cf(self):
         """Test the conversion of an area to CF standards."""
         import xarray as xr
