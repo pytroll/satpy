@@ -27,12 +27,12 @@ dependencies:
   - rasterio
   - imageio
   - pyhdf
-  - pip:
-      - libtiff
-      - geoviews
-      - zarr
-      - python-eccodes
-      - geoviews
-      - pytest
-      - pytest-cov
-      - fsspec
+  - pip
+  - libtiff
+  - geoviews
+  - zarr
+  - python-eccodes
+  - geoviews
+  - pytest
+  - pytest-cov
+  - fsspec
