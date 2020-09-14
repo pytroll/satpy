@@ -169,20 +169,17 @@ def area2lonlat(dataarray):
     area = dataarray.attrs['area']
     ignore_dims = {dim: 0 for dim in dataarray.dims if dim not in ['x', 'y']}
     chunks = getattr(dataarray.isel(**ignore_dims), 'chunks', None)
-    if ('lat' in dataarray and 'lon' in dataarray) or ('latitude' in dataarray and 'longitude' in dataarray):
-        pass  # lat/lon already included
-    else:
-        lons, lats = area.get_lonlats(chunks=chunks)
-        dataarray['longitude'] = xr.DataArray(lons, dims=['y', 'x'],
-                                              attrs={'name': "longitude",
-                                                     'standard_name': "longitude",
-                                                     'units': 'degrees_east'},
-                                              name='longitude')
-        dataarray['latitude'] = xr.DataArray(lats, dims=['y', 'x'],
-                                             attrs={'name': "latitude",
-                                                    'standard_name': "latitude",
-                                                    'units': 'degrees_north'},
-                                             name='latitude')
+    lons, lats = area.get_lonlats(chunks=chunks)
+    dataarray['longitude'] = xr.DataArray(lons, dims=['y', 'x'],
+                                          attrs={'name': "longitude",
+                                                 'standard_name': "longitude",
+                                                 'units': 'degrees_east'},
+                                          name='longitude')
+    dataarray['latitude'] = xr.DataArray(lats, dims=['y', 'x'],
+                                         attrs={'name': "latitude",
+                                                'standard_name': "latitude",
+                                                'units': 'degrees_north'},
+                                         name='latitude')
     return dataarray
 
 
@@ -195,10 +192,10 @@ def area2gridmapping(dataarray):
     return dataarray, xr.DataArray(0, attrs=attrs, name=gmapping_var_name)
 
 
-def area2cf(dataarray, strict=False):
+def area2cf(dataarray, strict=False, got_lonlats=False):
     """Convert an area to at CF grid mapping or lon and lats."""
     res = []
-    if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
+    if not got_lonlats and (isinstance(dataarray.attrs['area'], SwathDefinition) or strict):
         dataarray = area2lonlat(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
         dataarray, gmapping = area2gridmapping(dataarray)
@@ -260,6 +257,21 @@ def link_coords(datas):
         dataset.attrs.pop('coordinates', None)
 
 
+def dataset_is_projection_coords(dataset):
+    """Check if dataset is a projection coords."""
+    if 'standard_name' in dataset.attrs and dataset.attrs['standard_name'] in ['longitude', 'latitude']:
+        return True
+    return False
+
+
+def has_projection_coords(ds_collection):
+    """Check if collection has a projection coords among data arrays."""
+    for dataset in ds_collection.values():
+        if dataset_is_projection_coords(dataset):
+            return True
+    return False
+
+
 def make_alt_coords_unique(datas, pretty=False):
     """Make non-dimensional coordinates unique among all datasets.
 
@@ -284,7 +296,7 @@ def make_alt_coords_unique(datas, pretty=False):
     tokens = defaultdict(set)
     for dataset in datas.values():
         for coord_name in dataset.coords:
-            if coord_name.lower() not in ('latitude', 'longitude', 'lat', 'lon') and coord_name not in dataset.dims:
+            if not dataset_is_projection_coords(dataset[coord_name]) and coord_name not in dataset.dims:
                 tokens[coord_name].add(tokenize(dataset[coord_name].data))
     coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
 
@@ -488,7 +500,7 @@ class CFWriter(Writer):
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
-
+        got_lonlats = has_projection_coords(ds_collection)
         datas = {}
         start_times = []
         end_times = []
@@ -500,7 +512,7 @@ class CFWriter(Writer):
             # structure of attributes
             ds = ds.copy(deep=True)
             try:
-                new_datasets = area2cf(ds, strict=include_lonlats)
+                new_datasets = area2cf(ds, strict=include_lonlats, got_lonlats=got_lonlats)
             except KeyError:
                 new_datasets = [ds]
             for new_ds in new_datasets:
