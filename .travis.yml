@@ -28,7 +28,7 @@ matrix:
   - env:
       - PYTHON_VERSION=3.8
 #      - CONDA_LOCK="ci/py38/conda-win-64.lock"
-      - CONDA_LOCK="ci/py38/environment.yaml"
+      - CONDA_ENVIRONMENT="ci/py38/environment.yaml"
     os: windows
     language: generic
   - env:
