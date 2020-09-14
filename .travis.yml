@@ -9,7 +9,9 @@ env:
         - PIP_DEPENDENCIES='scipy trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
-        - SETUP_CMD='test'
+#        - SETUP_CMD='test'
+        # Hack to stop ci-helpers from installing additional dependencies
+        - SETUP_CMD='egg_info'
         - CONDA_CHANNELS='conda-forge'
         - CONDA_CHANNEL_PRIORITY='strict'
         - UNSTABLE_DEPS=False
