@@ -54,7 +54,8 @@ matrix:
       - CONDA_ENVIRONMENT="ci/py38/conda-linux-64.lock"
       - UNSTABLE_DEPS=True
 install:
-    - git clone --depth 1 git://github.com/astropy/ci-helpers.git
+#    - git clone --depth 1 git://github.com/astropy/ci-helpers.git
+    - git clone --single-branch -b feature-conda-lock git://github.com/djhoese/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
     # See https://github.com/travis-ci/travis-ci/issues/8920
     - python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
