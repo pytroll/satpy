@@ -12,7 +12,6 @@ env:
         - SETUP_CMD='test'
         - CONDA_CHANNELS='conda-forge'
         - CONDA_CHANNEL_PRIORITY='strict'
-        - MAMBA=True
         - UNSTABLE_DEPS=False
 matrix:
   include:
@@ -29,8 +28,9 @@ matrix:
       - PYTHON_VERSION=3.8
 #      - CONDA_LOCK="ci/py38/conda-win-64.lock"
       - CONDA_ENVIRONMENT="ci/py38/environment.yaml"
+      - MAMBA=True
     os: windows
-    language: generic
+    language: shell
   - env:
       - PYTHON_VERSION=3.7
       - CONDA_LOCK="ci/py37/conda-linux-64.lock"
