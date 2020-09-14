@@ -18,40 +18,40 @@ matrix:
   include:
   - env:
       - PYTHON_VERSION=3.8
-      - CONDA_ENVIRONMENT="ci/py38/conda-linux-64.lock"
+      - CONDA_LOCK="ci/py38/conda-linux-64.lock"
     os: linux
   - env:
       - PYTHON_VERSION=3.8
-      - CONDA_ENVIRONMENT="ci/py38/conda-osx-64.lock"
+      - CONDA_LOCK="ci/py38/conda-osx-64.lock"
     os: osx
     language: generic
   - env:
       - PYTHON_VERSION=3.8
-#      - CONDA_ENVIRONMENT="ci/py38/conda-win-64.lock"
-      - CONDA_ENVIRONMENT="ci/py38/environment.yaml"
+#      - CONDA_LOCK="ci/py38/conda-win-64.lock"
+      - CONDA_LOCK="ci/py38/environment.yaml"
     os: windows
     language: generic
   - env:
       - PYTHON_VERSION=3.7
-      - CONDA_ENVIRONMENT="ci/py37/conda-linux-64.lock"
+      - CONDA_LOCK="ci/py37/conda-linux-64.lock"
     os: linux
   - env:
       - PYTHON_VERSION=3.7
-      - CONDA_ENVIRONMENT="ci/py37/conda-osx-64.lock"
+      - CONDA_LOCK="ci/py37/conda-osx-64.lock"
     os: osx
     language: generic
   # allowed to fail:
   - os: linux
     env:
       - PYTHON_VERSION=3.8
-      - CONDA_ENVIRONMENT="ci/py38/conda-linux-64.lock"
+      - CONDA_LOCK="ci/py38/conda-linux-64.lock"
       - UNSTABLE_DEPS=True
 
   allow_failures:
   - os: linux
     env:
       - PYTHON_VERSION=3.8
-      - CONDA_ENVIRONMENT="ci/py38/conda-linux-64.lock"
+      - CONDA_LOCK="ci/py38/conda-linux-64.lock"
       - UNSTABLE_DEPS=True
 install:
 #    - git clone --depth 1 git://github.com/astropy/ci-helpers.git
