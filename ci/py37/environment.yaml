@@ -1,0 +1,38 @@
+name: test
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7
+  - xarray
+  - dask
+  - distributed
+  - toolz
+  - Cython
+  - sphinx
+  - cartopy
+  - pillow
+  - matplotlib
+#  - scipy  # not available from conda-forge
+  - pyyaml
+  - pyproj
+  - pyresample
+  - coveralls
+  - coverage
+  - codecov
+  - behave
+  - netcdf4
+  - h5py
+  - h5netcdf
+  - gdal
+  - rasterio
+  - imageio
+  - pyhdf
+  - pip:
+      - libtiff
+      - geoviews
+      - zarr
+      - python-eccodes
+      - geoviews
+      - pytest
+      - pytest-cov
+      - fsspec

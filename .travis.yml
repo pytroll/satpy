@@ -5,10 +5,8 @@ env:
         - PYTHON_VERSION=$TRAVIS_PYTHON_VERSION
         - NUMPY_VERSION=stable
         - MAIN_CMD='python setup.py'
-        - CONDA_DEPENDENCIES='xarray dask distributed toolz Cython sphinx cartopy pillow matplotlib scipy pyyaml
-          pyproj pyresample coveralls coverage codecov behave netcdf4 h5py h5netcdf gdal rasterio imageio pyhdf
-          mock libtiff geoviews zarr python-eccodes geoviews pytest pytest-cov fsspec'
-        - PIP_DEPENDENCIES='trollsift trollimage pyspectral pyorbital libtiff'
+        - CONDA_DEPENDENCIES=''
+        - PIP_DEPENDENCIES='scipy trollsift trollimage pyspectral pyorbital libtiff'
         - SETUP_XVFB=False
         - EVENT_TYPE='push pull_request'
         - SETUP_CMD='test'
@@ -18,29 +16,42 @@ env:
         - UNSTABLE_DEPS=False
 matrix:
   include:
-  - env: PYTHON_VERSION=3.8
+  - env:
+      - PYTHON_VERSION=3.8
+      - CONDA_ENVIRONMENT="ci/py38/conda-linux-64.lock"
     os: linux
-  - env: PYTHON_VERSION=3.8
+  - env:
+      - PYTHON_VERSION=3.8
+      - CONDA_ENVIRONMENT="ci/py38/conda-osx-64.lock"
     os: osx
     language: generic
-  - env: PYTHON_VERSION=3.8
+  - env:
+      - PYTHON_VERSION=3.8
+#      - CONDA_ENVIRONMENT="ci/py38/conda-win-64.lock"
+      - CONDA_ENVIRONMENT="ci/py38/environment.yaml"
     os: windows
     language: generic
-  - env: PYTHON_VERSION=3.7
+  - env:
+      - PYTHON_VERSION=3.7
+      - CONDA_ENVIRONMENT="ci/py37/conda-linux-64.lock"
     os: linux
-  - env: PYTHON_VERSION=3.7
+  - env:
+      - PYTHON_VERSION=3.7
+      - CONDA_ENVIRONMENT="ci/py37/conda-osx-64.lock"
     os: osx
     language: generic
   # allowed to fail:
   - os: linux
     env:
       - PYTHON_VERSION=3.8
+      - CONDA_ENVIRONMENT="ci/py38/conda-linux-64.lock"
       - UNSTABLE_DEPS=True
 
   allow_failures:
   - os: linux
     env:
       - PYTHON_VERSION=3.8
+      - CONDA_ENVIRONMENT="ci/py38/conda-linux-64.lock"
       - UNSTABLE_DEPS=True
 install:
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
