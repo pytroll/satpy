@@ -9,7 +9,7 @@ reader:
     name:
       required: true
     wavelength:
-      type: !!python/name:satpy.dataset.WavelengthRange
+      type: !!python/name:satpy.dataset.dataid.WavelengthRange
     resolution:
       transitive: false
     calibration:
@@ -32,7 +32,7 @@ reader:
         - f
     modifiers:
       default: []
-      type: !!python/name:satpy.dataset.ModifierTuple
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
 
   coord_identification_keys:
     name:
