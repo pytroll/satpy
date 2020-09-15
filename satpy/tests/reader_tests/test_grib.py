@@ -19,16 +19,20 @@
 
 import os
 import sys
-import numpy as np
-import xarray as xr
 import unittest
 from unittest import mock
+
+import numpy as np
+import xarray as xr
+
+from satpy.dataset import DataQuery
 
 
 class FakeMessage(object):
     """Fake message returned by pygrib.open().message(x)."""
 
     def __init__(self, values, proj_params=None, latlons=None, **attrs):
+        """Init the message."""
         super(FakeMessage, self).__init__()
         self.attrs = attrs
         self.values = values
@@ -38,12 +42,15 @@ class FakeMessage(object):
         self._latlons = latlons
 
     def latlons(self):
+        """Get coordinates."""
         return self._latlons
 
     def __getitem__(self, item):
+        """Get item."""
         return self.attrs[item]
 
     def valid_key(self, key):
+        """Validate key."""
         return True
 
 
@@ -51,6 +58,7 @@ class FakeGRIB(object):
     """Fake GRIB file returned by pygrib.open."""
 
     def __init__(self, messages=None, proj_params=None, latlons=None):
+        """Init the grib file."""
         super(FakeGRIB, self).__init__()
         if messages is not None:
             self._messages = messages
@@ -129,27 +137,33 @@ class FakeGRIB(object):
         self.messages = len(self._messages)
 
     def message(self, msg_num):
+        """Get a message."""
         return self._messages[msg_num - 1]
 
     def seek(self, loc):
+        """Seek."""
         return
 
     def __iter__(self):
+        """Iterate."""
         return iter(self._messages)
 
     def __enter__(self):
+        """Enter."""
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """Exit."""
         pass
 
 
 class TestGRIBReader(unittest.TestCase):
-    """Test GRIB Reader"""
+    """Test GRIB Reader."""
+
     yaml_file = "grib.yaml"
 
     def setUp(self):
-        """Wrap pygrib to read fake data"""
+        """Wrap pygrib to read fake data."""
         from satpy.config import config_search_paths
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
 
@@ -173,7 +187,7 @@ class TestGRIBReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'gfs.t18z.sfluxgrbf106.grib2',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
@@ -195,19 +209,18 @@ class TestGRIBReader(unittest.TestCase):
 
     @mock.patch('satpy.readers.grib.pygrib')
     def test_load_all(self, pg):
-        """Test loading all test datasets"""
+        """Test loading all test datasets."""
         pg.open.return_value = FakeGRIB()
         from satpy.readers import load_reader
-        from satpy import DatasetID
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'gfs.t18z.sfluxgrbf106.grib2',
         ])
         r.create_filehandlers(loadables)
         datasets = r.load([
-            DatasetID(name='t', level=100),
-            DatasetID(name='t', level=200),
-            DatasetID(name='t', level=300)])
+            DataQuery(name='t', level=100, modifiers=tuple()),
+            DataQuery(name='t', level=200, modifiers=tuple()),
+            DataQuery(name='t', level=300, modifiers=tuple())])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
@@ -215,7 +228,7 @@ class TestGRIBReader(unittest.TestCase):
 
     @mock.patch('satpy.readers.grib.pygrib')
     def test_load_all_lcc(self, pg):
-        """Test loading all test datasets with lcc projections"""
+        """Test loading all test datasets with lcc projections."""
         lons = np.array([
             [12.19, 0, 0, 0, 14.34208538],
             [0, 0, 0, 0, 0],
@@ -235,16 +248,15 @@ class TestGRIBReader(unittest.TestCase):
                 'lat_1': 25.0, 'lat_2': 25.0},
             latlons=(lats, lons))
         from satpy.readers import load_reader
-        from satpy import DatasetID
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'gfs.t18z.sfluxgrbf106.grib2',
         ])
         r.create_filehandlers(loadables)
         datasets = r.load([
-            DatasetID(name='t', level=100),
-            DatasetID(name='t', level=200),
-            DatasetID(name='t', level=300)])
+            DataQuery(name='t', level=100, modifiers=tuple()),
+            DataQuery(name='t', level=200, modifiers=tuple()),
+            DataQuery(name='t', level=300, modifiers=tuple())])
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')

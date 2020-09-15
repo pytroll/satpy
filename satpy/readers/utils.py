@@ -15,21 +15,22 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
-"""Helper functions for area extent calculations."""
+"""Helper functions for satpy readers."""
 
-import logging
-
-from contextlib import closing
-import tempfile
 import bz2
+import logging
 import os
 import shutil
-import numpy as np
-import pyproj
+import tempfile
+import warnings
+from contextlib import closing
 from io import BytesIO
 from subprocess import Popen, PIPE
-from pyresample.geometry import AreaDefinition
 
+import numpy as np
+import pyproj
+import xarray as xr
+from pyresample.geometry import AreaDefinition
 from satpy import CHUNK_SIZE
 
 try:
@@ -148,6 +149,7 @@ def get_geostationary_bounding_box(geos_area, nb_points=50):
     """Get the bbox in lon/lats of the valid pixels inside *geos_area*.
 
     Args:
+      geos_area: The geostationary area to analyse.
       nb_points: Number of points on the polygon
 
     """
@@ -285,3 +287,68 @@ def reduce_mda(mda, max_size=100):
         elif not (isinstance(val, np.ndarray) and val.size > max_size):
             reduced[key] = val
     return reduced
+
+
+def get_user_calibration_factors(band_name, correction_dict):
+    """Retrieve radiance correction factors from user-supplied dict."""
+    if band_name in correction_dict:
+        try:
+            slope = correction_dict[band_name]['slope']
+            offset = correction_dict[band_name]['offset']
+        except KeyError:
+            raise KeyError("Incorrect correction factor dictionary. You must "
+                           "supply 'slope' and 'offset' keys.")
+    else:
+        # If coefficients not present, warn user and use slope=1, offset=0
+        warnings.warn("WARNING: You have selected radiance correction but "
+                      " have not supplied coefficients for channel " +
+                      band_name)
+        return 1., 0.
+
+    return slope, offset
+
+
+def apply_rad_correction(data, slope, offset):
+    """Apply GSICS-like correction factors to radiance data."""
+    data = (data - offset) / slope
+    return data
+
+
+def get_array_date(scn_data, utc_date=None):
+    """Get start time from a channel data array."""
+    if utc_date is None:
+        try:
+            utc_date = scn_data.attrs['start_time']
+        except KeyError:
+            try:
+                utc_date = scn_data.attrs['scheduled_time']
+            except KeyError:
+                raise KeyError('Scene has no start_time '
+                               'or scheduled_time attribute.')
+    return utc_date
+
+
+def apply_earthsun_distance_correction(reflectance, utc_date=None):
+    """Correct reflectance data to account for changing Earth-Sun distance."""
+    from pyorbital.astronomy import sun_earth_distance_correction
+    utc_date = get_array_date(reflectance, utc_date)
+    sun_earth_dist = sun_earth_distance_correction(utc_date)
+
+    reflectance.attrs['sun_earth_distance_correction_applied'] = True
+    reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
+    with xr.set_options(keep_attrs=True):
+        reflectance = reflectance * sun_earth_dist * sun_earth_dist
+    return reflectance
+
+
+def remove_earthsun_distance_correction(reflectance, utc_date=None):
+    """Remove the sun-earth distance correction."""
+    from pyorbital.astronomy import sun_earth_distance_correction
+    utc_date = get_array_date(reflectance, utc_date)
+    sun_earth_dist = sun_earth_distance_correction(utc_date)
+
+    reflectance.attrs['sun_earth_distance_correction_applied'] = False
+    reflectance.attrs['sun_earth_distance_correction_factor'] = sun_earth_dist
+    with xr.set_options(keep_attrs=True):
+        reflectance = reflectance / (sun_earth_dist * sun_earth_dist)
+    return reflectance

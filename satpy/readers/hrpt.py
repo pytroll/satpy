@@ -63,8 +63,7 @@ dtype = np.dtype([('frame_sync', '>u2', (6, )),
 
 
 def time_seconds(tc_array, year):
-    """Return the time object from the timecodes
-    """
+    """Return the time object from the timecodes."""
     tc_array = np.array(tc_array, copy=True)
     word = tc_array[:, 0]
     day = word >> 1
@@ -82,8 +81,7 @@ def time_seconds(tc_array, year):
 
 
 def bfield(array, bit):
-    """return the bit array.
-    """
+    """Return the bit array."""
     return (array & 2**(9 - bit + 1)).astype(np.bool)
 
 
@@ -91,6 +89,7 @@ spacecrafts = {7: "NOAA 15", 3: "NOAA 16", 13: "NOAA 18", 15: "NOAA 19"}
 
 
 def geo_interpolate(lons32km, lats32km):
+    """Interpolate geo data."""
     from geotiepoints import SatelliteInterpolator
     cols32km = np.arange(0, 2048, 32)
     cols1km = np.arange(2048)
@@ -109,10 +108,10 @@ def geo_interpolate(lons32km, lats32km):
 
 
 class HRPTFile(BaseFileHandler):
-    """Reader for HRPT Minor Frame, 10 bits data expanded to 16 bits.
-    """
+    """Reader for HRPT Minor Frame, 10 bits data expanded to 16 bits."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         super(HRPTFile, self).__init__(filename, filename_info, filetype_info)
         self.channels = {i: None for i in AVHRR_CHANNEL_NAMES}
         self.units = {i: 'counts' for i in AVHRR_CHANNEL_NAMES}
@@ -131,7 +130,7 @@ class HRPTFile(BaseFileHandler):
         self.read()
 
     def read(self):
-
+        """Read the file."""
         with open(self.filename, "rb") as fp_:
             self._data = np.memmap(fp_, dtype=dtype, mode="r")
         if np.all(self._data['frame_sync'][0] > 1024):
@@ -140,12 +139,13 @@ class HRPTFile(BaseFileHandler):
             (self._data["id"]["id"][0] >> 3) & 15]
 
     def get_dataset(self, key, info):
+        """Get the dataset."""
         if self._data is None:
             self.read()
 
-        if key.name in ['latitude', 'longitude']:
+        if key['name'] in ['latitude', 'longitude']:
             lons, lats = self.get_lonlats()
-            if key.name == 'latitude':
+            if key['name'] == 'latitude':
                 return Dataset(lats, id=key)
             else:
                 return Dataset(lons, id=key)
@@ -156,19 +156,19 @@ class HRPTFile(BaseFileHandler):
                                '3b': 2,
                                '4': 3,
                                '5': 4}
-        index = avhrr_channel_index[key.name]
+        index = avhrr_channel_index[key['name']]
         mask = False
-        if key.name in ['3a', '3b'] and self._is3b is None:
+        if key['name'] in ['3a', '3b'] and self._is3b is None:
             ch3a = bfield(self._data["id"]["id"], 10)
             self._is3b = np.logical_not(ch3a)
 
-        if key.name == '3a':
+        if key['name'] == '3a':
             mask = np.tile(self._is3b, (1, 2048))
-        elif key.name == '3b':
+        elif key['name'] == '3b':
             mask = np.tile(np.logical_not(self._is3b), (1, 2048))
 
         data = self._data["image_data"][:, :, index]
-        if key.calibration == 'counts':
+        if key['calibration'] == 'counts':
             return Dataset(data,
                            mask=mask,
                            area=self.get_lonlats(),
@@ -178,12 +178,12 @@ class HRPTFile(BaseFileHandler):
 
         jdays = (np.datetime64(self.start_time) - np.datetime64(str(
             self.year) + '-01-01T00:00:00Z')) / np.timedelta64(1, 'D')
-        if index < 2 or key.name == '3a':
+        if index < 2 or key['name'] == '3a':
             data = calibrate_solar(data, index, self.year, jdays,
                                    pg_spacecraft)
             units = '%'
 
-        if index > 2 or key.name == '3b':
+        if index > 2 or key['name'] == '3b':
             if self.times is None:
                 self.times = time_seconds(self._data["timecode"], self.year)
             line_numbers = (
@@ -201,6 +201,7 @@ class HRPTFile(BaseFileHandler):
         return Dataset(data, mask=mask, units=units)
 
     def get_telemetry(self):
+        """Get the telemetry."""
         prt = np.mean(self._data["telemetry"]['PRT'], axis=1)
 
         ict = np.empty((len(self._data), 3))
@@ -215,6 +216,7 @@ class HRPTFile(BaseFileHandler):
         return prt, ict, space
 
     def get_lonlats(self):
+        """Get the lonlats."""
         if self.lons is not None and self.lats is not None:
             return self.lons, self.lats
         from pyorbital.orbital import Orbital
@@ -246,10 +248,12 @@ class HRPTFile(BaseFileHandler):
 
     @property
     def start_time(self):
+        """Get the start time."""
         return time_seconds(self._data["timecode"][0, np.newaxis, :],
                             self.year).astype(datetime)[0]
 
     @property
     def end_time(self):
+        """Get the end time."""
         return time_seconds(self._data["timecode"][-1, np.newaxis, :],
                             self.year).astype(datetime)[0]
