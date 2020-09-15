@@ -28,9 +28,10 @@ from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 
 
 class FakeNetCDF4FileHandlerSMOSL2WIND(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler"""
+    """Swap-in NetCDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
+        """Mimic reader input file content."""
         from xarray import DataArray
         dt_s = filename_info.get('start_time', datetime(2020, 4, 22, 12, 0, 0))
         dt_e = filename_info.get('end_time', datetime(2020, 4, 22, 12, 0, 0))
@@ -67,17 +68,18 @@ class FakeNetCDF4FileHandlerSMOSL2WIND(FakeNetCDF4FileHandler):
             file_content['wind_speed'].attrs['_FillValue'] = -999.0
 
         else:
-            assert False
+            raise AssertionError()
 
         return file_content
 
 
 class TestSMOSL2WINDReader(unittest.TestCase):
-    """Test SMOS L2 WINDReader"""
+    """Test SMOS L2 WINDReader."""
+
     yaml_file = "smos_l2_wind.yaml"
 
     def setUp(self):
-        """Wrap NetCDF4 file handler with our own fake handler"""
+        """Wrap NetCDF4 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.smos_l2_wind import SMOSL2WINDFileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -87,7 +89,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
         self.p.is_local = True
 
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -97,13 +99,13 @@ class TestSMOSL2WINDReader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         # make sure we have some files
         self.assertTrue(r.file_handlers)
 
     def test_load_wind_speed(self):
-        """Load wind_speed dataset"""
+        """Load wind_speed dataset."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.smos_l2_wind.netCDF4.Variable', xr.DataArray):
@@ -125,7 +127,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
             self.assertEqual(d.y[d.shape[0] - 1].data, 89.75)
 
     def test_load_lat(self):
-        """Load lat dataset"""
+        """Load lat dataset."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.smos_l2_wind.netCDF4.Variable', xr.DataArray):
@@ -142,7 +144,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
             self.assertEqual(d.data[d.shape[0] - 1], 89.75)
 
     def test_load_lon(self):
-        """Load lon dataset"""
+        """Load lon dataset."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.smos_l2_wind.netCDF4.Variable', xr.DataArray):
@@ -159,7 +161,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
             self.assertEqual(d.data[d.shape[0] - 1], 179.75)
 
     def test_adjust_lon(self):
-        """Load adjust longitude dataset"""
+        """Load adjust longitude dataset."""
         from xarray import DataArray
         from satpy.readers.smos_l2_wind import SMOSL2WINDFileHandler
         smos_l2_wind_fh = SMOSL2WINDFileHandler('SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',
@@ -172,7 +174,7 @@ class TestSMOSL2WINDReader(unittest.TestCase):
         self.assertEqual(adjusted.data.tolist(), expected.data.tolist())
 
     def test_roll_dataset(self):
-        """Load roll of dataset along the lon coordinate"""
+        """Load roll of dataset along the lon coordinate."""
         from xarray import DataArray
         from satpy.readers.smos_l2_wind import SMOSL2WINDFileHandler
         smos_l2_wind_fh = SMOSL2WINDFileHandler('SM_OPER_MIR_SCNFSW_20200420T021649_20200420T035013_110_001_7.nc',

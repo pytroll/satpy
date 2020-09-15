@@ -56,18 +56,6 @@ import logging
 LOG = logging.getLogger(__name__)
 
 
-def _makedirs(directory, exist_ok=False):
-    """Python 2.7 friendly os.makedirs.
-
-    After python 2.7 is dropped, just use `os.makedirs` with `existsok=True`.
-    """
-    try:
-        os.makedirs(directory)
-    except OSError:
-        if not exist_ok:
-            raise
-
-
 def get_us_midlatitude_cyclone_abi(base_dir='.', method=None, force=False):
     """Get GOES-16 ABI (CONUS sector) data from 2019-03-14 00:00Z.
 
@@ -90,16 +78,16 @@ def get_us_midlatitude_cyclone_abi(base_dir='.', method=None, force=False):
                                   "implemented yet.".format(method))
 
     from ._google_cloud_platform import get_bucket_files
-    patterns = ['gs://gcp-public-data-goes-16/ABI-L1b-RadC/2019/073/00/*0002*.nc']
+    patterns = ['gs://gcp-public-data-goes-16/ABI-L1b-RadC/2019/073/00/*s20190730002*.nc']
     subdir = os.path.join(base_dir, 'abi_l1b', '20190314_us_midlatitude_cyclone')
-    _makedirs(subdir, exist_ok=True)
+    os.makedirs(subdir, exist_ok=True)
     filenames = get_bucket_files(patterns, subdir, force=force)
     assert len(filenames) == 16, "Not all files could be downloaded"
     return filenames
 
 
 def get_hurricane_florence_abi(base_dir='.', method=None, force=False,
-                               channels=range(1, 17), num_frames=10):
+                               channels=None, num_frames=10):
     """Get GOES-16 ABI (Meso sector) data from 2018-09-11 13:00Z to 17:00Z.
 
     Args:
@@ -122,6 +110,8 @@ def get_hurricane_florence_abi(base_dir='.', method=None, force=False,
     Total size (240 frames, all channels): ~3.5GB
 
     """
+    if channels is None:
+        channels = range(1, 17)
     if method is None:
         method = 'gcsfs'
     if method not in ['gcsfs']:
@@ -145,7 +135,7 @@ def get_hurricane_florence_abi(base_dir='.', method=None, force=False,
             'gs://gcp-public-data-goes-16/ABI-L1b-RadM/2018/254/16/*RadM1*C{:02d}*s201825416*.nc'.format(channel),
         )]
     subdir = os.path.join(base_dir, 'abi_l1b', '20180911_hurricane_florence_abi_l1b')
-    _makedirs(subdir, exist_ok=True)
+    os.makedirs(subdir, exist_ok=True)
     filenames = get_bucket_files(patterns, subdir, force=force, pattern_slice=frame_slice)
 
     actual_slice = frame_slice.indices(240)  # 240 max frames
