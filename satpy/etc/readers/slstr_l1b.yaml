@@ -224,9 +224,9 @@ datasets:
     file_type: esa_l1b_tir
 
   S9:
-    name: S9_
+    name: S9
     sensor: slstr
-    wavelength: [11.0, 12.0, 13.0]
+    wavelength: [11.57, 12.0225, 12.475]
     resolution: 1000
     view: [nadir, oblique]
     stripe: i
@@ -297,7 +297,7 @@ datasets:
     file_key: sat_zenith_t{view:1s}
 
   satellite_azimuth_angle:
-    name: satellite_azimuth_angle_n
+    name: satellite_azimuth_angle
     sensor: slstr
     resolution: [500, 1000]
     coordinates: [longitude, latitude]
