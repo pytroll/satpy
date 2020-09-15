@@ -363,7 +363,6 @@ composites:
       - name: C04
       - name: C02
       - name: C05
-  
   ash:
     description: >
       Ash RGB, for GOESR: NASA, NOAA
