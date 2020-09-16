@@ -664,48 +664,6 @@ class TestCFWriter(unittest.TestCase):
         self.assertNotIn('var1_acq_time', res['var1'].coords)
         self.assertNotIn('var2_acq_time', res['var2'].coords)
 
-    def test_dataset_is_projection_coords(self):
-        """Test the dataset_is_projection_coords function."""
-        import xarray as xr
-        from satpy.writers.cf_writer import dataset_is_projection_coords
-        data = [[1, 2], [3, 4]]
-        y = [1, 2]
-        x = [1, 2]
-        datasets = {'var1': xr.DataArray(data=data,
-                                         dims=('y', 'x'),
-                                         coords={'y': y, 'x': x}),
-                    'var2': xr.DataArray(data=data,
-                                         dims=('y', 'x'),
-                                         coords={'y': y, 'x': x}),
-                    'latitude': xr.DataArray(data=data,
-                                             dims=('y', 'x'),
-                                             coords={'y': y, 'x': x})}
-        datasets['latitude'].attrs['standard_name'] = 'latitude'
-        datasets['var1'].attrs['standard_name'] = 'dummy'
-        self.assertTrue(dataset_is_projection_coords(datasets['latitude']))
-        self.assertFalse(dataset_is_projection_coords(datasets['var1']))
-
-    def test_has_projection_coords(self):
-        """Test the has_projection_coords function."""
-        import xarray as xr
-        from satpy.writers.cf_writer import has_projection_coords
-        data = [[1, 2], [3, 4]]
-        y = [1, 2]
-        x = [1, 2]
-        datasets = {'var1': xr.DataArray(data=data,
-                                         dims=('y', 'x'),
-                                         coords={'y': y, 'x': x}),
-                    'var2': xr.DataArray(data=data,
-                                         dims=('y', 'x'),
-                                         coords={'y': y, 'x': x})}
-        datasets['var1'].attrs['standard_name'] = 'dummy'
-        self.assertFalse(has_projection_coords(datasets))
-        datasets['latitude'] = xr.DataArray(data=data,
-                                            dims=('y', 'x'),
-                                            coords={'y': y, 'x': x})
-        datasets['latitude'].attrs['standard_name'] = 'latitude'
-        self.assertTrue(has_projection_coords(datasets))
-
     def test_area2cf(self):
         """Test the conversion of an area to CF standards."""
         import xarray as xr
@@ -1046,3 +1004,39 @@ class TestCFWriter(unittest.TestCase):
                 self.assertEqual(f.attrs['Conventions'], 'CF-1.7, ACDD-1.3')
                 self.assertIn('TEST add history\n', f.attrs['history'])
                 self.assertIn('Created by pytroll/satpy on', f.attrs['history'])
+
+
+class TestCFWriterData(unittest.TestCase):
+    """Test case for CF writer where data arrays are needed."""
+
+    def setUp(self):
+        """Create some testdata."""
+        import xarray as xr
+        data = [[1, 2], [3, 4]]
+        y = [1, 2]
+        x = [1, 2]
+        self.datasets = {'var1': xr.DataArray(data=data,
+                                              dims=('y', 'x'),
+                                              coords={'y': y, 'x': x}),
+                         'var2': xr.DataArray(data=data,
+                                              dims=('y', 'x'),
+                                              coords={'y': y, 'x': x}),
+                         'latitude': xr.DataArray(data=data,
+                                                  dims=('y', 'x'),
+                                                  coords={'y': y, 'x': x})}
+        self.datasets['latitude'].attrs['standard_name'] = 'latitude'
+        self.datasets['var1'].attrs['standard_name'] = 'dummy'
+        self.datasets['var2'].attrs['standard_name'] = 'dummy'
+
+    def test_dataset_is_projection_coords(self):
+        """Test the dataset_is_projection_coords function."""
+        from satpy.writers.cf_writer import dataset_is_projection_coords
+        self.assertTrue(dataset_is_projection_coords(self.datasets['latitude']))
+        self.assertFalse(dataset_is_projection_coords(self.datasets['var1']))
+
+    def test_has_projection_coords(self):
+        """Test the has_projection_coords function."""
+        from satpy.writers.cf_writer import has_projection_coords
+        self.assertTrue(has_projection_coords(self.datasets))
+        self.datasets['latitude'].attrs['standard_name'] = 'dummy'
+        self.assertFalse(has_projection_coords(self.datasets))
