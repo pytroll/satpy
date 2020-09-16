@@ -65,17 +65,23 @@ class TestEPSL1B(TestCase):
     def setUp(self):
         """Set up the tests."""
         # ipr is not present in the xml format ?
+        self.scan_lines = 1080
+        self.earth_views = 2048
         structure = [(1, ('mphr', 0)), (1, ('sphr', 0)), (11, ('ipr', 0)),
                      (1, ('geadr', 1)), (1, ('geadr', 2)), (1, ('geadr', 3)),
                      (1, ('geadr', 4)), (1, ('geadr', 5)), (1, ('geadr', 6)),
                      (1, ('geadr', 7)), (1, ('giadr', 1)), (1, ('giadr', 2)),
-                     (1, ('veadr', 1)), (1080, ('mdr', 2))]
+                     (1, ('veadr', 1)), (self.scan_lines, ('mdr', 2))]
 
         sections = create_sections(structure)
-        sections[('mphr', 0)]['TOTAL_MDR'] = b'TOTAL_MDR                     =   1080\n'
+        sections[('mphr', 0)]['TOTAL_MDR'] = (b'TOTAL_MDR                     =   ' +
+                                              bytes(str(self.scan_lines), encoding='ascii') +
+                                              b'\n')
         sections[('mphr', 0)]['SPACECRAFT_ID'] = b'SPACECRAFT_ID                 = M03\n'
         sections[('mphr', 0)]['INSTRUMENT_ID'] = b'INSTRUMENT_ID                 = AVHR\n'
-        sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = b'EARTH_VIEWS_PER_SCANLINE      =  2048\n'
+        sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = (b'EARTH_VIEWS_PER_SCANLINE      =  ' +
+                                                             bytes(str(self.earth_views), encoding='ascii') +
+                                                             b'\n')
         sections[('sphr', 0)]['NAV_SAMPLE_RATE'] = b'NAV_SAMPLE_RATE               =  20\n'
 
         _fd, fname = mkstemp()
@@ -175,18 +181,23 @@ class TestWrongEPSL1B(TestCase):
     def setUp(self):
         """Set up the tests."""
         # ipr is not present in the xml format ?
+        self.scan_lines = 1080
+        self.earth_views = 2048
         structure = [(1, ('mphr', 0)), (1, ('sphr', 0)), (11, ('ipr', 0)),
                      (1, ('geadr', 1)), (1, ('geadr', 2)), (1, ('geadr', 3)),
                      (1, ('geadr', 4)), (1, ('geadr', 5)), (1, ('geadr', 6)),
                      (1, ('geadr', 7)), (1, ('giadr', 1)), (1, ('giadr', 2)),
-                     (1, ('veadr', 1)), (1080, ('mdr', 2))]
+                     (1, ('veadr', 1)), (self.scan_lines, ('mdr', 2))]
 
         sections = create_sections(structure)
-        # Wrong number of lines, should be 1080 :)
-        sections[('mphr', 0)]['TOTAL_MDR'] = b'TOTAL_MDR                     =   1078\n'
+        sections[('mphr', 0)]['TOTAL_MDR'] = (b'TOTAL_MDR                     =   ' +
+                                              bytes(str(self.scan_lines - 2), encoding='ascii') +
+                                              b'\n')
         sections[('mphr', 0)]['SPACECRAFT_ID'] = b'SPACECRAFT_ID                 = M03\n'
         sections[('mphr', 0)]['INSTRUMENT_ID'] = b'INSTRUMENT_ID                 = AVHR\n'
-        sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = b'EARTH_VIEWS_PER_SCANLINE      =  2048\n'
+        sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = (b'EARTH_VIEWS_PER_SCANLINE      =  ' +
+                                                             bytes(str(self.earth_views), encoding='ascii') +
+                                                             b'\n')
         sections[('sphr', 0)]['NAV_SAMPLE_RATE'] = b'NAV_SAMPLE_RATE               =  20\n'
         _fd, fname = mkstemp()
         fd = open(_fd)
@@ -201,7 +212,7 @@ class TestWrongEPSL1B(TestCase):
     def test_read_all_return_right_number_of_scan_lines(self):
         """Test scanline assignment."""
         self.fh._read_all()
-        assert self.fh.scanlines == 1080
+        assert self.fh.scanlines == self.scan_lines
 
     def test_read_all_warns_about_scan_lines(self):
         """Test scanline assignment."""
@@ -218,7 +229,7 @@ class TestWrongEPSL1B(TestCase):
         """Test that the shape of longitude is 1080."""
         key = make_dataid(name="longitude")
         longitudes = self.fh.get_dataset(key, dict())
-        assert longitudes.shape == (1080, 2048)
+        assert longitudes.shape == (self.scan_lines, self.earth_views)
 
     def tearDown(self):
         """Tear down the tests."""
