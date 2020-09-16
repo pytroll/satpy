@@ -1012,31 +1012,69 @@ class TestCFWriterData(unittest.TestCase):
     def setUp(self):
         """Create some testdata."""
         import xarray as xr
-        data = [[1, 2], [3, 4]]
+        import pyresample.geometry
+        data = [[75, 2], [3, 4]]
         y = [1, 2]
         x = [1, 2]
+        geos = pyresample.geometry.AreaDefinition(
+            area_id='geos',
+            description='geos',
+            proj_id='geos',
+            projection={'proj': 'geos', 'h': 35785831., 'a': 6378169., 'b': 6356583.8},
+            width=2, height=2,
+            area_extent=[-1, -1, 1, 1])
         self.datasets = {'var1': xr.DataArray(data=data,
                                               dims=('y', 'x'),
                                               coords={'y': y, 'x': x}),
                          'var2': xr.DataArray(data=data,
                                               dims=('y', 'x'),
                                               coords={'y': y, 'x': x}),
-                         'latitude': xr.DataArray(data=data,
-                                                  dims=('y', 'x'),
-                                                  coords={'y': y, 'x': x})}
-        self.datasets['latitude'].attrs['standard_name'] = 'latitude'
+                         'lat': xr.DataArray(data=data,
+                                             dims=('y', 'x'),
+                                             coords={'y': y, 'x': x}),
+                         'lon': xr.DataArray(data=data,
+                                             dims=('y', 'x'),
+                                             coords={'y': y, 'x': x})}
+        self.datasets['lat'].attrs['standard_name'] = 'latitude'
         self.datasets['var1'].attrs['standard_name'] = 'dummy'
         self.datasets['var2'].attrs['standard_name'] = 'dummy'
+        self.datasets['var2'].attrs['area'] = geos
+        self.datasets['var1'].attrs['area'] = geos
+        self.datasets['lat'].attrs['name'] = 'lat'
+        self.datasets['var1'].attrs['name'] = 'var1'
+        self.datasets['var2'].attrs['name'] = 'var2'
+        self.datasets['lon'].attrs['name'] = 'lon'
 
     def test_dataset_is_projection_coords(self):
         """Test the dataset_is_projection_coords function."""
         from satpy.writers.cf_writer import dataset_is_projection_coords
-        self.assertTrue(dataset_is_projection_coords(self.datasets['latitude']))
+        self.assertTrue(dataset_is_projection_coords(self.datasets['lat']))
         self.assertFalse(dataset_is_projection_coords(self.datasets['var1']))
 
     def test_has_projection_coords(self):
         """Test the has_projection_coords function."""
         from satpy.writers.cf_writer import has_projection_coords
         self.assertTrue(has_projection_coords(self.datasets))
-        self.datasets['latitude'].attrs['standard_name'] = 'dummy'
+        self.datasets['lat'].attrs['standard_name'] = 'dummy'
         self.assertFalse(has_projection_coords(self.datasets))
+
+    @mock.patch('satpy.writers.cf_writer.CFWriter.__init__', return_value=None)
+    def test_collect_datasets_with_latitude_named_lat(self, *mocks):
+        """Test collecting CF datasets with latitude named lat."""
+        from satpy.writers.cf_writer import CFWriter
+        from operator import getitem
+        self.datasets_list = [self.datasets[key] for key in self.datasets]
+        self.datasets_list_no_latlon = [self.datasets[key] for key in ['var1', 'var2']]
+
+        # Collect datasets
+        writer = CFWriter()
+        datas, start_times, end_times = writer._collect_datasets(self.datasets_list, include_lonlats=True)
+        datas2, start_times, end_times = writer._collect_datasets(self.datasets_list_no_latlon, include_lonlats=True)
+        # Test results
+
+        self.assertEqual(len(datas), 5)
+        self.assertEqual(set(datas.keys()), {'var1', 'var2', 'lon', 'lat', 'geos'})
+        self.assertRaises(KeyError, getitem, datas['var1'], 'latitude')
+        self.assertRaises(KeyError, getitem, datas['var1'], 'longitude')
+        self.assertEqual(datas2['var1']['latitude'].attrs['name'], 'latitude')
+        self.assertEqual(datas2['var1']['longitude'].attrs['name'], 'longitude')
