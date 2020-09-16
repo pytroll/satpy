@@ -187,23 +187,8 @@ class EPSAVHRRFile(BaseFileHandler):
             keys += val.dtype.fields.keys()
         return keys
 
-    def _get_full_lonlats(self, lons, lats):
-        nav_sample_rate = self["NAV_SAMPLE_RATE"]
-        if nav_sample_rate == 20 and self.pixels == 2048:
-            return self._interpolate_20km_to_1km(lons, lats)
-        else:
-            raise NotImplementedError("Lon/lat expansion not implemented for " +
-                                      "sample rate = " + str(nav_sample_rate) +
-                                      " and earth views = " +
-                                      str(self.pixels))
-
-    @delayed(nout=2, pure=True)
-    def _interpolate_20km_to_1km(self, lons, lats):
-        from geotiepoints import metop20kmto1km
-        return metop20kmto1km(lons, lats)
-
     def get_full_lonlats(self):
-        """Get the interpolated lons/lats."""
+        """Get the interpolated lons_like/lats_like."""
         if self.lons is not None and self.lats is not None:
             return self.lons, self.lats
 
@@ -214,25 +199,39 @@ class EPSAVHRRFile(BaseFileHandler):
         raw_lons = np.hstack((self["EARTH_LOCATION_FIRST"][:, [1]],
                               self["EARTH_LOCATIONS"][:, :, 1],
                               self["EARTH_LOCATION_LAST"][:, [1]]))
-        self.lons, self.lats = self._get_full_lonlats(raw_lons, raw_lats)
-        self.lons = da.from_delayed(self.lons, dtype=self["EARTH_LOCATIONS"].dtype,
-                                    shape=(self.scanlines, self.pixels))
-        self.lats = da.from_delayed(self.lats, dtype=self["EARTH_LOCATIONS"].dtype,
-                                    shape=(self.scanlines, self.pixels))
+        self.lons, self.lats = self._interpolate(raw_lons, raw_lats)
         return self.lons, self.lats
 
-    @delayed(nout=4, pure=True)
+    def _interpolate(self, lons_like, lats_like):
+        nav_sample_rate = self["NAV_SAMPLE_RATE"]
+        if nav_sample_rate == 20 and self.pixels == 2048:
+            lons_like_1km, lats_like_1km = self._interpolate_20km_to_1km(lons_like, lats_like)
+            lons_like_1km = da.from_delayed(lons_like_1km, dtype=lons_like.dtype,
+                                            shape=(self.scanlines, self.pixels))
+            lats_like_1km = da.from_delayed(lats_like_1km, dtype=lats_like.dtype,
+                                            shape=(self.scanlines, self.pixels))
+            return lons_like_1km, lats_like_1km
+        else:
+            raise NotImplementedError("Lon/lat expansion not implemented for " +
+                                      "sample rate = " + str(nav_sample_rate) +
+                                      " and earth views = " +
+                                      str(self.pixels))
+
+    @delayed(nout=2, pure=True)
+    def _interpolate_20km_to_1km(self, lons, lats):
+        # Note: delayed will cast input dask-arrays to numpy arrays (needed by metop20kmto1km).
+        from geotiepoints import metop20kmto1km
+        return metop20kmto1km(lons, lats)
+
     def _get_full_angles(self, solar_zenith, sat_zenith, solar_azimuth, sat_azimuth):
 
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
         if nav_sample_rate == 20 and self.pixels == 2048:
-            from geotiepoints import metop20kmto1km
-            # Note: interpolation assumes lat values values between -90 and 90
+            # Note: interpolation assumes second array values between -90 and 90
             # Solar and satellite zenith is between 0 and 180.
-            # Note: delayed will cast input dask-arrays to numpy arrays (needed by metop20kmto1km).
-            sun_azi, sun_zen = metop20kmto1km(solar_azimuth, solar_zenith - 90)
+            sun_azi, sun_zen = self._interpolate(solar_azimuth, solar_zenith - 90)
             sun_zen += 90
-            sat_azi, sat_zen = metop20kmto1km(sat_azimuth, sat_zenith - 90)
+            sat_azi, sat_zen = self._interpolate(sat_azimuth, sat_zenith - 90)
             sat_zen += 90
             return sun_azi, sun_zen, sat_azi, sat_zen
         else:
@@ -242,7 +241,7 @@ class EPSAVHRRFile(BaseFileHandler):
                                       str(self.pixels))
 
     def get_full_angles(self):
-        """Get the interpolated lons/lats."""
+        """Get the interpolated lons_like/lats_like."""
         if (self.sun_azi is not None and self.sun_zen is not None and
                 self.sat_azi is not None and self.sat_zen is not None):
             return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
@@ -266,14 +265,6 @@ class EPSAVHRRFile(BaseFileHandler):
                                                                                        sat_zenith,
                                                                                        solar_azimuth,
                                                                                        sat_azimuth)
-        self.sun_azi = da.from_delayed(self.sun_azi, dtype=self["ANGULAR_RELATIONS"].dtype,
-                                       shape=(self.scanlines, self.pixels))
-        self.sun_zen = da.from_delayed(self.sun_zen, dtype=self["ANGULAR_RELATIONS"].dtype,
-                                       shape=(self.scanlines, self.pixels))
-        self.sat_azi = da.from_delayed(self.sat_azi, dtype=self["ANGULAR_RELATIONS"].dtype,
-                                       shape=(self.scanlines, self.pixels))
-        self.sat_zen = da.from_delayed(self.sat_zen, dtype=self["ANGULAR_RELATIONS"].dtype,
-                                       shape=(self.scanlines, self.pixels))
         return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
 
     def get_bounding_box(self):
