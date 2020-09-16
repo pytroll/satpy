@@ -227,7 +227,7 @@ class EPSAVHRRFile(BaseFileHandler):
         nav_sample_rate = self["NAV_SAMPLE_RATE"]
         if nav_sample_rate == 20 and self.pixels == 2048:
             from geotiepoints import metop20kmto1km
-            # Note: interpolation asumes lat values values between -90 and 90
+            # Note: interpolation assumes lat values values between -90 and 90
             # Solar and satellite zenith is between 0 and 180.
             # Note: delayed will cast input dask-arrays to numpy arrays (needed by metop20kmto1km).
             sun_azi, sun_zen = metop20kmto1km(solar_azimuth, solar_zenith - 90)
