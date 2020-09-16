@@ -161,6 +161,7 @@ class EPSAVHRRFile(BaseFileHandler):
         self.scanlines = self['TOTAL_MDR']
         if self.scanlines != len(self.sections[('mdr', 2)]):
             logger.warning("Number of declared records doesn't match number of scanlines in the file.")
+            self.scanlines = len(self.sections[('mdr', 2)])
         self.pixels = self["EARTH_VIEWS_PER_SCANLINE"]
 
     def __getitem__(self, key):
