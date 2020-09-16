@@ -24,11 +24,11 @@ from unittest import TestCase
 from unittest import mock
 
 import numpy as np
-import xarray as xr
-import satpy
-from satpy.tests.utils import make_dataid
-from satpy.readers import eps_l1b as eps
 import pytest
+import satpy
+import xarray as xr
+from satpy.readers import eps_l1b as eps
+from satpy.tests.utils import make_dataid
 
 grh_dtype = np.dtype([("record_class", "|i1"),
                       ("INSTRUMENT_GROUP", "|i1"),
