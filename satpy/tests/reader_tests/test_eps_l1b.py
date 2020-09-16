@@ -76,6 +76,7 @@ class TestEPSL1B(TestCase):
         sections[('mphr', 0)]['SPACECRAFT_ID'] = b'SPACECRAFT_ID                 = M03\n'
         sections[('mphr', 0)]['INSTRUMENT_ID'] = b'INSTRUMENT_ID                 = AVHR\n'
         sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = b'EARTH_VIEWS_PER_SCANLINE      =  2048\n'
+        sections[('sphr', 0)]['NAV_SAMPLE_RATE'] = b'NAV_SAMPLE_RATE               =  20\n'
 
         _fd, fname = mkstemp()
         fd = open(_fd)
@@ -186,7 +187,7 @@ class TestWrongEPSL1B(TestCase):
         sections[('mphr', 0)]['SPACECRAFT_ID'] = b'SPACECRAFT_ID                 = M03\n'
         sections[('mphr', 0)]['INSTRUMENT_ID'] = b'INSTRUMENT_ID                 = AVHR\n'
         sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = b'EARTH_VIEWS_PER_SCANLINE      =  2048\n'
-
+        sections[('sphr', 0)]['NAV_SAMPLE_RATE'] = b'NAV_SAMPLE_RATE               =  20\n'
         _fd, fname = mkstemp()
         fd = open(_fd)
 
