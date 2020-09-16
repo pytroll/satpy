@@ -59,7 +59,20 @@ def create_sections(structure):
     return sections
 
 
-class TestEPSL1B(TestCase):
+class BaseTestCaseEPSL1B(TestCase):
+    """Base class for EPS l1b test case."""
+
+    def _create_structure(self):
+        structure = [(1, ('mphr', 0)), (1, ('sphr', 0)), (11, ('ipr', 0)),
+                     (1, ('geadr', 1)), (1, ('geadr', 2)), (1, ('geadr', 3)),
+                     (1, ('geadr', 4)), (1, ('geadr', 5)), (1, ('geadr', 6)),
+                     (1, ('geadr', 7)), (1, ('giadr', 1)), (1, ('giadr', 2)),
+                     (1, ('veadr', 1)), (self.scan_lines, ('mdr', 2))]
+        sections = create_sections(structure)
+        return sections
+
+
+class TestEPSL1B(BaseTestCaseEPSL1B):
     """Test the filehandler."""
 
     def setUp(self):
@@ -67,13 +80,8 @@ class TestEPSL1B(TestCase):
         # ipr is not present in the xml format ?
         self.scan_lines = 1080
         self.earth_views = 2048
-        structure = [(1, ('mphr', 0)), (1, ('sphr', 0)), (11, ('ipr', 0)),
-                     (1, ('geadr', 1)), (1, ('geadr', 2)), (1, ('geadr', 3)),
-                     (1, ('geadr', 4)), (1, ('geadr', 5)), (1, ('geadr', 6)),
-                     (1, ('geadr', 7)), (1, ('giadr', 1)), (1, ('giadr', 2)),
-                     (1, ('veadr', 1)), (self.scan_lines, ('mdr', 2))]
 
-        sections = create_sections(structure)
+        sections = self._create_structure()
         sections[('mphr', 0)]['TOTAL_MDR'] = (b'TOTAL_MDR                     =   ' +
                                               bytes(str(self.scan_lines), encoding='ascii') +
                                               b'\n')
@@ -170,7 +178,7 @@ class TestEPSL1B(TestCase):
             assert np.allclose(sun_zen_np1, sun_zen_np2)
 
 
-class TestWrongEPSL1B(TestCase):
+class TestWrongScanlinesEPSL1B(BaseTestCaseEPSL1B):
     """Test the filehandler on a corrupt file."""
 
     @pytest.fixture(autouse=True)
@@ -183,13 +191,8 @@ class TestWrongEPSL1B(TestCase):
         # ipr is not present in the xml format ?
         self.scan_lines = 1080
         self.earth_views = 2048
-        structure = [(1, ('mphr', 0)), (1, ('sphr', 0)), (11, ('ipr', 0)),
-                     (1, ('geadr', 1)), (1, ('geadr', 2)), (1, ('geadr', 3)),
-                     (1, ('geadr', 4)), (1, ('geadr', 5)), (1, ('geadr', 6)),
-                     (1, ('geadr', 7)), (1, ('giadr', 1)), (1, ('giadr', 2)),
-                     (1, ('veadr', 1)), (self.scan_lines, ('mdr', 2))]
 
-        sections = create_sections(structure)
+        sections = self._create_structure()
         sections[('mphr', 0)]['TOTAL_MDR'] = (b'TOTAL_MDR                     =   ' +
                                               bytes(str(self.scan_lines - 2), encoding='ascii') +
                                               b'\n')
@@ -235,3 +238,45 @@ class TestWrongEPSL1B(TestCase):
         """Tear down the tests."""
         with suppress(OSError):
             os.remove(self.filename)
+
+
+class TestWrongSamplingEPSL1B(BaseTestCaseEPSL1B):
+    """Test the filehandler on a corrupt file."""
+
+    @pytest.fixture(autouse=True)
+    def inject_fixtures(self, caplog):
+        """Inject caplog."""
+        self._caplog = caplog
+
+    def setUp(self):
+        """Set up the tests."""
+        self.scan_lines = 1080
+        self.earth_views = 2048
+        self.sample_rate = 23
+        sections = self._create_structure()
+        sections[('mphr', 0)]['TOTAL_MDR'] = (b'TOTAL_MDR                     =   ' +
+                                              bytes(str(self.scan_lines), encoding='ascii') +
+                                              b'\n')
+        sections[('mphr', 0)]['SPACECRAFT_ID'] = b'SPACECRAFT_ID                 = M03\n'
+        sections[('mphr', 0)]['INSTRUMENT_ID'] = b'INSTRUMENT_ID                 = AVHR\n'
+        sections[('sphr', 0)]['EARTH_VIEWS_PER_SCANLINE'] = (b'EARTH_VIEWS_PER_SCANLINE      =  ' +
+                                                             bytes(str(self.earth_views), encoding='ascii') +
+                                                             b'\n')
+        sections[('sphr', 0)]['NAV_SAMPLE_RATE'] = (b'NAV_SAMPLE_RATE               =  ' +
+                                                    bytes(str(self.sample_rate), encoding='ascii') +
+                                                    b'\n')
+        _fd, fname = mkstemp()
+        fd = open(_fd)
+
+        self.filename = fname
+        for _, arr in sections.items():
+            arr.tofile(fd)
+        fd.close()
+        self.fh = eps.EPSAVHRRFile(self.filename, {'start_time': 'now',
+                                                   'end_time': 'later'}, {})
+
+    def test_get_dataset_fails_because_of_wrong_sample_rate(self):
+        """Test that lons fail to be interpolate."""
+        key = make_dataid(name="longitude")
+        with pytest.raises(NotImplementedError):
+            self.fh.get_dataset(key, dict())
