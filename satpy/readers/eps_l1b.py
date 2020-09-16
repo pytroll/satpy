@@ -188,7 +188,7 @@ class EPSAVHRRFile(BaseFileHandler):
         return keys
 
     def get_full_lonlats(self):
-        """Get the interpolated lons_like/lats_like."""
+        """Get the interpolated longitudes and latitudes."""
         if self.lons is not None and self.lats is not None:
             return self.lons, self.lats
 
@@ -212,7 +212,7 @@ class EPSAVHRRFile(BaseFileHandler):
                                             shape=(self.scanlines, self.pixels))
             return lons_like_1km, lats_like_1km
         else:
-            raise NotImplementedError("Lon/lat expansion not implemented for " +
+            raise NotImplementedError("Lon/lat and angle expansion not implemented for " +
                                       "sample rate = " + str(nav_sample_rate) +
                                       " and earth views = " +
                                       str(self.pixels))
@@ -241,7 +241,7 @@ class EPSAVHRRFile(BaseFileHandler):
                                       str(self.pixels))
 
     def get_full_angles(self):
-        """Get the interpolated lons_like/lats_like."""
+        """Get the interpolated angles."""
         if (self.sun_azi is not None and self.sun_zen is not None and
                 self.sat_azi is not None and self.sat_zen is not None):
             return self.sun_azi, self.sun_zen, self.sat_azi, self.sat_zen
