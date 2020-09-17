@@ -102,9 +102,6 @@ class MHSAAPPL1CFile(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Get a dataset from the file."""
-        import ipdb
-        ipdb.set_trace()
-
         if key['name'] in MHS_CHANNEL_NAMES:
             dataset = self.calibrate(key)
 
@@ -140,12 +137,6 @@ class MHSAAPPL1CFile(BaseFileHandler):
 
         self._header = header
         self._data = data
-
-    def available_datasets(self, configured_datasets=None):
-        """Get the available datasets."""
-        for _, mda in configured_datasets:
-            if mda['name'] in MHS_CHANNEL_NAMES:
-                yield True, mda
 
     def get_angles(self, angle_id):
         """Get sun-satellite viewing angles."""
