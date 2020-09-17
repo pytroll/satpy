@@ -36,7 +36,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: &stretchfun !!python/name:satpy.enhancements.stretch ''
+      method: !!python/name:satpy.enhancements.stretch
       kwargs:
         stretch: crude
         min_stretch: [-6.7, -6.0, 243.6]
@@ -48,13 +48,13 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: *stretchfun
+      method: !!python/name:satpy.enhancements.stretch
       kwargs:
         stretch: crude
         min_stretch: [-6.7, -0.5, 261.2]
         max_stretch: [ 2.6, 20.0, 288.7]
     - name: gamma
-      method: &gammafun !!python/name:satpy.enhancements.gamma ''
+      method: !!python/name:satpy.enhancements.gamma
       kwargs:
         gamma: [1, 2.5, 1]
 
@@ -64,7 +64,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: *stretchfun
+      method: !!python/name:satpy.enhancements.stretch
       kwargs:
         stretch: crude
         min_stretch: [-35.0, -5.0, -75]
@@ -76,7 +76,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: *stretchfun
+      method: !!python/name:satpy.enhancements.stretch
       kwargs:
         stretch: crude
         min_stretch: [-6.7, -3.1, 243.55]
@@ -88,7 +88,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: *stretchfun
+      method: !!python/name:satpy.enhancements.stretch
       kwargs: {stretch: crude, min_stretch: 0, max_stretch: 100}
 
   land_cloud:
@@ -97,7 +97,7 @@ enhancements:
     sensor: abi
     operations:
     - name: stretch
-      method: *stretchfun
+      method: !!python/name:satpy.enhancements.stretch
       kwargs:
         stretch: crude
         min_stretch: [ 0.0,   0.0,   0.0]

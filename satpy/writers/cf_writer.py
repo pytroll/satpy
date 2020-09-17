@@ -114,10 +114,6 @@ from satpy.writers import Writer
 from satpy.writers.utils import flatten_dict
 
 from distutils.version import LooseVersion
-import pyproj
-if LooseVersion(pyproj.__version__) < LooseVersion('2.4.1'):
-    # technically 2.2, but important bug fixes in 2.4.1
-    raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
 
 
 logger = logging.getLogger(__name__)
@@ -147,6 +143,10 @@ CF_VERSION = 'CF-1.7'
 
 def create_grid_mapping(area):
     """Create the grid mapping instance for `area`."""
+    import pyproj
+    if LooseVersion(pyproj.__version__) < LooseVersion('2.4.1'):
+        # technically 2.2, but important bug fixes in 2.4.1
+        raise ImportError("'cf' writer requires pyproj 2.4.1 or greater")
     # let pyproj do the heavily lifting
     # pyproj 2.0+ required
     grid_mapping = area.crs.to_cf()
@@ -192,10 +192,10 @@ def area2gridmapping(dataarray):
     return dataarray, xr.DataArray(0, attrs=attrs, name=gmapping_var_name)
 
 
-def area2cf(dataarray, strict=False):
+def area2cf(dataarray, strict=False, got_lonlats=False):
     """Convert an area to at CF grid mapping or lon and lats."""
     res = []
-    if isinstance(dataarray.attrs['area'], SwathDefinition) or strict:
+    if not got_lonlats and (isinstance(dataarray.attrs['area'], SwathDefinition) or strict):
         dataarray = area2lonlat(dataarray)
     if isinstance(dataarray.attrs['area'], AreaDefinition):
         dataarray, gmapping = area2gridmapping(dataarray)
@@ -257,6 +257,21 @@ def link_coords(datas):
         dataset.attrs.pop('coordinates', None)
 
 
+def dataset_is_projection_coords(dataset):
+    """Check if dataset is a projection coords."""
+    if 'standard_name' in dataset.attrs and dataset.attrs['standard_name'] in ['longitude', 'latitude']:
+        return True
+    return False
+
+
+def has_projection_coords(ds_collection):
+    """Check if collection has a projection coords among data arrays."""
+    for dataset in ds_collection.values():
+        if dataset_is_projection_coords(dataset):
+            return True
+    return False
+
+
 def make_alt_coords_unique(datas, pretty=False):
     """Make non-dimensional coordinates unique among all datasets.
 
@@ -281,7 +296,7 @@ def make_alt_coords_unique(datas, pretty=False):
     tokens = defaultdict(set)
     for dataset in datas.values():
         for coord_name in dataset.coords:
-            if coord_name.lower() not in ('latitude', 'longitude', 'lat', 'lon') and coord_name not in dataset.dims:
+            if not dataset_is_projection_coords(dataset[coord_name]) and coord_name not in dataset.dims:
                 tokens[coord_name].add(tokenize(dataset[coord_name].data))
     coords_unique = dict([(coord_name, len(tokens) == 1) for coord_name, tokens in tokens.items()])
 
@@ -485,7 +500,7 @@ class CFWriter(Writer):
         ds_collection = {}
         for ds in datasets:
             ds_collection.update(get_extra_ds(ds))
-
+        got_lonlats = has_projection_coords(ds_collection)
         datas = {}
         start_times = []
         end_times = []
@@ -497,7 +512,7 @@ class CFWriter(Writer):
             # structure of attributes
             ds = ds.copy(deep=True)
             try:
-                new_datasets = area2cf(ds, strict=include_lonlats)
+                new_datasets = area2cf(ds, strict=include_lonlats, got_lonlats=got_lonlats)
             except KeyError:
                 new_datasets = [ds]
             for new_ds in new_datasets:
@@ -610,10 +625,18 @@ class CFWriter(Writer):
             if flatten_attrs:
                 header_attrs = flatten_dict(header_attrs)
             root.attrs = encode_attrs_nc(header_attrs)
-        root.attrs['history'] = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
+        _history_create = 'Created by pytroll/satpy on {}'.format(datetime.utcnow())
+        if 'history' in root.attrs:
+            if isinstance(root.attrs['history'], list):
+                root.attrs['history'] = ''.join(root.attrs['history'])
+            root.attrs['history'] += '\n' + _history_create
+        else:
+            root.attrs['history'] = _history_create
+
         if groups is None:
             # Groups are not CF-1.7 compliant
-            root.attrs['Conventions'] = CF_VERSION
+            if 'Conventions' not in root.attrs:
+                root.attrs['Conventions'] = CF_VERSION
 
         # Remove satpy-specific kwargs
         satpy_kwargs = ['overlay', 'decorate', 'config_files']
