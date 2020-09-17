@@ -17,23 +17,19 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """MultiScene object to work with multiple timesteps of satellite data."""
 
-import logging
 import copy
-import numpy as np
-import dask.array as da
-import xarray as xr
-import pandas as pd
-from satpy.scene import Scene
-from satpy.writers import get_enhanced_image
-from satpy.dataset import combine_metadata, DatasetID
+import logging
+from queue import Queue
 from threading import Thread
 
-try:
-    # python 3
-    from queue import Queue
-except ImportError:
-    # python 2
-    from Queue import Queue
+import dask.array as da
+import numpy as np
+import pandas as pd
+import xarray as xr
+
+from satpy.dataset import DataID, combine_metadata
+from satpy.scene import Scene
+from satpy.writers import get_enhanced_image
 
 try:
     import imageio
@@ -79,7 +75,7 @@ def add_group_aliases(scenes, groups):
         for group_id, member_names in groups.items():
             # Find out whether one of the datasets in this scene belongs
             # to this group
-            member_ids = [DatasetID.from_dict(scene[name].attrs)
+            member_ids = [scene[name].attrs['_satpy_id']
                           for name in member_names if name in scene]
 
             # Add an alias for the group it belongs to
@@ -315,10 +311,10 @@ class MultiScene(object):
         by `MultiScene`. Even if their dataset IDs differ (for example because the names or
         wavelengths are slightly different).
         Groups can be specified as a dictionary `{group_id: dataset_names}` where the keys
-        must be of type `DatasetID`, for example::
+        must be of type `DataQuery`, for example::
 
             groups={
-                DatasetID('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
+                DataQuery('my_group', wavelength=(10, 11, 12)): ['IR_108', 'B13', 'C13']
             }
         """
         self._scenes = add_group_aliases(self._scenes, groups)
@@ -429,7 +425,6 @@ class MultiScene(object):
         If the nested dictionary in decorate (argument to ``save_animation``)
         contains a text to be added, format those based on dataset parameters.
         """
-
         if decorate is None or "decorate" not in decorate:
             return decorate
         deco_local = copy.deepcopy(decorate)
@@ -525,7 +520,8 @@ class MultiScene(object):
         else:
             log.debug("Child thread died successfully")
 
-    def _simple_frame_compute(self, writers, frame_keys, frames_to_write):
+    @staticmethod
+    def _simple_frame_compute(writers, frame_keys, frames_to_write):
         """Compute frames the plain dask way."""
         for frame_arrays in frames_to_write:
             for frame_key, product_frame in zip(frame_keys, frame_arrays):
@@ -551,8 +547,8 @@ class MultiScene(object):
             scenes = list(scenes)
             info_scenes.append(scenes[-1])
 
-        available_ds = [first_scene.datasets.get(ds) for ds in first_scene.wishlist]
-        available_ds = [DatasetID.from_dict(ds.attrs) for ds in available_ds if ds is not None]
+        available_ds = [first_scene.get(ds) for ds in first_scene.wishlist]
+        available_ds = [DataID.from_dataarray(ds) for ds in available_ds if ds is not None]
         dataset_ids = datasets or available_ds
 
         if not dataset_ids:
@@ -603,7 +599,7 @@ class MultiScene(object):
             filename (str): Filename to save to. Can include python string
                             formatting keys from dataset ``.attrs``
                             (ex. "{name}_{start_time:%Y%m%d_%H%M%S.gif")
-            datasets (list): DatasetIDs to save (default: all datasets)
+            datasets (list): DataIDs to save (default: all datasets)
             fps (int): Frames per second for produced animation
             fill_value (int): Value to use instead creating an alpha band.
             batch_size (int): Number of frames to compute at the same time.

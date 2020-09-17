@@ -67,7 +67,7 @@ class EDRFileHandler(HDF5FileHandler):
 
     def get_metadata(self, dataset_id, ds_info):
         """Get the metadata."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         info = getattr(self[var_path], 'attrs', {}).copy()
         info.pop('DIMENSION_LIST', None)
         info.update(ds_info)
@@ -93,12 +93,12 @@ class EDRFileHandler(HDF5FileHandler):
         })
         info.update(dataset_id.to_dict())
         if 'standard_name' not in ds_info:
-            info['standard_name'] = self.get(var_path + '/attr/Title', dataset_id.name)
+            info['standard_name'] = self.get(var_path + '/attr/Title', dataset_id['name'])
         return info
 
     def get_dataset(self, dataset_id, ds_info):
         """Get the dataset."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         metadata = self.get_metadata(dataset_id, ds_info)
         valid_min, valid_max = self.get(var_path + '/attr/valid_range',
                                         self.get(var_path + '/attr/ValidRange', (None, None)))

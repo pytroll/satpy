@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 
-"""Modis level 1b hdf-eos format reader
+"""Modis level 1b hdf-eos format reader.
 
 Introduction
 ------------
@@ -63,6 +63,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
            "H": 500}
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         HDFEOSBaseFileReader.__init__(self, filename, filename_info, filetype_info)
 
         ds = self.metadata['INVENTORYMETADATA'][
@@ -86,7 +87,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
         info.update({'platform_name': 'EOS-' + platform_name})
         info.update({'sensor': 'modis'})
 
-        if self.resolution != key.resolution:
+        if self.resolution != key['resolution']:
             return
 
         datasets = datadict[self.resolution]
@@ -97,7 +98,7 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
 
             # get the relative indices of the desired channel
             try:
-                index = band_names.index(key.name)
+                index = band_names.index(key['name'])
             except ValueError:
                 continue
             uncertainty = self.sd.select(dataset + "_Uncert_Indexes")
@@ -129,21 +130,21 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
             array = array.where(array <= np.float32(valid_range[1]))
             array = array.where(from_sds(uncertainty, chunks=CHUNK_SIZE)[index, :, :] < 15)
 
-            if key.calibration == 'brightness_temperature':
-                projectable = calibrate_bt(array, var_attrs, index, key.name)
+            if key['calibration'] == 'brightness_temperature':
+                projectable = calibrate_bt(array, var_attrs, index, key['name'])
                 info.setdefault('units', 'K')
                 info.setdefault('standard_name', 'toa_brightness_temperature')
-            elif key.calibration == 'reflectance':
+            elif key['calibration'] == 'reflectance':
                 projectable = calibrate_refl(array, var_attrs, index)
                 info.setdefault('units', '%')
                 info.setdefault('standard_name',
                                 'toa_bidirectional_reflectance')
-            elif key.calibration == 'radiance':
+            elif key['calibration'] == 'radiance':
                 projectable = calibrate_radiance(array, var_attrs, index)
                 info.setdefault('units', var_attrs.get('radiance_units'))
                 info.setdefault('standard_name',
                                 'toa_outgoing_radiance_per_unit_wavelength')
-            elif key.calibration == 'counts':
+            elif key['calibration'] == 'counts':
                 projectable = calibrate_counts(array, var_attrs, index)
                 info.setdefault('units', 'counts')
                 info.setdefault('standard_name', 'counts')  # made up
@@ -152,8 +153,8 @@ class HDFEOSBandReader(HDFEOSBaseFileReader):
                                  "key: {}".format(key))
             projectable.attrs = info
 
-            # if ((platform_name == 'Aqua' and key.name in ["6", "27", "36"]) or
-            #         (platform_name == 'Terra' and key.name in ["29"])):
+            # if ((platform_name == 'Aqua' and key['name'] in ["6", "27", "36"]) or
+            #         (platform_name == 'Terra' and key['name'] in ["29"])):
             #     height, width = projectable.shape
             #     row_indices = projectable.mask.sum(1) == width
             #     if row_indices.sum() != height:
@@ -187,11 +188,13 @@ class MixedHDFEOSReader(HDFEOSGeoReader, HDFEOSBandReader):
     """A file handler for the files that have both regular bands and geographical information in them."""
 
     def __init__(self, filename, filename_info, filetype_info):
+        """Init the file handler."""
         HDFEOSGeoReader.__init__(self, filename, filename_info, filetype_info)
         HDFEOSBandReader.__init__(self, filename, filename_info, filetype_info)
 
     def get_dataset(self, key, info):
-        if key.name in HDFEOSGeoReader.DATASET_NAMES:
+        """Get the dataset."""
+        if key['name'] in HDFEOSGeoReader.DATASET_NAMES:
             return HDFEOSGeoReader.get_dataset(self, key, info)
         return HDFEOSBandReader.get_dataset(self, key, info)
 

@@ -48,11 +48,12 @@ For help on developing with dask and xarray see
 :doc:`dev_guide/xarray_migration` or the documentation for the specific
 project.
 
-To uniquely identify ``DataArray`` objects Satpy uses `DatasetID`. A
-``DatasetID`` consists of various pieces of available metadata. This usually
-includes `name` and `wavelength` as identifying metadata, but also includes
+To uniquely identify ``DataArray`` objects Satpy uses `DataID`. A
+``DataID`` consists of various pieces of available metadata. This usually
+includes `name` and `wavelength` as identifying metadata, but can also include
 `resolution`, `calibration`, `polarization`, and additional `modifiers`
-to further distinguish one dataset from another.
+to further distinguish one dataset from another. For more information on `DataID`
+objects, have a look a :doc:`dev_guide/satpy_internals`.
 
 .. warning::
 

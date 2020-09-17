@@ -44,7 +44,7 @@ class GHRSST_OSISAFL2(NetCDF4FileHandler):
 
     def get_dataset(self, dataset_id, ds_info, out=None):
         """Load a dataset."""
-        var_path = ds_info.get('file_key', '{}'.format(dataset_id.name))
+        var_path = ds_info.get('file_key', '{}'.format(dataset_id['name']))
         dtype = ds_info.get('dtype', np.float32)
         if var_path + '/shape' not in self:
             # loading a scalar value
