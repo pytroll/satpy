@@ -1,0 +1,54 @@
+sensor_name: mhs
+
+composites:
+  rgb_color1:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '3'
+    - name: '4'
+    - name: '5'
+
+  rgb_color2:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '5'
+    - name: '4'
+    - name: '3'
+
+  rgb_color3:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - name: '3'
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: '3'
+          - name: '4'
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: '3'
+          - name: '5'
+    standard_name: rgb_color3
+
+  rgb_color4:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: '3'
+          - name: '4'
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: '3'
+          - name: '5'
+      - compositor: !!python/name:satpy.composites.DifferenceCompositor
+        prerequisites:
+          - name: '3'
+          - name: '5'
+    standard_name: rgb_color4
+
+  rgb_color5:
+    compositor: !!python/name:satpy.composites.RGBCompositor
+    prerequisites:
+    - name: '1'
+    - name: '2'
+    - name: '3'
