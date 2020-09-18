@@ -88,8 +88,8 @@ class Test_NC_ABI_L2_get_dataset(Test_NC_ABI_L2_base):
 
     def test_get_dataset(self):
         """Test basic L2 load."""
-        from satpy import DatasetID
-        key = DatasetID(name='HT')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='HT')
         res = self.reader.get_dataset(key, {'file_key': 'HT'})
 
         exp_data = np.array([[2 * 0.3052037, np.nan],

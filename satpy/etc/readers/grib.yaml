@@ -3,6 +3,14 @@ reader:
   name: grib
   reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [unknown]
+  data_identification_keys:
+    name:
+      required: true
+    level:
+    resolution:
+    modifiers:
+      default: []
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
 
 file_types:
   grib:

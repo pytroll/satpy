@@ -18,10 +18,11 @@
 """The glm_l2 reader tests package."""
 
 import os
-import numpy as np
-import xarray as xr
 import unittest
 from unittest import mock
+
+import numpy as np
+import xarray as xr
 
 
 def setup_fake_dataset():
@@ -107,8 +108,8 @@ class TestGLML2FileHandler(unittest.TestCase):
 
     def test_get_dataset(self):
         """Test the get_dataset method."""
-        from satpy import DatasetID
-        key = DatasetID(name='flash_extent_density')
+        from satpy.tests.utils import make_dataid
+        key = make_dataid(name='flash_extent_density')
         res = self.reader.get_dataset(key, {'info': 'info'})
         exp = {'instrument_ID': None,
                'modifiers': (),
@@ -153,7 +154,7 @@ class TestGLML2Reader(unittest.TestCase):
         loadables = r.select_files_from_pathnames([
             'OR_GLM-L2-GLMC-M3_G16_s20192862159000_e20192862200000_c20192862200350.nc',
         ])
-        self.assertTrue(len(loadables), 1)
+        self.assertEqual(len(loadables), 1)
         r.create_filehandlers(loadables)
         self.reader = r
 
@@ -165,4 +166,4 @@ class TestGLML2Reader(unittest.TestCase):
         # only flash_extent_density is available in our tests
         self.assertEqual(len(available_datasets), 1)
         for ds_id in available_datasets:
-            self.assertEqual(ds_id.resolution, 2000)
+            self.assertEqual(ds_id['resolution'], 2000)

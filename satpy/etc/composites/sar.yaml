@@ -9,7 +9,7 @@ composites:
       calibration: gamma
     - name: measurement
       polarization: hv
-      calibraion: gamma
+      calibration: gamma
     standard_name: sar-ice
 
   sar-ice-iw:

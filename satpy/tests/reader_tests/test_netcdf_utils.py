@@ -31,14 +31,22 @@ except ImportError:
 class FakeNetCDF4FileHandler(NetCDF4FileHandler):
     """Swap-in NetCDF4 File Handler for reader tests to use."""
 
-    def __init__(self, filename, filename_info, filetype_info, **kwargs):
+    def __init__(self, filename, filename_info, filetype_info,
+                 auto_maskandscale=False, xarray_kwargs=None,
+                 cache_var_size=0, cache_handle=False, extra_file_content=None):
         """Get fake file content from 'get_test_content'."""
+        # unused kwargs from the real file handler
+        del auto_maskandscale
+        del xarray_kwargs
+        del cache_var_size
+        del cache_handle
         if NetCDF4FileHandler is object:
             raise ImportError("Base 'NetCDF4FileHandler' could not be "
                               "imported.")
         super(NetCDF4FileHandler, self).__init__(filename, filename_info, filetype_info)
         self.file_content = self.get_test_content(filename, filename_info, filetype_info)
-        self.file_content.update(kwargs)
+        if extra_file_content:
+            self.file_content.update(extra_file_content)
 
     def get_test_content(self, filename, filename_info, filetype_info):
         """Mimic reader input file content.
