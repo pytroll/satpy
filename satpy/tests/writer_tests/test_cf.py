@@ -499,6 +499,7 @@ class TestCFWriter(unittest.TestCase):
         attrs, attrs_expected, attrs_expected_flat = self.get_test_attrs()
         attrs['area'] = 'some_area'
         attrs['prerequisites'] = [make_dsq(name='hej')]
+        attrs['_satpy_id_name'] = 'myname'
 
         # Adjust expected attributes
         expected_prereq = ("DataQuery(name='hej')")
@@ -1078,3 +1079,62 @@ class TestCFWriterData(unittest.TestCase):
         self.assertRaises(KeyError, getitem, datas['var1'], 'longitude')
         self.assertEqual(datas2['var1']['latitude'].attrs['name'], 'latitude')
         self.assertEqual(datas2['var1']['longitude'].attrs['name'], 'longitude')
+
+
+class EncodingUpdateTest(unittest.TestCase):
+    """Test update of netCDF encoding."""
+    def setUp(self):
+        import xarray as xr
+        self.ds = xr.Dataset({'foo': (('y', 'x'), [[1, 2], [3, 4]]),
+                              'bar': (('y', 'x'), [[3, 4], [5, 6]])},
+                             coords={'y': [1, 2],
+                                     'x': [3, 4],
+                                     'lon': (('y', 'x'), [[7, 8], [9, 10]])})
+
+    def test_without_time(self):
+        from satpy.writers.cf_writer import update_encoding
+
+        # Without time dimension
+        ds = self.ds.chunk(2)
+        kwargs = {'encoding': {'bar': {'chunksizes': (1, 1)}},
+                  'other': 'kwargs'}
+        enc, other_kwargs = update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'lon': {'chunksizes': (2, 2)},
+                                   'foo': {'chunksizes': (2, 2)},
+                                   'bar': {'chunksizes': (1, 1)}})
+        self.assertDictEqual(other_kwargs, {'other': 'kwargs'})
+
+        # Chunksize may not exceed shape
+        ds = self.ds.chunk(8)
+        kwargs = {'encoding': {}, 'other': 'kwargs'}
+        enc, other_kwargs = update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'lon': {'chunksizes': (2, 2)},
+                                   'foo': {'chunksizes': (2, 2)},
+                                   'bar': {'chunksizes': (2, 2)}})
+
+    def test_with_time(self):
+        from satpy.writers.cf_writer import update_encoding
+
+        # With time dimension
+        ds = self.ds.chunk(8).expand_dims({'time': [datetime(2009, 7, 1, 12, 15)]})
+        kwargs = {'encoding': {'bar': {'chunksizes': (1, 1, 1)}},
+                  'other': 'kwargs'}
+        enc, other_kwargs = update_encoding(ds, kwargs)
+        self.assertDictEqual(enc, {'y': {'_FillValue': None},
+                                   'x': {'_FillValue': None},
+                                   'lon': {'chunksizes': (2, 2)},
+                                   'foo': {'chunksizes': (1, 2, 2)},
+                                   'bar': {'chunksizes': (1, 1, 1)},
+                                   'time': {'_FillValue': None,
+                                            'calendar': 'proleptic_gregorian',
+                                            'units': 'days since 2009-07-01 12:15:00'},
+                                   'time_bnds': {'_FillValue': None,
+                                                 'calendar': 'proleptic_gregorian',
+                                                 'units': 'days since 2009-07-01 12:15:00'}})
+
+        # User-defined encoding may not be altered
+        self.assertDictEqual(kwargs['encoding'], {'bar': {'chunksizes': (1, 1, 1)}})
