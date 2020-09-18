@@ -531,7 +531,7 @@ class CFWriter(Writer):
             new_data['y'].attrs['units'] = 'm'
 
         if 'crs' in new_data.coords:
-            new_data = new_data.drop('crs')
+            new_data = new_data.drop_vars('crs')
 
         if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
             new_data.attrs['long_name'] = new_data.name
