@@ -23,7 +23,7 @@ import numpy as np
 from satpy.writers import ImageWriter
 
 from satpy.writers import get_enhanced_image
-from satpy.dataset import DatasetID
+from satpy.dataset import DataQuery, DataID
 
 import dask
 
@@ -172,10 +172,16 @@ class MITIFFWriter(ImageWriter):
             if self.channel_order:
                 for cn in self.channel_order[kwargs['sensor']]:
                     for ch, ds in enumerate(datasets):
-                        if ds.attrs['prerequisites'][ch][0] == cn:
-                            channels.append(
-                                ds.attrs['prerequisites'][ch][0])
-                            break
+                        if isinstance(ds.attrs['prerequisites'][ch], (DataQuery, DataID)):
+                            if ds.attrs['prerequisites'][ch]['name'] == cn:
+                                channels.append(
+                                    ds.attrs['prerequisites'][ch]['name'])
+                                break
+                        else:
+                            if ds.attrs['prerequisites'][ch] == cn:
+                                channels.append(
+                                    ds.attrs['prerequisites'][ch])
+                                break
             elif self.palette:
                 if 'palette_channel_name' in kwargs:
                     channels.append(kwargs['palette_channel_name'].upper())
@@ -360,15 +366,15 @@ class MITIFFWriter(ImageWriter):
             if ('prerequisites' in ds.attrs and
                 isinstance(ds.attrs['prerequisites'], list) and
                 len(ds.attrs['prerequisites']) >= i + 1 and
-                    isinstance(ds.attrs['prerequisites'][i], DatasetID)):
-                if ds.attrs['prerequisites'][i][0] == ch:
-                    if ds.attrs['prerequisites'][i][4] == 'RADIANCE':
+                    isinstance(ds.attrs['prerequisites'][i], (DataQuery, DataID))):
+                if ds.attrs['prerequisites'][i]['name'] == str(ch):
+                    if ds.attrs['prerequisites'][i].get('calibration') == 'RADIANCE':
                         raise NotImplementedError(
                             "Mitiff radiance calibration not implemented.")
                     # _table_calibration += ', Radiance, '
                     # _table_calibration += '[W/m²/µm/sr]'
                     # _decimals = 8
-                    elif ds.attrs['prerequisites'][i][4] == 'brightness_temperature':
+                    elif ds.attrs['prerequisites'][i].get('calibration') == 'brightness_temperature':
                         found_calibration = True
                         _table_calibration += ', BT, '
                         _table_calibration += u'\u00B0'  # '\u2103'
@@ -377,7 +383,7 @@ class MITIFFWriter(ImageWriter):
                         _reverse_offset = 255.
                         _reverse_scale = -1.
                         _decimals = 2
-                    elif ds.attrs['prerequisites'][i][4] == 'reflectance':
+                    elif ds.attrs['prerequisites'][i].get('calibration') == 'reflectance':
                         found_calibration = True
                         _table_calibration += ', Reflectance(Albedo), '
                         _table_calibration += '[%]'
@@ -692,9 +698,9 @@ class MITIFFWriter(ImageWriter):
 
                 # Need to possible translate channels names from satpy to mitiff
                 # Note the last index is a tuple index.
-                cn = cns.get(datasets.attrs['prerequisites'][0][0],
-                             datasets.attrs['prerequisites'][0][0])
-                data = self._calibrate_data(datasets, datasets.attrs['prerequisites'][0][4],
+                cn = cns.get(datasets.attrs['prerequisites'][0]['name'],
+                             datasets.attrs['prerequisites'][0]['name'])
+                data = self._calibrate_data(datasets, datasets.attrs['prerequisites'][0].get('calibration'),
                                             self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                             self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 
@@ -706,9 +712,9 @@ class MITIFFWriter(ImageWriter):
                             chn = datasets.sel(bands=band)
                             # Need to possible translate channels names from satpy to mitiff
                             # Note the last index is a tuple index.
-                            cn = cns.get(chn.attrs['prerequisites'][_cn_i][0],
-                                         chn.attrs['prerequisites'][_cn_i][0])
-                            data = self._calibrate_data(chn, chn.attrs['prerequisites'][_cn_i][4],
+                            cn = cns.get(chn.attrs['prerequisites'][_cn_i]['name'],
+                                         chn.attrs['prerequisites'][_cn_i]['name'])
+                            data = self._calibrate_data(chn, chn.attrs['prerequisites'][_cn_i].get('calibration'),
                                                         self.mitiff_config[kwargs['sensor']][cn]['min-val'],
                                                         self.mitiff_config[kwargs['sensor']][cn]['max-val'])
 

@@ -54,13 +54,15 @@ class NCSLSTRGeo(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading %s.', key.name)
-
+        logger.debug('Reading %s.', key['name'])
+        file_key = info['file_key'].format(view=key['view'].name[0],
+                                           stripe=key['stripe'].name)
         try:
-            variable = self.nc[info['file_key']]
+            variable = self.nc[file_key]
         except KeyError:
             return
 
+        info = info.copy()
         info.update(variable.attrs)
 
         variable.attrs = info
@@ -92,15 +94,16 @@ class NCSLSTR1B(BaseFileHandler):
                                           'rows': CHUNK_SIZE})
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
         self.channel = filename_info['dataset_name']
-        self.stripe = self.filename[-5]
-        self.view = self.filename[-4]
+        self.stripe = filename_info['stripe']
+        views = {'n': 'nadir', 'o': 'oblique'}
+        self.view = views[filename_info['view']]
         cal_file = os.path.join(os.path.dirname(self.filename), 'viscal.nc')
         self.cal = xr.open_dataset(cal_file,
                                    decode_cf=True,
                                    mask_and_scale=True,
                                    chunks={'views': CHUNK_SIZE})
         indices_file = os.path.join(os.path.dirname(self.filename),
-                                    'indices_{}{}.nc'.format(self.stripe, self.view))
+                                    'indices_{}{}.nc'.format(self.stripe, self.view[0]))
         self.indices = xr.open_dataset(indices_file,
                                        decode_cf=True,
                                        mask_and_scale=True,
@@ -120,23 +123,25 @@ class NCSLSTR1B(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self.channel not in key.name:
+        if (self.channel not in key['name'] or
+            self.stripe != key['stripe'].name or
+                self.view != key['view'].name):
             return
 
-        logger.debug('Reading %s.', key.name)
-        if key.calibration == 'brightness_temperature':
-            variable = self.nc['{}_BT_{}{}'.format(self.channel, self.stripe, self.view)]
+        logger.debug('Reading %s.', key['name'])
+        if key['calibration'] == 'brightness_temperature':
+            variable = self.nc['{}_BT_{}{}'.format(self.channel, self.stripe, self.view[0])]
         else:
-            variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe, self.view)]
+            variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe, self.view[0])]
 
         radiances = variable
         units = variable.attrs['units']
 
-        if key.calibration == 'reflectance':
+        if key['calibration'] == 'reflectance':
             # TODO take into account sun-earth distance
-            solar_flux = self.cal[re.sub('_[^_]*$', '', key.name) + '_solar_irradiances']
-            d_index = self.indices['detector_{}{}'.format(self.stripe, self.view)]
-            idx = 0 if self.view == 'n' else 1   # 0: Nadir view, 1: oblique (check).
+            solar_flux = self.cal[re.sub('_[^_]*$', '', key['name']) + '_solar_irradiances']
+            d_index = self.indices['detector_{}{}'.format(self.stripe, self.view[0])]
+            idx = 0 if self.view[0] == 'n' else 1   # 0: Nadir view, 1: oblique (check).
 
             radiances.data = da.map_blocks(
                 self._cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
@@ -144,6 +149,7 @@ class NCSLSTR1B(BaseFileHandler):
             radiances *= np.pi * 100
             units = '%'
 
+        info = info.copy()
         info.update(radiances.attrs)
         info.update(key.to_dict())
         info.update(dict(units=units,
@@ -188,7 +194,7 @@ class NCSLSTRAngles(BaseFileHandler):
         self._end_time = filename_info['end_time']
 
         cart_file = os.path.join(
-            os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view))
+            os.path.dirname(self.filename), 'cartesian_i{}.nc'.format(self.view[0]))
         self.cart = xr.open_dataset(cart_file,
                                     decode_cf=True,
                                     mask_and_scale=True,
@@ -204,25 +210,29 @@ class NCSLSTRAngles(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if not info['view'].startswith(self.view):
+        if not info['view'].name.startswith(self.view):
             return
-        logger.debug('Reading %s.', key.name)
+        logger.debug('Reading %s.', key['name'])
         # Check if file_key is specified in the yaml
-        file_key = info.get('file_key', key.name)
+        file_key = info['file_key'].format(view=key['view'].name[0])
 
         variable = self.nc[file_key]
         l_step = self.nc.attrs.get('al_subsampling_factor', 1)
         c_step = self.nc.attrs.get('ac_subsampling_factor', 16)
 
+        if key.get('resolution', 1000) == 500:
+            l_step *= 2
+            c_step *= 2
+
         if c_step != 1 or l_step != 1:
-            logger.debug('Interpolating %s.', key.name)
+            logger.debug('Interpolating %s.', key['name'])
 
             # TODO: do it in cartesian coordinates ! pbs at date line and
             # possible
             tie_x = self.cartx['x_tx'].data[0, :][::-1]
             tie_y = self.cartx['y_tx'].data[:, 0]
-            full_x = self.cart['x_i' + self.view].data
-            full_y = self.cart['y_i' + self.view].data
+            full_x = self.cart['x_i' + self.view[0]].data
+            full_y = self.cart['y_i' + self.view[0]].data
 
             variable = variable.fillna(0)
 
@@ -269,18 +279,24 @@ class NCSLSTRFlag(BaseFileHandler):
                                   chunks={'columns': CHUNK_SIZE,
                                           'rows': CHUNK_SIZE})
         self.nc = self.nc.rename({'columns': 'x', 'rows': 'y'})
-        self.stripe = self.filename[-5]
-        self.view = self.filename[-4]
+        self.stripe = filename_info['stripe']
+        views = {'n': 'nadir', 'o': 'oblique'}
+        self.view = views[filename_info['view']]
         # TODO: get metadata from the manifest file (xfdumanifest.xml)
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        logger.debug('Reading %s.', key.name)
+        if (self.stripe != key['stripe'].name or
+                self.view != key['view'].name):
+            return
+        logger.debug('Reading %s.', key['name'])
+        file_key = info['file_key'].format(view=key['view'].name[0],
+                                           stripe=key['stripe'].name)
+        variable = self.nc[file_key]
 
-        variable = self.nc[key.name]
-
+        info = info.copy()
         info.update(variable.attrs)
         info.update(key.to_dict())
         info.update(dict(platform_name=self.platform_name,

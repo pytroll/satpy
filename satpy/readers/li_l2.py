@@ -75,11 +75,11 @@ class LIFileHandler(BaseFileHandler):
                     "lfl": "radiance"}
 
         # Get lightning data out of NetCDF container
-        logger.debug("Key: {}".format(key.name))
+        logger.debug("Key: {}".format(key['name']))
         # Create reference grid
         grid = np.full((self.nlines, self.ncols), np.NaN)
         # Get product values
-        values = self.nc[typedict[key.name]]
+        values = self.nc[typedict[key['name']]]
         rows = self.nc['row']
         cols = self.nc['column']
         logger.debug('[ Number of values ] : {}'.format((len(values))))
