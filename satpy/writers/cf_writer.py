@@ -496,6 +496,11 @@ class CFWriter(Writer):
             name = new_data.attrs.pop('name')
             new_data = new_data.rename(name)
 
+        # Remove _satpy* attributes
+        satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
+        for satpy_attr in satpy_attrs:
+            new_data.attrs.pop(satpy_attr)
+
         # Remove area as well as user-defined attributes
         for key in ['area'] + exclude_attrs:
             new_data.attrs.pop(key, None)

@@ -499,6 +499,7 @@ class TestCFWriter(unittest.TestCase):
         attrs, attrs_expected, attrs_expected_flat = self.get_test_attrs()
         attrs['area'] = 'some_area'
         attrs['prerequisites'] = [make_dsq(name='hej')]
+        attrs['_satpy_id_name'] = 'myname'
 
         # Adjust expected attributes
         expected_prereq = ("DataQuery(name='hej')")
