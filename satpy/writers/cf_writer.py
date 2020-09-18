@@ -99,6 +99,7 @@ This is what the corresponding ``ncdump`` output would look like in this case:
 """
 
 from collections import OrderedDict, defaultdict
+import copy
 import logging
 from datetime import datetime
 import json
@@ -413,6 +414,73 @@ def encode_attrs_nc(attrs):
     return OrderedDict(encoded_attrs)
 
 
+def _set_default_chunks(encoding, dataset):
+    """Update encoding to preserve current dask chunks.
+
+    Existing user-defined chunks take precedence.
+    """
+    for var_name, variable in dataset.variables.items():
+        if variable.chunks:
+            chunks = tuple(
+                np.stack([variable.data.chunksize,
+                          variable.shape]).min(axis=0)
+            )  # Chunksize may not exceed shape
+            encoding.setdefault(var_name, {})
+            encoding[var_name].setdefault('chunksizes', chunks)
+
+
+def _set_default_fill_value(encoding, dataset):
+    """Set default fill values.
+
+    Avoid _FillValue attribute being added to coordinate variables
+    (https://github.com/pydata/xarray/issues/1865).
+    """
+    coord_vars = []
+    for data_array in dataset.values():
+        coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
+    for coord_var in coord_vars:
+        encoding.setdefault(coord_var, {})
+        encoding[coord_var].update({'_FillValue': None})
+
+
+def _set_default_time_encoding(encoding, dataset):
+    """Set default time encoding.
+
+    Make sure time coordinates and bounds have the same units. Default is xarray's CF datetime
+    encoding, which can be overridden by user-defined encoding.
+    """
+    if 'time' in dataset:
+        try:
+            dtnp64 = dataset['time'].data[0]
+        except IndexError:
+            dtnp64 = dataset['time'].data
+
+        default = CFDatetimeCoder().encode(xr.DataArray(dtnp64))
+        time_enc = {'units': default.attrs['units'], 'calendar': default.attrs['calendar']}
+        time_enc.update(encoding.get('time', {}))
+        bounds_enc = {'units': time_enc['units'],
+                      'calendar': time_enc['calendar'],
+                      '_FillValue': None}
+        encoding['time'] = time_enc
+        encoding['time_bnds'] = bounds_enc  # FUTURE: Not required anymore with xarray-0.14+
+
+
+def update_encoding(dataset, to_netcdf_kwargs):
+    """Update encoding.
+
+    Preserve dask chunks, avoid fill values in coordinate variables and make sure that
+    time & time bounds have the same units.
+    """
+    other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
+    encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
+
+    _set_default_chunks(encoding, dataset)
+    _set_default_fill_value(encoding, dataset)
+    _set_default_time_encoding(encoding, dataset)
+
+    return encoding, other_to_netcdf_kwargs
+
+
 class CFWriter(Writer):
     """Writer producing NetCDF/CF compatible datasets."""
 
@@ -438,6 +506,11 @@ class CFWriter(Writer):
         if 'name' in new_data.attrs:
             name = new_data.attrs.pop('name')
             new_data = new_data.rename(name)
+
+        # Remove _satpy* attributes
+        satpy_attrs = [key for key in new_data.attrs if key.startswith('_satpy')]
+        for satpy_attr in satpy_attrs:
+            new_data.attrs.pop(satpy_attr)
 
         # Remove area as well as user-defined attributes
         for key in ['area'] + exclude_attrs:
@@ -474,7 +547,7 @@ class CFWriter(Writer):
             new_data['y'].attrs['units'] = 'm'
 
         if 'crs' in new_data.coords:
-            new_data = new_data.drop('crs')
+            new_data = new_data.drop_vars('crs')
 
         if 'long_name' not in new_data.attrs and 'standard_name' not in new_data.attrs:
             new_data.attrs['long_name'] = new_data.name
@@ -489,6 +562,13 @@ class CFWriter(Writer):
         new_data.attrs = encode_attrs_nc(new_data.attrs)
 
         return new_data
+
+    @staticmethod
+    def update_encoding(dataset, to_netcdf_kwargs):
+        warnings.warn('CFWriter.update_encoding is deprecated. '
+                      'Use satpy.writers.cf_writer.update_encoding instead.',
+                      DeprecationWarning)
+        return update_encoding(dataset, to_netcdf_kwargs)
 
     def save_dataset(self, dataset, filename=None, fill_value=None, **kwargs):
         """Save the *dataset* to a given *filename*."""
@@ -528,39 +608,6 @@ class CFWriter(Writer):
         datas = make_alt_coords_unique(datas, pretty=pretty)
 
         return datas, start_times, end_times
-
-    def update_encoding(self, dataset, to_netcdf_kwargs):
-        """Update encoding.
-
-        Avoid _FillValue attribute being added to coordinate variables (https://github.com/pydata/xarray/issues/1865).
-        """
-        other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
-        encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
-        coord_vars = []
-        for data_array in dataset.values():
-            coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
-        for coord_var in coord_vars:
-            encoding.setdefault(coord_var, {})
-            encoding[coord_var].update({'_FillValue': None})
-
-        # Make sure time coordinates and bounds have the same units. Default is xarray's CF datetime
-        # encoding, which can be overridden by user-defined encoding.
-        if 'time' in dataset:
-            try:
-                dtnp64 = dataset['time'].data[0]
-            except IndexError:
-                dtnp64 = dataset['time'].data
-
-            default = CFDatetimeCoder().encode(xr.DataArray(dtnp64))
-            time_enc = {'units': default.attrs['units'], 'calendar': default.attrs['calendar']}
-            time_enc.update(encoding.get('time', {}))
-            bounds_enc = {'units': time_enc['units'],
-                          'calendar': time_enc['calendar'],
-                          '_FillValue': None}
-            encoding['time'] = time_enc
-            encoding['time_bnds'] = bounds_enc  # FUTURE: Not required anymore with xarray-0.14+
-
-        return encoding, other_to_netcdf_kwargs
 
     def save_datasets(self, datasets, filename=None, groups=None, header_attrs=None, engine=None, epoch=EPOCH,
                       flatten_attrs=False, exclude_attrs=None, include_lonlats=True, pretty=False,
@@ -639,6 +686,7 @@ class CFWriter(Writer):
                 root.attrs['Conventions'] = CF_VERSION
 
         # Remove satpy-specific kwargs
+        to_netcdf_kwargs = copy.deepcopy(to_netcdf_kwargs)  # may contain dictionaries (encoding)
         satpy_kwargs = ['overlay', 'decorate', 'config_files']
         for kwarg in satpy_kwargs:
             to_netcdf_kwargs.pop(kwarg, None)
@@ -664,7 +712,7 @@ class CFWriter(Writer):
                 grp_str = ' of group {}'.format(group_name) if group_name is not None else ''
                 logger.warning('No time dimension in datasets{}, skipping time bounds creation.'.format(grp_str))
 
-            encoding, other_to_netcdf_kwargs = self.update_encoding(dataset, to_netcdf_kwargs)
+            encoding, other_to_netcdf_kwargs = update_encoding(dataset, to_netcdf_kwargs)
             res = dataset.to_netcdf(filename, engine=engine, group=group_name, mode='a', encoding=encoding,
                                     **other_to_netcdf_kwargs)
             written.append(res)
