@@ -429,20 +429,12 @@ def _set_default_chunks(encoding, dataset):
             encoding[var_name].setdefault('chunksizes', chunks)
 
 
-def update_encoding(dataset, to_netcdf_kwargs):
-    """Update encoding.
+def _set_default_fill_value(encoding, dataset):
+    """Set default fill values.
 
-    Preserve dask chunks, avoid fill values in coordinate variables and make sure that
-    time & time bounds have the same units.
+    Avoid _FillValue attribute being added to coordinate variables
+    (https://github.com/pydata/xarray/issues/1865).
     """
-    other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
-    encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
-
-    # If not specified otherwise by the user, preserve current dask chunks.
-    _set_default_chunks(encoding, dataset)
-
-    # Avoid _FillValue attribute being added to coordinate variables
-    # (https://github.com/pydata/xarray/issues/1865).
     coord_vars = []
     for data_array in dataset.values():
         coord_vars.extend(set(data_array.dims).intersection(data_array.coords))
@@ -450,8 +442,13 @@ def update_encoding(dataset, to_netcdf_kwargs):
         encoding.setdefault(coord_var, {})
         encoding[coord_var].update({'_FillValue': None})
 
-    # Make sure time coordinates and bounds have the same units. Default is xarray's CF datetime
-    # encoding, which can be overridden by user-defined encoding.
+
+def _set_default_time_encoding(encoding, dataset):
+    """Set default time encoding.
+
+    Make sure time coordinates and bounds have the same units. Default is xarray's CF datetime
+    encoding, which can be overridden by user-defined encoding.
+    """
     if 'time' in dataset:
         try:
             dtnp64 = dataset['time'].data[0]
@@ -466,6 +463,20 @@ def update_encoding(dataset, to_netcdf_kwargs):
                       '_FillValue': None}
         encoding['time'] = time_enc
         encoding['time_bnds'] = bounds_enc  # FUTURE: Not required anymore with xarray-0.14+
+
+
+def update_encoding(dataset, to_netcdf_kwargs):
+    """Update encoding.
+
+    Preserve dask chunks, avoid fill values in coordinate variables and make sure that
+    time & time bounds have the same units.
+    """
+    other_to_netcdf_kwargs = to_netcdf_kwargs.copy()
+    encoding = other_to_netcdf_kwargs.pop('encoding', {}).copy()
+
+    _set_default_chunks(encoding, dataset)
+    _set_default_fill_value(encoding, dataset)
+    _set_default_time_encoding(encoding, dataset)
 
     return encoding, other_to_netcdf_kwargs
 
