@@ -16,7 +16,8 @@ env:
         - CONDA_CHANNEL_PRIORITY='strict'
         - MAMBA=True
         - UNSTABLE_DEPS=False
-        - PIP_FALLBACK=False
+        - PIP_FALLBACK=false
+        - DEBUG=True
 matrix:
   include:
   - env: PYTHON_VERSION=3.8
