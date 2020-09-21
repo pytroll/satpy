@@ -14,7 +14,7 @@ env:
         - SETUP_CMD='test'
         - CONDA_CHANNELS='conda-forge'
         - CONDA_CHANNEL_PRIORITY='strict'
-        - CONDA_VERSION='4.8.5'
+        - CONDA_VERSION='>=4.8'
         - MAMBA=True
         - UNSTABLE_DEPS=False
         - PIP_FALLBACK=false
