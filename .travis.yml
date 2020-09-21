@@ -28,7 +28,7 @@ matrix:
     language: generic
   - env: PYTHON_VERSION=3.8
     os: windows
-    language: generic
+    language: bash
   - env: PYTHON_VERSION=3.7
     os: linux
   - env: PYTHON_VERSION=3.7
