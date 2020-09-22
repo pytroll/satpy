@@ -59,6 +59,89 @@ ANGLES = ['sensor_zenith_angle', 'sensor_azimuth_angle',
           'solar_zenith_angle', 'solar_azimuth_difference_angle']
 
 
+class FrequencyStripes(tuple):
+    """A tuple for frequency stripes and band identificationswavelength ranges.
+
+    The elements of the range are min, central and max values, and optionally a unit
+    (defaults to µm). No clever unit conversion is done here, it's just used for checking
+    that two ranges are comparable.
+    """
+
+    def __eq__(self, other):
+        """Return if two wavelengths are equal.
+
+        Args:
+            other (tuple or scalar): (min wl, nominal wl, max wl) or scalar wl
+
+        Return:
+            True if other is a scalar and min <= other <= max, or if other is
+            a tuple equal to self, False otherwise.
+
+        """
+        if other is None:
+            return False
+        elif isinstance(other, numbers.Number):
+            return other in self
+        elif isinstance(other, (tuple, list)) and len(other) == 3:
+            return self[:3] == other
+        return super().__eq__(other)
+
+    def __ne__(self, other):
+        """Return the opposite of `__eq__`."""
+        return not self == other
+
+    def __lt__(self, other):
+        """Compare to another wavelength."""
+        if other is None:
+            return False
+        return super().__lt__(other)
+
+    def __gt__(self, other):
+        """Compare to another wavelength."""
+        if other is None:
+            return True
+        return super().__gt__(other)
+
+    def __hash__(self):
+        """Hash this tuple."""
+        return tuple.__hash__(self)
+
+    def __str__(self):
+        """Format for print out."""
+        return "{0.central} {0.unit} ({0.min}-{0.max} {0.unit})".format(self)
+
+    def __contains__(self, other):
+        """Check if this range contains *other*."""
+        if other is None:
+            return False
+        elif isinstance(other, numbers.Number):
+            return self.min <= other <= self.max
+        with suppress(AttributeError):
+            if self.unit != other.unit:
+                raise NotImplementedError("Can't compare wavelength ranges with different units.")
+            return self.min <= other.min and self.max >= other.max
+        return False
+
+    def distance(self, value):
+        """Get the distance from value."""
+        if self == value:
+            try:
+                return abs(value.central - self.central)
+            except AttributeError:
+                if isinstance(value, (tuple, list)):
+                    return abs(value[1] - self.central)
+                return abs(value - self.central)
+        else:
+            return np.inf
+
+    @classmethod
+    def convert(cls, wl):
+        """Convert `wl` to this type if possible."""
+        if isinstance(wl, (dict)):
+            return cls(*wl)
+        return wl
+
+
 class MHSAAPPL1CFile(BaseFileHandler):
     """Reader for AMSU-B/MHS L1C files created from the AAPP software."""
 
