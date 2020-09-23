@@ -87,7 +87,7 @@ composites:
     - IR_120
     standard_name: cloudtop
 
-  convection:
+  severe_storms:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
@@ -103,8 +103,8 @@ composites:
       prerequisites:
         - IR_016
         - VIS006
-    standard_name: convection
-
+    standard_name: severe_storms
+  
   night_fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
