@@ -44,9 +44,8 @@ OLD_READER_NAMES = {
 
 def group_files(files_to_sort, reader=None, time_threshold=10,
                 group_keys=None, ppp_config_dir=None, reader_kwargs=None):
-    """Group series of files by file pattern information.
-
-    By default this will group files by their filename ``start_time``
+    """Group series of files by file pattern information."""
+    """By default this will group files by their filename ``start_time``
     assuming it exists in the pattern. By passing the individual
     dictionaries returned by this function to the Scene classes'
     ``filenames``, a series `Scene` objects can be easily created.
@@ -107,9 +106,8 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
 
 def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
                              reader_kwargs):
-    """Assign files to readers.
-
-    Given a list of file names (paths), match those to reader instances.
+    """Assign files to readers."""
+    """Given a list of file names (paths), match those to reader instances.
 
     Internal helper for group_files.
 
@@ -150,9 +148,8 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
 
 
 def _get_file_keys_for_reader_files(reader_files, group_keys=None):
-    """From a mapping from _assign_files_to_readers, get file keys.
-
-    Given a mapping where each key is a reader name and each value is a
+    """From a mapping from _assign_files_to_readers, get file keys."""
+    """Given a mapping where each key is a reader name and each value is a
     tuple of reader instance (typically FileYAMLReader) and a collection
     of files, return a mapping with the same keys, but where the values are
     lists of tuples of (keys, filename), where keys are extracted from the filenames
@@ -315,10 +312,13 @@ def available_readers(as_dict=False):
         try:
             reader_info = read_reader_config(reader_configs)
         except (KeyError, IOError, yaml.YAMLError):
-            LOG.warning("Could not import reader config from: %s", reader_configs)
             LOG.debug("Error loading YAML", exc_info=True)
             continue
         readers.append(reader_info if as_dict else reader_info['name'])
+    if as_dict:
+        readers = sorted(readers, key=lambda reader_info: reader_info['name'])
+    else:
+        readers = sorted(readers)
     return readers
 
 
