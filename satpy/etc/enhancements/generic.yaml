@@ -157,21 +157,6 @@ enhancements:
       method: !!python/name:satpy.enhancements.gamma
       kwargs: {gamma: 1.6}
       
-  # EUMETrain recipe for the SEVIRI "Severe Storms RGB"
-  severe_storms_default:
-    operations:
-    - name: stretch
-      method: !!python/name:satpy.enhancements.stretch
-      kwargs:
-        stretch: crude
-        min_stretch: [-35, -5, -75]
-        max_stretch: [0, 60, 25]
-    - name: gamma
-      method: !!python/name:satpy.enhancements.gamma
-      kwargs:
-        gamma: [1.0, 0.5, 1.0]
-    standard_name: severe_storms
-            
   dust_default:
     standard_name: dust
     operations:

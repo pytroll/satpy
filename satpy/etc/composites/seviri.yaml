@@ -86,7 +86,7 @@ composites:
     - IR_108
     - IR_120
     standard_name: cloudtop
-
+    
   severe_storms:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
@@ -97,14 +97,30 @@ composites:
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
         - name: IR_039
-          modifiers: [co2_corrected]
         - IR_108
     - compositor: !!python/name:satpy.composites.DifferenceCompositor
       prerequisites:
         - IR_016
         - VIS006
     standard_name: severe_storms
-  
+
+  severe_storms_high_latitudes:
+    compositor: !!python/name:satpy.composites.GenericCompositor
+    prerequisites:
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - WV_062
+        - WV_073
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - name: IR_039
+        - IR_108
+    - compositor: !!python/name:satpy.composites.DifferenceCompositor
+      prerequisites:
+        - IR_016
+        - VIS006
+    standard_name: severe_storms_high_latitudes
+
   night_fog:
     compositor: !!python/name:satpy.composites.GenericCompositor
     prerequisites:
