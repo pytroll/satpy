@@ -110,6 +110,7 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
         xr_.open_dataset.return_value = fake_dataset
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16', 'observation_type': 'Rad',
+                                  'suffix': '_custom',
                                   'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
 
@@ -150,6 +151,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                'scene_id': None,
                'sensor': 'abi',
                'timeline_ID': None,
+               'suffix': '_custom',
                'units': 'W m-2 um-1 sr-1'}
 
         self.assertDictEqual(res.attrs, exp)
