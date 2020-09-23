@@ -117,7 +117,7 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         """Initialize file handler."""
         self.datasets = filename_info['datasets'].split('-')
         self.use_tc = use_tc
-        super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(VIIRSSDRFileHandler, self).__init__(filename, filename_info, filetype_info, **kwargs)
 
     def __getitem__(self, item):
         """Get item."""
@@ -213,25 +213,10 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         return self[sensor_path].lower()
 
     def get_file_units(self, dataset_id, ds_info):
-        """Get file units."""
+        """Get file units from metadata."""
         file_units = ds_info.get("file_units")
-
-        # Guess the file units if we need to (normally we would get this from
-        # the file)
         if file_units is None:
-            if dataset_id.calibration == 'radiance':
-                if "dnb" in dataset_id.name.lower():
-                    return 'W m-2 sr-1'
-                else:
-                    return 'W cm-2 sr-1'
-            elif dataset_id.calibration == 'reflectance':
-                # CF compliant unit for dimensionless
-                file_units = "1"
-            elif dataset_id.calibration == 'brightness_temperature':
-                file_units = "K"
-            else:
-                LOG.debug("Unknown units for file key '%s'", dataset_id)
-
+            LOG.debug("Unknown units for file key '%s'", dataset_id)
         return file_units
 
     def scale_swath_data(self, data, scaling_factors):
@@ -248,25 +233,43 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
         data = data * factors[:, 0] + factors[:, 1]
         return data
 
-    def adjust_scaling_factors(self, factors, file_units, output_units):
-        """Adjust scaling factors."""
+    @staticmethod
+    def _scale_factors_for_units(factors, file_units, output_units):
+        if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
+            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
+                      file_units, output_units)
+            factors = factors * 10000.
+        elif file_units == "1" and output_units == "%":
+            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'",
+                      file_units, output_units)
+            factors = factors * 100.
+        else:
+            raise ValueError("Don't know how to convert '{}' to '{}'".format(
+                file_units, output_units))
+        return factors
+
+    @staticmethod
+    def _get_valid_scaling_factors(factors):
+        if factors is None:
+            factors = np.array([1, 0], dtype=np.float32)
+            factors = xr.DataArray(da.from_array(factors, chunks=1))
+        else:
+            factors = factors.where(factors != -999., np.float32(np.nan))
+        return factors
+
+    def _adjust_scaling_factors(self, factors, file_units, output_units):
+        """Adjust scaling factors ."""
         if file_units == output_units:
             LOG.debug("File units and output units are the same (%s)", file_units)
             return factors
-        if factors is None:
-            return None
-        factors = factors.where(factors != -999., np.float32(np.nan))
+        factors = self._get_valid_scaling_factors(factors)
+        return self._scale_factors_for_units(factors, file_units, output_units)
 
-        if file_units == "W cm-2 sr-1" and output_units == "W m-2 sr-1":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors = factors * 10000.
-            return factors
-        elif file_units == "1" and output_units == "%":
-            LOG.debug("Adjusting scaling factors to convert '%s' to '%s'", file_units, output_units)
-            factors = factors * 100.
-            return factors
-        else:
-            return factors
+    def _get_scaling_factors(self, file_units, output_units, factor_var_path):
+        """Get file scaling factors and scale according to expected units."""
+        factors = self.get(factor_var_path)
+        factors = self._adjust_scaling_factors(factors, file_units, output_units)
+        return factors
 
     def _generate_file_key(self, ds_id, ds_info, factors=False):
         var_path = ds_info.get('file_key', 'All_Data/{dataset_group}_All/{calibration}')
@@ -274,9 +277,9 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
             'radiance': 'Radiance',
             'reflectance': 'Reflectance',
             'brightness_temperature': 'BrightnessTemperature',
-        }.get(ds_id.calibration)
+        }.get(ds_id.get('calibration'))
         var_path = var_path.format(calibration=calibration, dataset_group=DATASET_KEYS[ds_info['dataset_group']])
-        if ds_id.name in ['dnb_longitude', 'dnb_latitude']:
+        if ds_id['name'] in ['dnb_longitude', 'dnb_latitude']:
             if self.use_tc is True:
                 return var_path + '_TC'
             elif self.use_tc is None and var_path + '_TC' in self.file_content:
@@ -358,21 +361,18 @@ class VIIRSSDRFileHandler(HDF5FileHandler):
 
         data = self.concatenate_dataset(dataset_group, var_path)
         data = self.mask_fill_values(data, ds_info)
-        factors = self.get(factor_var_path)
-        if factors is None:
-            LOG.debug("No scaling factors found for %s", dataset_id)
-
         file_units = self.get_file_units(dataset_id, ds_info)
         output_units = ds_info.get("units", file_units)
-        factors = self.adjust_scaling_factors(factors, file_units, output_units)
-
+        factors = self._get_scaling_factors(file_units, output_units, factor_var_path)
         if factors is not None:
             data = self.scale_swath_data(data, factors)
+        else:
+            LOG.debug("No scaling factors found for %s", dataset_id)
 
         i = getattr(data, 'attrs', {})
         i.update(ds_info)
         i.update({
-            "units": ds_info.get("units", file_units),
+            "units": output_units,
             "platform_name": self.platform_name,
             "sensor": self.sensor_name,
             "start_orbit": self.start_orbit_number,
@@ -571,7 +571,7 @@ class VIIRSSDRReader(FileYAMLReader):
                if set(fh.datasets) & set(ds_info['dataset_groups'])]
         if not fhs:
             LOG.warning("Required file type '%s' not found or loaded for "
-                        "'%s'", ds_info['file_type'], dsid.name)
+                        "'%s'", ds_info['file_type'], dsid['name'])
         else:
             if len(set(ds_info['dataset_groups']) & set(['GITCO', 'GIMGO', 'GMTCO', 'GMODO'])) > 1:
                 fhs = self.get_right_geo_fhs(dsid, fhs)

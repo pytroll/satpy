@@ -103,7 +103,6 @@ class NcNWCSAF(BaseFileHandler):
 
     def set_platform_and_sensor(self, **kwargs):
         """Set some metadata: platform_name, sensors, and pps (identifying PPS or Geo)."""
-
         try:
             # NWCSAF/Geo
             self.platform_name = PLATFORM_NAMES.get(kwargs['sat_id'], kwargs['sat_id'])
@@ -125,7 +124,7 @@ class NcNWCSAF(BaseFileHandler):
 
     def get_dataset(self, dsid, info):
         """Load a dataset."""
-        dsid_name = dsid.name
+        dsid_name = dsid['name']
         if dsid_name in self.cache:
             logger.debug('Get the data set from cache: %s.', dsid_name)
             return self.cache[dsid_name]
@@ -141,7 +140,7 @@ class NcNWCSAF(BaseFileHandler):
             # Get full resolution lon,lat from the reduced (tie points) grid
             self.upsample_geolocation(dsid, info)
 
-            return self.cache[dsid.name]
+            return self.cache[dsid['name']]
 
         return variable
 
@@ -214,13 +213,13 @@ class NcNWCSAF(BaseFileHandler):
 
         if 'standard_name' in info:
             variable.attrs.setdefault('standard_name', info['standard_name'])
-        if self.sw_version == 'NWC/PPS version v2014' and dsid.name == 'ctth_alti':
+        if self.sw_version == 'NWC/PPS version v2014' and dsid['name'] == 'ctth_alti':
             # pps 2014 valid range and palette don't match
             variable.attrs['valid_range'] = (0., 9000.)
-        if self.sw_version == 'NWC/PPS version v2014' and dsid.name == 'ctth_alti_pal':
+        if self.sw_version == 'NWC/PPS version v2014' and dsid['name'] == 'ctth_alti_pal':
             # pps 2014 palette has the nodata color (black) first
             variable = variable[1:, :]
-        if self.sw_version == 'NWC/GEO version v2016' and dsid.name == 'ctth_alti':
+        if self.sw_version == 'NWC/GEO version v2016' and dsid['name'] == 'ctth_alti':
             # Geo 2016/18 valid range and palette don't match
             # Valid range is 0 to 27000 in the file. But after scaling the valid range becomes -2000 to 25000
             # This now fixed by the scaling of the valid range above.
@@ -261,12 +260,12 @@ class NcNWCSAF(BaseFileHandler):
             # PPS:
             raise NotImplementedError
 
-        if dsid.name.endswith('_pal'):
+        if dsid['name'].endswith('_pal'):
             raise NotImplementedError
 
         proj_str, area_extent = self._get_projection()
 
-        nlines, ncols = self.nc[dsid.name].shape
+        nlines, ncols = self.nc[dsid['name']].shape
 
         area = get_area_def('some_area_name',
                             "On-the-fly area",

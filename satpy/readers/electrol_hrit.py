@@ -273,7 +273,7 @@ class HRITGOMSFileHandler(HRITFileHandler):
         """Get the data  from the files."""
         res = super(HRITGOMSFileHandler, self).get_dataset(key, info)
 
-        res = self.calibrate(res, key.calibration)
+        res = self.calibrate(res, key['calibration'])
         res.attrs['units'] = info['units']
         res.attrs['standard_name'] = info['standard_name']
         res.attrs['wavelength'] = info['wavelength']

@@ -176,7 +176,7 @@ class BaseFileHandler(metaclass=ABCMeta):
         This method should **not** update values of the dataset information
         dictionary **unless** this file handler has a matching file type
         (the data could be loaded from this object in the future) and at least
-        **one** :class:`satpy.dataset.DatasetID` key is also modified.
+        **one** :class:`satpy.dataset.DataID` key is also modified.
         Otherwise, this file type may override the information provided by
         a more preferred file type (as specified in the YAML file).
         It is recommended that any non-ID metadata be updated during the
@@ -185,7 +185,7 @@ class BaseFileHandler(metaclass=ABCMeta):
         other file type's handler.
         The availability "boolean" not being ``None`` does not mean that a
         file handler called later can't provide an additional dataset, but
-        it must provide more identifying (DatasetID) information to do so
+        it must provide more identifying (DataID) information to do so
         and should yield its new dataset in addition to the previous one.
 
         Args:
