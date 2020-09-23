@@ -46,6 +46,9 @@ enhancements:
         kwargs:
           gamma: [1.4, 1, 1]
 
+  # https://weather.msfc.nasa.gov/sport/training/quickGuides/rgb/QuickGuide_ConvectiveRGB_NASA_SPoRT.pdf
+  # http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
+  # (Same stretch limits as the SEVIRI "severe_storms" but different Gamma)
   cira_day_convection:
     standard_name: cira_day_convection
     operations:
