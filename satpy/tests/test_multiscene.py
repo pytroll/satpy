@@ -18,13 +18,44 @@
 """Unit tests for multiscene.py."""
 
 import os
-import tempfile
 import shutil
-from datetime import datetime
+import tempfile
 import unittest
+from datetime import datetime
 from unittest import mock
 
+from satpy.dataset.dataid import DataID, ModifierTuple, WavelengthRange
+
 DEFAULT_SHAPE = (5, 10)
+
+local_id_keys_config = {'name': {
+    'required': True,
+},
+    'wavelength': {
+    'type': WavelengthRange,
+},
+    'resolution': None,
+    'calibration': {
+    'enum': [
+        'reflectance',
+        'brightness_temperature',
+        'radiance',
+        'counts'
+    ]
+},
+    'polarization': None,
+    'level': None,
+    'modifiers': {
+    'required': True,
+    'default': ModifierTuple(),
+    'type': ModifierTuple,
+},
+}
+
+
+def make_dataid(**items):
+    """Make a data id."""
+    return DataID(local_id_keys_config, **items)
 
 
 def _fake_get_enhanced_image(img, enhance=None, overlay=None, decorate=None):
@@ -61,7 +92,7 @@ def _create_test_dataset(name, shape=DEFAULT_SHAPE, area=None):
 
     return xr.DataArray(
         da.zeros(shape, dtype=np.float32, chunks=shape), dims=('y', 'x'),
-        attrs={'name': name, 'area': area})
+        attrs={'name': name, 'area': area, '_satpy_id_keys': local_id_keys_config})
 
 
 def _create_test_scenes(num_scenes=2, shape=DEFAULT_SHAPE, area=None):
@@ -94,14 +125,14 @@ class TestMultiScene(unittest.TestCase):
 
     def test_properties(self):
         """Test basic properties/attributes of the MultiScene."""
-        from satpy import MultiScene, DatasetID
+        from satpy import MultiScene
 
         area = _create_test_area()
         scenes = _create_test_scenes(area=area)
-        ds1_id = DatasetID(name='ds1')
-        ds2_id = DatasetID(name='ds2')
-        ds3_id = DatasetID(name='ds3')
-        ds4_id = DatasetID(name='ds4')
+        ds1_id = make_dataid(name='ds1')
+        ds2_id = make_dataid(name='ds2')
+        ds3_id = make_dataid(name='ds3')
+        ds4_id = make_dataid(name='ds4')
 
         # Add a dataset to only one of the Scenes
         scenes[1]['ds3'] = _create_test_dataset('ds3')
@@ -176,7 +207,8 @@ class TestMultiScene(unittest.TestCase):
             assert len(mscn.scenes) == 12
 
     def test_group(self):
-        from satpy import Scene, MultiScene, DatasetID
+        """Test group."""
+        from satpy import Scene, MultiScene
 
         ds1 = _create_test_dataset(name='ds1')
         ds2 = _create_test_dataset(name='ds2')
@@ -190,8 +222,8 @@ class TestMultiScene(unittest.TestCase):
         scene2['ds4'] = ds4
 
         multi_scene = MultiScene([scene1, scene2])
-        groups = {DatasetID(name='odd', wavelength=(1, 2, 3)): ['ds1', 'ds3'],
-                  DatasetID(name='even', wavelength=(2, 3, 4)): ['ds2', 'ds4']}
+        groups = {make_dataid(name='odd', wavelength=(1, 2, 3)): ['ds1', 'ds3'],
+                  make_dataid(name='even', wavelength=(2, 3, 4)): ['ds2', 'ds4']}
         multi_scene.group(groups)
 
         self.assertSetEqual(multi_scene.shared_dataset_ids, set(groups.keys()))
@@ -203,14 +235,13 @@ class TestMultiScene(unittest.TestCase):
         import types
 
         from satpy.multiscene import add_group_aliases
-        from satpy import DatasetID
         from satpy import Scene
 
         # Define test scenes
-        ds_id1 = DatasetID('ds1', wavelength=(10.7, 10.8, 10.9))
-        ds_id2 = DatasetID('ds2', wavelength=(1.9, 2.0, 2.1))
-        ds_id3 = DatasetID('ds3', wavelength=(10.8, 10.9, 11.0))
-        ds_id31 = DatasetID('ds31', polarization='H')
+        ds_id1 = make_dataid(name='ds1', wavelength=(10.7, 10.8, 10.9))
+        ds_id2 = make_dataid(name='ds2', wavelength=(1.9, 2.0, 2.1))
+        ds_id3 = make_dataid(name='ds3', wavelength=(10.8, 10.9, 11.0))
+        ds_id31 = make_dataid(name='ds31', polarization='H')
 
         scene1 = Scene()
         scene1[ds_id1] = xr.DataArray([1])
@@ -222,8 +253,8 @@ class TestMultiScene(unittest.TestCase):
         scenes = [scene1, scene2, scene3]
 
         # Define groups
-        g1 = DatasetID(name='g1', wavelength=(10, 11, 12))
-        g2 = DatasetID(name='g2', wavelength=(1, 2, 3), polarization='V')
+        g1 = make_dataid(name='g1', wavelength=(10, 11, 12))
+        g2 = make_dataid(name='g2', wavelength=(1, 2, 3), polarization='V')
         groups = {g1: ['ds1', 'ds3'], g2: ['ds2']}
 
         # Test adding aliases

@@ -28,7 +28,7 @@ class TestOLCIReader(unittest.TestCase):
         """Test initialization of file handlers."""
         from satpy.readers.olci_nc import (NCOLCIBase, NCOLCICal, NCOLCIGeo,
                                            NCOLCIChannelBase, NCOLCI1B, NCOLCI2)
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         import xarray as xr
 
         cal_data = xr.Dataset(
@@ -39,8 +39,8 @@ class TestOLCIReader(unittest.TestCase):
             {'bands': [0, 1, 2], },
         )
 
-        ds_id = DatasetID(name='Oa01', calibration='reflectance')
-        ds_id2 = DatasetID(name='wsqf', calibration='reflectance')
+        ds_id = make_dataid(name='Oa01', calibration='reflectance')
+        ds_id2 = make_dataid(name='wsqf', calibration='reflectance')
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
 
         test = NCOLCIBase('somedir/somefile.nc', filename_info, 'c')
@@ -80,14 +80,14 @@ class TestOLCIReader(unittest.TestCase):
     def test_get_dataset(self, mocked_dataset):
         """Test reading datasets."""
         from satpy.readers.olci_nc import NCOLCI2
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
         mocked_dataset.return_value = xr.Dataset({'mask': (['rows', 'columns'],
                                                            np.array([1 << x for x in range(30)]).reshape(5, 6))},
                                                  coords={'rows': np.arange(5),
                                                          'columns': np.arange(6)})
-        ds_id = DatasetID(name='mask')
+        ds_id = make_dataid(name='mask')
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'mask', 'start_time': 0, 'end_time': 0}
         test = NCOLCI2('somedir/somefile.nc', filename_info, 'c')
         res = test.get_dataset(ds_id, {'nc_key': 'mask'})
@@ -97,7 +97,7 @@ class TestOLCIReader(unittest.TestCase):
     def test_olci_angles(self, mocked_dataset):
         """Test reading datasets."""
         from satpy.readers.olci_nc import NCOLCIAngles
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
         attr_dict = {
@@ -117,8 +117,8 @@ class TestOLCIReader(unittest.TestCase):
                                                  attrs=attr_dict)
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'Oa01', 'start_time': 0, 'end_time': 0}
 
-        ds_id = DatasetID(name='solar_azimuth_angle')
-        ds_id2 = DatasetID(name='satellite_zenith_angle')
+        ds_id = make_dataid(name='solar_azimuth_angle')
+        ds_id2 = make_dataid(name='satellite_zenith_angle')
         test = NCOLCIAngles('somedir/somefile.nc', filename_info, 'c')
         test.get_dataset(ds_id, filename_info)
         test.get_dataset(ds_id2, filename_info)
@@ -129,7 +129,7 @@ class TestOLCIReader(unittest.TestCase):
     def test_olci_meteo(self, mocked_dataset):
         """Test reading datasets."""
         from satpy.readers.olci_nc import NCOLCIMeteo
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dataid
         import numpy as np
         import xarray as xr
         attr_dict = {
@@ -150,8 +150,8 @@ class TestOLCIReader(unittest.TestCase):
                                                  attrs=attr_dict)
         filename_info = {'mission_id': 'S3A', 'dataset_name': 'humidity', 'start_time': 0, 'end_time': 0}
 
-        ds_id = DatasetID(name='humidity')
-        ds_id2 = DatasetID(name='total_ozone')
+        ds_id = make_dataid(name='humidity')
+        ds_id2 = make_dataid(name='total_ozone')
         test = NCOLCIMeteo('somedir/somefile.nc', filename_info, 'c')
         test.get_dataset(ds_id, filename_info)
         test.get_dataset(ds_id2, filename_info)

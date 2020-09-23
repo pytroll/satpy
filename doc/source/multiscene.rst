@@ -110,9 +110,9 @@ roughly the same time. First, create scenes and load datasets individually:
 
 Now create a ``MultiScene`` and group the three similar IR channels together:
 
-    >>> from satpy import MultiScene, DatasetID
+    >>> from satpy import MultiScene, DataQuery
     >>> mscn = MultiScene([h8_scene, g16_scene, met10_scene])
-    >>> groups = {DatasetID('IR_group', wavelength=(10, 11, 12)): ['B13', 'C13', 'IR_108']}
+    >>> groups = {DataQuery('IR_group', wavelength=(10, 11, 12)): ['B13', 'C13', 'IR_108']}
     >>> mscn.group(groups)
 
 Finally, resample the datasets to a common grid and blend them together:

@@ -119,16 +119,32 @@ Output:
       scn['IR_108']['y'] = mi
       scn['IR_108'].sel(time=np.datetime64('2019-03-01T12:06:13.052000000'))
 
+Notes:
+    When loading solar channels, this reader applies a correction for the
+    Sun-Earth distance variation throughout the year - as recommended by
+    the EUMETSAT document:
+        'Conversion from radiances to reflectances for SEVIRI warm channels'
+    In the unlikely situation that this correction is not required, it can be
+    removed on a per-channel basis using the
+    satpy.readers.utils.remove_earthsun_distance_correction(channel, utc_time)
+    function.
+
 
 References:
     - `MSG Level 1.5 Image Format Description`_
     - `Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance`_
+    - `Conversion from radiances to reflectances for SEVIRI warm channels`_
+
 
 .. _MSG Level 1.5 Image Format Description: http://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=
     PDF_TEN_05105_MSG_IMG_DATA&RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 .. _Radiometric Calibration of MSG SEVIRI Level 1.5 Image Data in Equivalent Spectral Blackbody Radiance:
     https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_TEN_MSG_SEVIRI_RAD_CALIB&
+    RevisionSelectionMethod=LatestReleased&Rendition=Web
+
+.. _Conversion from radiances to reflectances for SEVIRI warm channels:
+    https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_MSG_SEVIRI_RAD2REFL&
     RevisionSelectionMethod=LatestReleased&Rendition=Web
 
 """
@@ -592,7 +608,6 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
 
     def get_area_def(self, dsid):
         """Get the area definition of the band."""
-
         # Common parameters for both HRV and other channels
         nlines = int(self.mda['number_of_lines'])
         loff = np.float32(self.mda['loff'])
@@ -615,7 +630,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             pdict['scandir'] = 'S2N'
 
         # Compute area definition for non-HRV channels:
-        if dsid.name != 'HRV':
+        if dsid['name'] != 'HRV':
             pdict['loff'] = loff - nlines
             aex = self._get_area_extent(pdict)
             pdict['a_name'] = 'geosmsg'
@@ -672,8 +687,8 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
     def get_dataset(self, key, info):
         """Get the dataset."""
         res = super(HRITMSGFileHandler, self).get_dataset(key, info)
-        res = self.calibrate(res, key.calibration)
-        if key.name == 'HRV' and self.fill_hrv:
+        res = self.calibrate(res, key['calibration'])
+        if key['name'] == 'HRV' and self.fill_hrv:
             res = self.pad_hrv_data(res)
 
         res.attrs['units'] = info['units']
@@ -752,7 +767,7 @@ class HRITMSGFileHandler(HRITFileHandler, SEVIRICalibrationHandler):
             else:
                 coefs = self.prologue["RadiometricProcessing"]['MPEFCalFeedback']
                 int_gain = coefs['GSICSCalCoeff'][band_idx]
-                int_offset = coefs['GSICSOffsetCount'][band_idx]
+                int_offset = coefs['GSICSOffsetCount'][band_idx] * int_gain
 
             # b) Internal or external? External takes precedence.
             gain = self.ext_calib_coefs.get(self.channel_name, {}).get('gain', int_gain)

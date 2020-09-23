@@ -30,8 +30,9 @@ from pyproj import Proj
 from pyresample import geometry
 from datetime import datetime
 
-from satpy import DatasetID, CHUNK_SIZE
+from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
+from satpy.dataset import DataQuery
 import pygrib
 
 LOG = logging.getLogger(__name__)
@@ -75,8 +76,9 @@ class GRIBFileHandler(BaseFileHandler):
     def _analyze_messages(self, grib_file):
         grib_file.seek(0)
         for idx, msg in enumerate(grib_file):
-            msg_id = DatasetID(name=msg['shortName'],
-                               level=msg['level'])
+            msg_id = DataQuery(name=msg['shortName'],
+                               level=msg['level'],
+                               modifiers=tuple())
             ds_info = {
                 'message': idx + 1,
                 'name': msg['shortName'],
@@ -92,7 +94,7 @@ class GRIBFileHandler(BaseFileHandler):
             id_keys = [keys[k]['id_key'] for k in ordered_keys]
             msg_info = dict(zip(ordered_keys, id_vals))
             ds_info = dict(zip(id_keys, id_vals))
-            msg_id = DatasetID(**ds_info)
+            msg_id = DataQuery(**ds_info)
             ds_info = msg_id.to_dict()
             ds_info.update(msg_info)
             ds_info['file_type'] = self.filetype_info['file_type']
@@ -225,7 +227,7 @@ class GRIBFileHandler(BaseFileHandler):
             raise RuntimeError("Unknown GRIB projection information")
 
     def get_metadata(self, msg, ds_info):
-        """Get data metadata."""
+        """Get metadata."""
         model_time = self._convert_datetime(msg, 'dataDate',
                                             'dataTime')
         start_time = self._convert_datetime(msg, 'validityDate',
