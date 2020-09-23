@@ -14,11 +14,8 @@ env:
         - SETUP_CMD='test'
         - CONDA_CHANNELS='conda-forge'
         - CONDA_CHANNEL_PRIORITY='strict'
-        - CONDA_VERSION='>=4.8'
         - MAMBA=True
         - UNSTABLE_DEPS=False
-        - PIP_FALLBACK=false
-        - DEBUG=True
 matrix:
   include:
   - env: PYTHON_VERSION=3.8
@@ -47,7 +44,7 @@ matrix:
       - UNSTABLE_DEPS=True
 install:
     #- git clone --depth 1 git://github.com/astropy/ci-helpers.git
-    - git clone -b bugfix-mamba --single-branch git://github.com/djhoese/ci-helpers.git
+    - git clone -b bugfix-mamba2 --single-branch git://github.com/djhoese/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
     # See https://github.com/travis-ci/travis-ci/issues/8920
     - if [ $TRAVIS_OS_NAME != "windows" ]; then
