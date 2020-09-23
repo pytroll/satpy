@@ -49,7 +49,9 @@ install:
     - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
     # See https://github.com/travis-ci/travis-ci/issues/8920
-    - python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)"
+    - if [ $TRAVIS_OS_NAME != "windows" ]; then
+        python -c "import fcntl; fcntl.fcntl(1, fcntl.F_SETFL, 0)";
+      fi
     - if [ "$UNSTABLE_DEPS" == "True" ]; then
         python -m pip install
         -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com
