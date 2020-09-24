@@ -43,8 +43,7 @@ matrix:
       - PYTHON_VERSION=3.8
       - UNSTABLE_DEPS=True
 install:
-    #- git clone --depth 1 git://github.com/astropy/ci-helpers.git
-    - git clone -b bugfix-mamba2 --single-branch git://github.com/djhoese/ci-helpers.git
+    - git clone --depth 1 git://github.com/astropy/ci-helpers.git
     - source ci-helpers/travis/setup_conda.sh
     # See https://github.com/travis-ci/travis-ci/issues/8920
     - if [ $TRAVIS_OS_NAME != "windows" ]; then
