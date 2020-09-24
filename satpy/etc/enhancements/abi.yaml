@@ -48,9 +48,11 @@ enhancements:
 
   # https://weather.msfc.nasa.gov/sport/training/quickGuides/rgb/QuickGuide_ConvectiveRGB_NASA_SPoRT.pdf
   # http://rammb.cira.colostate.edu/training/visit/quick_guides/QuickGuide_GOESR_DayConvectionRGB_final.pdf
-  # (Same stretch limits as the SEVIRI "severe_storms" but different Gamma)
-  cira_day_convection:
-    standard_name: cira_day_convection
+  # Comment: Same stretch limits as the SEVIRI "severe_storms" but different Gamma
+  # NB! This RGB is for identifying severe storms and does not identify
+  #  "convection" in its broad definition.
+  day_convection:
+    standard_name: day_convection
     operations:
       - name: stretch
         method: !!python/name:satpy.enhancements.stretch
