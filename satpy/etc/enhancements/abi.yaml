@@ -60,6 +60,11 @@ enhancements:
           stretch: crude
           min_stretch: [-35.0, -5.0, -75.0]
           max_stretch: [5.0, 60.0, 25.0]
+    - name: gamma
+      method: !!python/name:satpy.enhancements.gamma
+      kwargs:
+        gamma: [1.0, 1.0, 1.0]
+    standard_name: severe_storms
 
   cimss_cloud_type:
     standard_name: cimss_cloud_type
