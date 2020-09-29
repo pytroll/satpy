@@ -625,12 +625,16 @@ class TestYAMLFiles(unittest.TestCase):
         self.assertIsInstance(reader_names[0], str)
         self.assertIn('viirs_sdr', reader_names)  # needs h5py
         self.assertIn('abi_l1b', reader_names)  # needs netcdf4
+        for i in range(1, len(reader_names)):
+            self.assertTrue(reader_names[i] > reader_names[i-1])
 
         reader_infos = available_readers(as_dict=True)
         self.assertEqual(len(reader_names), len(reader_infos))
         self.assertIsInstance(reader_infos[0], dict)
         for reader_info in reader_infos:
             self.assertIn('name', reader_info)
+        for i in range(1, len(reader_infos)):
+            self.assertTrue(reader_infos[i]['name'] > reader_infos[i-1]['name'])
 
 
 class TestGroupFiles(unittest.TestCase):
