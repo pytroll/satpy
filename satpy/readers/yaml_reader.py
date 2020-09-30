@@ -458,7 +458,7 @@ class FileYAMLReader(AbstractYAMLReader):
             # check if the file handler supports file systems
             argument_names = filetype_cls.__init__.__code__.co_varnames
             if file_system is not None and "file_system" not in argument_names:
-                NotImplementedError("File handler {} does not support file systems".format(
+                raise NotImplementedError("File handler {} does not support file systems".format(
                     filetype_cls.__name__))
 
             yield filetype_cls(filename, filename_info, filetype_info, file_system=file_system,
