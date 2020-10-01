@@ -85,7 +85,6 @@ def group_files(files_to_sort, reader=None, time_threshold=10,
         a `Scene` object.
 
     """
-
     if reader is not None and not isinstance(reader, (list, tuple)):
         reader = [reader]
 
@@ -124,7 +123,6 @@ def _assign_files_to_readers(files_to_sort, reader_names, ppp_config_dir,
         Mapping where the keys are reader names and the values are tuples of
         (reader_configs, filenames).
     """
-
     files_to_sort = set(files_to_sort)
     reader_dict = {}
     for reader_configs in configs_for_reader(reader_names, ppp_config_dir):
@@ -164,7 +162,6 @@ def _get_file_keys_for_reader_files(reader_files, group_keys=None):
     Returns:
         Mapping[str, List[Tuple[Tuple, str]]], as described.
     """
-
     file_keys = {}
     for (reader_name, (reader_instance, files_to_sort)) in reader_files.items():
         if group_keys is None:
@@ -315,10 +312,14 @@ def available_readers(as_dict=False):
         try:
             reader_info = read_reader_config(reader_configs)
         except (KeyError, IOError, yaml.YAMLError):
-            LOG.warning("Could not import reader config from: %s", reader_configs)
+            LOG.debug("Could not import reader config from: %s", reader_configs)
             LOG.debug("Error loading YAML", exc_info=True)
             continue
         readers.append(reader_info if as_dict else reader_info['name'])
+    if as_dict:
+        readers = sorted(readers, key=lambda reader_info: reader_info['name'])
+    else:
+        readers = sorted(readers)
     return readers
 
 
