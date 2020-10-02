@@ -10,19 +10,3 @@ file_types:
         file_patterns: ['comp{start_time:%Y%m%d.%H%M%S}.nc']
         sensor: ['mimic']
         platform_name: ['microwave']
-
-datasets:
-    latArr:
-        name:  'latitude'
-        units:  degrees_north
-        file_key:  latArr
-        standard_name:  latitude
-        coordinates: [ latitude ]
-        file_type: mimicTPW2_comp
-    lonArr:
-        name: 'longitude'
-        units: degrees_east
-        file_key:  lonArr
-        standard_name:  longitude
-        coordinates: [ longitude ]
-        file_type: mimicTPW2_comp
