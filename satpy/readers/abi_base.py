@@ -38,17 +38,25 @@ PLATFORM_NAMES = {
 class NC_ABI_BASE(BaseFileHandler):
     """Base reader for ABI L1B  L2+ NetCDF4 files."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    # block_size is relevant for some file_system instances and should be
+    # passed when opening the file, 2**16 determined as reasonably tradeoff
+    # between data and speed by (limited) trial and error using
+    # CachingFileSystem from fsspec
+    block_size = 2**16
+
+    def __init__(self, filename, filename_info, filetype_info, file_system=None):
         """Open the NetCDF file with xarray and prepare the Dataset for reading."""
-        super(NC_ABI_BASE, self).__init__(filename, filename_info, filetype_info)
+        super().__init__(filename, filename_info, filetype_info,
+                         file_system=file_system)
         # xarray's default netcdf4 engine
+        self.of = self.file_system.open(self.filename, block_size=self.block_size)
         try:
-            self.nc = xr.open_dataset(self.filename,
+            self.nc = xr.open_dataset(self.of,
                                       decode_cf=True,
                                       mask_and_scale=False,
                                       chunks={'x': CHUNK_SIZE, 'y': CHUNK_SIZE}, )
         except ValueError:
-            self.nc = xr.open_dataset(self.filename,
+            self.nc = xr.open_dataset(self.of,
                                       decode_cf=True,
                                       mask_and_scale=False,
                                       chunks={'lon': CHUNK_SIZE, 'lat': CHUNK_SIZE}, )
@@ -104,7 +112,13 @@ class NC_ABI_BASE(BaseFileHandler):
                 new_fill = fill
             else:
                 new_fill = np.nan
-            data = data.where(data != fill, new_fill)
+            # squeezing because some backends (h5netcdf) may return attributes
+            # as shape (1,) arrays rather than shape () scalars, which according
+            # to the netcdf documentation at <URL:https://www.unidata.ucar.edu
+            # /software/netcdf/docs/netcdf_data_set_components.html#attributes>
+            # is correct.  Using np.squeeze because new_fill may be either a
+            # Python number or numpy array of shape (1,).
+            data = data.where(data != fill.squeeze(), np.squeeze(new_fill))
 
         if factor != 1 and item in ('x', 'y'):
             # be more precise with x/y coordinates
@@ -262,8 +276,9 @@ class NC_ABI_BASE(BaseFileHandler):
         return res
 
     def __del__(self):
-        """Close the NetCDF file that may still be open."""
+        """Close the NetCDF file and file_system object that may still be open."""
         try:
             self.nc.close()
+            self.of.close()
         except (IOError, OSError, AttributeError):
             pass
