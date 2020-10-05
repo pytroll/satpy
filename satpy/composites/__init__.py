@@ -626,8 +626,11 @@ class NIRReflectance(CompositeBase):
         Args:
             sunz_threshold: The threshold sun zenith angle used when deriving
                 the near infrared reflectance. Above this angle the derivation
-                will assume this sun-zenith everywhere. Default None, in which
-                case the default threshold defined in Pyspectral will be used.
+                will assume this sun-zenith everywhere. Unless overridden, the
+                default threshold defined in Pyspectral will be used.
+            masking_limit: Mask the data (set to NaN) above this Sun zenith angle.
+                By default, use the value defined in Pyspectral.  Setting this to
+                `None` will disable the masking.
 
         """
         self.sun_zenith_threshold = sunz_threshold
