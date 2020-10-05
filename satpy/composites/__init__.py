@@ -60,8 +60,6 @@ NEGLIBLE_COORDS = ['time']
 MASKING_COMPOSITOR_METHODS = ['less', 'less_equal', 'equal', 'greater_equal',
                               'greater', 'not_equal', 'isnan', 'isfinite',
                               'isneginf', 'isposinf']
-NIR_REFLECTANCE_TERMINATOR_LIMIT = 85.0
-NIR_REFLECTANCE_MASKING_LIMIT = 88.0
 
 
 class IncompatibleAreas(Exception):
@@ -622,8 +620,11 @@ class PSPRayleighReflectance(CompositeBase):
 class NIRReflectance(CompositeBase):
     """Get the reflective part of NIR bands."""
 
-    def __init__(self, sunz_threshold=NIR_REFLECTANCE_TERMINATOR_LIMIT,
-                 masking_limit=NIR_REFLECTANCE_MASKING_LIMIT, **kwargs):
+    TERMINATOR_LIMIT = 85.0
+    MASKING_LIMIT = 88.0
+
+    def __init__(self, sunz_threshold=TERMINATOR_LIMIT,
+                 masking_limit=MASKING_LIMIT, **kwargs):
         """Collect custom configuration values.
 
         Args:
