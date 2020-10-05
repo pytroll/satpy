@@ -29,8 +29,9 @@ from satpy.tests.utils import make_dataid
 class Test_NC_ABI_L1B_Base(unittest.TestCase):
     """Common setup for NC_ABI_L1B tests."""
 
+    @mock.patch("satpy.readers.file_handlers.LocalFileSystem")
     @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_, rad=None):
+    def setUp(self, xr_, srfL, rad=None):
         """Create a fake dataset using the given radiance data."""
         from satpy.readers.abi_l1b import NC_ABI_L1B
 

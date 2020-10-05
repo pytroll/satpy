@@ -118,7 +118,7 @@ class NC_ABI_BASE(BaseFileHandler):
             # /software/netcdf/docs/netcdf_data_set_components.html#attributes>
             # is correct.  Using np.squeeze because new_fill may be either a
             # Python number or numpy array of shape (1,).
-            data = data.where(data != fill.squeeze(), np.squeeze(new_fill))
+            data = data.where(data != np.squeeze(fill), np.squeeze(new_fill))
 
         if factor != 1 and item in ('x', 'y'):
             # be more precise with x/y coordinates

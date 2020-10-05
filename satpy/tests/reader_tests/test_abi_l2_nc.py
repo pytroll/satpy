@@ -25,8 +25,9 @@ from unittest import mock
 class Test_NC_ABI_L2_base(unittest.TestCase):
     """Test the NC_ABI_L2 reader."""
 
+    @mock.patch("satpy.readers.file_handlers.LocalFileSystem")
     @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_):
+    def setUp(self, xr_, srfL):
         """Create fake data for the tests."""
         from satpy.readers.abi_l2_nc import NC_ABI_L2
 
@@ -135,8 +136,9 @@ class Test_NC_ABI_L2_area_fixedgrid(Test_NC_ABI_L2_base):
 class Test_NC_ABI_L2_area_latlon(unittest.TestCase):
     """Test the NC_ABI_L2 reader."""
 
+    @mock.patch("satpy.readers.file_handlers.LocalFileSystem")
     @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_):
+    def setUp(self, xr_, srfL):
         """Create fake data for the tests."""
         from satpy.readers.abi_l2_nc import NC_ABI_L2
         proj = xr.DataArray(

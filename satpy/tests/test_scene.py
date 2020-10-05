@@ -40,7 +40,7 @@ class TestScene(unittest.TestCase):
             cri.return_value = {}
             satpy.scene.Scene(filenames=['bla'], reader='blo')
             cri.assert_called_once_with(filenames=['bla'], reader='blo',
-                                        reader_kwargs=None)
+                                        reader_kwargs={})
 
     def test_init_str_filename(self):
         """Test initializing with a single string as filenames."""
@@ -133,7 +133,7 @@ class TestScene(unittest.TestCase):
                 findermock.assert_called_once_with(
                     filenames=filenames,
                     reader=reader_name,
-                    reader_kwargs=None,
+                    reader_kwargs={},
                     ppp_config_dir=mock.ANY
                 )
 
@@ -186,7 +186,7 @@ class TestScene(unittest.TestCase):
             findermock.assert_called_once_with(ppp_config_dir=mock.ANY,
                                                reader=reader,
                                                filenames=filenames,
-                                               reader_kwargs=None,
+                                               reader_kwargs={},
                                                )
 
     def test_create_reader_instances_with_reader_kwargs(self):

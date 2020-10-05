@@ -171,8 +171,9 @@ def generate_fake_abi_xr_dataset(filename, chunks=None, **kwargs):
     return dataset
 
 
+@patch("satpy.readers.file_handlers.LocalFileSystem")
 @patch('xarray.open_dataset')
-def test_1258(fake_open_dataset):
+def test_1258(fake_open_dataset, srfL):
     """Save true_color from abi with radiance doesn't need two resamplings."""
     from satpy import Scene
     fake_open_dataset.side_effect = generate_fake_abi_xr_dataset
@@ -183,8 +184,9 @@ def test_1258(fake_open_dataset):
     assert len(resampled_scene.keys()) == 2
 
 
+@patch("satpy.readers.file_handlers.LocalFileSystem")
 @patch('xarray.open_dataset')
-def test_1088(fake_open_dataset):
+def test_1088(fake_open_dataset, srfL):
     """Check that copied arrays gets resampled."""
     from satpy import Scene
     fake_open_dataset.side_effect = generate_fake_abi_xr_dataset
@@ -198,8 +200,9 @@ def test_1088(fake_open_dataset):
     assert resampled[my_id].shape == (2048, 2560)
 
 
+@patch("satpy.readers.file_handlers.LocalFileSystem")
 @patch('xarray.open_dataset')
-def test_no_enums(fake_open_dataset):
+def test_no_enums(fake_open_dataset, srfL):
     """Check that no enums are inserted in the resulting attrs."""
     from satpy import Scene
     from enum import Enum

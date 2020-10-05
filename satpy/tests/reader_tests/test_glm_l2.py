@@ -87,8 +87,9 @@ def setup_fake_dataset():
 class TestGLML2FileHandler(unittest.TestCase):
     """Tests for the GLM L2 reader."""
 
+    @mock.patch("satpy.readers.file_handlers.LocalFileSystem")
     @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_):
+    def setUp(self, xr_, srfL):
         """Create a fake file handler to test."""
         from satpy.readers.glm_l2 import NCGriddedGLML2
         fake_dataset = setup_fake_dataset()
@@ -142,8 +143,9 @@ class TestGLML2Reader(unittest.TestCase):
 
     yaml_file = "glm_l2.yaml"
 
+    @mock.patch("satpy.readers.file_handlers.LocalFileSystem")
     @mock.patch('satpy.readers.abi_base.xr')
-    def setUp(self, xr_):
+    def setUp(self, xr_, srfL):
         """Create a fake reader to test."""
         from satpy.readers import load_reader
         from satpy.config import config_search_paths
