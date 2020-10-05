@@ -42,9 +42,10 @@ from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get
 from satpy.writers import get_enhanced_image
 
 try:
-    from pyspectral.near_infrared_reflectance import Calculator
+    from pyspectral.near_infrared_reflectance import Calculator, TERMINATOR_LIMIT
 except ImportError:
     Calculator = None
+    TERMINATOR_LIMIT = 85.0
 try:
     from pyorbital.astronomy import sun_zenith_angle
 except ImportError:
@@ -619,7 +620,7 @@ class PSPRayleighReflectance(CompositeBase):
 class NIRReflectance(CompositeBase):
     """Get the reflective part of NIR bands."""
 
-    def __init__(self, sunz_threshold=None, **kwargs):
+    def __init__(self, sunz_threshold=TERMINATOR_LIMIT, masking_limit=TERMINATOR_LIMIT, **kwargs):
         """Collect custom configuration values.
 
         Args:
@@ -630,6 +631,7 @@ class NIRReflectance(CompositeBase):
 
         """
         self.sun_zenith_threshold = sunz_threshold
+        self.masking_limit = masking_limit
         super(NIRReflectance, self).__init__(**kwargs)
 
     def __call__(self, projectables, optional_datasets=None, **info):
@@ -686,6 +688,7 @@ class NIRReflectance(CompositeBase):
         proj = xr.DataArray(reflectance, dims=base_dataarray.dims,
                             coords=base_dataarray.coords, attrs=base_dataarray.attrs.copy())
         proj.attrs['sun_zenith_threshold'] = self.sun_zenith_threshold
+        proj.attrs['sun_zenith_masking_limit'] = self.masking_limit
         self.apply_modifier_info(base_dataarray, proj)
         return proj
 
@@ -700,12 +703,9 @@ class NIRReflectance(CompositeBase):
             LOG.info("Couldn't load pyspectral")
             raise ImportError("No module named pyspectral.near_infrared_reflectance")
 
-        if self.sun_zenith_threshold is not None:
-            reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'],
-                                                   sunz_threshold=self.sun_zenith_threshold)
-        else:
-            reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'])
-            self.sun_zenith_threshold = reflectance_3x_calculator.sunz_threshold
+        reflectance_3x_calculator = Calculator(metadata['platform_name'], metadata['sensor'], metadata['name'],
+                                               sunz_threshold=self.sun_zenith_threshold,
+                                               masking_limit=self.masking_limit)
         return reflectance_3x_calculator
 
 
