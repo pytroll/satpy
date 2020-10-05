@@ -184,12 +184,12 @@ class SAFEMSIMDXML(BaseFileHandler):
     def _get_coarse_dataset(self, key, info):
         """Get the coarse dataset refered to by `key` from the XML data."""
         angles = self.root.find('.//Tile_Angles')
-        if key in ['solar_zenith_angle', 'solar_azimuth_angle']:
+        if key['name'] in ['solar_zenith_angle', 'solar_azimuth_angle']:
             elts = angles.findall(info['xml_tag'] + '/Values_List/VALUES')
             return np.array([[val for val in elt.text.split()] for elt in elts],
                             dtype=np.float)
 
-        elif key in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
+        elif key['name'] in ['satellite_zenith_angle', 'satellite_azimuth_angle']:
             arrays = []
             elts = angles.findall(info['xml_tag'] + '[@bandId="1"]')
             for elt in elts:
