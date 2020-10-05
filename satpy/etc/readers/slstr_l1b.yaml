@@ -9,19 +9,21 @@ reader:
     name:
       required: true
     wavelength:
-      type: !!python/name:satpy.dataset.WavelengthRange
+      type: !!python/name:satpy.dataset.dataid.WavelengthRange
     resolution:
-      transitive: true
+      transitive: false
     calibration:
       enum:
           - reflectance
           - brightness_temperature
           - radiance
           - counts
+      transitive: true
     view:
       enum:
         - nadir
         - oblique
+      transitive: true
     stripe:
       enum:
         - a
@@ -30,17 +32,18 @@ reader:
         - f
     modifiers:
       default: []
-      type: !!python/name:satpy.dataset.ModifierTuple
+      type: !!python/name:satpy.dataset.dataid.ModifierTuple
 
   coord_identification_keys:
     name:
       required: true
     resolution:
-      transitive: true
+      transitive: false
     view:
       enum:
         - nadir
         - oblique
+      transitive: true
     stripe:
       enum:
         - a
@@ -221,9 +224,9 @@ datasets:
     file_type: esa_l1b_tir
 
   S9:
-    name: S9_
+    name: S9
     sensor: slstr
-    wavelength: [11.0, 12.0, 13.0]
+    wavelength: [11.57, 12.0225, 12.475]
     resolution: 1000
     view: [nadir, oblique]
     stripe: i
@@ -294,7 +297,7 @@ datasets:
     file_key: sat_zenith_t{view:1s}
 
   satellite_azimuth_angle:
-    name: satellite_azimuth_angle_n
+    name: satellite_azimuth_angle
     sensor: slstr
     resolution: [500, 1000]
     coordinates: [longitude, latitude]

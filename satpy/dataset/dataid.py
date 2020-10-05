@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (c) 2015-2019 Satpy developers
+# Copyright (c) 2015-2020 Satpy developers
 #
 # This file is part of satpy.
 #
@@ -21,191 +21,15 @@ import logging
 import numbers
 import warnings
 from collections import namedtuple
-from collections.abc import Collection
 from contextlib import suppress
 from copy import copy, deepcopy
-from datetime import datetime
 from enum import IntEnum, Enum
-from functools import reduce, partial
-from operator import is_, eq
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
 
-class MetadataObject(object):
-    """A general metadata object."""
-
-    def __init__(self, **attributes):
-        """Initialize the class with *attributes*."""
-        self.attrs = attributes
-
-    @property
-    def id(self):
-        """Return the DataID of the object."""
-        try:
-            return self.attrs['_satpy_id']
-        except KeyError:
-            id_keys = self.attrs.get('_satpy_id_keys', minimal_default_keys_config)
-            return DataID(id_keys, **self.attrs)
-
-
-def combine_metadata(*metadata_objects, average_times=True):
-    """Combine the metadata of two or more Datasets.
-
-    If the values corresponding to any keys are not equal or do not
-    exist in all provided dictionaries then they are not included in
-    the returned dictionary.  By default any keys with the word 'time'
-    in them and consisting of datetime objects will be averaged. This
-    is to handle cases where data were observed at almost the same time
-    but not exactly.  In the interest of time, lazy arrays are compared by
-    object identity rather than by their contents.
-
-    Args:
-        *metadata_objects: MetadataObject or dict objects to combine
-        average_times (bool): Average any keys with 'time' in the name
-
-    Returns:
-        dict: the combined metadata
-
-    """
-    info_dicts = _get_valid_dicts(metadata_objects)
-
-    if len(info_dicts) == 1:
-        return info_dicts[0].copy()
-
-    shared_keys = _shared_keys(info_dicts)
-
-    return _combine_shared_info(shared_keys, info_dicts, average_times)
-
-
-def _get_valid_dicts(metadata_objects):
-    """Get the valid dictionaries matching the metadata_objects."""
-    info_dicts = []
-    for metadata_object in metadata_objects:
-        if isinstance(metadata_object, dict):
-            metadata_dict = metadata_object
-        elif hasattr(metadata_object, "attrs"):
-            metadata_dict = metadata_object.attrs
-        else:
-            continue
-        info_dicts.append(metadata_dict)
-    return info_dicts
-
-
-def _shared_keys(info_dicts):
-    key_sets = (set(metadata_dict.keys()) for metadata_dict in info_dicts)
-    return reduce(set.intersection, key_sets)
-
-
-def _combine_shared_info(shared_keys, info_dicts, average_times):
-    shared_info = {}
-    for key in shared_keys:
-        values = [info[key] for info in info_dicts]
-        if 'time' in key and isinstance(values[0], datetime) and average_times:
-            shared_info[key] = average_datetimes(values)
-        elif _are_values_combinable(values):
-            shared_info[key] = values[0]
-    return shared_info
-
-
-def average_datetimes(datetime_list):
-    """Average a series of datetime objects.
-
-    .. note::
-
-        This function assumes all datetime objects are naive and in the same
-        time zone (UTC).
-
-    Args:
-        datetime_list (iterable): Datetime objects to average
-
-    Returns: Average datetime as a datetime object
-
-    """
-    total = [datetime.timestamp(dt) for dt in datetime_list]
-    return datetime.fromtimestamp(sum(total) / len(total))
-
-
-def _are_values_combinable(values):
-    """Check if the *values* can be combined."""
-    if _contain_arrays(values):
-        return _all_arrays_equal(values)
-    elif _contain_collections_of_arrays(values):
-        # in the real world, the `ancillary_variables` attribute may be
-        # List[xarray.DataArray], this means our values are now
-        # List[List[xarray.DataArray]].
-        # note that this list_of_arrays check is also true for any
-        # higher-dimensional ndarray, but we only use this check after we have
-        # checked any_arrays so this false positive should have no impact
-        return _all_list_of_arrays_equal(values)
-    return _all_values_equal(values)
-
-
-def _contain_arrays(values):
-    return any([_is_array(value) for value in values])
-
-
-def _is_array(val):
-    """Check if val is an array."""
-    return hasattr(val, "__array__") and not np.isscalar(val)
-
-
-nan_allclose = partial(np.allclose, equal_nan=True)
-
-
-def _all_arrays_equal(arrays):
-    """Check if the arrays are equal.
-
-    If the arrays are lazy, just check if they have the same identity.
-    """
-    if hasattr(arrays[0], 'compute'):
-        return _all_identical(arrays)
-    else:
-        return _pairwise_all(nan_allclose, arrays)
-
-
-def _pairwise_all(func, values):
-    for value in values[1:]:
-        if not func(values[0], value):
-            return False
-    return True
-
-
-def _all_identical(values):
-    """Check that the identities of all values are the same."""
-    return _pairwise_all(is_, values)
-
-
-def _contain_collections_of_arrays(values):
-    return any(
-        [_is_non_empty_collection(value) and
-         _is_all_arrays(value)
-         for value in values])
-
-
-def _is_non_empty_collection(value):
-    return isinstance(value, Collection) and len(value) > 0
-
-
-def _is_all_arrays(value):
-    return all([_is_array(sub_value) for sub_value in value])
-
-
-def _all_list_of_arrays_equal(array_lists):
-    """Check that the lists of arrays are equal."""
-    for array_list in zip(*array_lists):
-        if not _all_arrays_equal(array_list):
-            return False
-    return True
-
-
-def _all_values_equal(values):
-    try:
-        return _pairwise_all(nan_allclose, values)
-    except TypeError:
-        return _pairwise_all(eq, values)
 
 
 def get_keys_from_config(common_id_keys, config):
@@ -251,7 +75,7 @@ class ValueList(IntEnum):
 
 try:
     wlklass = namedtuple("WavelengthRange", "min central max unit", defaults=('µm',))
-except NameError:  # python 3.6
+except TypeError:  # python 3.6
     wlklass = namedtuple("WavelengthRange", "min central max unit")
     wlklass.__new__.__defaults__ = ('µm',)
 
@@ -273,6 +97,7 @@ class WavelengthRange(wlklass):
         Return:
             True if other is a scalar and min <= other <= max, or if other is
             a tuple equal to self, False otherwise.
+
         """
         if other is None:
             return False
@@ -376,7 +201,7 @@ default_id_keys_config = {'name': {
                               'type': WavelengthRange,
                           },
                           'resolution': {
-                              'transitive': True,
+                              'transitive': False,
                               },
                           'calibration': {
                               'enum': [
@@ -384,7 +209,8 @@ default_id_keys_config = {'name': {
                                   'brightness_temperature',
                                   'radiance',
                                   'counts'
-                                  ]
+                                  ],
+                              'transitive': True,
                           },
                           'modifiers': {
                               'default': ModifierTuple(),
@@ -509,7 +335,7 @@ class DataID(dict):
         """Get the id_keys."""
         return deepcopy(self._id_keys)
 
-    def create_dep_filter(self, query):
+    def create_filter_query_without_required_fields(self, query):
         """Remove the required fields from *query*."""
         try:
             new_query = query.to_dict()
@@ -618,6 +444,26 @@ class DataID(dict):
     update = _immutable
     setdefault = _immutable
 
+    def _find_modifiers_key(self):
+        for key, val in self.items():
+            if isinstance(val, ModifierTuple):
+                return key
+        raise KeyError
+
+    def create_less_modified_query(self):
+        """Create a query with one less modifier."""
+        new_dict = self.to_dict()
+        new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
+        return DataQuery.from_dict(new_dict)
+
+    def is_modified(self):
+        """Check if this is modified."""
+        try:
+            key = self._find_modifiers_key()
+        except KeyError:
+            return False
+        return bool(self[key])
+
 
 class DataQuery:
     """The data query object.
@@ -678,8 +524,12 @@ class DataQuery:
         """Convert a dict to an ID."""
         return cls(**the_dict)
 
+    def items(self):
+        """Get the items of this query."""
+        return self._dict.items()
+
     def _asdict(self):
-        return dict(zip(self._fields, self._values))
+        return self._dict.copy()
 
     def to_dict(self, trim=True):
         """Convert the ID to a dict."""
@@ -734,6 +584,19 @@ class DataQuery:
             val = [val]
         return id_val in val
 
+    def sort_dataids_with_preference(self, all_ids, preference):
+        """Sort `all_ids` given a sorting `preference` (DataQuery or None)."""
+        try:
+            res = preference.to_dict()
+        except AttributeError:
+            res = dict()
+        res.update(self.to_dict())
+        optimistic_query = DataQuery.from_dict(res)
+        sorted_ids, distances = optimistic_query.sort_dataids(all_ids)
+        if distances[0] == np.inf:  # nothing matches the optimistic query
+            sorted_ids, distances = self.sort_dataids(all_ids)
+        return sorted_ids, distances
+
     def sort_dataids(self, dataids):
         """Sort the DataIDs based on this query.
 
@@ -754,7 +617,9 @@ class DataQuery:
         2. Least modified dataset if `modifiers` is `None` in `key`.
            Otherwise, the modifiers are ignored.
         3. Highest calibration if `calibration` is `None` in `key`.
-           Calibration priority is chosen by `satpy.CALIBRATION_ORDER`.
+           Calibration priority is the order of the calibration list defined as
+           reflectance, brightness temperature, radiance counts if not overridden in the
+           reader configuration.
         4. Best resolution (smallest number) if `resolution` is `None`
            in `key`. Otherwise, the resolution is ignored.
 
@@ -804,17 +669,15 @@ class DataQuery:
         distances, dataids = zip(*sorted(zip(distances, sorted_dataids)))
         return dataids, distances
 
+    def create_less_modified_query(self):
+        """Create a query with one less modifier."""
+        new_dict = self.to_dict()
+        new_dict['modifiers'] = tuple(new_dict['modifiers'][:-1])
+        return DataQuery.from_dict(new_dict)
 
-class DatasetID:
-    """Deprecated datasetid."""
-
-    def __init__(self, *args, **kwargs):
-        """Fake init."""
-        raise TypeError("DatasetID should not be used directly")
-
-    def from_dict(self, *args, **kwargs):
-        """Fake fun."""
-        raise TypeError("DatasetID should not be used directly")
+    def is_modified(self):
+        """Check if this is modified."""
+        return bool(self._dict.get('modifiers'))
 
 
 def create_filtered_query(dataset_key, filter_query):
@@ -824,6 +687,20 @@ def create_filtered_query(dataset_key, filter_query):
     has priority.
 
     """
+    ds_dict = _create_id_dict_from_any_key(dataset_key)
+    _update_dict_with_filter_query(ds_dict, filter_query)
+
+    return DataQuery.from_dict(ds_dict)
+
+
+def _update_dict_with_filter_query(ds_dict, filter_query):
+    if filter_query is not None:
+        for key, value in filter_query.items():
+            if value != '*':
+                ds_dict.setdefault(key, value)
+
+
+def _create_id_dict_from_any_key(dataset_key):
     try:
         ds_dict = dataset_key.to_dict()
     except AttributeError:
@@ -833,36 +710,4 @@ def create_filtered_query(dataset_key, filter_query):
             ds_dict = {'wavelength': dataset_key}
         else:
             raise TypeError("Don't know how to interpret a dataset_key of type {}".format(type(dataset_key)))
-    if filter_query is not None:
-        for key, value in filter_query._dict.items():
-            if value != '*':
-                ds_dict.setdefault(key, value)
-
-    return DataQuery.from_dict(ds_dict)
-
-
-def dataset_walker(datasets):
-    """Walk through *datasets* and their ancillary data.
-
-    Yields datasets and their parent.
-    """
-    for dataset in datasets:
-        yield dataset, None
-        for anc_ds in dataset.attrs.get('ancillary_variables', []):
-            try:
-                anc_ds.attrs
-                yield anc_ds, dataset
-            except AttributeError:
-                continue
-
-
-def replace_anc(dataset, parent_dataset):
-    """Replace *dataset* the *parent_dataset*'s `ancillary_variables` field."""
-    if parent_dataset is None:
-        return
-    id_keys = parent_dataset.attrs.get('_satpy_id_keys', dataset.attrs.get('_satpy_id_keys'))
-    current_dataid = DataID(id_keys, **dataset.attrs)
-    for idx, ds in enumerate(parent_dataset.attrs['ancillary_variables']):
-        if current_dataid == DataID(id_keys, **ds.attrs):
-            parent_dataset.attrs['ancillary_variables'][idx] = dataset
-            return
+    return ds_dict

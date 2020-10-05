@@ -11,6 +11,7 @@ The following people have made contributions to this project:
 - [Talfan Barnie (TalfanBarnie)](https://github.com/TalfanBarnie)
 - [Suyash Behera (Suyash458)](https://github.com/Suyash458)
 - [Ray Bell (raybellwaves)](https://github.com/raybellwaves)
+- [Jorge Bravo (jhbravo)](https://github.com/jhbravo)
 - [Andrew Brooks (howff)](https://github.com/howff)
 - Guido della Bruna - meteoswiss
 - [Eric Bruning (deeplycloudy)](https://github.com/deeplycloudy)

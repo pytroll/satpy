@@ -19,8 +19,8 @@
 from datetime import datetime
 from unittest import mock
 
-from satpy.dataset import (DataID, DataQuery, default_id_keys_config,
-                           minimal_default_keys_config)
+from satpy.dataset import DataID, DataQuery
+from satpy.dataset.dataid import default_id_keys_config, minimal_default_keys_config
 from satpy.readers.yaml_reader import FileYAMLReader
 
 
@@ -114,7 +114,7 @@ def test_datasets():
         make_dataid(name='ds5', resolution=250),
         make_dataid(name='ds5', resolution=500),
         make_dataid(name='ds5', resolution=1000),
-        make_dataid(name='ds6', wavelength=(0.1, 0.2, 0.3), resolution=250),
+        make_dataid(name='ds6', wavelength=(0.1, 0.2, 0.3), resolution=250, calibration='reflectance'),
         make_dataid(name='ds7', wavelength=(0.4, 0.5, 0.6)),
         make_dataid(name='ds8', wavelength=(0.7, 0.8, 0.9)),
         make_dataid(name='ds9_fail_load', wavelength=(1.0, 1.1, 1.2)),
@@ -123,6 +123,9 @@ def test_datasets():
         make_dataid(name='ds11', resolution=1000),
         make_dataid(name='ds12', resolution=500),
         make_dataid(name='ds12', resolution=1000),
+        make_dataid(name='B02', wavelength=(30.49, 30.51, 30.53), resolution=1000),
+        make_dataid(name='B03', wavelength=(30.62, 30.64, 30.66), resolution=500),
+        make_dataid(name='B04', wavelength=(30.83, 30.85, 30.87), resolution=1000),
     ]
     return d
 
@@ -247,6 +250,8 @@ def test_composites(sensor_name):
                                                    make_dsq(name='ds5', resolution=500)], []),
         make_cid(name='comp25', resolution=1000): ([make_dsq(name='comp24', resolution=1000),
                                                     make_dsq(name='ds5', resolution=1000)], []),
+        make_cid(name='ahi_green'): ([make_dsq(wavelength=30.5, modifiers=('sunz_corr', 'rayleigh_corr')),
+                                      make_dsq(wavelength=30.85, modifiers=('sunz_corr',))], [])
     }
     # Modifier name -> (prereqs (not including to-be-modified), opt_prereqs)
     mods = {
@@ -260,6 +265,8 @@ def test_composites(sensor_name):
         'mod_bad_opt': (['ds1'], ['ds9_fail_load']),
         'mod_opt_only': ([], ['ds2']),
         'mod_wl': ([make_dsq(wavelength=0.2, modifiers=('mod1',))], []),
+        'sunz_corr': ([], ['sunz_angles_NOPE']),
+        'rayleigh_corr': ([make_dsq(wavelength=30.64, modifiers=('sunz_corr',))], [])
     }
     comps = {sensor_name: DatasetDict((k, _create_fake_compositor(k, *v)) for k, v in comps.items())}
     mods = {sensor_name: dict((k, _create_fake_modifiers(k, *v)) for k, v in mods.items())}
@@ -291,11 +298,8 @@ class FakeReader(FileYAMLReader):
         be disabled by specifying `filter_datasets=False`.
 
         """
-        with mock.patch('satpy.readers.yaml_reader.recursive_dict_update') as rdu, \
-                mock.patch('satpy.readers.yaml_reader.open'), \
-                mock.patch('satpy.readers.yaml_reader.yaml.load'):
-            rdu.return_value = {'reader': {'name': name}, 'file_types': {}}
-            super(FakeReader, self).__init__(['fake.yaml'])
+        reader_config = {'reader': {'name': name, 'config_files': ['fake.yaml']}, 'file_types': {}}
+        super(FakeReader, self).__init__(reader_config)
 
         if start_time is None:
             start_time = datetime.utcnow()
@@ -378,7 +382,7 @@ def make_fake_scene(content_dict, daskify=False, area=True,
 
     Create a fake Scene object from fake data.  Data are provided in
     the ``content_dict`` argument.  In ``content_dict``, keys should be
-    strings or DatasetID/DataID, and values may be either numpy.ndarray
+    strings or DataID, and values may be either numpy.ndarray
     or xarray.DataArray, in either case with exactly two dimensions.
     The function will convert each of the numpy.ndarray objects into
     an xarray.DataArray and assign those as datasets to a Scene object.
@@ -395,7 +399,7 @@ def make_fake_scene(content_dict, daskify=False, area=True,
 
     Args:
         content_dict (Mapping): Mapping where keys correspond to objects
-            accepted by ``Scene.__setitem__``, i.e. strings or DatasetID,
+            accepted by ``Scene.__setitem__``, i.e. strings or DataID,
             and values may be either ``numpy.ndarray`` or
             ``xarray.DataArray``.
         daskify (bool): optional, to use dask when converting

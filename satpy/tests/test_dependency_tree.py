@@ -17,9 +17,11 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Unit tests for the dependency tree class and dependencies."""
 
+import os
 import unittest
+
+from satpy.dependency_tree import DependencyTree
 from satpy.tests.utils import make_cid, make_dataid
-from satpy.node import DependencyTree
 
 
 class TestDependencyTree(unittest.TestCase):
@@ -76,3 +78,54 @@ class TestDependencyTree(unittest.TestCase):
         """Test that dependency tree instantiation preserves the uniqueness of the empty node."""
         new_dependency_tree = DependencyTree(None, None, None)
         assert self.dependency_tree.empty_node is new_dependency_tree.empty_node
+
+
+class TestMissingDependencies(unittest.TestCase):
+    """Test the MissingDependencies exception."""
+
+    def test_new_missing_dependencies(self):
+        """Test new MissingDependencies."""
+        from satpy.node import MissingDependencies
+        error = MissingDependencies('bla')
+        assert error.missing_dependencies == 'bla'
+
+    def test_new_missing_dependencies_with_message(self):
+        """Test new MissingDependencies with a message."""
+        from satpy.node import MissingDependencies
+        error = MissingDependencies('bla', "This is a message")
+        assert 'This is a message' in str(error)
+
+
+class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
+    """Test that MODIS situations where the same channel is available at multiple resolution works."""
+
+    def test_modis_overview_1000m(self):
+        """Test a modis overview dependency calculation with resolution fixed to 1000m."""
+        from satpy.config import PACKAGE_CONFIG_PATH
+        from satpy.readers.yaml_reader import FileYAMLReader
+
+        from satpy import DataQuery
+        from satpy.composites import SunZenithCorrector, GenericCompositor
+        from satpy.dataset import DatasetDict
+
+        config_file = os.path.join(PACKAGE_CONFIG_PATH, 'readers', 'modis_l1b.yaml')
+        self.reader_instance = FileYAMLReader.from_config_files(config_file)
+
+        overview = {'_satpy_id': make_dataid(name='overview'),
+                    'name': 'overview',
+                    'optional_prerequisites': [],
+                    'prerequisites': [DataQuery(name='1', modifiers=('sunz_corrected',)),
+                                      DataQuery(name='2', modifiers=('sunz_corrected',)),
+                                      DataQuery(name='31')],
+                    'standard_name': 'overview'}
+        compositors = {'modis': DatasetDict()}
+        compositors['modis']['overview'] = GenericCompositor(**overview)
+
+        modifiers = {'modis': {'sunz_corrected': (SunZenithCorrector,
+                                                  {'optional_prerequisites': ['solar_zenith_angle'],
+                                                   'name': 'sunz_corrected',
+                                                   'prerequisites': []})}}
+        dep_tree = DependencyTree({'modis_l1b': self.reader_instance}, compositors, modifiers)
+        dep_tree.populate_with_keys({'overview'}, DataQuery(resolution=1000))
+        for key in dep_tree._all_nodes.keys():
+            assert key.get('resolution', 1000) == 1000
