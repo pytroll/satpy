@@ -197,8 +197,7 @@ class SAFEMSIMDXML(BaseFileHandler):
                 arrays.append(np.array([[val for val in item.text.split()] for item in items],
                                        dtype=np.float))
             return np.nanmean(np.dstack(arrays), -1)
-        else:
-            return None
+        return None
 
     def get_dataset(self, key, info):
         """Get the dataset referred to by `key`."""
