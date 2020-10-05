@@ -638,6 +638,8 @@ class TestNIRReflectance(unittest.TestCase):
     @mock.patch('satpy.composites.Calculator')
     def test_provide_sunz_and_threshold(self, calculator, apply_modifier_info, sza):
         """Test NIR reflectance compositor provided sunz and a sunz threshold."""
+        from satpy.composites import TERMINATOR_LIMIT
+
         calculator.return_value = mock.MagicMock(
             reflectance_from_tbs=self.refl_from_tbs)
         from satpy.composites import NIRReflectance
@@ -648,7 +650,8 @@ class TestNIRReflectance(unittest.TestCase):
         res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
         self.assertEqual(res.attrs['sun_zenith_threshold'], 84.0)
-        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039', sunz_threshold=84.0)
+        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039',
+                                      sunz_threshold=84.0, masking_limit=TERMINATOR_LIMIT)
 
     @mock.patch('satpy.composites.sun_zenith_angle')
     @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
@@ -657,13 +660,48 @@ class TestNIRReflectance(unittest.TestCase):
         """Check that sun_zenith_threshold is not None."""
         from satpy.composites import NIRReflectance
 
-        comp = NIRReflectance(name='test', sunz_threshold=None)
+        comp = NIRReflectance(name='test')
         info = {'modifiers': None}
         calculator.return_value = mock.MagicMock(
             reflectance_from_tbs=self.refl_from_tbs)
         comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
 
         assert comp.sun_zenith_threshold is not None
+
+    @mock.patch('satpy.composites.sun_zenith_angle')
+    @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.composites.Calculator')
+    def test_provide_masking_limit(self, calculator, apply_modifier_info, sza):
+        """Test NIR reflectance compositor provided sunz and a sunz threshold."""
+        from satpy.composites import TERMINATOR_LIMIT
+
+        calculator.return_value = mock.MagicMock(
+            reflectance_from_tbs=self.refl_from_tbs)
+        from satpy.composites import NIRReflectance
+        sza.return_value = self.da_sunz
+
+        comp = NIRReflectance(name='test', masking_limit=None)
+        info = {'modifiers': None}
+        res = comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
+
+        self.assertIsNone(res.attrs['sun_zenith_masking_limit'])
+        calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039',
+                                      sunz_threshold=TERMINATOR_LIMIT, masking_limit=None)
+
+    @mock.patch('satpy.composites.sun_zenith_angle')
+    @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
+    @mock.patch('satpy.composites.Calculator')
+    def test_masking_limit_default_value_is_not_none(self, calculator, apply_modifier_info, sza):
+        """Check that sun_zenith_threshold is not None."""
+        from satpy.composites import NIRReflectance
+
+        comp = NIRReflectance(name='test')
+        info = {'modifiers': None}
+        calculator.return_value = mock.MagicMock(
+            reflectance_from_tbs=self.refl_from_tbs)
+        comp([self.nir, self.ir_], optional_datasets=[self.sunz], **info)
+
+        assert comp.masking_limit is not None
 
 
 class TestNIREmissivePartFromReflectance(unittest.TestCase):
@@ -677,6 +715,7 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
         import numpy as np
         import xarray as xr
         import dask.array as da
+        from satpy.composites import TERMINATOR_LIMIT
 
         refl_arr = np.random.random((2, 2))
         refl = da.from_array(refl_arr)
@@ -728,7 +767,7 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
         self.assertEqual(res.attrs['platform_name'], platform)
         self.assertEqual(res.attrs['sensor'], sensor)
         self.assertEqual(res.attrs['name'], chan_name)
-        calculator.assert_called_with('NOAA-20', 'viirs', 'M12', sunz_threshold=86.0)
+        calculator.assert_called_with('NOAA-20', 'viirs', 'M12', sunz_threshold=86.0, masking_limit=TERMINATOR_LIMIT)
 
 
 class TestColormapCompositor(unittest.TestCase):
