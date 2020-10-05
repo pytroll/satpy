@@ -638,7 +638,7 @@ class TestNIRReflectance(unittest.TestCase):
     @mock.patch('satpy.composites.Calculator')
     def test_provide_sunz_and_threshold(self, calculator, apply_modifier_info, sza):
         """Test NIR reflectance compositor provided sunz and a sunz threshold."""
-        from satpy.composites import TERMINATOR_LIMIT
+        from satpy.composites import NIR_REFLECTANCE_MASKING_LIMIT
 
         calculator.return_value = mock.MagicMock(
             reflectance_from_tbs=self.refl_from_tbs)
@@ -651,7 +651,7 @@ class TestNIRReflectance(unittest.TestCase):
 
         self.assertEqual(res.attrs['sun_zenith_threshold'], 84.0)
         calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039',
-                                      sunz_threshold=84.0, masking_limit=TERMINATOR_LIMIT)
+                                      sunz_threshold=84.0, masking_limit=NIR_REFLECTANCE_MASKING_LIMIT)
 
     @mock.patch('satpy.composites.sun_zenith_angle')
     @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
@@ -673,7 +673,7 @@ class TestNIRReflectance(unittest.TestCase):
     @mock.patch('satpy.composites.Calculator')
     def test_provide_masking_limit(self, calculator, apply_modifier_info, sza):
         """Test NIR reflectance compositor provided sunz and a sunz threshold."""
-        from satpy.composites import TERMINATOR_LIMIT
+        from satpy.composites import NIR_REFLECTANCE_TERMINATOR_LIMIT
 
         calculator.return_value = mock.MagicMock(
             reflectance_from_tbs=self.refl_from_tbs)
@@ -686,7 +686,7 @@ class TestNIRReflectance(unittest.TestCase):
 
         self.assertIsNone(res.attrs['sun_zenith_masking_limit'])
         calculator.assert_called_with('Meteosat-11', 'seviri', 'IR_039',
-                                      sunz_threshold=TERMINATOR_LIMIT, masking_limit=None)
+                                      sunz_threshold=NIR_REFLECTANCE_TERMINATOR_LIMIT, masking_limit=None)
 
     @mock.patch('satpy.composites.sun_zenith_angle')
     @mock.patch('satpy.composites.NIRReflectance.apply_modifier_info')
@@ -715,7 +715,7 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
         import numpy as np
         import xarray as xr
         import dask.array as da
-        from satpy.composites import TERMINATOR_LIMIT
+        from satpy.composites import NIR_REFLECTANCE_MASKING_LIMIT
 
         refl_arr = np.random.random((2, 2))
         refl = da.from_array(refl_arr)
@@ -767,7 +767,8 @@ class TestNIREmissivePartFromReflectance(unittest.TestCase):
         self.assertEqual(res.attrs['platform_name'], platform)
         self.assertEqual(res.attrs['sensor'], sensor)
         self.assertEqual(res.attrs['name'], chan_name)
-        calculator.assert_called_with('NOAA-20', 'viirs', 'M12', sunz_threshold=86.0, masking_limit=TERMINATOR_LIMIT)
+        calculator.assert_called_with('NOAA-20', 'viirs', 'M12', sunz_threshold=86.0,
+                                      masking_limit=NIR_REFLECTANCE_MASKING_LIMIT)
 
 
 class TestColormapCompositor(unittest.TestCase):
