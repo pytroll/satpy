@@ -42,10 +42,10 @@ from satpy.utils import sunzen_corr_cos, atmospheric_path_length_correction, get
 from satpy.writers import get_enhanced_image
 
 try:
-    from pyspectral.near_infrared_reflectance import Calculator, TERMINATOR_LIMIT
+    from pyspectral.near_infrared_reflectance import Calculator
 except ImportError:
     Calculator = None
-    TERMINATOR_LIMIT = 85.0
+
 try:
     from pyorbital.astronomy import sun_zenith_angle
 except ImportError:
@@ -60,6 +60,8 @@ NEGLIBLE_COORDS = ['time']
 MASKING_COMPOSITOR_METHODS = ['less', 'less_equal', 'equal', 'greater_equal',
                               'greater', 'not_equal', 'isnan', 'isfinite',
                               'isneginf', 'isposinf']
+NIR_REFLECTANCE_TERMINATOR_LIMIT = 85.0
+NIR_REFLECTANCE_MASKING_LIMIT = 88.0
 
 
 class IncompatibleAreas(Exception):
@@ -620,17 +622,18 @@ class PSPRayleighReflectance(CompositeBase):
 class NIRReflectance(CompositeBase):
     """Get the reflective part of NIR bands."""
 
-    def __init__(self, sunz_threshold=TERMINATOR_LIMIT, masking_limit=TERMINATOR_LIMIT, **kwargs):
+    def __init__(self, sunz_threshold=NIR_REFLECTANCE_TERMINATOR_LIMIT,
+                 masking_limit=NIR_REFLECTANCE_MASKING_LIMIT, **kwargs):
         """Collect custom configuration values.
 
         Args:
             sunz_threshold: The threshold sun zenith angle used when deriving
                 the near infrared reflectance. Above this angle the derivation
                 will assume this sun-zenith everywhere. Unless overridden, the
-                default threshold defined in Pyspectral will be used.
+                default threshold of 85.0 degrees will be used.
             masking_limit: Mask the data (set to NaN) above this Sun zenith angle.
-                By default, use the value defined in Pyspectral.  Setting this to
-                `None` will disable the masking.
+                By default the limit is at 88.0 degrees.  If set to `None`, no masking
+                is done.
 
         """
         self.sun_zenith_threshold = sunz_threshold
