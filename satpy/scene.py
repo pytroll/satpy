@@ -66,6 +66,7 @@ class Scene:
 
     """
 
+    _fs_sentinel = object()
     def __init__(self, filenames=None, reader=None, filter_parameters=None, reader_kwargs=None,
                  ppp_config_dir=None,
                  base_dir=None,
@@ -73,7 +74,7 @@ class Scene:
                  start_time=None,
                  end_time=None,
                  area=None,
-                 file_system=None):
+                 file_system=_fs_sentinel):
         """Initialize Scene with Reader and Compositor objects.
 
         To load data `filenames` and preferably `reader` must be specified. If `filenames` is provided without `reader`
@@ -139,20 +140,25 @@ class Scene:
                 'area': area,
             })
             filter_parameters = fp
+        if reader_kwargs is None:
+            reader_kwargs = {}
         if filter_parameters:
-            if reader_kwargs is None:
-                reader_kwargs = {}
-            else:
-                reader_kwargs = reader_kwargs.copy()
+            reader_kwargs = reader_kwargs.copy()
             reader_kwargs.setdefault('filter_parameters', {}).update(filter_parameters)
 
         if filenames and isinstance(filenames, str):
             raise ValueError("'filenames' must be a list of files: Scene(filenames=[filename])")
 
-        self._readers = self._create_reader_instances(filenames=filenames,
-                                                      reader=reader,
-                                                      reader_kwargs=reader_kwargs,
-                                                      file_system=file_system)
+        if file_system is not self._fs_sentinel:
+            if "file_system" in reader_kwargs:
+                warnings.warn(
+                        "'file_system' passed both directly and through "
+                        "reader_kwargs, overwriting in reader_kwargs",
+                        UserWarning)
+            reader_kwargs["file_system"] = file_system
+        self._readers = self._create_reader_instances(
+                filenames=filenames, reader=reader,
+                reader_kwargs=reader_kwargs)
         self.attrs.update(self._compute_metadata_from_readers())
         self._datasets = DatasetDict()
         self._composite_loader = CompositorLoader(self._ppp_config_dir)
@@ -197,14 +203,12 @@ class Scene:
     def _create_reader_instances(self,
                                  filenames=None,
                                  reader=None,
-                                 reader_kwargs=None,
-                                 file_system=None):
+                                 reader_kwargs=None):
         """Find readers and return their instances."""
         return load_readers(filenames=filenames,
                             reader=reader,
                             reader_kwargs=reader_kwargs,
-                            ppp_config_dir=self._ppp_config_dir,
-                            file_system=file_system)
+                            ppp_config_dir=self._ppp_config_dir)
 
     @property
     def start_time(self):

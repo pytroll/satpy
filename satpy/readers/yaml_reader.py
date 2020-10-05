@@ -434,7 +434,7 @@ class FileYAMLReader(AbstractYAMLReader):
                 yield filename, filename_info
             filenames -= matched_files
 
-    def _new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None, file_system=None):
+    def _new_filehandler_instances(self, filetype_info, filename_items, fh_kwargs=None):
         """Generate new filehandler instances."""
         requirements = filetype_info.get('requires')
         filetype_cls = filetype_info['file_reader']
@@ -455,14 +455,14 @@ class FileYAMLReader(AbstractYAMLReader):
                 warnings.warn(str(err) + ' for {}'.format(filename))
                 continue
 
-            # check if the file handler supports file systems
-            argument_names = filetype_cls.__init__.__code__.co_varnames
-            if file_system is not None and "file_system" not in argument_names:
-                raise NotImplementedError("File handler {} does not support file systems".format(
-                    filetype_cls.__name__))
-
-            yield filetype_cls(filename, filename_info, filetype_info, file_system=file_system,
-                               *req_fh, **fh_kwargs)
+            try:
+                yield filetype_cls(filename, filename_info, filetype_info,
+                                   *req_fh, **fh_kwargs)
+            except TypeError as exc:
+                if "file_system" in exc.args[0]:
+                    raise NotImplementedError("File handler {} does not support file systems".format(filetype_cls.__name__))
+                else:
+                    raise
 
     def time_matches(self, fstart, fend):
         """Check that a file's start and end time mtach filter_parameters of this reader."""
@@ -541,7 +541,7 @@ class FileYAMLReader(AbstractYAMLReader):
             for fn, _ in filename_iter:
                 yield fn
 
-    def _new_filehandlers_for_filetype(self, filetype_info, filenames, fh_kwargs=None, file_system=None):
+    def _new_filehandlers_for_filetype(self, filetype_info, filenames, fh_kwargs=None):
         """Create filehandlers for a given filetype."""
         filename_iter = self.filename_items_for_filetype(filenames,
                                                          filetype_info)
@@ -551,12 +551,11 @@ class FileYAMLReader(AbstractYAMLReader):
             filename_iter = self.filter_filenames_by_info(filename_iter)
         filehandler_iter = self._new_filehandler_instances(filetype_info,
                                                            filename_iter,
-                                                           fh_kwargs=fh_kwargs,
-                                                           file_system=file_system)
+                                                           fh_kwargs=fh_kwargs)
         filtered_iter = self.filter_fh_by_metadata(filehandler_iter)
         return list(filtered_iter)
 
-    def create_filehandlers(self, filenames, fh_kwargs=None, file_system=None):
+    def create_filehandlers(self, filenames, fh_kwargs=None):
         """Organize the filenames into file types and create file handlers."""
         filenames = list(OrderedDict.fromkeys(filenames))
         logger.debug("Assigning to %s: %s", self.info['name'], filenames)
@@ -568,8 +567,7 @@ class FileYAMLReader(AbstractYAMLReader):
         for filetype, filetype_info in self.sorted_filetype_items():
             filehandlers = self._new_filehandlers_for_filetype(filetype_info,
                                                                filename_set,
-                                                               fh_kwargs=fh_kwargs,
-                                                               file_system=file_system)
+                                                               fh_kwargs=fh_kwargs)
 
             if filehandlers:
                 created_fhs[filetype] = filehandlers
