@@ -129,7 +129,7 @@ class SAFEMSIMDXML(BaseFileHandler):
         try:
             from pyproj import CRS
         except ImportError:
-            crs = None
+            CRS = None
         geocoding = self.root.find('.//Tile_Geocoding')
         epsg = geocoding.find('HORIZONTAL_CS_CODE').text
         rows = int(geocoding.find('Size[@resolution="' + str(dsid['resolution']) + '"]/NROWS').text)
@@ -140,8 +140,8 @@ class SAFEMSIMDXML(BaseFileHandler):
         xdim = float(geoposition.find('XDIM').text)
         ydim = float(geoposition.find('YDIM').text)
         area_extent = (ulx, uly + rows * ydim, ulx + cols * xdim, uly)
-        if crs is not None:
-            proj = crs(epsg)
+        if CRS is not None:
+            proj = CRS(epsg)
         else:
             proj = {'init': epsg}
         area = geometry.AreaDefinition(
@@ -198,13 +198,13 @@ class SAFEMSIMDXML(BaseFileHandler):
                                        dtype=np.float))
             return np.nanmean(np.dstack(arrays), -1)
         else:
-            return
+            return None
 
     def get_dataset(self, key, info):
         """Get the dataset referred to by `key`."""
         angles = self._get_coarse_dataset(key, info)
         if angles is None:
-            return
+            return None
 
         # Fill gaps at edges of swath
         darr = DataArray(angles, dims=['y', 'x'])
