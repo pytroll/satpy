@@ -60,7 +60,7 @@ class FakeNetCDF4FileHandler2(FakeNetCDF4FileHandler):
         """Mimic reader input file content."""
         file_content = {
             '/attr/time_coverage_start': filename_info['start_time'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
-            '/attr/time_coverage_end': filename_info['end_time'].strftime('%Y-%m-%dT%H:%M:%S.%fZ'),
+            '/attr/time_coverage_end': filename_info['end_time'].strftime('%Y-%m-%dT%H:%M:%SZ'),
             '/attr/start_orbit_number': 1,
             '/attr/end_orbit_number': 2,
             '/attr/platform_name': 'NPP',
