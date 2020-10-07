@@ -126,7 +126,7 @@ class TestABIYAML:
     def test_file_patterns_match(self, channel, suffix):
         """Test that the configured file patterns work."""
         from satpy.readers import configs_for_reader, load_reader
-        reader_configs = next(configs_for_reader('abi_l1b'))
+        reader_configs = list(configs_for_reader('abi_l1b'))[0]
         reader = load_reader(reader_configs)
         fn1 = ("OR_ABI-L1b-RadM1-M3{}_G16_s20182541300210_e20182541300267"
                "_c20182541300308{}.nc").format(channel, suffix)
