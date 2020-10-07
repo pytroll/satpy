@@ -20,26 +20,28 @@
 
 import os
 import unittest
+import itertools
 from unittest import mock
 from datetime import datetime
 import numpy as np
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 import xarray as xr
-
+from xarray import DataArray
 
 DEFAULT_FILE_DTYPE = np.float32
-DEFAULT_FILE_SHAPE = (9001, 18000)
-DEFAULT_LAT = np.linspace(-90, 90, DEFAULT_FILE_SHAPE[0], dtype=DEFAULT_FILE_DTYPE)
-DEFAULT_LON = np.linspace(-180, 180, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
-DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
-                              dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
 
 
 class FakeNetCDF4FileHandlerMimic(FakeNetCDF4FileHandler):
-    """Swap-in NetCDF4 File Handler"""
+    """Swap-in NetCDF4 File Handler."""
+
     def get_test_content(self, filename, filename_info, filetype_info):
-        """Mimic reader input file content"""
-        from xarray import DataArray
+        """Mimic reader input file content."""
+        DEFAULT_FILE_SHAPE = (9001, 18000)
+        DEFAULT_LAT = np.linspace(-90, 90, DEFAULT_FILE_SHAPE[0], dtype=DEFAULT_FILE_DTYPE)
+        DEFAULT_LON = np.linspace(-180, 180, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+        DEFAULT_FILE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
+                                      dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+
         dt_s = filename_info.get('start_time', datetime(2019, 6, 19, 13, 0))
         dt_e = filename_info.get('end_time', datetime(2019, 6, 19, 13, 0))
 
@@ -84,12 +86,90 @@ class FakeNetCDF4FileHandlerMimic(FakeNetCDF4FileHandler):
         return file_content
 
 
+class FakeNetCDF4FileHandlerMimicLow(FakeNetCDF4FileHandler):
+    """Swap-in NetCDF4 File Handler."""
+
+    def get_test_content(self, filename, filename_info, filetype_info):
+        """Mimic reader input file content for lower resolution files."""
+        DEFAULT_FILE_SHAPE = (721, 1440)
+        DEFAULT_DATE = datetime(2019, 6, 19, 13, 0)
+        DEFAULT_LAT = np.linspace(-90, 90, DEFAULT_FILE_SHAPE[0], dtype=DEFAULT_FILE_DTYPE)
+        DEFAULT_LON = np.linspace(-180, 180, DEFAULT_FILE_SHAPE[1], dtype=DEFAULT_FILE_DTYPE)
+        DEFAULT_FILE_FLOAT_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
+                                            dtype=DEFAULT_FILE_DTYPE).reshape(DEFAULT_FILE_SHAPE)
+        DEFAULT_FILE_DATE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
+                                           dtype=np.timedelta64).reshape(DEFAULT_FILE_SHAPE)
+        DEFAULT_FILE_UBYTE_DATA = np.arange(DEFAULT_FILE_SHAPE[0] * DEFAULT_FILE_SHAPE[1],
+                                            dtype=np.ubyte).reshape(DEFAULT_FILE_SHAPE)
+        DEFAULT_FILE_DATE_DATA = np.clip(DEFAULT_FILE_UBYTE_DATA, 0, 1049)
+
+        float_variables = ['tpwGrid', 'tpwGridPrior', 'tpwGridSubseq', 'footGridPrior', 'footGridSubseq']
+        date_variables = ['timeAwayGridPrior', 'timeAwayGridSubseq']
+        ubyte_variables = ['satGridPrior', 'satGridSubseq']
+
+        dt_s = filename_info.get('start_time', DEFAULT_DATE)
+        dt_e = filename_info.get('end_time', DEFAULT_DATE)
+
+        if filetype_info['file_type'] == 'mimicTPW2_comp':
+            file_content = {
+                '/attr/start_time': dt_s.strftime('%Y%m%d.%H%M%S'),
+                '/attr/end_time': dt_e.strftime('%Y%m%d.%H%M%S'),
+                '/attr/platform_shortname': 'aggregated microwave',
+                '/attr/sensor': 'mimic',
+            }
+            file_content['latArr'] = DEFAULT_LAT
+            file_content['latArr/shape'] = (DEFAULT_FILE_SHAPE[0],)
+            file_content['latArr/attr/units'] = 'degress_north'
+
+            file_content['lonArr'] = DEFAULT_LON
+            file_content['lonArr/shape'] = (DEFAULT_FILE_SHAPE[1],)
+            file_content['lonArr/attr/units'] = 'degrees_east'
+
+            file_content['/dimension/lat'] = DEFAULT_FILE_SHAPE[0]
+            file_content['/dimension/lon'] = DEFAULT_FILE_SHAPE[1]
+
+            for float_var in float_variables:
+                file_content[float_var] = DEFAULT_FILE_FLOAT_DATA
+                file_content['{}/shape'.format(float_var)] = DEFAULT_FILE_SHAPE
+                file_content['{}/attr/units'.format(float_var)] = 'mm'
+            for date_var in date_variables:
+                file_content[date_var] = DEFAULT_FILE_DATE_DATA
+                file_content['{}/shape'.format(date_var)] = DEFAULT_FILE_SHAPE
+                file_content['{}/attr/units'.format(date_var)] = 'minutes'
+            for ubyte_var in ubyte_variables:
+                file_content[ubyte_var] = DEFAULT_FILE_UBYTE_DATA
+                file_content['{}/shape'.format(ubyte_var)] = DEFAULT_FILE_SHAPE
+                file_content['{}/attr/source_key'.format(ubyte_var)] = "Key: 0: None, 1: NOAA-N, 2: NOAA-P, 3: Metop-A, \
+                     4: Metop-B, 5: SNPP, 6: SSMI-17, 7: SSMI-18"
+
+            # convert to xarrays
+            for key, val in file_content.items():
+                if key == 'lonArr' or key == 'latArr':
+                    file_content[key] = DataArray(val)
+                elif isinstance(val, np.ndarray):
+                    if val.ndim > 1:
+                        file_content[key] = DataArray(val, dims=('y', 'x'))
+                    else:
+                        file_content[key] = DataArray(val)
+            for key in itertools.chain(float_variables, ubyte_variables):
+                file_content[key].attrs['_FillValue'] = -999.0
+                file_content[key].attrs['name'] = key
+                file_content[key].attrs['file_key'] = key
+                file_content[key].attrs['file_type'] = self.filetype_info['file_type']
+        else:
+            msg = 'Wrong Test Reader for file_type {}'.format(filetype_info['file_type'])
+            raise AssertionError(msg)
+
+        return file_content
+
+
 class TestMimicTPW2Reader(unittest.TestCase):
-    """Test Mimic Reader"""
+    """Test Mimic Reader."""
+
     yaml_file = "mimicTPW2_comp.yaml"
 
     def setUp(self):
-        """Wrap NetCDF4 file handler with our own fake handler"""
+        """Wrap NetCDF4 file handler with our own fake handler."""
         from satpy.config import config_search_paths
         from satpy.readers.mimic_TPW2_nc import MimicTPW2FileHandler
         self.reader_configs = config_search_paths(os.path.join('readers', self.yaml_file))
@@ -98,8 +178,12 @@ class TestMimicTPW2Reader(unittest.TestCase):
         self.fake_handler = self.p.start()
         self.p.is_local = True
 
+        self.p = mock.patch.object(MimicTPW2FileHandler, '__bases__', (FakeNetCDF4FileHandlerMimicLow,))
+        self.fake_handler = self.p.start()
+        self.p.is_local = True
+
     def tearDown(self):
-        """Stop wrapping the NetCDF4 file handler"""
+        """Stop wrapping the NetCDF4 file handler."""
         self.p.stop()
 
     def test_init(self):
@@ -115,7 +199,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
         self.assertTrue(r.file_handlers)
 
     def test_load_mimic(self):
-        """Load Mimic data"""
+        """Load Mimic data."""
         from satpy.readers import load_reader
         r = load_reader(self.reader_configs)
         with mock.patch('satpy.readers.mimic_TPW2_nc.netCDF4.Variable', xr.DataArray):
