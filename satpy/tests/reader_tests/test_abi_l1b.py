@@ -20,6 +20,7 @@
 import unittest
 from unittest import mock
 
+import pytest
 import numpy as np
 import xarray as xr
 
@@ -110,9 +111,32 @@ class Test_NC_ABI_L1B_Base(unittest.TestCase):
         xr_.open_dataset.return_value = fake_dataset
         self.reader = NC_ABI_L1B('filename',
                                  {'platform_shortname': 'G16', 'observation_type': 'Rad',
-                                  'suffix': '_custom',
+                                  'suffix': 'custom',
                                   'scene_abbr': 'C', 'scan_mode': 'M3'},
                                  {'filetype': 'info'})
+
+
+class TestABIYAML:
+    """Tests for the ABI L1b reader's YAML configuration."""
+
+    @pytest.mark.parametrize(['channel', 'suffix'],
+                             [("C{:02d}".format(num), suffix)
+                              for num in range(1, 17)
+                              for suffix in ('', '_test_suffix')])
+    def test_file_patterns_match(self, channel, suffix):
+        """Test that the configured file patterns work."""
+        from satpy.readers import configs_for_reader, load_reader
+        reader_configs = next(configs_for_reader('abi_l1b'))
+        reader = load_reader(reader_configs)
+        fn1 = ("OR_ABI-L1b-RadM1-M3{}_G16_s20182541300210_e20182541300267"
+               "_c20182541300308{}.nc").format(channel, suffix)
+        loadables = reader.select_files_from_pathnames([fn1])
+        assert len(loadables) == 1
+        if not suffix and channel in ["C01", "C02", "C03", "C05"]:
+            fn2 = ("OR_ABI-L1b-RadM1-M3{}_G16_s20182541300210_e20182541300267"
+                   "_c20182541300308-000000_0.nc").format(channel)
+            loadables = reader.select_files_from_pathnames([fn2])
+            assert len(loadables) == 1
 
 
 class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
@@ -151,7 +175,7 @@ class Test_NC_ABI_L1B(Test_NC_ABI_L1B_Base):
                'scene_id': None,
                'sensor': 'abi',
                'timeline_ID': None,
-               'suffix': '_custom',
+               'suffix': 'custom',
                'units': 'W m-2 um-1 sr-1'}
 
         self.assertDictEqual(res.attrs, exp)
