@@ -46,8 +46,8 @@ class SARIce(GenericCompositor):
         (mhh, mhv) = projectables
         ch1attrs = mhh.attrs
         ch2attrs = mhv.attrs
-        mhh = np.sqrt(mhh ** 2 + 0.002) - 0.04
-        mhv = np.sqrt(mhv ** 2 + 0.002) - 0.04
+        mhh = np.sqrt(mhh + 0.002) - 0.04
+        mhv = np.sqrt(mhv + 0.002) - 0.04
         mhh.attrs = ch1attrs
         mhv.attrs = ch2attrs
         green = overlay(mhh, mhv, 30) * 1000
@@ -56,12 +56,23 @@ class SARIce(GenericCompositor):
         return super(SARIce, self).__call__((mhv, green, mhh), *args, **kwargs)
 
 
+def square_root_channels(mhh, mhv):
+    """Return the square root of the channels, preserving the attributes."""
+    ch1attrs = mhh.attrs
+    ch2attrs = mhv.attrs
+    mhh = np.sqrt(mhh)
+    mhv = np.sqrt(mhv)
+    mhh.attrs = ch1attrs
+    mhv.attrs = ch2attrs
+    return mhh, mhv
+
+
 class SARIceLegacy(GenericCompositor):
     """The SAR Ice composite, legacy version with dynamic stretching."""
 
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR RGB composite."""
-        (mhh, mhv) = projectables
+        mhh, mhv = square_root_channels(*projectables)
         green = overlay(mhh, mhv)
         green.attrs = combine_metadata(mhh, mhv)
 
@@ -73,7 +84,7 @@ class SARRGB(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR RGB composite."""
-        (mhh, mhv) = projectables
+        mhh, mhv = square_root_channels(*projectables)
         green = overlay(mhh, mhv)
         green.attrs = combine_metadata(mhh, mhv)
 
@@ -132,7 +143,7 @@ class SARQuickLook(GenericCompositor):
 
     def __call__(self, projectables, *args, **kwargs):
         """Create the SAR QuickLook composite."""
-        (mhh, mhv) = projectables
+        mhh, mhv = square_root_channels(*projectables)
 
         blue = mhv / mhh
         blue.attrs = combine_metadata(mhh, mhv)

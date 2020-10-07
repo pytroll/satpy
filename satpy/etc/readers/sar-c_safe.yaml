@@ -17,6 +17,11 @@ reader:
         - sigma_nought
         - beta_nought
       transitive: true
+    quantity:
+      enum:
+        - natural
+        - dB
+      transitive: true
     modifiers:
       default: []
       type: !!python/name:satpy.dataset.dataid.ModifierTuple
@@ -81,6 +86,7 @@ datasets:
       beta_nought:
         standard_name: backscatter
         units: 1
+    quantity: [natural, dB]
     coordinates: [longitude, latitude]
     file_type: safe_measurement
 

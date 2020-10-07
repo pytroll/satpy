@@ -156,7 +156,7 @@ class SAFEXML(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self._polarization != key.polarization:
+        if self._polarization != key["polarization"]:
             return
 
         xml_items = info['xml_item']
@@ -309,7 +309,7 @@ class SAFEGRD(BaseFileHandler):
 
     def get_dataset(self, key, info):
         """Load a dataset."""
-        if self._polarization != key.polarization:
+        if self._polarization != key["polarization"]:
             return
 
         logger.debug('Reading %s.', key['name'])
@@ -350,14 +350,19 @@ class SAFEGRD(BaseFileHandler):
             dn = data * data
             data = ((dn - noise).clip(min=0) + cal_constant)
 
-            data = (np.sqrt(data) / cal).clip(min=0)
+            data = (data / (cal * cal)).clip(min=0)
+            if key['quantity'] == 'dB':
+                data = 10 * np.log10(data)
             data.attrs.update(info)
 
             del noise, cal
 
             data.attrs.update({'platform_name': self._mission_id})
 
-            data.attrs['units'] = '1'
+            if key['quantity'] == 'dB':
+                data.attrs['units'] = 'dB'
+            else:
+                data.attrs['units'] = '1'
 
         return data
 
@@ -441,7 +446,7 @@ class SAFEGRD(BaseFileHandler):
 
         (xpoints, ypoints), (gcp_lons, gcp_lats, gcp_alts), (gcps, crs) = self.get_gcps()
 
-        # FIXME: do interpolation on cartesion coordinates if the area is
+        # FIXME: do interpolation on cartesian coordinates if the area is
         # problematic.
 
         longitudes = interpolate_xarray(xpoints, ypoints, gcp_lons, band.shape)
