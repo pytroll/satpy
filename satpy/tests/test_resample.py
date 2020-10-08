@@ -136,7 +136,7 @@ class TestKDTreeResampler(unittest.TestCase):
     @mock.patch('satpy.resample.zarr.open')
     @mock.patch('satpy.resample.KDTreeResampler._create_cache_filename')
     @mock.patch('pyresample.kd_tree.XArrayResamplerNN')
-    def test_kd_resampling(self, resampler, create_filename, zarr_open,
+    def test_kd_resampling(self, xr_resampler, create_filename, zarr_open,
                            xr_dset, cnc):
         """Test the kd resampler."""
         import numpy as np
@@ -148,6 +148,7 @@ class TestKDTreeResampler(unittest.TestCase):
         resampler = KDTreeResampler(source_swath, target_area)
         resampler.precompute(
             mask=da.arange(5, chunks=5).astype(np.bool), cache_dir='.')
+        xr_resampler.assert_called_once()
         resampler.resampler.get_neighbour_info.assert_called()
         # swath definitions should not be cached
         self.assertFalse(len(mock_dset.to_zarr.mock_calls), 0)
@@ -173,6 +174,8 @@ class TestKDTreeResampler(unittest.TestCase):
             nbcalls = len(resampler.resampler.get_neighbour_info.mock_calls)
             # test reusing the resampler
             zarr_open.side_effect = None
+            # The kdtree shouldn't be available after saving cache to disk
+            assert resampler.resampler.delayed_kdtree is None
 
             class FakeZarr(dict):
 

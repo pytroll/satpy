@@ -15,16 +15,20 @@
 #
 # You should have received a copy of the GNU General Public License along with
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
+"""Tests for the goes imager nc reader."""
 import datetime
 import unittest
 from unittest import mock
 
 import numpy as np
+import pytest
 import xarray as xr
-from satpy import DatasetID
+
+from satpy.tests.utils import make_dataid
 
 
 class GOESNCBaseFileHandlerTest(unittest.TestCase):
+    """Testing the file handler."""
 
     longMessage = True
 
@@ -33,6 +37,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                          __abstractmethods__=set(),
                          _get_sector=mock.MagicMock())
     def setUp(self, xr_):
+        """Set up the tests."""
         from satpy.readers.goes_imager_nc import CALIB_COEFS, GOESNCBaseFileHandler
 
         self.coefs = CALIB_COEFS['GOES-15']
@@ -59,7 +64,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                                             filetype_info={})
 
     def test_init(self):
-        """Tests reader initialization"""
+        """Tests reader initialization."""
         self.assertEqual(self.reader.nlines, self.dummy2d.shape[0])
         self.assertEqual(self.reader.ncols, self.dummy2d.shape[1])
         self.assertEqual(self.reader.platform_name, 'GOES-15')
@@ -68,7 +73,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
         self.assertIsInstance(self.reader.geo_data, xr.Dataset)
 
     def test_get_nadir_pixel(self):
-        """Test identification of the nadir pixel"""
+        """Test identification of the nadir pixel."""
         from satpy.readers.goes_imager_nc import FULL_DISC
 
         earth_mask = np.array([[0, 0, 0, 0],
@@ -82,7 +87,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                          msg='Incorrect nadir pixel')
 
     def test_get_earth_mask(self):
-        """Test identification of earth/space pixels"""
+        """Test identification of earth/space pixels."""
         lat = xr.DataArray([-100, -90, -45, 0, 45, 90, 100])
         expected = np.array([0, 1, 1, 1, 1, 1, 0])
         mask = self.reader._get_earth_mask(lat)
@@ -90,7 +95,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                         msg='Incorrect identification of earth/space pixel')
 
     def test_is_yaw_flip(self):
-        """Test yaw flip identification"""
+        """Test yaw flip identification."""
         lat_asc = xr.DataArray([[1, 1, 1],
                                 [2, 2, 2],
                                 [3, 3, 3]])
@@ -103,7 +108,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                          msg='Yaw flip false alarm')
 
     def test_viscounts2radiance(self):
-        """Test conversion from VIS counts to radiance"""
+        """Test conversion from VIS counts to radiance."""
         # Reference data is for detector #1
         slope = self.coefs['00_7']['slope'][0]
         offset = self.coefs['00_7']['offset'][0]
@@ -118,7 +123,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                             'radiance')
 
     def test_ircounts2radiance(self):
-        """Test conversion from IR counts to radiance"""
+        """Test conversion from IR counts to radiance."""
         # Test counts
         counts = xr.DataArray([0, 100, 500, 1000, 1023])
 
@@ -144,7 +149,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                                 'radiance in channel {}'.format(ch))
 
     def test_calibrate_vis(self):
-        """Test VIS calibration"""
+        """Test VIS calibration."""
         rad = xr.DataArray([0, 1, 10, 100, 500])
         refl_expected = xr.DataArray([0., 0.188852, 1.88852, 18.8852, 94.426])
         refl = self.reader._calibrate_vis(radiance=rad,
@@ -154,7 +159,7 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                             'reflectance')
 
     def test_calibrate_ir(self):
-        """Test IR calibration"""
+        """Test IR calibration."""
         # Test radiance values and corresponding BT from NOAA lookup tables
         # rev. H (see [IR]).
         rad = {
@@ -194,11 +199,11 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
                         'temperature in channel {} detector {}'.format(ch, det))
 
     def test_start_time(self):
-        """Test dataset start time stamp"""
+        """Test dataset start time stamp."""
         self.assertEqual(self.reader.start_time, self.time)
 
     def test_end_time(self):
-        """Test dataset end time stamp"""
+        """Test dataset end time stamp."""
         from satpy.readers.goes_imager_nc import (SCAN_DURATION, FULL_DISC,
                                                   UNKNOWN_SECTOR)
         expected = {
@@ -211,11 +216,13 @@ class GOESNCBaseFileHandlerTest(unittest.TestCase):
 
 
 class GOESNCFileHandlerTest(unittest.TestCase):
+    """Test the file handler."""
 
     longMessage = True
 
     @mock.patch('satpy.readers.goes_imager_nc.xr')
     def setUp(self, xr_):
+        """Set up the tests."""
         from satpy.readers.goes_imager_nc import GOESNCFileHandler, CALIB_COEFS
 
         self.coefs = CALIB_COEFS['GOES-15']
@@ -249,12 +256,10 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                                         filetype_info={})
 
     def test_get_dataset_coords(self):
-        """Test whether coordinates returned by get_dataset() are correct"""
-        lon = self.reader.get_dataset(key=DatasetID(name='longitude',
-                                                    calibration=None),
+        """Test whether coordinates returned by get_dataset() are correct."""
+        lon = self.reader.get_dataset(key=make_dataid(name='longitude'),
                                       info={})
-        lat = self.reader.get_dataset(key=DatasetID(name='latitude',
-                                                    calibration=None),
+        lat = self.reader.get_dataset(key=make_dataid(name='latitude'),
                                       info={})
         # ... this only compares the valid (unmasked) elements
         self.assertTrue(np.all(lat.to_masked_array() == self.lat),
@@ -263,7 +268,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                         msg='get_dataset() returns invalid longitude')
 
     def test_get_dataset_counts(self):
-        """Test whether counts returned by get_dataset() are correct"""
+        """Test whether counts returned by get_dataset() are correct."""
         from satpy.readers.goes_imager_nc import ALTITUDE, UNKNOWN_SECTOR
 
         self.reader.meta.update({'lon0': -75.0,
@@ -288,7 +293,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
         for ch in self.channels:
             counts = self.reader.get_dataset(
-                key=DatasetID(name=ch, calibration='counts'), info={})
+                key=make_dataid(name=ch, calibration='counts'), info={})
             # ... this only compares the valid (unmasked) elements
             self.assertTrue(np.all(self.counts/32. == counts.to_masked_array()),
                             msg='get_dataset() returns invalid counts for '
@@ -298,11 +303,10 @@ class GOESNCFileHandlerTest(unittest.TestCase):
             self.assertDictEqual(counts.attrs, attrs_exp)
 
     def test_get_dataset_masks(self):
-        """Test whether data and coordinates are masked consistently"""
+        """Test whether data and coordinates are masked consistently."""
         # Requires that no element has been masked due to invalid
         # radiance/reflectance/BT (see setUp()).
-        lon = self.reader.get_dataset(key=DatasetID(name='longitude',
-                                                    calibration=None),
+        lon = self.reader.get_dataset(key=make_dataid(name='longitude'),
                                       info={})
         lon_mask = lon.to_masked_array().mask
         for ch in self.channels:
@@ -310,7 +314,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                           'brightness_temperature'):
                 try:
                     data = self.reader.get_dataset(
-                        key=DatasetID(name=ch, calibration=calib), info={})
+                        key=make_dataid(name=ch, calibration=calib), info={})
                 except ValueError:
                     continue
                 data_mask = data.to_masked_array().mask
@@ -319,27 +323,27 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                                     'masked {} in channel {}'.format(calib, ch))
 
     def test_get_dataset_invalid(self):
-        """Test handling of invalid calibrations"""
+        """Test handling of invalid calibrations."""
         # VIS -> BT
-        args = dict(key=DatasetID(name='00_7',
-                                  calibration='brightness_temperature'),
+        args = dict(key=make_dataid(name='00_7',
+                                    calibration='brightness_temperature'),
                     info={})
         self.assertRaises(ValueError, self.reader.get_dataset, **args)
 
         # IR -> Reflectance
-        args = dict(key=DatasetID(name='10_7',
-                                  calibration='reflectance'),
+        args = dict(key=make_dataid(name='10_7',
+                                    calibration='reflectance'),
                     info={})
         self.assertRaises(ValueError, self.reader.get_dataset, **args)
 
         # Unsupported calibration
-        args = dict(key=DatasetID(name='10_7',
-                                  calibration='invalid'),
-                    info={})
-        self.assertRaises(ValueError, self.reader.get_dataset, **args)
+        with pytest.raises(ValueError):
+            args = dict(key=make_dataid(name='10_7',
+                                        calibration='invalid'),
+                        info={})
 
     def test_calibrate(self):
-        """Test whether the correct calibration methods are called"""
+        """Test whether the correct calibration methods are called."""
         for ch in self.channels:
             if self.reader._is_vis(ch):
                 calibs = {'radiance': '_viscounts2radiance',
@@ -354,7 +358,7 @@ class GOESNCFileHandlerTest(unittest.TestCase):
                     target_func.assert_called()
 
     def test_get_sector(self):
-        """Test sector identification"""
+        """Test sector identification."""
         from satpy.readers.goes_imager_nc import (FULL_DISC, NORTH_HEMIS_EAST,
                                                   SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
                                                   SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
@@ -388,10 +392,13 @@ class GOESNCFileHandlerTest(unittest.TestCase):
 
 
 class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
+    """Tests for the radiances."""
+
     longMessage = True
 
     @mock.patch('satpy.readers.goes_imager_nc.xr')
     def setUp(self, xr_):
+        """Set up the tests."""
         from satpy.readers.goes_imager_nc import GOESEUMNCFileHandler, CALIB_COEFS
 
         self.coefs = CALIB_COEFS['GOES-15']
@@ -426,17 +433,18 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
                                            filetype_info={}, geo_data=geo_data)
 
     def test_get_dataset_radiance(self):
+        """Test getting the radiances."""
         for ch in self.channels:
             if not self.reader._is_vis(ch):
                 radiance = self.reader.get_dataset(
-                    key=DatasetID(name=ch, calibration='radiance'), info={})
+                    key=make_dataid(name=ch, calibration='radiance'), info={})
                 # ... this only compares the valid (unmasked) elements
                 self.assertTrue(np.all(self.radiance == radiance.to_masked_array()),
                                 msg='get_dataset() returns invalid radiance for '
                                 'channel {}'.format(ch))
 
     def test_calibrate(self):
-        """Test whether the correct calibration methods are called"""
+        """Test whether the correct calibration methods are called."""
         for ch in self.channels:
             if not self.reader._is_vis(ch):
                 calibs = {'brightness_temperature': '_calibrate_ir'}
@@ -447,7 +455,7 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
                         target_func.assert_called()
 
     def test_get_sector(self):
-        """Test sector identification"""
+        """Test sector identification."""
         from satpy.readers.goes_imager_nc import (FULL_DISC, NORTH_HEMIS_EAST,
                                                   SOUTH_HEMIS_EAST, NORTH_HEMIS_WEST,
                                                   SOUTH_HEMIS_WEST, UNKNOWN_SECTOR)
@@ -468,10 +476,13 @@ class GOESNCEUMFileHandlerRadianceTest(unittest.TestCase):
 
 
 class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
+    """Testing the reflectances."""
+
     longMessage = True
 
     @mock.patch('satpy.readers.goes_imager_nc.xr')
     def setUp(self, xr_):
+        """Set up the tests."""
         from satpy.readers.goes_imager_nc import GOESEUMNCFileHandler, CALIB_COEFS
 
         self.coefs = CALIB_COEFS['GOES-15']
@@ -506,10 +517,11 @@ class GOESNCEUMFileHandlerReflectanceTest(unittest.TestCase):
                                            filetype_info={}, geo_data=geo_data)
 
     def test_get_dataset_reflectance(self):
+        """Test getting the reflectance."""
         for ch in self.channels:
             if self.reader._is_vis(ch):
                 refl = self.reader.get_dataset(
-                    key=DatasetID(name=ch, calibration='reflectance'), info={})
+                    key=make_dataid(name=ch, calibration='reflectance'), info={})
                 # ... this only compares the valid (unmasked) elements
                 self.assertTrue(np.all(self.reflectance == refl.to_masked_array()),
                                 msg='get_dataset() returns invalid reflectance for '

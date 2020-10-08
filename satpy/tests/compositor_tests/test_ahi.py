@@ -17,12 +17,10 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """Tests for AHI compositors."""
 
-import sys
 import unittest
 
 
 class TestAHIComposites(unittest.TestCase):
-
     """Test AHI-specific composites."""
 
     def test_load_composite_yaml(self):

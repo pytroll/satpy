@@ -49,7 +49,7 @@ argument and defaults to ``nearest``:
 .. code-block:: python
 
     >>> scn = Scene(...)
-    >>> euro_scn = global_scene.resample('euro4', resampler='nearest')
+    >>> euro_scn = scn.resample('euro4', resampler='nearest')
 
 .. warning::
 
@@ -106,7 +106,7 @@ areas that can be passed to the resample method::
 
     >>> from pyresample.geometry import AreaDefinition
     >>> my_area = AreaDefinition(...)
-    >>> local_scene = global_scene.resample(my_area)
+    >>> local_scene = scn.resample(my_area)
 
 Create dynamic area definition
 ------------------------------
@@ -589,6 +589,8 @@ class KDTreeResampler(BaseResampler):
             zarr_out.to_zarr(filename)
 
             self._index_caches[mask_name] = cache
+            # Delete the kdtree, it's not needed anymore
+            self.resampler.delayed_kdtree = None
 
     def _read_resampler_attrs(self):
         """Read certain attributes from the resampler for caching."""
@@ -905,7 +907,7 @@ def _move_existing_caches(cache_dir, filename):
     import shutil
     old_cache_dir = os.path.join(cache_dir, 'moved_by_satpy')
     try:
-        os.mkdir(old_cache_dir)
+        os.makedirs(old_cache_dir)
     except FileExistsError:
         pass
     try:
@@ -1230,6 +1232,7 @@ RESAMPLERS = {"kd_tree": KDTreeResampler,
               }
 
 
+# deepcode ignore PythonSameEvalBinaryExpressiontrue: PRBaseResampler is None only on import errors
 if PRBaseResampler is None:
     PRBaseResampler = BaseResampler
 

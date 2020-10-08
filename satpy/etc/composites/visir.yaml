@@ -1,4 +1,9 @@
 sensor_name: visir
+composite_identification_keys:
+  name:
+    required: true
+  resolution:
+    transitive: false
 
 modifiers:
   sunz_corrected:
@@ -24,6 +29,7 @@ modifiers:
     optional_prerequisites:
     - solar_zenith_angle
     - 13.4
+    sunz_threshold: 85.0
 
   nir_emissive:
     compositor: !!python/name:satpy.composites.NIREmissivePartFromReflectance
@@ -32,7 +38,7 @@ modifiers:
     optional_prerequisites:
     - solar_zenith_angle
     - 13.4
-
+    sunz_threshold: 85.0
   atm_correction:
     compositor: !!python/name:satpy.composites.PSPAtmosphericalCorrection
     optional_prerequisites:
@@ -336,35 +342,35 @@ composites:
     standard_name: cloud_top_phase
 
   cloud_drop_effective_radius:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
     - cpp_reff
     - cpp_reff_pal
     standard_name: cloud_drop_effective_radius
 
   cloud_optical_thickness:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
     - cpp_cot
     - cpp_cot_pal
     standard_name: cloud_optical_thickness
 
   cloud_water_path:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
     - cpp_cwp
     - cpp_cwp_pal
     standard_name: cloud_water_path
 
   ice_water_path:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
     - cpp_iwp
     - cpp_iwp_pal
     standard_name: ice_water_path
 
   liquid_water_path:
-    compositor: !!python/name:satpy.composites.PaletteCompositor
+    compositor: !!python/name:satpy.composites.ColorizeCompositor
     prerequisites:
     - cpp_lwp
     - cpp_lwp_pal
@@ -419,4 +425,3 @@ composites:
     compositor: !!python/name:satpy.composites.StaticImageCompositor
     standard_name: night_background_hires
     filename: BlackMarble_2016_3km_geo.tif
-

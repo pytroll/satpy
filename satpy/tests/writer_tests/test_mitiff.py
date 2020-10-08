@@ -27,12 +27,12 @@ class TestMITIFFWriter(unittest.TestCase):
     """Test the MITIFF Writer class."""
 
     def setUp(self):
-        """Create temporary directory to save files to"""
+        """Create temporary directory to save files to."""
         import tempfile
         self.base_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        """Remove the temporary directory created for a test"""
+        """Remove the temporary directory created for a test."""
         try:
             import shutil
             shutil.rmtree(self.base_dir, ignore_errors=True)
@@ -40,7 +40,7 @@ class TestMITIFFWriter(unittest.TestCase):
             pass
 
     def _get_test_datasets(self):
-        """Helper function to create a datasets list."""
+        """Create a datasets list."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -106,7 +106,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return [ds1, ds2]
 
     def _get_test_datasets_sensor_set(self):
-        """Helper function to create a datasets list."""
+        """Create a datasets list."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -129,7 +129,7 @@ class TestMITIFFWriter(unittest.TestCase):
             attrs={'name': '1',
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
-                   'sensor': set('TEST_SENSOR_NAME'),
+                   'sensor': {'TEST_SENSOR_NAME'},
                    'area': area_def,
                    'prerequisites': ['1'],
                    'calibration': 'reflectance',
@@ -152,7 +152,7 @@ class TestMITIFFWriter(unittest.TestCase):
             attrs={'name': '4',
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
-                   'sensor': set('TEST_SENSOR_NAME'),
+                   'sensor': {'TEST_SENSOR_NAME'},
                    'area': area_def,
                    'prerequisites': ['4'],
                    'calibration': 'brightness_temperature',
@@ -172,7 +172,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return [ds1, ds2]
 
     def _get_test_dataset(self, bands=3):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -202,7 +202,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_one_dataset(self):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -232,7 +232,7 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_one_dataset_sensor_set(self):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
@@ -255,14 +255,14 @@ class TestMITIFFWriter(unittest.TestCase):
             attrs={'name': 'test',
                    'start_time': datetime.utcnow(),
                    'platform_name': "TEST_PLATFORM_NAME",
-                   'sensor': set('avhrr'),
+                   'sensor': {'avhrr'},
                    'area': area_def,
                    'prerequisites': [10.8]}
         )
         return ds1
 
     def _get_test_dataset_with_bad_values(self, bands=3):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import numpy as np
         from datetime import datetime
@@ -296,13 +296,13 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_dataset_calibration(self, bands=6):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.scene import Scene
         area_def = AreaDefinition(
             'test',
@@ -315,13 +315,13 @@ class TestMITIFFWriter(unittest.TestCase):
             (-1000., -1500., 1000., 1500.),
         )
 
-        d = [
-            DatasetID(name='1', calibration='reflectance'),
-            DatasetID(name='2', calibration='reflectance'),
-            DatasetID(name='3', calibration='brightness_temperature'),
-            DatasetID(name='4', calibration='brightness_temperature'),
-            DatasetID(name='5', calibration='brightness_temperature'),
-            DatasetID(name='6', calibration='reflectance')
+        prereqs = [
+            make_dsq(name='1', calibration='reflectance'),
+            make_dsq(name='2', calibration='reflectance'),
+            make_dsq(name='3', calibration='brightness_temperature'),
+            make_dsq(name='4', calibration='brightness_temperature'),
+            make_dsq(name='5', calibration='brightness_temperature'),
+            make_dsq(name='6', calibration='reflectance')
         ]
         scene = Scene()
         scene["1"] = xr.DataArray(da.zeros((100, 200), chunks=50),
@@ -355,7 +355,7 @@ class TestMITIFFWriter(unittest.TestCase):
                      'platform_name': "TEST_PLATFORM_NAME",
                      'sensor': 'test-sensor',
                      'area': area_def,
-                     'prerequisites': d,
+                     'prerequisites': prereqs,
                      'metadata_requirements': {
                          'order': ['1', '2', '3', '4', '5', '6'],
                          'config': {
@@ -399,13 +399,13 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_dataset_calibration_one_dataset(self, bands=1):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         from satpy.scene import Scene
         area_def = AreaDefinition(
             'test',
@@ -418,7 +418,7 @@ class TestMITIFFWriter(unittest.TestCase):
             (-1000., -1500., 1000., 1500.),
         )
 
-        d = [DatasetID(name='4', calibration='brightness_temperature')]
+        prereqs = [make_dsq(name='4', calibration='brightness_temperature')]
         scene = Scene()
         scene["4"] = xr.DataArray(da.zeros((100, 200), chunks=50),
                                   dims=('y', 'x'),
@@ -433,7 +433,7 @@ class TestMITIFFWriter(unittest.TestCase):
                      'platform_name': "TEST_PLATFORM_NAME",
                      'sensor': 'test-sensor',
                      'area': area_def,
-                     'prerequisites': d,
+                     'prerequisites': prereqs,
                      'metadata_requirements': {
                          'order': ['4'],
                          'config': {
@@ -452,13 +452,13 @@ class TestMITIFFWriter(unittest.TestCase):
         return ds1
 
     def _get_test_dataset_three_bands_two_prereq(self, bands=3):
-        """Helper function to create a single test dataset."""
+        """Create a single test dataset."""
         import xarray as xr
         import dask.array as da
         from datetime import datetime
         from pyresample.geometry import AreaDefinition
         from pyresample.utils import proj4_str_to_dict
-        from satpy import DatasetID
+        from satpy.tests.utils import make_dsq
         area_def = AreaDefinition(
             'test',
             'test',
@@ -479,9 +479,42 @@ class TestMITIFFWriter(unittest.TestCase):
                    'platform_name': "TEST_PLATFORM_NAME",
                    'sensor': 'TEST_SENSOR_NAME',
                    'area': area_def,
-                   'prerequisites': [DatasetID(name='1', calibration='reflectance'),
-                                     DatasetID(name='2', calibration='reflectance')]}
+                   'prerequisites': [make_dsq(name='1', calibration='reflectance'),
+                                     make_dsq(name='2', calibration='reflectance')]}
         )
+        return ds1
+
+    def _get_test_dataset_three_bands_prereq(self, bands=3):
+        """Create a single test dataset."""
+        import xarray as xr
+        import dask.array as da
+        from datetime import datetime
+        from pyresample.geometry import AreaDefinition
+        from pyresample.utils import proj4_str_to_dict
+        from satpy.tests.utils import make_dsq
+        area_def = AreaDefinition(
+            'test',
+            'test',
+            'test',
+            proj4_str_to_dict('+proj=stere +datum=WGS84 +ellps=WGS84 '
+                              '+lon_0=0. +lat_0=90 +lat_ts=60 +units=km'),
+            100,
+            200,
+            (-1000., -1500., 1000., 1500.),
+        )
+
+        ds1 = xr.DataArray(
+            da.zeros((bands, 100, 200), chunks=50),
+            coords=[['R', 'G', 'B'], list(range(100)), list(range(200))],
+            dims=('bands', 'y', 'x'),
+            attrs={'name': 'test',
+                   'start_time': datetime.utcnow(),
+                   'platform_name': "TEST_PLATFORM_NAME",
+                   'sensor': 'TEST_SENSOR_NAME',
+                   'area': area_def,
+                   'prerequisites': [make_dsq(wavelength=0.6, modifiers=('sunz_corrected',)),
+                                     make_dsq(wavelength=0.8, modifiers=('sunz_corrected',)),
+                                     10.8]})
         return ds1
 
     def test_init(self):
@@ -803,6 +836,7 @@ class TestMITIFFWriter(unittest.TestCase):
             np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
     def test_convert_proj4_string(self):
+        """Test conversion of geolocations."""
         import xarray as xr
         import dask.array as da
         from satpy.writers.mitiff import MITIFFWriter
@@ -936,8 +970,26 @@ class TestMITIFFWriter(unittest.TestCase):
             np.testing.assert_allclose(image, expected, atol=1.e-6, rtol=0)
 
     def test_simple_write_two_bands(self):
-        """Test basic writer operation with 3 bands from 2 prerequisites"""
+        """Test basic writer operation with 3 bands from 2 prerequisites."""
         from satpy.writers.mitiff import MITIFFWriter
         dataset = self._get_test_dataset_three_bands_two_prereq()
         w = MITIFFWriter(base_dir=self.base_dir)
         w.save_dataset(dataset)
+
+    def test_get_test_dataset_three_bands_prereq(self):
+        """Test basic writer operation with 3 bands with DataQuery prerequisites with missing name."""
+        import os
+        from libtiff import TIFF
+        from satpy.writers.mitiff import MITIFFWriter
+        IMAGEDESCRIPTION = 270
+
+        dataset = self._get_test_dataset_three_bands_prereq()
+        w = MITIFFWriter(base_dir=self.base_dir)
+        w.save_dataset(dataset)
+        filename = "{:s}_{:%Y%m%d_%H%M%S}.mitiff".format(dataset.attrs['name'],
+                                                         dataset.attrs['start_time'])
+        tif = TIFF.open(os.path.join(self.base_dir, filename))
+        imgdesc = (tif.GetField(IMAGEDESCRIPTION)).decode('utf-8').split('\n')
+        for element in imgdesc:
+            if ' Channels:' in element:
+                self.assertEqual(element, ' Channels: 3 In this file: 1 2 3')
