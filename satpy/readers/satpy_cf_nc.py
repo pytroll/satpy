@@ -79,8 +79,6 @@ class SatpyCFFileHandler(BaseFileHandler):
                     pass
             except KeyError:
                 pass
-            if var_name not in ['longitude', 'latitude']:
-                ds_info['coordinates'] = ['longitude', 'latitude']
             yield True, ds_info
         for var_name, val in nc.coords.items():
             ds_info = dict(val.attrs)
