@@ -48,7 +48,6 @@ class SatpyCFFileHandler(BaseFileHandler):
     def sensor(self):
         """Get sensor."""
         nc = xr.open_dataset(self.filename, engine=self.engine)
-
         return nc.attrs['instrument'].replace('/', '-').lower()
 
     @property
@@ -100,7 +99,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         if file_key in nc.coords:
             data = data.drop_vars(list(nc.coords.keys()))
         try:
-            data.attrs['wavelength'] =  tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
+            data.attrs['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
         except KeyError:
             pass
         # Empty modifiers are read as [], which causes problems later
