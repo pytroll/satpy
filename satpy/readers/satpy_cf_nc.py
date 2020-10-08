@@ -68,7 +68,8 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info['file_type'] = self.filetype_info['file_type']
             ds_info['name'] = var_name
             try:
-                ds_info['wavelength'] = tuple(ds_info['wavelength'])
+                ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
+
             except KeyError:
                 pass
             try:
@@ -98,7 +99,7 @@ class SatpyCFFileHandler(BaseFileHandler):
         if file_key in nc.coords:
             data = data.drop_vars(list(nc.coords.keys()))
         try:
-            data.attrs['wavelength'] = tuple(data.attrs['wavelength'])
+            data.attrs['wavelength'] =  tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
         except KeyError:
             pass
         try:
