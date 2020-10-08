@@ -145,7 +145,6 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
                         'file_key': var_name,
                         'coordinates': coordinates,
                         'file_type': self.filetype_info['file_type'],
-                        'resolution': None,
                     }
                     yield True, new_info
 
@@ -200,21 +199,42 @@ class TROPOMIL2FileHandler(NetCDF4FileHandler):
         # Convert to DataArray
         dask_dest = da.from_array(dest, chunks=CHUNK_SIZE)
         dest = xr.DataArray(dask_dest,
-                            dims=('y', 'x'),
+                            dims=('y_bounds', 'x_bounds'),
                             attrs=bounds_data.attrs
                             )
         return dest
 
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
-        logger.debug("Getting data for: %s", ds_id.name)
-        file_key = ds_info.get('file_key', ds_id.name)
+        logger.debug("Getting data for: %s", ds_id['name'])
+        file_key = ds_info.get('file_key', ds_id['name'])
         data = self[file_key]
         data.attrs = self.get_metadata(data, ds_info)
-        fill = data.attrs.pop('_FillValue')
+        fill_value = data.attrs.get('_FillValue', np.float32(np.nan))
         data = data.squeeze()
-        data = data.where(data != fill)
+
+        # preserve integer data types if possible
+        if np.issubdtype(data.dtype, np.integer):
+            new_fill = fill_value
+        else:
+            new_fill = np.float32(np.nan)
+            data.attrs.pop('_FillValue', None)
+        good_mask = data != fill_value
+
+        scale_factor = data.attrs.get('scale_factor')
+        add_offset = data.attrs.get('add_offset')
+        if scale_factor is not None:
+            data = data * scale_factor + add_offset
+
+        data = data.where(good_mask, new_fill)
         data = self._rename_dims(data)
-        if ds_id.name in ['assembled_lat_bounds', 'assembled_lon_bounds']:
+
+        # drop coords whose units are not meters
+        drop_list = ['y', 'x', 'layer', 'vertices']
+        coords_exist = [coord for coord in drop_list if coord in data.coords]
+        if coords_exist:
+            data = data.drop_vars(coords_exist)
+
+        if ds_id['name'] in ['assembled_lat_bounds', 'assembled_lon_bounds']:
             data = self.prepare_geo(data)
         return data

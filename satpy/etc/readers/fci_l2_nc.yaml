@@ -1,0 +1,168 @@
+reader:
+  name: fci_l2_nc
+  short_name: FCI L2 NetCDF4
+  long_name: MTG FCI L2 (NetCDF4)
+  description: Reader for EUMETSAT MTG FCI L2 files in NetCDF4 format.
+  sensors: [fci]
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
+
+file_types:
+  # EUMETSAT MTG FCI L2 Optimal Cloud Analysis files in NetCDF4 format
+  nc_fci_oca:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    # TODO: Pattern based on the available test files, not compatible with MTG GFS definitions
+    file_patterns: ['FCI_SIM_OCA_2L_2KM_{creation_time:%Y%m%d}_1700.nc']
+
+  # EUMETSAT MTG FCI L2 Cloud Mask files in NetCDF4 format
+  nc_fci_clm:
+    file_reader: !!python/name:satpy.readers.fci_l2_nc.FciL2NCFileHandler
+    # TODO: Pattern based on the available test files, not compatible with MTG GFS definitions
+    file_patterns: ['FCI_SIM_CLM_2KM_{creation_time:%Y%m%d}_1700.nc']
+
+datasets:
+
+  retrieved_cloud_phase:
+    name: retrieved_cloud_phase
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_phase
+    standard_name: thermodynamic_phase_of_cloud_water_particles_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_optical_thickness_upper_layer:
+    name: retrieved_cloud_optical_thickness_upper_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+    layer: 0
+    standard_name: cloud_optical_depth
+    fill_value: -999.
+
+  retrieved_cloud_optical_thickness_lower_layer:
+    name: retrieved_cloud_optical_thickness_lower_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_optical_thickness
+    layer: 1
+    standard_name: cloud_optical_depth
+    fill_value: -999.
+
+  retrieved_cloud_particle_effective_radius:
+    name: retrieved_cloud_particle_effective_radius
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_particle_effective_radius
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_top_temperature:
+    name: retrieved_cloud_top_temperature
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_temperature
+    standard_name: air_temperature_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_top_pressure_upper_layer:
+    name: retrieved_cloud_top_pressure_upper_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_pressure
+    layer: 0
+    standard_name: air_pressure_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_top_pressure_lower_layer:
+    name: retrieved_cloud_top_pressure_lower_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_pressure
+    layer: 1
+    standard_name: air_pressure_at_cloud_top
+    fill_value: -999.
+
+  retrieved_cloud_top_height:
+    name: retrieved_cloud_top_height
+    file_type: nc_fci_oca
+    file_key: retrieved_cloud_top_height
+    standard_name: height_at_cloud_top
+    fill_value: -999.
+
+  retrieved_error_cloud_optical_thickness_upper_layer:
+    name: retrieved_error_cloud_optical_thickness_upper_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_optical_thickness
+    layer: 0
+    standard_name: cloud_optical_depth
+    fill_value: -999.
+
+  retrieved_error_cloud_optical_thickness_lower_layer:
+    name: retrieved_error_cloud_optical_thickness_lower_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_optical_thickness
+    layer: 1
+    standard_name: cloud_optical_depth
+    fill_value: -999.
+
+  retrieved_error_cloud_particle_effective_radius:
+    name: retrieved_error_cloud_particle_effective_radius
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_particle_effective_radius
+    standard_name: effective_radius_of_cloud_condensed_water_particles_at_cloud_top
+    fill_value: -999.
+
+  retrieved_error_cloud_top_pressure_upper_layer:
+    name: retrieved_error_cloud_top_pressure_upper_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_top_pressure
+    layer: 0
+    standard_name: air_pressure_at_cloud_top
+    fill_value: -999.
+
+  retrieved_error_cloud_top_pressure_lower_layer:
+    name: retrieved_error_cloud_top_pressure_lower_layer
+    file_type: nc_fci_oca
+    file_key: retrieved_error_cloud_top_pressure
+    layer: 1
+    standard_name: air_pressure_at_cloud_top
+    fill_value: -999.
+
+  quality_jmeas:
+    name: quality_jmeas
+    file_type: nc_fci_oca
+    file_key: quality_jmeas
+    standard_name: cost_function
+    fill_value: -999.
+
+  cloud_state:
+    name: cloud_state
+    file_type: nc_fci_clm
+    file_key: cloud_state
+    standard_name: cloud_mask_classification
+    fill_value: -999
+    mask_value: 0
+
+  quality_illumination:
+    name: quality_illumination
+    file_type: nc_fci_clm
+    file_key: quality_illumination
+    standard_name: illumination_classification
+    fill_value: -999
+    mask_value: 0
+
+  quality_nwp_parameters:
+    name: quality_nwp_parameters
+    file_type: nc_fci_clm
+    file_key: quality_nwp_parameters
+    standard_name: quality_index
+    fill_value: -999
+    mask_value: 0
+
+  quality_MTG_parameters:
+    name: quality_MTG_parameters
+    file_type: nc_fci_clm
+    file_key: quality_MTG_parameters
+    standard_name: quality_index
+    fill_value: -999
+    mask_value: 0
+
+  quality_overall_processing:
+    name: quality_overall_processing
+    file_type: nc_fci_clm
+    file_key: quality_overall_processing
+    standard_name: quality_index
+    fill_value: -999
+    mask_value: 0

@@ -1,7 +1,7 @@
 reader:
   description: OSISAF SST GHRSST netCDF reader
   name: ghrsst_l3c_sst
-  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader ''
+  reader: !!python/name:satpy.readers.yaml_reader.FileYAMLReader
   sensors: [avhrr/3, viirs]
 
 datasets:
@@ -13,5 +13,5 @@ datasets:
 
 file_types:
   ghrsst_osisaf_l2:
-    file_reader: !!python/name:satpy.readers.ghrsst_l3c_sst.GHRSST_OSISAFL2 ''
+    file_reader: !!python/name:satpy.readers.ghrsst_l3c_sst.GHRSST_OSISAFL2
     file_patterns: ['S-OSI_-FRA_-{satid:3s}_-NARSST_FIELD-{start_time:%Y%m%d%H00}Z.nc']

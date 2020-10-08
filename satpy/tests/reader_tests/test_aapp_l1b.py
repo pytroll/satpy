@@ -22,21 +22,27 @@ import numpy as np
 from satpy.readers.aapp_l1b import _HEADERTYPE, _SCANTYPE, AVHRRAAPPL1BFile
 import tempfile
 import datetime
-from satpy import DatasetID
+from satpy.tests.utils import make_dataid
 
 
-class TestAAPPL1B(unittest.TestCase):
+class TestAAPPL1BAllChannelsPresent(unittest.TestCase):
     """Test the filehandler."""
 
     def setUp(self):
         """Set up the test case."""
         self._header = np.zeros(1, dtype=_HEADERTYPE)
-        self._data = np.zeros(3, dtype=_SCANTYPE)
         self._header['satid'][0] = 13
         self._header['radtempcnv'][0] = [[267194, -171669, 1002811],
                                          [930310,  -59084, 1001600],
                                          [828600,  -37854, 1001147]]
+        # first 3b is off, 3a is on
+        self._header['inststat1'][0] = 0b1111011100000000
+        # switch 3a off at position 1
+        self._header['statchrecnb'][0] = 1
+        # 3b is on, 3a is off
+        self._header['inststat2'][0] = 0b1111101100000000
 
+        self._data = np.zeros(3, dtype=_SCANTYPE)
         self._data['scnlinyr'][:] = 2020
         self._data['scnlindy'][:] = 8
         self._data['scnlintime'][0] = 30195225
@@ -93,7 +99,7 @@ class TestAAPPL1B(unittest.TestCase):
             mins = []
             maxs = []
             for name in ['1', '2', '3a']:
-                key = DatasetID(name=name, calibration='reflectance')
+                key = make_dataid(name=name, calibration='reflectance')
                 res = fh.get_dataset(key, info)
                 assert(res.min() == 0)
                 assert(res.max() >= 100)
@@ -103,7 +109,7 @@ class TestAAPPL1B(unittest.TestCase):
                     assert(np.all(np.isnan(res[:2, :])))
 
             for name in ['3b', '4', '5']:
-                key = DatasetID(name=name, calibration='reflectance')
+                key = make_dataid(name=name, calibration='reflectance')
                 res = fh.get_dataset(key, info)
                 mins.append(res.min().values)
                 maxs.append(res.max().values)
@@ -123,7 +129,7 @@ class TestAAPPL1B(unittest.TestCase):
 
             fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
-            key = DatasetID(name='solar_zenith_angle')
+            key = make_dataid(name='solar_zenith_angle')
             res = fh.get_dataset(key, info)
             assert(np.all(res == 0))
 
@@ -136,9 +142,107 @@ class TestAAPPL1B(unittest.TestCase):
 
             fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
             info = {}
-            key = DatasetID(name='longitude')
+            key = make_dataid(name='longitude')
             res = fh.get_dataset(key, info)
             assert(np.all(res == 0))
-            key = DatasetID(name='latitude')
+            key = make_dataid(name='latitude')
             res = fh.get_dataset(key, info)
             assert(np.all(res == 0))
+
+
+class TestAAPPL1BChannel3AMissing(unittest.TestCase):
+    """Test the filehandler when channel 3a is missing."""
+
+    def setUp(self):
+        """Set up the test case."""
+        self._header = np.zeros(1, dtype=_HEADERTYPE)
+        self._header['satid'][0] = 13
+        self._header['radtempcnv'][0] = [[267194, -171669, 1002811],
+                                         [930310, -59084, 1001600],
+                                         [828600, -37854, 1001147]]
+        # first 3a is off, 3b is on
+        self._header['inststat1'][0] = 0b1111011100000000
+        # valid for the whole pass
+        self._header['statchrecnb'][0] = 0
+        self._header['inststat2'][0] = 0b0
+
+        self._data = np.zeros(3, dtype=_SCANTYPE)
+        self._data['scnlinyr'][:] = 2020
+        self._data['scnlindy'][:] = 8
+        self._data['scnlintime'][0] = 30195225
+        self._data['scnlintime'][1] = 30195389
+        self._data['scnlintime'][2] = 30195556
+        self._data['scnlinbit'][0] = -16383
+        self._data['scnlinbit'][1] = -16383
+        self._data['scnlinbit'][2] = -16383
+        calvis = np.array([[[0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                            [543489984, -21941870, 1592440064, -545027008, 499]],
+                           [[0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                            [540780032, -22145690, 1584350080, -543935616, 500]],
+                           [[0, 0, 0, 0, 0],
+                            [0, 0, 0, 0, 0],
+                            [257550000, -10449420, 1812019968, -785690304, 499]]])
+        self._data['calvis'][:] = calvis
+        self._data['calir'] = [[[[0, -2675, 2655265],
+                                 [0, 0, 0]],
+                                [[33605, -260786, 226818992],
+                                 [0, 0, 0]],
+                                [[13869, -249508, 234624768],
+                                 [0, 0, 0]]],
+                               [[[0, -2675, 2655265],
+                                 [0, 0, 0]],
+                                [[33609, -260810, 226837328],
+                                 [0, 0, 0]],
+                                [[13870, -249520, 234638704],
+                                 [0, 0, 0]]],
+                               [[[0, 0, 0],
+                                 [0, 0, 0]],
+                                [[33614, -260833, 226855664],
+                                 [0, 0, 0]],
+                                [[13871, -249531, 234652640],
+                                 [0, 0, 0]]]]
+        self._data['hrpt'] = np.ones_like(self._data['hrpt']) * (np.arange(2048) // 2)[np.newaxis, :, np.newaxis]
+
+        self.filename_info = {'platform_shortname': 'metop03', 'start_time': datetime.datetime(2020, 1, 8, 8, 19),
+                              'orbit_number': 6071}
+        self.filetype_info = {'file_reader': AVHRRAAPPL1BFile,
+                              'file_patterns': [
+                                  'hrpt_{platform_shortname}_{start_time:%Y%m%d_%H%M}_{orbit_number:05d}.l1b'],
+                              # noqa
+                              'file_type': 'avhrr_aapp_l1b'}
+
+    def test_loading_missing_channels_returns_none(self):
+        """Test that loading a missing channel raises a keyerror."""
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
+
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            info = {}
+            key = make_dataid(name='3a', calibration='reflectance')
+            assert fh.get_dataset(key, info) is None
+
+    def test_available_datasets_miss_3a(self):
+        """Test that channel 3a is missing from available datasets."""
+        with tempfile.TemporaryFile() as tmpfile:
+            self._header.tofile(tmpfile)
+            tmpfile.seek(22016, 0)
+            self._data.tofile(tmpfile)
+
+            fh = AVHRRAAPPL1BFile(tmpfile, self.filename_info, self.filetype_info)
+            configured_datasets = [[None, {'name': '1'}],
+                                   [None, {'name': '2'}],
+                                   [None, {'name': '3a'}],
+                                   [None, {'name': '3b'}],
+                                   [None, {'name': '4'}],
+                                   [None, {'name': '5'}],
+                                   ]
+            available_datasets = fh.available_datasets(configured_datasets)
+            for status, mda in available_datasets:
+                if mda['name'] == '3a':
+                    assert status is False
+                else:
+                    assert status is True

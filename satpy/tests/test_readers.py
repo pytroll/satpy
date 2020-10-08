@@ -18,12 +18,44 @@
 """Test classes and functions in the readers/__init__.py module."""
 
 import os
-import sys
 import unittest
 from unittest import mock
+from satpy.dataset.dataid import WavelengthRange, ModifierTuple, DataID
+from satpy.dataset.data_dict import get_key
+
+import pytest
 
 # clear the config dir environment variable so it doesn't interfere
 os.environ.pop("PPP_CONFIG_DIR", None)
+
+local_id_keys_config = {'name': {
+    'required': True,
+},
+    'wavelength': {
+    'type': WavelengthRange,
+},
+    'resolution': None,
+    'calibration': {
+    'enum': [
+        'reflectance',
+        'brightness_temperature',
+        'radiance',
+        'counts'
+    ]
+},
+    'polarization': None,
+    'level': None,
+    'modifiers': {
+    'required': True,
+    'default': ModifierTuple(),
+    'type': ModifierTuple,
+},
+}
+
+
+def make_dataid(**items):
+    """Make a data id."""
+    return DataID(local_id_keys_config, **items)
 
 
 class TestDatasetDict(unittest.TestCase):
@@ -31,53 +63,51 @@ class TestDatasetDict(unittest.TestCase):
 
     def setUp(self):
         """Create a test DatasetDict."""
-        from satpy.dataset import DatasetID
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         self.regular_dict = regular_dict = {
-            DatasetID(name="test",
-                      wavelength=(0, 0.5, 1),
-                      resolution=1000): "1",
-            DatasetID(name="testh",
-                      wavelength=(0, 0.5, 1),
-                      resolution=500): "1h",
-            DatasetID(name="test2",
-                      wavelength=(1, 1.5, 2),
-                      resolution=1000): "2",
-            DatasetID(name="test3",
-                      wavelength=(1.2, 1.7, 2.2),
-                      resolution=1000): "3",
-            DatasetID(name="test4",
-                      calibration="radiance",
-                      polarization="V"): "4rad",
-            DatasetID(name="test4",
-                      calibration="reflectance",
-                      polarization="H"): "4refl",
-            DatasetID(name="test5",
-                      modifiers=('mod1', 'mod2')): "5_2mod",
-            DatasetID(name="test5",
-                      modifiers=('mod2',)): "5_1mod",
-            DatasetID(name='test6', level=100): '6_100',
-            DatasetID(name='test6', level=200): '6_200',
+            make_dataid(name="test",
+                        wavelength=(0, 0.5, 1),
+                        resolution=1000): "1",
+            make_dataid(name="testh",
+                        wavelength=(0, 0.5, 1),
+                        resolution=500): "1h",
+            make_dataid(name="test2",
+                        wavelength=(1, 1.5, 2),
+                        resolution=1000): "2",
+            make_dataid(name="test3",
+                        wavelength=(1.2, 1.7, 2.2),
+                        resolution=1000): "3",
+            make_dataid(name="test4",
+                        calibration="radiance",
+                        polarization="V"): "4rad",
+            make_dataid(name="test4",
+                        calibration="reflectance",
+                        polarization="H"): "4refl",
+            make_dataid(name="test5",
+                        modifiers=('mod1', 'mod2')): "5_2mod",
+            make_dataid(name="test5",
+                        modifiers=('mod2',)): "5_1mod",
+            make_dataid(name='test6', level=100): '6_100',
+            make_dataid(name='test6', level=200): '6_200',
         }
         self.test_dict = DatasetDict(regular_dict)
 
     def test_init_noargs(self):
         """Test DatasetDict init with no arguments."""
-        from satpy.readers import DatasetDict
+        from satpy import DatasetDict
         d = DatasetDict()
         self.assertIsInstance(d, dict)
 
     def test_init_dict(self):
         """Test DatasetDict init with a regular dict argument."""
-        from satpy.dataset import DatasetID
-        from satpy.readers import DatasetDict
-        regular_dict = {DatasetID(name="test", wavelength=(0, 0.5, 1)): "1", }
+        from satpy import DatasetDict
+        regular_dict = {make_dataid(name="test", wavelength=(0, 0.5, 1)): "1", }
         d = DatasetDict(regular_dict)
         self.assertEqual(d, regular_dict)
 
     def test_getitem(self):
         """Test DatasetDict getitem with different arguments."""
-        from satpy.dataset import DatasetID
+        from satpy.tests.utils import make_dsq
         d = self.test_dict
         # access by name
         self.assertEqual(d["test"], "1")
@@ -88,29 +118,31 @@ class TestDatasetDict(unittest.TestCase):
         # access by near wavelength of another dataset
         self.assertEqual(d[1.65], "3")
         # access by name with multiple levels
-        self.assertEqual(d['test6'], '6_200')
+        self.assertEqual(d['test6'], '6_100')
 
-        self.assertEqual(d[DatasetID(wavelength=1.5)], "2")
-        self.assertEqual(d[DatasetID(wavelength=0.5, resolution=1000)], "1")
-        self.assertEqual(d[DatasetID(wavelength=0.5, resolution=500)], "1h")
-        self.assertEqual(d[DatasetID(name='test6', level=100)], '6_100')
-        self.assertEqual(d[DatasetID(name='test6', level=200)], '6_200')
+        self.assertEqual(d[make_dsq(wavelength=1.5)], "2")
+        self.assertEqual(d[make_dsq(wavelength=0.5, resolution=1000)], "1")
+        self.assertEqual(d[make_dsq(wavelength=0.5, resolution=500)], "1h")
+        self.assertEqual(d[make_dsq(name='test6', level=100)], '6_100')
+        self.assertEqual(d[make_dsq(name='test6', level=200)], '6_200')
 
         # higher resolution is returned
         self.assertEqual(d[0.5], "1h")
         self.assertEqual(d['test4'], '4refl')
-        self.assertEqual(d[DatasetID(name='test4', calibration='radiance')], '4rad')
+        self.assertEqual(d[make_dataid(name='test4', calibration='radiance')], '4rad')
         self.assertRaises(KeyError, d.getitem, '1h')
+
+        # test with full tuple
+        self.assertEqual(d[make_dsq(name='test', wavelength=(0, 0.5, 1), resolution=1000)], "1")
 
     def test_get_key(self):
         """Test 'get_key' special functions."""
-        from satpy import DatasetID
-        from satpy.readers import get_key
+        from satpy.dataset import DataQuery
         d = self.test_dict
-        res1 = get_key(DatasetID(name='test4'), d, calibration='radiance')
-        res2 = get_key(DatasetID(name='test4'), d, calibration='radiance',
+        res1 = get_key(make_dataid(name='test4'), d, calibration='radiance')
+        res2 = get_key(make_dataid(name='test4'), d, calibration='radiance',
                        num_results=0)
-        res3 = get_key(DatasetID(name='test4'), d, calibration='radiance',
+        res3 = get_key(make_dataid(name='test4'), d, calibration='radiance',
                        num_results=3)
         self.assertEqual(len(res2), 1)
         self.assertEqual(len(res3), 1)
@@ -118,25 +150,24 @@ class TestDatasetDict(unittest.TestCase):
         res3 = res3[0]
         self.assertEqual(res1, res2)
         self.assertEqual(res1, res3)
+        res1 = get_key('test4', d, query=DataQuery(polarization='V'))
+        self.assertEqual(res1, make_dataid(name='test4', calibration='radiance',
+                                           polarization='V'))
 
-        res1 = get_key('test4', d, polarization='V')
-        self.assertEqual(res1, DatasetID(name='test4', calibration='radiance',
-                                         polarization='V'))
+        res1 = get_key(0.5, d, query=DataQuery(resolution=500))
+        self.assertEqual(res1, make_dataid(name='testh',
+                                           wavelength=(0, 0.5, 1),
+                                           resolution=500))
 
-        res1 = get_key(0.5, d, resolution=500)
-        self.assertEqual(res1, DatasetID(name='testh',
-                                         wavelength=(0, 0.5, 1),
-                                         resolution=500))
-
-        res1 = get_key('test6', d, level=100)
-        self.assertEqual(res1, DatasetID(name='test6',
-                                         level=100))
+        res1 = get_key('test6', d, query=DataQuery(level=100))
+        self.assertEqual(res1, make_dataid(name='test6',
+                                           level=100))
 
         res1 = get_key('test5', d)
-        res2 = get_key('test5', d, modifiers=('mod2',))
-        res3 = get_key('test5', d, modifiers=('mod1', 'mod2',))
-        self.assertEqual(res1, DatasetID(name='test5',
-                                         modifiers=('mod2',)))
+        res2 = get_key('test5', d, query=DataQuery(modifiers=('mod2',)))
+        res3 = get_key('test5', d, query=DataQuery(modifiers=('mod1', 'mod2',)))
+        self.assertEqual(res1, make_dataid(name='test5',
+                                           modifiers=('mod2',)))
         self.assertEqual(res1, res2)
         self.assertNotEqual(res1, res3)
 
@@ -145,7 +176,6 @@ class TestDatasetDict(unittest.TestCase):
 
     def test_contains(self):
         """Test DatasetDict contains method."""
-        from satpy.dataset import DatasetID
         d = self.test_dict
         self.assertIn('test', d)
         self.assertFalse(d.contains('test'))
@@ -155,22 +185,22 @@ class TestDatasetDict(unittest.TestCase):
         self.assertIn(1.5, d)
         self.assertIn(1.55, d)
         self.assertIn(1.65, d)
-        self.assertIn(DatasetID(name='test4', calibration='radiance'), d)
+        self.assertIn(make_dataid(name='test4', calibration='radiance'), d)
         self.assertIn('test4', d)
 
     def test_keys(self):
         """Test keys method of DatasetDict."""
-        from satpy import DatasetID
+        from satpy.tests.utils import DataID
         d = self.test_dict
         self.assertEqual(len(d.keys()), len(self.regular_dict.keys()))
-        self.assertTrue(all(isinstance(x, DatasetID) for x in d.keys()))
+        self.assertTrue(all(isinstance(x, DataID) for x in d.keys()))
         name_keys = d.keys(names=True)
         self.assertListEqual(sorted(set(name_keys))[:4], [
             'test', 'test2', 'test3', 'test4'])
         wl_keys = tuple(d.keys(wavelengths=True))
         self.assertIn((0, 0.5, 1), wl_keys)
-        self.assertIn((1, 1.5, 2), wl_keys)
-        self.assertIn((1.2, 1.7, 2.2), wl_keys)
+        self.assertIn((1, 1.5, 2, 'µm'), wl_keys)
+        self.assertIn((1.2, 1.7, 2.2, 'µm'), wl_keys)
         self.assertIn(None, wl_keys)
 
     def test_setitem(self):
@@ -248,6 +278,17 @@ class TestReaderLoader(unittest.TestCase):
         }
         ri = load_readers(filenames=filenames)
         self.assertListEqual(list(ri.keys()), ['viirs_sdr'])
+
+    def test_filenames_as_dict_bad_reader(self):
+        """Test loading with filenames dict but one of the readers is bad."""
+        from satpy.readers import load_readers
+        filenames = {
+            'viirs_sdr': ['SVI01_npp_d20120225_t1801245_e1802487_b01708_c20120226002130255476_noaa_ops.h5'],
+            '__fake__': ['fake.txt'],
+        }
+        self.assertRaisesRegex(ValueError,
+                               r'(?=.*__fake__)(?!.*viirs)(^No reader.+)',
+                               load_readers, filenames=filenames)
 
     def test_filenames_as_dict_with_reader(self):
         """Test loading from a filenames dict with a single reader specified.
@@ -530,6 +571,9 @@ class TestFindFilesAndReaders(unittest.TestCase):
         # we can't easily know how many readers satpy has that support
         # 'viirs' so we just pass it and hope that this works
         self.assertRaises(ValueError, find_files_and_readers, sensor='viirs')
+        self.assertEqual(
+                find_files_and_readers(sensor='viirs', missing_ok=True),
+                {})
 
     def test_reader_load_failed(self):
         """Test that an exception is raised when a reader can't be loaded."""
@@ -581,12 +625,14 @@ class TestYAMLFiles(unittest.TestCase):
         self.assertIsInstance(reader_names[0], str)
         self.assertIn('viirs_sdr', reader_names)  # needs h5py
         self.assertIn('abi_l1b', reader_names)  # needs netcdf4
+        self.assertEqual(reader_names, sorted(reader_names))
 
         reader_infos = available_readers(as_dict=True)
         self.assertEqual(len(reader_names), len(reader_infos))
         self.assertIsInstance(reader_infos[0], dict)
         for reader_info in reader_infos:
             self.assertIn('name', reader_info)
+        self.assertEqual(reader_infos, sorted(reader_infos, key=lambda reader_info: reader_info['name']))
 
 
 class TestGroupFiles(unittest.TestCase):
@@ -635,11 +681,23 @@ class TestGroupFiles(unittest.TestCase):
             "SVI03_npp_d20180511_t1940321_e1941563_b33872_c20190612032009230105_noac_ops.h5",
             "SVI03_npp_d20180511_t1941575_e1943217_b33872_c20190612032009230105_noac_ops.h5",
         ]
+        self.unknown_files = [
+                "ʌsɔ˙pıʃɐʌuı",
+                "no such"]
 
     def test_no_reader(self):
-        """Test that reader must be provided."""
+        """Test that reader does not need to be provided."""
         from satpy.readers import group_files
-        self.assertRaises(ValueError, group_files, [])
+        # without files it's going to be an empty result
+        assert group_files([]) == []
+        groups = group_files(self.g16_files)
+        self.assertEqual(6, len(groups))
+
+    def test_unknown_files(self):
+        """Test that error is raised on unknown files."""
+        from satpy.readers import group_files
+        with pytest.raises(ValueError):
+            group_files(self.unknown_files, "abi_l1b")
 
     def test_bad_reader(self):
         """Test that reader not existing causes an error."""
@@ -654,6 +712,17 @@ class TestGroupFiles(unittest.TestCase):
         """Test the default behavior with the 'abi_l1b' reader."""
         from satpy.readers import group_files
         groups = group_files(self.g16_files, reader='abi_l1b')
+        self.assertEqual(6, len(groups))
+        self.assertEqual(2, len(groups[0]['abi_l1b']))
+
+    def test_default_behavior_set(self):
+        """Test the default behavior with the 'abi_l1b' reader."""
+        from satpy.readers import group_files
+        files = set(self.g16_files)
+        num_files = len(files)
+        groups = group_files(files, reader='abi_l1b')
+        # we didn't modify it
+        self.assertEqual(len(files), num_files)
         self.assertEqual(6, len(groups))
         self.assertEqual(2, len(groups[0]['abi_l1b']))
 
@@ -739,3 +808,27 @@ class TestGroupFiles(unittest.TestCase):
         self.assertEqual(6, len(groups[0]['viirs_sdr']))
         # 5 granules * 3 file types
         self.assertEqual(5 * 3, len(groups[1]['viirs_sdr']))
+
+    def test_multi_readers(self):
+        """Test passing multiple readers."""
+        from satpy.readers import group_files
+        groups = group_files(
+                self.g16_files + self.noaa20_files,
+                reader=("abi_l1b", "viirs_sdr"))
+        assert len(groups) == 11
+        # test that they're grouped together when time threshold is huge and
+        # only time is used to group
+        groups = group_files(
+                self.g16_files + self.noaa20_files,
+                reader=("abi_l1b", "viirs_sdr"),
+                group_keys=("start_time",),
+                time_threshold=10**9)
+        assert len(groups) == 1
+        # test that a warning is raised when a string is passed (meaning no
+        # group keys found in common)
+        with pytest.warns(UserWarning):
+            groups = group_files(
+                    self.g16_files + self.noaa20_files,
+                    reader=("abi_l1b", "viirs_sdr"),
+                    group_keys=("start_time"),
+                    time_threshold=10**9)
