@@ -114,4 +114,5 @@ class SatpyCFFileHandler(BaseFileHandler):
                 pass
         except KeyError:
             pass
+        data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         return data
