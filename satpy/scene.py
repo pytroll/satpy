@@ -69,6 +69,7 @@ class Scene:
     """
 
     _fs_sentinel = object()
+
     def __init__(self, filenames=None, reader=None, filter_parameters=None, reader_kwargs=None,
                  ppp_config_dir=None,
                  base_dir=None,

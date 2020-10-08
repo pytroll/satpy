@@ -503,7 +503,8 @@ class FileYAMLReader(AbstractYAMLReader):
                                    *req_fh, **fh_kwargs)
             except TypeError as exc:
                 if "file_system" in exc.args[0]:
-                    raise NotImplementedError("File handler {} does not support file systems".format(filetype_cls.__name__))
+                    raise NotImplementedError(
+                            "File handler {} does not support file systems".format(filetype_cls.__name__))
                 else:
                     raise
 

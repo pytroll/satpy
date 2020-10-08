@@ -30,8 +30,6 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-
-
 def get_keys_from_config(common_id_keys, config):
     """Gather keys for a new DataID from the ones available in configured dataset."""
     id_keys = {}
