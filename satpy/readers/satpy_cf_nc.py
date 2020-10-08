@@ -72,6 +72,9 @@ class SatpyCFFileHandler(BaseFileHandler):
 
             except KeyError:
                 pass
+            # Empty modifiers are read as [], which causes problems later
+            if 'modifiers' in ds_info and len(ds_info['modifiers']) == 0:
+                ds_info['modifiers'] = ()
             try:
                 try:
                     ds_info['modifiers'] = tuple(ds_info['modifiers'].split(' '))
@@ -100,6 +103,9 @@ class SatpyCFFileHandler(BaseFileHandler):
             data.attrs['wavelength'] =  tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
         except KeyError:
             pass
+        # Empty modifiers are read as [], which causes problems later
+        if 'modifiers' in ds_info and len(ds_info['modifiers']) == 0:
+            ds_info['modifiers'] = ()
         try:
             # FIXME in cf writer: this is not consitent: no modifier is (), modifiers is a string
             try:
