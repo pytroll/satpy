@@ -664,12 +664,11 @@ class FileYAMLReader(AbstractYAMLReader):
         """Get the coordinate dataset keys for *dsid*."""
         ds_info = self.all_ids[dsid]
         cids = []
-
         for cinfo in ds_info.get('coordinates', []):
             if not isinstance(cinfo, dict):
                 cinfo = {'name': cinfo}
-
-            cinfo['resolution'] = ds_info['resolution']
+            if 'resolution' in ds_info:                 
+                cinfo['resolution'] = ds_info['resolution']
             if 'polarization' in ds_info:
                 cinfo['polarization'] = ds_info['polarization']
             cid = DatasetID(**cinfo)
