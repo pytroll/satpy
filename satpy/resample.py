@@ -145,10 +145,12 @@ from pyresample.ewa import fornav, ll2cr
 from pyresample.geometry import SwathDefinition
 try:
     from pyresample.resampler import BaseResampler as PRBaseResampler
+except ImportError:
+    PRBaseResampler = None
+try:
     from pyresample.gradient import GradientSearchResampler
 except ImportError:
-    warnings.warn('Gradient search resampler not available, upgrade Pyresample.')
-    PRBaseResampler = None
+    warnings.warn('Gradient search resampler not available. Maybe missing `shapely`?.')
     GradientSearchResampler = None
 
 from satpy import CHUNK_SIZE
