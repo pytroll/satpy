@@ -465,7 +465,7 @@ class TestBilinearResampler(unittest.TestCase):
 
     @mock.patch('satpy.resample._move_existing_caches')
     @mock.patch('satpy.resample.BilinearResampler._create_cache_filename')
-    @mock.patch('pyresample.bilinear.xarr.XArrayResamplerBilinear')
+    @mock.patch('pyresample.bilinear.xarr.XArrayBilinearResampler')
     def test_bil_resampling(self, xr_resampler, create_filename,
                             move_existing_caches):
         """Test the bilinear resampler."""
