@@ -630,7 +630,7 @@ class Scene:
 
         return new_scn
 
-    def aggregate(self, dataset_ids=None, boundary='exact', side='left', func='mean', **dim_kwargs):
+    def aggregate(self, dataset_ids=None, boundary='trim', side='left', func='mean', **dim_kwargs):
         """Create an aggregated version of the Scene.
 
         Args:
@@ -663,9 +663,7 @@ class Scene:
                     new_scn._datasets[ds_id] = self[ds_id]
                 continue
 
-            if boundary != 'exact':
-                raise NotImplementedError("boundary modes appart from 'exact' are not implemented yet.")
-            target_area = src_area.aggregate(**dim_kwargs)
+            target_area = src_area.aggregate(boundary=boundary, **dim_kwargs)
             try:
                 resolution = max(target_area.pixel_size_x, target_area.pixel_size_y)
             except AttributeError:
