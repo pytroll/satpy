@@ -36,17 +36,18 @@ References:
 
 import logging
 import xml.etree.ElementTree as ET
-
-import numpy as np
-import rasterio
-from rasterio.windows import Window
-import dask.array as da
-from xarray import DataArray
-from dask.base import tokenize
+from functools import lru_cache
 from threading import Lock
 
-from satpy.readers.file_handlers import BaseFileHandler
+import dask.array as da
+import numpy as np
+import rasterio
+import xarray as xr
+from dask.base import tokenize
+from rasterio.windows import Window
 from satpy import CHUNK_SIZE
+from satpy.readers.file_handlers import BaseFileHandler
+from xarray import DataArray
 
 logger = logging.getLogger(__name__)
 
@@ -193,8 +194,13 @@ class SAFEXML(BaseFileHandler):
             noise = self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
         return noise
 
-    def get_calibration(self, calibration_name, shape, chunks=None):
+    def get_calibration(self, calibration, shape, chunks=None):
         """Get the calibration array."""
+        calibration_name = calibration.name or 'gamma'
+        if calibration_name == 'sigma_nought':
+            calibration_name = 'sigmaNought'
+        elif calibration_name == 'beta_nought':
+            calibration_name = 'betaNought'
         data_items = self.root.findall(".//calibrationVector")
         data, low_res_coords = self.read_xml_array(data_items, calibration_name)
         return self.interpolate_xml_array(data, low_res_coords, shape, chunks=chunks)
@@ -297,10 +303,6 @@ class SAFEGRD(BaseFileHandler):
 
         self._mission_id = filename_info['mission_id']
 
-        self.lats = None
-        self.lons = None
-        self.alts = None
-
         self.calibration = calfh
         self.noise = noisefh
         self.read_lock = Lock()
@@ -314,55 +316,56 @@ class SAFEGRD(BaseFileHandler):
 
         logger.debug('Reading %s.', key['name'])
 
-        if key['name'] in ['longitude', 'latitude']:
+        if key['name'] in ['longitude', 'latitude', 'altitude']:
             logger.debug('Constructing coordinate arrays.')
 
-            if self.lons is None or self.lats is None:
-                self.lons, self.lats, self.alts = self.get_lonlatalts()
+            lons, lats, alts = self.get_lonlatalts()
 
             if key['name'] == 'latitude':
-                data = self.lats
-            else:
-                data = self.lons
+                data = lats
+            elif key['name'] == 'longitude':
+                data = lons
+            elif key['name'] == 'altitude':
+                data = alts
             data.attrs.update(info)
 
         else:
-            calibration_name = key['calibration'].name or 'gamma'
-            if calibration_name == 'sigma_nought':
-                calibration_name = 'sigmaNought'
-            elif calibration_name == 'beta_nought':
-                calibration_name = 'betaNought'
-
-            data = self.read_band()
-            # chunks = data.chunks  # This seems to be slower for some reason
-            chunks = CHUNK_SIZE
-            logger.debug('Reading noise data.')
-            noise = self.noise.get_noise_correction(data.shape, chunks=chunks).fillna(0)
-
-            logger.debug('Reading calibration data.')
-
-            cal = self.calibration.get_calibration(calibration_name, data.shape, chunks=chunks)
-            cal_constant = self.calibration.get_calibration_constant()
-
-            logger.debug('Calibrating.')
-            data = data.where(data > 0)
-            data = data.astype(np.float64)
-            dn = data * data
-            data = ((dn - noise).clip(min=0) + cal_constant)
-
-            data = (data / (cal * cal)).clip(min=0)
-            if key['quantity'] == 'dB':
-                data = 10 * np.log10(data)
+            data = xr.open_rasterio(self.filehandle,
+                                    chunks={'band': 1, 'x': CHUNK_SIZE, 'y': CHUNK_SIZE},
+                                    lock=self.read_lock).squeeze()
+            data = self._calibrate(data, key)
             data.attrs.update(info)
-
-            del noise, cal
-
             data.attrs.update({'platform_name': self._mission_id})
 
-            if key['quantity'] == 'dB':
-                data.attrs['units'] = 'dB'
-            else:
-                data.attrs['units'] = '1'
+            data = self._change_quantity(data, key['quantity'])
+
+        return data
+
+    @staticmethod
+    def _change_quantity(data, quantity):
+        """Change quantity to dB if needed."""
+        if quantity == 'dB':
+            data.data = 10 * np.log10(data.data)
+            data.attrs['units'] = 'dB'
+        else:
+            data.attrs['units'] = '1'
+
+        return data
+
+    def _calibrate(self, data, key):
+        """Calibrate the data."""
+        chunks = CHUNK_SIZE
+        logger.debug('Reading noise data.')
+        noise = self.noise.get_noise_correction(data.shape, chunks=chunks).fillna(0)
+        logger.debug('Reading calibration data.')
+        cal = self.calibration.get_calibration(key['calibration'], data.shape, chunks=chunks)
+        cal_constant = self.calibration.get_calibration_constant()
+        logger.debug('Calibrating.')
+        data = data.where(data > 0)
+        data = data.astype(np.float64)
+        dn = data * data
+        data = dn - noise
+        data = ((data + cal_constant) / (cal ** 2)).clip(min=0)
 
         return data
 
@@ -433,6 +436,7 @@ class SAFEGRD(BaseFileHandler):
                        dtype=band.dtypes[0])
         return DataArray(res, dims=('y', 'x'))
 
+    @lru_cache(maxsize=2)
     def get_lonlatalts(self):
         """Obtain GCPs and construct latitude and longitude arrays.
 
