@@ -70,6 +70,15 @@ datasets:
     polarization: [hh, hv, vv, vh]
     units: degree
 
+  altitude:
+    name: altitude
+    resolution: 80
+    file_type: safe_measurement
+    standard_name: altitude
+    polarization: [hh, hv, vv, vh]
+    units: meter
+
+
   measurement:
     name: measurement
     sensor: sar-c
