@@ -86,15 +86,14 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info = dict(val.attrs)
             ds_info['file_type'] = self.filetype_info['file_type']
             ds_info['name'] = var_name
-            ds_info['resolution'] = 742
             yield True, ds_info
 
     def get_dataset(self, ds_id, ds_info):
         """Get dataset."""
-        logger.debug("Getting data for: %s", ds_id.name)
+        logger.debug("Getting data for: %s", ds_id['name'])
         nc = xr.open_dataset(self.filename, engine=self.engine,
                              chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
-        file_key = ds_info.get('file_key', ds_id.name)
+        file_key = ds_info.get('file_key', ds_id['name'])
         data = nc[file_key]
         if file_key in nc.coords:
             data = data.drop_vars(list(nc.coords.keys()))
