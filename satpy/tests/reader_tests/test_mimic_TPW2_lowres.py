@@ -168,7 +168,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
             self.assertEqual(d.attrs['sensor'], 'mimic')
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
-            self.assertEqual(d.dtype, np.dtype('<m8[ns]'))
+            self.assertEqual(d.dtype, np.dtype('timedelta64[ns]'))
 
     def test_load_mimic_ubyte(self):
         """Load TPW mimic sensor grids."""
