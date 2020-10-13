@@ -222,6 +222,29 @@ class TestScene(unittest.TestCase):
             self.assertDictEqual(reader_kwargs, r.create_filehandlers.call_args[1]['fh_kwargs'])
             del scene
 
+    def test_create_multiple_reader_different_kwargs(self):
+        """Test passing different kwargs to different readers."""
+        from satpy.scene import Scene
+        from satpy.tests.utils import FakeReader
+        from datetime import datetime
+        with mock.patch('satpy.readers.load_readers') as srl:
+            r1 = FakeReader('strona')
+            r2 = FakeReader('mastallone')
+            def fake_lr(nm):
+                if nm == "strona":
+                    return r1
+                elif nm == "mastallone":
+                    return r2
+                else:
+                    raise RuntimeError("wrong")
+            srl.side_effect = fake_lr
+            scene = Scene(
+                    filenames={"strona": ["campello monti"],
+                               "mastallone": ["rimella"]},
+                    reader_kwargs={"strona": {"mouth": "omegna"},
+                                   "mastallone": {"mouth": "varallo"}})
+            raise NotImplementedError("I don't know how to continue")
+
     def test_iter(self):
         """Test iteration over the scene."""
         from satpy import Scene
