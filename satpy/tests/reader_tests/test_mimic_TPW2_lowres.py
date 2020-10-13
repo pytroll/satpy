@@ -24,7 +24,6 @@ import itertools
 from unittest import mock
 from datetime import datetime
 import numpy as np
-import pandas as pd
 from satpy.tests.reader_tests.test_netcdf_utils import FakeNetCDF4FileHandler
 import xarray as xr
 
@@ -74,8 +73,7 @@ class FakeNetCDF4FileHandlerMimicLow(FakeNetCDF4FileHandler):
                 file_content['{}/shape'.format(float_var)] = DEFAULT_FILE_SHAPE
                 file_content['{}/attr/units'.format(float_var)] = 'mm'
             for date_var in date_variables:
-                file_content[date_var] = (pd.to_timedelta(DEFAULT_FILE_DATE_DATA,
-                                          unit="minutes").values).reshape(DEFAULT_FILE_SHAPE)
+                file_content[date_var] = DEFAULT_FILE_DATE_DATA.reshape(DEFAULT_FILE_SHAPE)
                 file_content['{}/shape'.format(date_var)] = DEFAULT_FILE_SHAPE
             for ubyte_var in ubyte_variables:
                 file_content[ubyte_var] = DEFAULT_FILE_UBYTE_DATA.reshape(DEFAULT_FILE_SHAPE)
@@ -168,7 +166,7 @@ class TestMimicTPW2Reader(unittest.TestCase):
             self.assertEqual(d.attrs['sensor'], 'mimic')
             self.assertIn('area', d.attrs)
             self.assertIsNotNone(d.attrs['area'])
-            self.assertEqual(d.dtype, np.dtype('timedelta64[ns]'))
+            self.assertEqual(d.dtype, DEFAULT_FILE_DTYPE)
 
     def test_load_mimic_ubyte(self):
         """Load TPW mimic sensor grids."""
