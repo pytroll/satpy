@@ -46,7 +46,9 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
 
     def __init__(self, filename, filename_info, filetype_info):
         """Initialize the reader."""
-        super(MimicTPW2FileHandler, self).__init__(filename, filename_info, filetype_info)
+        super(MimicTPW2FileHandler, self).__init__(filename, filename_info,
+                                                   filetype_info,
+                                                   xarray_kwargs={"decode_times": False})
 
     def available_datasets(self, configured_datasets=None):
         """Get datasets in file matching gelocation shape (lat/lon)."""
@@ -113,6 +115,14 @@ class MimicTPW2FileHandler(NetCDF4FileHandler):
             data.rename({'lon': 'x'})
         if 'lat' in data.dims:
             data.rename({'lat': 'y'})
+
+        # update specific data attributes
+        if isinstance(self.file_content[ds_id['name']], netCDF4.Variable):
+            variable_attributes = self.file_content[ds_id['name']].ncattrs()
+            for var_attr in variable_attributes:
+                value = self.file_content["{}/attr/{}".format(ds_id['name'], var_attr)]
+                data.attrs.update({var_attr: value})
+
         return data
 
     def get_area_def(self, dsid):
