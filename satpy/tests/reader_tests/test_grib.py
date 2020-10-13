@@ -207,6 +207,30 @@ class TestGRIBReader(unittest.TestCase):
         files = r.select_files_from_pathnames(filenames)
         self.assertEqual(len(files), 4)
 
+    def _round_trip_projection_lonlat_check(self, area):
+        """Check that X/Y coordinates can be transformed multiple times.
+
+        Many GRIB files include non-standard projects that work for the
+        initial transformation of X/Y coordinates to longitude/latitude,
+        but may fail in the reverse transformation. For example, an eqc
+        projection that goes from 0 longitude to 360 longitude. The X/Y
+        coordinates may accurately go from the original X/Y metered space
+        to the correct longitude/latitude, but transforming those coordinates
+        back to X/Y space will produce the wrong result.
+
+        """
+        if not hasattr(area, 'crs'):
+            # skip this check if we aren't in pyproj 2.0+
+            return
+
+        from pyproj import Proj
+        p = Proj(area.crs)
+        x, y = area.get_proj_vectors()
+        lon, lat = p(x, y, inverse=True)
+        x2, y2 = p(lon, lat)
+        np.testing.assert_almost_equal(x, x2)
+        np.testing.assert_almost_equal(y, y2)
+
     @mock.patch('satpy.readers.grib.pygrib')
     def test_load_all(self, pg):
         """Test loading all test datasets."""
@@ -225,17 +249,18 @@ class TestGRIBReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
             self.assertIsInstance(v, xr.DataArray)
+            self._round_trip_projection_lonlat_check(v.attrs['area'])
 
     @mock.patch('satpy.readers.grib.pygrib')
     def test_load_all_lcc(self, pg):
         """Test loading all test datasets with lcc projections."""
-        lons = np.array([
+        lats = np.array([
             [12.19, 0, 0, 0, 14.34208538],
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0],
             [54.56534318, 0, 0, 0, 57.32843565]])
-        lats = np.array([
+        lons = np.array([
             [-133.459, 0, 0, 0, -65.12555139],
             [0, 0, 0, 0, 0],
             [0, 0, 0, 0, 0],
@@ -261,3 +286,4 @@ class TestGRIBReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
             self.assertIsInstance(v, xr.DataArray)
+            self._round_trip_projection_lonlat_check(v.attrs['area'])
