@@ -226,24 +226,33 @@ class TestScene(unittest.TestCase):
         """Test passing different kwargs to different readers."""
         from satpy.scene import Scene
         from satpy.tests.utils import FakeReader
-        from datetime import datetime
-        with mock.patch('satpy.readers.load_readers') as srl:
+        with mock.patch('satpy.readers.configs_for_reader') as src, \
+             mock.patch("satpy.readers.load_reader") as srl:
             r1 = FakeReader('strona')
+            r1.select_files_from_pathnames = mock.MagicMock()
+            r1.select_files_from_pathnames.return_value = ["campello monti"]
+            r1.create_filehandlers = mock.MagicMock()
             r2 = FakeReader('mastallone')
-            def fake_lr(nm):
-                if nm == "strona":
+            r2.select_files_from_pathnames = mock.MagicMock()
+            r2.select_files_from_pathnames.return_value = ["rimella"]
+            r2.create_filehandlers = mock.MagicMock()
+
+            def fake_lr(reader_configs, **reader_kwargs):
+                if reader_configs == ["/fake/strona.yaml"]:
                     return r1
-                elif nm == "mastallone":
+                elif reader_configs == ["/fake/mastallone.yaml"]:
                     return r2
                 else:
-                    raise RuntimeError("wrong")
+                    raise RuntimeError("unit test is broken")
             srl.side_effect = fake_lr
-            scene = Scene(
-                    filenames={"strona": ["campello monti"],
-                               "mastallone": ["rimella"]},
-                    reader_kwargs={"strona": {"mouth": "omegna"},
-                                   "mastallone": {"mouth": "varallo"}})
-            raise NotImplementedError("I don't know how to continue")
+            src.return_value = [["/fake/strona.yaml"], ["/fake/mastallone.yaml"]]
+            Scene(filenames={"strona": ["campello monti"],
+                             "mastallone": ["rimella"]},
+                  reader_kwargs={"strona": {"mouth": "omegna"},
+                                 "mastallone": {"mouth": "varallo"}})
+            srl.assert_has_calls([
+                    mock.call(["/fake/strona.yaml"], mouth="omegna"),
+                    mock.call(["/fake/mastallone.yaml"], mouth="varallo")])
 
     def test_iter(self):
         """Test iteration over the scene."""
