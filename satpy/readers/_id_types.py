@@ -23,7 +23,7 @@ from collections import namedtuple
 try:
     zlklass = namedtuple("ZLevel", "value units", defaults=('hPa',))
 except NameError:  # python 3.6
-    zlklass = namedtuple("ZLevel", "min central max unit")
+    zlklass = namedtuple("ZLevel", "value units")
     zlklass.__new__.__defaults__ = ('hPa',)
 
 
