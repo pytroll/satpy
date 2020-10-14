@@ -17,6 +17,7 @@
 # satpy.  If not, see <http://www.gnu.org/licenses/>.
 """SLSTR L1b reader."""
 
+import warnings
 import logging
 import os
 import re
@@ -34,6 +35,28 @@ logger = logging.getLogger(__name__)
 
 PLATFORM_NAMES = {'S3A': 'Sentinel-3A',
                   'S3B': 'Sentinel-3B'}
+
+# These are the default channel adjustment factors as of 14th Oct 2020
+# Defined in the product notice: S3.PN-SLSTR-L1.06
+# https://www.eumetsat.int/website/wcm/idc/idcplg?IdcService=GET_FILE&dDocName=PDF_S3A_PN_SLSTR_L1_06&RevisionSelectionMethod=LatestReleased&Rendition=Web
+CHANCALIB_FACTORS = {'S1_nadir': 1.0,
+                     'S2_nadir': 1.0,
+                     'S3_nadir': 1.0,
+                     'S4_nadir': 1.0,
+                     'S5_nadir': 1.12,
+                     'S6_nadir': 1.2,
+                     'S7_nadir': 1.0,
+                     'S8_nadir': 1.0,
+                     'S9_nadir': 1.0,
+                     'S1_oblique': 1.0,
+                     'S2_oblique': 1.0,
+                     'S3_oblique': 1.0,
+                     'S4_oblique': 1.0,
+                     'S5_oblique': 1.15,
+                     'S6_oblique': 1.26,
+                     'S7_oblique': 1.0,
+                     'S8_oblique': 1.0,
+                     'S9_oblique': 1.0, }
 
 
 class NCSLSTRGeo(BaseFileHandler):
@@ -82,7 +105,8 @@ class NCSLSTRGeo(BaseFileHandler):
 class NCSLSTR1B(BaseFileHandler):
     """Filehandler for l1 SLSTR data."""
 
-    def __init__(self, filename, filename_info, filetype_info):
+    def __init__(self, filename, filename_info, filetype_info,
+                 user_calibration=None):
         """Initialize the SLSTR l1 data filehandler."""
         super(NCSLSTR1B, self).__init__(filename, filename_info,
                                         filetype_info)
@@ -113,6 +137,27 @@ class NCSLSTR1B(BaseFileHandler):
 
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
+        if type(user_calibration) is dict:
+            self.usercalib = user_calibration
+        else:
+            self.usercalib = None
+
+    def _apply_radiance_adjustment(self, radiances):
+        """Adjust SLSTR radiances with default or user supplied values."""
+        chan_name = self.channel + '_' + self.view
+        adjust_fac = None
+        if self.usercalib is not None:
+            # If user supplied adjustment, use it.
+            if chan_name in self.usercalib:
+                adjust_fac = self.usercalib[chan_name]
+        if adjust_fac is None:
+            if chan_name in CHANCALIB_FACTORS:
+                adjust_fac = CHANCALIB_FACTORS[chan_name]
+            else:
+                warnings.warn("Warning: No radiance adjustment supplied " +
+                              "for channel " + chan_name)
+                return radiances
+        return radiances * adjust_fac
 
     @staticmethod
     def _cal_rad(rad, didx, solar_flux=None):
@@ -124,7 +169,7 @@ class NCSLSTR1B(BaseFileHandler):
     def get_dataset(self, key, info):
         """Load a dataset."""
         if (self.channel not in key['name'] or
-            self.stripe != key['stripe'].name or
+                self.stripe != key['stripe'].name or
                 self.view != key['view'].name):
             return
 
@@ -133,15 +178,17 @@ class NCSLSTR1B(BaseFileHandler):
             variable = self.nc['{}_BT_{}{}'.format(self.channel, self.stripe, self.view[0])]
         else:
             variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe, self.view[0])]
+        print(np.nanmean(variable))
+        radiances = self._apply_radiance_adjustment(variable)
+        print(np.nanmean(radiances))
 
-        radiances = variable
         units = variable.attrs['units']
 
         if key['calibration'] == 'reflectance':
             # TODO take into account sun-earth distance
             solar_flux = self.cal[re.sub('_[^_]*$', '', key['name']) + '_solar_irradiances']
             d_index = self.indices['detector_{}{}'.format(self.stripe, self.view[0])]
-            idx = 0 if self.view[0] == 'n' else 1   # 0: Nadir view, 1: oblique (check).
+            idx = 0 if self.view[0] == 'n' else 1  # 0: Nadir view, 1: oblique (check).
 
             radiances.data = da.map_blocks(
                 self._cal_rad, radiances.data, d_index.data, solar_flux=solar_flux[:, idx].values)
