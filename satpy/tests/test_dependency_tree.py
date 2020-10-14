@@ -106,7 +106,7 @@ class TestMultipleResolutionSameChannelDependency(unittest.TestCase):
 
         from satpy import DataQuery
         from satpy.composites import GenericCompositor
-        from satpy.modifiers import SunZenithCorrector
+        from satpy.modifiers.geometry import SunZenithCorrector
         from satpy.dataset import DatasetDict
 
         config_file = os.path.join(PACKAGE_CONFIG_PATH, 'readers', 'modis_l1b.yaml')
