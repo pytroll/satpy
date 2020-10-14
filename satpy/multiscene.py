@@ -171,7 +171,7 @@ class MultiScene(object):
 
     @classmethod
     def from_files(cls, files_to_sort, reader=None,
-                   ensure_all_readers=False, **kwargs):
+                   ensure_all_readers=False, scene_kwargs=None, **kwargs):
         """Create multiple Scene objects from multiple files.
 
         Args:
@@ -180,6 +180,8 @@ class MultiScene(object):
             ensure_all_readers (bool): If True, limit to scenes where all
                 readers have at least one file.  If False (default), include
                 all scenes where at least one reader has at least one file.
+            scene_kwargs (Mapping): additional arguments to pass on to
+                :func:`Scene.__init__` for each created scene.
 
         This uses the :func:`satpy.readers.group_files` function to group
         files. See this function for more details on additional possible
@@ -190,10 +192,12 @@ class MultiScene(object):
 
         """
         from satpy.readers import group_files
+        if scene_kwargs is None:
+            scene_kwargs = {}
         file_groups = group_files(files_to_sort, reader=reader, **kwargs)
         if ensure_all_readers:
             file_groups = [fg for fg in file_groups if all(fg.values())]
-        scenes = (Scene(filenames=fg) for fg in file_groups)
+        scenes = (Scene(filenames=fg, **scene_kwargs) for fg in file_groups)
         return cls(scenes)
 
     def __iter__(self):
