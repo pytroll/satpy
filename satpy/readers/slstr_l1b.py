@@ -137,7 +137,7 @@ class NCSLSTR1B(BaseFileHandler):
 
         self.platform_name = PLATFORM_NAMES[filename_info['mission_id']]
         self.sensor = 'slstr'
-        if type(user_calibration) is dict:
+        if isinstance(user_calibration, dict):
             self.usercalib = user_calibration
         else:
             self.usercalib = None
