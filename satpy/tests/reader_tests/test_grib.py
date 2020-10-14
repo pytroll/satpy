@@ -212,6 +212,7 @@ class TestGRIBReader(unittest.TestCase):
         """Test loading all test datasets."""
         pg.open.return_value = FakeGRIB()
         from satpy.readers import load_reader
+        from satpy.readers.grib import ZLevel
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'gfs.t18z.sfluxgrbf106.grib2',
@@ -224,6 +225,8 @@ class TestGRIBReader(unittest.TestCase):
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
+            self.assertIsInstance(v.attrs['level'], ZLevel)
+            self.assertEqual(v.attrs['level'].units, 'hPa')
             self.assertIsInstance(v, xr.DataArray)
 
     @mock.patch('satpy.readers.grib.pygrib')
@@ -248,6 +251,7 @@ class TestGRIBReader(unittest.TestCase):
                 'lat_1': 25.0, 'lat_2': 25.0},
             latlons=(lats, lons))
         from satpy.readers import load_reader
+        from satpy.readers.grib import ZLevel
         r = load_reader(self.reader_configs)
         loadables = r.select_files_from_pathnames([
             'gfs.t18z.sfluxgrbf106.grib2',
@@ -260,4 +264,6 @@ class TestGRIBReader(unittest.TestCase):
         self.assertEqual(len(datasets), 3)
         for v in datasets.values():
             self.assertEqual(v.attrs['units'], 'K')
+            self.assertIsInstance(v.attrs['level'], ZLevel)
+            self.assertEqual(v.attrs['level'].units, 'hPa')
             self.assertIsInstance(v, xr.DataArray)

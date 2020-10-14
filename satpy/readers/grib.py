@@ -32,7 +32,7 @@ from datetime import datetime
 
 from satpy import CHUNK_SIZE
 from satpy.readers.file_handlers import BaseFileHandler
-from satpy.readers.utils import ZLevel
+from ._id_types import ZLevel
 from satpy.dataset import DataQuery
 import pygrib
 
