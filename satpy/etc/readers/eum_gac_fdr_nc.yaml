@@ -166,3 +166,11 @@ datasets:
     midnight_line:
         name: midnight_line
         nc_key: 'midnight_line'
+
+    equator_crossing_longitude:
+        name: equator_crossing_longitude
+        nc_key: 'equator_crossing_longitude'
+
+    equator_crossing_time:
+        name: equator_crossing_time
+        nc_key: 'equator_crossing_time'
