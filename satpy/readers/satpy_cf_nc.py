@@ -68,8 +68,6 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info['name'] = var_name
             try:
                 ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
-                
-
             except KeyError:
                 pass
             # Empty modifiers are read as [], which causes problems later
