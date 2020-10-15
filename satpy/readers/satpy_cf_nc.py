@@ -94,7 +94,5 @@ class SatpyCFFileHandler(BaseFileHandler):
                              chunks={'y': CHUNK_SIZE, 'x': CHUNK_SIZE})
         file_key = ds_info.get('file_key', ds_id['name'])
         data = nc[file_key]
-        if file_key in nc.coords:
-            data = data.drop_vars(list(nc.coords.keys()))
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         return data

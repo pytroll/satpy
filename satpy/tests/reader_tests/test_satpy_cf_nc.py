@@ -95,6 +95,6 @@ class TestCFReader(unittest.TestCase):
                      filenames=[filename])
         scn_.load(['image0', 'image1', 'lat'])
         self.assertTrue(np.all(scn_['image0'].data == self.scene['image0'].data))
-        # self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset, Not OK
+        self.assertTrue(np.all(scn_['lat'].data == self.scene['lat'].data))  # lat loaded as dataset
         self.assertTrue(np.all(scn_['image0'].coords['lon'] == self.scene['lon'].data))  # lon loded as coord
         os.remove(filename)
