@@ -68,6 +68,7 @@ class SatpyCFFileHandler(BaseFileHandler):
             ds_info['name'] = var_name
             try:
                 ds_info['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
+                
 
             except KeyError:
                 pass
@@ -97,20 +98,5 @@ class SatpyCFFileHandler(BaseFileHandler):
         data = nc[file_key]
         if file_key in nc.coords:
             data = data.drop_vars(list(nc.coords.keys()))
-        try:
-            data.attrs['wavelength'] = tuple([float(wlength) for wlength in ds_info['wavelength'][0:3]])
-        except KeyError:
-            pass
-        # Empty modifiers are read as [], which causes problems later
-        if 'modifiers' in ds_info and len(ds_info['modifiers']) == 0:
-            ds_info['modifiers'] = ()
-        try:
-            # FIXME in cf writer: this is not consitent: no modifier is (), modifiers is a string
-            try:
-                ds_info['modifiers'] = tuple(ds_info['modifiers'].split(' '))
-            except AttributeError:
-                pass
-        except KeyError:
-            pass
         data.attrs.update(nc.attrs)  # For now add global attributes to all datasets
         return data
