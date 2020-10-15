@@ -213,6 +213,8 @@ class TestNUCAPSReader(unittest.TestCase):
             # self.assertEqual(v.info['units'], 'degrees')
             self.assertEqual(v.ndim, 1)
             self.assertEqual(v.attrs['sensor'], ['CrIS', 'ATMS', 'VIIRS'])
+            self.assertEqual(v.attrs['start_time'].dtype, np.type(np.datetime64))
+            self.assertEqual(v.attrs['end_time'].dtype, np.type(np.datetime64))
 
     def test_load_pressure_based(self):
         """Test loading all channels based on pressure."""
@@ -397,6 +399,8 @@ class TestNUCAPSScienceEDRReader(unittest.TestCase):
         for v in datasets.values():
             self.assertEqual(v.ndim, 1)
             self.assertEqual(v.attrs['sensor'], ['CrIS', 'ATMS', 'VIIRS'])
+            self.assertEqual(v.attrs['start_time'].dtype, np.type(np.datetime64))
+            self.assertEqual(v.attrs['end_time'].dtype, np.type(np.datetime64))
 
     def test_load_pressure_based(self):
         """Test loading all channels based on pressure."""
