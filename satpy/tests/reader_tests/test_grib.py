@@ -308,4 +308,6 @@ class TestGRIBReader:
         dataids = [DataQuery(name='t', level=100, modifiers=tuple())]
         datasets = self._get_test_datasets(dataids, fake_pygrib)
         area = datasets['t'].attrs['area']
+        if not hasattr(area, 'crs'):
+            pytest.skip("Can't test with pyproj < 2.0")
         _round_trip_projection_lonlat_check(area)
