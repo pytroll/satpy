@@ -1,5 +1,5 @@
 reader:
-    name: eum_gac_fcdr_nc
+    name: eum_gac_fdr_nc
     short_name: EUMETSAT_GAC_FDR
     long_name: EUMETCSAT GAC FDR NetCDF4
     description: NetCDF4 reader for EUMETCSAT GAC
