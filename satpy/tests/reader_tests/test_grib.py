@@ -55,10 +55,6 @@ def _round_trip_projection_lonlat_check(area):
     back to X/Y space will produce the wrong result.
 
     """
-    if not hasattr(area, 'crs'):
-        # skip this check if we aren't in pyproj 2.0+
-        return
-
     from pyproj import Proj
     p = Proj(area.crs)
     x, y = area.get_proj_vectors()
