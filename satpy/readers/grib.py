@@ -143,66 +143,100 @@ class GRIBFileHandler(BaseFileHandler):
                 msg = self._idx(**{k: ds_info[k] for k in msg_keys})[0]
             return msg
 
-    def _area_def_from_msg(self, msg):
-        proj_params = msg.projparams.copy()
+    @staticmethod
+    def _correct_cyl_minmax_xy(proj_params, min_lon, min_lat, max_lon, max_lat):
+        proj = Proj(**proj_params)
+        min_x, min_y = proj(min_lon, min_lat)
+        max_x, max_y = proj(max_lon, max_lat)
+        if max_x <= min_x:
+            # wrap around
+            # make 180 longitude the prime meridian
+            # assuming we are going from 0 to 360 longitude
+            proj_params['pm'] = 180
+            proj = Proj(**proj_params)
+            # recompute x/y extents with this new projection
+            min_x, min_y = proj(min_lon, min_lat)
+            max_x, max_y = proj(max_lon, max_lat)
+        return proj_params, (min_x, min_y, max_x, max_y)
+
+    @staticmethod
+    def _get_cyl_minmax_lonlat(lons, lats):
+        min_lon = lons[0]
+        max_lon = lons[-1]
+        min_lat = lats[0]
+        max_lat = lats[-1]
+        if min_lat > max_lat:
+            # lats aren't in the order we thought they were, flip them
+            min_lat, max_lat = max_lat, min_lat
+        return min_lon, min_lat, max_lon, max_lat
+
+    def _get_cyl_area_info(self, msg, proj_params):
+        proj_params['proj'] = 'eqc'
+        lons = msg['distinctLongitudes']
+        lats = msg['distinctLatitudes']
+        shape = (lats.shape[0], lons.shape[0])
+        minmax_lonlat = self._get_cyl_minmax_lonlat(lons, lats)
+        proj_params, minmax_xy = self._correct_cyl_minmax_xy(proj_params, *minmax_lonlat)
+        extents = self._get_extents(*minmax_xy, shape)
+        return proj_params, shape, extents
+
+    @staticmethod
+    def _get_extents(min_x, min_y, max_x, max_y, shape):
+        half_x = abs((max_x - min_x) / (shape[1] - 1)) / 2.
+        half_y = abs((max_y - min_y) / (shape[0] - 1)) / 2.
+        return min_x - half_x, min_y - half_y, max_x + half_x, max_y + half_y
+
+    @staticmethod
+    def _get_corner_xy(proj_params, lons, lats, scans_positively):
+        proj = Proj(**proj_params)
+        x, y = proj(lons, lats)
+        if scans_positively:
+            min_x, min_y = x[0], y[0]
+            max_x, max_y = x[3], y[3]
+        else:
+            min_x, min_y = x[2], y[2]
+            max_x, max_y = x[1], y[1]
+        return min_x, min_y, max_x, max_y
+
+    @staticmethod
+    def _get_corner_lonlat(proj_params, lons, lats):
+        # take the corner points only
+        lons = lons[([0, 0, -1, -1], [0, -1, 0, -1])]
+        lats = lats[([0, 0, -1, -1], [0, -1, 0, -1])]
+        # if we have longitudes over 180, assume 0-360
+        if (lons > 180).any():
+            # make 180 longitude the prime meridian
+            proj_params['pm'] = 180
+        return proj_params, lons, lats
+
+    def _get_area_info(self, msg, proj_params):
+        lats, lons = msg.latlons()
+        shape = lats.shape
+        scans_positively = (msg.valid_key('jScansPositively') and
+                            msg['jScansPositively'] == 1)
+        proj_params, lons, lats = self._get_corner_lonlat(
+            proj_params, lons, lats)
+        minmax_xy = self._get_corner_xy(proj_params, lons, lats, scans_positively)
+        extents = self._get_extents(*minmax_xy, shape)
+        return proj_params, shape, extents
+
+    @staticmethod
+    def _correct_proj_params_over_prime_meridian(proj_params):
         # correct for longitudes over 180
         for lon_param in ['lon_0', 'lon_1', 'lon_2']:
             if proj_params.get(lon_param, 0) > 180:
                 proj_params[lon_param] -= 360
+        return proj_params
 
-        if proj_params['proj'] == 'cyl':
-            proj_params['proj'] = 'eqc'
-            proj = Proj(**proj_params)
-            lons = msg['distinctLongitudes']
-            lats = msg['distinctLatitudes']
-            min_lon = lons[0]
-            max_lon = lons[-1]
-            min_lat = lats[0]
-            max_lat = lats[-1]
-            if min_lat > max_lat:
-                # lats aren't in the order we thought they were, flip them
-                min_lat, max_lat = max_lat, min_lat
-            shape = (lats.shape[0], lons.shape[0])
-            min_x, min_y = proj(min_lon, min_lat)
-            max_x, max_y = proj(max_lon, max_lat)
-            if max_x <= min_x:
-                # wrap around
-                # make 180 longitude the prime meridian
-                # assuming we are going from 0 to 360 longitude
-                proj_params['pm'] = 180
-                proj = Proj(**proj_params)
-                # recompute x/y extents with this new projection
-                min_x, min_y = proj(min_lon, min_lat)
-                max_x, max_y = proj(max_lon, max_lat)
-            pixel_size_x = (max_x - min_x) / (shape[1] - 1)
-            pixel_size_y = (max_y - min_y) / (shape[0] - 1)
-            extents = (
-                min_x - pixel_size_x / 2.,
-                min_y - pixel_size_y / 2.,
-                max_x + pixel_size_x / 2.,
-                max_y + pixel_size_y / 2.,
-            )
+    def _area_def_from_msg(self, msg):
+        proj_params = msg.projparams.copy()
+        proj_params = self._correct_proj_params_over_prime_meridian(proj_params)
+
+        if proj_params['proj'] in ('cyl', 'eqc'):
+            # eqc projection that goes from 0 to 360
+            proj_params, shape, extents = self._get_cyl_area_info(msg, proj_params)
         else:
-            lats, lons = msg.latlons()
-            shape = lats.shape
-            # take the corner points only
-            lons = lons[([0, 0, -1, -1], [0, -1, 0, -1])]
-            lats = lats[([0, 0, -1, -1], [0, -1, 0, -1])]
-            # if we have longitudes over 180, assume 0-360
-            if (lons > 180).any():
-                # make 180 longitude the prime meridian
-                proj_params['pm'] = 180
-            proj = Proj(**proj_params)
-            x, y = proj(lons, lats)
-            if msg.valid_key('jScansPositively') and msg['jScansPositively'] == 1:
-                min_x, min_y = x[0], y[0]
-                max_x, max_y = x[3], y[3]
-            else:
-                min_x, min_y = x[2], y[2]
-                max_x, max_y = x[1], y[1]
-            half_x = abs((max_x - min_x) / (shape[1] - 1)) / 2.
-            half_y = abs((max_y - min_y) / (shape[0] - 1)) / 2.
-            extents = (min_x - half_x, min_y - half_y, max_x + half_x, max_y + half_y)
+            proj_params, shape, extents = self._get_area_info(msg, proj_params)
 
         return geometry.AreaDefinition(
             'on-the-fly grib area',
