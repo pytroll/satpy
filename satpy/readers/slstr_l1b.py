@@ -178,9 +178,7 @@ class NCSLSTR1B(BaseFileHandler):
             variable = self.nc['{}_BT_{}{}'.format(self.channel, self.stripe, self.view[0])]
         else:
             variable = self.nc['{}_radiance_{}{}'.format(self.channel, self.stripe, self.view[0])]
-        print(np.nanmean(variable))
         radiances = self._apply_radiance_adjustment(variable)
-        print(np.nanmean(radiances))
 
         units = variable.attrs['units']
 
